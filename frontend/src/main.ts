@@ -1,22 +1,41 @@
-import './assets/main.css'
+import '@/assets/css/tailwind-related.css'
+import '@/assets/css/main.css'
+import '@fortawesome/fontawesome-free/css/all.min.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import PrimeVue from 'primevue/config'
+import ToastService from 'primevue/toastservice'
+import localeFR from '@/config/locales/fr.json'
+import themePreset from './config/PrimevuePreset'
 
 // Initialisation du thème depuis localStorage
 const savedTheme = localStorage.getItem('theme') || 'light'
 console.log('Theme saved:', savedTheme) // Debug
 if (savedTheme === 'dark') {
-  document.body.classList.add('dark')
+  document.documentElement.classList.add('my-app-dark')
   console.log('Dark mode applied') // Debug
 } else {
-  document.body.classList.remove('dark') // S'assurer que la classe dark est supprimée
+  document.documentElement.classList.remove('my-app-dark') // S'assurer que la classe dark est supprimée
   console.log('Light mode applied') // Debug
 }
 
 const app = createApp(App)
 
+app.use(PrimeVue, {
+  locale: localeFR,
+  theme: {
+    preset: themePreset,
+    options: {
+      prefix: 'p',
+      darkModeSelector: '.my-app-dark',
+      cssLayer: false,
+    },
+  },
+})
+
+app.use(ToastService)
 app.use(router)
 
 app.mount('#app')

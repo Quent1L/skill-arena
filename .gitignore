@@ -1,5 +1,0 @@
-backend/pocketbase/pb_data/
-backend/pocketbase/*.db
-backend/pocketbase/*.db-shm
-backend/pocketbase/*.db-wal
-backend/pocketbase/logs/

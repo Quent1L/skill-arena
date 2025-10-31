@@ -4,11 +4,16 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
+import Components from 'unplugin-vue-components/vite'
+import { PrimeVueResolver } from '@primevue/auto-import-resolver'
 
 export default defineConfig({
   plugins: [
     tailwindcss(),
     vue(),
+    Components({
+      resolvers: [PrimeVueResolver()],
+    }),
     vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
