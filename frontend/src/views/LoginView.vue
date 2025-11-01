@@ -8,7 +8,7 @@
 
       <Card>
         <template #content>
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form @submit="onSubmit" class="space-y-6">
             <div class="flex flex-col gap-2">
               <label for="email" class="font-medium">Adresse email</label>
               <InputText
@@ -16,10 +16,13 @@
                 v-model="email"
                 type="email"
                 placeholder="vous@exemple.com"
-                required
                 :disabled="loading"
+                :invalid="!!errors.email"
                 class="w-full"
               />
+              <small v-if="errors.email" class="text-red-500">
+                {{ errors.email }}
+              </small>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -29,15 +32,18 @@
                 v-model="password"
                 :feedback="false"
                 toggle-mask
-                required
                 :disabled="loading"
+                :invalid="!!errors.password"
                 class="w-full"
                 input-class="w-full"
               />
+              <small v-if="errors.password" class="text-red-500">
+                {{ errors.password }}
+              </small>
             </div>
 
-            <Message v-if="error || localError" severity="error" :closable="false">
-              {{ error ?? localError }}
+            <Message v-if="error" severity="error" :closable="false">
+              {{ error }}
             </Message>
 
             <div class="space-y-3">
@@ -76,35 +82,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { loginSchema } from '@/schemas/auth.schema'
 
 const router = useRouter()
 const route = useRoute()
 const { login, loading, error } = useAuth()
 
-const email = ref('')
-const password = ref('')
-const localError = ref<string | null>(null)
+const { defineField, handleSubmit, errors } = useForm({
+  validationSchema: toTypedSchema(loginSchema),
+})
 
-async function handleSubmit() {
-  localError.value = null
+const [email] = defineField('email')
+const [password] = defineField('password')
 
-  if (!email.value || !password.value) {
-    localError.value = 'Veuillez remplir tous les champs'
-    return
-  }
+const onSubmit = handleSubmit(async (values) => {
   try {
     await login({
-      email: email.value,
-      password: password.value,
+      email: values.email,
+      password: values.password,
     })
-    
+
     const redirectPath = route.query.redirect as string
     router.push(redirectPath || '/tournaments')
   } catch (err) {
     console.error('Erreur de connexion:', err)
   }
-}
+})
 </script>
