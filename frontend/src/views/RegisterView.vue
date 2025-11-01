@@ -8,7 +8,7 @@
 
       <Card>
         <template #content>
-          <form @submit.prevent="handleSubmit" class="space-y-6">
+          <form @submit="onSubmit" class="space-y-6">
             <div class="flex flex-col gap-2">
               <label for="email" class="font-medium">Adresse email</label>
               <InputText
@@ -16,23 +16,13 @@
                 v-model="email"
                 type="email"
                 placeholder="vous@exemple.com"
-                required
                 :disabled="loading"
+                :invalid="!!errors.email"
                 class="w-full"
               />
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label for="username" class="font-medium">Nom d'utilisateur</label>
-              <InputText
-                id="username"
-                v-model="username"
-                type="text"
-                placeholder="johndoe"
-                required
-                :disabled="loading"
-                class="w-full"
-              />
+              <small v-if="errors.email" class="text-red-500">
+                {{ errors.email }}
+              </small>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -43,8 +33,12 @@
                 type="text"
                 placeholder="John Doe"
                 :disabled="loading"
+                :invalid="!!errors.name"
                 class="w-full"
               />
+              <small v-if="errors.name" class="text-red-500">
+                {{ errors.name }}
+              </small>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -54,14 +48,13 @@
                 v-model="password"
                 :feedback="false"
                 toggle-mask
-                required
                 :disabled="loading"
+                :invalid="!!errors.password"
                 class="w-full"
                 input-class="w-full"
-                :invalid="password.length > 0 && password.length < 8"
               />
-              <small v-if="password.length > 0 && password.length < 8" class="text-red-500">
-                Minimum 8 caractères
+              <small v-if="errors.password" class="text-red-500">
+                {{ errors.password }}
               </small>
             </div>
 
@@ -72,19 +65,18 @@
                 v-model="passwordConfirm"
                 :feedback="false"
                 toggle-mask
-                required
                 :disabled="loading"
+                :invalid="!!errors.passwordConfirm"
                 class="w-full"
                 input-class="w-full"
-                :invalid="!passwordsMatch"
               />
-              <small v-if="!passwordsMatch" class="text-red-500">
-                Les mots de passe ne correspondent pas
+              <small v-if="errors.passwordConfirm" class="text-red-500">
+                {{ errors.passwordConfirm }}
               </small>
             </div>
 
-            <Message v-if="error || localError" severity="error" :closable="false">
-              {{ error || localError }}
+            <Message v-if="error" severity="error" :closable="false">
+              {{ error }}
             </Message>
 
             <Message severity="info" :closable="false">
@@ -95,7 +87,7 @@
               <Button
                 type="submit"
                 :loading="loading"
-                :disabled="!isFormValid || loading"
+                :disabled="loading"
                 label="Créer mon compte"
                 class="w-full"
               />
@@ -122,64 +114,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { registerSchema } from '@/schemas/auth.schema'
 
 const router = useRouter()
 const route = useRoute()
 const { register, loading, error } = useAuth()
 
-const email = ref('')
-const username = ref('')
-const name = ref('')
-const password = ref('')
-const passwordConfirm = ref('')
-const localError = ref<string | null>(null)
-
-const passwordsMatch = computed(() => {
-  if (!password.value || !passwordConfirm.value) return true
-  return password.value === passwordConfirm.value
+const { defineField, handleSubmit, errors } = useForm({
+  validationSchema: toTypedSchema(registerSchema),
 })
 
-const isFormValid = computed(() => {
-  return (
-    email.value &&
-    username.value &&
-    password.value &&
-    passwordConfirm.value &&
-    passwordsMatch.value &&
-    password.value.length >= 8
-  )
-})
+const [email] = defineField('email')
+const [name] = defineField('name')
+const [password] = defineField('password')
+const [passwordConfirm] = defineField('passwordConfirm')
 
-function handleSubmit() {
-  localError.value = null
+const onSubmit = handleSubmit(async (values) => {
+  try {
+    await register({
+      email: values.email,
+      name: values.name,
+      password: values.password,
+      passwordConfirm: values.passwordConfirm,
+    })
 
-  if (!isFormValid.value) {
-    if (!passwordsMatch.value) {
-      localError.value = 'Les mots de passe ne correspondent pas'
-    } else if (password.value.length < 8) {
-      localError.value = 'Le mot de passe doit contenir au moins 8 caractères'
-    } else {
-      localError.value = 'Veuillez remplir tous les champs obligatoires'
-    }
-    return
+    const redirectPath = route.query.redirect as string
+    router.push(redirectPath || '/tournaments')
+  } catch (err) {
+    console.error("Erreur d'inscription:", err)
   }
-
-  register({
-    email: email.value,
-    username: username.value,
-    name: name.value || undefined,
-    password: password.value,
-    passwordConfirm: passwordConfirm.value,
-  })
-    .then(() => {
-      const redirectPath = route.query.redirect as string
-      router.push(redirectPath || '/tournaments')
-    })
-    .catch((err) => {
-      console.error("Erreur d'inscription:", err)
-    })
-}
+})
 </script>

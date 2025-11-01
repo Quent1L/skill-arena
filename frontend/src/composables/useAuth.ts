@@ -4,40 +4,39 @@
 
 import { ref, computed } from 'vue'
 import { authClient } from '@/lib/auth-client'
-import type { LoginCredentials, RegisterCredentials } from '@skill-arena/shared'
 
 export function useAuth() {
+  const sessionData = authClient.useSession()
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // Hook Better Auth pour obtenir la session
-  const sessionData = authClient.useSession()
-
   const currentUser = computed(() => sessionData.value.data?.user || null)
   const isAuthenticated = computed(() => !!sessionData.value.data?.user)
-  const isAdmin = computed(() => sessionData.value.data?.user?.isAdmin || false)
+  //const isAdmin = computed(() => sessionData.value.data?.user?.isAdmin || false)
 
   /**
-   * Connexion d'un utilisateur
+   * Connexion avec email et mot de passe
    */
-  const login = async (credentials: LoginCredentials) => {
+  async function login(credentials: { email: string; password: string }) {
     loading.value = true
     error.value = null
 
     try {
-      const { data, error: authError } = await authClient.signIn.email({
+      const result = await authClient.signIn.email({
         email: credentials.email,
         password: credentials.password,
       })
 
-      if (authError) {
-        throw new Error(authError.message || 'Erreur de connexion')
+      if (result.error) {
+        error.value = result.error.message || 'Erreur de connexion'
+        throw new Error(result.error.message)
       }
 
-      return data?.user
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur de connexion'
-      error.value = errorMessage
+      return result
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Une erreur est survenue lors de la connexion'
+      error.value = message
       throw err
     } finally {
       loading.value = false
@@ -45,31 +44,40 @@ export function useAuth() {
   }
 
   /**
-   * Inscription d'un nouvel utilisateur
+   * Inscription avec email et mot de passe
    */
-  const register = async (credentials: RegisterCredentials) => {
+  async function register(credentials: {
+    email: string
+    name?: string
+    password: string
+    passwordConfirm: string
+  }) {
     loading.value = true
     error.value = null
 
     try {
-      // Utiliser le nom fourni, sinon le username, sinon la partie avant @ de l'email
-      const displayName =
-        credentials.name ?? credentials.username ?? credentials.email.split('@')[0]
-
-      const { data, error: authError } = await authClient.signUp.email({
+      const signUpData: {
+        email: string
+        password: string
+        name: string
+      } = {
         email: credentials.email,
         password: credentials.password,
-        name: displayName ?? '',
-      })
-
-      if (authError) {
-        throw new Error(authError.message || "Erreur lors de l'inscription")
+        name: credentials.name ?? credentials.email.split('@')[0] ?? 'User',
       }
 
-      return data?.user
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'inscription"
-      error.value = errorMessage
+      const result = await authClient.signUp.email(signUpData)
+
+      if (result.error) {
+        error.value = result.error.message || "Erreur lors de l'inscription"
+        throw new Error(result.error.message)
+      }
+
+      return result
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Une erreur est survenue lors de l'inscription"
+      error.value = message
       throw err
     } finally {
       loading.value = false
@@ -79,31 +87,30 @@ export function useAuth() {
   /**
    * Déconnexion
    */
-  const logout = async () => {
+  async function logout() {
+    loading.value = true
+    error.value = null
+
     try {
       await authClient.signOut()
-    } catch (err: unknown) {
-      console.error('Erreur lors de la déconnexion:', err)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Une erreur est survenue lors de la déconnexion'
+      error.value = message
+      throw err
+    } finally {
+      loading.value = false
     }
-  }
-
-  /**
-   * Rafraîchir les informations de l'utilisateur
-   */
-  const refreshUser = async () => {
-    // Better Auth gère automatiquement le rafraîchissement de session
-    // La session est mise à jour automatiquement via les hooks
   }
 
   return {
     currentUser,
     isAuthenticated,
-    isAdmin,
-    loading: computed(() => loading.value || sessionData.value.isPending),
-    error: computed(() => error.value),
+    loading,
+    error,
     login,
     register,
     logout,
-    refreshUser,
+    authClient,
   }
 }

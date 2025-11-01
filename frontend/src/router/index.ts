@@ -4,9 +4,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
-import TournamentsList from '@/views/TournamentsList.vue'
-import TournamentDetailView from '@/views/TournamentDetailView.vue'
-import AdminTournaments from '@/views/AdminTournaments.vue'
+//import AdminTournaments from '@/views/AdminTournaments.vue'
 import { requireAdmin } from './guards'
 
 declare module 'vue-router' {
@@ -29,28 +27,7 @@ const routes: RouteRecordRaw[] = [
       hideBreadcrumb: true,
     },
   },
-  {
-    path: '/tournaments',
-    name: 'tournaments',
-    component: TournamentsList,
-    meta: {
-      breadcrumb: 'Tournois',
-      title: 'Tournois',
-      hideBreadcrumb: true,
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/tournaments/:id',
-    name: 'tournament-detail',
-    component: TournamentDetailView,
-    meta: {
-      breadcrumb: 'Détail du tournoi',
-      title: 'Détail du tournoi',
-      parent: 'tournaments',
-      requiresAuth: true,
-    },
-  },
+
   {
     path: '/login',
     name: 'login',
@@ -69,7 +46,7 @@ const routes: RouteRecordRaw[] = [
       hideBreadcrumb: true,
     },
   },
-  {
+  /* {
     path: '/admin/tournaments',
     name: 'admin-tournaments',
     component: AdminTournaments,
@@ -79,7 +56,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Administration des tournois',
       requiresAuth: true,
     },
-  },
+  },*/
 ]
 
 const router = createRouter({

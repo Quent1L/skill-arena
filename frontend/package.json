@@ -22,7 +22,8 @@
     "@elysiajs/eden": "^1.4.4",
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@primeuix/themes": "^1.2.5",
-    "better-auth": "^1.3.32",
+    "@vee-validate/zod": "^4.15.1",
+    "better-auth": "^1.3.34",
     "gsap": "^3.13.0",
     "hono": "^4.10.3",
     "motion-v": "^1.7.4",
@@ -30,9 +31,10 @@
     "primevue": "^4.4.1",
     "tailwindcss-primeui": "^0.6.1",
     "three": "^0.180.0",
+    "vee-validate": "^4.15.1",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3",
-    "backend": "workspace:*"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@prettier/plugin-oxc": "^0.0.4",
@@ -48,7 +50,6 @@
     "@vue/eslint-config-typescript": "^14.6.0",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
-    "elysia": "1.4.13",
     "eslint": "^9.37.0",
     "eslint-plugin-oxlint": "~1.23.0",
     "eslint-plugin-vue": "~10.5.0",
