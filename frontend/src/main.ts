@@ -9,6 +9,7 @@ import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import localeFR from '@/config/locales/fr.json'
 import themePreset from './config/PrimevuePreset'
+import { useAuth } from './composables/useAuth'
 
 // Initialisation du thème depuis localStorage
 const savedTheme = localStorage.getItem('theme') || 'light'
@@ -21,6 +22,9 @@ if (savedTheme === 'dark') {
   console.log('Light mode applied') // Debug
 }
 
+const { checkSession } = useAuth()
+
+await checkSession()
 const app = createApp(App)
 
 app.use(PrimeVue, {
