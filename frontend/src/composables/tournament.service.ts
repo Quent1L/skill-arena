@@ -1,17 +1,16 @@
 import { ref, computed } from 'vue'
-import { tournamentApi, type TournamentResponse } from './tournament.api'
+import {
+  tournamentApi,
+  type TournamentResponse,
+  type CreateTournamentPayload,
+} from './tournament.api'
 import type {
   CreateTournamentFormData,
   UpdateTournamentFormData,
-} from '@/schemas/tournament.schema'
-import { toApiPayload } from '@/schemas/tournament.schema'
+  TournamentStatus,
+} from '@skill-arena/shared'
+import { formDataToApiPayload } from '@skill-arena/shared'
 import { useAuth } from './useAuth'
-import { is } from 'date-fns/locale'
-
-// Type guard for checking if user has role property
-interface UserWithRole {
-  role?: 'player' | 'tournament_admin' | 'super_admin'
-}
 
 /**
  * Tournament service - Business logic and state management
@@ -29,7 +28,6 @@ export function useTournamentService() {
    */
   const canCreateTournament = computed(() => {
     if (!currentUser.value) return false
-    const user = currentUser.value as UserWithRole
     // Match backend logic - only tournament_admin or super_admin can create
     return isSuperAdmin.value
   })
@@ -42,8 +40,12 @@ export function useTournamentService() {
 
     if (isSuperAdmin.value) return true
 
+    // TODO: Implement when tournament admins are available in BaseTournament
     // Check if user is in the tournament admins
-    return tournament.admins?.some((admin) => admin.user.id === currentUser.value?.id) ?? false
+    // return tournament.admins?.some((admin) => admin.user.id === currentUser.value?.id) ?? false
+
+    // For now, only super admin can manage
+    return false
   }
 
   /**
@@ -54,13 +56,17 @@ export function useTournamentService() {
 
     if (isSuperAdmin.value) return true
 
+    // TODO: Implement when tournament admins are available
     // Owner can delete (but only if draft)
-    const isOwner =
-      tournament.admins?.some(
-        (admin) => admin.user.id === currentUser.value?.id && admin.role === 'owner',
-      ) ?? false
+    // const isOwner =
+    //   tournament.admins?.some(
+    //     (admin) => admin.user.id === currentUser.value?.id && admin.role === 'owner',
+    //   ) ?? false
 
-    return isOwner && tournament.status === 'draft'
+    // return isOwner && tournament.status === 'draft'
+
+    // For now, only super admin can delete drafts
+    return tournament.status === 'draft'
   }
 
   /**
@@ -88,7 +94,7 @@ export function useTournamentService() {
    * List tournaments with optional filters
    */
   async function listTournaments(filters?: {
-    status?: 'draft' | 'open' | 'ongoing' | 'finished'
+    status?: TournamentStatus
     mode?: 'championship' | 'bracket'
   }) {
     loading.value = true
@@ -135,7 +141,7 @@ export function useTournamentService() {
     error.value = null
 
     try {
-      const payload = toApiPayload(formData)
+      const payload = formDataToApiPayload(formData) as CreateTournamentPayload
       const tournament = await tournamentApi.create(payload)
 
       // Add to list if already loaded
@@ -160,7 +166,7 @@ export function useTournamentService() {
     error.value = null
 
     try {
-      const payload = toApiPayload(formData)
+      const payload = formDataToApiPayload(formData)
       const tournament = await tournamentApi.update(id, payload)
 
       // Update in list
@@ -186,10 +192,7 @@ export function useTournamentService() {
   /**
    * Change tournament status
    */
-  async function changeTournamentStatus(
-    id: string,
-    status: 'draft' | 'open' | 'ongoing' | 'finished',
-  ) {
+  async function changeTournamentStatus(id: string, status: TournamentStatus) {
     loading.value = true
     error.value = null
 
@@ -246,10 +249,8 @@ export function useTournamentService() {
   /**
    * Get available status transitions
    */
-  function getAvailableStatusTransitions(
-    currentStatus: 'draft' | 'open' | 'ongoing' | 'finished',
-  ): Array<'draft' | 'open' | 'ongoing' | 'finished'> {
-    const transitions: Record<string, Array<'draft' | 'open' | 'ongoing' | 'finished'>> = {
+  function getAvailableStatusTransitions(currentStatus: TournamentStatus): TournamentStatus[] {
+    const transitions: Record<string, TournamentStatus[]> = {
       draft: ['open'],
       open: ['ongoing', 'draft'],
       ongoing: ['finished'],

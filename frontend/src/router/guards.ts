@@ -1,11 +1,10 @@
 /**
- * Navigation Guard pour protéger les routes authentifiées
+ * Navigation Guards pour protéger les routes authentifiées
  */
 
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
-const { isAuthenticated, isSuperAdmin } = useAuth()
 /**
  * Middleware pour vérifier l'authentification
  */
@@ -14,9 +13,14 @@ export async function requireAuth(
   from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
-  next()
-  return
+  const { isAuthenticated, isInitialized, initialize } = useAuth()
+
   try {
+    // Initialiser la session si ce n'est pas déjà fait
+    if (!isInitialized.value) {
+      await initialize()
+    }
+
     if (isAuthenticated.value) {
       next()
     } else {
@@ -25,7 +29,8 @@ export async function requireAuth(
         query: { redirect: to.fullPath },
       })
     }
-  } catch {
+  } catch (error) {
+    console.error('❌ Error during authentication check:', error)
     next({
       path: '/login',
       query: { redirect: to.fullPath },
@@ -41,12 +46,16 @@ export async function requireAdmin(
   from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
-  next()
-  return
+  const { isAuthenticated, isSuperAdmin, isInitialized, initialize } = useAuth()
+
   try {
+    // Initialiser la session si ce n'est pas déjà fait
+    if (!isInitialized.value) {
+      await initialize()
+    }
+
     if (!isAuthenticated.value) {
       console.warn("❌ Pas d'utilisateur connecté")
-      // Rediriger vers la page de connexion
       next({
         path: '/login',
         query: { redirect: to.fullPath },
@@ -55,6 +64,7 @@ export async function requireAdmin(
       console.log('✅ Utilisateur est admin, accès autorisé')
       next()
     } else {
+      console.warn('❌ Utilisateur connecté mais pas admin')
       next({
         path: '/',
         replace: true,
@@ -62,11 +72,40 @@ export async function requireAdmin(
     }
   } catch (error) {
     console.error('❌ Error checking admin status:', error)
-    // En cas d'erreur, rediriger vers login
     next({
       path: '/login',
       query: { redirect: to.fullPath },
     })
+  }
+}
+
+/**
+ * Middleware pour rediriger les utilisateurs déjà connectés
+ */
+export async function redirectIfAuthenticated(
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+  next: NavigationGuardNext,
+) {
+  const { isAuthenticated, isInitialized, initialize } = useAuth()
+
+  try {
+    // Initialiser la session si ce n'est pas déjà fait
+    if (!isInitialized.value) {
+      await initialize()
+    }
+
+    if (isAuthenticated.value) {
+      // Rediriger vers la page demandée ou vers les tournois par défaut
+      const redirectPath = to.query.redirect?.toString() || '/tournaments'
+      next(redirectPath)
+    } else {
+      next()
+    }
+  } catch (error) {
+    console.error('❌ Error during redirect check:', error)
+    // En cas d'erreur, continuer vers login/register
+    next()
   }
 }
 

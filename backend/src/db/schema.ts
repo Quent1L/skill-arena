@@ -8,9 +8,8 @@ import {
   pgEnum,
   date,
   unique,
-  check,
 } from "drizzle-orm/pg-core";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 // ********************************************************************
 // [Start] Database schema for Better Auth with Drizzle ORM and PostgreSQL
@@ -135,43 +134,33 @@ export const appUsers = pgTable("app_users", {
 });
 
 // Table tournaments
-export const tournaments = pgTable(
-  "tournaments",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    name: text("name").notNull().unique(),
-    description: text("description"),
-    mode: tournamentModeEnum("mode").notNull(),
-    teamMode: teamModeEnum("team_mode").notNull(),
-    teamSize: integer("team_size").notNull(),
-    maxMatchesPerPlayer: integer("max_matches_per_player")
-      .notNull()
-      .default(10),
-    maxTimesWithSamePartner: integer("max_times_with_same_partner")
-      .notNull()
-      .default(2),
-    maxTimesWithSameOpponent: integer("max_times_with_same_opponent")
-      .notNull()
-      .default(2),
-    pointPerVictory: integer("point_per_victory").default(3),
-    pointPerDraw: integer("point_per_draw").default(1),
-    pointPerLoss: integer("point_per_loss").default(0),
-    allowDraw: boolean("allow_draw").default(true),
-    startDate: date("start_date").notNull(),
-    endDate: date("end_date").notNull(),
-    status: tournamentStatusEnum("status").notNull().default("draft"),
-    createdBy: uuid("created_by")
-      .notNull()
-      .references(() => appUsers.id, { onDelete: "restrict" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    teamSizeCheck: check(
-      "team_size_check",
-      sql`${table.teamSize} >= 1 AND ${table.teamSize} <= 2`
-    ),
-  })
-);
+export const tournaments = pgTable("tournaments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  mode: tournamentModeEnum("mode").notNull(),
+  teamMode: teamModeEnum("team_mode").notNull(),
+  minTeamSize: integer("min_team_size").notNull(),
+  maxTeamSize: integer("max_team_size").notNull(),
+  maxMatchesPerPlayer: integer("max_matches_per_player").notNull().default(10),
+  maxTimesWithSamePartner: integer("max_times_with_same_partner")
+    .notNull()
+    .default(2),
+  maxTimesWithSameOpponent: integer("max_times_with_same_opponent")
+    .notNull()
+    .default(2),
+  pointPerVictory: integer("point_per_victory").default(3),
+  pointPerDraw: integer("point_per_draw").default(1),
+  pointPerLoss: integer("point_per_loss").default(0),
+  allowDraw: boolean("allow_draw").default(true),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  status: tournamentStatusEnum("status").notNull().default("draft"),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // Table tournament_admins
 export const tournamentAdmins = pgTable(
@@ -187,11 +176,10 @@ export const tournamentAdmins = pgTable(
     role: tournamentAdminRoleEnum("role").notNull().default("co_admin"),
     addedAt: timestamp("added_at").defaultNow().notNull(),
   },
-  (table) => ({
-    uniqueTournamentUser: unique().on(table.tournamentId, table.userId),
-  })
+  (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
+// Table teams
 // Table teams
 export const teams = pgTable(
   "teams",
@@ -207,12 +195,13 @@ export const teams = pgTable(
       .references(() => appUsers.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => ({
-    uniqueTournamentName: unique().on(table.tournamentId, table.name),
-    uniqueTournamentHash: unique().on(table.tournamentId, table.hash),
-  })
+  (table) => [
+    unique().on(table.tournamentId, table.name),
+    unique().on(table.tournamentId, table.hash),
+  ]
 );
 
+// Table tournament_participants
 // Table tournament_participants
 export const tournamentParticipants = pgTable(
   "tournament_participants",
@@ -230,11 +219,10 @@ export const tournamentParticipants = pgTable(
     matchesPlayed: integer("matches_played").notNull().default(0),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
-  (table) => ({
-    uniqueTournamentUser: unique().on(table.tournamentId, table.userId),
-  })
+  (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
+// Table matches
 // Table matches
 export const matches = pgTable(
   "matches",
@@ -266,9 +254,7 @@ export const matches = pgTable(
     confirmationAt: timestamp("confirmation_at"),
     reportProof: text("report_proof"),
   },
-  (table) => ({
-    uniqueMatch: unique().on(table.tournamentId, table.teamAId, table.teamBId),
-  })
+  (table) => [unique().on(table.tournamentId, table.teamAId, table.teamBId)]
 );
 
 // Table championship_standings

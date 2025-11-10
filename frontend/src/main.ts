@@ -22,9 +22,16 @@ if (savedTheme === 'dark') {
   console.log('Light mode applied') // Debug
 }
 
-const { checkSession } = useAuth()
+const { initialize } = useAuth()
 
-await checkSession()
+// Initialiser la session au démarrage
+try {
+  await initialize()
+} catch (error) {
+  console.error("❌ Erreur lors de l'initialisation de la session:", error)
+  // Continuer le démarrage même en cas d'erreur
+}
+
 const app = createApp(App)
 
 app.use(PrimeVue, {

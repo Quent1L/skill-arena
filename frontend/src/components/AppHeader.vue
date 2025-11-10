@@ -116,6 +116,6 @@ function getUserInitials(user: User): string {
       .toUpperCase()
       .substring(0, 2)
   }
-  return user.username ? user.username.substring(0, 2).toUpperCase() : '??'
+  return user.email ? user.email.substring(0, 2).toUpperCase() : '??'
 }
 </script>

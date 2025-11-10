@@ -1,39 +1,37 @@
 <template>
   <div class="tournament-list-view p-4">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">Gestion des Tournois</h1>
-      <Button
-        v-if="canCreateTournament"
-        label="Nouveau tournoi"
-        icon="pi pi-plus"
-        @click="router.push('/admin/tournaments/new')"
-      />
+    <div class="flex justify-between items-center mb-4 flex-xrap">
+      <div class="flex flex-wrap gap-4">
+        <Dropdown
+          v-model="selectedStatus"
+          :options="statusOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Tous les statuts"
+          show-clear
+          class="w-48"
+          @change="applyFilters"
+        />
+        <Dropdown
+          v-model="selectedMode"
+          :options="modeOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Tous les modes"
+          show-clear
+          class="w-48"
+          @change="applyFilters"
+        />
+      </div>
+      <div>
+        <Button
+          v-if="canCreateTournament"
+          label="Nouveau tournoi"
+          icon="fa fa-plus"
+          @click="router.push('/admin/tournaments/new')"
+        />
+      </div>
     </div>
-
-    <!-- Filters -->
-    <div class="flex gap-4 mb-4">
-      <Dropdown
-        v-model="selectedStatus"
-        :options="statusOptions"
-        option-label="label"
-        option-value="value"
-        placeholder="Tous les statuts"
-        show-clear
-        class="w-48"
-        @change="applyFilters"
-      />
-      <Dropdown
-        v-model="selectedMode"
-        :options="modeOptions"
-        option-label="label"
-        option-value="value"
-        placeholder="Tous les modes"
-        show-clear
-        class="w-48"
-        @change="applyFilters"
-      />
-    </div>
-
     <!-- Error message -->
     <Message v-if="error" severity="error" :closable="true">
       {{ error }}
@@ -53,7 +51,7 @@
       <Column field="name" header="Nom" sortable>
         <template #body="{ data }">
           <router-link
-            :to="`/admin/tournaments/${data.id}`"
+            :to="`/admin/tournaments/${data.id}/edit`"
             class="text-primary hover:underline font-semibold"
           >
             {{ data.name }}
@@ -102,7 +100,7 @@
           <div class="flex gap-2">
             <Button
               v-if="canManageTournament(data)"
-              icon="pi pi-pencil"
+              icon="fa fa-edit"
               size="small"
               text
               rounded
@@ -111,7 +109,7 @@
             />
             <Button
               v-if="canDeleteTournament(data)"
-              icon="pi pi-trash"
+              icon="fa fa-trash"
               size="small"
               severity="danger"
               text

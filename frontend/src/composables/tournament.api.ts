@@ -1,81 +1,29 @@
 import http from '@/config/ApiConfig'
+import type {
+  BaseTournament,
+  CreateTournamentRequestData,
+  UpdateTournamentApiData,
+  TournamentStatus,
+  TournamentMode,
+} from '@skill-arena/shared'
 
 const BASE_URL = '/api/tournaments'
 
-export interface TournamentResponse {
-  id: string
-  name: string
-  description?: string
-  mode: 'championship' | 'bracket'
-  teamMode: 'static' | 'flex'
-  teamSize: number
-  maxMatchesPerPlayer: number
-  maxTimesWithSamePartner: number
-  maxTimesWithSameOpponent: number
-  pointPerVictory: number | null
-  pointPerDraw: number | null
-  pointPerLoss: number | null
-  allowDraw: boolean | null
-  startDate: Date
-  endDate: Date
-  status: 'draft' | 'open' | 'ongoing' | 'finished'
-  createdBy: string
-  createdAt: Date
-  creator?: {
-    id: string
-    displayName: string
-    role: 'player' | 'tournament_admin' | 'super_admin'
-  }
-  admins?: Array<{
-    id: string
-    role: 'owner' | 'co_admin'
-    user: {
-      id: string
-      displayName: string
-    }
-  }>
-}
+// Type alias pour l'API response (BaseTournament du package shared)
+export type TournamentResponse = BaseTournament
 
-export interface CreateTournamentPayload {
-  name: string
-  description?: string
-  mode: 'championship' | 'bracket'
-  teamMode: 'static' | 'flex'
-  teamSize: number
-  maxMatchesPerPlayer?: number
-  maxTimesWithSamePartner?: number
-  maxTimesWithSameOpponent?: number
-  pointPerVictory?: number
-  pointPerDraw?: number
-  pointPerLoss?: number
-  allowDraw?: boolean
-  startDate: string
-  endDate: string
-}
-
-export interface UpdateTournamentPayload {
-  name?: string
-  description?: string
-  mode?: 'championship' | 'bracket'
-  teamMode?: 'static' | 'flex'
-  teamSize?: number
-  maxMatchesPerPlayer?: number
-  maxTimesWithSamePartner?: number
-  maxTimesWithSameOpponent?: number
-  pointPerVictory?: number
-  pointPerDraw?: number
-  pointPerLoss?: number
-  allowDraw?: boolean
-  startDate?: string
-  endDate?: string
-  status?: 'draft' | 'open' | 'ongoing' | 'finished'
-}
-
+// Interface pour les filtres de liste (basée sur ListTournamentsQuery du shared)
 export interface ListTournamentsFilters {
-  status?: 'draft' | 'open' | 'ongoing' | 'finished'
-  mode?: 'championship' | 'bracket'
+  status?: TournamentStatus
+  mode?: TournamentMode
   createdBy?: string
 }
+
+// Type pour le payload de création (sans createdBy qui est ajouté côté serveur)
+export type CreateTournamentPayload = CreateTournamentRequestData
+
+// Type pour le payload de mise à jour
+export type UpdateTournamentPayload = UpdateTournamentApiData
 
 /**
  * Raw API calls to backend - no business logic here
@@ -118,10 +66,7 @@ export const tournamentApi = {
   /**
    * Change tournament status
    */
-  async changeStatus(
-    id: string,
-    status: 'draft' | 'open' | 'ongoing' | 'finished',
-  ): Promise<TournamentResponse> {
+  async changeStatus(id: string, status: TournamentStatus): Promise<TournamentResponse> {
     const response = await http.patch<TournamentResponse>(`${BASE_URL}/${id}/status`, { status })
     return response.data
   },

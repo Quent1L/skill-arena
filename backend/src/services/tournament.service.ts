@@ -1,82 +1,13 @@
-import { eq, and, count } from "drizzle-orm";
-import { db } from "../config/database";
+import { tournamentRepository } from "../repository/tournament.repository";
+import { userRepository } from "../repository/user.repository";
 import {
-  tournaments,
-  tournamentAdmins,
-  appUsers,
-  type tournamentModeEnum,
-  type teamModeEnum,
-  type tournamentStatusEnum,
-} from "../db/schema";
-
-export type TournamentMode = (typeof tournamentModeEnum.enumValues)[number];
-export type TeamMode = (typeof teamModeEnum.enumValues)[number];
-export type TournamentStatus = (typeof tournamentStatusEnum.enumValues)[number];
-
-export interface CreateTournamentInput {
-  name: string;
-  description?: string;
-  mode: TournamentMode;
-  teamMode: TeamMode;
-  teamSize: number;
-  maxMatchesPerPlayer?: number;
-  maxTimesWithSamePartner?: number;
-  maxTimesWithSameOpponent?: number;
-  pointPerVictory?: number;
-  pointPerDraw?: number;
-  pointPerLoss?: number;
-  allowDraw?: boolean;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
-  createdBy: string; // uuid
-}
-
-export interface UpdateTournamentInput {
-  name?: string;
-  description?: string;
-  mode?: TournamentMode;
-  teamMode?: TeamMode;
-  teamSize?: number;
-  maxMatchesPerPlayer?: number;
-  maxTimesWithSamePartner?: number;
-  maxTimesWithSameOpponent?: number;
-  pointPerVictory?: number;
-  pointPerDraw?: number;
-  pointPerLoss?: number;
-  allowDraw?: boolean;
-  startDate?: string;
-  endDate?: string;
-  status?: TournamentStatus;
-}
+  type CreateTournamentInput,
+  type UpdateTournamentInput,
+  type TournamentMode,
+  type TournamentStatus,
+} from "@skill-arena/shared";
 
 export class TournamentService {
-  /**
-   * Get or create app_user from BetterAuth external ID
-   */
-  async getOrCreateAppUser(
-    betterAuthUserId: string,
-    displayName: string
-  ): Promise<string> {
-    // Check if app_user already exists
-    let appUser = await db.query.appUsers.findFirst({
-      where: eq(appUsers.externalId, betterAuthUserId),
-    });
-
-    // If not, create it
-    if (!appUser) {
-      [appUser] = await db
-        .insert(appUsers)
-        .values({
-          externalId: betterAuthUserId,
-          displayName: displayName,
-          role: "player",
-        })
-        .returning();
-    }
-
-    return appUser.id;
-  }
-
   /**
    * Check if user can manage tournament (owner, co_admin, or super_admin)
    */
@@ -84,32 +15,23 @@ export class TournamentService {
     tournamentId: string,
     userId: string
   ): Promise<boolean> {
-    // Check if user is super_admin
-    const user = await db.query.appUsers.findFirst({
-      where: eq(appUsers.id, userId),
-    });
+    const user = await userRepository.getById(userId);
 
     if (!user) return false;
     if (user.role === "super_admin") return true;
 
     // Check if user is tournament admin (owner or co_admin)
-    const adminRecord = await db.query.tournamentAdmins.findFirst({
-      where: and(
-        eq(tournamentAdmins.tournamentId, tournamentId),
-        eq(tournamentAdmins.userId, userId)
-      ),
-    });
-
-    return !!adminRecord;
+    return await tournamentRepository.isUserTournamentAdmin(
+      tournamentId,
+      userId
+    );
   }
 
   /**
    * Check if user can create tournaments
    */
   async canCreateTournament(userId: string): Promise<boolean> {
-    const user = await db.query.appUsers.findFirst({
-      where: eq(appUsers.id, userId),
-    });
+    const user = await userRepository.getById(userId);
 
     if (!user) return false;
     return user.role === "tournament_admin" || user.role === "super_admin";
@@ -119,14 +41,7 @@ export class TournamentService {
    * Count draft tournaments for a user
    */
   async countDraftTournaments(userId: string): Promise<number> {
-    const result = await db
-      .select({ count: count() })
-      .from(tournaments)
-      .where(
-        and(eq(tournaments.createdBy, userId), eq(tournaments.status, "draft"))
-      );
-
-    return result[0]?.count ?? 0;
+    return await tournamentRepository.countByUserAndStatus(userId, "draft");
   }
 
   /**
@@ -154,40 +69,39 @@ export class TournamentService {
       throw new Error("Start date must be before end date");
     }
 
-    // Validate team size
-    if (input.teamSize < 1 || input.teamSize > 2) {
-      throw new Error("Team size must be 1 or 2");
-    }
+    if (input.minTeamSize < 1)
+      throw new Error("Min team size must be at least 1");
+
+    if (input.maxTeamSize <= input.minTeamSize)
+      throw new Error("Max team size must be greater than min team size");
 
     // Create tournament
-    const [tournament] = await db
-      .insert(tournaments)
-      .values({
-        name: input.name,
-        description: input.description,
-        mode: input.mode,
-        teamMode: input.teamMode,
-        teamSize: input.teamSize,
-        maxMatchesPerPlayer: input.maxMatchesPerPlayer ?? 10,
-        maxTimesWithSamePartner: input.maxTimesWithSamePartner ?? 2,
-        maxTimesWithSameOpponent: input.maxTimesWithSameOpponent ?? 2,
-        pointPerVictory: input.pointPerVictory ?? 3,
-        pointPerDraw: input.pointPerDraw ?? 1,
-        pointPerLoss: input.pointPerLoss ?? 0,
-        allowDraw: input.allowDraw ?? true,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        createdBy: input.createdBy,
-        status: "draft",
-      })
-      .returning();
+    const tournament = await tournamentRepository.create({
+      name: input.name,
+      description: input.description,
+      mode: input.mode,
+      teamMode: input.teamMode,
+      minTeamSize: input.minTeamSize,
+      maxTeamSize: input.maxTeamSize,
+      maxMatchesPerPlayer: input.maxMatchesPerPlayer ?? 10,
+      maxTimesWithSamePartner: input.maxTimesWithSamePartner ?? 2,
+      maxTimesWithSameOpponent: input.maxTimesWithSameOpponent ?? 2,
+      pointPerVictory: input.pointPerVictory ?? 3,
+      pointPerDraw: input.pointPerDraw ?? 1,
+      pointPerLoss: input.pointPerLoss ?? 0,
+      allowDraw: input.allowDraw ?? true,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      createdBy: input.createdBy,
+      status: "draft",
+    });
 
     // Add creator as owner in tournament_admins
-    await db.insert(tournamentAdmins).values({
-      tournamentId: tournament.id,
-      userId: input.createdBy,
-      role: "owner",
-    });
+    await tournamentRepository.addAdmin(
+      tournament.id,
+      input.createdBy,
+      "owner"
+    );
 
     return tournament;
   }
@@ -196,17 +110,7 @@ export class TournamentService {
    * Get tournament by ID
    */
   async getTournamentById(id: string) {
-    const tournament = await db.query.tournaments.findFirst({
-      where: eq(tournaments.id, id),
-      with: {
-        creator: true,
-        admins: {
-          with: {
-            user: true,
-          },
-        },
-      },
-    });
+    const tournament = await tournamentRepository.getById(id);
 
     if (!tournament) {
       throw new Error("Tournament not found");
@@ -223,27 +127,7 @@ export class TournamentService {
     mode?: TournamentMode;
     createdBy?: string;
   }) {
-    const conditions = [];
-
-    if (filters?.status) {
-      conditions.push(eq(tournaments.status, filters.status));
-    }
-    if (filters?.mode) {
-      conditions.push(eq(tournaments.mode, filters.mode));
-    }
-    if (filters?.createdBy) {
-      conditions.push(eq(tournaments.createdBy, filters.createdBy));
-    }
-
-    const result = await db.query.tournaments.findMany({
-      where: conditions.length > 0 ? and(...conditions) : undefined,
-      with: {
-        creator: true,
-      },
-      orderBy: (tournaments, { desc }) => [desc(tournaments.createdAt)],
-    });
-
-    return result;
+    return await tournamentRepository.list(filters);
   }
 
   /**
@@ -268,10 +152,15 @@ export class TournamentService {
     // If tournament is not draft, restrict what can be changed
     if (tournament.status !== "draft") {
       // Can only update description and dates after draft
-      const allowedFields = ["description", "startDate", "endDate", "status"];
+      const allowedFields = new Set([
+        "description",
+        "startDate",
+        "endDate",
+        "status",
+      ]);
       const attemptedFields = Object.keys(input);
       const invalidFields = attemptedFields.filter(
-        (field) => !allowedFields.includes(field)
+        (field) => !allowedFields.has(field)
       );
 
       if (invalidFields.length > 0) {
@@ -293,23 +182,24 @@ export class TournamentService {
     }
 
     // Validate team size if provided
-    if (input.teamSize !== undefined) {
-      if (input.teamSize < 1 || input.teamSize > 2) {
-        throw new Error("Team size must be 1 or 2");
+    if (input.minTeamSize !== undefined || input.maxTeamSize !== undefined) {
+      const minSize = input.minTeamSize ?? tournament.minTeamSize;
+      const maxSize = input.maxTeamSize ?? tournament.maxTeamSize;
+      if (minSize < 1) {
+        throw new Error("Min team size must be at least 1");
+      }
+      if (maxSize <= minSize) {
+        throw new Error("Max team size must be greater than min team size");
       }
     }
 
     // Update tournament
-    const [updated] = await db
-      .update(tournaments)
-      .set({
-        ...input,
-        // Ensure dates are strings if provided
-        startDate: input.startDate,
-        endDate: input.endDate,
-      })
-      .where(eq(tournaments.id, id))
-      .returning();
+    const updated = await tournamentRepository.update(id, {
+      ...input,
+      // Ensure dates are strings if provided
+      startDate: input.startDate,
+      endDate: input.endDate,
+    });
 
     return updated;
   }
@@ -319,9 +209,7 @@ export class TournamentService {
    */
   async deleteTournament(id: string, userId: string) {
     // Check permissions - only owner or super_admin can delete
-    const user = await db.query.appUsers.findFirst({
-      where: eq(appUsers.id, userId),
-    });
+    const user = await tournamentRepository.getUser(userId);
 
     if (!user) {
       throw new Error("User not found");
@@ -346,7 +234,7 @@ export class TournamentService {
     }
 
     // Delete tournament (cascade will handle related records)
-    await db.delete(tournaments).where(eq(tournaments.id, id));
+    await tournamentRepository.delete(id);
 
     return { success: true, message: "Tournament deleted successfully" };
   }
@@ -383,11 +271,9 @@ export class TournamentService {
       );
     }
 
-    const [updated] = await db
-      .update(tournaments)
-      .set({ status: newStatus })
-      .where(eq(tournaments.id, id))
-      .returning();
+    const updated = await tournamentRepository.update(id, {
+      status: newStatus,
+    });
 
     return updated;
   }

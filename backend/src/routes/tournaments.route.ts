@@ -1,54 +1,21 @@
-import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { tournamentService } from "../services/tournament.service";
 import {
-  createTournamentSchema,
+  createTournamentRequestSchema,
   updateTournamentSchema,
   changeTournamentStatusSchema,
   listTournamentsQuerySchema,
 } from "../schemas/tournament.schema";
-import type { Context } from "hono";
-import { auth } from "../config/auth";
+import { requireAuth } from "../middleware/auth";
+import { createAppHono } from "../types/hono";
 
-type AppContext = Context<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-    appUserId: string | null;
-  };
-}>;
-
-const tournaments = new Hono<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-    appUserId: string;
-  };
-}>();
-
-// Middleware to require authentication and set appUserId
-async function requireAuth(c: AppContext, next: () => Promise<void>) {
-  const betterAuthUser = c.get("user");
-
-  if (!betterAuthUser) {
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  // Get or create the app_user via service
-  const appUserId = await tournamentService.getOrCreateAppUser(
-    betterAuthUser.id,
-    betterAuthUser.name || betterAuthUser.email
-  );
-
-  c.set("appUserId", appUserId);
-  await next();
-}
+const tournaments = createAppHono();
 
 // POST /tournaments - Create new tournament
 tournaments.post(
   "/",
   requireAuth,
-  zValidator("json", createTournamentSchema),
+  zValidator("json", createTournamentRequestSchema),
   async (c) => {
     try {
       const appUserId = c.get("appUserId");

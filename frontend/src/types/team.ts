@@ -1,18 +1,9 @@
-/**
- * Types pour la gestion des équipes
- * Basés sur le schéma PocketBase
- */
+// Re-export des types depuis le package partagé
+export { type Team, type TeamMember, type TeamStats } from '@skill-arena/shared'
 
+// Types spécifiques au frontend pour compatibilité
 import type { User } from './user'
-
-export interface Team {
-  id: string
-  name?: string // Optionnel : seulement pour les équipes multi-joueurs
-  tournament: string // ID du tournoi
-  players: string[] // IDs des joueurs
-  created: string
-  updated: string
-}
+import type { Team } from '@skill-arena/shared'
 
 export interface TeamExpanded extends Team {
   expand?: {
@@ -20,10 +11,10 @@ export interface TeamExpanded extends Team {
   }
 }
 
-export type TeamCreate = Omit<Team, 'id' | 'created' | 'updated'>
-export type TeamUpdate = Partial<Omit<Team, 'id' | 'created' | 'updated' | 'tournament'>>
+export type TeamCreate = Omit<Team, 'id' | 'createdAt' | 'updatedAt'>
+export type TeamUpdate = Partial<Omit<Team, 'id' | 'createdAt' | 'updatedAt' | 'tournamentId'>>
 
-export interface TeamStats {
+export interface TeamStatsExpanded {
   team: TeamExpanded
   matches_played: number
   wins: number
