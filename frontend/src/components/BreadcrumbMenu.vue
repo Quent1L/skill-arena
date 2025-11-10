@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showHeader" class="px-4 sm:px-6 lg:px-8 py-4">
+  <div v-if="showHeader" class="breadcrumb-menu">
     <div class="flex items-center gap-3 flex-wrap">
       <Button
         v-if="home"
@@ -10,10 +10,10 @@
         @click="() => home?.command?.()"
         class="text-muted-color hover:text-color"
       />
-      
+
       <template v-for="(item, index) in allItems" :key="index">
         <i v-if="index > 0" class="fas fa-chevron-right text-sm text-muted-color"></i>
-        
+
         <Button
           v-if="item.command && !item.isTitle"
           :label="item.label as string"
@@ -22,11 +22,11 @@
           @click="() => item.command?.()"
           class="text-muted-color hover:text-color"
         />
-        
+
         <h1 v-else-if="item.isTitle" class="text-3xl font-bold m-0">
           {{ item.label }}
         </h1>
-        
+
         <span v-else class="text-muted-color">
           {{ item.label }}
         </span>
@@ -52,7 +52,7 @@ const home = computed<{ icon: string; command: () => void } | null>(() => {
   if (route.meta.hideBreadcrumb && !route.meta.title) {
     return null
   }
-  
+
   return {
     icon: 'fas fa-home',
     command: () => {
@@ -67,9 +67,9 @@ const showHeader = computed(() => {
 
 const allItems = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = []
-  
+
   if (route.meta.parent) {
-    const parentRoute = router.getRoutes().find(r => r.name === route.meta.parent)
+    const parentRoute = router.getRoutes().find((r) => r.name === route.meta.parent)
     if (parentRoute && parentRoute.meta?.breadcrumb) {
       items.push({
         label: parentRoute.meta.breadcrumb as string,
@@ -79,7 +79,7 @@ const allItems = computed<BreadcrumbItem[]>(() => {
       })
     }
   }
-  
+
   if (route.meta.title) {
     items.push({
       label: route.meta.title as string,
@@ -91,7 +91,14 @@ const allItems = computed<BreadcrumbItem[]>(() => {
       isTitle: true,
     })
   }
-  
+
   return items
 })
 </script>
+<style scoped>
+.breadcrumb-menu {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0.5rem 1.5rem;
+}
+</style>

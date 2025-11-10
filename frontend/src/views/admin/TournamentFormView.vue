@@ -13,7 +13,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Nom -->
-              <div class="col-span-2">
+              <div>
                 <label for="name" class="block text-sm font-medium mb-2">
                   Nom du tournoi <span class="text-red-500">*</span>
                 </label>
@@ -25,6 +25,24 @@
                   :class="{ 'p-invalid': errors.name }"
                 />
                 <small class="p-error">{{ errors.name }}</small>
+              </div>
+
+              <!-- Status -->
+              <div v-if="isEditMode">
+                <label for="status" class="block text-sm font-medium mb-2">
+                  Statut
+                </label>
+                <Select
+                  id="status"
+                  v-model="status"
+                  :options="statusOptions"
+                  option-label="label"
+                  option-value="value"
+                  :disabled="!isFieldEditable('status')"
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.status }"
+                />
+                <small class="p-error">{{ errors.status }}</small>
               </div>
 
               <!-- Description -->
@@ -269,7 +287,10 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
-import { type CreateTournamentFormData, type UpdateTournamentFormData } from '@skill-arena/shared'
+import { 
+  type CreateTournamentFormData, 
+  type UpdateTournamentFormData
+} from '@skill-arena/shared'
 import { useTournamentService } from '@/composables/tournament.service'
 
 const router = useRouter()
@@ -297,12 +318,20 @@ const teamModeOptions = [
   { label: 'Flexible', value: 'flex' },
 ]
 
+const statusOptions = [
+  { label: 'Brouillon', value: 'draft' },
+  { label: 'Ouvert aux inscriptions', value: 'open' },
+  { label: 'En cours', value: 'ongoing' },
+  { label: 'Terminé', value: 'finished' },
+]
+
 const { handleSubmit, defineField, errors, setValues } = useForm()
 
 const [name] = defineField('name')
 const [description] = defineField('description')
 const [mode] = defineField('mode')
 const [teamMode] = defineField('teamMode')
+const [status] = defineField('status')
 const [minTeamSize] = defineField('minTeamSize')
 const [maxTeamSize] = defineField('maxTeamSize')
 const [maxMatchesPerPlayer] = defineField('maxMatchesPerPlayer')
@@ -364,6 +393,7 @@ onMounted(async () => {
         description: currentTournament.value.description,
         mode: currentTournament.value.mode,
         teamMode: currentTournament.value.teamMode,
+        status: currentTournament.value.status,
         minTeamSize: currentTournament.value.minTeamSize,
         maxTeamSize: currentTournament.value.maxTeamSize,
         maxMatchesPerPlayer: currentTournament.value.maxMatchesPerPlayer,
@@ -382,6 +412,7 @@ onMounted(async () => {
     setValues({
       mode: 'championship',
       teamMode: 'flex',
+      status: 'draft',
       teamSize: 2,
       maxMatchesPerPlayer: 10,
       maxTimesWithSamePartner: 2,

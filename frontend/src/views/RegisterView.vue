@@ -143,7 +143,7 @@ const onSubmit = handleSubmit(async (values) => {
     })
 
     const redirectPath = route.query.redirect as string
-    router.push(redirectPath || '/tournaments')
+    router.push(redirectPath || '/')
   } catch (err) {
     console.error("Erreur d'inscription:", err)
   }

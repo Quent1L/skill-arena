@@ -94,10 +94,8 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
 
-      // Mettre à jour la session après connexion
       await checkSession()
 
-      // Récupérer les données utilisateur
       await fetchUserData()
 
       return result
@@ -141,11 +139,7 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
 
-      // Mettre à jour la session après inscription
-      await checkSession()
-
-      // Récupérer les données utilisateur
-      await fetchUserData()
+      await initialize()
 
       return result
     } catch (err) {
@@ -195,7 +189,7 @@ export function useAuth() {
 
     try {
       await authClient.signOut()
-      sessionData.value = { data: { user: null, session: null } }
+      sessionData.value = undefined
       appUserData.value = null
     } catch (err) {
       const message =

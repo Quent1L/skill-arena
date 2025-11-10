@@ -1,11 +1,6 @@
 /// <reference types="vite/client" />
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
-import LoginView from '@/views/LoginView.vue'
-import RegisterView from '@/views/RegisterView.vue'
-import TournamentList from '@/views/admin/TournamentList.vue'
-import TournamentFormView from '@/views/admin/TournamentFormView.vue'
 import { requireAdmin, requireAuth, redirectIfAuthenticated } from './guards'
 
 declare module 'vue-router' {
@@ -20,9 +15,9 @@ declare module 'vue-router' {
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
+    path: '/public',
     name: 'home',
-    component: HomeView,
+    component: () => import('@/views/PublicHomeView.vue'),
     meta: {
       breadcrumb: 'Accueil',
       hideBreadcrumb: true,
@@ -32,7 +27,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('@/views/LoginView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Connexion',
@@ -42,7 +37,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/register',
     name: 'register',
-    component: RegisterView,
+    component: () => import('@/views/RegisterView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Inscription',
@@ -50,11 +45,10 @@ const routes: RouteRecordRaw[] = [
     },
   },
 
-  // Tournament Administration Routes
   {
     path: '/admin/tournaments',
     name: 'admin-tournaments',
-    component: TournamentList,
+    component: () => import('@/views/admin/TournamentList.vue'),
     beforeEnter: requireAdmin,
     meta: {
       breadcrumb: 'Gestion des tournois',
@@ -63,21 +57,9 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/admin/tournaments/:id',
-    name: 'admin-tournament-form',
-    component: TournamentFormView,
-    beforeEnter: requireAdmin,
-    meta: {
-      breadcrumb: 'Tournoi',
-      title: 'Nouveau tournoi',
-      requiresAuth: true,
-      parent: 'admin-tournaments',
-    },
-  },
-  {
     path: '/admin/tournaments/:id/edit',
     name: 'admin-tournament-edit',
-    component: TournamentFormView,
+    component: () => import('@/views/admin/TournamentFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
       breadcrumb: 'Modifier',
@@ -87,14 +69,22 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/tournaments',
+    path: '/',
     name: 'tournaments',
-    component: () => import('@/views/HomeView.vue'),
+    component: () => import('@/views/TournamentsView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      breadcrumb: 'Tournois',
-      title: 'Liste des tournois',
       requiresAuth: true,
+      hideBreadcrumb: true,
+    },
+  },
+  /** all ERROR */
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
+    meta: {
+      hideBreadcrumb: true,
     },
   },
 ]
