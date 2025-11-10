@@ -6,7 +6,7 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import TournamentList from '@/views/admin/TournamentList.vue'
 import TournamentFormView from '@/views/admin/TournamentFormView.vue'
-import { requireAdmin } from './guards'
+import { requireAdmin, requireAuth, redirectIfAuthenticated } from './guards'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -33,6 +33,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: LoginView,
+    beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Connexion',
       hideBreadcrumb: true,
@@ -42,6 +43,7 @@ const routes: RouteRecordRaw[] = [
     path: '/register',
     name: 'register',
     component: RegisterView,
+    beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Inscription',
       hideBreadcrumb: true,
@@ -55,7 +57,7 @@ const routes: RouteRecordRaw[] = [
     component: TournamentList,
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Administration',
+      breadcrumb: 'Gestion des tournois',
       title: 'Gestion des tournois',
       requiresAuth: true,
     },
@@ -67,7 +69,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: requireAdmin,
     meta: {
       breadcrumb: 'Tournoi',
-      title: 'Formulaire tournoi',
+      title: 'Nouveau tournoi',
       requiresAuth: true,
       parent: 'admin-tournaments',
     },
@@ -84,22 +86,11 @@ const routes: RouteRecordRaw[] = [
       parent: 'admin-tournaments',
     },
   },
-  /* Old route commented
-  {
-    path: '/admin/tournaments',
-    name: 'admin-tournaments',
-    component: AdminTournaments,
-    beforeEnter: requireAdmin,
-    meta: {
-      breadcrumb: 'Administration',
-      title: 'Administration des tournois',
-      requiresAuth: true,
-    },
-  },*/
   {
     path: '/tournaments',
     name: 'tournaments',
     component: () => import('@/views/HomeView.vue'),
+    beforeEnter: requireAuth,
     meta: {
       breadcrumb: 'Tournois',
       title: 'Liste des tournois',
@@ -111,58 +102,6 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
-})
-
-// Navigation guard pour protéger les routes
-router.beforeEach(async (to, from, next) => {
-  const requiresAuth = to.meta.requiresAuth
-
-  if (requiresAuth) {
-    // Vérifier la session avec Better Auth
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/get-session`, {
-        credentials: 'include',
-      })
-      const session = await response.json()
-      const isAuthenticated = !!session?.user
-
-      if (!isAuthenticated) {
-        // Rediriger vers la page de connexion avec le chemin de redirection
-        next({
-          name: 'login',
-          query: { redirect: to.fullPath },
-        })
-        return
-      }
-    } catch {
-      // En cas d'erreur, rediriger vers login
-      next({
-        name: 'login',
-        query: { redirect: to.fullPath },
-      })
-      return
-    }
-  }
-
-  // Si l'utilisateur est authentifié et essaie d'accéder à login/register
-  if (to.name === 'login' || to.name === 'register') {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/get-session`, {
-        credentials: 'include',
-      })
-      const session = await response.json()
-      const isAuthenticated = !!session?.user
-
-      if (isAuthenticated) {
-        next({ name: 'tournaments' })
-        return
-      }
-    } catch {
-      // En cas d'erreur, continuer vers login/register
-    }
-  }
-
-  next()
 })
 
 export default router

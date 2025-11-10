@@ -3,7 +3,7 @@
     <AppHeader />
     <BreadcrumbMenu />
     <RouterView v-slot="{ Component, route }">
-      <Transition :name="transitionName" mode="out-in" appear>
+      <Transition name="fade" mode="out-in" appear>
         <component :is="Component" :key="route.path" />
       </Transition>
     </RouterView>

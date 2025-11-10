@@ -7,6 +7,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 //Component from https://vue-bits.dev/backgrounds/liquid-ether
 import * as THREE from 'three'
 import { onMounted, onUnmounted, ref, watch } from 'vue'

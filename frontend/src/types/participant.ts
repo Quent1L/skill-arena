@@ -1,16 +1,13 @@
-/**
- * Types pour la gestion des participants aux tournois
- */
+// Re-export des types depuis le package partagé
+export {
+  type TournamentParticipant,
+  type TournamentAdmin,
+  type TournamentAdminRole,
+} from '@skill-arena/shared'
 
+// Types spécifiques au frontend pour compatibilité
 import type { User } from './user'
-
-export interface TournamentParticipant {
-  id: string
-  tournament: string // ID du tournoi
-  user: string // ID de l'utilisateur
-  created: string
-  updated: string
-}
+import type { TournamentParticipant } from '@skill-arena/shared'
 
 export interface TournamentParticipantExpanded extends TournamentParticipant {
   expand?: {
@@ -18,4 +15,4 @@ export interface TournamentParticipantExpanded extends TournamentParticipant {
   }
 }
 
-export type TournamentParticipantCreate = Omit<TournamentParticipant, 'id' | 'created' | 'updated'>
+export type TournamentParticipantCreate = Omit<TournamentParticipant, 'id' | 'joinedAt'>

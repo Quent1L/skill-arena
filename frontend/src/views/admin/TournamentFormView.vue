@@ -1,18 +1,5 @@
 <template>
   <div class="tournament-form-view p-4">
-    <div class="flex items-center gap-4 mb-6">
-      <Button
-        icon="pi pi-arrow-left"
-        text
-        rounded
-        @click="router.back()"
-        v-tooltip.right="'Retour'"
-      />
-      <h1 class="text-3xl font-bold">
-        {{ isEditMode ? 'Modifier le tournoi' : 'Nouveau tournoi' }}
-      </h1>
-    </div>
-
     <Message v-if="error" severity="error" :closable="true">
       {{ error }}
     </Message>
@@ -92,21 +79,36 @@
                 <small class="p-error">{{ errors.teamMode }}</small>
               </div>
 
-              <!-- Team Size -->
+              <!-- Min Team Size -->
               <div>
-                <label for="teamSize" class="block text-sm font-medium mb-2">
-                  Taille d'équipe <span class="text-red-500">*</span>
+                <label for="minTeamSize" class="block text-sm font-medium mb-2">
+                  Taille min d'équipe <span class="text-red-500">*</span>
                 </label>
                 <InputNumber
-                  id="teamSize"
-                  v-model="teamSize"
+                  id="minTeamSize"
+                  v-model="minTeamSize"
                   :min="1"
-                  :max="2"
-                  :disabled="!isFieldEditable('teamSize')"
+                  :disabled="!isFieldEditable('minTeamSize')"
                   class="w-full"
-                  :class="{ 'p-invalid': errors.teamSize }"
+                  :class="{ 'p-invalid': errors.minTeamSize }"
                 />
-                <small class="p-error">{{ errors.teamSize }}</small>
+                <small class="p-error">{{ errors.minTeamSize }}</small>
+              </div>
+              <!-- Max Team Size -->
+              <div>
+                <label for="teamSize" class="block text-sm font-medium mb-2">
+                  Taille max d'équipe <span class="text-red-500">*</span>
+                </label>
+                <InputNumber
+                  id="maxTeamSize"
+                  v-model="maxTeamSize"
+                  :min="1"
+                  :max="10"
+                  :disabled="!isFieldEditable('maxTeamSize')"
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.maxTeamSize }"
+                />
+                <small class="p-error">{{ errors.maxTeamSize }}</small>
               </div>
 
               <!-- Dates -->
@@ -264,11 +266,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
-import { createTournamentSchema, updateTournamentSchema } from '@/schemas/tournament.schema'
+import { type CreateTournamentFormData, type UpdateTournamentFormData } from '@skill-arena/shared'
 import { useTournamentService } from '@/composables/tournament.service'
 
 const router = useRouter()
@@ -296,17 +297,14 @@ const teamModeOptions = [
   { label: 'Flexible', value: 'flex' },
 ]
 
-const { handleSubmit, defineField, errors, setValues } = useForm({
-  validationSchema: toTypedSchema(
-    isEditMode.value ? updateTournamentSchema : createTournamentSchema,
-  ),
-})
+const { handleSubmit, defineField, errors, setValues } = useForm()
 
 const [name] = defineField('name')
 const [description] = defineField('description')
 const [mode] = defineField('mode')
 const [teamMode] = defineField('teamMode')
-const [teamSize] = defineField('teamSize')
+const [minTeamSize] = defineField('minTeamSize')
+const [maxTeamSize] = defineField('maxTeamSize')
 const [maxMatchesPerPlayer] = defineField('maxMatchesPerPlayer')
 const [maxTimesWithSamePartner] = defineField('maxTimesWithSamePartner')
 const [maxTimesWithSameOpponent] = defineField('maxTimesWithSameOpponent')
@@ -325,21 +323,34 @@ function isFieldEditable(fieldName: string): boolean {
 
 const onSubmit = handleSubmit(async (values) => {
   try {
+    // Validation côté client des règles cross-field
+    const formData = values as CreateTournamentFormData & UpdateTournamentFormData
+
+    // Vérification des dates
+    if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
+      throw new Error('La date de début doit être antérieure à la date de fin')
+    }
+
+    // Vérification des tailles d'équipe
+    if (
+      formData.minTeamSize &&
+      formData.maxTeamSize &&
+      formData.maxTeamSize < formData.minTeamSize
+    ) {
+      throw new Error('La taille maximale doit être supérieure ou égale à la taille minimale')
+    }
+
     if (isEditMode.value && route.params.id) {
       // For update, cast to UpdateTournamentFormData
-      await updateTournament(
-        route.params.id as string,
-        values as import('@/schemas/tournament.schema').UpdateTournamentFormData,
-      )
+      await updateTournament(route.params.id as string, values as UpdateTournamentFormData)
     } else {
       // For create, cast to CreateTournamentFormData
-      await createTournament(
-        values as import('@/schemas/tournament.schema').CreateTournamentFormData,
-      )
+      await createTournament(values as CreateTournamentFormData)
     }
     router.push('/admin/tournaments')
   } catch (err) {
     console.error('Erreur lors de la sauvegarde:', err)
+    // L'erreur sera affichée via le state error du service
   }
 })
 
@@ -353,7 +364,8 @@ onMounted(async () => {
         description: currentTournament.value.description,
         mode: currentTournament.value.mode,
         teamMode: currentTournament.value.teamMode,
-        teamSize: currentTournament.value.teamSize,
+        minTeamSize: currentTournament.value.minTeamSize,
+        maxTeamSize: currentTournament.value.maxTeamSize,
         maxMatchesPerPlayer: currentTournament.value.maxMatchesPerPlayer,
         maxTimesWithSamePartner: currentTournament.value.maxTimesWithSamePartner,
         maxTimesWithSameOpponent: currentTournament.value.maxTimesWithSameOpponent,

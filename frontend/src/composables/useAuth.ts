@@ -4,39 +4,72 @@
 
 import { ref, computed } from 'vue'
 import { authClient } from '@/lib/auth-client'
+import { userApi, type UserResponse } from '@/composables/user/user.api'
+
+const sessionData = ref()
+const appUserData = ref<UserResponse | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
+
+/**
+ * Récupère les données de l'utilisateur depuis l'API /users/me
+ */
+async function fetchUserData() {
+  try {
+    console.log('Récupération des données utilisateur...')
+    const userData = await userApi.me()
+    appUserData.value = userData
+    console.log('Données utilisateur récupérées:', userData)
+  } catch (err) {
+    console.error('Erreur lors de la récupération des données utilisateur:', err)
+    appUserData.value = null
+    throw err
+  }
+}
 
 export function useAuth() {
-  const sessionData = ref()
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-
   const currentUser = computed(() => sessionData.value?.data?.user || null)
-  const isAuthenticated = computed(async () => {
-    if (sessionData.value?.data?.session) {
-      await checkSession()
-    }
-    return sessionData.value?.data?.user != null
-  })
-  const isSuperAdmin = computed(() => true)
-  const token = computed(() => sessionData.value?.data?.session.token || null)
+  const appUser = computed(() => appUserData.value)
+  const isAuthenticated = computed(() => !!sessionData.value?.data?.user && !!appUserData.value)
+  const isSuperAdmin = computed(() => appUserData.value?.role === 'super_admin' || false)
+  const isAdmin = computed(
+    () =>
+      appUserData.value?.role === 'super_admin' ||
+      appUserData.value?.role === 'tournament_admin' ||
+      false,
+  )
+  const userRole = computed(() => appUserData.value?.role || 'player')
+  const token = computed(() => sessionData.value?.data?.session?.token || null)
+  const isInitialized = computed(() => sessionData.value !== undefined)
 
   async function checkSession() {
+    if (loading.value) {
+      return sessionData.value
+    }
+
     loading.value = true
     error.value = null
 
     try {
       const result = await authClient.getSession()
+      console.log('Session check result:', result) // Debug
       if (result.error) {
         error.value = result.error.message || 'Erreur lors de la récupération de la session'
+        sessionData.value = { data: { user: null, session: null } }
+        appUserData.value = null
         throw new Error(result.error.message)
       }
       sessionData.value = result
+      console.log('Updated session data:', sessionData.value) // Debug
+      return result
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
           : 'Une erreur est survenue lors de la récupération de la session'
       error.value = message
+      sessionData.value = { data: { user: null, session: null } }
+      appUserData.value = null
       throw err
     } finally {
       loading.value = false
@@ -60,6 +93,12 @@ export function useAuth() {
         error.value = result.error.message || 'Erreur de connexion'
         throw new Error(result.error.message)
       }
+
+      // Mettre à jour la session après connexion
+      await checkSession()
+
+      // Récupérer les données utilisateur
+      await fetchUserData()
 
       return result
     } catch (err) {
@@ -102,6 +141,12 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
 
+      // Mettre à jour la session après inscription
+      await checkSession()
+
+      // Récupérer les données utilisateur
+      await fetchUserData()
+
       return result
     } catch (err) {
       const message =
@@ -114,6 +159,34 @@ export function useAuth() {
   }
 
   /**
+   * Initialise la session au démarrage de l'application
+   */
+  async function initialize() {
+    if (sessionData.value !== undefined) {
+      return // Déjà initialisé
+    }
+
+    try {
+      console.log('Initialisation de la session utilisateur...')
+      await checkSession()
+
+      // Si l'utilisateur est connecté, récupérer ses données
+      if (sessionData.value?.data?.user) {
+        try {
+          await fetchUserData()
+        } catch (userDataError) {
+          console.warn('Impossible de récupérer les données utilisateur:', userDataError)
+          // Continue même si on ne peut pas récupérer les données utilisateur
+        }
+      }
+    } catch {
+      // Ignore les erreurs d'initialisation
+      sessionData.value = { data: { user: null, session: null } }
+      appUserData.value = null
+    }
+  }
+
+  /**
    * Déconnexion
    */
   async function logout() {
@@ -122,6 +195,8 @@ export function useAuth() {
 
     try {
       await authClient.signOut()
+      sessionData.value = { data: { user: null, session: null } }
+      appUserData.value = null
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Une erreur est survenue lors de la déconnexion'
@@ -134,15 +209,21 @@ export function useAuth() {
 
   return {
     currentUser,
+    appUser,
     isAuthenticated,
     isSuperAdmin,
+    isAdmin,
+    userRole,
     loading,
     error,
+    isInitialized,
     login,
     register,
     logout,
+    checkSession,
+    fetchUserData,
+    initialize,
     authClient,
     token,
-    checkSession,
   }
 }
