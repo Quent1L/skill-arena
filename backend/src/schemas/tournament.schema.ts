@@ -1,4 +1,7 @@
-import { joinTournamentSchema, type JoinTournamentRequest } from "@skill-arena/shared/dist/participant";
+import {
+  joinTournamentSchema,
+  type JoinTournamentRequest,
+} from "@skill-arena/shared/dist/participant";
 
 // Re-export des schémas et types depuis le package partagé
 export {

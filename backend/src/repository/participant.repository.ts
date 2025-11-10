@@ -8,10 +8,13 @@ export class ParticipantRepository {
       .select()
       .from(tournaments)
       .where(eq(tournaments.id, tournamentId))
-      .then(rows => rows[0]);
+      .then((rows) => rows[0]);
   }
 
-  async findParticipationByUserAndTournament(userId: string, tournamentId: string) {
+  async findParticipationByUserAndTournament(
+    userId: string,
+    tournamentId: string
+  ) {
     return await db
       .select()
       .from(tournamentParticipants)
@@ -21,7 +24,7 @@ export class ParticipantRepository {
           eq(tournamentParticipants.userId, userId)
         )
       )
-      .then(rows => rows[0]);
+      .then((rows) => rows[0]);
   }
 
   async createParticipation(userId: string, tournamentId: string) {
@@ -57,10 +60,13 @@ export class ParticipantRepository {
         },
       })
       .from(tournamentParticipants)
-      .innerJoin(tournaments, eq(tournamentParticipants.tournamentId, tournaments.id))
+      .innerJoin(
+        tournaments,
+        eq(tournamentParticipants.tournamentId, tournaments.id)
+      )
       .innerJoin(appUsers, eq(tournamentParticipants.userId, appUsers.id))
       .where(eq(tournamentParticipants.id, participationId))
-      .then(rows => rows[0]);
+      .then((rows) => rows[0]);
   }
 
   async deleteParticipation(participationId: string) {
