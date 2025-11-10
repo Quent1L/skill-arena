@@ -142,7 +142,8 @@ tournaments.post(
       const appUserId = c.get("appUserId");
 
       // Validation de l'UUID du tournoi
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(tournamentId)) {
         return c.json({ error: "ID de tournoi invalide" }, 400);
       }
@@ -177,12 +178,16 @@ tournaments.delete("/:id/participants", requireAuth, async (c) => {
     const appUserId = c.get("appUserId");
 
     // Validation de l'UUID du tournoi
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tournamentId)) {
       return c.json({ error: "ID de tournoi invalide" }, 400);
     }
 
-    const result = await tournamentService.leaveTournament(appUserId, tournamentId);
+    const result = await tournamentService.leaveTournament(
+      appUserId,
+      tournamentId
+    );
 
     return c.json(result);
   } catch (error) {
@@ -208,12 +213,15 @@ tournaments.get("/:id/participants", async (c) => {
     const tournamentId = c.req.param("id");
 
     // Validation de l'UUID du tournoi
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tournamentId)) {
       return c.json({ error: "ID de tournoi invalide" }, 400);
     }
 
-    const participants = await tournamentService.getTournamentParticipants(tournamentId);
+    const participants = await tournamentService.getTournamentParticipants(
+      tournamentId
+    );
 
     return c.json(participants);
   } catch (error) {

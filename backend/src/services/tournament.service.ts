@@ -287,7 +287,9 @@ export class TournamentService {
     const { tournamentId } = data;
 
     // Vérifier que le tournoi existe et est dans un état valide
-    const tournament = await participantRepository.findTournamentById(tournamentId);
+    const tournament = await participantRepository.findTournamentById(
+      tournamentId
+    );
 
     if (!tournament) {
       throw new Error("Tournoi non trouvé");
@@ -298,22 +300,27 @@ export class TournamentService {
     }
 
     // Vérifier que l'utilisateur n'est pas déjà inscrit
-    const existingParticipation = await participantRepository.findParticipationByUserAndTournament(
-      userId,
-      tournamentId
-    );
+    const existingParticipation =
+      await participantRepository.findParticipationByUserAndTournament(
+        userId,
+        tournamentId
+      );
 
     if (existingParticipation) {
       throw new Error("Vous êtes déjà inscrit à ce tournoi");
     }
 
     // Inscrire l'utilisateur
-    const participation = await participantRepository.createParticipation(userId, tournamentId);
+    const participation = await participantRepository.createParticipation(
+      userId,
+      tournamentId
+    );
 
     // Retourner les détails de la participation avec les informations du tournoi et de l'utilisateur
-    const participationWithDetails = await participantRepository.findParticipationWithDetails(
-      participation.id
-    );
+    const participationWithDetails =
+      await participantRepository.findParticipationWithDetails(
+        participation.id
+      );
 
     return participationWithDetails;
   }
@@ -323,7 +330,9 @@ export class TournamentService {
    */
   async leaveTournament(userId: string, tournamentId: string) {
     // Vérifier que le tournoi existe
-    const tournament = await participantRepository.findTournamentById(tournamentId);
+    const tournament = await participantRepository.findTournamentById(
+      tournamentId
+    );
 
     if (!tournament) {
       throw new Error("Tournoi non trouvé");
@@ -335,10 +344,11 @@ export class TournamentService {
     }
 
     // Vérifier que l'utilisateur est inscrit
-    const participation = await participantRepository.findParticipationByUserAndTournament(
-      userId,
-      tournamentId
-    );
+    const participation =
+      await participantRepository.findParticipationByUserAndTournament(
+        userId,
+        tournamentId
+      );
 
     if (!participation) {
       throw new Error("Vous n'êtes pas inscrit à ce tournoi");

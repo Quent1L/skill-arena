@@ -54,10 +54,10 @@ export function formatDate(dateString: string | Date): string {
 export function calculateDuration(startDate: string | Date, endDate: string | Date): string {
   const start = typeof startDate === 'string' ? new Date(startDate) : startDate
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate
-  
+
   const diffTime = Math.abs(end.getTime() - start.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
+
   if (diffDays === 1) {
     return '1 jour'
   } else if (diffDays < 7) {
