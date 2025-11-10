@@ -3,14 +3,12 @@
     <!-- Header avec bouton admin conditionnel -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Tournois disponibles
-        </h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tournois disponibles</h1>
         <p class="text-gray-600 dark:text-gray-400">
           Découvrez et participez aux tournois en cours
         </p>
       </div>
-      
+
       <!-- Bouton administration (visible seulement pour les admins) -->
       <div v-if="canManageTournaments" class="flex gap-3">
         <Button
@@ -39,7 +37,7 @@
               @change="loadTournaments"
             />
           </div>
-          
+
           <div class="flex-1 min-w-48">
             <label for="mode-filter" class="block text-sm font-medium mb-2">Mode</label>
             <Select
@@ -53,14 +51,9 @@
               @change="loadTournaments"
             />
           </div>
-          
+
           <div class="flex items-end">
-            <Button
-              label="Réinitialiser"
-              text
-              @click="resetFilters"
-              class="text-gray-600"
-            />
+            <Button label="Réinitialiser" text @click="resetFilters" class="text-gray-600" />
           </div>
         </div>
       </template>
@@ -77,7 +70,10 @@
     </div>
 
     <!-- Liste des tournois -->
-    <div v-else-if="tournaments.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      v-else-if="tournaments.length > 0"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
       <TournamentCard
         v-for="tournament in tournaments"
         :key="tournament.id"
@@ -95,15 +91,14 @@
             Aucun tournoi trouvé
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ hasFilters ? 'Aucun tournoi ne correspond à vos critères.' : 'Il n\'y a actuellement aucun tournoi disponible.' }}
+            {{
+              hasFilters
+                ? 'Aucun tournoi ne correspond à vos critères.'
+                : "Il n'y a actuellement aucun tournoi disponible."
+            }}
           </p>
           <div v-if="hasFilters">
-            <Button
-              label="Effacer les filtres"
-              text
-              @click="resetFilters"
-              class="text-blue-600"
-            />
+            <Button label="Effacer les filtres" text @click="resetFilters" class="text-blue-600" />
           </div>
         </div>
       </template>
@@ -120,12 +115,7 @@ import TournamentCard from '@/components/TournamentCard.vue'
 import type { TournamentStatus, TournamentMode, BaseTournament } from '@skill-arena/shared'
 
 const router = useRouter()
-const { 
-  tournaments, 
-  loading, 
-  error, 
-  listTournaments,
-} = useTournamentService()
+const { tournaments, loading, error, listTournaments } = useTournamentService()
 const { isSuperAdmin, isAuthenticated } = useAuth()
 
 // Permissions
@@ -173,9 +163,7 @@ async function loadTournaments() {
 }
 
 function viewTournament(tournament: BaseTournament) {
-  // Rediriger vers la page de détail du tournoi quand elle sera créée
-  console.log('Voir le tournoi:', tournament.name)
-  // router.push(`/tournaments/${tournament.id}`)
+  router.push(`/tournaments/${tournament.id}`)
 }
 
 // Lifecycle

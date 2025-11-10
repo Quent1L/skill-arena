@@ -1,5 +1,5 @@
 <template>
-  <Card 
+  <Card
     class="tournament-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 h-full"
     @click="$emit('click', tournament)"
   >
@@ -7,10 +7,7 @@
       <div class="relative">
         <div class="h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-t-lg">
           <div class="absolute top-3 right-3">
-            <Badge 
-              :value="statusLabel" 
-              :severity="statusSeverity"
-            />
+            <Badge :value="statusLabel" :severity="statusSeverity" />
           </div>
         </div>
       </div>
@@ -23,7 +20,10 @@
           <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
             {{ tournament.name }}
           </h3>
-          <p v-if="tournament.description" class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2">
+          <p
+            v-if="tournament.description"
+            class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2"
+          >
             {{ tournament.description }}
           </p>
         </div>
@@ -41,9 +41,11 @@
           <div>
             <span class="text-gray-500 dark:text-gray-400 font-medium">Équipe:</span>
             <div class="font-semibold">
-              {{ tournament.minTeamSize === tournament.maxTeamSize 
+              {{
+                tournament.minTeamSize === tournament.maxTeamSize
                   ? `${tournament.minTeamSize} joueurs`
-                  : `${tournament.minTeamSize}-${tournament.maxTeamSize} joueurs` }}
+                  : `${tournament.minTeamSize}-${tournament.maxTeamSize} joueurs`
+              }}
             </div>
           </div>
         </div>
@@ -63,14 +65,25 @@
         </div>
 
         <!-- Statistiques (si disponible) -->
-        <div v-if="showStats && hasTournamentStats" class="flex justify-between items-center text-xs bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+        <div
+          v-if="showStats && hasTournamentStats"
+          class="flex justify-between items-center text-xs bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2"
+        >
           <div class="flex items-center gap-1">
             <i class="pi pi-users text-gray-500"></i>
             <span>{{ (tournament as any).participants_count || 0 }} participants</span>
           </div>
-          <div v-if="(tournament as any).matches_played !== undefined" class="flex items-center gap-1">
+          <div
+            v-if="(tournament as any).matches_played !== undefined"
+            class="flex items-center gap-1"
+          >
             <i class="pi pi-play text-gray-500"></i>
-            <span>{{ (tournament as any).matches_played }}/{{ (tournament as any).matches_total || '?' }} matchs</span>
+            <span
+              >{{ (tournament as any).matches_played }}/{{
+                (tournament as any).matches_total || '?'
+              }}
+              matchs</span
+            >
           </div>
         </div>
       </div>
@@ -78,12 +91,7 @@
 
     <template #footer>
       <div class="flex justify-between items-center">
-        <Button 
-          label="Voir détails" 
-          text 
-          size="small"
-          @click.stop="$emit('click', tournament)"
-        />
+        <Button label="Voir détails" text size="small" @click.stop="$emit('click', tournament)" />
         <div class="flex items-center gap-2 text-xs text-gray-500">
           <i class="pi pi-calendar"></i>
           <span>{{ timeFromNow }}</span>
@@ -103,7 +111,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  showStats: true
+  showStats: true,
 })
 
 defineEmits<{
@@ -115,16 +123,20 @@ const statusConfig = {
   draft: { label: 'Brouillon', severity: 'secondary' as const },
   open: { label: 'Ouvert', severity: 'success' as const },
   ongoing: { label: 'En cours', severity: 'warning' as const },
-  finished: { label: 'Terminé', severity: 'info' as const }
+  finished: { label: 'Terminé', severity: 'info' as const },
 }
 
-const statusLabel = computed(() => statusConfig[props.tournament.status]?.label || props.tournament.status)
-const statusSeverity = computed(() => statusConfig[props.tournament.status]?.severity || 'secondary')
+const statusLabel = computed(
+  () => statusConfig[props.tournament.status]?.label || props.tournament.status,
+)
+const statusSeverity = computed(
+  () => statusConfig[props.tournament.status]?.severity || 'secondary',
+)
 
 // Mode mapping
 const modeConfig = {
   championship: { label: 'Championnat', icon: 'pi pi-trophy' },
-  bracket: { label: 'Élimination', icon: 'pi pi-sitemap' }
+  bracket: { label: 'Élimination', icon: 'pi pi-sitemap' },
 }
 
 const modeLabel = computed(() => modeConfig[props.tournament.mode]?.label || props.tournament.mode)
@@ -134,7 +146,7 @@ const modeIcon = computed(() => modeConfig[props.tournament.mode]?.icon || 'pi p
 const hasTournamentStats = computed(() => {
   const t = props.tournament as BaseTournament & {
     participants_count?: number
-    matches_played?: number  
+    matches_played?: number
     matches_total?: number
   }
   return t.participants_count !== undefined || t.matches_played !== undefined
@@ -146,7 +158,7 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
-    year: '2-digit'
+    year: '2-digit',
   })
 }
 
@@ -180,7 +192,9 @@ const timeFromNow = computed(() => {
 
 .tournament-card:hover {
   border-color: rgb(147, 197, 253);
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 10px 25px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   transform: translateY(-0.25rem);
 }
 

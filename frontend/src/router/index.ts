@@ -78,6 +78,18 @@ const routes: RouteRecordRaw[] = [
       hideBreadcrumb: true,
     },
   },
+  {
+    path: '/tournaments/:id',
+    name: 'tournament-detail',
+    component: () => import('@/views/TournamentDetailView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      breadcrumb: 'Détails du tournoi',
+      title: 'Détails du tournoi',
+      requiresAuth: true,
+      parent: 'tournaments',
+    },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',
