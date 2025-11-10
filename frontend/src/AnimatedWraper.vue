@@ -18,10 +18,10 @@
       :autoRampDuration="0.6"
     />
 
-    <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="absolute inset-0 flex items-center justify-center p-4 z-10 pointer-events-none">
       <RouterView v-slot="{ Component, route }">
         <Transition mode="out-in" appear>
-          <component :is="Component" :key="route.path" />
+          <component :is="Component" :key="route.path" class="pointer-events-auto" />
         </Transition>
       </RouterView>
     </div>

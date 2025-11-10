@@ -87,24 +87,15 @@ export async function redirectIfAuthenticated(
   from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
-  const { isAuthenticated, isInitialized, initialize } = useAuth()
+  const { isInitialized, initialize } = useAuth()
 
   try {
-    // Initialiser la session si ce n'est pas déjà fait
     if (!isInitialized.value) {
       await initialize()
     }
-
-    if (isAuthenticated.value) {
-      // Rediriger vers la page demandée ou vers les tournois par défaut
-      const redirectPath = to.query.redirect?.toString() || '/tournaments'
-      next(redirectPath)
-    } else {
-      next()
-    }
+    next()
   } catch (error) {
     console.error('❌ Error during redirect check:', error)
-    // En cas d'erreur, continuer vers login/register
     next()
   }
 }

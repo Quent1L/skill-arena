@@ -3,7 +3,8 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center cursor-pointer" @click="router.push('/')">
-          <h1 class="text-2xl font-bold text-blue-600">Skill Arena</h1>
+          <img src="@/assets/img/skill-arena-logo.png" alt="Skill Arena Logo" class="w-20 mr-2" />
+          <h1 class="text-2xl font-bold">Skill Arena</h1>
         </div>
 
         <div class="flex items-center gap-3">
@@ -61,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import type { User } from '@/types'
@@ -71,12 +72,19 @@ const router = useRouter()
 const { currentUser, isAuthenticated, logout } = useAuth()
 const menu = ref()
 
-const menuItems = ref<MenuItem[]>([
+const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Mon profil',
     icon: 'fas fa-user',
     command: () => {
       router.push('/profile')
+    },
+  },
+  {
+    label: 'Paramètres',
+    icon: 'fas fa-cog',
+    command: () => {
+      router.push('/settings')
     },
   },
   {
@@ -98,7 +106,7 @@ function toggleMenu(event: Event) {
 
 function handleLogout() {
   logout()
-  router.push('/')
+  router.push('/login')
 }
 
 function toggleDarkMode() {

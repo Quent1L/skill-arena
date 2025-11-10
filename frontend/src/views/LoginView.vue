@@ -62,6 +62,7 @@
                   label="S'inscrire"
                   @click="router.push('/register')"
                   class="ml-1 p-0"
+                  type="submit"
                 />
               </div>
 
@@ -69,7 +70,7 @@
                 <Button
                   link
                   label="← Retour à l'accueil"
-                  @click="router.push('/')"
+                  @click="router.push('/public')"
                   class="text-sm text-gray-600"
                 />
               </div>
@@ -105,9 +106,10 @@ const onSubmit = handleSubmit(async (values) => {
       email: values.email,
       password: values.password,
     })
+    console.log('Connexion réussie')
 
     const redirectPath = route.query.redirect as string
-    router.push(redirectPath || '/tournaments')
+    router.push(redirectPath ?? '/')
   } catch (err) {
     console.error('Erreur de connexion:', err)
   }
