@@ -42,8 +42,8 @@ export function useAuth() {
   const token = computed(() => sessionData.value?.data?.session?.token || null)
   const isInitialized = computed(() => sessionData.value !== undefined)
 
-  async function checkSession() {
-    if (loading.value) {
+  async function checkSession(force = false) {
+    if (loading.value && !force) {
       return sessionData.value
     }
 
@@ -94,7 +94,7 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
 
-      await checkSession()
+      await checkSession(true)
 
       await fetchUserData()
 

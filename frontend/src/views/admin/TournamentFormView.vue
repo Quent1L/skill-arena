@@ -29,9 +29,7 @@
 
               <!-- Status -->
               <div v-if="isEditMode">
-                <label for="status" class="block text-sm font-medium mb-2">
-                  Statut
-                </label>
+                <label for="status" class="block text-sm font-medium mb-2"> Statut </label>
                 <Select
                   id="status"
                   v-model="status"
@@ -287,10 +285,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
-import { 
-  type CreateTournamentFormData, 
-  type UpdateTournamentFormData
-} from '@skill-arena/shared'
+import { type CreateTournamentFormData, type UpdateTournamentFormData } from '@skill-arena/shared'
 import { useTournamentService } from '@/composables/tournament.service'
 
 const router = useRouter()

@@ -1,3 +1,5 @@
+import { joinTournamentSchema, type JoinTournamentRequest } from "@skill-arena/shared/dist/participant";
+
 // Re-export des schémas et types depuis le package partagé
 export {
   tournamentModeSchema,
@@ -14,3 +16,6 @@ export {
   type ChangeTournamentStatusInput,
   type ListTournamentsQuery,
 } from "@skill-arena/shared";
+
+// Re-export des types participants
+export { joinTournamentSchema, type JoinTournamentRequest };

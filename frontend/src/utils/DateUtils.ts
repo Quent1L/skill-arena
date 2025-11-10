@@ -45,3 +45,33 @@ export function dateToStringDDMMYYYYHHMM(date: Date | undefined) {
   if (!date) return date
   return format(date, 'dd/MM/yyyy HH:mm')
 }
+
+export function formatDate(dateString: string | Date): string {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString
+  return format(date, 'dd/MM/yyyy')
+}
+
+export function calculateDuration(startDate: string | Date, endDate: string | Date): string {
+  const start = typeof startDate === 'string' ? new Date(startDate) : startDate
+  const end = typeof endDate === 'string' ? new Date(endDate) : endDate
+  
+  const diffTime = Math.abs(end.getTime() - start.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 1) {
+    return '1 jour'
+  } else if (diffDays < 7) {
+    return `${diffDays} jours`
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    const remainingDays = diffDays % 7
+    if (remainingDays === 0) {
+      return weeks === 1 ? '1 semaine' : `${weeks} semaines`
+    } else {
+      return `${weeks} semaine${weeks > 1 ? 's' : ''} et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}`
+    }
+  } else {
+    const months = Math.floor(diffDays / 30)
+    return months === 1 ? '1 mois' : `${months} mois`
+  }
+}

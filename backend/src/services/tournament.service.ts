@@ -1,10 +1,12 @@
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
+import { participantRepository } from "../repository/participant.repository";
 import {
   type CreateTournamentInput,
   type UpdateTournamentInput,
   type TournamentMode,
   type TournamentStatus,
+  type JoinTournamentRequest,
 } from "@skill-arena/shared";
 
 export class TournamentService {
@@ -276,6 +278,83 @@ export class TournamentService {
     });
 
     return updated;
+  }
+
+  /**
+   * Join tournament as participant
+   */
+  async joinTournament(userId: string, data: JoinTournamentRequest) {
+    const { tournamentId } = data;
+
+    // Vérifier que le tournoi existe et est dans un état valide
+    const tournament = await participantRepository.findTournamentById(tournamentId);
+
+    if (!tournament) {
+      throw new Error("Tournoi non trouvé");
+    }
+
+    if (!["open", "ongoing"].includes(tournament.status)) {
+      throw new Error("Le tournoi n'est pas ouvert aux inscriptions");
+    }
+
+    // Vérifier que l'utilisateur n'est pas déjà inscrit
+    const existingParticipation = await participantRepository.findParticipationByUserAndTournament(
+      userId,
+      tournamentId
+    );
+
+    if (existingParticipation) {
+      throw new Error("Vous êtes déjà inscrit à ce tournoi");
+    }
+
+    // Inscrire l'utilisateur
+    const participation = await participantRepository.createParticipation(userId, tournamentId);
+
+    // Retourner les détails de la participation avec les informations du tournoi et de l'utilisateur
+    const participationWithDetails = await participantRepository.findParticipationWithDetails(
+      participation.id
+    );
+
+    return participationWithDetails;
+  }
+
+  /**
+   * Leave tournament
+   */
+  async leaveTournament(userId: string, tournamentId: string) {
+    // Vérifier que le tournoi existe
+    const tournament = await participantRepository.findTournamentById(tournamentId);
+
+    if (!tournament) {
+      throw new Error("Tournoi non trouvé");
+    }
+
+    // Ne pas permettre de quitter un tournoi en cours ou terminé
+    if (["ongoing", "finished"].includes(tournament.status)) {
+      throw new Error("Impossible de quitter un tournoi en cours ou terminé");
+    }
+
+    // Vérifier que l'utilisateur est inscrit
+    const participation = await participantRepository.findParticipationByUserAndTournament(
+      userId,
+      tournamentId
+    );
+
+    if (!participation) {
+      throw new Error("Vous n'êtes pas inscrit à ce tournoi");
+    }
+
+    // Supprimer la participation
+    await participantRepository.deleteParticipation(participation.id);
+
+    return { message: "Vous avez quitté le tournoi avec succès" };
+  }
+
+  /**
+   * Get tournament participants
+   */
+  async getTournamentParticipants(tournamentId: string) {
+    return await participantRepository.findTournamentParticipants(tournamentId);
   }
 }
 

@@ -3,6 +3,7 @@ export * from "./tournament";
 export * from "./user";
 export * from "./match";
 export * from "./team";
+export * from "./participant";
 export interface ApiResponse<T = any> {
     success: boolean;
     data?: T;

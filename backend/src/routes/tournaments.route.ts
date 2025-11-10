@@ -5,6 +5,7 @@ import {
   updateTournamentSchema,
   changeTournamentStatusSchema,
   listTournamentsQuerySchema,
+  joinTournamentSchema,
 } from "../schemas/tournament.schema";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
@@ -126,6 +127,98 @@ tournaments.delete("/:id", requireAuth, async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const status = message.includes("permission") ? 403 : 400;
+    return c.json({ error: message }, status);
+  }
+});
+
+// POST /tournaments/:id/participants - Join tournament
+tournaments.post(
+  "/:id/participants",
+  requireAuth,
+  zValidator("json", joinTournamentSchema),
+  async (c) => {
+    try {
+      const tournamentId = c.req.param("id");
+      const appUserId = c.get("appUserId");
+
+      // Validation de l'UUID du tournoi
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(tournamentId)) {
+        return c.json({ error: "ID de tournoi invalide" }, 400);
+      }
+
+      const participation = await tournamentService.joinTournament(appUserId, {
+        tournamentId,
+      });
+
+      return c.json(participation, 201);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      let status = 400;
+
+      if (message.includes("non trouvé")) {
+        status = 404;
+      } else if (
+        message.includes("déjà inscrit") ||
+        message.includes("pas ouvert")
+      ) {
+        status = 409; // Conflict
+      }
+
+      return c.json({ error: message }, status);
+    }
+  }
+);
+
+// DELETE /tournaments/:id/participants - Leave tournament
+tournaments.delete("/:id/participants", requireAuth, async (c) => {
+  try {
+    const tournamentId = c.req.param("id");
+    const appUserId = c.get("appUserId");
+
+    // Validation de l'UUID du tournoi
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tournamentId)) {
+      return c.json({ error: "ID de tournoi invalide" }, 400);
+    }
+
+    const result = await tournamentService.leaveTournament(appUserId, tournamentId);
+
+    return c.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    let status = 400;
+
+    if (message.includes("non trouvé")) {
+      status = 404;
+    } else if (
+      message.includes("pas inscrit") ||
+      message.includes("Impossible")
+    ) {
+      status = 409;
+    }
+
+    return c.json({ error: message }, status);
+  }
+});
+
+// GET /tournaments/:id/participants - Get tournament participants
+tournaments.get("/:id/participants", async (c) => {
+  try {
+    const tournamentId = c.req.param("id");
+
+    // Validation de l'UUID du tournoi
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tournamentId)) {
+      return c.json({ error: "ID de tournoi invalide" }, 400);
+    }
+
+    const participants = await tournamentService.getTournamentParticipants(tournamentId);
+
+    return c.json(participants);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const status = message.includes("invalide") ? 400 : 500;
     return c.json({ error: message }, status);
   }
 });
