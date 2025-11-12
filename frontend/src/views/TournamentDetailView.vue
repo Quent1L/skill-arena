@@ -1,220 +1,97 @@
 <template>
   <div class="tournament-detail-view">
-    <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-12">
       <ProgressSpinner />
     </div>
 
-    <!-- Error -->
     <Message v-else-if="error" severity="error" class="mb-6">
       {{ error }}
     </Message>
 
-    <!-- Tournament Details -->
     <div v-else-if="tournament" class="space-y-6">
-      <!-- Header with actions -->
-      <Card>
-        <template #header>
-          <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 p-6 pb-0">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-4">
-                <Badge
-                  :value="statusLabels[tournament.status]"
-                  :severity="statusSeverities[tournament.status]"
-                />
-                <Badge
-                  :value="modeLabels[tournament.mode]"
-                  severity="info"
-                  class="bg-blue-100 text-blue-800"
-                />
-              </div>
-
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {{ tournament.name }}
-              </h1>
-
-              <p v-if="tournament.description" class="text-gray-600 dark:text-gray-400">
-                {{ tournament.description }}
-              </p>
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-3">
-              <!-- Bouton de participation -->
-              <div v-if="isAuthenticated">
-                <Button
-                  v-if="!isParticipant && canJoinTournament"
-                  label="Participer"
-                  icon="fa fa-user-plus"
-                  @click="joinTournament"
-                  :loading="joining"
-                  class="bg-green-600 hover:bg-green-700"
-                />
-
-                <Button
-                  v-else-if="isParticipant && canLeaveTournament"
-                  label="Quitter"
-                  icon="fa fa-user-minus"
-                  severity="secondary"
-                  outlined
-                  @click="leaveTournament"
-                  :loading="leaving"
-                />
-
-                <div v-else-if="isParticipant" class="flex items-center gap-2 text-green-600">
-                  <i class="fa fa-check-circle"></i>
-                  <span class="font-medium">Déjà inscrit</span>
-                </div>
-              </div>
-
-              <!-- Bouton admin -->
-              <Button
-                v-if="canManageTournament"
-                label="Modifier"
-                icon="fa fa-pencil"
-                outlined
-                @click="editTournament"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #content>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Informations générales -->
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                Informations générales
-              </h3>
-
-              <div class="space-y-3">
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Mode :</span>
-                  <span class="font-medium">{{ modeLabels[tournament.mode] }}</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Mode équipe :</span>
-                  <span class="font-medium">{{ teamModeLabels[tournament.teamMode] }}</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Taille équipe :</span>
-                  <span class="font-medium"
-                    >{{ tournament.minTeamSize }}-{{ tournament.maxTeamSize }} joueurs</span
-                  >
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Participants :</span>
-                  <span class="font-medium">{{ participantCount }} inscrits</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Dates -->
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Calendrier</h3>
-
-              <div class="space-y-3">
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Début :</span>
-                  <span class="font-medium">{{ formatDate(tournament.startDate) }}</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Fin :</span>
-                  <span class="font-medium">{{ formatDate(tournament.endDate) }}</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Durée :</span>
-                  <span class="font-medium">{{ tournamentDuration }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Système de points -->
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Système de points</h3>
-
-              <div class="space-y-3">
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Victoire :</span>
-                  <span class="font-medium">{{ tournament.pointPerVictory }} pts</span>
-                </div>
-
-                <div v-if="tournament.allowDraw" class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Match nul :</span>
-                  <span class="font-medium">{{ tournament.pointPerDraw }} pts</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Défaite :</span>
-                  <span class="font-medium">{{ tournament.pointPerLoss }} pts</span>
-                </div>
-
-                <div class="flex justify-between">
-                  <span class="text-gray-600 dark:text-gray-400">Match nuls :</span>
-                  <span class="font-medium">{{
-                    tournament.allowDraw ? 'Autorisés' : 'Interdits'
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </Card>
-
-      <!-- Participants -->
       <Card>
         <template #header>
           <div class="p-6 pb-0">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-              Participants ({{ participantCount }})
-            </h2>
+            <TournamentHeader
+              :name="tournament.name"
+              :description="tournament.description"
+              :status="tournament.status"
+              :mode="tournament.mode"
+              :is-authenticated="isAuthenticated"
+              :is-participant="isParticipant"
+              :can-join="canJoinTournament"
+              :can-leave="canLeaveTournament"
+              :can-create-match="canCreateMatch"
+              :can-manage="canManageTournament"
+              :joining="joining"
+              :leaving="leaving"
+              @join="joinTournament"
+              @leave="leaveTournament"
+              @create-match="createMatch"
+              @edit="editTournament"
+            />
           </div>
         </template>
 
         <template #content>
-          <div v-if="loadingParticipants" class="flex justify-center py-8">
-            <ProgressSpinner />
-          </div>
-
-          <div
-            v-else-if="participants.length > 0"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            <div
-              v-for="participant in participants"
-              :key="participant.id"
-              class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
-            >
-              <Avatar
-                :label="participant.user.displayName.charAt(0).toUpperCase()"
-                class="bg-blue-500"
-              />
-              <div class="flex-1">
-                <div class="font-medium text-gray-900 dark:text-white">
-                  {{ participant.user.displayName }}
-                </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400">
-                  Inscrit le {{ formatDate(participant.joinedAt) }}
-                </div>
-              </div>
-              <div v-if="participant.matchesPlayed > 0" class="text-sm text-gray-500">
-                {{ participant.matchesPlayed }} matchs
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
-            Aucun participant pour le moment
-          </div>
+          <TournamentInfoGrid
+            :mode="tournament.mode"
+            :team-mode="tournament.teamMode"
+            :min-team-size="tournament.minTeamSize"
+            :max-team-size="tournament.maxTeamSize"
+            :participant-count="participantCount"
+            :start-date="tournament.startDate"
+            :end-date="tournament.endDate"
+            :duration="tournamentDuration"
+            :point-per-victory="tournament.pointPerVictory"
+            :point-per-draw="tournament.pointPerDraw"
+            :point-per-loss="tournament.pointPerLoss"
+            :allow-draw="tournament.allowDraw"
+          />
         </template>
       </Card>
+
+      <Tabs v-model:value="activeTab">
+        <TabList>
+          <Tab value="0">Classement</Tab>
+          <Tab value="1">Matchs</Tab>
+          <Tab value="2">
+            <div class="flex items-center">
+              <div>Participants</div>
+              <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
+            </div>
+          </Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel value="0">
+            <p class="m-0">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+              incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
+              exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure
+              dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+              mollit anim id est laborum.
+            </p>
+          </TabPanel>
+          <TabPanel value="1">
+            <div class="p-0">
+              <MatchList :tournament-id="tournamentId" />
+            </div>
+          </TabPanel>
+          <TabPanel value="2">
+            <Card>
+              <template #content>
+                <TournamentParticipantsList
+                  :participants="participants"
+                  :loading="loadingParticipants"
+                />
+              </template>
+            </Card>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </div>
 
-    <!-- Tournament not found -->
     <Card v-else class="text-center py-12">
       <template #content>
         <div class="space-y-4">
@@ -240,13 +117,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
-import { formatDate, calculateDuration } from '@/utils/DateUtils'
-import type {
-  BaseTournament,
-  TournamentStatus,
-  TournamentMode,
-  TeamMode,
-} from '@skill-arena/shared'
+import MatchList from '@/components/MatchList.vue'
+import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
+import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
+import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
+import { calculateDuration } from '@/utils/DateUtils'
+import type { BaseTournament } from '@skill-arena/shared'
 
 const route = useRoute()
 const router = useRouter()
@@ -259,15 +135,14 @@ const {
   getTournamentParticipants,
 } = useParticipantService()
 
-// State
 const tournament = ref<BaseTournament | null>(null)
 const loading = ref(true)
 const loadingParticipants = ref(true)
 const error = ref<string | null>(null)
 const joining = ref(false)
 const leaving = ref(false)
+const activeTab = ref('0')
 
-// Computed
 const tournamentId = computed(() => route.params.id as string)
 
 const isParticipant = computed(() => {
@@ -289,6 +164,14 @@ const canManageTournament = computed(() => {
   return isAuthenticated.value && isSuperAdmin.value
 })
 
+const canCreateMatch = computed(() => {
+  return (
+    isAuthenticated.value &&
+    isParticipant.value &&
+    ['open', 'ongoing'].includes(tournament.value?.status || '')
+  )
+})
+
 const participantCount = computed(() => participants.value.length)
 
 const tournamentDuration = computed(() => {
@@ -296,32 +179,13 @@ const tournamentDuration = computed(() => {
   return calculateDuration(tournament.value.startDate, tournament.value.endDate)
 })
 
-// Labels
-const statusLabels: Record<TournamentStatus, string> = {
-  draft: 'Brouillon',
-  open: 'Ouvert',
-  ongoing: 'En cours',
-  finished: 'Terminé',
-}
+onMounted(() => {
+  const tab = route.query.tab as string | undefined
+  if (tab && ['0', '1', '2'].includes(tab)) {
+    activeTab.value = tab
+  }
+})
 
-const statusSeverities: Record<TournamentStatus, 'secondary' | 'success' | 'warn' | 'info'> = {
-  draft: 'secondary',
-  open: 'success',
-  ongoing: 'warn',
-  finished: 'info',
-}
-
-const modeLabels: Record<TournamentMode, string> = {
-  championship: 'Championnat',
-  bracket: 'Bracket',
-}
-
-const teamModeLabels: Record<TeamMode, string> = {
-  static: 'Statique',
-  flex: 'Flexible',
-}
-
-// Methods
 async function loadTournament() {
   try {
     loading.value = true
@@ -380,7 +244,10 @@ function editTournament() {
   router.push(`/admin/tournaments/${tournamentId.value}/edit`)
 }
 
-// Lifecycle
+function createMatch() {
+  router.push(`/tournaments/${tournamentId.value}/create-match`)
+}
+
 onMounted(async () => {
   await loadTournament()
   if (tournament.value) {

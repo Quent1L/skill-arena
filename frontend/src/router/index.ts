@@ -90,6 +90,16 @@ const routes: RouteRecordRaw[] = [
       parent: 'tournaments',
     },
   },
+  {
+    path: '/tournaments/:tournamentId/create-match',
+    name: 'create-match',
+    component: () => import('@/views/CreateMatchView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',

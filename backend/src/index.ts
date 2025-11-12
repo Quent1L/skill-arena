@@ -4,6 +4,7 @@ import * as z from "zod";
 import { auth } from "./config/auth"; // path to your auth file
 import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
+import matches from "./routes/matches.route";
 import { addUserContext } from "./middleware/auth";
 import { createAppHonoOptional } from "./types/hono";
 
@@ -49,6 +50,9 @@ app.route("/api/tournaments", tournaments);
 
 // Mount user routes
 app.route("/api/users", users);
+
+// Mount match routes
+app.route("/api/matches", matches);
 
 const route = app.post(
   "/posts",
