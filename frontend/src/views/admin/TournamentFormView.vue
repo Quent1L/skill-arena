@@ -11,7 +11,7 @@
           <div class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Informations générales</h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <!-- Nom -->
               <div>
                 <label for="name" class="block text-sm font-medium mb-2">
@@ -44,7 +44,7 @@
               </div>
 
               <!-- Description -->
-              <div class="col-span-2">
+              <div class="lg:col-span-2">
                 <label for="description" class="block text-sm font-medium mb-2">
                   Description
                 </label>
@@ -164,7 +164,7 @@
           <div v-if="mode === 'championship'" class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Règles du championnat</h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label for="maxMatchesPerPlayer" class="block text-sm font-medium mb-2">
                   Matchs max par joueur
@@ -246,7 +246,7 @@
                 />
               </div>
 
-              <div class="col-span-3">
+              <div class="sm:col-span-2 lg:col-span-3">
                 <div class="flex items-center">
                   <Checkbox
                     id="allowDraw"
@@ -261,18 +261,20 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex justify-end gap-3 pt-4 border-t">
+          <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
               label="Annuler"
               severity="secondary"
               @click="router.back()"
               :disabled="loading"
+              class="w-full sm:w-auto"
             />
             <Button
               type="submit"
               :label="isEditMode ? 'Mettre à jour' : 'Créer'"
               icon="pi pi-check"
               :loading="loading"
+              class="w-full sm:w-auto"
             />
           </div>
         </template>

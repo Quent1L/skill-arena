@@ -1,7 +1,10 @@
 {
   "name": "backend",
   "scripts": {
-    "dev": "bun run --hot src/index.ts"
+    "dev": "bun run --hot src/index.ts",
+    "type-check": "tsc --noEmit",
+    "db:generate": "bun run drizzle-kit generate",
+    "db:push": "bun run drizzle-kit push"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.4",

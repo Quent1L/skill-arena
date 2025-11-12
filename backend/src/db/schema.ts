@@ -117,7 +117,8 @@ export const matchStatusEnum = pgEnum("match_status", [
   "cancelled",
 ]);
 
-// Table app_users
+export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
+
 export const appUsers = pgTable("app_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   externalId: text("external_id")
@@ -133,7 +134,6 @@ export const appUsers = pgTable("app_users", {
     .notNull(),
 });
 
-// Table tournaments
 export const tournaments = pgTable("tournaments", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
@@ -162,7 +162,6 @@ export const tournaments = pgTable("tournaments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Table tournament_admins
 export const tournamentAdmins = pgTable(
   "tournament_admins",
   {
@@ -179,8 +178,6 @@ export const tournamentAdmins = pgTable(
   (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
-// Table teams
-// Table teams
 export const teams = pgTable(
   "teams",
   {
@@ -201,8 +198,6 @@ export const teams = pgTable(
   ]
 );
 
-// Table tournament_participants
-// Table tournament_participants
 export const tournamentParticipants = pgTable(
   "tournament_participants",
   {
@@ -222,8 +217,6 @@ export const tournamentParticipants = pgTable(
   (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
-// Table matches
-// Table matches
 export const matches = pgTable(
   "matches",
   {
@@ -238,6 +231,7 @@ export const matches = pgTable(
     teamBId: uuid("team_b_id").references(() => teams.id, {
       onDelete: "set null",
     }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
     scoreA: integer("score_a").notNull().default(0),
     scoreB: integer("score_b").notNull().default(0),
     winnerId: uuid("winner_id").references(() => teams.id, {
@@ -257,7 +251,21 @@ export const matches = pgTable(
   (table) => [unique().on(table.tournamentId, table.teamAId, table.teamBId)]
 );
 
-// Table championship_standings
+export const matchParticipation = pgTable(
+  "match_participation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    teamSide: matchTeamSideEnum("team_side").notNull(),
+  },
+  (table) => [unique().on(table.matchId, table.playerId)]
+);
+
 export const championshipStandings = pgTable("championship_standings", {
   id: uuid("id").primaryKey().defaultRandom(),
   tournamentId: uuid("tournament_id")
@@ -277,7 +285,6 @@ export const championshipStandings = pgTable("championship_standings", {
     .notNull(),
 });
 
-// Relations
 export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   externalUser: one(user, {
     fields: [appUsers.externalId],
@@ -351,7 +358,7 @@ export const tournamentParticipantsRelations = relations(
   })
 );
 
-export const matchesRelations = relations(matches, ({ one }) => ({
+export const matchesRelations = relations(matches, ({ one, many }) => ({
   tournament: one(tournaments, {
     fields: [matches.tournamentId],
     references: [tournaments.id],
@@ -381,7 +388,22 @@ export const matchesRelations = relations(matches, ({ one }) => ({
     references: [appUsers.id],
     relationName: "confirmedBy",
   }),
+  participations: many(matchParticipation),
 }));
+
+export const matchParticipationRelations = relations(
+  matchParticipation,
+  ({ one }) => ({
+    match: one(matches, {
+      fields: [matchParticipation.matchId],
+      references: [matches.id],
+    }),
+    player: one(appUsers, {
+      fields: [matchParticipation.playerId],
+      references: [appUsers.id],
+    }),
+  })
+);
 
 export const championshipStandingsRelations = relations(
   championshipStandings,
