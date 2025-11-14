@@ -1,6 +1,6 @@
 import { matchApi } from './match.api'
 import type {
-  Match,
+  MatchModel,
   CreateMatchRequestData,
   UpdateMatchRequestData,
   ReportMatchResultRequestData,
@@ -10,19 +10,19 @@ import type {
 } from '@skill-arena/shared'
 
 export function useMatchService() {
-  const createMatch = async (data: CreateMatchRequestData): Promise<Match> => {
+  const createMatch = async (data: CreateMatchRequestData): Promise<MatchModel> => {
     return await matchApi.create(data)
   }
 
-  const getMatch = async (id: string): Promise<Match> => {
+  const getMatch = async (id: string): Promise<MatchModel> => {
     return await matchApi.getById(id)
   }
 
-  const listMatches = async (filters?: ListMatchesQuery): Promise<Match[]> => {
+  const listMatches = async (filters?: ListMatchesQuery): Promise<MatchModel[]> => {
     return await matchApi.list(filters)
   }
 
-  const updateMatch = async (id: string, data: UpdateMatchRequestData): Promise<Match> => {
+  const updateMatch = async (id: string, data: UpdateMatchRequestData): Promise<MatchModel> => {
     return await matchApi.update(id, data)
   }
 
@@ -33,14 +33,14 @@ export function useMatchService() {
   const reportMatchResult = async (
     id: string,
     data: ReportMatchResultRequestData,
-  ): Promise<Match> => {
+  ): Promise<MatchModel> => {
     return await matchApi.reportResult(id, data)
   }
 
   const confirmMatchResult = async (
     id: string,
     data: ConfirmMatchResultRequestData,
-  ): Promise<Match> => {
+  ): Promise<MatchModel> => {
     return await matchApi.confirmResult(id, data)
   }
 

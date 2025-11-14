@@ -1,12 +1,13 @@
 {
   "extends": ["@vue/tsconfig/tsconfig.json", "@vue/tsconfig/tsconfig.dom.json"],
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "../shared/src/**/*"],
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
+    "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@skill-arena/shared/*": ["../shared/src/*"]
     },
     "strict": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"]

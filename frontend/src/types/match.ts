@@ -1,6 +1,6 @@
 // Re-export des types depuis le package partagé
 export {
-  type Match,
+  type MatchModel as Match,
   type MatchResult,
   type MatchParticipant,
   type MatchStatus,
@@ -9,9 +9,9 @@ export {
 // Types spécifiques au frontend pour compatibilité
 import type { Team } from './team'
 import type { User } from './user'
-import type { Match } from '@skill-arena/shared'
+import type { MatchModel } from '@skill-arena/shared'
 
-export interface MatchExpanded extends Match {
+export interface MatchExpanded extends MatchModel {
   expand?: {
     teamA?: Team
     teamB?: Team
@@ -25,8 +25,10 @@ export interface MatchWithStatus extends MatchExpanded {
   canValidate: boolean
 }
 
-export type MatchCreate = Omit<Match, 'id' | 'createdAt' | 'updatedAt'>
-export type MatchUpdate = Partial<Omit<Match, 'id' | 'createdAt' | 'updatedAt' | 'tournamentId'>>
+export type MatchCreate = Omit<MatchModel, 'id' | 'createdAt' | 'updatedAt'>
+export type MatchUpdate = Partial<
+  Omit<MatchModel, 'id' | 'createdAt' | 'updatedAt' | 'tournamentId'>
+>
 
 export interface ScoreSubmission {
   matchId: string
