@@ -11,6 +11,13 @@ import {
   type ConfirmMatchResultRequestData as ConfirmMatchResultInput,
   type MatchStatus,
 } from "@skill-arena/shared/types/index";
+import {
+  ErrorCode,
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+  ConflictError,
+} from "../types/errors";
 
 export class MatchService {
   /**
@@ -38,14 +45,12 @@ export class MatchService {
     // Get tournament
     const tournament = await matchRepository.getTournament(input.tournamentId);
     if (!tournament) {
-      throw new Error("Tournoi non trouvé");
+      throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
     // Check if tournament allows creating matches
     if (!["open", "ongoing"].includes(tournament.status)) {
-      throw new Error(
-        "Le tournoi doit être ouvert ou en cours pour créer des matchs"
-      );
+      throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
     }
 
     if (!this.isPlayerInMatch(input, createdBy)) {
@@ -55,18 +60,14 @@ export class MatchService {
         createdBy
       );
       if (!canManage) {
-        throw new Error(
-          "Vous n'avez pas la permission de créer des matchs pour d'autres joueurs dans ce tournoi"
-        );
+        throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
       }
     }
 
     // Validate input based on team mode
     if (tournament.teamMode === "static") {
       if (!input.teamAId || !input.teamBId) {
-        throw new Error(
-          "Pour les équipes statiques, teamAId et teamBId sont requis"
-        );
+        throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
       }
       await matchRepository.validateTeamsForTournament(
         input.tournamentId,
@@ -80,9 +81,7 @@ export class MatchService {
         input.playerIdsA.length === 0 ||
         input.playerIdsB.length === 0
       ) {
-        throw new Error(
-          "Pour les équipes flexibles, playerIdsA et playerIdsB sont requis"
-        );
+        throw new BadRequestError(ErrorCode.MATCH_INVALID_PLAYERS);
       }
       await matchRepository.validatePlayersForTournament(input.tournamentId, [
         ...input.playerIdsA,
@@ -160,9 +159,9 @@ export class MatchService {
           playerId
         );
         if (playerMatchCount >= tournament.maxMatchesPerPlayer) {
-          throw new Error(
-            `Le joueur a atteint le nombre maximum de matchs (${tournament.maxMatchesPerPlayer})`
-          );
+          throw new ConflictError(ErrorCode.MAX_MATCHES_EXCEEDED, {
+            max: tournament.maxMatchesPerPlayer,
+          });
         }
 
         // Check partner constraints
@@ -175,9 +174,9 @@ export class MatchService {
                 otherPlayerId
               );
             if (partnerCount >= tournament.maxTimesWithSamePartner) {
-              throw new Error(
-                `Le joueur a déjà joué ${tournament.maxTimesWithSamePartner} fois avec ce partenaire`
-              );
+              throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
+                max: tournament.maxTimesWithSamePartner,
+              });
             }
           }
         }
@@ -190,9 +189,9 @@ export class MatchService {
               otherPlayerId
             );
           if (opponentCount >= tournament.maxTimesWithSameOpponent) {
-            throw new Error(
-              `Le joueur a déjà joué ${tournament.maxTimesWithSameOpponent} fois contre cet adversaire`
-            );
+            throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
+              max: tournament.maxTimesWithSameOpponent,
+            });
           }
         }
       }
@@ -212,7 +211,7 @@ export class MatchService {
   async getMatchById(id: string) {
     const match = await matchRepository.getById(id);
     if (!match) {
-      throw new Error("Match non trouvé");
+      throw new NotFoundError(ErrorCode.MATCH_NOT_FOUND);
     }
     return match;
   }
@@ -240,12 +239,12 @@ export class MatchService {
       updatedBy
     );
     if (!canManage) {
-      throw new Error("Vous n'avez pas la permission de modifier ce match");
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     // Can only update certain fields based on status
     if (match.status === "confirmed") {
-      throw new Error("Impossible de modifier un match confirmé");
+      throw new BadRequestError(ErrorCode.MATCH_ALREADY_CONFIRMED);
     }
 
     const updateData: any = {};
@@ -269,12 +268,12 @@ export class MatchService {
       deletedBy
     );
     if (!canManage) {
-      throw new Error("Vous n'avez pas la permission de supprimer ce match");
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     // Can only delete if not confirmed
     if (match.status === "confirmed") {
-      throw new Error("Impossible de supprimer un match confirmé");
+      throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_DELETED);
     }
 
     // Delete participations first (cascade should handle this, but let's be safe)
@@ -298,25 +297,25 @@ export class MatchService {
     // Check if user is participant in the match
     const isParticipant = await matchRepository.isUserInMatch(id, reportedBy);
     if (!isParticipant) {
-      throw new Error("Seuls les participants peuvent reporter le résultat");
+      throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT);
     }
 
     // Check if match can be reported
     if (
       !["scheduled", "reported", "pending_confirmation"].includes(match.status)
     ) {
-      throw new Error("Le match ne peut pas être reporté dans son état actuel");
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
     }
 
     // Validate scores
     if (input.scoreA < 0 || input.scoreB < 0) {
-      throw new Error("Les scores ne peuvent pas être négatifs");
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_SCORE);
     }
 
     // Check draw allowance
     const tournament = await matchRepository.getTournament(match.tournamentId);
     if (input.scoreA === input.scoreB && !tournament?.allowDraw) {
-      throw new Error("Les matchs nuls ne sont pas autorisés dans ce tournoi");
+      throw new BadRequestError(ErrorCode.MATCH_DRAW_NOT_ALLOWED);
     }
 
     const updateData: {
@@ -360,21 +359,17 @@ export class MatchService {
     // Check if user is participant in the match
     const isParticipant = await matchRepository.isUserInMatch(id, confirmedBy);
     if (!isParticipant) {
-      throw new Error("Seuls les participants peuvent confirmer le résultat");
+      throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT);
     }
 
     // Check if match is in reported state
     if (match.status !== "reported") {
-      throw new Error(
-        "Le match doit être dans l'état 'reported' pour être confirmé"
-      );
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
     }
 
     // Check if same user who reported is not confirming
     if (match.reportedBy === confirmedBy) {
-      throw new Error(
-        "Le même utilisateur ne peut pas reporter et confirmer le résultat"
-      );
+      throw new BadRequestError(ErrorCode.MATCH_SAME_REPORTER_CONFIRMER);
     }
 
     if (input.confirmed) {

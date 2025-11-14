@@ -6,6 +6,8 @@ import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
 import matches from "./routes/matches.route";
 import { addUserContext } from "./middleware/auth";
+import { errorHandler } from "./middleware/error";
+import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 
 const app = createAppHonoOptional();
@@ -23,6 +25,9 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// i18n middleware (must be before routes to set language)
+app.use("*", i18nMiddleware);
 
 // Middleware to set user and session from BetterAuth
 app.use("*", addUserContext);
@@ -53,6 +58,9 @@ app.route("/api/users", users);
 
 // Mount match routes
 app.route("/api/matches", matches);
+
+// Error handling middleware (must be after all routes)
+app.onError(errorHandler);
 
 const route = app.post(
   "/posts",

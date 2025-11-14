@@ -63,38 +63,15 @@ export interface ConfirmMatchResultInput {
 // Schémas Zod pour la validation
 // ============================================
 
-export const createMatchSchema = z
-  .object({
-    tournamentId: z.string().uuid("ID de tournoi invalide"),
-    round: z.number().int().min(1).optional(),
-    teamAId: z.string().uuid("ID d'équipe A invalide").optional(),
-    teamBId: z.string().uuid("ID d'équipe B invalide").optional(),
-    playerIdsA: z.array(z.string().uuid()).optional(),
-    playerIdsB: z.array(z.string().uuid()).optional(),
-    status: matchStatusSchema.optional(),
-  })
-  .refine(
-    (data) => {
-      // For static team mode, require teamAId and teamBId
-      if (data.teamAId && data.teamBId) {
-        return true;
-      }
-      // For flex team mode, require player arrays
-      if (
-        data.playerIdsA &&
-        data.playerIdsB &&
-        data.playerIdsA.length > 0 &&
-        data.playerIdsB.length > 0
-      ) {
-        return true;
-      }
-      return false;
-    },
-    {
-      message:
-        "Soit teamAId/teamBId, soit playerIdsA/playerIdsB doivent être fournis",
-    }
-  );
+export const createMatchSchema = z.object({
+  tournamentId: z.string().uuid("ID de tournoi invalide"),
+  round: z.number().int().min(1).optional(),
+  teamAId: z.string().uuid("ID d'équipe A invalide").optional(),
+  teamBId: z.string().uuid("ID d'équipe B invalide").optional(),
+  playerIdsA: z.array(z.string().uuid()).optional(),
+  playerIdsB: z.array(z.string().uuid()).optional(),
+  status: matchStatusSchema.optional(),
+});
 
 export const updateMatchSchema = z.object({
   round: z.number().int().min(1).optional(),

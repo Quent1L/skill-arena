@@ -1,17 +1,19 @@
 {
   "markdown.validate.enabled": true,
-  "files.watcherExclude": {
-    "**/backend/**": true,
-    "**/dist/**": true,
-    "**/.bun/**": true,
-    "**/.output/**": true,
-    "**/node_modules/**": true
-  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "search.exclude": {
-    "**/backend/**": true,
-    "**/dist/**": true,
-    "**/.bun/**": true,
-    "**/.output/**": true
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.tsbuildinfo": true
   },
-  "typescript.tsserver.maxTsServerMemory": 4096
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.tsbuildinfo": true
+  }
 }

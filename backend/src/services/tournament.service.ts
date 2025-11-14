@@ -8,6 +8,13 @@ import {
   type TournamentStatus,
   type JoinTournamentRequest,
 } from "@skill-arena/shared";
+import {
+  ErrorCode,
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+  ConflictError,
+} from "../types/errors";
 
 export class TournamentService {
   /**
@@ -53,29 +60,30 @@ export class TournamentService {
     // Validate user permissions
     const canCreate = await this.canCreateTournament(input.createdBy);
     if (!canCreate) {
-      throw new Error(
-        "User does not have permission to create tournaments. Must be tournament_admin or super_admin."
-      );
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     // Validate max 5 drafts rule
     const draftCount = await this.countDraftTournaments(input.createdBy);
     if (draftCount >= 5) {
-      throw new Error("User cannot have more than 5 draft tournaments");
+      throw new ConflictError(ErrorCode.MAX_DRAFT_TOURNAMENTS_EXCEEDED, {
+        max: 5,
+        current: draftCount,
+      });
     }
 
     // Validate dates
     const startDate = new Date(input.startDate);
     const endDate = new Date(input.endDate);
     if (startDate >= endDate) {
-      throw new Error("Start date must be before end date");
+      throw new BadRequestError(ErrorCode.INVALID_DATE_RANGE);
     }
 
     if (input.minTeamSize < 1)
-      throw new Error("Min team size must be at least 1");
+      throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
 
     if (input.maxTeamSize <= input.minTeamSize)
-      throw new Error("Max team size must be greater than min team size");
+      throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
 
     // Create tournament
     const tournament = await tournamentRepository.create({
@@ -115,7 +123,7 @@ export class TournamentService {
     const tournament = await tournamentRepository.getById(id);
 
     if (!tournament) {
-      throw new Error("Tournament not found");
+      throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
     return tournament;
@@ -143,9 +151,7 @@ export class TournamentService {
     // Check permissions
     const canManage = await this.canManageTournament(id, userId);
     if (!canManage) {
-      throw new Error(
-        "User does not have permission to update this tournament"
-      );
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     // Get current tournament
@@ -166,11 +172,9 @@ export class TournamentService {
       );
 
       if (invalidFields.length > 0) {
-        throw new Error(
-          `Cannot update fields [${invalidFields.join(
-            ", "
-          )}] after tournament is no longer in draft status`
-        );
+        throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN, {
+          fields: invalidFields,
+        });
       }
     }
 
@@ -179,7 +183,7 @@ export class TournamentService {
       const startDate = new Date(input.startDate ?? tournament.startDate);
       const endDate = new Date(input.endDate ?? tournament.endDate);
       if (startDate >= endDate) {
-        throw new Error("Start date must be before end date");
+        throw new BadRequestError(ErrorCode.INVALID_DATE_RANGE);
       }
     }
 
@@ -188,10 +192,10 @@ export class TournamentService {
       const minSize = input.minTeamSize ?? tournament.minTeamSize;
       const maxSize = input.maxTeamSize ?? tournament.maxTeamSize;
       if (minSize < 1) {
-        throw new Error("Min team size must be at least 1");
+        throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
       }
       if (maxSize <= minSize) {
-        throw new Error("Max team size must be greater than min team size");
+        throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
       }
     }
 
@@ -214,7 +218,7 @@ export class TournamentService {
     const user = await tournamentRepository.getUser(userId);
 
     if (!user) {
-      throw new Error("User not found");
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
     }
 
     const tournament = await this.getTournamentById(id);
@@ -225,14 +229,12 @@ export class TournamentService {
     const isOwner = tournament.createdBy === userId;
 
     if (!isSuperAdmin && !isOwner) {
-      throw new Error(
-        "Only tournament owner or super_admin can delete tournaments"
-      );
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     // Can only delete if status is draft
     if (tournament.status !== "draft") {
-      throw new Error("Can only delete tournaments in draft status");
+      throw new BadRequestError(ErrorCode.TOURNAMENT_CANNOT_BE_DELETED);
     }
 
     // Delete tournament (cascade will handle related records)
@@ -251,9 +253,7 @@ export class TournamentService {
   ) {
     const canManage = await this.canManageTournament(id, userId);
     if (!canManage) {
-      throw new Error(
-        "User does not have permission to manage this tournament"
-      );
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
     const tournament = await this.getTournamentById(id);
@@ -268,9 +268,10 @@ export class TournamentService {
 
     const allowedTransitions = validTransitions[tournament.status];
     if (!allowedTransitions.includes(newStatus)) {
-      throw new Error(
-        `Cannot transition from ${tournament.status} to ${newStatus}`
-      );
+      throw new BadRequestError(ErrorCode.INVALID_STATUS_TRANSITION, {
+        from: tournament.status,
+        to: newStatus,
+      });
     }
 
     const updated = await tournamentRepository.update(id, {
@@ -292,11 +293,11 @@ export class TournamentService {
     );
 
     if (!tournament) {
-      throw new Error("Tournoi non trouvé");
+      throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
     if (!["open", "ongoing"].includes(tournament.status)) {
-      throw new Error("Le tournoi n'est pas ouvert aux inscriptions");
+      throw new BadRequestError(ErrorCode.TOURNAMENT_CLOSED);
     }
 
     // Vérifier que l'utilisateur n'est pas déjà inscrit
@@ -307,7 +308,7 @@ export class TournamentService {
       );
 
     if (existingParticipation) {
-      throw new Error("Vous êtes déjà inscrit à ce tournoi");
+      throw new ConflictError(ErrorCode.ALREADY_REGISTERED);
     }
 
     // Inscrire l'utilisateur
@@ -335,12 +336,12 @@ export class TournamentService {
     );
 
     if (!tournament) {
-      throw new Error("Tournoi non trouvé");
+      throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
     // Ne pas permettre de quitter un tournoi en cours ou terminé
     if (["ongoing", "finished"].includes(tournament.status)) {
-      throw new Error("Impossible de quitter un tournoi en cours ou terminé");
+      throw new BadRequestError(ErrorCode.CANNOT_LEAVE_ONGOING_TOURNAMENT);
     }
 
     // Vérifier que l'utilisateur est inscrit
@@ -351,7 +352,7 @@ export class TournamentService {
       );
 
     if (!participation) {
-      throw new Error("Vous n'êtes pas inscrit à ce tournoi");
+      throw new BadRequestError(ErrorCode.NOT_REGISTERED);
     }
 
     // Supprimer la participation

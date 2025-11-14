@@ -4,17 +4,31 @@
   "description": "Types et interfaces partagés entre frontend et backend",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rimraf dist"
+    "build": "tsc --build",
+    "type-check": "tsc --noEmit",
+    "dev": "tsc --build --watch",
+    "clean": "tsc --build --clean"
   },
   "dependencies": {
-    "zod": "^3.22.4"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "rimraf": "^5.0.5"
+    "typescript": "catalog:"
   },
   "files": [
     "dist"
