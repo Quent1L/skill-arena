@@ -7,7 +7,7 @@ import {
   confirmMatchResultSchema,
   listMatchesQuerySchema,
   validateMatchSchema,
-} from "@skill-arena/shared";
+} from "@skill-arena/shared/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 

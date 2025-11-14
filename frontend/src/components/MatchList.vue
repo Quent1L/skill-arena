@@ -47,7 +47,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match.service'
-import type { Match } from '@skill-arena/shared'
+import type { MatchModel } from '@skill-arena/shared'
 
 interface Props {
   tournamentId?: string
@@ -63,8 +63,8 @@ const router = useRouter()
 const { listMatches, getMatch } = useMatchService()
 
 const loading = ref(false)
-const matches = ref<Match[]>([])
-const displayedMatches = ref<Match[]>([])
+const matches = ref<MatchModel[]>([])
+const displayedMatches = ref<MatchModel[]>([])
 
 const pageSize = ref(props.pageSize)
 const currentPage = ref(0)
@@ -132,7 +132,7 @@ async function loadMatches() {
           (p: { user?: { id?: string } }) => p.user?.id === props.playerId,
         )
         return !!(inTeamA || inTeamB)
-      }) as Match[]
+      }) as MatchModel[]
 
       displayedMatches.value = filtered
     } else {

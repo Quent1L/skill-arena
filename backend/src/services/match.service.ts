@@ -10,7 +10,7 @@ import {
   type ReportMatchResultRequestData as ReportMatchResultInput,
   type ConfirmMatchResultRequestData as ConfirmMatchResultInput,
   type MatchStatus,
-} from "@skill-arena/shared";
+} from "@skill-arena/shared/types/index";
 
 export class MatchService {
   /**
@@ -490,7 +490,7 @@ export class MatchService {
         // Check for overlapping players only if both arrays are provided
         if (input.playerIdsA && input.playerIdsB) {
           const overlappingPlayers = input.playerIdsA.filter(
-            (playerId: string) => input.playerIdsB.includes(playerId)
+            (playerId: string) => input.playerIdsB?.includes(playerId)
           );
           if (overlappingPlayers.length > 0) {
             errors.push("Un joueur ne peut pas être dans les deux équipes");

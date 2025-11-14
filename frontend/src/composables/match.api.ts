@@ -6,19 +6,10 @@ import type {
   ReportMatchResultRequestData,
   ConfirmMatchResultRequestData,
   ValidateMatchRequestData,
-} from '@skill-arena/shared'
+  ListMatchesQuery,
+} from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/matches'
-
-// Type alias pour l'API response
-export type MatchResponse = Match
-
-// Types pour les payloads
-export type CreateMatchPayload = CreateMatchRequestData
-export type UpdateMatchPayload = UpdateMatchRequestData
-export type ReportMatchResultPayload = ReportMatchResultRequestData
-export type ConfirmMatchResultPayload = ConfirmMatchResultRequestData
-export type ValidateMatchPayload = ValidateMatchRequestData
 
 /**
  * Raw API calls to backend - no business logic here
@@ -27,16 +18,16 @@ export const matchApi = {
   /**
    * Create a new match
    */
-  async create(payload: CreateMatchPayload): Promise<MatchResponse> {
-    const response = await http.post<MatchResponse>(BASE_URL, payload)
+  async create(payload: CreateMatchRequestData): Promise<Match> {
+    const response = await http.post<Match>(BASE_URL, payload)
     return response.data
   },
 
   /**
    * List matches with optional filters
    */
-  async list(filters?: ListMatchesFilters): Promise<MatchResponse[]> {
-    const response = await http.get<MatchResponse[]>(BASE_URL, {
+  async list(filters?: ListMatchesQuery): Promise<Match[]> {
+    const response = await http.get<Match[]>(BASE_URL, {
       params: filters,
     })
     return response.data
@@ -45,16 +36,16 @@ export const matchApi = {
   /**
    * Get match by ID
    */
-  async getById(id: string): Promise<MatchResponse> {
-    const response = await http.get<MatchResponse>(`${BASE_URL}/${id}`)
+  async getById(id: string): Promise<Match> {
+    const response = await http.get<Match>(`${BASE_URL}/${id}`)
     return response.data
   },
 
   /**
    * Update match
    */
-  async update(id: string, payload: UpdateMatchPayload): Promise<MatchResponse> {
-    const response = await http.patch<MatchResponse>(`${BASE_URL}/${id}`, payload)
+  async update(id: string, payload: UpdateMatchRequestData): Promise<Match> {
+    const response = await http.patch<Match>(`${BASE_URL}/${id}`, payload)
     return response.data
   },
 
@@ -69,23 +60,23 @@ export const matchApi = {
   /**
    * Report match result
    */
-  async reportResult(id: string, payload: ReportMatchResultPayload): Promise<MatchResponse> {
-    const response = await http.post<MatchResponse>(`${BASE_URL}/${id}/report`, payload)
+  async reportResult(id: string, payload: ReportMatchResultRequestData): Promise<Match> {
+    const response = await http.post<Match>(`${BASE_URL}/${id}/report`, payload)
     return response.data
   },
 
   /**
    * Confirm match result
    */
-  async confirmResult(id: string, payload: ConfirmMatchResultPayload): Promise<MatchResponse> {
-    const response = await http.post<MatchResponse>(`${BASE_URL}/${id}/confirm`, payload)
+  async confirmResult(id: string, payload: ConfirmMatchResultRequestData): Promise<Match> {
+    const response = await http.post<Match>(`${BASE_URL}/${id}/confirm`, payload)
     return response.data
   },
 
   /**
    * Validate match possibility
    */
-  async validate(payload: ValidateMatchPayload): Promise<{
+  async validate(payload: ValidateMatchRequestData): Promise<{
     valid: boolean
     errors: string[]
     warnings: string[]

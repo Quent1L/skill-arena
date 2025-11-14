@@ -1,3 +1,17 @@
 {
-  "markdown.validate.enabled": true
+  "markdown.validate.enabled": true,
+  "files.watcherExclude": {
+    "**/backend/**": true,
+    "**/dist/**": true,
+    "**/.bun/**": true,
+    "**/.output/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/backend/**": true,
+    "**/dist/**": true,
+    "**/.bun/**": true,
+    "**/.output/**": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 4096
 }
