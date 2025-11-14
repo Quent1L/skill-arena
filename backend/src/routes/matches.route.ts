@@ -7,7 +7,7 @@ import {
   confirmMatchResultSchema,
   listMatchesQuerySchema,
   validateMatchSchema,
-} from "@skill-arena/shared/index";
+} from "@skill-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 
@@ -19,54 +19,27 @@ matches.post(
   requireAuth,
   zValidator("json", createMatchSchema),
   async (c) => {
-    try {
-      const appUserId = c.get("appUserId");
-      const data = c.req.valid("json");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
 
-      const match = await matchService.createMatch(
-        {
-          tournamentId: data.tournamentId,
-          round: data.round,
-          teamAId: data.teamAId,
-          teamBId: data.teamBId,
-          playerIdsA: data.playerIdsA,
-          playerIdsB: data.playerIdsB,
-          status: data.status,
-        },
-        appUserId
-      );
+    const match = await matchService.createMatch(data, appUserId);
 
-      return c.json(match, 201);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return c.json({ error: message }, 400);
-    }
+    return c.json(match, 201);
   }
 );
 
 // GET /matches - List matches (with filters)
 matches.get("/", zValidator("query", listMatchesQuerySchema), async (c) => {
-  try {
-    const filters = c.req.valid("query");
-    const matchesList = await matchService.listMatches(filters);
-    return c.json(matchesList);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return c.json({ error: message }, 500);
-  }
+  const filters = c.req.valid("query");
+  const matchesList = await matchService.listMatches(filters);
+  return c.json(matchesList);
 });
 
 // GET /matches/:id - Get single match
 matches.get("/:id", async (c) => {
-  try {
-    const id = c.req.param("id");
-    const match = await matchService.getMatchById(id);
-    return c.json(match);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const status = message === "Match non trouvé" ? 404 : 500;
-    return c.json({ error: message }, status);
-  }
+  const id = c.req.param("id");
+  const match = await matchService.getMatchById(id);
+  return c.json(match);
 });
 
 // PATCH /matches/:id - Update match
@@ -75,45 +48,33 @@ matches.patch(
   requireAuth,
   zValidator("json", updateMatchSchema),
   async (c) => {
-    try {
-      const id = c.req.param("id");
-      const appUserId = c.get("appUserId");
-      const data = c.req.valid("json");
+    const id = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
 
-      const match = await matchService.updateMatch(
-        id,
-        {
-          round: data.round,
-          scoreA: data.scoreA,
-          scoreB: data.scoreB,
-          status: data.status,
-          reportProof: data.reportProof,
-        },
-        appUserId
-      );
+    const match = await matchService.updateMatch(
+      id,
+      {
+        round: data.round,
+        scoreA: data.scoreA,
+        scoreB: data.scoreB,
+        status: data.status,
+        reportProof: data.reportProof,
+      },
+      appUserId
+    );
 
-      return c.json(match);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      const status = message.includes("permission") ? 403 : 400;
-      return c.json({ error: message }, status);
-    }
+    return c.json(match);
   }
 );
 
 // DELETE /matches/:id - Delete match
 matches.delete("/:id", requireAuth, async (c) => {
-  try {
-    const id = c.req.param("id");
-    const appUserId = c.get("appUserId");
+  const id = c.req.param("id");
+  const appUserId = c.get("appUserId");
 
-    const result = await matchService.deleteMatch(id, appUserId);
-    return c.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    const status = message.includes("permission") ? 403 : 400;
-    return c.json({ error: message }, status);
-  }
+  const result = await matchService.deleteMatch(id, appUserId);
+  return c.json(result);
 });
 
 // POST /matches/:id/report - Report match result
@@ -122,26 +83,21 @@ matches.post(
   requireAuth,
   zValidator("json", reportMatchResultSchema),
   async (c) => {
-    try {
-      const id = c.req.param("id");
-      const appUserId = c.get("appUserId");
-      const data = c.req.valid("json");
+    const id = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
 
-      const match = await matchService.reportMatchResult(
-        id,
-        {
-          scoreA: data.scoreA,
-          scoreB: data.scoreB,
-          reportProof: data.reportProof,
-        },
-        appUserId
-      );
+    const match = await matchService.reportMatchResult(
+      id,
+      {
+        scoreA: data.scoreA,
+        scoreB: data.scoreB,
+        reportProof: data.reportProof,
+      },
+      appUserId
+    );
 
-      return c.json(match);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return c.json({ error: message }, 400);
-    }
+    return c.json(match);
   }
 );
 
@@ -151,24 +107,19 @@ matches.post(
   requireAuth,
   zValidator("json", confirmMatchResultSchema),
   async (c) => {
-    try {
-      const id = c.req.param("id");
-      const appUserId = c.get("appUserId");
-      const data = c.req.valid("json");
+    const id = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
 
-      const match = await matchService.confirmMatchResult(
-        id,
-        {
-          confirmed: data.confirmed,
-        },
-        appUserId
-      );
+    const match = await matchService.confirmMatchResult(
+      id,
+      {
+        confirmed: data.confirmed,
+      },
+      appUserId
+    );
 
-      return c.json(match);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return c.json({ error: message }, 400);
-    }
+    return c.json(match);
   }
 );
 
@@ -177,23 +128,18 @@ matches.post(
   "/validate",
   zValidator("json", validateMatchSchema),
   async (c) => {
-    try {
-      const data = c.req.valid("json");
+    const data = c.req.valid("json");
 
-      const validation = await matchService.validateMatch({
-        tournamentId: data.tournamentId,
-        round: data.round,
-        teamAId: data.teamAId,
-        teamBId: data.teamBId,
-        playerIdsA: data.playerIdsA,
-        playerIdsB: data.playerIdsB,
-      });
+    const validation = await matchService.validateMatch({
+      tournamentId: data.tournamentId,
+      round: data.round,
+      teamAId: data.teamAId,
+      teamBId: data.teamBId,
+      playerIdsA: data.playerIdsA,
+      playerIdsB: data.playerIdsB,
+    });
 
-      return c.json(validation);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return c.json({ error: message }, 400);
-    }
+    return c.json(validation);
   }
 );
 

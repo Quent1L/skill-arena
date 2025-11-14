@@ -155,7 +155,7 @@ tournaments.post(
       return c.json(participation, 201);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      let status = 400;
+      let status: 400 | 404 | 409 = 400;
 
       if (message.includes("non trouvé")) {
         status = 404;
@@ -192,7 +192,7 @@ tournaments.delete("/:id/participants", requireAuth, async (c) => {
     return c.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    let status = 400;
+    let status: 400 | 404 | 409 = 400;
 
     if (message.includes("non trouvé")) {
       status = 404;

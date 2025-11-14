@@ -1,4 +1,5 @@
 import { userRepository } from "../repository/user.repository";
+import { ErrorCode, NotFoundError } from "../types/errors";
 
 export class UserService {
   /**
@@ -26,7 +27,7 @@ export class UserService {
     const appUser = await userRepository.getById(appUserId);
 
     if (!appUser) {
-      throw new Error("User not found");
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
     }
 
     return appUser;
@@ -39,7 +40,7 @@ export class UserService {
     const appUser = await userRepository.getByExternalId(betterAuthUserId);
 
     if (!appUser) {
-      throw new Error("User not found");
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
     }
 
     return appUser;

@@ -96,7 +96,7 @@ export interface TournamentWithStats extends BaseTournament {
 // Schéma de base sans validations cross-field pour les formulaires
 export const baseTournamentFormSchema = z.object({
   name: z
-    .string({ required_error: "Le nom est requis" })
+    .string({ message: "Le nom est requis" })
     .min(3, "Le nom doit contenir au moins 3 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
   description: z
@@ -106,11 +106,11 @@ export const baseTournamentFormSchema = z.object({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
   minTeamSize: z
-    .number({ required_error: "La taille minimale de l'équipe est requise" })
+    .number({ message: "La taille minimale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
   maxTeamSize: z
-    .number({ required_error: "La taille maximale de l'équipe est requise" })
+    .number({ message: "La taille maximale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
   maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),
@@ -132,8 +132,8 @@ export const baseTournamentFormSchema = z.object({
   pointPerDraw: z.number().int().min(0).default(1).optional(),
   pointPerLoss: z.number().int().min(0).default(0).optional(),
   allowDraw: z.boolean().default(true).optional(),
-  startDate: z.date({ required_error: "La date de début est requise" }),
-  endDate: z.date({ required_error: "La date de fin est requise" }),
+  startDate: z.date({ message: "La date de début est requise" }),
+  endDate: z.date({ message: "La date de fin est requise" }),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
@@ -178,7 +178,7 @@ export const createTournamentFormSchema = baseTournamentFormSchema
 // Schéma de base pour les données de tournoi
 const baseTournamentDataSchema = z.object({
   name: z
-    .string({ required_error: "Le nom est requis" })
+    .string({ message: "Le nom est requis" })
     .min(3, "Le nom doit contenir au moins 3 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
   description: z
@@ -188,11 +188,11 @@ const baseTournamentDataSchema = z.object({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
   minTeamSize: z
-    .number({ required_error: "La taille minimale de l'équipe est requise" })
+    .number({ message: "La taille minimale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
   maxTeamSize: z
-    .number({ required_error: "La taille maximale de l'équipe est requise" })
+    .number({ message: "La taille maximale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
   maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),

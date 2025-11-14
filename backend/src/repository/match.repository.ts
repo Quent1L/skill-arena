@@ -6,8 +6,20 @@ import {
   tournamentParticipants,
   teams,
   tournaments,
+  appUsers,
 } from "../db/schema";
 import { type MatchStatus } from "@skill-arena/shared";
+
+// Type for synthetic team object used in flex team mode
+type AppUser = typeof appUsers.$inferSelect;
+
+interface SyntheticTeamParticipant {
+  user: AppUser;
+}
+
+interface SyntheticTeam {
+  participants: SyntheticTeamParticipant[];
+}
 
 export interface CreateMatchData {
   tournamentId: string;
@@ -107,16 +119,24 @@ export class MatchRepository {
       match.participations &&
       match.participations.length > 0
     ) {
-      const playersA = match.participations
-        .filter((p: any) => p.teamSide === "A")
-        .map((p: any) => ({ user: p.player }));
+      const playersA: SyntheticTeamParticipant[] = match.participations
+        .filter((p) => p.teamSide === "A")
+        .map((p) => ({ user: p.player }));
 
-      const playersB = match.participations
-        .filter((p: any) => p.teamSide === "B")
-        .map((p: any) => ({ user: p.player }));
+      const playersB: SyntheticTeamParticipant[] = match.participations
+        .filter((p) => p.teamSide === "B")
+        .map((p) => ({ user: p.player }));
 
-      match.teamA ??= { participants: playersA };
-      match.teamB ??= { participants: playersB };
+      const syntheticTeamA: SyntheticTeam = { participants: playersA };
+      const syntheticTeamB: SyntheticTeam = { participants: playersB };
+
+      // Use unknown as intermediate type for type-safe casting
+      if (!match.teamA) {
+        match.teamA = syntheticTeamA as unknown as typeof match.teamA;
+      }
+      if (!match.teamB) {
+        match.teamB = syntheticTeamB as unknown as typeof match.teamB;
+      }
     }
 
     return match;
@@ -184,27 +204,34 @@ export class MatchRepository {
 
     // Post-process results: for flex tournaments where teamA/teamB are null,
     // synthesize team objects from participations so frontend can render players.
-    const processed = result.map((m: any) => {
+    const processed = result.map((m) => {
       if (
         (!m.teamA || !m.teamB) &&
         m.participations &&
         m.participations.length > 0
       ) {
-        const playersA = m.participations
-          .filter((p: any) => p.teamSide === "A")
-          .map((p: any) => ({ user: p.player }));
+        const playersA: SyntheticTeamParticipant[] = m.participations
+          .filter((p) => p.teamSide === "A")
+          .map((p) => ({ user: p.player }));
 
-        const playersB = m.participations
-          .filter((p: any) => p.teamSide === "B")
-          .map((p: any) => ({ user: p.player }));
+        const playersB: SyntheticTeamParticipant[] = m.participations
+          .filter((p) => p.teamSide === "B")
+          .map((p) => ({ user: p.player }));
 
-        if (!m.teamA) m.teamA = { participants: playersA };
-        if (!m.teamB) m.teamB = { participants: playersB };
+        const syntheticTeamA: SyntheticTeam = { participants: playersA };
+        const syntheticTeamB: SyntheticTeam = { participants: playersB };
+
+        if (!m.teamA) {
+          m.teamA = syntheticTeamA as unknown as typeof m.teamA;
+        }
+        if (!m.teamB) {
+          m.teamB = syntheticTeamB as unknown as typeof m.teamB;
+        }
       }
 
       // Ensure createdAt exists (some DB setups may not have it yet)
       if (!m.createdAt) {
-        m.createdAt = new Date().toISOString();
+        m.createdAt = new Date();
       }
 
       return m;
