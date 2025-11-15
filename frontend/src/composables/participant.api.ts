@@ -1,5 +1,5 @@
 import http from '@/config/ApiConfig'
-import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
+import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared/types/index'
 
 export interface ParticipantAPI {
   joinTournament: (tournamentId: string) => Promise<JoinTournamentResponse>

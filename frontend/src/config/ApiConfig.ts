@@ -1,5 +1,4 @@
-import xior, { merge, XiorError } from 'xior'
-import { useAuth } from '@/composables/useAuth'
+import xior, {  XiorError } from 'xior'
 import { convertStringDatesToJS } from '@/utils/DateUtils'
 
 const http = xior.create({
@@ -15,7 +14,7 @@ http.interceptors.response.use(
   },
   async (error: XiorError) => {
     console.error('HTTP Error:', error.message, error.response)
-    throw new Error(error.response?.data?.error ?? error.message)
+    throw new Error(error.response?.data?.error?.message ?? error.message)
   },
 )
 

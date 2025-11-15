@@ -127,52 +127,46 @@ import type { BaseTournament } from '@skill-arena/shared'
 const route = useRoute()
 const router = useRouter()
 const { isAuthenticated, isSuperAdmin, appUser } = useAuth()
-const { getTournament } = useTournamentService()
+const {
+  currentTournament: tournament,
+  loading,
+  error,
+  isTournamentOpenForJoin,
+  canLeaveTournament: canLeaveTournamentCheck,
+  canCreateMatchInTournament,
+  canManageTournament: canManageTournamentCheck,
+  loadTournamentWithErrorHandling,
+} = useTournamentService()
 const {
   participants,
-  joinTournament: joinTournamentAction,
-  leaveTournament: leaveTournamentAction,
+  participantCount,
+  loading: loadingParticipants,
+  isUserParticipant,
+  joinTournamentAndReload,
+  leaveTournamentAndReload,
   getTournamentParticipants,
 } = useParticipantService()
 
-const tournament = ref<BaseTournament | null>(null)
-const loading = ref(true)
-const loadingParticipants = ref(true)
-const error = ref<string | null>(null)
 const joining = ref(false)
 const leaving = ref(false)
 const activeTab = ref('0')
 
 const tournamentId = computed(() => route.params.id as string)
 
-const isParticipant = computed(() => {
-  if (!isAuthenticated.value || !appUser.value || !participants.value.length) return false
-  return participants.value.some((p) => p.userId === appUser.value?.id)
-})
+const isParticipant = computed(() => isUserParticipant(appUser.value?.id))
 
-const canJoinTournament = computed(() => {
-  if (!tournament.value) return false
-  return ['open', 'ongoing'].includes(tournament.value.status)
-})
+const canJoinTournament = computed(() => isTournamentOpenForJoin(tournament.value))
 
-const canLeaveTournament = computed(() => {
-  if (!tournament.value) return false
-  return !['ongoing', 'finished'].includes(tournament.value.status)
-})
+const canLeaveTournament = computed(() => canLeaveTournamentCheck(tournament.value))
 
 const canManageTournament = computed(() => {
-  return isAuthenticated.value && isSuperAdmin.value
+  if (!isAuthenticated.value || !tournament.value) return false
+  return canManageTournamentCheck(tournament.value)
 })
 
-const canCreateMatch = computed(() => {
-  return (
-    isAuthenticated.value &&
-    isParticipant.value &&
-    ['open', 'ongoing'].includes(tournament.value?.status || '')
-  )
-})
-
-const participantCount = computed(() => participants.value.length)
+const canCreateMatch = computed(() =>
+  canCreateMatchInTournament(tournament.value, isAuthenticated.value, isParticipant.value),
+)
 
 const tournamentDuration = computed(() => {
   if (!tournament.value) return ''
@@ -187,38 +181,17 @@ onMounted(() => {
 })
 
 async function loadTournament() {
-  try {
-    loading.value = true
-    error.value = null
-
-    const result = await getTournament(tournamentId.value)
-    tournament.value = result
-  } catch (err) {
-    console.error('Erreur lors du chargement du tournoi:', err)
-    error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du tournoi'
-  } finally {
-    loading.value = false
-  }
+  await loadTournamentWithErrorHandling(tournamentId.value)
 }
 
 async function loadParticipants() {
-  try {
-    loadingParticipants.value = true
-    await getTournamentParticipants(tournamentId.value)
-  } catch (err) {
-    console.error('Erreur lors du chargement des participants:', err)
-  } finally {
-    loadingParticipants.value = false
-  }
+  await getTournamentParticipants(tournamentId.value)
 }
 
 async function joinTournament() {
   try {
     joining.value = true
-    const result = await joinTournamentAction(tournamentId.value)
-    if (result) {
-      await loadParticipants()
-    }
+    await joinTournamentAndReload(tournamentId.value)
   } catch (err) {
     console.error("Erreur lors de l'inscription:", err)
   } finally {
@@ -229,10 +202,7 @@ async function joinTournament() {
 async function leaveTournament() {
   try {
     leaving.value = true
-    const success = await leaveTournamentAction(tournamentId.value)
-    if (success) {
-      await loadParticipants()
-    }
+    await leaveTournamentAndReload(tournamentId.value)
   } catch (err) {
     console.error('Erreur lors de la désinscription:', err)
   } finally {

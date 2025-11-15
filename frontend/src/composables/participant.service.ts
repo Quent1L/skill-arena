@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { participantApi } from './participant.api'
 import { useToast } from 'primevue/usetoast'
 import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
@@ -97,15 +97,56 @@ export function useParticipantService() {
     }
   }
 
+  /**
+   * Check if user is participant
+   */
+  function isUserParticipant(userId: string | null | undefined): boolean {
+    if (!userId || !participants.value.length) return false
+    return participants.value.some((p) => p.userId === userId)
+  }
+
+  /**
+   * Get participant count
+   */
+  const participantCount = computed(() => participants.value.length)
+
+  /**
+   * Join tournament and reload participants
+   */
+  async function joinTournamentAndReload(tournamentId: string): Promise<boolean> {
+    const result = await joinTournament(tournamentId)
+    if (result) {
+      await getTournamentParticipants(tournamentId)
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Leave tournament and reload participants
+   */
+  async function leaveTournamentAndReload(tournamentId: string): Promise<boolean> {
+    const success = await leaveTournament(tournamentId)
+    if (success) {
+      await getTournamentParticipants(tournamentId)
+      return true
+    }
+    return false
+  }
+
   return {
     // State
     participants,
     loading,
     error,
+    participantCount,
 
     // Actions
     joinTournament,
     leaveTournament,
     getTournamentParticipants,
+    isUserParticipant,
+    joinTournamentAndReload,
+    leaveTournamentAndReload,
   }
 }

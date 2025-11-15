@@ -5,7 +5,7 @@ import {
   type TournamentMode,
   type TeamMode,
   type TournamentStatus,
-} from "@skill-arena/shared";
+} from "@skill-arena/shared/types/index";
 
 export interface CreateTournamentData {
   name: string;

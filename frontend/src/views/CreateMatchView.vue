@@ -30,7 +30,7 @@
                   v-model:score-a="matchData.scoreA"
                   v-model:score-b="matchData.scoreB"
                   v-model:scheduled-date="scheduledDate"
-                  :loading="creating"
+                  :loading="matchLoading"
                   :disabled="!canCreateMatch"
                   @previous="activateCallback('1')"
                   @create="createMatch"
@@ -45,34 +45,32 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useMatchService } from '@/composables/match.service'
 import { useTournamentService } from '@/composables/tournament.service'
-import { useParticipantService } from '@/composables/participant.service'
-import type { MatchStatus, BaseTournament, ParticipantListItem } from '@skill-arena/shared'
+import type { MatchStatus, BaseTournament } from '@skill-arena/shared'
 import TeamSelectionStep from '@/components/match/TeamSelectionStep.vue'
 import MatchStatusStep from '@/components/match/MatchStatusStep.vue'
 
-interface ValidationResult {
-  valid: boolean
-  errors: string[]
-  warnings: string[]
-}
-
-const router = useRouter()
 const route = useRoute()
-const toast = useToast()
 
-const { createMatch: createMatchService, validateMatch } = useMatchService()
-const { getTournament } = useTournamentService()
-const { getTournamentParticipants } = useParticipantService()
+const {
+  validationResult,
+  loading: matchLoading,
+  loadPlayersMap,
+  validateMatchForStep,
+  canProceedToNextStep,
+  canCreateMatch: canCreateMatchCheck,
+  createMatchWithNavigation,
+  getTeamPlayersNames,
+  playersMap,
+} = useMatchService()
+const { loadTournamentWithErrorHandling } = useTournamentService()
 
 const tournamentId = route.params.tournamentId as string
 
 const activeStep = ref('1')
-const creating = ref(false)
-const matchCreated = ref(false)
 const scheduledDate = ref<Date | null>(null)
 
 const matchData = ref({
@@ -87,108 +85,42 @@ const matchData = ref({
 
 const modeSelection = ref<'reported' | 'scheduled'>('reported')
 const tournament = ref<BaseTournament | null>(null)
-const playersMap = ref<Record<string, string>>({})
-const validationResult = ref<ValidationResult | null>(null)
 
-async function loadParticipants() {
-  if (!tournamentId) return
-  try {
-    const participants = (await getTournamentParticipants(tournamentId)) as ParticipantListItem[]
-    const map: Record<string, string> = {}
-    for (const p of participants) {
-      map[p.userId] = p.user.displayName
-    }
-    playersMap.value = map
-  } catch (err) {
-    console.error('Erreur loading participants map:', err)
-  }
-}
-
-const canProceedToNext = computed((): boolean => {
-  const result = validationResult.value
-  if (!result) return false
-
-  switch (activeStep.value) {
-    case '1':
-      return (
-        result.valid &&
-        matchData.value.playerIdsA.length > 0 &&
-        matchData.value.playerIdsB.length > 0
-      )
-    case '2':
-      return result.valid
-    default:
-      return false
-  }
-})
-
-const canCreateMatch = computed((): boolean => {
-  const result = validationResult.value
-  return Boolean(
-    (result?.valid ?? false) &&
-      matchData.value.status &&
-      (matchData.value.status !== 'scheduled' || scheduledDate.value) &&
-      (matchData.value.status !== 'reported' ||
-        (matchData.value.scoreA >= 0 && matchData.value.scoreB >= 0)),
-  )
-})
-
-const teamSelectorValidation = computed((): ValidationResult | undefined =>
-  validationResult.value ? validationResult.value : undefined,
+const canProceedToNext = computed(() =>
+  canProceedToNextStep(
+    activeStep.value,
+    matchData.value.playerIdsA,
+    matchData.value.playerIdsB,
+  ),
 )
 
-const teamAPlayers = computed(() =>
-  matchData.value.playerIdsA.map((id) => playersMap.value[id] ?? `Joueur ${id}`),
+const canCreateMatch = computed(() =>
+  canCreateMatchCheck(
+    matchData.value.status,
+    scheduledDate.value,
+    matchData.value.scoreA,
+    matchData.value.scoreB,
+  ),
 )
 
-const teamBPlayers = computed(() =>
-  matchData.value.playerIdsB.map((id) => playersMap.value[id] ?? `Joueur ${id}`),
-)
+const teamSelectorValidation = computed(() => validationResult.value ?? undefined)
+
+const teamAPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsA))
+
+const teamBPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsB))
 
 async function loadTournament() {
-  try {
-    const result = await getTournament(tournamentId)
-    tournament.value = result
-  } catch (error) {
-    console.error('Erreur lors du chargement du tournoi:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur',
-      detail: 'Impossible de charger les informations du tournoi',
-      life: 3000,
-    })
-  }
+  tournament.value = await loadTournamentWithErrorHandling(tournamentId)
 }
 
 async function validateCurrentStep(step?: string) {
-  try {
-    const currentStep = step ?? activeStep.value
-
-    const dataToValidate: {
-      tournamentId: string
-      playerIdsA?: string[]
-      playerIdsB?: string[]
-    } = {
-      tournamentId,
-    }
-    switch (currentStep) {
-      case '1':
-      case '2':
-        dataToValidate.playerIdsA = matchData.value.playerIdsA
-        dataToValidate.playerIdsB = matchData.value.playerIdsB
-        break
-    }
-
-    const result = await validateMatch(dataToValidate)
-    validationResult.value = result
-  } catch (error) {
-    console.error('Erreur de validation:', error)
-    validationResult.value = {
-      valid: false,
-      errors: ['Erreur lors de la validation'],
-      warnings: [],
-    }
-  }
+  const currentStep = step ?? activeStep.value
+  await validateMatchForStep(
+    tournamentId,
+    currentStep,
+    matchData.value.playerIdsA,
+    matchData.value.playerIdsB,
+  )
 }
 
 watch(modeSelection, (v) => {
@@ -204,41 +136,7 @@ watch(modeSelection, (v) => {
 
 async function createMatch() {
   if (!canCreateMatch.value) return
-
-  creating.value = true
-
-  try {
-    const matchPayload = {
-      ...matchData.value,
-      ...(matchData.value.status === 'scheduled' &&
-        scheduledDate.value && {
-          scheduledAt: scheduledDate.value.toISOString(),
-        }),
-    }
-
-    await createMatchService(matchPayload)
-
-    matchCreated.value = true
-
-    toast.add({
-      severity: 'success',
-      summary: 'Succès',
-      detail: 'Match créé avec succès',
-      life: 3000,
-    })
-
-    router.push(`/tournaments/${tournamentId}?tab=1`)
-  } catch (error) {
-    console.error('Erreur lors de la création du match:', error)
-    toast.add({
-      severity: 'error',
-      summary: 'Erreur',
-      detail: error instanceof Error ? error.message : 'Erreur lors de la création du match',
-      life: 5000,
-    })
-  } finally {
-    creating.value = false
-  }
+  await createMatchWithNavigation(matchData.value, scheduledDate.value, tournamentId)
 }
 
 watch(
@@ -252,9 +150,9 @@ watch(
   { deep: true },
 )
 
-onMounted(() => {
-  loadTournament()
-  loadParticipants()
+onMounted(async () => {
+  await loadTournament()
+  await loadPlayersMap(tournamentId)
 })
 
 watch(modeSelection, (v) => {
