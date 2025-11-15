@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.app.json",
-  "include": ["src/**/__tests__/*", "src/utils/**/*", "env.d.ts"],
+  "include": ["src/**/__tests__/*", "src/**/*.ts", "src/**/*.vue", "src/utils/**/*", "env.d.ts", "../shared/src/**/*"],
   "exclude": [],
   "compilerOptions": {
     "composite": true,
@@ -8,5 +8,6 @@
 
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["node", "jsdom"]
-  }
+  },
+  "references": [{ "path": "../shared" }]
 }

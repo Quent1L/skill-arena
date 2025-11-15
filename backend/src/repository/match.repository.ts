@@ -8,7 +8,7 @@ import {
   tournaments,
   appUsers,
 } from "../db/schema";
-import { type MatchStatus } from "@skill-arena/shared";
+import { type MatchStatus } from "@skill-arena/shared/types/index";
 
 // Type for synthetic team object used in flex team mode
 type AppUser = typeof appUsers.$inferSelect;

@@ -8,8 +8,8 @@ import type {
   CreateTournamentFormData,
   UpdateTournamentFormData,
   TournamentStatus,
-} from '@skill-arena/shared'
-import { formDataToApiPayload } from '@skill-arena/shared'
+} from '@skill-arena/shared/types/index'
+import { formDataToApiPayload } from '@skill-arena/shared/types/index'
 import { useAuth } from './useAuth'
 
 /**
@@ -170,7 +170,7 @@ export function useTournamentService() {
       const tournament = await tournamentApi.update(id, payload)
 
       // Update in list
-      const index = tournaments.value.findIndex((t) => t.id === id)
+      const index = tournaments.value.findIndex((t: TournamentResponse) => t.id === id)
       if (index !== -1) {
         tournaments.value[index] = tournament
       }
@@ -200,7 +200,7 @@ export function useTournamentService() {
       const tournament = await tournamentApi.changeStatus(id, status)
 
       // Update in list
-      const index = tournaments.value.findIndex((t) => t.id === id)
+      const index = tournaments.value.findIndex((t: TournamentResponse) => t.id === id)
       if (index !== -1) {
         tournaments.value[index] = tournament
       }
@@ -230,7 +230,7 @@ export function useTournamentService() {
       await tournamentApi.delete(id)
 
       // Remove from list
-      tournaments.value = tournaments.value.filter((t) => t.id !== id)
+      tournaments.value = tournaments.value.filter((t: TournamentResponse) => t.id !== id)
 
       // Clear current if it's the deleted one
       if (currentTournament.value?.id === id) {
@@ -259,6 +259,48 @@ export function useTournamentService() {
     return transitions[currentStatus] || []
   }
 
+  /**
+   * Check if tournament is open for joining
+   */
+  function isTournamentOpenForJoin(tournament: TournamentResponse | null): boolean {
+    if (!tournament) return false
+    return ['open', 'ongoing'].includes(tournament.status)
+  }
+
+  /**
+   * Check if tournament allows leaving
+   */
+  function canLeaveTournament(tournament: TournamentResponse | null): boolean {
+    if (!tournament) return false
+    return !['ongoing', 'finished'].includes(tournament.status)
+  }
+
+  /**
+   * Check if user can create match in tournament
+   */
+  function canCreateMatchInTournament(
+    tournament: TournamentResponse | null,
+    isAuthenticated: boolean,
+    isParticipant: boolean,
+  ): boolean {
+    if (!isAuthenticated || !isParticipant || !tournament) return false
+    return ['open', 'ongoing'].includes(tournament.status)
+  }
+
+  /**
+   * Load tournament with error handling
+   */
+  async function loadTournamentWithErrorHandling(
+    id: string,
+  ): Promise<TournamentResponse | null> {
+    try {
+      return await getTournament(id)
+    } catch (err) {
+      console.error('Erreur lors du chargement du tournoi:', err)
+      return null
+    }
+  }
+
   return {
     // State
     tournaments,
@@ -275,6 +317,10 @@ export function useTournamentService() {
     canEditTournament,
     getEditableFields,
     getAvailableStatusTransitions,
+    isTournamentOpenForJoin,
+    canLeaveTournament,
+    canCreateMatchInTournament,
+    loadTournamentWithErrorHandling,
     listTournaments,
     getTournament,
     createTournament,

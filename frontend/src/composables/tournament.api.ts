@@ -5,7 +5,7 @@ import type {
   UpdateTournamentApiData,
   TournamentStatus,
   TournamentMode,
-} from '@skill-arena/shared'
+} from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
 

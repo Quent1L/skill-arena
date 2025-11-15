@@ -7,7 +7,7 @@ import {
   type TournamentMode,
   type TournamentStatus,
   type JoinTournamentRequest,
-} from "@skill-arena/shared";
+} from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
   NotFoundError,
@@ -57,36 +57,75 @@ export class TournamentService {
    * Create a new tournament
    */
   async createTournament(input: CreateTournamentInput) {
-    // Validate user permissions
-    const canCreate = await this.canCreateTournament(input.createdBy);
+    await this.validateCreatePermissions(input.createdBy);
+    await this.validateDraftLimit(input.createdBy);
+    this.validateCreateInput(input);
+
+    const tournament = await this.createTournamentRecord(input);
+    await this.addCreatorAsOwner(tournament.id, input.createdBy);
+
+    return tournament;
+  }
+
+  /**
+   * Validate user can create tournament
+   */
+  private async validateCreatePermissions(userId: string) {
+    const canCreate = await this.canCreateTournament(userId);
     if (!canCreate) {
       throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
+  }
 
-    // Validate max 5 drafts rule
-    const draftCount = await this.countDraftTournaments(input.createdBy);
+  /**
+   * Validate draft limit (max 5)
+   */
+  private async validateDraftLimit(userId: string) {
+    const draftCount = await this.countDraftTournaments(userId);
     if (draftCount >= 5) {
       throw new ConflictError(ErrorCode.MAX_DRAFT_TOURNAMENTS_EXCEEDED, {
         max: 5,
         current: draftCount,
       });
     }
+  }
 
-    // Validate dates
-    const startDate = new Date(input.startDate);
-    const endDate = new Date(input.endDate);
+  /**
+   * Validate create tournament input
+   */
+  private validateCreateInput(input: CreateTournamentInput) {
+    this.validateDateRange(input.startDate, input.endDate);
+    this.validateTeamSize(input.minTeamSize, input.maxTeamSize);
+  }
+
+  /**
+   * Validate date range
+   */
+  private validateDateRange(startDateStr: string, endDateStr: string) {
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
     if (startDate >= endDate) {
       throw new BadRequestError(ErrorCode.INVALID_DATE_RANGE);
     }
+  }
 
-    if (input.minTeamSize < 1)
+  /**
+   * Validate team size
+   */
+  private validateTeamSize(minSize: number, maxSize: number) {
+    if (minSize < 1) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
-
-    if (input.maxTeamSize <= input.minTeamSize)
+    }
+    if (maxSize <= minSize) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
+    }
+  }
 
-    // Create tournament
-    const tournament = await tournamentRepository.create({
+  /**
+   * Create tournament record
+   */
+  private async createTournamentRecord(input: CreateTournamentInput) {
+    return await tournamentRepository.create({
       name: input.name,
       description: input.description,
       mode: input.mode,
@@ -105,15 +144,16 @@ export class TournamentService {
       createdBy: input.createdBy,
       status: "draft",
     });
+  }
 
-    // Add creator as owner in tournament_admins
-    await tournamentRepository.addAdmin(
-      tournament.id,
-      input.createdBy,
-      "owner"
-    );
-
-    return tournament;
+  /**
+   * Add creator as tournament owner
+   */
+  private async addCreatorAsOwner(
+    tournamentId: string,
+    userId: string
+  ) {
+    await tournamentRepository.addAdmin(tournamentId, userId, "owner");
   }
 
   /**
@@ -148,66 +188,96 @@ export class TournamentService {
     userId: string,
     input: UpdateTournamentInput
   ) {
-    // Check permissions
-    const canManage = await this.canManageTournament(id, userId);
-    if (!canManage) {
-      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
-    }
-
-    // Get current tournament
+    await this.checkUpdatePermissions(id, userId);
     const tournament = await this.getTournamentById(id);
+    this.validateUpdateFields(tournament, input);
+    this.validateUpdateDates(tournament, input);
+    this.validateUpdateTeamSize(tournament, input);
 
-    // If tournament is not draft, restrict what can be changed
-    if (tournament.status !== "draft") {
-      // Can only update description and dates after draft
-      const allowedFields = new Set([
-        "description",
-        "startDate",
-        "endDate",
-        "status",
-      ]);
-      const attemptedFields = Object.keys(input);
-      const invalidFields = attemptedFields.filter(
-        (field) => !allowedFields.has(field)
-      );
-
-      if (invalidFields.length > 0) {
-        throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN, {
-          fields: invalidFields,
-        });
-      }
-    }
-
-    // Validate dates if provided
-    if (input.startDate || input.endDate) {
-      const startDate = new Date(input.startDate ?? tournament.startDate);
-      const endDate = new Date(input.endDate ?? tournament.endDate);
-      if (startDate >= endDate) {
-        throw new BadRequestError(ErrorCode.INVALID_DATE_RANGE);
-      }
-    }
-
-    // Validate team size if provided
-    if (input.minTeamSize !== undefined || input.maxTeamSize !== undefined) {
-      const minSize = input.minTeamSize ?? tournament.minTeamSize;
-      const maxSize = input.maxTeamSize ?? tournament.maxTeamSize;
-      if (minSize < 1) {
-        throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
-      }
-      if (maxSize <= minSize) {
-        throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
-      }
-    }
-
-    // Update tournament
-    const updated = await tournamentRepository.update(id, {
+    return await tournamentRepository.update(id, {
       ...input,
-      // Ensure dates are strings if provided
       startDate: input.startDate,
       endDate: input.endDate,
     });
+  }
 
-    return updated;
+  /**
+   * Check user can update tournament
+   */
+  private async checkUpdatePermissions(
+    tournamentId: string,
+    userId: string
+  ) {
+    const canManage = await this.canManageTournament(tournamentId, userId);
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+  }
+
+  /**
+   * Validate fields that can be updated based on tournament status
+   */
+  private validateUpdateFields(
+    tournament: Awaited<ReturnType<typeof tournamentRepository.getById>>,
+    input: UpdateTournamentInput
+  ) {
+    if (tournament?.status === "draft") {
+      return;
+    }
+
+    const allowedFields = new Set([
+      "description",
+      "startDate",
+      "endDate",
+      "status",
+    ]);
+    const attemptedFields = Object.keys(input);
+    const invalidFields = attemptedFields.filter(
+      (field) => !allowedFields.has(field)
+    );
+
+    if (invalidFields.length > 0) {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN, {
+        fields: invalidFields,
+      });
+    }
+  }
+
+  /**
+   * Validate dates if provided in update
+   */
+  private validateUpdateDates(
+    tournament: Awaited<ReturnType<typeof tournamentRepository.getById>>,
+    input: UpdateTournamentInput
+  ) {
+    if (!input.startDate && !input.endDate) {
+      return;
+    }
+
+    const startDate = new Date(input.startDate ?? tournament?.startDate ?? "");
+    const endDate = new Date(input.endDate ?? tournament?.endDate ?? "");
+    if (startDate >= endDate) {
+      throw new BadRequestError(ErrorCode.INVALID_DATE_RANGE);
+    }
+  }
+
+  /**
+   * Validate team size if provided in update
+   */
+  private validateUpdateTeamSize(
+    tournament: Awaited<ReturnType<typeof tournamentRepository.getById>>,
+    input: UpdateTournamentInput
+  ) {
+    if (
+      input.minTeamSize === undefined &&
+      input.maxTeamSize === undefined
+    ) {
+      return;
+    }
+
+    const minSize = input.minTeamSize ?? tournament?.minTeamSize ?? 1;
+    const maxSize = input.maxTeamSize ?? tournament?.maxTeamSize ?? 1;
+    this.validateTeamSize(minSize, maxSize);
   }
 
   /**
@@ -251,56 +321,89 @@ export class TournamentService {
     userId: string,
     newStatus: TournamentStatus
   ) {
-    const canManage = await this.canManageTournament(id, userId);
-    if (!canManage) {
-      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
-    }
-
+    await this.checkUpdatePermissions(id, userId);
     const tournament = await this.getTournamentById(id);
+    this.validateStatusTransition(tournament.status, newStatus);
 
-    // Validate status transitions
+    return await tournamentRepository.update(id, {
+      status: newStatus,
+    });
+  }
+
+  /**
+   * Validate status transition is allowed
+   */
+  private validateStatusTransition(
+    currentStatus: TournamentStatus,
+    newStatus: TournamentStatus
+  ) {
     const validTransitions: Record<TournamentStatus, TournamentStatus[]> = {
       draft: ["open"],
       open: ["ongoing", "draft"],
       ongoing: ["finished"],
-      finished: [], // Cannot change from finished
+      finished: [],
     };
 
-    const allowedTransitions = validTransitions[tournament.status];
+    const allowedTransitions = validTransitions[currentStatus];
     if (!allowedTransitions.includes(newStatus)) {
       throw new BadRequestError(ErrorCode.INVALID_STATUS_TRANSITION, {
-        from: tournament.status,
+        from: currentStatus,
         to: newStatus,
       });
     }
-
-    const updated = await tournamentRepository.update(id, {
-      status: newStatus,
-    });
-
-    return updated;
   }
 
   /**
    * Join tournament as participant
    */
   async joinTournament(userId: string, data: JoinTournamentRequest) {
-    const { tournamentId } = data;
+    const tournament = await this.getTournamentForJoin(data.tournamentId);
+    this.validateTournamentOpenForJoin(tournament);
+    await this.checkNotAlreadyRegistered(userId, data.tournamentId);
 
-    // Vérifier que le tournoi existe et est dans un état valide
+    const participation = await participantRepository.createParticipation(
+      userId,
+      data.tournamentId
+    );
+
+    return await participantRepository.findParticipationWithDetails(
+      participation.id
+    );
+  }
+
+  /**
+   * Get tournament for join validation
+   */
+  private async getTournamentForJoin(tournamentId: string) {
     const tournament = await participantRepository.findTournamentById(
       tournamentId
     );
-
     if (!tournament) {
       throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
+    return tournament;
+  }
 
-    if (!["open", "ongoing"].includes(tournament.status)) {
+  /**
+   * Validate tournament is open for joining
+   */
+  private validateTournamentOpenForJoin(
+    tournament: Awaited<
+      ReturnType<typeof participantRepository.findTournamentById>
+    >
+  ) {
+    if (!tournament || !["open", "ongoing"].includes(tournament.status)) {
       throw new BadRequestError(ErrorCode.TOURNAMENT_CLOSED);
     }
+  }
 
-    // Vérifier que l'utilisateur n'est pas déjà inscrit
+  /**
+   * Check user is not already registered
+   */
+  private async checkNotAlreadyRegistered(
+    userId: string,
+    tournamentId: string
+  ) {
     const existingParticipation =
       await participantRepository.findParticipationByUserAndTournament(
         userId,
@@ -310,20 +413,6 @@ export class TournamentService {
     if (existingParticipation) {
       throw new ConflictError(ErrorCode.ALREADY_REGISTERED);
     }
-
-    // Inscrire l'utilisateur
-    const participation = await participantRepository.createParticipation(
-      userId,
-      tournamentId
-    );
-
-    // Retourner les détails de la participation avec les informations du tournoi et de l'utilisateur
-    const participationWithDetails =
-      await participantRepository.findParticipationWithDetails(
-        participation.id
-      );
-
-    return participationWithDetails;
   }
 
   /**
