@@ -6,6 +6,7 @@ import {
   type TeamMode,
   type TournamentStatus,
 } from "@skill-arena/shared/types/index";
+import { handleDatabaseError } from "../utils/db-errors";
 
 export interface CreateTournamentData {
   name: string;
@@ -58,9 +59,46 @@ export class TournamentRepository {
    * Create a new tournament
    */
   async create(data: CreateTournamentData) {
-    const [tournament] = await db.insert(tournaments).values(data).returning();
+    const values: typeof tournaments.$inferInsert = {
+      name: data.name,
+      mode: data.mode,
+      teamMode: data.teamMode,
+      minTeamSize: data.minTeamSize,
+      maxTeamSize: data.maxTeamSize,
+      maxMatchesPerPlayer: data.maxMatchesPerPlayer,
+      maxTimesWithSamePartner: data.maxTimesWithSamePartner,
+      maxTimesWithSameOpponent: data.maxTimesWithSameOpponent,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      status: data.status,
+      createdBy: data.createdBy,
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.pointPerVictory !== null &&
+        data.pointPerVictory !== undefined && {
+          pointPerVictory: data.pointPerVictory,
+        }),
+      ...(data.pointPerDraw !== null &&
+        data.pointPerDraw !== undefined && { pointPerDraw: data.pointPerDraw }),
+      ...(data.pointPerLoss !== null &&
+        data.pointPerLoss !== undefined && { pointPerLoss: data.pointPerLoss }),
+      ...(data.allowDraw !== null &&
+        data.allowDraw !== undefined && { allowDraw: data.allowDraw }),
+      ...(data.disciplineId !== undefined && { disciplineId: data.disciplineId }),
+    };
 
-    return tournament;
+    try {
+      const [tournament] = await db
+        .insert(tournaments)
+        .values(values)
+        .returning();
+
+      return tournament;
+    } catch (error) {
+      handleDatabaseError(error, {
+        operation: "creation",
+        name: data.name,
+      });
+    }
   }
 
   /**
@@ -124,13 +162,20 @@ export class TournamentRepository {
    * Update tournament
    */
   async update(id: string, data: UpdateTournamentData) {
-    const [updated] = await db
-      .update(tournaments)
-      .set(data)
-      .where(eq(tournaments.id, id))
-      .returning();
+    try {
+      const [updated] = await db
+        .update(tournaments)
+        .set(data)
+        .where(eq(tournaments.id, id))
+        .returning();
 
-    return updated;
+      return updated;
+    } catch (error) {
+      handleDatabaseError(error, {
+        operation: "update",
+        name: data.name,
+      });
+    }
   }
 
   /**
