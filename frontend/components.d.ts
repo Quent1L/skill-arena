@@ -51,6 +51,7 @@ declare module 'vue' {
     ScoreInput: typeof import('./src/components/match/ScoreInput.vue')['default']
     Select: typeof import('primevue/select')['default']
     SelectButton: typeof import('primevue/selectbutton')['default']
+    StandingsTable: typeof import('./src/components/tournament/StandingsTable.vue')['default']
     Step: typeof import('primevue/step')['default']
     StepItem: typeof import('primevue/stepitem')['default']
     StepList: typeof import('primevue/steplist')['default']

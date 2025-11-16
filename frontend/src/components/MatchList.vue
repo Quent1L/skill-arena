@@ -18,12 +18,9 @@
         >
           <!-- Mobile: Stack layout -->
           <div class="flex-1 w-full md:w-auto">
-            <!-- Date and Status (mobile: top, desktop: left) -->
             <div class="flex items-center justify-between mb-2 md:mb-1">
               <div class="text-xs md:text-sm text-gray-500">{{ formatDate(match.createdAt) }}</div>
-              <!-- Status tag: mobile only -->
               <Tag 
-                v-if="isMobile"
                 :value="getStatusLabel(match.status)" 
                 :severity="getStatusSeverity(match.status)"
               />
@@ -85,14 +82,6 @@
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>
-            </div>
-
-            <!-- Status (desktop only) -->
-            <div v-if="!isMobile" class="mt-1">
-              <Tag 
-                :value="getStatusLabel(match.status)" 
-                :severity="getStatusSeverity(match.status)"
-              />
             </div>
           </div>
 
