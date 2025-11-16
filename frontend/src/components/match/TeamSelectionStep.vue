@@ -1,5 +1,23 @@
 <template>
   <div class="p-6">
+    <!-- Date picker en haut -->
+    <div class="mb-6">
+      <label for="match-date-time" class="block text-sm font-medium mb-2">
+        Date et heure du match <span class="text-red-500">*</span>
+      </label>
+      <DatePicker
+        id="match-date-time"
+        v-model="scheduledDate"
+        show-time
+        hour-format="24"
+        icon-display="input"
+        showIcon
+        showButtonBar
+        :min-date="minDate ?? undefined"
+        :max-date="maxDate ?? undefined"
+      />
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       <div>
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
@@ -39,11 +57,20 @@
   </div>
   <div class="flex pt-4 justify-end">
     <Button
+      v-if="isFutureDate"
+      label="Programmer le match"
+      icon="fas fa-calendar-check"
+      @click="onCreate"
+      :disabled="disabled || !scheduledDate"
+      class="bg-green-600 hover:bg-green-700"
+    />
+    <Button
+      v-else
       label="Suivant"
       icon="fas fa-arrow-right"
       iconPos="right"
       @click="onNext"
-      :disabled="disabled"
+      :disabled="disabled || !scheduledDate"
       class="bg-blue-600 hover:bg-blue-700"
     />
   </div>
@@ -61,30 +88,30 @@ interface ValidationResult {
 
 interface Props {
   tournamentId: string
-  playerIdsA: string[]
-  playerIdsB: string[]
+  minDate?: Date | null
+  maxDate?: Date | null
   validation?: ValidationResult
   disabled?: boolean
 }
 
 interface Emits {
-  (e: 'update:playerIdsA', value: string[]): void
-  (e: 'update:playerIdsB', value: string[]): void
   (e: 'validate'): void
   (e: 'next'): void
+  (e: 'create'): void
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const playerIdsAModel = computed({
-  get: () => props.playerIdsA,
-  set: (value) => emit('update:playerIdsA', value),
-})
+const playerIdsAModel = defineModel<string[]>('playerIdsA', { required: true })
+const playerIdsBModel = defineModel<string[]>('playerIdsB', { required: true })
+const scheduledDate = defineModel<Date | null>('scheduledDate', { default: null })
+const now = new Date()
 
-const playerIdsBModel = computed({
-  get: () => props.playerIdsB,
-  set: (value) => emit('update:playerIdsB', value),
+// Check if selected date is in the future
+const isFutureDate = computed(() => {
+  if (!scheduledDate.value) return false
+  return scheduledDate.value > now
 })
 
 function onValidate() {
@@ -93,5 +120,9 @@ function onValidate() {
 
 function onNext() {
   emit('next')
+}
+
+function onCreate() {
+  emit('create')
 }
 </script>

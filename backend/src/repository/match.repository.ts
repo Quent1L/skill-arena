@@ -1,4 +1,4 @@
-import { eq, and, sql, count } from "drizzle-orm";
+import { eq, and, ne, sql, count } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   matches,
@@ -50,6 +50,9 @@ export interface UpdateMatchData {
   confirmationBy?: string;
   confirmationAt?: Date;
   reportProof?: string;
+  playedAt?: Date;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
 }
 
 export interface MatchFilters {
@@ -101,7 +104,20 @@ export class MatchRepository {
         },
         winner: true,
         reporter: true,
-        confirmer: true,
+        outcomeType: {
+          with: {
+            discipline: true,
+          },
+        },
+        outcomeReason: {
+          with: {
+            outcomeType: {
+              with: {
+                discipline: true,
+              },
+            },
+          },
+        },
         participations: {
           with: {
             player: true,
@@ -197,7 +213,20 @@ export class MatchRepository {
         },
         winner: true,
         reporter: true,
-        confirmer: true,
+        outcomeType: {
+          with: {
+            discipline: true,
+          },
+        },
+        outcomeReason: {
+          with: {
+            outcomeType: {
+              with: {
+                discipline: true,
+              },
+            },
+          },
+        },
       },
       orderBy: (matches, { desc }) => [desc(matches.id)],
     });
@@ -275,7 +304,12 @@ export class MatchRepository {
   /**
    * Count matches for a user in a tournament
    */
-  async countMatchesForUser(tournamentId: string, userId: string) {
+  async countMatchesForUser(tournamentId: string, userId: string, excludeMatchId?: string) {
+    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    if (excludeMatchId) {
+      matchConditions.push(ne(matches.id, excludeMatchId));
+    }
+
     // For static teams: count matches where user is in teamA or teamB
     const staticMatches = await db
       .select({ count: count() })
@@ -290,7 +324,7 @@ export class MatchRepository {
       )
       .where(
         and(
-          eq(matches.tournamentId, tournamentId),
+          ...matchConditions,
           eq(tournamentParticipants.userId, userId)
         )
       );
@@ -302,7 +336,7 @@ export class MatchRepository {
       .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
       .where(
         and(
-          eq(matches.tournamentId, tournamentId),
+          ...matchConditions,
           eq(matchParticipation.playerId, userId)
         )
       );
@@ -316,16 +350,22 @@ export class MatchRepository {
   async countMatchesWithSamePartner(
     tournamentId: string,
     userId: string,
-    partnerId: string
+    partnerId: string,
+    excludeMatchId?: string
   ) {
     // Simplified implementation - count matches where both users participated
+    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    if (excludeMatchId) {
+      matchConditions.push(ne(matches.id, excludeMatchId));
+    }
+
     const userMatches = await db
       .select({ id: matches.id })
       .from(matches)
       .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
       .where(
         and(
-          eq(matches.tournamentId, tournamentId),
+          ...matchConditions,
           eq(matchParticipation.playerId, userId)
         )
       );
@@ -355,16 +395,22 @@ export class MatchRepository {
   async countMatchesWithSameOpponent(
     tournamentId: string,
     userId: string,
-    opponentId: string
+    opponentId: string,
+    excludeMatchId?: string
   ) {
     // Simplified implementation
+    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    if (excludeMatchId) {
+      matchConditions.push(ne(matches.id, excludeMatchId));
+    }
+
     const userMatches = await db
       .select({ id: matches.id, teamSide: matchParticipation.teamSide })
       .from(matches)
       .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
       .where(
         and(
-          eq(matches.tournamentId, tournamentId),
+          ...matchConditions,
           eq(matchParticipation.playerId, userId)
         )
       );

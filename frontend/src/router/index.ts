@@ -56,6 +56,19 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
     },
   },
+
+  {
+    path: '/admin/tournaments/new',
+    name: 'admin-tournament-new',
+    component: () => import('@/views/admin/TournamentFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Modifier',
+      title: 'Modifier le tournoi',
+      requiresAuth: true,
+      parent: 'admin-tournaments',
+    },
+  },
   {
     path: '/admin/tournaments/:id/edit',
     name: 'admin-tournament-edit',
@@ -66,6 +79,29 @@ const routes: RouteRecordRaw[] = [
       title: 'Modifier le tournoi',
       requiresAuth: true,
       parent: 'admin-tournaments',
+    },
+  },
+  {
+    path: '/admin/disciplines',
+    name: 'admin-disciplines',
+    component: () => import('@/views/admin/DisciplineList.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Gestion des disciplines',
+      title: 'Gestion des disciplines',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/admin/disciplines/:id',
+    name: 'admin-discipline-edit',
+    component: () => import('@/views/admin/DisciplineFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Modifier',
+      title: 'Modifier la discipline',
+      requiresAuth: true,
+      parent: 'admin-disciplines',
     },
   },
   {

@@ -103,10 +103,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BaseTournament } from '@skill-arena/shared'
+import type { ClientBaseTournament } from '@skill-arena/shared/types/index'
 
 interface Props {
-  tournament: BaseTournament
+  tournament: ClientBaseTournament
   showStats?: boolean
 }
 
@@ -115,7 +115,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 defineEmits<{
-  click: [tournament: BaseTournament]
+  click: [tournament: ClientBaseTournament]
 }>()
 
 // Status mapping
@@ -144,7 +144,7 @@ const modeIcon = computed(() => modeConfig[props.tournament.mode]?.icon || 'pi p
 
 // Check if tournament has stats properties
 const hasTournamentStats = computed(() => {
-  const t = props.tournament as BaseTournament & {
+  const t = props.tournament as ClientBaseTournament & {
     participants_count?: number
     matches_played?: number
     matches_total?: number
@@ -153,7 +153,14 @@ const hasTournamentStats = computed(() => {
 })
 
 // Date formatting
-function formatDate(dateString: string): string {
+function formatDate(dateString: string | Date): string {
+  if (dateString instanceof Date) {
+    return dateString.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    })
+  }
   const date = new Date(dateString)
   return date.toLocaleDateString('fr-FR', {
     day: '2-digit',
@@ -163,10 +170,11 @@ function formatDate(dateString: string): string {
 }
 
 // Time from now (simple implementation)
+// startDate and endDate are already Date objects (converted by interceptor)
 const timeFromNow = computed(() => {
   const now = new Date()
-  const start = new Date(props.tournament.startDate)
-  const end = new Date(props.tournament.endDate)
+  const start = props.tournament.startDate
+  const end = props.tournament.endDate
 
   if (start > now) {
     const days = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))

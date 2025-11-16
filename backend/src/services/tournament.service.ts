@@ -141,6 +141,7 @@ export class TournamentService {
       allowDraw: input.allowDraw ?? true,
       startDate: input.startDate,
       endDate: input.endDate,
+      disciplineId: input.disciplineId,
       createdBy: input.createdBy,
       status: "draft",
     });

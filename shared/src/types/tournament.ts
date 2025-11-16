@@ -30,6 +30,11 @@ export interface BaseTournament {
   startDate: string; // ISO date string
   endDate: string; // ISO date string
   status: TournamentStatus;
+  disciplineId?: string;
+  discipline?: {
+    id: string;
+    name: string;
+  };
   createdBy: string; // uuid
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
@@ -51,6 +56,7 @@ export interface CreateTournamentInput {
   allowDraw?: boolean;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
+  disciplineId?: string;
   createdBy: string; // uuid
 }
 
@@ -71,6 +77,7 @@ export interface UpdateTournamentInput {
   startDate?: string;
   endDate?: string;
   status?: TournamentStatus;
+  disciplineId?: string;
 }
 
 export interface ChangeTournamentStatusInput {
@@ -134,6 +141,7 @@ export const baseTournamentFormSchema = z.object({
   allowDraw: z.boolean().default(true).optional(),
   startDate: z.date({ message: "La date de début est requise" }),
   endDate: z.date({ message: "La date de fin est requise" }),
+  disciplineId: z.string({ message: "La discipline est requise" }).uuid("ID de discipline invalide"),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
@@ -161,6 +169,7 @@ export const baseTournamentUpdateFormSchema = z.object({
   startDate: z.date().optional(),
   endDate: z.date().optional(),
   status: tournamentStatusSchema.optional(),
+  disciplineId: z.string().uuid("ID de discipline invalide").optional(),
 });
 
 // Schéma pour la création de tournoi (utilisé par le frontend avec Date objects)
@@ -222,6 +231,7 @@ const baseTournamentDataSchema = z.object({
     .string()
     .datetime()
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  disciplineId: z.string().uuid("ID de discipline invalide").optional(),
 });
 
 // Schéma pour l'API (validation des données d'entrée - SANS createdBy)
@@ -429,4 +439,47 @@ export function apiDataToFormData<
     ...(startDate && { startDate: new Date(startDate) }),
     ...(endDate && { endDate: new Date(endDate) }),
   };
+}
+
+// ============================================
+// Types pour le frontend (avec dates en Date au lieu de string)
+// ============================================
+
+/**
+ * Type pour BaseTournament côté frontend - les dates string sont automatiquement
+ * converties en objets Date par l'intercepteur xior
+ */
+export interface ClientBaseTournament extends Omit<BaseTournament, 'startDate' | 'endDate' | 'createdAt' | 'updatedAt'> {
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Type pour TournamentWithStats côté frontend
+ */
+export interface ClientTournamentWithStats extends Omit<TournamentWithStats, 'startDate' | 'endDate' | 'createdAt' | 'updatedAt'> {
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Type pour CreateTournamentRequestData côté frontend
+ * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ */
+export interface ClientCreateTournamentRequest extends Omit<CreateTournamentRequestData, 'startDate' | 'endDate'> {
+  startDate: Date | string;
+  endDate: Date | string;
+}
+
+/**
+ * Type pour UpdateTournamentApiData côté frontend
+ * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ */
+export interface ClientUpdateTournamentRequest extends Omit<UpdateTournamentApiData, 'startDate' | 'endDate'> {
+  startDate?: Date | string;
+  endDate?: Date | string;
 }

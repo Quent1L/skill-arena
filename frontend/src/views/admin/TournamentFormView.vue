@@ -43,6 +43,32 @@
                 <small class="p-error">{{ errors.status }}</small>
               </div>
 
+              <!-- Discipline -->
+              <div>
+                <label for="disciplineId" class="block text-sm font-medium mb-2">
+                  Discipline <span class="text-red-500">*</span>
+                </label>
+                <Select
+                  v-if="!isEditMode"
+                  id="disciplineId"
+                  v-model="disciplineId"
+                  :options="disciplineOptions"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="Sélectionner une discipline"
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.disciplineId }"
+                />
+                <InputText
+                  v-else
+                  id="disciplineId"
+                  :value="currentDisciplineName"
+                  disabled
+                  class="w-full"
+                />
+                <small class="p-error">{{ errors.disciplineId }}</small>
+              </div>
+
               <!-- Description -->
               <div class="lg:col-span-2">
                 <label for="description" class="block text-sm font-medium mb-2">
@@ -272,7 +298,7 @@
             <Button
               type="submit"
               :label="isEditMode ? 'Mettre à jour' : 'Créer'"
-              icon="pi pi-check"
+              icon="fa fa-check"
               :loading="loading"
               class="w-full sm:w-auto"
             />
@@ -287,8 +313,15 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
-import { type CreateTournamentFormData, type UpdateTournamentFormData } from '@skill-arena/shared'
+import { toTypedSchema } from '@vee-validate/zod'
+import {
+  type CreateTournamentFormData,
+  type UpdateTournamentFormData,
+  baseTournamentFormSchema,
+  baseTournamentUpdateFormSchema,
+} from '@skill-arena/shared/types/index'
 import { useTournamentService } from '@/composables/tournament.service'
+import { useDisciplineService } from '@/composables/discipline.service'
 
 const router = useRouter()
 const route = useRoute()
@@ -302,8 +335,21 @@ const {
   getEditableFields,
 } = useTournamentService()
 
+const { disciplines, listDisciplines } = useDisciplineService()
+
 const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id)
 const editableFields = ref<string[]>(['all'])
+
+const disciplineOptions = computed(() => {
+  return disciplines.value.map((d) => ({
+    label: d.name,
+    value: d.id,
+  }))
+})
+
+const currentDisciplineName = computed(() => {
+  return currentTournament.value?.discipline?.name || 'Non définie'
+})
 
 const modeOptions = [
   { label: 'Championnat', value: 'championship' },
@@ -322,7 +368,11 @@ const statusOptions = [
   { label: 'Terminé', value: 'finished' },
 ]
 
-const { handleSubmit, defineField, errors, setValues } = useForm()
+const { handleSubmit, defineField, errors, setValues } = useForm({
+  validationSchema: toTypedSchema(
+    isEditMode.value ? baseTournamentUpdateFormSchema : baseTournamentFormSchema
+  ),
+})
 
 const [name] = defineField('name')
 const [description] = defineField('description')
@@ -340,6 +390,7 @@ const [pointPerLoss] = defineField('pointPerLoss')
 const [allowDraw] = defineField('allowDraw')
 const [startDate] = defineField('startDate')
 const [endDate] = defineField('endDate')
+const [disciplineId] = defineField('disciplineId')
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
@@ -367,8 +418,10 @@ const onSubmit = handleSubmit(async (values) => {
     }
 
     if (isEditMode.value && route.params.id) {
-      // For update, cast to UpdateTournamentFormData
-      await updateTournament(route.params.id as string, values as UpdateTournamentFormData)
+      // For update, exclude disciplineId (not editable after creation)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { disciplineId, ...updateData } = values
+      await updateTournament(route.params.id as string, updateData as UpdateTournamentFormData)
     } else {
       // For create, cast to CreateTournamentFormData
       await createTournament(values as CreateTournamentFormData)
@@ -381,6 +434,9 @@ const onSubmit = handleSubmit(async (values) => {
 })
 
 onMounted(async () => {
+  // Charger les disciplines pour le select
+  await listDisciplines()
+
   if (isEditMode.value && route.params.id) {
     await getTournament(route.params.id as string)
     if (currentTournament.value) {
@@ -402,6 +458,7 @@ onMounted(async () => {
         allowDraw: currentTournament.value.allowDraw ?? true,
         startDate: currentTournament.value.startDate,
         endDate: currentTournament.value.endDate,
+        disciplineId: currentTournament.value.disciplineId,
       })
     }
   } else {
@@ -410,7 +467,8 @@ onMounted(async () => {
       mode: 'championship',
       teamMode: 'flex',
       status: 'draft',
-      teamSize: 2,
+      minTeamSize: 1,
+      maxTeamSize: 2,
       maxMatchesPerPlayer: 10,
       maxTimesWithSamePartner: 2,
       maxTimesWithSameOpponent: 2,

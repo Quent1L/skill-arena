@@ -60,6 +60,9 @@ matches.patch(
         scoreB: data.scoreB,
         status: data.status,
         reportProof: data.reportProof,
+        outcomeTypeId: data.outcomeTypeId,
+        outcomeReasonId: data.outcomeReasonId,
+        playedAt: data.playedAt,
       },
       appUserId
     );
@@ -137,6 +140,8 @@ matches.post(
       teamBId: data.teamBId,
       playerIdsA: data.playerIdsA,
       playerIdsB: data.playerIdsB,
+      matchId: data.matchId, // Pass matchId to exclude from validation (for edit mode)
+      playedAt: data.playedAt,
     });
 
     return c.json(validation);

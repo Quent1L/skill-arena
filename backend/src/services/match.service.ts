@@ -3,7 +3,7 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { db } from "../config/database";
 import { matches } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
@@ -18,7 +18,9 @@ import {
   BadRequestError,
   ForbiddenError,
   ConflictError,
+  AppError,
 } from "../types/errors";
+import i18next from "../config/i18n";
 import type { UpdateMatchData } from "../repository/match.repository";
 
 type TournamentFromRepository = Awaited<
@@ -205,7 +207,7 @@ export class MatchService {
    * Validate match rules against tournament settings
    */
   private async validateMatchRules(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { matchId?: string },
     tournament: NonNullable<TournamentFromRepository>
   ) {
     if (
@@ -228,18 +230,34 @@ export class MatchService {
    * Validate flex team match rules
    */
   private async validateFlexTeamRules(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { matchId?: string },
     tournament: NonNullable<TournamentFromRepository>
   ) {
     if (!input.playerIdsA || !input.playerIdsB) return;
 
+    if (input.playerIdsA.length !== input.playerIdsB.length) {
+      throw new BadRequestError(ErrorCode.MATCH_TEAM_SIZE_MISMATCH, {
+        teamASize: input.playerIdsA.length,
+        teamBSize: input.playerIdsB.length,
+      });
+    }
+
     const allPlayerIds = [...input.playerIdsA, ...input.playerIdsB];
+    const excludeMatchId = input.matchId; // Exclude match being edited from validation
 
     for (const playerId of allPlayerIds) {
-      await this.validatePlayerMatchLimit(tournament, playerId);
-      await this.validatePartnerConstraints(input, tournament, playerId);
-      await this.validateOpponentConstraints(input, tournament, playerId);
+      await this.validatePlayerMatchLimit(tournament, playerId, excludeMatchId);
+      await this.validatePartnerConstraints(input, tournament, playerId, excludeMatchId);
+      await this.validateOpponentConstraints(input, tournament, playerId, excludeMatchId);
     }
+  }
+
+  /**
+   * Get player display name
+   */
+  private async getPlayerName(playerId: string): Promise<string> {
+    const player = await userRepository.getById(playerId);
+    return player?.displayName || `Joueur ${playerId.substring(0, 8)}`;
   }
 
   /**
@@ -247,15 +265,19 @@ export class MatchService {
    */
   private async validatePlayerMatchLimit(
     tournament: NonNullable<TournamentFromRepository>,
-    playerId: string
+    playerId: string,
+    excludeMatchId?: string
   ) {
     const playerMatchCount = await matchRepository.countMatchesForUser(
       tournament.id,
-      playerId
+      playerId,
+      excludeMatchId
     );
     if (playerMatchCount >= tournament.maxMatchesPerPlayer) {
+      const playerName = await this.getPlayerName(playerId);
       throw new ConflictError(ErrorCode.MAX_MATCHES_EXCEEDED, {
         max: tournament.maxMatchesPerPlayer,
+        playerName,
       });
     }
   }
@@ -264,9 +286,10 @@ export class MatchService {
    * Validate partner constraints
    */
   private async validatePartnerConstraints(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { matchId?: string },
     tournament: NonNullable<TournamentFromRepository>,
-    playerId: string
+    playerId: string,
+    excludeMatchId?: string
   ) {
     if (!input.playerIdsA) return;
 
@@ -276,11 +299,18 @@ export class MatchService {
           await matchRepository.countMatchesWithSamePartner(
             tournament.id,
             playerId,
-            otherPlayerId
+            otherPlayerId,
+            excludeMatchId
           );
         if (partnerCount >= tournament.maxTimesWithSamePartner) {
+          const [playerName, partnerName] = await Promise.all([
+            this.getPlayerName(playerId),
+            this.getPlayerName(otherPlayerId),
+          ]);
           throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
             max: tournament.maxTimesWithSamePartner,
+            playerName,
+            partnerName,
           });
         }
       }
@@ -291,9 +321,10 @@ export class MatchService {
    * Validate opponent constraints
    */
   private async validateOpponentConstraints(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { matchId?: string },
     tournament: NonNullable<TournamentFromRepository>,
-    playerId: string
+    playerId: string,
+    excludeMatchId?: string
   ) {
     if (!input.playerIdsB) return;
 
@@ -301,11 +332,18 @@ export class MatchService {
       const opponentCount = await matchRepository.countMatchesWithSameOpponent(
         tournament.id,
         playerId,
-        otherPlayerId
+        otherPlayerId,
+        excludeMatchId
       );
       if (opponentCount >= tournament.maxTimesWithSameOpponent) {
+        const [playerName, opponentName] = await Promise.all([
+          this.getPlayerName(playerId),
+          this.getPlayerName(otherPlayerId),
+        ]);
         throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
           max: tournament.maxTimesWithSameOpponent,
+          playerName,
+          opponentName,
         });
       }
     }
@@ -355,9 +393,15 @@ export class MatchService {
 
     const updateData: UpdateMatchData = {};
     if (input.round !== undefined) updateData.round = input.round;
+    if (input.scoreA !== undefined) updateData.scoreA = input.scoreA;
+    if (input.scoreB !== undefined) updateData.scoreB = input.scoreB;
     if (input.status !== undefined) updateData.status = input.status;
     if (input.reportProof !== undefined)
       updateData.reportProof = input.reportProof;
+    if (input.outcomeTypeId !== undefined)
+      updateData.outcomeTypeId = input.outcomeTypeId;
+    if (input.outcomeReasonId !== undefined)
+      updateData.outcomeReasonId = input.outcomeReasonId;
 
     return await matchRepository.update(id, updateData);
   }
@@ -522,7 +566,7 @@ export class MatchService {
   /**
    * Validate match possibility (partial validation for frontend)
    */
-  async validateMatch(input: CreateMatchInput) {
+  async validateMatch(input: CreateMatchInput & { matchId?: string }) {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -546,7 +590,7 @@ export class MatchService {
         tournament,
         errors
       );
-      await this.checkSimilarMatch(input, warnings);
+      await this.checkSimilarMatch(input, warnings, input.matchId);
 
       return {
         valid: errors.length === 0,
@@ -683,7 +727,7 @@ export class MatchService {
     }
 
     if (input.playerIdsA && input.playerIdsB) {
-      this.checkOverlappingPlayers(input, errors);
+      await this.checkOverlappingPlayers(input, errors);
     }
   }
 
@@ -708,7 +752,7 @@ export class MatchService {
   /**
    * Check for overlapping players between teams
    */
-  private checkOverlappingPlayers(
+  private async checkOverlappingPlayers(
     input: CreateMatchInput,
     errors: string[]
   ) {
@@ -718,7 +762,13 @@ export class MatchService {
       input.playerIdsB?.includes(playerId)
     );
     if (overlappingPlayers.length > 0) {
-      errors.push("Un joueur ne peut pas être dans les deux équipes");
+      // Get the name of the first overlapping player
+      const firstOverlappingPlayerId = overlappingPlayers[0];
+      const playerName = await this.getPlayerName(firstOverlappingPlayerId);
+      const errorMessage = String(
+        i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", { playerName })
+      );
+      errors.push(errorMessage);
     }
   }
 
@@ -738,11 +788,19 @@ export class MatchService {
       try {
         await this.validateMatchRules(input, tournament);
       } catch (error) {
-        errors.push(
-          error instanceof Error
-            ? error.message
-            : "Violation des règles du tournoi"
-        );
+        if (error instanceof AppError) {
+          // Translate the error using i18n
+          const translatedMessage = String(
+            i18next.t(`errors.${error.code}`, error.details || {})
+          );
+          errors.push(translatedMessage);
+        } else {
+          // Fallback for non-AppError errors
+          const fallbackMessage = String(i18next.t("errors.UNKNOWN"));
+          errors.push(
+            error instanceof Error ? error.message : fallbackMessage
+          );
+        }
       }
     }
   }
@@ -751,17 +809,25 @@ export class MatchService {
    * Check if similar match already exists
    */
   private async checkSimilarMatch(
-    input: CreateMatchInput,
-    warnings: string[]
+    input: CreateMatchInput & { matchId?: string },
+    warnings: string[],
+    excludeMatchId?: string
   ) {
     if (!input.teamAId || !input.teamBId) return;
 
+    const conditions = [
+      eq(matches.tournamentId, input.tournamentId),
+      eq(matches.teamAId, input.teamAId),
+      eq(matches.teamBId, input.teamBId),
+    ];
+
+    // Exclude the match being edited
+    if (excludeMatchId) {
+      conditions.push(ne(matches.id, excludeMatchId));
+    }
+
     const existingMatch = await db.query.matches.findFirst({
-      where: and(
-        eq(matches.tournamentId, input.tournamentId),
-        eq(matches.teamAId, input.teamAId),
-        eq(matches.teamBId, input.teamBId)
-      ),
+      where: and(...conditions),
     });
 
     if (existingMatch) {

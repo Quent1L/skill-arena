@@ -1,11 +1,12 @@
 import http from '@/config/ApiConfig'
 import type {
-  Match,
-  CreateMatchRequestData,
-  UpdateMatchRequestData,
+  ClientMatch,
+  ClientMatchModel,
+  ClientCreateMatchRequest,
+  ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
   ConfirmMatchResultRequestData,
-  ValidateMatchRequestData,
+  ClientValidateMatchRequest,
   ListMatchesQuery,
 } from '@skill-arena/shared/types/index'
 
@@ -17,17 +18,20 @@ const BASE_URL = '/api/matches'
 export const matchApi = {
   /**
    * Create a new match
+   * @param payload - Match data with Date objects (will be serialized to ISO strings)
+   * @returns Match with Date objects (converted by interceptor)
    */
-  async create(payload: CreateMatchRequestData): Promise<Match> {
-    const response = await http.post<Match>(BASE_URL, payload)
+  async create(payload: ClientCreateMatchRequest): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(BASE_URL, payload)
     return response.data
   },
 
   /**
    * List matches with optional filters
+   * @returns Matches with Date objects (converted by interceptor)
    */
-  async list(filters?: ListMatchesQuery): Promise<Match[]> {
-    const response = await http.get<Match[]>(BASE_URL, {
+  async list(filters?: ListMatchesQuery): Promise<ClientMatchModel[]> {
+    const response = await http.get<ClientMatchModel[]>(BASE_URL, {
       params: filters,
     })
     return response.data
@@ -35,17 +39,20 @@ export const matchApi = {
 
   /**
    * Get match by ID
+   * @returns Match with Date objects (converted by interceptor)
    */
-  async getById(id: string): Promise<Match> {
-    const response = await http.get<Match>(`${BASE_URL}/${id}`)
+  async getById(id: string): Promise<ClientMatchModel> {
+    const response = await http.get<ClientMatchModel>(`${BASE_URL}/${id}`)
     return response.data
   },
 
   /**
    * Update match
+   * @param payload - Match data with Date objects (will be serialized to ISO strings)
+   * @returns Match with Date objects (converted by interceptor)
    */
-  async update(id: string, payload: UpdateMatchRequestData): Promise<Match> {
-    const response = await http.patch<Match>(`${BASE_URL}/${id}`, payload)
+  async update(id: string, payload: ClientUpdateMatchRequest): Promise<ClientMatchModel> {
+    const response = await http.patch<ClientMatchModel>(`${BASE_URL}/${id}`, payload)
     return response.data
   },
 
@@ -59,24 +66,27 @@ export const matchApi = {
 
   /**
    * Report match result
+   * @returns Match with Date objects (converted by interceptor)
    */
-  async reportResult(id: string, payload: ReportMatchResultRequestData): Promise<Match> {
-    const response = await http.post<Match>(`${BASE_URL}/${id}/report`, payload)
+  async reportResult(id: string, payload: ReportMatchResultRequestData): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/report`, payload)
     return response.data
   },
 
   /**
    * Confirm match result
+   * @returns Match with Date objects (converted by interceptor)
    */
-  async confirmResult(id: string, payload: ConfirmMatchResultRequestData): Promise<Match> {
-    const response = await http.post<Match>(`${BASE_URL}/${id}/confirm`, payload)
+  async confirmResult(id: string, payload: ConfirmMatchResultRequestData): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/confirm`, payload)
     return response.data
   },
 
   /**
    * Validate match possibility
+   * @param payload - Validation data with Date objects (will be serialized to ISO strings)
    */
-  async validate(payload: ValidateMatchRequestData): Promise<{
+  async validate(payload: ClientValidateMatchRequest): Promise<{
     valid: boolean
     errors: string[]
     warnings: string[]

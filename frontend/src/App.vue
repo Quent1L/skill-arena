@@ -1,6 +1,7 @@
 <template>
   <div>
     <Toast position="top-right" />
+    <ConfirmDialog />
     <AnimatedWraper v-if="!isAuthenticated" class="bg-gray-800" />
     <AppWrapper v-else />
   </div>
@@ -10,7 +11,7 @@
 import { useAuth } from './composables/useAuth'
 import AppWrapper from './AppWrapper.vue'
 import AnimatedWraper from './AnimatedWraper.vue'
-import Toast from 'primevue/toast'
+
 
 const { isAuthenticated } = useAuth()
 </script>
