@@ -14,6 +14,7 @@
     "TOURNAMENT_CLOSED": "Tournament is not open for registration",
     "TOURNAMENT_CANNOT_BE_DELETED": "Only draft tournaments can be deleted",
     "TOURNAMENT_FIELD_UPDATE_FORBIDDEN": "Cannot update fields {{fields}} after tournament is no longer in draft status",
+    "TOURNAMENT_NAME_ALREADY_EXISTS": "A tournament with this name already exists",
     "INVALID_DATE_RANGE": "Start date must be before end date",
     "INVALID_TEAM_SIZE": "Invalid team size",
     "INVALID_STATUS_TRANSITION": "Invalid status transition from {{from}} to {{to}}",

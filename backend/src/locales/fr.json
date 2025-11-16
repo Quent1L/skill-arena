@@ -14,6 +14,7 @@
     "TOURNAMENT_CLOSED": "Le tournoi n'est pas ouvert aux inscriptions",
     "TOURNAMENT_CANNOT_BE_DELETED": "Seuls les tournois en brouillon peuvent être supprimés",
     "TOURNAMENT_FIELD_UPDATE_FORBIDDEN": "Impossible de modifier les champs {{fields}} après que le tournoi ne soit plus en brouillon",
+    "TOURNAMENT_NAME_ALREADY_EXISTS": "Un tournoi avec ce nom existe déjà",
     "INVALID_DATE_RANGE": "La date de début doit être antérieure à la date de fin",
     "INVALID_TEAM_SIZE": "La taille d'équipe est invalide",
     "INVALID_STATUS_TRANSITION": "Transition de statut invalide de {{from}} vers {{to}}",
