@@ -14,6 +14,7 @@ export * from "./participant";
 export * from "./discipline";
 export * from "./outcome-type";
 export * from "./outcome-reason";
+export * from "./standings";
 
 // ============================================
 // Types utilitaires

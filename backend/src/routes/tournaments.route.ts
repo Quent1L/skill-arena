@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { tournamentService } from "../services/tournament.service";
+import { standingsService } from "../services/standings.service";
 import {
   createTournamentRequestSchema,
   updateTournamentSchema,
@@ -157,6 +158,36 @@ tournaments.get("/:id/participants", async (c) => {
   );
 
   return c.json(participants);
+});
+
+// GET /tournaments/:id/standings/official - Get official standings (finalized matches only)
+tournaments.get("/:id/standings/official", async (c) => {
+  const tournamentId = c.req.param("id");
+
+  // Validation de l'UUID du tournoi
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(tournamentId)) {
+    return c.json({ error: "ID de tournoi invalide" }, 400);
+  }
+
+  const standings = await standingsService.getOfficialStandings(tournamentId);
+  return c.json(standings);
+});
+
+// GET /tournaments/:id/standings/provisional - Get provisional standings (reported + finalized matches)
+tournaments.get("/:id/standings/provisional", async (c) => {
+  const tournamentId = c.req.param("id");
+
+  // Validation de l'UUID du tournoi
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(tournamentId)) {
+    return c.json({ error: "ID de tournoi invalide" }, 400);
+  }
+
+  const standings = await standingsService.getProvisionalStandings(tournamentId);
+  return c.json(standings);
 });
 
 export default tournaments;
