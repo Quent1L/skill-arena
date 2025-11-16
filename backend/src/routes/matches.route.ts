@@ -4,7 +4,9 @@ import {
   createMatchSchema,
   updateMatchSchema,
   reportMatchResultSchema,
-  confirmMatchResultSchema,
+  confirmMatchSchema,
+  contestMatchSchema,
+  finalizeMatchSchema,
   listMatchesQuerySchema,
   validateMatchSchema,
 } from "@skill-arena/shared/types/index";
@@ -108,21 +110,62 @@ matches.post(
 matches.post(
   "/:id/confirm",
   requireAuth,
-  zValidator("json", confirmMatchResultSchema),
+  zValidator("json", confirmMatchSchema),
   async (c) => {
     const id = c.req.param("id");
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
-    const match = await matchService.confirmMatchResult(
+    const match = await matchService.confirmMatch(id, data, appUserId);
+
+    return c.json(match);
+  }
+);
+
+// POST /matches/:id/contest - Contest match result
+matches.post(
+  "/:id/contest",
+  requireAuth,
+  zValidator("json", contestMatchSchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
+
+    const match = await matchService.contestMatch(id, data, appUserId);
+
+    return c.json(match);
+  }
+);
+
+// POST /matches/:id/finalize - Finalize match (admin only)
+matches.post(
+  "/:id/finalize",
+  requireAuth,
+  zValidator("json", finalizeMatchSchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
+
+    // Check if user can manage matches
+    const match = await matchService.getMatchById(id);
+    const canManage = await matchService.canManageMatches(
+      match.tournamentId,
+      appUserId
+    );
+    
+    if (!canManage) {
+      return c.json({ error: "Insufficient permissions" }, 403);
+    }
+
+    const finalizedMatch = await matchService.finalizeMatch(
       id,
-      {
-        confirmed: data.confirmed,
-      },
+      data,
       appUserId
     );
 
-    return c.json(match);
+    return c.json(finalizedMatch);
   }
 );
 

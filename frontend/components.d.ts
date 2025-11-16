@@ -34,6 +34,7 @@ declare module 'vue' {
     InputNumber: typeof import('primevue/inputnumber')['default']
     InputText: typeof import('primevue/inputtext')['default']
     LiquidEther: typeof import('./src/components/LiquidEther.vue')['default']
+    MatchConfirmation: typeof import('./src/components/match/MatchConfirmation.vue')['default']
     MatchDateStep: typeof import('./src/components/match/MatchDateStep.vue')['default']
     MatchList: typeof import('./src/components/MatchList.vue')['default']
     MatchResultStep: typeof import('./src/components/match/MatchResultStep.vue')['default']

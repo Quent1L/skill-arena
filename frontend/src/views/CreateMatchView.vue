@@ -297,8 +297,11 @@ async function loadExistingMatch() {
     matchData.value.outcomeReasonId = match.outcomeReasonId || undefined
     matchData.value.reportProof = match.reportProof || ''
     
-    // Determine winner
-    if (match.winnerId) {
+    // Determine winner (use winnerSide if available, otherwise fallback to winnerId)
+    if (match.winnerSide) {
+      matchData.value.winner = match.winnerSide === 'A' ? 'teamA' : 'teamB'
+    } else if (match.winnerId) {
+      // Fallback for old matches without winnerSide
       if (match.teamAId && match.winnerId === match.teamAId) {
         matchData.value.winner = 'teamA'
       } else if (match.teamBId && match.winnerId === match.teamBId) {

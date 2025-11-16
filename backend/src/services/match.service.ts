@@ -1,4 +1,5 @@
 import { matchRepository } from "../repository/match.repository";
+import { matchConfirmationRepository } from "../repository/match-confirmation.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { db } from "../config/database";
@@ -8,9 +9,10 @@ import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
   type ReportMatchResultRequestData as ReportMatchResultInput,
-  type ConfirmMatchResultRequestData as ConfirmMatchResultInput,
+  type ConfirmMatchRequestData as ConfirmMatchInput,
+  type ContestMatchRequestData as ContestMatchInput,
+  type FinalizeMatchRequestData as FinalizeMatchInput,
   type MatchStatus,
-  type BaseTournament,
 } from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
@@ -55,8 +57,21 @@ export class MatchService {
     await this.validateMatchInput(input, tournament);
     await this.validateMatchRules(input, tournament);
 
-    const match = await this.createMatchRecord(input);
+    const match = await this.createMatchRecord(input, createdBy);
     await this.createMatchParticipations(input, tournament, match.id);
+
+    // If match is reported, create automatic confirmation for the creator
+    if (input.status === "reported") {
+      await matchConfirmationRepository.upsert({
+        matchId: match.id,
+        playerId: createdBy,
+        isConfirmed: true,
+        isContested: false,
+      });
+
+      // Check if match can be validated immediately
+      await this.checkAndFinalizeMatch(match.id);
+    }
 
     return await matchRepository.getById(match.id);
   }
@@ -147,14 +162,52 @@ export class MatchService {
   /**
    * Create match record in database
    */
-  private async createMatchRecord(input: CreateMatchInput) {
-    const matchData = {
+  private async createMatchRecord(input: CreateMatchInput, createdBy: string) {
+    const matchData: any = {
       tournamentId: input.tournamentId,
       round: input.round,
       teamAId: input.teamAId,
       teamBId: input.teamBId,
       status: input.status ?? ("scheduled" as const),
     };
+
+    // If match is being reported (not just scheduled), include score and report fields
+    if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
+      matchData.scoreA = input.scoreA;
+      matchData.scoreB = input.scoreB;
+      matchData.reportProof = input.reportProof;
+      matchData.outcomeTypeId = input.outcomeTypeId;
+      matchData.outcomeReasonId = input.outcomeReasonId;
+      matchData.reportedBy = createdBy;
+      matchData.reportedAt = new Date();
+      
+      // Calculate confirmation deadline (72 hours from now)
+      const confirmationDeadline = new Date();
+      confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
+      matchData.confirmationDeadline = confirmationDeadline;
+
+      // Determine winner side and winnerId
+      // Priority 1: Use explicit winner selection from user (handles forfeit, abandon, etc.)
+      if (input.winner) {
+        matchData.winnerSide = input.winner === 'teamA' ? 'A' : 'B';
+        matchData.winnerId = input.winner === 'teamA' ? input.teamAId : input.teamBId;
+      }
+      // Priority 2: If no explicit winner but winner is explicitly null (draw)
+      else if (input.winner === null) {
+        // Match nul - winnerSide and winnerId remain undefined
+      }
+      // Priority 3: Fall back to score-based calculation (if winner field was not provided)
+      else if (input.winner === undefined) {
+        if (input.scoreA > input.scoreB) {
+          matchData.winnerSide = "A";
+          matchData.winnerId = input.teamAId; // For static teams
+        } else if (input.scoreB > input.scoreA) {
+          matchData.winnerSide = "B";
+          matchData.winnerId = input.teamBId; // For static teams
+        }
+        // If scores are equal, no winner (draw) - winnerSide and winnerId remain undefined
+      }
+    }
 
     return await matchRepository.create(matchData);
   }
@@ -291,28 +344,44 @@ export class MatchService {
     playerId: string,
     excludeMatchId?: string
   ) {
-    if (!input.playerIdsA) return;
+    // Determine which team the player is in
+    const isInTeamA = input.playerIdsA?.includes(playerId);
+    const isInTeamB = input.playerIdsB?.includes(playerId);
 
-    for (const otherPlayerId of input.playerIdsA) {
-      if (otherPlayerId !== playerId) {
-        const partnerCount =
-          await matchRepository.countMatchesWithSamePartner(
-            tournament.id,
-            playerId,
-            otherPlayerId,
-            excludeMatchId
-          );
-        if (partnerCount >= tournament.maxTimesWithSamePartner) {
-          const [playerName, partnerName] = await Promise.all([
-            this.getPlayerName(playerId),
-            this.getPlayerName(otherPlayerId),
-          ]);
-          throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
-            max: tournament.maxTimesWithSamePartner,
-            playerName,
-            partnerName,
-          });
-        }
+    // Get the player's teammates (partners)
+    let teammates: string[] = [];
+    if (isInTeamA && input.playerIdsA) {
+      teammates = input.playerIdsA.filter(id => id !== playerId);
+    } else if (isInTeamB && input.playerIdsB) {
+      teammates = input.playerIdsB.filter(id => id !== playerId);
+    }
+
+    // For flex tournaments, get team size to count only matches with same format
+    const teamSize = tournament.teamMode === "flex" && input.playerIdsA 
+      ? input.playerIdsA.length 
+      : undefined;
+
+    // Validate each teammate
+    for (const teammateId of teammates) {
+      const partnerCount = await matchRepository.countMatchesWithSamePartner(
+        tournament.id,
+        playerId,
+        teammateId,
+        excludeMatchId,
+        teamSize // Pass team size for flex mode
+      );
+      
+      if (partnerCount >= tournament.maxTimesWithSamePartner) {
+        const [playerName, partnerName] = await Promise.all([
+          this.getPlayerName(playerId),
+          this.getPlayerName(teammateId),
+        ]);
+        throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
+          max: tournament.maxTimesWithSamePartner,
+          playerName,
+          partnerName,
+          teamSize, // Add team size to error details
+        });
       }
     }
   }
@@ -326,24 +395,43 @@ export class MatchService {
     playerId: string,
     excludeMatchId?: string
   ) {
-    if (!input.playerIdsB) return;
+    // Determine which team the player is in
+    const isInTeamA = input.playerIdsA?.includes(playerId);
+    const isInTeamB = input.playerIdsB?.includes(playerId);
 
-    for (const otherPlayerId of input.playerIdsB) {
+    // Get the opposing team's players
+    let opponents: string[] = [];
+    if (isInTeamA && input.playerIdsB) {
+      opponents = input.playerIdsB;
+    } else if (isInTeamB && input.playerIdsA) {
+      opponents = input.playerIdsA;
+    }
+
+    // For flex tournaments, get team size to count only matches with same format
+    const teamSize = tournament.teamMode === "flex" && input.playerIdsA 
+      ? input.playerIdsA.length 
+      : undefined;
+
+    // Validate each opponent
+    for (const opponentId of opponents) {
       const opponentCount = await matchRepository.countMatchesWithSameOpponent(
         tournament.id,
         playerId,
-        otherPlayerId,
-        excludeMatchId
+        opponentId,
+        excludeMatchId,
+        teamSize // Pass team size for flex mode
       );
+      
       if (opponentCount >= tournament.maxTimesWithSameOpponent) {
         const [playerName, opponentName] = await Promise.all([
           this.getPlayerName(playerId),
-          this.getPlayerName(otherPlayerId),
+          this.getPlayerName(opponentId),
         ]);
         throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
           max: tournament.maxTimesWithSameOpponent,
           playerName,
           opponentName,
+          teamSize, // Add team size to error details
         });
       }
     }
@@ -449,7 +537,26 @@ export class MatchService {
     await this.validateDrawAllowed(match.tournamentId, input);
 
     const updateData = this.buildReportUpdateData(input, match, reportedBy);
-    return await matchRepository.update(id, updateData);
+    
+    // Calculate confirmation deadline (72 hours from now)
+    const confirmationDeadline = new Date();
+    confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
+    updateData.confirmationDeadline = confirmationDeadline;
+    
+    const updatedMatch = await matchRepository.update(id, updateData);
+
+    // Create automatic confirmation for the reporter
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId: reportedBy,
+      isConfirmed: true,
+      isContested: false,
+    });
+
+    // Check if match can be validated immediately
+    await this.checkAndFinalizeMatch(id);
+
+    return updatedMatch;
   }
 
   /**
@@ -515,10 +622,13 @@ export class MatchService {
     };
 
     if (input.scoreA > input.scoreB) {
+      updateData.winnerSide = "A";
       updateData.winnerId = match?.teamAId || undefined;
     } else if (input.scoreB > input.scoreA) {
+      updateData.winnerSide = "B";
       updateData.winnerId = match?.teamBId || undefined;
     }
+    // If equal, no winner (draw) - winnerSide and winnerId remain undefined
 
     return updateData;
   }
@@ -526,9 +636,9 @@ export class MatchService {
   /**
    * Confirm match result
    */
-  async confirmMatchResult(
+  async confirmMatch(
     id: string,
-    input: ConfirmMatchResultInput,
+    input: ConfirmMatchInput,
     confirmedBy: string
   ) {
     const match = await this.getMatchById(id);
@@ -540,27 +650,71 @@ export class MatchService {
     }
 
     // Check if match is in reported state
-    if (match.status !== "reported") {
+    if (!["reported", "pending_confirmation"].includes(match.status)) {
       throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
     }
 
-    // Check if same user who reported is not confirming
-    if (match.reportedBy === confirmedBy) {
-      throw new BadRequestError(ErrorCode.MATCH_SAME_REPORTER_CONFIRMER);
+    // Check if match is already finalized
+    if (match.status === "finalized") {
+      throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED);
     }
 
-    if (input.confirmed) {
-      return await matchRepository.update(id, {
-        status: "confirmed",
-        confirmationBy: confirmedBy,
-        confirmationAt: new Date(),
-      });
-    } else {
-      // Dispute the result
-      return await matchRepository.update(id, {
-        status: "disputed",
-      });
+    // Create or update confirmation
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId: confirmedBy,
+      isConfirmed: true,
+      isContested: false,
+    });
+
+    // Check if match can be validated
+    await this.checkAndFinalizeMatch(id);
+
+    return await matchRepository.getById(id);
+  }
+
+  /**
+   * Contest match result
+   */
+  async contestMatch(
+    id: string,
+    input: ContestMatchInput,
+    contestedBy: string
+  ) {
+    const match = await this.getMatchById(id);
+
+    // Check if user is participant in the match
+    const isParticipant = await matchRepository.isUserInMatch(id, contestedBy);
+    if (!isParticipant) {
+      throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT);
     }
+
+    // Check if match is in reported state
+    if (!["reported", "pending_confirmation"].includes(match.status)) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
+    }
+
+    // Check if match is already finalized
+    if (match.status === "finalized") {
+      throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED);
+    }
+
+    // Create or update contestation
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId: contestedBy,
+      isConfirmed: false,
+      isContested: true,
+      contestationReason: input.contestationReason,
+      contestationProof: input.contestationProof,
+    });
+
+    // Update match status to disputed
+    await matchRepository.update(id, {
+      status: "disputed",
+    });
+
+    return await matchRepository.getById(id);
   }
 
   /**
@@ -833,6 +987,137 @@ export class MatchService {
     if (existingMatch) {
       warnings.push("Un match similaire existe déjà");
     }
+  }
+
+  /**
+   * Check if match can be finalized and finalize it if conditions are met
+   */
+  private async checkAndFinalizeMatch(matchId: string) {
+    const match = await matchRepository.getById(matchId);
+    if (!match) return;
+
+    // Don't auto-finalize if already finalized or disputed
+    if (match.status === "finalized" || match.status === "disputed") {
+      return;
+    }
+
+    // Get all participants
+    const participants = await matchRepository.getParticipationsByMatchId(matchId);
+    const totalPlayers = participants.length;
+
+    if (totalPlayers === 0) return;
+
+    // Get all confirmations
+    const confirmations = await matchConfirmationRepository.getByMatchId(matchId);
+
+    // Check if any player has contested
+    const hasContestation = confirmations.some(c => c.isContested);
+    if (hasContestation) {
+      // Match has contestation, set to disputed
+      await matchRepository.update(matchId, {
+        status: "disputed",
+      });
+      return;
+    }
+
+    // Count confirmed players
+    const confirmedCount = confirmations.filter(c => c.isConfirmed).length;
+
+    // Check if more than 50% have confirmed
+    const hasaMajority = confirmedCount > totalPlayers / 2;
+
+    // Check if both teams have at least one confirmation
+    const teamAParticipants = participants.filter(p => p.teamSide === "A");
+    const teamBParticipants = participants.filter(p => p.teamSide === "B");
+
+    const teamAConfirmed = confirmations.some(c => 
+      c.isConfirmed && teamAParticipants.some(p => p.playerId === c.playerId)
+    );
+    const teamBConfirmed = confirmations.some(c => 
+      c.isConfirmed && teamBParticipants.some(p => p.playerId === c.playerId)
+    );
+
+    const bothTeamsConfirmed = teamAConfirmed && teamBConfirmed;
+
+    // If all conditions are met, finalize the match
+    if (hasaMajority && bothTeamsConfirmed && !hasContestation) {
+      await this.finalizeMatch(matchId, {
+        finalizationReason: "consensus",
+      });
+    }
+  }
+
+  /**
+   * Finalize a match
+   */
+  async finalizeMatch(
+    id: string,
+    input: FinalizeMatchInput,
+    finalizedBy?: string
+  ) {
+    const match = await this.getMatchById(id);
+
+    // Check if match is already finalized
+    if (match.status === "finalized") {
+      throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED);
+    }
+
+    // Update match status to finalized
+    const updateData: UpdateMatchData = {
+      status: "finalized",
+      finalizedAt: new Date(),
+      finalizationReason: input.finalizationReason,
+    };
+
+    if (finalizedBy) {
+      updateData.finalizedBy = finalizedBy;
+    }
+
+    return await matchRepository.update(id, updateData);
+  }
+
+  /**
+   * Auto-finalize matches after 72h deadline
+   * Called by a cron job
+   */
+  async autoFinalizeExpiredMatches() {
+    const now = new Date();
+
+    // Get all matches that are reported/pending_confirmation and have expired deadline
+    const expiredMatches = await db.query.matches.findMany({
+      where: and(
+        eq(matches.status, "reported"),
+        // confirmationDeadline is in the past
+      ),
+    });
+
+    const finalized: string[] = [];
+    const disputed: string[] = [];
+
+    for (const match of expiredMatches) {
+      if (!match.confirmationDeadline) continue;
+      if (new Date(match.confirmationDeadline) > now) continue;
+
+      // Check if there are any contestations
+      const hasContestation = await matchConfirmationRepository.hasAnyContestation(match.id);
+
+      if (hasContestation) {
+        // Keep as disputed
+        disputed.push(match.id);
+      } else {
+        // Auto-finalize
+        await this.finalizeMatch(match.id, {
+          finalizationReason: "auto_validation",
+        });
+        finalized.push(match.id);
+      }
+    }
+
+    return {
+      finalized,
+      disputed,
+      total: finalized.length + disputed.length,
+    };
   }
 }
 

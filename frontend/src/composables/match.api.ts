@@ -5,7 +5,9 @@ import type {
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
-  ConfirmMatchResultRequestData,
+  ConfirmMatchRequestData,
+  ContestMatchRequestData,
+  FinalizeMatchRequestData,
   ClientValidateMatchRequest,
   ListMatchesQuery,
 } from '@skill-arena/shared/types/index'
@@ -77,8 +79,26 @@ export const matchApi = {
    * Confirm match result
    * @returns Match with Date objects (converted by interceptor)
    */
-  async confirmResult(id: string, payload: ConfirmMatchResultRequestData): Promise<ClientMatchModel> {
+  async confirmResult(id: string, payload: ConfirmMatchRequestData = {}): Promise<ClientMatchModel> {
     const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/confirm`, payload)
+    return response.data
+  },
+
+  /**
+   * Contest match result
+   * @returns Match with Date objects (converted by interceptor)
+   */
+  async contestResult(id: string, payload: ContestMatchRequestData): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/contest`, payload)
+    return response.data
+  },
+
+  /**
+   * Finalize match (admin only)
+   * @returns Match with Date objects (converted by interceptor)
+   */
+  async finalize(id: string, payload: FinalizeMatchRequestData): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/finalize`, payload)
     return response.data
   },
 

@@ -115,6 +115,13 @@ export const matchStatusEnum = pgEnum("match_status", [
   "confirmed",
   "disputed",
   "cancelled",
+  "finalized",
+]);
+
+export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
+  "consensus",
+  "auto_validation",
+  "admin_override",
 ]);
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
@@ -238,6 +245,7 @@ export const matches = pgTable(
     winnerId: uuid("winner_id").references(() => teams.id, {
       onDelete: "set null",
     }),
+    winnerSide: matchTeamSideEnum("winner_side"),
     status: matchStatusEnum("status").notNull().default("scheduled"),
     playedAt: timestamp("played_at").notNull().default(new Date()),
     reportedBy: uuid("reported_by").references(() => appUsers.id, {
@@ -245,6 +253,12 @@ export const matches = pgTable(
     }),
     reportedAt: timestamp("reported_at"),
     reportProof: text("report_proof"),
+    confirmationDeadline: timestamp("confirmation_deadline"),
+    finalizedAt: timestamp("finalized_at"),
+    finalizedBy: uuid("finalized_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
     outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
       onDelete: "set null",
     }),
@@ -268,6 +282,29 @@ export const matchParticipation = pgTable(
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
     teamSide: matchTeamSideEnum("team_side").notNull(),
+  },
+  (table) => [unique().on(table.matchId, table.playerId)]
+);
+
+export const matchConfirmations = pgTable(
+  "match_confirmations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    isConfirmed: boolean("is_confirmed").notNull().default(false),
+    isContested: boolean("is_contested").notNull().default(false),
+    contestationReason: text("contestation_reason"),
+    contestationProof: text("contestation_proof"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
   (table) => [unique().on(table.matchId, table.playerId)]
 );
@@ -326,7 +363,8 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   tournamentParticipants: many(tournamentParticipants),
   createdTeams: many(teams),
   reportedMatches: many(matches, { relationName: "reportedBy" }),
-  confirmedMatches: many(matches, { relationName: "confirmedBy" }),
+  finalizedMatches: many(matches, { relationName: "finalizedBy" }),
+  matchConfirmations: many(matchConfirmations),
   standings: many(championshipStandings),
 }));
 
@@ -418,6 +456,11 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [appUsers.id],
     relationName: "reportedBy",
   }),
+  finalizer: one(appUsers, {
+    fields: [matches.finalizedBy],
+    references: [appUsers.id],
+    relationName: "finalizedBy",
+  }),
   outcomeType: one(outcomeTypes, {
     fields: [matches.outcomeTypeId],
     references: [outcomeTypes.id],
@@ -427,6 +470,7 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [outcomeReasons.id],
   }),
   participations: many(matchParticipation),
+  confirmations: many(matchConfirmations),
 }));
 
 export const matchParticipationRelations = relations(
@@ -438,6 +482,20 @@ export const matchParticipationRelations = relations(
     }),
     player: one(appUsers, {
       fields: [matchParticipation.playerId],
+      references: [appUsers.id],
+    }),
+  })
+);
+
+export const matchConfirmationsRelations = relations(
+  matchConfirmations,
+  ({ one }) => ({
+    match: one(matches, {
+      fields: [matchConfirmations.matchId],
+      references: [matches.id],
+    }),
+    player: one(appUsers, {
+      fields: [matchConfirmations.playerId],
       references: [appUsers.id],
     }),
   })
