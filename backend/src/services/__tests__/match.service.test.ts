@@ -104,7 +104,7 @@ describe("MatchService - basic flows", () => {
       ({ id: "m-u", tournamentId: "t-1", status: "scheduled" } as any);
     usrRepo.getById = async () =>
       ({ id: "u-admin", role: "super_admin" } as any);
-    repo.update = async (_id: string, data: UpdateMatchRequestData) =>
+    repo.update = async (_id: string, data: UpdateMatchData) =>
       ({ id: _id, ...data } as any);
     const res = await matchService.updateMatch(
       "m-u",
@@ -292,7 +292,7 @@ describe("MatchService - basic flows", () => {
     const res = await matchService.validateMatch(input);
     expect(res.valid).toBe(false);
     expect(
-      res.errors.some((e: string) => e.includes("Un joueur ne peut pas être"))
+      res.errors.some((e: string) => e.includes("ne peut pas être dans les deux équipes"))
     ).toBe(true);
   });
 
@@ -347,7 +347,7 @@ describe("MatchService - basic flows", () => {
         reportedBy: "u-rep",
       } as any);
     repo.isUserInMatch = async () => true;
-    repo.update = async (_id: string, data: UpdateMatchRequestData) =>
+    repo.update = async (_id: string, data: UpdateMatchData) =>
       ({ id: "m-1", ...data } as any);
 
     const res = await matchService.confirmMatchResult(
@@ -369,7 +369,7 @@ describe("MatchService - basic flows", () => {
         reportedBy: "u-rep",
       } as any);
     repo.isUserInMatch = async () => true;
-    repo.update = async (_id: string, data: UpdateMatchRequestData) =>
+    repo.update = async (_id: string, data: UpdateMatchData) =>
       ({ id: "m-2", ...data } as any);
 
     const res = await matchService.confirmMatchResult(

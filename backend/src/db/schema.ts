@@ -156,6 +156,9 @@ export const tournaments = pgTable("tournaments", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   status: tournamentStatusEnum("status").notNull().default("draft"),
+  disciplineId: uuid("discipline_id").references(() => disciplines.id, {
+    onDelete: "set null",
+  }),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => appUsers.id, { onDelete: "restrict" }),
@@ -186,7 +189,6 @@ export const teams = pgTable(
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    hash: text("hash").notNull(),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => appUsers.id, { onDelete: "restrict" }),
@@ -194,7 +196,6 @@ export const teams = pgTable(
   },
   (table) => [
     unique().on(table.tournamentId, table.name),
-    unique().on(table.tournamentId, table.hash),
   ]
 );
 
@@ -238,17 +239,22 @@ export const matches = pgTable(
       onDelete: "set null",
     }),
     status: matchStatusEnum("status").notNull().default("scheduled"),
+    playedAt: timestamp("played_at").notNull().default(new Date()),
     reportedBy: uuid("reported_by").references(() => appUsers.id, {
       onDelete: "set null",
     }),
     reportedAt: timestamp("reported_at"),
-    confirmationBy: uuid("confirmation_by").references(() => appUsers.id, {
+    reportProof: text("report_proof"),
+    outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
       onDelete: "set null",
     }),
-    confirmationAt: timestamp("confirmation_at"),
-    reportProof: text("report_proof"),
+    outcomeReasonId: uuid("outcome_reason_id").references(
+      () => outcomeReasons.id,
+      {
+        onDelete: "set null",
+      }
+    ),
   },
-  (table) => [unique().on(table.tournamentId, table.teamAId, table.teamBId)]
 );
 
 export const matchParticipation = pgTable(
@@ -285,6 +291,31 @@ export const championshipStandings = pgTable("championship_standings", {
     .notNull(),
 });
 
+export const disciplines = pgTable("disciplines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+});
+
+export const outcomeTypes = pgTable("outcome_types", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  disciplineId: uuid("discipline_id")
+    .notNull()
+    .references(() => disciplines.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+});
+
+export const outcomeReasons = pgTable("outcome_reasons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  outcomeTypeId: uuid("outcome_type_id")
+    .notNull()
+    .references(() => outcomeTypes.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+});
+
 export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   externalUser: one(user, {
     fields: [appUsers.externalId],
@@ -303,6 +334,10 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   creator: one(appUsers, {
     fields: [tournaments.createdBy],
     references: [appUsers.id],
+  }),
+  discipline: one(disciplines, {
+    fields: [tournaments.disciplineId],
+    references: [disciplines.id],
   }),
   admins: many(tournamentAdmins),
   participants: many(tournamentParticipants),
@@ -383,10 +418,13 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [appUsers.id],
     relationName: "reportedBy",
   }),
-  confirmer: one(appUsers, {
-    fields: [matches.confirmationBy],
-    references: [appUsers.id],
-    relationName: "confirmedBy",
+  outcomeType: one(outcomeTypes, {
+    fields: [matches.outcomeTypeId],
+    references: [outcomeTypes.id],
+  }),
+  outcomeReason: one(outcomeReasons, {
+    fields: [matches.outcomeReasonId],
+    references: [outcomeReasons.id],
   }),
   participations: many(matchParticipation),
 }));
@@ -416,6 +454,31 @@ export const championshipStandingsRelations = relations(
       fields: [championshipStandings.userId],
       references: [appUsers.id],
     }),
+  })
+);
+
+export const disciplinesRelations = relations(disciplines, ({ many }) => ({
+  outcomeTypes: many(outcomeTypes),
+  tournaments: many(tournaments),
+}));
+
+export const outcomeTypesRelations = relations(outcomeTypes, ({ one, many }) => ({
+  discipline: one(disciplines, {
+    fields: [outcomeTypes.disciplineId],
+    references: [disciplines.id],
+  }),
+  outcomeReasons: many(outcomeReasons),
+  matches: many(matches),
+}));
+
+export const outcomeReasonsRelations = relations(
+  outcomeReasons,
+  ({ one, many }) => ({
+    outcomeType: one(outcomeTypes, {
+      fields: [outcomeReasons.outcomeTypeId],
+      references: [outcomeTypes.id],
+    }),
+    matches: many(matches),
   })
 );
 

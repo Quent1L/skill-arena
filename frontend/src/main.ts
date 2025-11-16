@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
+import ConfirmationService from 'primevue/confirmationservice'
 import localeFR from '@/config/locales/fr.json'
 import themePreset from './config/PrimevuePreset'
 import { useAuth } from './composables/useAuth'
@@ -47,6 +48,7 @@ app.use(PrimeVue, {
 })
 
 app.use(ToastService)
+app.use(ConfirmationService)
 app.use(router)
 
 app.mount('#app')

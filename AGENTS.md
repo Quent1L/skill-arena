@@ -380,6 +380,7 @@ shared/
 - ✅ xior interceptor handles date conversion automatically
 - ✅ Write unit tests for all services
 - ✅ Use PrimeVue components consistently
+- ✅ Use Font Awesome icons (fa fa-*) for action buttons, not PrimeIcons
 
 ### Shared
 
@@ -409,6 +410,7 @@ shared/
 - [xior Documentation](https://github.com/suhaotian/xior)
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [PrimeVue Documentation](https://primevue.org/)
+- [Font Awesome Icons](https://fontawesome.com/icons)
 
 ---
 

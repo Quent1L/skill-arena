@@ -11,6 +11,9 @@ export * from "./user";
 export * from "./match";
 export * from "./team";
 export * from "./participant";
+export * from "./discipline";
+export * from "./outcome-type";
+export * from "./outcome-reason";
 
 // ============================================
 // Types utilitaires
@@ -40,3 +43,34 @@ export interface ApiError {
 // Types pour les dates
 export type DateString = string; // ISO date string
 export type Timestamp = string; // ISO datetime string
+
+// ============================================
+// Types utilitaires pour transformation de dates
+// ============================================
+
+/**
+ * Type utilitaire qui transforme toutes les propriétés de type string
+ * qui correspondent à des dates ISO en objets Date.
+ * Utilisé côté frontend où l'intercepteur transforme automatiquement les dates.
+ */
+export type WithClientDates<T> = {
+  [K in keyof T]: T[K] extends string
+    ? K extends `${string}At` | `${string}Date`
+      ? Date
+      : T[K]
+    : T[K] extends object
+    ? WithClientDates<T[K]>
+    : T[K];
+};
+
+/**
+ * Type utilitaire pour les payloads d'API côté frontend.
+ * Les dates sont acceptées en tant qu'objets Date, mais seront sérialisées en string par JSON.stringify.
+ */
+export type ClientPayload<T> = {
+  [K in keyof T]: T[K] extends string
+    ? K extends `${string}At` | `${string}Date`
+      ? Date | string
+      : T[K]
+    : T[K];
+};

@@ -1,16 +1,21 @@
 import { cors } from "hono/cors";
-import { zValidator } from "@hono/zod-validator";
-import * as z from "zod";
+import { logger } from "hono/logger";
 import { auth } from "./config/auth"; // path to your auth file
 import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
 import matches from "./routes/matches.route";
+import disciplines from "./routes/disciplines.route";
+import outcomeTypes from "./routes/outcome-types.route";
+import outcomeReasons from "./routes/outcome-reasons.route";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 
 const app = createAppHonoOptional();
+
+// Logger middleware - must be first to log all requests
+app.use("*", logger());
 
 // Configuration CORS en mode développement
 app.use(
@@ -50,38 +55,51 @@ app.get("/api/user/me", (c) => {
   });
 });
 
-// Mount tournament routes
 app.route("/api/tournaments", tournaments);
 
-// Mount user routes
 app.route("/api/users", users);
 
-// Mount match routes
 app.route("/api/matches", matches);
+
+app.route("/api/disciplines", disciplines);
+
+app.route("/api/outcome-types", outcomeTypes);
+
+app.route("/api/outcome-reasons", outcomeReasons);
 
 // Error handling middleware (must be after all routes)
 app.onError(errorHandler);
 
-const route = app.post(
-  "/posts",
-  zValidator(
-    "form",
-    z.object({
-      title: z.string(),
-      body: z.string(),
-    })
-  ),
-  (c) => {
-    // ...
-    return c.json(
-      {
-        ok: true,
-        message: "Created!",
-      },
-      201
-    );
-  }
-);
+// Handle uncaught errors and unhandled promise rejections
+if (typeof process !== "undefined") {
+  process.on("uncaughtException", (err: Error) => {
+    console.error("\n" + "=".repeat(80));
+    console.error("🚨 UNCAUGHT EXCEPTION");
+    console.error("=".repeat(80));
+    console.error("Error:", err.message);
+    console.error("Stack:", err.stack);
+    console.error("=".repeat(80) + "\n");
+  });
+
+  process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) => {
+    console.error("\n" + "=".repeat(80));
+    console.error("🚨 UNHANDLED PROMISE REJECTION");
+    console.error("=".repeat(80));
+    console.error("Reason:", reason);
+    if (reason instanceof Error) {
+      console.error("Error:", reason.message);
+      console.error("Stack:", reason.stack);
+    }
+    console.error("=".repeat(80) + "\n");
+  });
+}
+
+// Log server startup
+console.log("=".repeat(80));
+console.log("✅ Hono server initialized");
+console.log("✅ Logger middleware enabled");
+console.log("✅ Error handler configured");
+console.log("=".repeat(80));
+
 
 export default app;
-export type AppType = typeof route;

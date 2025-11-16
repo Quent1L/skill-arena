@@ -122,11 +122,10 @@ import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import { calculateDuration } from '@/utils/DateUtils'
-import type { BaseTournament } from '@skill-arena/shared'
 
 const route = useRoute()
 const router = useRouter()
-const { isAuthenticated, isSuperAdmin, appUser } = useAuth()
+const { isAuthenticated, appUser } = useAuth()
 const {
   currentTournament: tournament,
   loading,

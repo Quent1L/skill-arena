@@ -20,8 +20,84 @@ export interface Match {
   confirmationBy?: string;
   confirmationAt?: string;
   reportProof?: string;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
+  outcomeType?: {
+    id: string;
+    disciplineId: string;
+    name: string;
+    discipline?: {
+      id: string;
+      name: string;
+    };
+  };
+  outcomeReason?: {
+    id: string;
+    outcomeTypeId: string;
+    name: string;
+    outcomeType?: {
+      id: string;
+      disciplineId: string;
+      name: string;
+      discipline?: {
+        id: string;
+        name: string;
+      };
+    };
+  };
   createdAt: string;
   updatedAt: string;
+  playedAt: string;
+}
+
+/**
+ * Match with relations - returned by list/getById endpoints
+ */
+export interface MatchModel extends Match {
+  tournament?: {
+    id: string;
+    name: string;
+    status: string;
+    teamMode: string;
+  };
+  teamA?: {
+    id: string;
+    name?: string;
+    participants?: Array<{
+      user?: {
+        id: string;
+        displayName: string;
+      };
+    }>;
+  };
+  teamB?: {
+    id: string;
+    name?: string;
+    participants?: Array<{
+      user?: {
+        id: string;
+        displayName: string;
+      };
+    }>;
+  };
+  winner?: {
+    id: string;
+    name?: string;
+  };
+  reporter?: {
+    id: string;
+    displayName: string;
+  };
+  participations?: Array<{
+    id: string;
+    matchId: string;
+    playerId: string;
+    teamSide: "A" | "B";
+    player?: {
+      id: string;
+      displayName: string;
+    };
+  }>;
 }
 
 export interface MatchParticipation {
@@ -47,6 +123,8 @@ export interface UpdateMatchInput {
   scoreB?: number;
   status?: MatchStatus;
   reportProof?: string;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
 }
 
 export interface ReportMatchResultInput {
@@ -71,6 +149,7 @@ export const createMatchSchema = z.object({
   playerIdsA: z.array(z.string().uuid()).optional(),
   playerIdsB: z.array(z.string().uuid()).optional(),
   status: matchStatusSchema.optional(),
+  playedAt: z.iso.datetime().optional()
 });
 
 export const updateMatchSchema = z.object({
@@ -79,6 +158,12 @@ export const updateMatchSchema = z.object({
   scoreB: z.number().int().min(0).optional(),
   status: matchStatusSchema.optional(),
   reportProof: z.string().optional(),
+  playedAt: z.iso.datetime(),
+  outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
+  outcomeReasonId: z
+    .string()
+    .uuid("ID de raison de résultat invalide")
+    .optional(),
 });
 
 export const reportMatchResultSchema = z.object({
@@ -105,6 +190,8 @@ export const validateMatchSchema = z
     teamBId: z.string().uuid("ID d'équipe B invalide").optional(),
     playerIdsA: z.array(z.string().uuid()).optional(),
     playerIdsB: z.array(z.string().uuid()).optional(),
+    matchId: z.string().uuid("ID de match invalide").optional(), // Match ID to exclude from validation (for edit mode)
+    playedAt: z.iso.datetime().optional(),
   })
   .refine(
     (data) => {
@@ -138,3 +225,55 @@ export type ConfirmMatchResultRequestData = z.infer<
   typeof confirmMatchResultSchema
 >;
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
+
+// ============================================
+// Types pour le frontend (avec dates en Date au lieu de string)
+// ============================================
+
+/**
+ * Type pour Match côté frontend - les dates string sont automatiquement
+ * converties en objets Date par l'intercepteur xior
+ */
+export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationAt'> {
+  createdAt: Date;
+  updatedAt: Date;
+  playedAt: Date;
+  reportedAt?: Date;
+  confirmationAt?: Date;
+}
+
+/**
+ * Type pour MatchModel côté frontend - les dates string sont automatiquement
+ * converties en objets Date par l'intercepteur xior
+ */
+export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationAt'> {
+  createdAt: Date;
+  updatedAt: Date;
+  playedAt: Date;
+  reportedAt?: Date;
+  confirmationAt?: Date;
+}
+
+/**
+ * Type pour CreateMatchRequestData côté frontend
+ * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ */
+export interface ClientCreateMatchRequest extends Omit<CreateMatchRequestData, 'playedAt'> {
+  playedAt?: Date | string;
+}
+
+/**
+ * Type pour UpdateMatchRequestData côté frontend
+ * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ */
+export interface ClientUpdateMatchRequest extends Omit<UpdateMatchRequestData, 'playedAt'> {
+  playedAt?: Date | string;
+}
+
+/**
+ * Type pour ValidateMatchRequestData côté frontend
+ * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ */
+export interface ClientValidateMatchRequest extends Omit<ValidateMatchRequestData, 'playedAt'> {
+  playedAt?: Date | string;
+}

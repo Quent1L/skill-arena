@@ -38,6 +38,11 @@ export const matchStatusEnum = [
 ] as const;
 export type MatchStatus = (typeof matchStatusEnum)[number];
 
+export const outcomeTypeNameEnum = {
+  NORMAL: "Normal",
+} as const;
+export type OutcomeTypeName = (typeof outcomeTypeNameEnum)[keyof typeof outcomeTypeNameEnum];
+
 // ============================================
 // Schémas Zod pour la validation
 // ============================================

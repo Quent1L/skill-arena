@@ -31,6 +31,14 @@
             <div class="text-lg font-semibold text-gray-800 dark:text-gray-100">
               {{ match.scoreA }} - {{ match.scoreB }}
             </div>
+            <Button
+              v-if="match.status === 'scheduled'"
+              label="Compléter"
+              icon="fas fa-edit"
+              severity="info"
+              size="small"
+              @click="completeMatch(match)"
+            />
             <Button text icon="pi pi-eye" @click="goToMatch(match.id)" />
           </div>
         </li>
@@ -47,7 +55,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match.service'
-import type { MatchModel } from '@skill-arena/shared'
+import type { ClientMatchModel } from '@skill-arena/shared/types/index'
 
 interface Props {
   tournamentId?: string
@@ -60,11 +68,11 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const router = useRouter()
-const { listMatches, getMatch } = useMatchService()
+const { listMatches } = useMatchService()
 
 const loading = ref(false)
-const matches = ref<MatchModel[]>([])
-const displayedMatches = ref<MatchModel[]>([])
+const matches = ref<ClientMatchModel[]>([])
+const displayedMatches = ref<ClientMatchModel[]>([])
 
 const pageSize = ref(props.pageSize)
 const currentPage = ref(0)
@@ -75,8 +83,8 @@ const pagedMatches = computed(() =>
   displayedMatches.value.slice(first.value, first.value + pageSize.value),
 )
 
-function formatDate(dateString: string) {
-  const d = new Date(dateString)
+function formatDate(date: string | Date) {
+  const d = date instanceof Date ? date : new Date(date)
   return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
@@ -99,6 +107,12 @@ function goToMatch(id: string) {
   router.push(`/matches/${id}`)
 }
 
+function completeMatch(match: ClientMatchModel) {
+  if (match.tournamentId) {
+    router.push(`/tournaments/${match.tournamentId}/create-match?matchId=${match.id}`)
+  }
+}
+
 async function loadMatches() {
   loading.value = true
   try {
@@ -108,37 +122,12 @@ async function loadMatches() {
     const result = await listMatches(filters)
 
     // Newest first — backend already returns desc by id but ensure createdAt sort
-    result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // createdAt is already a Date object (converted by interceptor)
+    result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
     matches.value = result
 
-    if (props.playerId) {
-      // If playerId filter is provided we need to fetch match details to know participants.
-      // This may be costly for large lists; acceptable for now.
-      const detailed = await Promise.all(matches.value.map((m) => getMatch(m.id).catch(() => null)))
-      const filtered = detailed.filter((m) => {
-        if (!m) return false
-        // check participations
-        if (
-          m.participations &&
-          m.participations.some((p: { playerId: string }) => p.playerId === props.playerId)
-        )
-          return true
-        // check team participants (static teams)
-        const inTeamA = m.teamA?.participants?.some(
-          (p: { user?: { id?: string } }) => p.user?.id === props.playerId,
-        )
-        const inTeamB = m.teamB?.participants?.some(
-          (p: { user?: { id?: string } }) => p.user?.id === props.playerId,
-        )
-        return !!(inTeamA || inTeamB)
-      }) as MatchModel[]
-
-      displayedMatches.value = filtered
-    } else {
-      displayedMatches.value = matches.value
-    }
-
+    displayedMatches.value = matches.value
     // reset pagination
     currentPage.value = 0
   } catch (err) {

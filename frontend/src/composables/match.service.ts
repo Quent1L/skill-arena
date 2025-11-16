@@ -4,16 +4,17 @@ import { useToast } from 'primevue/usetoast'
 import { matchApi } from './match.api'
 import { useParticipantService } from './participant.service'
 import type {
-  MatchModel,
-  CreateMatchRequestData,
-  UpdateMatchRequestData,
+  ClientMatch,
+  ClientMatchModel,
+  ClientCreateMatchRequest,
+  ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
   ConfirmMatchResultRequestData,
   ListMatchesQuery,
-  ValidateMatchRequestData,
+  ClientValidateMatchRequest,
   MatchStatus,
   ParticipantListItem,
-} from '@skill-arena/shared'
+} from '@skill-arena/shared/types/index'
 
 interface ValidationResult {
   valid: boolean
@@ -59,12 +60,14 @@ export function useMatchService() {
     step: string,
     playerIdsA?: string[],
     playerIdsB?: string[],
+    matchId?: string,
   ): Promise<ValidationResult> {
     try {
-      const dataToValidate: ValidateMatchRequestData = {
+      const dataToValidate: ClientValidateMatchRequest = {
         tournamentId,
         playerIdsA,
         playerIdsB,
+        ...(matchId && { matchId }),
       }
 
       const result = await matchApi.validate(dataToValidate)
@@ -125,23 +128,14 @@ export function useMatchService() {
    * Create match with error handling and navigation
    */
   async function createMatchWithNavigation(
-    data: CreateMatchRequestData,
-    scheduledDate: Date | null,
+    data: ClientCreateMatchRequest,
     tournamentId: string,
-  ): Promise<MatchModel | null> {
+  ): Promise<ClientMatchModel | null> {
     loading.value = true
     error.value = null
 
     try {
-      const matchPayload: CreateMatchRequestData = {
-        ...data,
-        ...(data.status === 'scheduled' &&
-          scheduledDate && {
-            scheduledAt: scheduledDate.toISOString(),
-          }),
-      }
-
-      const match = await matchApi.create(matchPayload)
+      const match = await matchApi.create(data)
 
       toast.add({
         severity: 'success',
@@ -170,6 +164,46 @@ export function useMatchService() {
   }
 
   /**
+   * Update match with error handling and navigation
+   */
+  async function updateMatchWithNavigation(
+    matchId: string,
+    data: ClientUpdateMatchRequest,
+    tournamentId: string,
+  ): Promise<ClientMatchModel | null> {
+    loading.value = true
+    error.value = null
+
+    try {
+      const match = await matchApi.update(matchId, data)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Succès',
+        detail: 'Match mis à jour avec succès',
+        life: 3000,
+      })
+
+      router.push(`/tournaments/${tournamentId}?tab=1`)
+      return match
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du match'
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: message,
+        life: 5000,
+      })
+
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
    * Get team players names from IDs
    */
   function getTeamPlayersNames(playerIds: string[]): string[] {
@@ -177,19 +211,19 @@ export function useMatchService() {
   }
 
   // Basic API methods
-  const createMatch = async (data: CreateMatchRequestData): Promise<MatchModel> => {
+  const createMatch = async (data: ClientCreateMatchRequest): Promise<ClientMatchModel> => {
     return await matchApi.create(data)
   }
 
-  const getMatch = async (id: string): Promise<MatchModel> => {
+  const getMatch = async (id: string): Promise<ClientMatchModel> => {
     return await matchApi.getById(id)
   }
 
-  const listMatches = async (filters?: ListMatchesQuery): Promise<MatchModel[]> => {
+  const listMatches = async (filters?: ListMatchesQuery): Promise<ClientMatchModel[]> => {
     return await matchApi.list(filters)
   }
 
-  const updateMatch = async (id: string, data: UpdateMatchRequestData): Promise<MatchModel> => {
+  const updateMatch = async (id: string, data: ClientUpdateMatchRequest): Promise<ClientMatchModel> => {
     return await matchApi.update(id, data)
   }
 
@@ -200,18 +234,18 @@ export function useMatchService() {
   const reportMatchResult = async (
     id: string,
     data: ReportMatchResultRequestData,
-  ): Promise<MatchModel> => {
+  ): Promise<ClientMatchModel> => {
     return await matchApi.reportResult(id, data)
   }
 
   const confirmMatchResult = async (
     id: string,
     data: ConfirmMatchResultRequestData,
-  ): Promise<MatchModel> => {
+  ): Promise<ClientMatchModel> => {
     return await matchApi.confirmResult(id, data)
   }
 
-  const validateMatch = async (data: ValidateMatchRequestData) => {
+  const validateMatch = async (data: ClientValidateMatchRequest) => {
     return await matchApi.validate(data)
   }
 
@@ -228,6 +262,7 @@ export function useMatchService() {
     canProceedToNextStep,
     canCreateMatch,
     createMatchWithNavigation,
+    updateMatchWithNavigation,
     getTeamPlayersNames,
 
     // Basic API methods

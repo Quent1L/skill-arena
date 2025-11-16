@@ -23,6 +23,7 @@ export interface CreateTournamentData {
   allowDraw: boolean | null;
   startDate: string;
   endDate: string;
+  disciplineId?: string;
   createdBy: string;
   status: TournamentStatus;
 }
@@ -43,6 +44,7 @@ export interface UpdateTournamentData {
   startDate?: string;
   endDate?: string;
   status?: TournamentStatus;
+  disciplineId?: string;
 }
 
 export interface TournamentFilters {
@@ -69,6 +71,7 @@ export class TournamentRepository {
       where: eq(tournaments.id, id),
       with: {
         creator: true,
+        discipline: true,
         admins: {
           with: {
             user: true,
@@ -109,6 +112,7 @@ export class TournamentRepository {
       where: conditions.length > 0 ? and(...conditions) : undefined,
       with: {
         creator: true,
+        discipline: true,
       },
       orderBy: (tournaments, { desc }) => [desc(tournaments.createdAt)],
     });

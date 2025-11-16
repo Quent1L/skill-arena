@@ -53,47 +53,25 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 
 interface Props {
-  modeSelection: 'reported' | 'scheduled'
-  scoreA: number
-  scoreB: number
-  scheduledDate: Date | null
+
+  tournamentId: string
 }
 
-interface Emits {
-  (e: 'update:modeSelection', value: 'reported' | 'scheduled'): void
-  (e: 'update:scoreA', value: number): void
-  (e: 'update:scoreB', value: number): void
-  (e: 'update:scheduledDate', value: Date | null): void
-}
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+ defineProps<Props>()
 
 const modeOptions = [
   { label: 'Saisir le score', value: 'reported' },
   { label: 'Programmer', value: 'scheduled' },
 ]
 
-const modeSelectionModel = computed({
-  get: () => props.modeSelection,
-  set: (value) => emit('update:modeSelection', value),
-})
+  const modeSelectionModel = defineModel<'reported' | 'scheduled'>('modeSelection',  { default: 'reported' })
 
-const scoreAModel = computed({
-  get: () => props.scoreA,
-  set: (value) => emit('update:scoreA', value),
-})
+  const scoreAModel = defineModel<number>('scoreA', { default: 0 })
 
-const scoreBModel = computed({
-  get: () => props.scoreB,
-  set: (value) => emit('update:scoreB', value),
-})
+  const scoreBModel = defineModel<number>('scoreB', { default: 0 })
 
-const scheduledDateModel = computed({
-  get: () => props.scheduledDate,
-  set: (value) => emit('update:scheduledDate', value),
-})
+  const scheduledDateModel = defineModel<Date | null>('scheduledDate', { default: null })
 </script>

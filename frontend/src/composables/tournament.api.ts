@@ -1,16 +1,16 @@
 import http from '@/config/ApiConfig'
 import type {
-  BaseTournament,
-  CreateTournamentRequestData,
-  UpdateTournamentApiData,
+  ClientBaseTournament,
+  ClientCreateTournamentRequest,
+  ClientUpdateTournamentRequest,
   TournamentStatus,
   TournamentMode,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
 
-// Type alias pour l'API response (BaseTournament du package shared)
-export type TournamentResponse = BaseTournament
+// Type alias pour l'API response (ClientBaseTournament - dates converties en Date par l'intercepteur)
+export type TournamentResponse = ClientBaseTournament
 
 // Interface pour les filtres de liste (basée sur ListTournamentsQuery du shared)
 export interface ListTournamentsFilters {
@@ -19,11 +19,11 @@ export interface ListTournamentsFilters {
   createdBy?: string
 }
 
-// Type pour le payload de création (sans createdBy qui est ajouté côté serveur)
-export type CreateTournamentPayload = CreateTournamentRequestData
+// Type pour le payload de création (avec dates en Date qui seront sérialisées en string)
+export type CreateTournamentPayload = ClientCreateTournamentRequest
 
-// Type pour le payload de mise à jour
-export type UpdateTournamentPayload = UpdateTournamentApiData
+// Type pour le payload de mise à jour (avec dates en Date qui seront sérialisées en string)
+export type UpdateTournamentPayload = ClientUpdateTournamentRequest
 
 /**
  * Raw API calls to backend - no business logic here
