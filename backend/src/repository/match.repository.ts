@@ -8,7 +8,7 @@ import {
   tournaments,
   appUsers,
 } from "../db/schema";
-import { type MatchStatus } from "@skill-arena/shared/types/index";
+import { type MatchStatus, type MatchFinalizationReason, type MatchTeamSide } from "@skill-arena/shared/types/index";
 
 // Type for synthetic team object used in flex team mode
 type AppUser = typeof appUsers.$inferSelect;
@@ -29,12 +29,14 @@ export interface CreateMatchData {
   scoreA?: number;
   scoreB?: number;
   winnerId?: string;
+  winnerSide?: MatchTeamSide;
   status?: MatchStatus;
   reportedBy?: string;
   reportedAt?: Date;
-  confirmationBy?: string;
-  confirmationAt?: Date;
   reportProof?: string;
+  confirmationDeadline?: Date;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
 }
 
 export interface UpdateMatchData {
@@ -44,12 +46,15 @@ export interface UpdateMatchData {
   scoreA?: number;
   scoreB?: number;
   winnerId?: string;
+  winnerSide?: MatchTeamSide;
   status?: MatchStatus;
   reportedBy?: string;
   reportedAt?: Date;
-  confirmationBy?: string;
-  confirmationAt?: Date;
   reportProof?: string;
+  confirmationDeadline?: Date;
+  finalizedAt?: Date;
+  finalizedBy?: string;
+  finalizationReason?: MatchFinalizationReason;
   playedAt?: Date;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
@@ -345,13 +350,30 @@ export class MatchRepository {
   }
 
   /**
+   * Helper: Get team size for a match (number of players per side)
+   * Returns the size of team A (assumes both teams have same size)
+   */
+  private async getMatchTeamSize(matchId: string): Promise<number> {
+    const participations = await db
+      .select({ teamSide: matchParticipation.teamSide })
+      .from(matchParticipation)
+      .where(eq(matchParticipation.matchId, matchId));
+
+    // Count players in team A (or B, both should be equal)
+    const teamASize = participations.filter(p => p.teamSide === "A").length;
+    return teamASize;
+  }
+
+  /**
    * Count matches between same players (partners)
+   * For flex tournaments, only counts matches with the same team size
    */
   async countMatchesWithSamePartner(
     tournamentId: string,
     userId: string,
     partnerId: string,
-    excludeMatchId?: string
+    excludeMatchId?: string,
+    teamSize?: number // Optional: filter by team size (for flex mode)
   ) {
     // Simplified implementation - count matches where both users participated
     const matchConditions = [eq(matches.tournamentId, tournamentId)];
@@ -372,8 +394,9 @@ export class MatchRepository {
 
     let count = 0;
     for (const match of userMatches) {
+      // Check if partner was in the same match on the same team
       const partnerInMatch = await db
-        .select()
+        .select({ teamSide: matchParticipation.teamSide })
         .from(matchParticipation)
         .where(
           and(
@@ -381,7 +404,31 @@ export class MatchRepository {
             eq(matchParticipation.playerId, partnerId)
           )
         );
-      if (partnerInMatch.length > 0) {
+      
+      if (partnerInMatch.length === 0) {
+        continue; // Partner not in this match
+      }
+
+      // If teamSize is specified (flex mode), check if match has same team size
+      if (teamSize !== undefined) {
+        const matchTeamSize = await this.getMatchTeamSize(match.id);
+        if (matchTeamSize !== teamSize) {
+          continue; // Different team size, skip
+        }
+      }
+
+      // Also verify they were on the same team
+      const userSide = await db
+        .select({ teamSide: matchParticipation.teamSide })
+        .from(matchParticipation)
+        .where(
+          and(
+            eq(matchParticipation.matchId, match.id),
+            eq(matchParticipation.playerId, userId)
+          )
+        );
+
+      if (userSide.length > 0 && userSide[0].teamSide === partnerInMatch[0].teamSide) {
         count++;
       }
     }
@@ -391,12 +438,14 @@ export class MatchRepository {
 
   /**
    * Count matches against same opponent
+   * For flex tournaments, only counts matches with the same team size
    */
   async countMatchesWithSameOpponent(
     tournamentId: string,
     userId: string,
     opponentId: string,
-    excludeMatchId?: string
+    excludeMatchId?: string,
+    teamSize?: number // Optional: filter by team size (for flex mode)
   ) {
     // Simplified implementation
     const matchConditions = [eq(matches.tournamentId, tournamentId)];
@@ -417,6 +466,7 @@ export class MatchRepository {
 
     let count = 0;
     for (const userMatch of userMatches) {
+      // Check if opponent was in the same match on the opposite team
       const opponentInMatch = await db
         .select()
         .from(matchParticipation)
@@ -427,9 +477,20 @@ export class MatchRepository {
             sql`${matchParticipation.teamSide} != ${userMatch.teamSide}`
           )
         );
-      if (opponentInMatch.length > 0) {
-        count++;
+      
+      if (opponentInMatch.length === 0) {
+        continue; // Opponent not in this match on opposite team
       }
+
+      // If teamSize is specified (flex mode), check if match has same team size
+      if (teamSize !== undefined) {
+        const matchTeamSize = await this.getMatchTeamSize(userMatch.id);
+        if (matchTeamSize !== teamSize) {
+          continue; // Different team size, skip
+        }
+      }
+
+      count++;
     }
 
     return count;
@@ -549,6 +610,18 @@ export class MatchRepository {
         throw new Error(`Joueur ${playerId} n'est pas inscrit au tournoi`);
       }
     }
+  }
+
+  /**
+   * Get all participations for a match
+   */
+  async getParticipationsByMatchId(matchId: string) {
+    return await db.query.matchParticipation.findMany({
+      where: eq(matchParticipation.matchId, matchId),
+      with: {
+        player: true,
+      },
+    });
   }
 }
 

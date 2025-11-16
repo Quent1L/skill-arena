@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { type MatchStatus, matchStatusSchema } from "./enums";
+import { 
+  type MatchStatus, 
+  type MatchFinalizationReason,
+  type MatchTeamSide,
+  matchStatusSchema,
+  matchFinalizationReasonSchema,
+  matchTeamSideSchema,
+} from "./enums";
 
 // ============================================
 // Types et interfaces pour les matchs
@@ -14,12 +21,15 @@ export interface Match {
   scoreA: number;
   scoreB: number;
   winnerId?: string;
+  winnerSide?: MatchTeamSide;
   status: MatchStatus;
   reportedBy?: string;
   reportedAt?: string;
-  confirmationBy?: string;
-  confirmationAt?: string;
   reportProof?: string;
+  confirmationDeadline?: string;
+  finalizedAt?: string;
+  finalizedBy?: string;
+  finalizationReason?: MatchFinalizationReason;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
   outcomeType?: {
@@ -88,23 +98,44 @@ export interface MatchModel extends Match {
     id: string;
     displayName: string;
   };
+  finalizer?: {
+    id: string;
+    displayName: string;
+  };
   participations?: Array<{
     id: string;
     matchId: string;
     playerId: string;
-    teamSide: "A" | "B";
+    teamSide: MatchTeamSide;
     player?: {
       id: string;
       displayName: string;
     };
   }>;
+  confirmations?: MatchConfirmation[];
 }
 
 export interface MatchParticipation {
   id: string;
   matchId: string;
   playerId: string;
-  teamSide: "A" | "B";
+  teamSide: MatchTeamSide;
+}
+
+export interface MatchConfirmation {
+  id: string;
+  matchId: string;
+  playerId: string;
+  isConfirmed: boolean;
+  isContested: boolean;
+  contestationReason?: string;
+  contestationProof?: string;
+  createdAt: string;
+  updatedAt: string;
+  player?: {
+    id: string;
+    displayName: string;
+  };
 }
 
 export interface CreateMatchInput {
@@ -115,6 +146,12 @@ export interface CreateMatchInput {
   playerIdsA?: string[]; // For flex team mode
   playerIdsB?: string[]; // For flex team mode
   status?: MatchStatus;
+  scoreA?: number;
+  scoreB?: number;
+  reportProof?: string;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
+  winner?: 'teamA' | 'teamB' | null; // Explicit winner selection (overrides score-based calculation)
 }
 
 export interface UpdateMatchInput {
@@ -133,8 +170,17 @@ export interface ReportMatchResultInput {
   reportProof?: string;
 }
 
-export interface ConfirmMatchResultInput {
-  confirmed: boolean;
+export interface ConfirmMatchInput {
+  // Empty - just confirms the match result
+}
+
+export interface ContestMatchInput {
+  contestationReason?: string;
+  contestationProof?: string;
+}
+
+export interface FinalizeMatchInput {
+  finalizationReason: MatchFinalizationReason;
 }
 
 // ============================================
@@ -149,6 +195,12 @@ export const createMatchSchema = z.object({
   playerIdsA: z.array(z.string().uuid()).optional(),
   playerIdsB: z.array(z.string().uuid()).optional(),
   status: matchStatusSchema.optional(),
+  scoreA: z.number().int().min(0).optional(),
+  scoreB: z.number().int().min(0).optional(),
+  reportProof: z.string().optional(),
+  outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
+  outcomeReasonId: z.string().uuid("ID de raison de résultat invalide").optional(),
+  winner: z.enum(['teamA', 'teamB']).nullable().optional(),
   playedAt: z.iso.datetime().optional()
 });
 
@@ -172,8 +224,17 @@ export const reportMatchResultSchema = z.object({
   reportProof: z.string().optional(),
 });
 
-export const confirmMatchResultSchema = z.object({
-  confirmed: z.boolean(),
+export const confirmMatchSchema = z.object({
+  // Empty - just confirms the match result
+});
+
+export const contestMatchSchema = z.object({
+  contestationReason: z.string().optional(),
+  contestationProof: z.string().optional(),
+});
+
+export const finalizeMatchSchema = z.object({
+  finalizationReason: matchFinalizationReasonSchema,
 });
 
 export const listMatchesQuerySchema = z.object({
@@ -221,9 +282,9 @@ export type UpdateMatchRequestData = z.infer<typeof updateMatchSchema>;
 export type ReportMatchResultRequestData = z.infer<
   typeof reportMatchResultSchema
 >;
-export type ConfirmMatchResultRequestData = z.infer<
-  typeof confirmMatchResultSchema
->;
+export type ConfirmMatchRequestData = z.infer<typeof confirmMatchSchema>;
+export type ContestMatchRequestData = z.infer<typeof contestMatchSchema>;
+export type FinalizeMatchRequestData = z.infer<typeof finalizeMatchSchema>;
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
 
 // ============================================
@@ -234,24 +295,36 @@ export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
  * Type pour Match côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationAt'> {
+export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt'> {
   createdAt: Date;
   updatedAt: Date;
   playedAt: Date;
   reportedAt?: Date;
-  confirmationAt?: Date;
+  confirmationDeadline?: Date;
+  finalizedAt?: Date;
 }
 
 /**
  * Type pour MatchModel côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationAt'> {
+export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt' | 'confirmations'> {
   createdAt: Date;
   updatedAt: Date;
   playedAt: Date;
   reportedAt?: Date;
-  confirmationAt?: Date;
+  confirmationDeadline?: Date;
+  finalizedAt?: Date;
+  confirmations?: ClientMatchConfirmation[];
+}
+
+/**
+ * Type pour MatchConfirmation côté frontend - les dates string sont automatiquement
+ * converties en objets Date par l'intercepteur xior
+ */
+export interface ClientMatchConfirmation extends Omit<MatchConfirmation, 'createdAt' | 'updatedAt'> {
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**

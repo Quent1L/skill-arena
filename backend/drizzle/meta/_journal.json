@@ -57,6 +57,20 @@
       "when": 1763305556331,
       "tag": "0007_safe_victor_mancha",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1763310939923,
+      "tag": "0008_cheerful_stick",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1763312223063,
+      "tag": "0009_omniscient_harpoon",
+      "breakpoints": true
     }
   ]
 }

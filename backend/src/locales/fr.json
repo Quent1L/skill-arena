@@ -33,8 +33,8 @@
     "MATCH_SAME_REPORTER_CONFIRMER": "Le même utilisateur ne peut pas reporter et confirmer le résultat",
     "MATCH_TEAM_SIZE_MISMATCH": "Le nombre de joueurs dans les équipes A ({{teamASize}}) et B ({{teamBSize}}) doit être le même",
     "MAX_MATCHES_EXCEEDED": "{{playerName}} a atteint le nombre maximum de matchs ({{max}})",
-    "MAX_PARTNER_MATCHES_EXCEEDED": "{{playerName}} a déjà joué {{max}} fois avec {{partnerName}}",
-    "MAX_OPPONENT_MATCHES_EXCEEDED": "{{playerName}} a déjà joué {{max}} fois contre {{opponentName}}",
+    "MAX_PARTNER_MATCHES_EXCEEDED": "{{playerName}} a déjà joué {{max}} fois avec {{partnerName}} (format {{teamSize}}v{{teamSize}})",
+    "MAX_OPPONENT_MATCHES_EXCEEDED": "{{playerName}} a déjà joué {{max}} fois contre {{opponentName}} (format {{teamSize}}v{{teamSize}})",
     "NOT_A_PARTICIPANT": "Seuls les participants peuvent effectuer cette action",
     "PLAYER_NOT_IN_TOURNAMENT": "Le joueur ne participe pas à ce tournoi",
     "TEAM_NOT_IN_TOURNAMENT": "L'équipe ne participe pas à ce tournoi"

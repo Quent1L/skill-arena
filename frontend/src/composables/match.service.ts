@@ -9,7 +9,9 @@ import type {
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
-  ConfirmMatchResultRequestData,
+  ConfirmMatchRequestData,
+  ContestMatchRequestData,
+  FinalizeMatchRequestData,
   ListMatchesQuery,
   ClientValidateMatchRequest,
   MatchStatus,
@@ -240,9 +242,77 @@ export function useMatchService() {
 
   const confirmMatchResult = async (
     id: string,
-    data: ConfirmMatchResultRequestData,
+    data: ConfirmMatchRequestData = {},
   ): Promise<ClientMatchModel> => {
-    return await matchApi.confirmResult(id, data)
+    try {
+      const match = await matchApi.confirmResult(id, data)
+      toast.add({
+        severity: 'success',
+        summary: 'Confirmation enregistrée',
+        detail: 'Votre confirmation a été enregistrée avec succès',
+        life: 3000,
+      })
+      return match
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la confirmation'
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: errorMessage,
+        life: 5000,
+      })
+      throw err
+    }
+  }
+
+  const contestMatchResult = async (
+    id: string,
+    data: ContestMatchRequestData,
+  ): Promise<ClientMatchModel> => {
+    try {
+      const match = await matchApi.contestResult(id, data)
+      toast.add({
+        severity: 'warn',
+        summary: 'Contestation enregistrée',
+        detail: 'Votre contestation a été enregistrée. Un administrateur examinera le cas.',
+        life: 5000,
+      })
+      return match
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la contestation'
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: errorMessage,
+        life: 5000,
+      })
+      throw err
+    }
+  }
+
+  const finalizeMatch = async (
+    id: string,
+    data: FinalizeMatchRequestData,
+  ): Promise<ClientMatchModel> => {
+    try {
+      const match = await matchApi.finalize(id, data)
+      toast.add({
+        severity: 'success',
+        summary: 'Match finalisé',
+        detail: 'Le match a été finalisé avec succès',
+        life: 3000,
+      })
+      return match
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la finalisation'
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: errorMessage,
+        life: 5000,
+      })
+      throw err
+    }
   }
 
   const validateMatch = async (data: ClientValidateMatchRequest) => {
@@ -273,6 +343,8 @@ export function useMatchService() {
     deleteMatch,
     reportMatchResult,
     confirmMatchResult,
+    contestMatchResult,
+    finalizeMatch,
     validateMatch,
   }
 }

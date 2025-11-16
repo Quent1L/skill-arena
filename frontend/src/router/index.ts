@@ -136,6 +136,17 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
     },
   },
+  {
+    path: '/matches/:id',
+    name: 'match-detail',
+    component: () => import('@/views/MatchDetailView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      breadcrumb: 'Détails du match',
+      title: 'Détails du match',
+      requiresAuth: true,
+    },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',
