@@ -128,6 +128,11 @@ export class MatchRepository {
             player: true,
           },
         },
+        confirmations: {
+          with: {
+            player: true,
+          },
+        },
       },
     });
 

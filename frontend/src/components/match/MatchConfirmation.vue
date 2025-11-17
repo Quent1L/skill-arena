@@ -19,46 +19,76 @@
         </div>
 
         <!-- Statut des confirmations -->
-        <div v-if="confirmations && confirmations.length > 0" class="space-y-3">
+        <div v-if="playersWithStatus && playersWithStatus.length > 0" class="space-y-3">
           <h4 class="font-semibold text-surface-700 dark:text-surface-300">
             Confirmations des joueurs ({{ confirmedCount }}/{{ totalPlayers }})
           </h4>
           
           <div class="space-y-2">
             <div 
-              v-for="confirmation in confirmations" 
-              :key="confirmation.id"
-              class="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-800 rounded-lg"
+              v-for="player in playersWithStatus" 
+              :key="player.playerId"
+              class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-2"
             >
-              <div class="flex items-center gap-3">
-                <i 
-                  :class="[
-                    'fa text-lg',
-                    confirmation.isConfirmed ? 'fa-check-circle text-green-500' :
-                    confirmation.isContested ? 'fa-times-circle text-red-500' :
-                    'fa-clock text-surface-400'
-                  ]"
-                ></i>
-                <span class="font-medium">
-                  {{ confirmation.player?.displayName || 'Joueur inconnu' }}
-                </span>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <i 
+                    :class="[
+                      'fa text-lg',
+                      player.status === 'confirmed' ? 'fa-check-circle text-green-500' :
+                      player.status === 'contested' ? 'fa-times-circle text-red-500' :
+                      'fa-clock text-surface-400'
+                    ]"
+                  ></i>
+                  <span class="font-medium">
+                    {{ player.displayName || 'Joueur inconnu' }}
+                  </span>
+                </div>
+                
+                <Tag 
+                  v-if="player.status === 'confirmed'"
+                  severity="success"
+                  value="Confirmé"
+                />
+                <Tag 
+                  v-else-if="player.status === 'contested'"
+                  severity="danger"
+                  value="Contesté"
+                />
+                <Tag 
+                  v-else
+                  severity="warn"
+                  value="En attente"
+                />
               </div>
               
-              <Tag 
-                v-if="confirmation.isConfirmed"
-                severity="success"
-                value="Confirmé"
-              />
-              <Tag 
-                v-else-if="confirmation.isContested"
-                severity="danger"
-                value="Contesté"
-              />
-              <Tag 
-                v-else
-                severity="warn"
-                value="En attente"
-              />
+              <!-- Détails de contestation -->
+              <div 
+                v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof)"
+                class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
+              >
+                <div v-if="player.contestationReason" class="text-sm">
+                  <span class="font-semibold text-surface-700 dark:text-surface-300">Raison :</span>
+                  <p class="text-surface-600 dark:text-surface-400 mt-1 whitespace-pre-wrap">
+                    {{ player.contestationReason }}
+                  </p>
+                </div>
+                <div v-if="player.contestationProof" class="text-sm">
+                  <span class="font-semibold text-surface-700 dark:text-surface-300">Preuve :</span>
+                  <p class="text-surface-600 dark:text-surface-400 mt-1">
+                    <a 
+                      v-if="isUrl(player.contestationProof)"
+                      :href="player.contestationProof"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary hover:underline"
+                    >
+                      {{ player.contestationProof }}
+                    </a>
+                    <span v-else>{{ player.contestationProof }}</span>
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -227,6 +257,34 @@ const confirmedCount = computed(() => {
   return confirmations.value.filter(c => c.isConfirmed).length;
 });
 
+const playersWithStatus = computed(() => {
+  const participations = props.match.participations || [];
+  const confirmationsMap = new Map(
+    confirmations.value.map(c => [c.playerId, c])
+  );
+
+  return participations.map(participation => {
+    const confirmation = confirmationsMap.get(participation.playerId);
+    let status: 'confirmed' | 'contested' | 'pending' = 'pending';
+    
+    if (confirmation) {
+      if (confirmation.isConfirmed) {
+        status = 'confirmed';
+      } else if (confirmation.isContested) {
+        status = 'contested';
+      }
+    }
+
+    return {
+      playerId: participation.playerId,
+      displayName: participation.player?.displayName || 'Joueur inconnu',
+      status,
+      contestationReason: confirmation?.contestationReason,
+      contestationProof: confirmation?.contestationProof,
+    };
+  });
+});
+
 const userConfirmation = computed(() => {
   if (!props.currentUserId) return null;
   return confirmations.value.find(c => c.playerId === props.currentUserId);
@@ -283,6 +341,15 @@ function submitContest() {
     proof: contestProof.value || undefined,
   });
   contestDialogVisible.value = false;
+}
+
+function isUrl(str: string): boolean {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
 </script>
 
