@@ -14,8 +14,7 @@ export default defineConfig({
     Components({
       resolvers: [PrimeVueResolver()],
     }),
-    vueDevTools({launchEditor: 'cursor'
-    }),
+    vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
