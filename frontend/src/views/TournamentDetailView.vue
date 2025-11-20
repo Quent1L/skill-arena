@@ -1,14 +1,37 @@
 <template>
-  <div class="tournament-detail-view">
-    <div v-if="loading" class="flex justify-center py-12">
-      <ProgressSpinner />
+  <div v-if="loading && !isMobile" class="flex justify-center py-12">
+    <ProgressSpinner />
+  </div>
+
+  <Message v-else-if="error" severity="error" class="mb-6 mx-4 mt-4">
+    {{ error }}
+  </Message>
+
+  <div v-else-if="tournament">
+    <div v-if="isMobile" class="h-full">
+      <TournamentDetailMobile
+        :tournament="tournament"
+        :participants="participants"
+        :participant-count="participantCount"
+        :loading-participants="loadingParticipants"
+        :is-authenticated="isAuthenticated"
+        :is-participant="isParticipant"
+        :can-join="canJoinTournament"
+        :can-leave="canLeaveTournament"
+        :can-create-match="canCreateMatch"
+        :can-manage="canManageTournament"
+        :joining="joining"
+        :leaving="leaving"
+        :tournament-id="tournamentId"
+        :tournament-duration="tournamentDuration"
+        @join="joinTournament"
+        @leave="leaveTournament"
+        @create-match="createMatch"
+        @edit="editTournament"
+      />
     </div>
 
-    <Message v-else-if="error" severity="error" class="mb-6">
-      {{ error }}
-    </Message>
-
-    <div v-else-if="tournament" class="space-y-6">
+    <div v-else class="tournament-detail-view">
       <Card>
         <template #header>
           <div class="p-6 pb-0">
@@ -64,10 +87,7 @@
         </TabList>
         <TabPanels>
           <TabPanel value="0">
-            <StandingsTable 
-              :tournament-id="tournamentId" 
-              :allow-draw="tournament.allowDraw"
-            />
+            <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
           </TabPanel>
           <TabPanel value="1">
             <div class="p-0">
@@ -87,8 +107,10 @@
         </TabPanels>
       </Tabs>
     </div>
+  </div>
 
-    <Card v-else class="text-center py-12">
+  <div v-else class="tournament-detail-view">
+    <Card class="text-center py-12">
       <template #content>
         <div class="space-y-4">
           <i class="pi pi-exclamation-triangle text-4xl text-orange-400"></i>
@@ -118,7 +140,9 @@ import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
+import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
 import { calculateDuration } from '@/utils/DateUtils'
+import { useViewport } from '@/composables/useViewport'
 
 const route = useRoute()
 const router = useRouter()
@@ -146,6 +170,7 @@ const {
 const joining = ref(false)
 const leaving = ref(false)
 const activeTab = ref('0')
+const { isMobile } = useViewport()
 
 const tournamentId = computed(() => route.params.id as string)
 

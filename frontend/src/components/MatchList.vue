@@ -20,46 +20,56 @@
           <div class="flex-1 w-full md:w-auto">
             <div class="flex items-center justify-between mb-2 md:mb-1">
               <div class="text-xs md:text-sm text-gray-500">{{ formatDate(match.createdAt) }}</div>
-              <Tag 
-                :value="getStatusLabel(match.status)" 
+              <Tag
+                :value="getStatusLabel(match.status)"
                 :severity="getStatusSeverity(match.status)"
               />
             </div>
 
             <!-- Teams and Score (mobile: vertical centered, desktop: horizontal) -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+            <div
+              class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4"
+            >
               <!-- Team A -->
-              <div class="flex items-center justify-center sm:justify-end gap-2 flex-1 min-w-0 order-1 sm:order-1">
-                <span 
+              <div
+                class="flex items-center justify-center sm:justify-end gap-2 flex-1 min-w-0 order-1 sm:order-1"
+              >
+                <span
                   :class="[
                     'text-sm md:text-base lg:text-lg font-medium text-gray-900 dark:text-white truncate text-center sm:text-right',
-                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'A' }
+                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'A' },
                   ]"
                   :title="getFullTeamLabel(match.teamA)"
                 >
                   {{ getTeamLabel(match.teamA) }}
                 </span>
-                <i 
-                  v-if="match.winnerSide === 'A'" 
+                <i
+                  v-if="match.winnerSide === 'A'"
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>
 
               <!-- Score (always visible, centered) -->
-              <div class="flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4">
-                <span 
+              <div
+                class="flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
+              >
+                <span
                   :class="[
                     'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'A' ? 'text-green-600 dark:text-green-400' : 'text-gray-800 dark:text-gray-100'
+                    match.winnerSide === 'A'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-800 dark:text-gray-100',
                   ]"
                 >
                   {{ match.scoreA }}
                 </span>
                 <span class="text-gray-400">-</span>
-                <span 
+                <span
                   :class="[
                     'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'B' ? 'text-green-600 dark:text-green-400' : 'text-gray-800 dark:text-gray-100'
+                    match.winnerSide === 'B'
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-gray-800 dark:text-gray-100',
                   ]"
                 >
                   {{ match.scoreB }}
@@ -67,18 +77,20 @@
               </div>
 
               <!-- Team B -->
-              <div class="flex items-center justify-center sm:justify-start gap-2 flex-1 min-w-0 order-3 sm:order-3">
-                <span 
+              <div
+                class="flex items-center justify-center sm:justify-start gap-2 flex-1 min-w-0 order-3 sm:order-3"
+              >
+                <span
                   :class="[
                     'text-sm md:text-base lg:text-lg font-medium text-gray-900 dark:text-white truncate text-center sm:text-left',
-                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'B' }
+                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'B' },
                   ]"
                   :title="getFullTeamLabel(match.teamB)"
                 >
                   {{ getTeamLabel(match.teamB) }}
                 </span>
-                <i 
-                  v-if="match.winnerSide === 'B'" 
+                <i
+                  v-if="match.winnerSide === 'B'"
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>
@@ -86,7 +98,7 @@
           </div>
 
           <!-- Actions (mobile: full width, desktop: auto) -->
-          <div 
+          <div
             v-if="match.status === 'scheduled'"
             class="flex items-center gap-2 w-full md:w-auto md:flex-shrink-0"
             @click.stop
@@ -114,6 +126,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match.service'
+import { useViewport } from '@/composables/useViewport'
 import type { ClientMatchModel } from '@skill-arena/shared/types/index'
 
 interface Props {
@@ -132,7 +145,7 @@ const { listMatches } = useMatchService()
 const loading = ref(false)
 const matches = ref<ClientMatchModel[]>([])
 const displayedMatches = ref<ClientMatchModel[]>([])
-const isMobile = ref(false)
+const { isMobile } = useViewport()
 
 const pageSize = ref(props.pageSize)
 const currentPage = ref(0)
@@ -143,10 +156,6 @@ const pagedMatches = computed(() =>
   displayedMatches.value.slice(first.value, first.value + pageSize.value),
 )
 
-function checkMobile() {
-  isMobile.value = window.innerWidth < 768 // md breakpoint
-}
-
 function formatDate(date: string | Date) {
   const d = date instanceof Date ? date : new Date(date)
   return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
@@ -156,20 +165,20 @@ function getTeamLabel(
   team: { name?: string; participants?: Array<{ user?: { displayName?: string } }> } | undefined,
 ): string {
   if (!team) return 'N/A'
-  
+
   // Adjust max length based on screen size
   // Use a more generous limit to avoid unnecessary truncation
   const maxLength = isMobile.value ? 30 : 45
-  
+
   if (team.name) {
     return team.name.length > maxLength ? team.name.substring(0, maxLength) + '...' : team.name
   }
-  
+
   // For teams with participants
   if (team.participants && team.participants.length > 0) {
     const names = team.participants.map((p) => p.user?.displayName || 'Joueur')
     const label = names.join(', ')
-    
+
     // Only truncate if the label is actually too long
     // This ensures we show all names if there's space
     if (label.length > maxLength) {
@@ -178,7 +187,7 @@ function getTeamLabel(
       const rest = names.length - 1
       return rest > 0 ? `${first} +${rest}` : first.substring(0, maxLength) + '...'
     }
-    
+
     // If we have space, show all names
     return label
   }
@@ -191,9 +200,7 @@ function getFullTeamLabel(
   if (!team) return 'N/A'
   if (team.name) return team.name
   if (team.participants && team.participants.length > 0) {
-    return team.participants
-      .map((p) => p.user?.displayName || 'Joueur')
-      .join(', ')
+    return team.participants.map((p) => p.user?.displayName || 'Joueur').join(', ')
   }
   return 'Équipe'
 }
@@ -266,14 +273,10 @@ function onPage(event: { first: number; rows: number }) {
 watch(() => [props.tournamentId, props.playerId], loadMatches, { immediate: true })
 
 onMounted(() => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
   loadMatches()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-})
+onUnmounted(() => {})
 </script>
 
 <style scoped>

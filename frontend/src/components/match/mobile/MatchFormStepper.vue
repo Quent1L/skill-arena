@@ -54,15 +54,26 @@
     <div
       class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t dark:border-gray-700 p-4 shadow-lg z-20"
     >
-      <Button
-        v-if="step === 1"
-        label="Suivant"
-        icon="fas fa-arrow-right"
-        iconPos="right"
-        class="w-full"
-        :disabled="!canProceed"
-        @click="nextStep"
-      />
+      <div v-if="step === 1" class="space-y-2">
+        <Button
+          v-if="isFutureDate"
+          label="Programmer le match"
+          icon="fas fa-calendar-check"
+          class="w-full"
+          :disabled="!canProceed"
+          :loading="loading"
+          @click="scheduleMatch"
+        />
+        <Button
+          v-else
+          label="Suivant"
+          icon="fas fa-arrow-right"
+          iconPos="right"
+          class="w-full"
+          :disabled="!canProceed"
+          @click="nextStep"
+        />
+      </div>
       <Button
         v-else
         label="Enregistrer le match"
@@ -180,6 +191,10 @@ const canProceed = computed(() => {
   )
 })
 
+const isFutureDate = computed(() => {
+  return matchData.value.playedAt > new Date()
+})
+
 async function loadPlayers() {
   try {
     const participants = await getTournamentParticipants(props.tournamentId)
@@ -215,14 +230,21 @@ function goBack() {
 async function nextStep() {
   await validate()
   if (canProceed.value) {
-    // Check if date is future -> schedule only
-    if (matchData.value.playedAt > new Date()) {
-      matchData.value.status = 'scheduled'
-      submit()
-    } else {
-      matchData.value.status = 'reported'
-      step.value = 2
-    }
+    matchData.value.status = 'reported'
+    step.value = 2
+  }
+}
+
+async function scheduleMatch() {
+  await validate()
+  if (canProceed.value) {
+    matchData.value.status = 'scheduled'
+    matchData.value.scoreA = 0
+    matchData.value.scoreB = 0
+    matchData.value.winner = null
+    matchData.value.outcomeTypeId = null
+    matchData.value.outcomeReasonId = null
+    await submit()
   }
 }
 

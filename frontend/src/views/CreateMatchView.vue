@@ -64,11 +64,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useMatchService } from '@/composables/match.service'
 import { useTournamentService } from '@/composables/tournament.service'
+import { useViewport } from '@/composables/useViewport'
 import type {
   MatchStatus,
   ClientBaseTournament,
@@ -95,16 +96,7 @@ const {
   getTeamPlayersNames,
 } = useMatchService()
 const { loadTournamentWithErrorHandling } = useTournamentService()
-
-const isMobile = ref(false)
-
-function checkMobile() {
-  isMobile.value = window.innerWidth < 768
-}
-
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-})
+const { isMobile } = useViewport()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined
@@ -349,8 +341,6 @@ async function loadExistingMatch() {
 }
 
 onMounted(async () => {
-  checkMobile()
-  window.addEventListener('resize', checkMobile)
   await loadTournament()
   await loadPlayersMap(tournamentId)
   if (isEditMode.value) {

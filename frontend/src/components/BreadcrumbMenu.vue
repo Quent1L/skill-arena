@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showHeader" class="breadcrumb-menu">
+  <div v-if="showHeader" class="breadcrumb-menu hidden md:block">
     <div class="flex items-center gap-3 flex-wrap">
       <Button
         v-if="home"
