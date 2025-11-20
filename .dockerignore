@@ -1,0 +1,53 @@
+# Dependencies
+**/node_modules
+
+# Build artifacts (will be created during Docker build)
+**/.tsbuildinfo
+**/coverage
+
+# Development files
+**/.env
+**/.env.local
+**/.env.*.local
+**/*.log
+**/.DS_Store
+
+# IDE
+**/.vscode
+**/.idea
+**/*.swp
+**/*.swo
+**/*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+**/README.md
+**/docs
+**/*.md
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/vitest.config.ts
+**/vitest.config.js
+
+# Temporary files
+**/.tmp
+**/tmp
+**/*.tmp
+
+# OS files
+**/Thumbs.db
+**/.DS_Store
+
+# Note: dist folders are NOT ignored because they are needed:
+# - shared/dist: created during build and copied to final image
+# - frontend/dist: created during build and copied to final image
+# Local dist folders (if they exist) will be overwritten during build anyway
