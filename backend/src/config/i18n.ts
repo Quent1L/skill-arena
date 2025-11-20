@@ -1,14 +1,11 @@
 import i18next from "i18next";
-import { readFileSync } from "fs";
-import { join } from "path";
+import frLocale from '../locales/fr.json';
+import enLocale from '../locales/en.json';
 
-// Load translations
-const frTranslation = JSON.parse(
-  readFileSync(join(__dirname, "../locales/fr.json"), "utf-8")
-);
-const enTranslation = JSON.parse(
-  readFileSync(join(__dirname, "../locales/en.json"), "utf-8")
-);
+// Load translations (already parsed as objects by Bun/TypeScript JSON imports)
+const frTranslation = frLocale;
+const enTranslation = enLocale;
+
 
 // Initialize i18next
 i18next.init({

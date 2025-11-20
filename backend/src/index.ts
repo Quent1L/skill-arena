@@ -1,6 +1,7 @@
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { auth } from "./config/auth"; // path to your auth file
+import { serveStatic } from "hono/bun";
+import { auth } from "./config/auth"; 
 import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
 import matches from "./routes/matches.route";
@@ -39,10 +40,6 @@ app.use("*", addUserContext);
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-app.get("/", (c) => {
-  return c.text("Hello Hono!");
-});
-
 app.get("/api/user/me", (c) => {
   const session = c.get("session");
   const user = c.get("user");
@@ -66,6 +63,58 @@ app.route("/api/disciplines", disciplines);
 app.route("/api/outcome-types", outcomeTypes);
 
 app.route("/api/outcome-reasons", outcomeReasons);
+
+// Serve static files from frontend build directory
+// Only serve if FRONTEND_BUILD_PATH is configured
+const frontendBuildPath = process.env.FRONTEND_BUILD_PATH;
+if (frontendBuildPath) {
+  // Serve static assets (JS, CSS, images, etc.) for non-API routes
+  app.use(
+    "/*",
+    async (c, next) => {
+      const path = c.req.path;
+      // Skip API routes - let them pass through
+      if (path.startsWith("/api/")) {
+        return next();
+      }
+      // Use serveStatic middleware for non-API routes
+      const staticMiddleware = serveStatic({
+        root: frontendBuildPath,
+        rewriteRequestPath: (p) => {
+          // For root path, serve index.html
+          if (p === "/") {
+            return "/index.html";
+          }
+          return p;
+        },
+      });
+      return staticMiddleware(c, next);
+    }
+  );
+
+  // SPA fallback: serve index.html for all non-API routes that don't match a file
+  app.get("*", async (c) => {
+    const path = c.req.path;
+    // Don't handle API routes
+    if (path.startsWith("/api/")) {
+      return;
+    }
+    // Serve index.html for SPA routing
+    try {
+      const Bun = await import("bun");
+      const indexHtml = await Bun.file(`${frontendBuildPath}/index.html`).text();
+      return c.html(indexHtml);
+    } catch (error) {
+      console.error("Failed to serve index.html:", error);
+      return c.text("Frontend not found", 404);
+    }
+  });
+} else {
+  // Fallback route when frontend is not served
+  app.get("/", (c) => {
+    return c.text("Hello Hono!");
+  });
+}
 
 // Error handling middleware (must be after all routes)
 app.onError(errorHandler);
@@ -99,6 +148,11 @@ console.log("=".repeat(80));
 console.log("✅ Hono server initialized");
 console.log("✅ Logger middleware enabled");
 console.log("✅ Error handler configured");
+if (frontendBuildPath) {
+  console.log(`✅ Static files serving enabled from: ${frontendBuildPath}`);
+} else {
+  console.log("ℹ️  Static files serving disabled (FRONTEND_BUILD_PATH not set)");
+}
 console.log("=".repeat(80));
 
 
