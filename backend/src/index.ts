@@ -1,7 +1,7 @@
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serveStatic } from "hono/bun";
-import { auth } from "./config/auth"; 
+import { auth } from "./config/auth";
 import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
 import matches from "./routes/matches.route";
@@ -68,44 +68,33 @@ app.route("/api/outcome-reasons", outcomeReasons);
 // Only serve if FRONTEND_BUILD_PATH is configured
 const frontendBuildPath = process.env.FRONTEND_BUILD_PATH;
 if (frontendBuildPath) {
-  // Serve static assets (JS, CSS, images, etc.) for non-API routes
-  app.use(
-    "/*",
-    async (c, next) => {
-      const path = c.req.path;
-      // Skip API routes - let them pass through
-      if (path.startsWith("/api/")) {
-        return next();
-      }
-      // Use serveStatic middleware for non-API routes
+  // Serve static files (JS, CSS, images, etc.)
+  app.use("/*", async (c, next) => {
+    const path = c.req.path;
+    // Skip API routes - let them pass through
+    if (path.startsWith("/api/")) {
+      return next();
+    }
+
+    // Check if file exists (for assets like JS, CSS, images)
+    const filePath = `${frontendBuildPath}${path}`;
+    const file = Bun.file(filePath);
+
+    if (await file.exists()) {
+      // File exists, serve it
       const staticMiddleware = serveStatic({
         root: frontendBuildPath,
-        rewriteRequestPath: (p) => {
-          // For root path, serve index.html
-          if (p === "/") {
-            return "/index.html";
-          }
-          return p;
-        },
       });
       return staticMiddleware(c, next);
     }
-  );
 
-  // SPA fallback: serve index.html for all non-API routes that don't match a file
-  app.get("*", async (c) => {
-    const path = c.req.path;
-    // Don't handle API routes
-    if (path.startsWith("/api/")) {
-      return;
-    }
-    // Serve index.html for SPA routing
-    try {
-      const Bun = await import("bun");
-      const indexHtml = await Bun.file(`${frontendBuildPath}/index.html`).text();
+    // File doesn't exist, fallback to index.html for SPA routing
+    const indexFile = Bun.file(`${frontendBuildPath}/index.html`);
+    if (await indexFile.exists()) {
+      const indexHtml = await indexFile.text();
       return c.html(indexHtml);
-    } catch (error) {
-      console.error("Failed to serve index.html:", error);
+    } else {
+      console.error("index.html not found in:", frontendBuildPath);
       return c.text("Frontend not found", 404);
     }
   });
@@ -130,17 +119,20 @@ if (typeof process !== "undefined") {
     console.error("=".repeat(80) + "\n");
   });
 
-  process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) => {
-    console.error("\n" + "=".repeat(80));
-    console.error("🚨 UNHANDLED PROMISE REJECTION");
-    console.error("=".repeat(80));
-    console.error("Reason:", reason);
-    if (reason instanceof Error) {
-      console.error("Error:", reason.message);
-      console.error("Stack:", reason.stack);
+  process.on(
+    "unhandledRejection",
+    (reason: unknown, _promise: Promise<unknown>) => {
+      console.error("\n" + "=".repeat(80));
+      console.error("🚨 UNHANDLED PROMISE REJECTION");
+      console.error("=".repeat(80));
+      console.error("Reason:", reason);
+      if (reason instanceof Error) {
+        console.error("Error:", reason.message);
+        console.error("Stack:", reason.stack);
+      }
+      console.error("=".repeat(80) + "\n");
     }
-    console.error("=".repeat(80) + "\n");
-  });
+  );
 }
 
 // Log server startup
@@ -151,9 +143,10 @@ console.log("✅ Error handler configured");
 if (frontendBuildPath) {
   console.log(`✅ Static files serving enabled from: ${frontendBuildPath}`);
 } else {
-  console.log("ℹ️  Static files serving disabled (FRONTEND_BUILD_PATH not set)");
+  console.log(
+    "ℹ️  Static files serving disabled (FRONTEND_BUILD_PATH not set)"
+  );
 }
 console.log("=".repeat(80));
-
 
 export default app;
