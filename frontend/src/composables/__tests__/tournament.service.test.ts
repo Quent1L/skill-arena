@@ -1,11 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ref } from 'vue'
-import { useTournamentService } from '../tournament.service'
-import { tournamentApi } from '../tournament.api'
+import { useTournamentService } from '../tournament/tournament.service'
+import { tournamentApi, type TournamentResponse } from '../tournament/tournament.api'
 import { useAuth } from '../useAuth'
 import type {
-  TournamentResponse,
-  TournamentStatus,
+
   CreateTournamentFormData,
   UpdateTournamentFormData,
 } from '@skill-arena/shared/types/index'
@@ -18,7 +17,7 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
-vi.mock('../tournament.api')
+vi.mock('../tournament/tournament.api')
 vi.mock('../useAuth')
 
 describe('useTournamentService', () => {
@@ -80,8 +79,7 @@ describe('useTournamentService', () => {
 
       vi.mocked(tournamentApi.list).mockResolvedValue(mockTournaments)
 
-      const { listTournaments, tournaments, loading, error } =
-        useTournamentService()
+      const { listTournaments, tournaments, loading, error } = useTournamentService()
 
       expect(loading.value).toBe(false)
       expect(error.value).toBeNull()
@@ -116,8 +114,7 @@ describe('useTournamentService', () => {
 
       vi.mocked(tournamentApi.getById).mockResolvedValue(mockTournament)
 
-      const { getTournament, currentTournament, loading, error } =
-        useTournamentService()
+      const { getTournament, currentTournament, loading, error } = useTournamentService()
 
       expect(loading.value).toBe(false)
       expect(error.value).toBeNull()
@@ -154,8 +151,7 @@ describe('useTournamentService', () => {
 
       vi.mocked(tournamentApi.create).mockResolvedValue(mockTournament)
 
-      const { createTournament, tournaments, loading, error } =
-        useTournamentService()
+      const { createTournament, tournaments, loading, error } = useTournamentService()
 
       const formData: CreateTournamentFormData = {
         name: 'New Tournament',
@@ -201,8 +197,7 @@ describe('useTournamentService', () => {
 
       vi.mocked(tournamentApi.update).mockResolvedValue(mockTournament)
 
-      const { updateTournament, tournaments, currentTournament, loading } =
-        useTournamentService()
+      const { updateTournament, tournaments, currentTournament, loading } = useTournamentService()
 
       tournaments.value = [{ id: 't-1', name: 'Old Name' } as TournamentResponse]
       currentTournament.value = { id: 't-1', name: 'Old Name' } as TournamentResponse
@@ -230,8 +225,7 @@ describe('useTournamentService', () => {
 
       vi.mocked(tournamentApi.changeStatus).mockResolvedValue(mockTournament)
 
-      const { changeTournamentStatus, tournaments, currentTournament } =
-        useTournamentService()
+      const { changeTournamentStatus, tournaments, currentTournament } = useTournamentService()
 
       tournaments.value = [{ id: 't-1', status: 'draft' } as TournamentResponse]
       currentTournament.value = { id: 't-1', status: 'draft' } as TournamentResponse
@@ -252,13 +246,9 @@ describe('useTournamentService', () => {
         message: 'Deleted',
       })
 
-      const { deleteTournament, tournaments, currentTournament, loading } =
-        useTournamentService()
+      const { deleteTournament, tournaments, currentTournament, loading } = useTournamentService()
 
-      tournaments.value = [
-        { id: 't-1' } as TournamentResponse,
-        { id: 't-2' } as TournamentResponse,
-      ]
+      tournaments.value = [{ id: 't-1' } as TournamentResponse, { id: 't-2' } as TournamentResponse]
       currentTournament.value = { id: 't-1' } as TournamentResponse
 
       const result = await deleteTournament('t-1')
@@ -298,4 +288,3 @@ describe('useTournamentService', () => {
     })
   })
 })
-

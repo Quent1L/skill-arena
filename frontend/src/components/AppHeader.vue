@@ -8,22 +8,15 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <Button
-            text
-            rounded
-            @click="toggleDarkMode"
-            aria-label="Toggle dark mode"
-            class="text-gray-600"
-          >
-            <i class="fas fa-moon"></i>
-          </Button>
-
           <div v-if="!isAuthenticated" class="flex items-center gap-3">
             <Button label="Se connecter" text @click="router.push('/login')" />
             <Button label="S'inscrire" @click="router.push('/register')" class="text-sm" />
           </div>
 
           <div v-else class="flex items-center gap-3">
+            <NotificationBell @toggle="toggleNotifications" />
+            <NotificationDropdown ref="notifDropdown" />
+
             <Menu ref="menu" :model="menuItems" :popup="true">
               <template #start>
                 <div class="px-4 py-3 border-b border-gray-200">
@@ -62,15 +55,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import type { User } from '@/types'
 import type { MenuItem } from 'primevue/menuitem'
+import NotificationBell from './NotificationBell.vue'
+import NotificationDropdown from './NotificationDropdown.vue'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, logout } = useAuth()
 const menu = ref()
+const notifDropdown = useTemplateRef('notifDropdown')
 
 const menuItems = computed<MenuItem[]>(() => [
   {
@@ -109,10 +105,8 @@ function handleLogout() {
   router.push('/login')
 }
 
-function toggleDarkMode() {
-  document.documentElement.classList.toggle('my-app-dark')
-  const isDarkMode = document.documentElement.classList.contains('my-app-dark')
-  localStorage.setItem('theme', isDarkMode ? 'dark' : 'light')
+function toggleNotifications(event: Event) {
+  notifDropdown.value?.toggle(event)
 }
 
 function getUserInitials(user: User): string {

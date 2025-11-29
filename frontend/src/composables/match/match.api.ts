@@ -1,6 +1,5 @@
 import http from '@/config/ApiConfig'
 import type {
-  ClientMatch,
   ClientMatchModel,
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,

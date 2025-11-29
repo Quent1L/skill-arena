@@ -17,8 +17,16 @@ export default defineConfig({
     vueDevTools(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
       },
       manifest: {
         name: 'Skill Arena',
@@ -29,7 +37,7 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'golasso.png',
+            src: '/skill-arena-logo.png',
             sizes: '192x192',
             type: 'image/png',
           },

@@ -10,7 +10,7 @@ import type {
   TournamentStatus,
 } from '@skill-arena/shared/types/index'
 import { formDataToApiPayload } from '@skill-arena/shared/types/index'
-import { useAuth } from './useAuth'
+import { useAuth } from '../useAuth'
 
 /**
  * Tournament service - Business logic and state management
@@ -35,7 +35,7 @@ export function useTournamentService() {
   /**
    * Check if current user can manage a specific tournament
    */
-  function canManageTournament(tournament: TournamentResponse): boolean {
+  function canManageTournament(_tournament: TournamentResponse): boolean {
     if (!currentUser.value) return false
 
     if (isSuperAdmin.value) return true
@@ -290,9 +290,7 @@ export function useTournamentService() {
   /**
    * Load tournament with error handling
    */
-  async function loadTournamentWithErrorHandling(
-    id: string,
-  ): Promise<TournamentResponse | null> {
+  async function loadTournamentWithErrorHandling(id: string): Promise<TournamentResponse | null> {
     try {
       return await getTournament(id)
     } catch (err) {

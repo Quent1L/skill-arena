@@ -1,6 +1,7 @@
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { serveStatic } from "hono/bun";
+import { serveStatic,  upgradeWebSocket, websocket } from "hono/bun";
+import { HTTPException } from "hono/http-exception";
 import { auth } from "./config/auth";
 import tournaments from "./routes/tournaments.route";
 import users from "./routes/user.route";
@@ -8,10 +9,13 @@ import matches from "./routes/matches.route";
 import disciplines from "./routes/disciplines.route";
 import outcomeTypes from "./routes/outcome-types.route";
 import outcomeReasons from "./routes/outcome-reasons.route";
+import notifications from "./routes/notification.route";
+import config from "./routes/config.route";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
+import { webSocketService } from "./services/websocket.service";
 
 const app = createAppHonoOptional();
 
@@ -64,6 +68,48 @@ app.route("/api/outcome-types", outcomeTypes);
 
 app.route("/api/outcome-reasons", outcomeReasons);
 
+app.route("/api", notifications);
+
+app.route("/api/config", config);
+
+app.get(
+  "/api/ws",
+  upgradeWebSocket(async (c) => {
+    const user = c.get("user");
+    const session = c.get("session");
+    
+    console.log('[WS] Upgrade request - BetterAuth User:', user?.id, 'Session:', session?.id);
+    
+    if (!user) {
+      console.error('[WS] No user in context, rejecting connection');
+      throw new HTTPException(401, { message: "Unauthorized" });
+    }
+    
+    // Convert BetterAuth user ID to App user ID
+    const { userService } = await import('./services/user.service');
+    const appUserId = await userService.getOrCreateAppUser(
+      user.id,
+      user.name || user.email
+    );
+    
+    console.log(`[WS] BetterAuth user ${user.id} mapped to App user ${appUserId}`);
+    
+    return {
+      onOpen(_event, ws) {
+        console.log(`[WS] App user ${appUserId} connected (BetterAuth: ${user.id})`);
+        webSocketService.handleConnection(ws, appUserId);
+      },
+      onClose(_event, ws) {
+        console.log(`[WS] App user ${appUserId} disconnected`);
+        webSocketService.handleClose(ws, appUserId);
+      },
+      onError(event, _ws) {
+        console.error(`[WS] Error for app user ${appUserId}:`, event);
+      }
+    };
+  })
+);
+
 // Serve static files from frontend build directory
 // Only serve if FRONTEND_BUILD_PATH is configured
 const frontendBuildPath = process.env.FRONTEND_BUILD_PATH;
@@ -99,16 +145,13 @@ if (frontendBuildPath) {
     }
   });
 } else {
-  // Fallback route when frontend is not served
   app.get("/", (c) => {
     return c.text("Hello Hono!");
   });
 }
 
-// Error handling middleware (must be after all routes)
 app.onError(errorHandler);
 
-// Handle uncaught errors and unhandled promise rejections
 if (typeof process !== "undefined") {
   process.on("uncaughtException", (err: Error) => {
     console.error("\n" + "=".repeat(80));
@@ -135,7 +178,6 @@ if (typeof process !== "undefined") {
   );
 }
 
-// Log server startup
 console.log("=".repeat(80));
 console.log("✅ Hono server initialized");
 console.log("✅ Logger middleware enabled");
@@ -149,4 +191,7 @@ if (frontendBuildPath) {
 }
 console.log("=".repeat(80));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  websocket,
+};

@@ -67,8 +67,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
-import { useMatchService } from '@/composables/match.service'
-import { useTournamentService } from '@/composables/tournament.service'
+import { useMatchService } from '@/composables/match/match.service'
+import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useViewport } from '@/composables/useViewport'
 import type {
   MatchStatus,
@@ -235,6 +235,21 @@ watch(
 
 async function createMatch() {
   if (!canCreateMatch.value) return
+
+  // Determine the correct status based on the scheduled date at submission time
+  const now = new Date()
+  if (matchData.value.playedAt && matchData.value.playedAt > now) {
+    matchData.value.status = 'scheduled'
+    // Clear result fields for scheduled matches
+    matchData.value.scoreA = 0
+    matchData.value.scoreB = 0
+    matchData.value.reportProof = ''
+    matchData.value.outcomeTypeId = undefined
+    matchData.value.outcomeReasonId = undefined
+    matchData.value.winner = null
+  } else {
+    matchData.value.status = 'reported'
+  }
 
   if (isEditMode.value && matchId) {
     const updateData: ClientUpdateMatchRequest = {

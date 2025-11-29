@@ -13,7 +13,7 @@
       <div v-if="canManageTournaments" class="flex gap-3">
         <Button
           label="Gestion des tournois"
-          icon="pi pi-cog"
+          icon="fas fa-crown"
           @click="router.push('/admin/tournaments')"
           class="bg-blue-600 hover:bg-blue-700"
         />
@@ -109,7 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTournamentService } from '@/composables/tournament.service'
+import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useAuth } from '@/composables/useAuth'
 import TournamentCard from '@/components/TournamentCard.vue'
 import type { TournamentStatus, TournamentMode, BaseTournament } from '@skill-arena/shared'

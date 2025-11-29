@@ -71,6 +71,20 @@
       "when": 1763312223063,
       "tag": "0009_omniscient_harpoon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1764004471718,
+      "tag": "0010_majestic_proudstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1764008004341,
+      "tag": "0011_overjoyed_wendell_vaughn",
+      "breakpoints": true
     }
   ]
 }

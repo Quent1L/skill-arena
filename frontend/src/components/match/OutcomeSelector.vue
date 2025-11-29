@@ -17,7 +17,10 @@
     </div>
 
     <!-- Outcome Reason Selection (only if outcome type is selected, not "Normal", and has reasons) -->
-    <div v-if="outcomeTypeIdModel && showOutcomeReasonSelection && filteredOutcomeReasons.length > 0" class="flex flex-col gap-2">
+    <div
+      v-if="outcomeTypeIdModel && showOutcomeReasonSelection && filteredOutcomeReasons.length > 0"
+      class="flex flex-col gap-2"
+    >
       <label for="outcome-reason" class="text-xs text-gray-500">Raison du résultat</label>
       <Select
         id="outcome-reason"
@@ -32,7 +35,10 @@
     </div>
 
     <!-- Winner Selection (only if outcome type is selected, not "Normal", and scores are different) -->
-    <div v-if="outcomeTypeIdModel && showWinnerSelection && showWinnerSelectionField" class="flex flex-col gap-2">
+    <div
+      v-if="outcomeTypeIdModel && showWinnerSelection && showWinnerSelectionField"
+      class="flex flex-col gap-2"
+    >
       <label class="text-xs text-gray-500">Vainqueur</label>
       <SelectButton
         v-model="winnerModel"
@@ -49,10 +55,14 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
-import { outcomeTypeApi,} from '@/composables/outcome-type.api'
-import { outcomeReasonApi} from '@/composables/outcome-reason.api'
-import { tournamentApi } from '@/composables/tournament.api'
-import { outcomeTypeNameEnum, type OutcomeReason, type OutcomeType } from '@skill-arena/shared/types/index'
+import { outcomeTypeApi } from '@/composables/outcome-type.api'
+import { outcomeReasonApi } from '@/composables/outcome-reason.api'
+import { tournamentApi } from '@/composables/tournament/tournament.api'
+import {
+  outcomeTypeNameEnum,
+  type OutcomeReason,
+  type OutcomeType,
+} from '@skill-arena/shared/types/index'
 
 interface Props {
   outcomeTypeId?: string | null
@@ -110,9 +120,7 @@ const winnerModel = computed({
 
 const filteredOutcomeReasons = computed(() => {
   if (!outcomeTypeIdModel.value) return []
-  return outcomeReasons.value.filter(
-    (reason) => reason.outcomeTypeId === outcomeTypeIdModel.value
-  )
+  return outcomeReasons.value.filter((reason) => reason.outcomeTypeId === outcomeTypeIdModel.value)
 })
 
 const selectedOutcomeType = computed(() => {
@@ -159,7 +167,7 @@ async function loadOutcomeTypes() {
         return
       }
     }
-    
+
     if (disciplineId) {
       outcomeTypes.value = await outcomeTypeApi.list(disciplineId)
     } else {
@@ -168,9 +176,7 @@ async function loadOutcomeTypes() {
 
     // Auto-select "Normal" type if no type is already selected
     if (!props.outcomeTypeId && outcomeTypes.value.length > 0) {
-      const normalType = outcomeTypes.value.find(
-        (type) => type.name === outcomeTypeNameEnum.NORMAL
-      )
+      const normalType = outcomeTypes.value.find((type) => type.name === outcomeTypeNameEnum.NORMAL)
       if (normalType) {
         outcomeTypeIdModel.value = normalType.id
       }
@@ -201,7 +207,7 @@ async function loadOutcomeReasons(outcomeTypeId: string) {
 function onOutcomeTypeChange() {
   // Reset outcome reason when outcome type changes
   outcomeReasonIdModel.value = null
-  
+
   // Load outcome reasons for the selected type
   if (outcomeTypeIdModel.value) {
     loadOutcomeReasons(outcomeTypeIdModel.value)
@@ -214,9 +220,7 @@ watch(outcomeTypeIdModel, (newValue) => {
     loadOutcomeReasons(newValue)
   } else {
     // Clear reasons when no type is selected
-    outcomeReasons.value = outcomeReasons.value.filter(
-      (r) => r.outcomeTypeId !== newValue
-    )
+    outcomeReasons.value = outcomeReasons.value.filter((r) => r.outcomeTypeId !== newValue)
   }
 })
 
@@ -234,4 +238,3 @@ onMounted(() => {
   min-width: 200px;
 }
 </style>
-

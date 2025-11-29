@@ -147,6 +147,27 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
     },
   },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/SettingsView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      breadcrumb: 'Paramètres',
+      title: 'Paramètres',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/notifications',
+    name: 'notifications',
+    component: () => import('@/views/NotificationsView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',

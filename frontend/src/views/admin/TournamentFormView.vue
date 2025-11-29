@@ -320,8 +320,8 @@ import {
   baseTournamentFormSchema,
   baseTournamentUpdateFormSchema,
 } from '@skill-arena/shared/types/index'
-import { useTournamentService } from '@/composables/tournament.service'
-import { useDisciplineService } from '@/composables/discipline.service'
+import { useTournamentService } from '@/composables/tournament/tournament.service'
+import { useDisciplineService } from '@/composables/discipline/discipline.service'
 
 const router = useRouter()
 const route = useRoute()
@@ -370,7 +370,7 @@ const statusOptions = [
 
 const { handleSubmit, defineField, errors, setValues } = useForm({
   validationSchema: toTypedSchema(
-    isEditMode.value ? baseTournamentUpdateFormSchema : baseTournamentFormSchema
+    isEditMode.value ? baseTournamentUpdateFormSchema : baseTournamentFormSchema,
   ),
 })
 

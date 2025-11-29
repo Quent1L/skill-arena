@@ -49,8 +49,9 @@
                 ></i>
               </div>
 
-              <!-- Score (always visible, centered) -->
+              <!-- Score (only shown for non-scheduled matches) -->
               <div
+                v-if="match.status !== 'scheduled'"
                 class="flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
               >
                 <span
@@ -76,6 +77,14 @@
                 </span>
               </div>
 
+              <!-- VS indicator for scheduled matches -->
+              <div
+                v-else
+                class="flex items-center justify-center gap-2 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
+              >
+                <span class="text-base md:text-lg font-semibold text-gray-400">VS</span>
+              </div>
+
               <!-- Team B -->
               <div
                 class="flex items-center justify-center sm:justify-start gap-2 flex-1 min-w-0 order-3 sm:order-3"
@@ -96,22 +105,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Actions (mobile: full width, desktop: auto) -->
-          <div
-            v-if="match.status === 'scheduled'"
-            class="flex items-center gap-2 w-full md:w-auto md:flex-shrink-0"
-            @click.stop
-          >
-            <Button
-              :label="isMobile ? undefined : 'Compléter'"
-              icon="fas fa-edit"
-              severity="info"
-              size="small"
-              class="flex-1 md:flex-initial"
-              @click="completeMatch(match)"
-            />
-          </div>
         </li>
       </ul>
 
@@ -125,7 +118,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMatchService } from '@/composables/match.service'
+import { useMatchService } from '@/composables/match/match.service'
 import { useViewport } from '@/composables/useViewport'
 import type { ClientMatchModel } from '@skill-arena/shared/types/index'
 
@@ -233,12 +226,6 @@ function getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'dange
 
 function goToMatch(id: string) {
   router.push(`/matches/${id}`)
-}
-
-function completeMatch(match: ClientMatchModel) {
-  if (match.tournamentId) {
-    router.push(`/tournaments/${match.tournamentId}/create-match?matchId=${match.id}`)
-  }
 }
 
 async function loadMatches() {

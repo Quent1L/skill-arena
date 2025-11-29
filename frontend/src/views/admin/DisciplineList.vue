@@ -2,11 +2,11 @@
   <div class="discipline-list-view p-4">
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-2xl font-bold">Gestion des disciplines</h1>
-        <Button
-          label="Nouvelle discipline"
-          icon="fa fa-plus"
-          @click="router.push('/admin/disciplines/new')"
-        />
+      <Button
+        label="Nouvelle discipline"
+        icon="fa fa-plus"
+        @click="router.push('/admin/disciplines/new')"
+      />
     </div>
 
     <Message v-if="error" severity="error" :closable="true">
@@ -99,7 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useDisciplineService } from '@/composables/discipline.service'
+import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import type { Discipline } from '@skill-arena/shared/types/discipline'
 
 const router = useRouter()
@@ -137,4 +137,3 @@ onMounted(() => {
   margin: 0 auto;
 }
 </style>
-
