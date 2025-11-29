@@ -77,12 +77,7 @@
     </div>
 
     <div class="flex pt-6 justify-between">
-      <Button
-        label="Précédent"
-        severity="secondary"
-        icon="fas fa-arrow-left"
-        @click="onPrevious"
-      />
+      <Button label="Précédent" severity="secondary" icon="fas fa-arrow-left" @click="onPrevious" />
       <Button
         label="Créer le match"
         icon="fas fa-check"
@@ -101,10 +96,14 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import InputNumber from 'primevue/inputnumber'
-import { outcomeTypeApi} from '@/composables/outcome-type.api'
+import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
-import { tournamentApi } from '@/composables/tournament.api'
-import { outcomeTypeNameEnum, type OutcomeReason, type OutcomeType } from '@skill-arena/shared/types/index'
+import { tournamentApi } from '@/composables/tournament/tournament.api'
+import {
+  outcomeTypeNameEnum,
+  type OutcomeReason,
+  type OutcomeType,
+} from '@skill-arena/shared/types/index'
 import TeamPreview from './TeamPreview.vue'
 
 interface Props {
@@ -133,7 +132,6 @@ const baseWinnerOptions = [
   { label: 'Équipe A', value: 'teamA' },
   { label: 'Match nul', value: null },
   { label: 'Équipe B', value: 'teamB' },
-
 ]
 
 const winnerModel = defineModel<'teamA' | 'teamB' | null>('winner', { default: null })
@@ -144,9 +142,7 @@ const scoreBModel = defineModel<number>('scoreB', { required: true })
 
 const filteredOutcomeReasons = computed(() => {
   if (!outcomeTypeIdModel.value) return []
-  return outcomeReasons.value.filter(
-    (reason) => reason.outcomeTypeId === outcomeTypeIdModel.value
-  )
+  return outcomeReasons.value.filter((reason) => reason.outcomeTypeId === outcomeTypeIdModel.value)
 })
 
 const selectedOutcomeType = computed(() => {
@@ -190,9 +186,7 @@ async function loadOutcomeTypes() {
 
     // Auto-select "Normal" type if no type is already selected
     if (!outcomeTypeIdModel.value && outcomeTypes.value.length > 0) {
-      const normalType = outcomeTypes.value.find(
-        (type) => type.name === outcomeTypeNameEnum.NORMAL
-      )
+      const normalType = outcomeTypes.value.find((type) => type.name === outcomeTypeNameEnum.NORMAL)
       if (normalType) {
         outcomeTypeIdModel.value = normalType.id
       }
@@ -230,9 +224,7 @@ watch(outcomeTypeIdModel, (newValue) => {
   if (newValue) {
     loadOutcomeReasons(newValue)
   } else {
-    outcomeReasons.value = outcomeReasons.value.filter(
-      (r) => r.outcomeTypeId !== newValue
-    )
+    outcomeReasons.value = outcomeReasons.value.filter((r) => r.outcomeTypeId !== newValue)
   }
 })
 
@@ -251,5 +243,3 @@ onMounted(() => {
   }
 })
 </script>
-
-

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { disciplineApi } from './discipline.api'
-import { outcomeTypeApi } from './outcome-type.api'
-import { outcomeReasonApi, type OutcomeReasonResponse } from './outcome-reason.api'
+import { outcomeTypeApi } from '../outcome-type.api'
+import { outcomeReasonApi, type OutcomeReasonResponse } from '../outcome-reason.api'
 import type {
   CreateDisciplineRequestData,
   UpdateDisciplineRequestData,
@@ -30,7 +30,8 @@ export function useDisciplineService() {
       error.value = null
       disciplines.value = await disciplineApi.list()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des disciplines'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors du chargement des disciplines'
       error.value = message
       toast.add({
         severity: 'error',
@@ -51,7 +52,8 @@ export function useDisciplineService() {
       await loadOutcomeTypes(id)
       return currentDiscipline.value
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement de la discipline'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors du chargement de la discipline'
       error.value = message
       toast.add({
         severity: 'error',
@@ -78,7 +80,8 @@ export function useDisciplineService() {
       })
       return discipline
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création de la discipline'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la création de la discipline'
       error.value = message
       toast.add({
         severity: 'error',
@@ -108,7 +111,8 @@ export function useDisciplineService() {
       }
       return discipline
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la discipline'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la discipline'
       error.value = message
       toast.add({
         severity: 'error',
@@ -137,7 +141,8 @@ export function useDisciplineService() {
         currentDiscipline.value = null
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la suppression de la discipline'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la suppression de la discipline'
       error.value = message
       toast.add({
         severity: 'error',
@@ -175,7 +180,8 @@ export function useDisciplineService() {
       }
       return outcomeType
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création du type de résultat'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la création du type de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -205,7 +211,8 @@ export function useDisciplineService() {
       }
       return outcomeType
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du type de résultat'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la mise à jour du type de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -234,7 +241,8 @@ export function useDisciplineService() {
         await loadOutcomeTypes(currentDiscipline.value.id)
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la suppression du type de résultat'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la suppression du type de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -274,7 +282,8 @@ export function useDisciplineService() {
       })
       return outcomeReason
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création de la raison de résultat'
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors de la création de la raison de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -301,7 +310,10 @@ export function useDisciplineService() {
       })
       return outcomeReason
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la raison de résultat'
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Erreur lors de la mise à jour de la raison de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -327,7 +339,10 @@ export function useDisciplineService() {
         life: 3000,
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la suppression de la raison de résultat'
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Erreur lors de la suppression de la raison de résultat'
       error.value = message
       toast.add({
         severity: 'error',
@@ -363,4 +378,3 @@ export function useDisciplineService() {
     deleteOutcomeReason,
   }
 }
-

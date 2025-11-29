@@ -89,7 +89,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMatchService } from '@/composables/match.service'
+import { useMatchService } from '@/composables/match/match.service'
 import { useParticipantService } from '@/composables/participant.service'
 import MatchBasicInfo from './MatchBasicInfo.vue'
 import TeamCard from './TeamCard.vue'
@@ -230,7 +230,7 @@ function goBack() {
 async function nextStep() {
   await validate()
   if (canProceed.value) {
-    matchData.value.status = 'reported'
+    // Status is already set correctly by watch on playedAt
     step.value = 2
   }
 }
@@ -264,6 +264,23 @@ async function submit() {
     await createMatchWithNavigation(data, props.tournamentId)
   }
 }
+
+// Watch playedAt to automatically set status
+watch(
+  () => matchData.value.playedAt,
+  (newDate) => {
+    if (!newDate) return
+
+    if (newDate > new Date()) {
+      // Future date = scheduled match
+      matchData.value.status = 'scheduled'
+    } else {
+      // Past or present date = reported match
+      matchData.value.status = 'reported'
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   loadPlayers()

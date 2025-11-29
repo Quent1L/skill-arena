@@ -2,9 +2,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { matchApi } from './match.api'
-import { useParticipantService } from './participant.service'
+import { useParticipantService } from '../participant.service'
 import type {
-  ClientMatch,
   ClientMatchModel,
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
@@ -39,9 +38,7 @@ export function useMatchService() {
    */
   async function loadPlayersMap(tournamentId: string): Promise<Record<string, string>> {
     try {
-      const participants = (await getTournamentParticipants(
-        tournamentId,
-      )) as ParticipantListItem[]
+      const participants = (await getTournamentParticipants(tournamentId)) as ParticipantListItem[]
       const map: Record<string, string> = {}
       for (const p of participants) {
         map[p.userId] = p.user.displayName
@@ -75,7 +72,7 @@ export function useMatchService() {
       const result = await matchApi.validate(dataToValidate)
       validationResult.value = result
       return result
-    } catch (err) {
+    } catch {
       const errorResult: ValidationResult = {
         valid: false,
         errors: ['Erreur lors de la validation'],
@@ -89,11 +86,7 @@ export function useMatchService() {
   /**
    * Check if can proceed to next step
    */
-  function canProceedToNextStep(
-    step: string,
-    playerIdsA: string[],
-    playerIdsB: string[],
-  ): boolean {
+  function canProceedToNextStep(step: string, playerIdsA: string[], playerIdsB: string[]): boolean {
     const result = validationResult.value
     if (!result) return false
 
@@ -225,7 +218,10 @@ export function useMatchService() {
     return await matchApi.list(filters)
   }
 
-  const updateMatch = async (id: string, data: ClientUpdateMatchRequest): Promise<ClientMatchModel> => {
+  const updateMatch = async (
+    id: string,
+    data: ClientUpdateMatchRequest,
+  ): Promise<ClientMatchModel> => {
     return await matchApi.update(id, data)
   }
 

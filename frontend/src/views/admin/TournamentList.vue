@@ -2,7 +2,7 @@
   <div class="tournament-list-view p-4">
     <div class="flex justify-between items-center mb-4 flex-xrap">
       <div class="flex flex-wrap gap-4">
-        <Dropdown
+        <Select
           v-model="selectedStatus"
           :options="statusOptions"
           option-label="label"
@@ -12,7 +12,7 @@
           class="w-48"
           @change="applyFilters"
         />
-        <Dropdown
+        <Select
           v-model="selectedMode"
           :options="modeOptions"
           option-label="label"
@@ -166,15 +166,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { useTournamentService } from '@/composables/tournament.service'
-import type { TournamentResponse } from '@/composables/tournament.api'
-import Button from 'primevue/button'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Dropdown from 'primevue/dropdown'
-import Tag from 'primevue/tag'
-import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
+import { useTournamentService } from '@/composables/tournament/tournament.service'
+import type { TournamentResponse } from '@/composables/tournament/tournament.api'
 
 const router = useRouter()
 const {

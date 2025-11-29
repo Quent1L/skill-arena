@@ -133,7 +133,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { useTournamentService } from '@/composables/tournament.service'
+import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'

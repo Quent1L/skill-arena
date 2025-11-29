@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { ref } from 'vue'
 import { useParticipantService } from '../participant.service'
 import { participantApi } from '../participant.api'
 import { useToast } from 'primevue/usetoast'

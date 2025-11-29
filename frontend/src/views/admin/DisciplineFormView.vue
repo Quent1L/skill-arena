@@ -79,7 +79,6 @@
       :loading="loading"
       @submit="handleOutcomeReasonSubmit"
     />
-
   </div>
 </template>
 
@@ -94,7 +93,7 @@ import {
   type CreateDisciplineRequestData,
   type OutcomeType,
 } from '@skill-arena/shared/types/index'
-import { useDisciplineService } from '@/composables/discipline.service'
+import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import type { OutcomeReasonResponse } from '@/composables/outcome-reason.api'
 import { useConfirm } from 'primevue/useconfirm'
 import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
@@ -127,7 +126,7 @@ const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id
 // Discipline form
 const { handleSubmit, defineField, errors, setValues } = useForm({
   validationSchema: toTypedSchema(
-    isEditMode.value ? updateDisciplineSchema : createDisciplineSchema
+    isEditMode.value ? updateDisciplineSchema : createDisciplineSchema,
   ),
 })
 
@@ -170,10 +169,7 @@ async function handleOutcomeTypeSubmit(values: { name: string }) {
   }
 }
 
-function showOutcomeReasonDialog(
-  outcomeType: OutcomeType,
-  outcomeReason?: OutcomeReasonResponse
-) {
+function showOutcomeReasonDialog(outcomeType: OutcomeType, outcomeReason?: OutcomeReasonResponse) {
   editingOutcomeReason.value = outcomeReason || null
   currentOutcomeTypeForReason.value = outcomeType
   outcomeReasonDialogVisible.value = true
@@ -208,7 +204,8 @@ async function handleOutcomeReasonSubmit(values: { name: string }) {
 
 function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
   confirm.require({
-    message: 'Êtes-vous sûr de vouloir supprimer ce type de résultat ? Cette action est irréversible.',
+    message:
+      'Êtes-vous sûr de vouloir supprimer ce type de résultat ? Cette action est irréversible.',
     header: 'Supprimer le type de résultat ?',
     icon: 'fa fa-exclamation-triangle',
     acceptClass: 'p-button-danger',
@@ -229,7 +226,8 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
 
 function confirmDeleteOutcomeReason(outcomeReason: OutcomeReasonResponse) {
   confirm.require({
-    message: 'Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.',
+    message:
+      'Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.',
     header: 'Supprimer la raison de résultat ?',
     icon: 'fa fa-exclamation-triangle',
     acceptClass: 'p-button-danger',
@@ -276,4 +274,3 @@ onMounted(async () => {
   margin: 0 auto;
 }
 </style>
-

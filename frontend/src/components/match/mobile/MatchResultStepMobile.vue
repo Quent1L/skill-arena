@@ -118,7 +118,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
-import { tournamentApi } from '@/composables/tournament.api'
+import { tournamentApi } from '@/composables/tournament/tournament.api'
 import {
   outcomeTypeNameEnum,
   type OutcomeReason,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useMatchService } from '../match.service'
-import { matchApi } from '../match.api'
+import { useMatchService } from '../match/match.service'
+import { matchApi } from '../match/match.api'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useParticipantService } from '../participant.service'
@@ -22,7 +22,7 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
-vi.mock('../match.api')
+vi.mock('../match/match.api')
 vi.mock('vue-router')
 vi.mock('primevue/usetoast')
 vi.mock('../participant.service')
@@ -130,7 +130,7 @@ describe('useMatchService', () => {
       vi.mocked(matchApi.update).mockResolvedValue(mockMatch)
 
       const { updateMatch } = useMatchService()
-      const input: UpdateMatchRequestData = { status: 'reported' }
+      const input: UpdateMatchRequestData = { status: 'reported', playedAt: new Date().toISOString() }
       const result = await updateMatch('match-1', input)
 
       expect(matchApi.update).toHaveBeenCalledWith('match-1', input)
@@ -216,4 +216,3 @@ describe('useMatchService', () => {
     })
   })
 })
-

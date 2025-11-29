@@ -12,17 +12,23 @@
     <div v-else-if="match" class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <Button 
-          label="Retour" 
-          icon="fa fa-arrow-left" 
+        <Button
+          label="Retour"
+          icon="fa fa-arrow-left"
           severity="secondary"
           @click="router.back()"
         />
-        
-        <Tag 
-          :value="getStatusLabel(match.status)"
-          :severity="getStatusSeverity(match.status)"
-        />
+
+        <div class="flex items-center gap-3">
+          <Button
+            v-if="match.status === 'scheduled'"
+            label="Compléter le match"
+            icon="fas fa-edit"
+            severity="info"
+            @click="completeMatch"
+          />
+          <Tag :value="getStatusLabel(match.status)" :severity="getStatusSeverity(match.status)" />
+        </div>
       </div>
 
       <!-- Match Info Card -->
@@ -39,10 +45,15 @@
         <template #content>
           <div class="space-y-6">
             <!-- Scores et Vainqueur -->
-            <div class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg">
+            <div
+              class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg"
+            >
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'B' }">
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">Équipe A</div>
-                <div class="text-5xl font-bold" :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'">
+                <div
+                  class="text-5xl font-bold"
+                  :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'"
+                >
                   {{ match.scoreA }}
                 </div>
                 <div v-if="match.teamA?.participants" class="mt-2 text-sm">
@@ -51,7 +62,12 @@
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
-                  <Tag v-if="match.winnerSide === 'A'" value="Vainqueur" severity="success" icon="fa fa-trophy" />
+                  <Tag
+                    v-if="match.winnerSide === 'A'"
+                    value="Vainqueur"
+                    severity="success"
+                    icon="fa fa-trophy"
+                  />
                 </div>
               </div>
 
@@ -59,7 +75,10 @@
 
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">Équipe B</div>
-                <div class="text-5xl font-bold" :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'">
+                <div
+                  class="text-5xl font-bold"
+                  :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'"
+                >
                   {{ match.scoreB }}
                 </div>
                 <div v-if="match.teamB?.participants" class="mt-2 text-sm">
@@ -68,7 +87,12 @@
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
-                  <Tag v-if="match.winnerSide === 'B'" value="Vainqueur" severity="success" icon="fa fa-trophy" />
+                  <Tag
+                    v-if="match.winnerSide === 'B'"
+                    value="Vainqueur"
+                    severity="success"
+                    icon="fa fa-trophy"
+                  />
                 </div>
               </div>
             </div>
@@ -92,7 +116,9 @@
                 <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
               </div>
               <div v-if="match.confirmationDeadline">
-                <span class="text-surface-500 dark:text-surface-400">Date limite de confirmation :</span>
+                <span class="text-surface-500 dark:text-surface-400"
+                  >Date limite de confirmation :</span
+                >
                 <span class="ml-2 font-semibold">{{ formatDate(match.confirmationDeadline) }}</span>
               </div>
               <div v-if="match.finalizedAt">
@@ -105,7 +131,7 @@
       </Card>
 
       <!-- Match Confirmation Component -->
-      <MatchConfirmation 
+      <MatchConfirmation
         :match="match"
         :current-user-id="currentUser?.id"
         :confirming="confirming"
@@ -131,13 +157,13 @@
               En tant qu'administrateur, vous pouvez finaliser manuellement ce match.
             </p>
             <div class="flex gap-3">
-              <Button 
+              <Button
                 label="Finaliser (Consensus)"
                 severity="success"
                 @click="() => handleFinalize('consensus')"
                 :disabled="match.status === 'finalized'"
               />
-              <Button 
+              <Button
                 label="Finaliser (Override admin)"
                 severity="warn"
                 @click="() => handleFinalize('admin_override')"
@@ -152,88 +178,93 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useMatchService } from '@/composables/match.service';
-import { useAuth } from '@/composables/useAuth';
-import type { ClientMatchModel, MatchFinalizationReason } from '@skill-arena/shared/types/index';
-import MatchConfirmation from '@/components/match/MatchConfirmation.vue';
+import { ref, onMounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useMatchService } from '@/composables/match/match.service'
+import { useAuth } from '@/composables/useAuth'
+import type { ClientMatchModel, MatchFinalizationReason } from '@skill-arena/shared/types/index'
+import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 
-const route = useRoute();
-const router = useRouter();
-const { getMatch, confirmMatchResult, contestMatchResult, finalizeMatch } = useMatchService();
-const { appUser } = useAuth();
+const route = useRoute()
+const router = useRouter()
+const { getMatch, confirmMatchResult, contestMatchResult, finalizeMatch } = useMatchService()
+const { appUser } = useAuth()
 
-const match = ref<ClientMatchModel | null>(null);
-const loading = ref(true);
-const error = ref<string | null>(null);
-const confirming = ref(false);
-const contesting = ref(false);
+const match = ref<ClientMatchModel | null>(null)
+const loading = ref(true)
+const error = ref<string | null>(null)
+const confirming = ref(false)
+const contesting = ref(false)
 
-const currentUser = computed(() => appUser.value);
+const currentUser = computed(() => appUser.value)
 
 const canManageMatch = computed(() => {
   // Logique pour déterminer si l'utilisateur peut gérer le match
   // À adapter selon votre système d'auth
-  return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin';
-});
+  return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
+})
 
 async function loadMatch() {
   try {
-    loading.value = true;
-    error.value = null;
-    const matchId = route.params.id as string;
-    match.value = await getMatch(matchId);
+    loading.value = true
+    error.value = null
+    const matchId = route.params.id as string
+    match.value = await getMatch(matchId)
   } catch (err) {
-    console.error('Error loading match:', err);
-    error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du match';
+    console.error('Error loading match:', err)
+    error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du match'
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 
 async function handleConfirm() {
-  if (!match.value) return;
-  
+  if (!match.value) return
+
   try {
-    confirming.value = true;
-    const updatedMatch = await confirmMatchResult(match.value.id);
-    match.value = updatedMatch;
+    confirming.value = true
+    const updatedMatch = await confirmMatchResult(match.value.id)
+    match.value = updatedMatch
   } catch (err) {
-    console.error('Error confirming match:', err);
+    console.error('Error confirming match:', err)
   } finally {
-    confirming.value = false;
+    confirming.value = false
   }
 }
 
 async function handleContest(data: { reason?: string; proof?: string }) {
-  if (!match.value) return;
-  
+  if (!match.value) return
+
   try {
-    contesting.value = true;
+    contesting.value = true
     const updatedMatch = await contestMatchResult(match.value.id, {
       contestationReason: data.reason,
       contestationProof: data.proof,
-    });
-    match.value = updatedMatch;
+    })
+    match.value = updatedMatch
   } catch (err) {
-    console.error('Error contesting match:', err);
+    console.error('Error contesting match:', err)
   } finally {
-    contesting.value = false;
+    contesting.value = false
   }
 }
 
 async function handleFinalize(reason: MatchFinalizationReason) {
-  if (!match.value) return;
-  
+  if (!match.value) return
+
   try {
     const updatedMatch = await finalizeMatch(match.value.id, {
       finalizationReason: reason,
-    });
-    match.value = updatedMatch;
+    })
+    match.value = updatedMatch
   } catch (err) {
-    console.error('Error finalizing match:', err);
+    console.error('Error finalizing match:', err)
   }
+}
+
+function completeMatch() {
+  if (!match.value || !match.value.tournamentId) return
+  router.push(`/tournaments/${match.value.tournamentId}/create-match?matchId=${match.value.id}`)
 }
 
 function getStatusLabel(status: string): string {
@@ -245,8 +276,8 @@ function getStatusLabel(status: string): string {
     disputed: 'Contesté',
     finalized: 'Finalisé',
     cancelled: 'Annulé',
-  };
-  return labels[status] || status;
+  }
+  return labels[status] || status
 }
 
 function getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
@@ -258,25 +289,25 @@ function getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'dange
     disputed: 'danger',
     finalized: 'success',
     cancelled: 'secondary',
-  };
-  return severities[status] || 'info';
+  }
+  return severities[status] || 'info'
 }
 
 function formatDate(date?: Date | string) {
-  if (!date) return '';
-  const d = typeof date === 'string' ? new Date(date) : date;
+  if (!date) return ''
+  const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  })
 }
 
 onMounted(() => {
-  loadMatch();
-});
+  loadMatch()
+})
 </script>
 
 <style scoped>
@@ -284,4 +315,3 @@ onMounted(() => {
   min-height: 100vh;
 }
 </style>
-

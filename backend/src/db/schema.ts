@@ -8,6 +8,7 @@ import {
   pgEnum,
   date,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -126,6 +127,17 @@ export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "MATCH_INVITE",
+  "MATCH_REMINDER",
+  "MATCH_VALIDATION",
+  "TOURNAMENT_UPDATE",
+  "SYSTEM_ALERT",
+  "match_created",
+]);
+
+export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
+
 export const appUsers = pgTable("app_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   externalId: text("external_id")
@@ -201,9 +213,7 @@ export const teams = pgTable(
       .references(() => appUsers.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [
-    unique().on(table.tournamentId, table.name),
-  ]
+  (table) => [unique().on(table.tournamentId, table.name)]
 );
 
 export const tournamentParticipants = pgTable(
@@ -225,51 +235,48 @@ export const tournamentParticipants = pgTable(
   (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
-export const matches = pgTable(
-  "matches",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tournamentId: uuid("tournament_id")
-      .notNull()
-      .references(() => tournaments.id, { onDelete: "cascade" }),
-    round: integer("round"),
-    teamAId: uuid("team_a_id").references(() => teams.id, {
+export const matches = pgTable("matches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  round: integer("round"),
+  teamAId: uuid("team_a_id").references(() => teams.id, {
+    onDelete: "set null",
+  }),
+  teamBId: uuid("team_b_id").references(() => teams.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  scoreA: integer("score_a").notNull().default(0),
+  scoreB: integer("score_b").notNull().default(0),
+  winnerId: uuid("winner_id").references(() => teams.id, {
+    onDelete: "set null",
+  }),
+  winnerSide: matchTeamSideEnum("winner_side"),
+  status: matchStatusEnum("status").notNull().default("scheduled"),
+  playedAt: timestamp("played_at").notNull().default(new Date()),
+  reportedBy: uuid("reported_by").references(() => appUsers.id, {
+    onDelete: "set null",
+  }),
+  reportedAt: timestamp("reported_at"),
+  reportProof: text("report_proof"),
+  confirmationDeadline: timestamp("confirmation_deadline"),
+  finalizedAt: timestamp("finalized_at"),
+  finalizedBy: uuid("finalized_by").references(() => appUsers.id, {
+    onDelete: "set null",
+  }),
+  finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
+  outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
+    onDelete: "set null",
+  }),
+  outcomeReasonId: uuid("outcome_reason_id").references(
+    () => outcomeReasons.id,
+    {
       onDelete: "set null",
-    }),
-    teamBId: uuid("team_b_id").references(() => teams.id, {
-      onDelete: "set null",
-    }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    scoreA: integer("score_a").notNull().default(0),
-    scoreB: integer("score_b").notNull().default(0),
-    winnerId: uuid("winner_id").references(() => teams.id, {
-      onDelete: "set null",
-    }),
-    winnerSide: matchTeamSideEnum("winner_side"),
-    status: matchStatusEnum("status").notNull().default("scheduled"),
-    playedAt: timestamp("played_at").notNull().default(new Date()),
-    reportedBy: uuid("reported_by").references(() => appUsers.id, {
-      onDelete: "set null",
-    }),
-    reportedAt: timestamp("reported_at"),
-    reportProof: text("report_proof"),
-    confirmationDeadline: timestamp("confirmation_deadline"),
-    finalizedAt: timestamp("finalized_at"),
-    finalizedBy: uuid("finalized_by").references(() => appUsers.id, {
-      onDelete: "set null",
-    }),
-    finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
-    outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
-      onDelete: "set null",
-    }),
-    outcomeReasonId: uuid("outcome_reason_id").references(
-      () => outcomeReasons.id,
-      {
-        onDelete: "set null",
-      }
-    ),
-  },
-);
+    }
+  ),
+});
 
 export const matchParticipation = pgTable(
   "match_participation",
@@ -353,6 +360,60 @@ export const outcomeReasons = pgTable("outcome_reasons", {
   name: text("name").notNull(),
 });
 
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "cascade" }),
+  type: notificationTypeEnum("type").notNull(),
+  titleKey: text("title_key").notNull(),
+  messageKey: text("message_key").notNull(),
+  translationParams: jsonb("translation_params"),
+  actionUrl: text("action_url"),
+  requiresAction: boolean("requires_action").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  pushedAt: timestamp("pushed_at"),
+  resentCount: integer("resent_count").notNull().default(0),
+  nextReminderAt: timestamp("next_reminder_at"),
+});
+
+export const notificationStatus = pgTable(
+  "notification_status",
+  {
+    notificationId: uuid("notification_id")
+      .notNull()
+      .references(() => notifications.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    read: boolean("read").notNull().default(false),
+    actionCompleted: boolean("action_completed").notNull().default(false),
+    readAt: timestamp("read_at"),
+    actionCompletedAt: timestamp("action_completed_at"),
+  },
+  (table) => [unique().on(table.notificationId, table.userId)]
+);
+
+export const userPushDevices = pgTable("user_push_devices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "cascade" }),
+  deviceType: deviceTypeEnum("device_type").notNull(),
+  subscriptionEndpoint: text("subscription_endpoint").notNull(),
+  subscriptionData: text("subscription_data"), // Storing JSON as text or use jsonb if preferred
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   externalUser: one(user, {
     fields: [appUsers.externalId],
@@ -366,6 +427,8 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   finalizedMatches: many(matches, { relationName: "finalizedBy" }),
   matchConfirmations: many(matchConfirmations),
   standings: many(championshipStandings),
+  notifications: many(notifications),
+  pushDevices: many(userPushDevices),
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
@@ -520,14 +583,17 @@ export const disciplinesRelations = relations(disciplines, ({ many }) => ({
   tournaments: many(tournaments),
 }));
 
-export const outcomeTypesRelations = relations(outcomeTypes, ({ one, many }) => ({
-  discipline: one(disciplines, {
-    fields: [outcomeTypes.disciplineId],
-    references: [disciplines.id],
-  }),
-  outcomeReasons: many(outcomeReasons),
-  matches: many(matches),
-}));
+export const outcomeTypesRelations = relations(
+  outcomeTypes,
+  ({ one, many }) => ({
+    discipline: one(disciplines, {
+      fields: [outcomeTypes.disciplineId],
+      references: [disciplines.id],
+    }),
+    outcomeReasons: many(outcomeReasons),
+    matches: many(matches),
+  })
+);
 
 export const outcomeReasonsRelations = relations(
   outcomeReasons,
@@ -540,6 +606,37 @@ export const outcomeReasonsRelations = relations(
   })
 );
 
-// ********************************************************************
-// [End] Skill Arena application tables
-// ***************************************************************
+export const notificationsRelations = relations(
+  notifications,
+  ({ one, many }) => ({
+    user: one(appUsers, {
+      fields: [notifications.userId],
+      references: [appUsers.id],
+    }),
+    statuses: many(notificationStatus),
+  })
+);
+
+export const notificationStatusRelations = relations(
+  notificationStatus,
+  ({ one }) => ({
+    notification: one(notifications, {
+      fields: [notificationStatus.notificationId],
+      references: [notifications.id],
+    }),
+    user: one(appUsers, {
+      fields: [notificationStatus.userId],
+      references: [appUsers.id],
+    }),
+  })
+);
+
+export const userPushDevicesRelations = relations(
+  userPushDevices,
+  ({ one }) => ({
+    user: one(appUsers, {
+      fields: [userPushDevices.userId],
+      references: [appUsers.id],
+    }),
+  })
+);

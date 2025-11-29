@@ -1,4 +1,10 @@
 {
+  "notifications": {
+    "MATCH_CREATED_TITLE": "{{creatorName}} added you to a {{matchFormat}} match",
+    "MATCH_CREATED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}",
+    "MATCH_SCHEDULED_TITLE": "{{creatorName}} scheduled a {{matchFormat}} match for you",
+    "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}"
+  },
   "errors": {
     "UNKNOWN": "An unexpected error occurred",
     "VALIDATION_ERROR": "Validation error",

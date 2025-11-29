@@ -1,12 +1,14 @@
 <template>
   <div class="min-h-screen main-app">
-    <AppHeader />
-    <BreadcrumbMenu />
-    <RouterView v-slot="{ Component, route }">
-      <Transition name="fade" mode="out-in" appear>
-        <component :is="Component" :key="route.path" />
-      </Transition>
-    </RouterView>
+    <NotificationsInit>
+      <AppHeader />
+      <BreadcrumbMenu />
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="fade" mode="out-in" appear>
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
+    </NotificationsInit>
   </div>
 </template>
 
@@ -14,9 +16,10 @@
 import { RouterView } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
+import NotificationsInit from '@/components/NotificationsInit.vue'
 import { usePageTransitions } from '@/utils/transitions'
 
-const { transitionName } = usePageTransitions()
+usePageTransitions()
 </script>
 
 <style>

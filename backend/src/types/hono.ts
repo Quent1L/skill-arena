@@ -8,6 +8,8 @@ export type AppVariables = {
   user: typeof auth.$Infer.Session.user | null;
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string;
+  lang: string;
+  i18n: any;
 };
 
 /**
@@ -17,6 +19,8 @@ export type AppVariablesOptional = {
   user: typeof auth.$Infer.Session.user | null;
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string | null;
+  lang: string;
+  i18n: any;
 };
 
 /**
