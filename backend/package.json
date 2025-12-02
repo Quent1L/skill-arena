@@ -5,7 +5,8 @@
     "type-check": "tsc --noEmit",
     "build": "tsc --build",
     "db:generate": "bun run drizzle-kit generate",
-    "db:push": "bun run drizzle-kit push"
+    "db:push": "bun run drizzle-kit push",
+    "job:auto-finalize": "bun run src/jobs/auto-finalize-matches.job.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.5",
