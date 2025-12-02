@@ -191,4 +191,19 @@ matches.post(
   }
 );
 
+// POST /matches/auto-finalize - Auto-finalize expired matches (admin only)
+matches.post(
+  "/auto-finalize",
+  requireAuth,
+  async (c) => {
+      const result = await matchService.autoFinalizeExpiredMatches();
+
+    return c.json({
+      success: true,
+      message: "Auto-finalization completed",
+      ...result,
+    });
+  }
+);
+
 export default matches;

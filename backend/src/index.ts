@@ -16,6 +16,7 @@ import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
+import { jobScheduler } from "./jobs/scheduler";
 
 const app = createAppHonoOptional();
 
@@ -190,6 +191,9 @@ if (frontendBuildPath) {
   );
 }
 console.log("=".repeat(80));
+
+// Start job scheduler for auto-finalization
+jobScheduler.start();
 
 export default {
   fetch: app.fetch,
