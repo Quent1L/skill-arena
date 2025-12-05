@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { participantApi } from './participant.api'
+import { participantApi, type UserSearchResult } from './participant.api'
 import { useToast } from 'primevue/usetoast'
 import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
 
@@ -134,6 +134,115 @@ export function useParticipantService() {
     return false
   }
 
+  /**
+   * Add participant (admin only)
+   */
+  async function addParticipant(
+    tournamentId: string,
+    userId: string,
+  ): Promise<JoinTournamentResponse | null> {
+    try {
+      loading.value = true
+      error.value = null
+
+      const result = await participantApi.addParticipant(tournamentId, userId)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Participant ajouté',
+        detail: 'Le participant a été ajouté au tournoi',
+        life: 3000,
+      })
+
+      return result
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout du participant"
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: message,
+        life: 5000,
+      })
+
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Remove participant (admin only)
+   */
+  async function removeParticipant(tournamentId: string, userId: string): Promise<boolean> {
+    try {
+      loading.value = true
+      error.value = null
+
+      await participantApi.removeParticipant(tournamentId, userId)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Participant retiré',
+        detail: 'Le participant a été retiré du tournoi',
+        life: 3000,
+      })
+
+      return true
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors du retrait du participant'
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: message,
+        life: 5000,
+      })
+
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Search users for participant addition
+   */
+  async function searchUsers(query: string): Promise<UserSearchResult[]> {
+    try {
+      return await participantApi.searchUsers(query)
+    } catch (err) {
+      console.error('Erreur lors de la recherche:', err)
+      return []
+    }
+  }
+
+  /**
+   * Add participant and reload list
+   */
+  async function addParticipantAndReload(tournamentId: string, userId: string): Promise<boolean> {
+    const result = await addParticipant(tournamentId, userId)
+    if (result) {
+      await getTournamentParticipants(tournamentId)
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Remove participant and reload list
+   */
+  async function removeParticipantAndReload(tournamentId: string, userId: string): Promise<boolean> {
+    const success = await removeParticipant(tournamentId, userId)
+    if (success) {
+      await getTournamentParticipants(tournamentId)
+      return true
+    }
+    return false
+  }
+
   return {
     // State
     participants,
@@ -148,5 +257,10 @@ export function useParticipantService() {
     isUserParticipant,
     joinTournamentAndReload,
     leaveTournamentAndReload,
+    addParticipant,
+    removeParticipant,
+    searchUsers,
+    addParticipantAndReload,
+    removeParticipantAndReload,
   }
 }

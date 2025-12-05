@@ -310,7 +310,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -391,6 +391,53 @@ const [allowDraw] = defineField('allowDraw')
 const [startDate] = defineField('startDate')
 const [endDate] = defineField('endDate')
 const [disciplineId] = defineField('disciplineId')
+
+// Watch mode changes to set appropriate defaults
+watch(mode, (newMode) => {
+  if (!isEditMode.value) {
+    if (newMode === 'bracket') {
+      // Bracket mode defaults: static teams, 1v1
+      setValues({
+        ...getCurrentValues(),
+        teamMode: 'static',
+        minTeamSize: 1,
+        maxTeamSize: 1,
+        allowDraw: false,
+      })
+    } else {
+      // Championship mode defaults
+      setValues({
+        ...getCurrentValues(),
+        teamMode: 'flex',
+        minTeamSize: 1,
+        maxTeamSize: 2,
+        allowDraw: true,
+      })
+    }
+  }
+})
+
+function getCurrentValues() {
+  return {
+    name: name.value,
+    description: description.value,
+    mode: mode.value,
+    teamMode: teamMode.value,
+    status: status.value,
+    minTeamSize: minTeamSize.value,
+    maxTeamSize: maxTeamSize.value,
+    maxMatchesPerPlayer: maxMatchesPerPlayer.value,
+    maxTimesWithSamePartner: maxTimesWithSamePartner.value,
+    maxTimesWithSameOpponent: maxTimesWithSameOpponent.value,
+    pointPerVictory: pointPerVictory.value,
+    pointPerDraw: pointPerDraw.value,
+    pointPerLoss: pointPerLoss.value,
+    allowDraw: allowDraw.value,
+    startDate: startDate.value,
+    endDate: endDate.value,
+    disciplineId: disciplineId.value,
+  }
+}
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true

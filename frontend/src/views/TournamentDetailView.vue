@@ -76,9 +76,16 @@
 
       <Tabs v-model:value="activeTab">
         <TabList>
-          <Tab value="0">Classement</Tab>
-          <Tab value="1">Matchs</Tab>
-          <Tab value="2">
+          <!-- Bracket tab for bracket mode tournaments -->
+          <Tab v-if="isBracketMode" value="0">
+            <div class="flex items-center gap-1">
+              <i class="fa fa-sitemap"></i>
+              <span>Bracket</span>
+            </div>
+          </Tab>
+          <Tab :value="isBracketMode ? '1' : '0'">Classement</Tab>
+          <Tab :value="isBracketMode ? '2' : '1'">Matchs</Tab>
+          <Tab :value="isBracketMode ? '3' : '2'">
             <div class="flex items-center">
               <div>Participants</div>
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
@@ -86,18 +93,37 @@
           </Tab>
         </TabList>
         <TabPanels>
-          <TabPanel value="0">
+          <!-- Bracket Panel (only for bracket mode) -->
+          <TabPanel v-if="isBracketMode" value="0">
+            <BracketView
+              :tournament-id="tournamentId"
+              :can-manage="canManageTournament"
+            />
+          </TabPanel>
+          <TabPanel :value="isBracketMode ? '1' : '0'">
             <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
           </TabPanel>
-          <TabPanel value="1">
+          <TabPanel :value="isBracketMode ? '2' : '1'">
             <div class="p-0">
               <MatchList :tournament-id="tournamentId" />
             </div>
           </TabPanel>
-          <TabPanel value="2">
+          <TabPanel :value="isBracketMode ? '3' : '2'">
             <Card>
               <template #content>
+                <!-- Use manager component for bracket mode with admin rights -->
+                <TournamentParticipantsManager
+                  v-if="isBracketMode && canManageTournament"
+                  :tournament-id="tournamentId"
+                  :participants="participants"
+                  :loading="loadingParticipants"
+                  :can-manage="canManageTournament"
+                  @participant-added="loadParticipants"
+                  @participant-removed="loadParticipants"
+                />
+                <!-- Use simple list for other cases -->
                 <TournamentParticipantsList
+                  v-else
                   :participants="participants"
                   :loading="loadingParticipants"
                 />
@@ -139,8 +165,10 @@ import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
+import TournamentParticipantsManager from '@/components/tournament/TournamentParticipantsManager.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
+import BracketView from '@/components/bracket/BracketView.vue'
 import { calculateDuration } from '@/utils/DateUtils'
 import { useViewport } from '@/composables/useViewport'
 
@@ -194,9 +222,12 @@ const tournamentDuration = computed(() => {
   return calculateDuration(tournament.value.startDate, tournament.value.endDate)
 })
 
+const isBracketMode = computed(() => tournament.value?.mode === 'bracket')
+
 onMounted(() => {
   const tab = route.query.tab as string | undefined
-  if (tab && ['0', '1', '2'].includes(tab)) {
+  const validTabs = isBracketMode.value ? ['0', '1', '2', '3'] : ['0', '1', '2']
+  if (tab && validTabs.includes(tab)) {
     activeTab.value = tab
   }
 })

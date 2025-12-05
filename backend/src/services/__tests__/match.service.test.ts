@@ -59,6 +59,7 @@ beforeEach(() => {
   repo.getParticipationsByMatchId = async () => [];
   repo.update = async (_id: string, _data: UpdateMatchData) =>
     ({ id: _id } as any);
+  repo.getByIdSimple = async (_id: string) => undefined;
 
   tourRepo = tournamentRepository as unknown as Partial<TournamentRepository>;
   tourRepo.isUserTournamentAdmin = async () => false;

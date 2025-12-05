@@ -17,6 +17,10 @@ declare module 'vue' {
     Badge: typeof import('primevue/badge')['default']
     BallWall: typeof import('./src/components/BallWall.vue')['default']
     BottomNav: typeof import('./src/components/BottomNav.vue')['default']
+    BracketMatchCard: typeof import('./src/components/bracket/BracketMatchCard.vue')['default']
+    BracketNavigation: typeof import('./src/components/bracket/BracketNavigation.vue')['default']
+    BracketRound: typeof import('./src/components/bracket/BracketRound.vue')['default']
+    BracketView: typeof import('./src/components/bracket/BracketView.vue')['default']
     Breadcrumb: typeof import('primevue/breadcrumb')['default']
     BreadcrumbMenu: typeof import('./src/components/BreadcrumbMenu.vue')['default']
     Button: typeof import('primevue/button')['default']
@@ -93,6 +97,7 @@ declare module 'vue' {
     TournamentHeader: typeof import('./src/components/tournament/TournamentHeader.vue')['default']
     TournamentInfoGrid: typeof import('./src/components/tournament/TournamentInfoGrid.vue')['default']
     TournamentParticipantsList: typeof import('./src/components/tournament/TournamentParticipantsList.vue')['default']
+    TournamentParticipantsManager: typeof import('./src/components/tournament/TournamentParticipantsManager.vue')['default']
     ValidationMessages: typeof import('./src/components/match/ValidationMessages.vue')['default']
   }
   export interface GlobalDirectives {
