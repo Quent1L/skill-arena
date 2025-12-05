@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, ilike } from "drizzle-orm";
 import { db } from "../config/database";
 import { tournaments, tournamentParticipants, appUsers } from "../db/schema";
 
@@ -91,6 +91,34 @@ export class ParticipantRepository {
       .from(tournamentParticipants)
       .innerJoin(appUsers, eq(tournamentParticipants.userId, appUsers.id))
       .where(eq(tournamentParticipants.tournamentId, tournamentId));
+  }
+
+  /**
+   * Search users by display name (for admin participant addition)
+   */
+  async searchUsers(query: string, limit = 10) {
+    return await db
+      .select({
+        id: appUsers.id,
+        displayName: appUsers.displayName,
+      })
+      .from(appUsers)
+      .where(ilike(appUsers.displayName, `%${query}%`))
+      .limit(limit);
+  }
+
+  /**
+   * Find user by ID
+   */
+  async findUserById(userId: string) {
+    return await db
+      .select({
+        id: appUsers.id,
+        displayName: appUsers.displayName,
+      })
+      .from(appUsers)
+      .where(eq(appUsers.id, userId))
+      .then((rows) => rows[0]);
   }
 }
 

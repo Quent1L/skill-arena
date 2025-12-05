@@ -127,6 +127,12 @@ export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
+export const bracketTypeEnum = pgEnum("bracket_type", [
+  "winner",
+  "loser",
+  "grand_final",
+]);
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "MATCH_INVITE",
   "MATCH_REMINDER",
@@ -276,6 +282,14 @@ export const matches = pgTable("matches", {
       onDelete: "set null",
     }
   ),
+  // Bracket-specific fields
+  bracketType: bracketTypeEnum("bracket_type").default("winner"),
+  sequence: integer("sequence"),
+  // Self-referencing FKs - stored as plain UUIDs to avoid circular type inference issues
+  // The actual FK constraints can be added via raw SQL migration if needed
+  nextMatchWinId: uuid("next_match_win_id"),
+  nextMatchLoseId: uuid("next_match_lose_id"),
+  matchPosition: integer("match_position"),
 });
 
 export const matchParticipation = pgTable(
@@ -494,6 +508,7 @@ export const tournamentParticipantsRelations = relations(
   })
 );
 
+// @ts-ignore
 export const matchesRelations = relations(matches, ({ one, many }) => ({
   tournament: one(tournaments, {
     fields: [matches.tournamentId],
@@ -531,6 +546,17 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
   outcomeReason: one(outcomeReasons, {
     fields: [matches.outcomeReasonId],
     references: [outcomeReasons.id],
+  }),
+  // Bracket relations
+  nextMatchWin: one(matches, {
+    fields: [matches.nextMatchWinId],
+    references: [matches.id],
+    relationName: "nextMatchWin",
+  }),
+  nextMatchLose: one(matches, {
+    fields: [matches.nextMatchLoseId],
+    references: [matches.id],
+    relationName: "nextMatchLose",
   }),
   participations: many(matchParticipation),
   confirmations: many(matchConfirmations),

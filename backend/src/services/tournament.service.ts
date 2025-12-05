@@ -116,7 +116,7 @@ export class TournamentService {
     if (minSize < 1) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
     }
-    if (maxSize <= minSize) {
+    if (maxSize < minSize) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
     }
   }
@@ -456,6 +456,94 @@ export class TournamentService {
    */
   async getTournamentParticipants(tournamentId: string) {
     return await participantRepository.findTournamentParticipants(tournamentId);
+  }
+
+  /**
+   * Add participant to tournament (admin only)
+   */
+  async addParticipant(
+    adminUserId: string,
+    tournamentId: string,
+    targetUserId: string
+  ) {
+    // Check admin permissions
+    const canManage = await this.canManageTournament(tournamentId, adminUserId);
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    // Check tournament exists
+    const tournament = await this.getTournamentById(tournamentId);
+
+    // For bracket mode, allow adding participants even in draft status
+    if (tournament.mode !== "bracket" && tournament.status === "finished") {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_CLOSED);
+    }
+
+    // Check target user exists
+    const targetUser = await participantRepository.findUserById(targetUserId);
+    if (!targetUser) {
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    // Check not already registered
+    await this.checkNotAlreadyRegistered(targetUserId, tournamentId);
+
+    // Create participation
+    const participation = await participantRepository.createParticipation(
+      targetUserId,
+      tournamentId
+    );
+
+    return await participantRepository.findParticipationWithDetails(
+      participation.id
+    );
+  }
+
+  /**
+   * Remove participant from tournament (admin only)
+   */
+  async removeParticipant(
+    adminUserId: string,
+    tournamentId: string,
+    targetUserId: string
+  ) {
+    // Check admin permissions
+    const canManage = await this.canManageTournament(tournamentId, adminUserId);
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    // Check tournament exists
+    const tournament = await this.getTournamentById(tournamentId);
+
+    // Cannot remove from finished tournament
+    if (tournament.status === "finished") {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_CLOSED);
+    }
+
+    // Check participation exists
+    const participation =
+      await participantRepository.findParticipationByUserAndTournament(
+        targetUserId,
+        tournamentId
+      );
+
+    if (!participation) {
+      throw new BadRequestError(ErrorCode.NOT_REGISTERED);
+    }
+
+    // Delete participation
+    await participantRepository.deleteParticipation(participation.id);
+
+    return { message: "Participant removed successfully" };
+  }
+
+  /**
+   * Search users for participant addition
+   */
+  async searchUsersForParticipant(query: string) {
+    return await participantRepository.searchUsers(query);
   }
 }
 

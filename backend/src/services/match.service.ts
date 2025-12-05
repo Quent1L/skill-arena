@@ -4,7 +4,7 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { db } from "../config/database";
 import { matches } from "../db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, or } from "drizzle-orm";
 import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
@@ -712,7 +712,122 @@ export class MatchService {
       updateData.finalizedBy = finalizedBy;
     }
 
-    return await matchRepository.update(id, updateData);
+    const finalizedMatch = await matchRepository.update(id, updateData);
+
+    // Handle bracket progression if this is a bracket match
+    await this.progressBracketMatch(id);
+
+    return finalizedMatch;
+  }
+
+  /**
+   * Progress match in bracket - route winner and loser to next matches
+   */
+  private async progressBracketMatch(matchId: string) {
+    const match = await matchRepository.getByIdSimple(matchId);
+    if (!match) return;
+
+    // Only progress if match has a winner
+    if (!match.winnerId) return;
+
+    // Get tournament to check if it's a bracket tournament
+    const tournament = await matchRepository.getTournament(match.tournamentId);
+    if (!tournament || tournament.mode !== "bracket") return;
+
+    // Determine loser team ID
+    const loserId =
+      match.winnerId === match.teamAId ? match.teamBId : match.teamAId;
+
+    // Progress winner to next match
+    if (match.nextMatchWinId) {
+      await this.assignTeamToNextMatch(match.nextMatchWinId, match.winnerId);
+    }
+
+    // Progress loser to next match (for double elimination)
+    if (match.nextMatchLoseId && loserId) {
+      await this.assignTeamToNextMatch(match.nextMatchLoseId, loserId);
+    }
+
+    // Check for bracket reset scenario (Grand Final in double elimination)
+    if (match.bracketType === "grand_final") {
+      await this.handleGrandFinalResult(match);
+    }
+  }
+
+  /**
+   * Assign a team to the next match's available slot
+   */
+  private async assignTeamToNextMatch(nextMatchId: string, teamId: string) {
+    const nextMatch = await matchRepository.getByIdSimple(nextMatchId);
+    if (!nextMatch) return;
+
+    // Assign to first available slot (teamA or teamB)
+    if (!nextMatch.teamAId) {
+      await matchRepository.updateMatchTeam(nextMatchId, "A", teamId);
+    } else if (!nextMatch.teamBId) {
+      await matchRepository.updateMatchTeam(nextMatchId, "B", teamId);
+    }
+    // If both slots are filled, the match is ready to be played
+  }
+
+  /**
+   * Handle Grand Final result for double elimination bracket reset
+   */
+  private async handleGrandFinalResult(grandFinalMatch: any) {
+    // 1. Find the match that fed into Grand Final from Loser Bracket
+    const incomingMatches = await db.query.matches.findMany({
+      where: eq(matches.nextMatchWinId, grandFinalMatch.id),
+    });
+
+    const lbSourceMatch = incomingMatches.find(m => m.bracketType === "loser");
+
+    // If we can't find the source (e.g. manual match creation or weird state), we can't determine if reset is needed
+    if (!lbSourceMatch) return;
+
+    // 2. Check if the winner of Grand Final is the one who came from Loser Bracket
+    // If LB winner wins, they have 1 loss each -> Reset needed
+    if (grandFinalMatch.winnerId === lbSourceMatch.winnerId) {
+      // Check if reset match already exists
+      let resetMatch = await db.query.matches.findFirst({
+        where: and(
+          eq(matches.tournamentId, grandFinalMatch.tournamentId),
+          eq(matches.bracketType, "grand_final"),
+          eq(matches.round, grandFinalMatch.round + 1)
+        ),
+      });
+
+      if (!resetMatch) {
+        // Create reset match
+        const [inserted] = await db.insert(matches).values({
+          tournamentId: grandFinalMatch.tournamentId,
+          round: grandFinalMatch.round + 1,
+          sequence: grandFinalMatch.sequence + 1,
+          bracketType: "grand_final",
+          matchPosition: grandFinalMatch.matchPosition + 50, // Visual offset
+          status: "scheduled",
+          // In a reset, the same teams play again
+          teamAId: grandFinalMatch.teamAId,
+          teamBId: grandFinalMatch.teamBId,
+        }).returning();
+        resetMatch = inserted;
+
+        if (!resetMatch) return;
+
+        // Link current grand final to reset match for history
+        await matchRepository.update(grandFinalMatch.id, {
+          nextMatchWinId: resetMatch.id,
+          // Loser also goes to reset match effectively, but we track winner path
+        });
+      } else {
+        // Ensure teams are assigned if match existed
+        if (!resetMatch.teamAId) {
+          await matchRepository.updateMatchTeam(resetMatch.id, "A", grandFinalMatch.teamAId);
+        }
+        if (!resetMatch.teamBId) {
+          await matchRepository.updateMatchTeam(resetMatch.id, "B", grandFinalMatch.teamBId);
+        }
+      }
+    }
   }
 
   /**

@@ -12,10 +12,17 @@ import {
 // Types et interfaces pour les matchs
 // ============================================
 
+export type BracketType = 'winner' | 'loser' | 'grand_final';
+
 export interface Match {
   id: string;
   tournamentId: string;
   round?: number;
+  sequence?: number;
+  bracketType?: BracketType;
+  matchPosition?: number;
+  nextMatchWinId?: string;
+  nextMatchLoseId?: string;
   teamAId?: string;
   teamBId?: string;
   scoreA: number;

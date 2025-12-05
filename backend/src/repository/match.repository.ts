@@ -58,6 +58,8 @@ export interface UpdateMatchData {
   playedAt?: Date;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
+  nextMatchWinId?: string;
+  nextMatchLoseId?: string;
 }
 
 export interface MatchFilters {
@@ -409,7 +411,7 @@ export class MatchRepository {
             eq(matchParticipation.playerId, partnerId)
           )
         );
-      
+
       if (partnerInMatch.length === 0) {
         continue; // Partner not in this match
       }
@@ -482,7 +484,7 @@ export class MatchRepository {
             sql`${matchParticipation.teamSide} != ${userMatch.teamSide}`
           )
         );
-      
+
       if (opponentInMatch.length === 0) {
         continue; // Opponent not in this match on opposite team
       }
@@ -625,6 +627,45 @@ export class MatchRepository {
       where: eq(matchParticipation.matchId, matchId),
       with: {
         player: true,
+      },
+    });
+  }
+
+  /**
+   * Update match team (for bracket progression)
+   */
+  async updateMatchTeam(matchId: string, side: "A" | "B", teamId: string) {
+    const updateData = side === "A" ? { teamAId: teamId } : { teamBId: teamId };
+    await db.update(matches).set(updateData).where(eq(matches.id, matchId));
+  }
+
+  /**
+   * Get next match for winner or loser
+   */
+  async getNextMatch(matchId: string, isWinner: boolean) {
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+    });
+
+    if (!match) return null;
+
+    const nextMatchId = isWinner ? match.nextMatchWinId : match.nextMatchLoseId;
+    if (!nextMatchId) return null;
+
+    return await this.getByIdSimple(nextMatchId);
+  }
+
+  /**
+   * Get all bracket matches for a tournament, ordered by sequence
+   */
+  async getBracketMatches(tournamentId: string) {
+    return await db.query.matches.findMany({
+      where: eq(matches.tournamentId, tournamentId),
+      orderBy: (matches, { asc }) => [asc(matches.sequence)],
+      with: {
+        teamA: true,
+        teamB: true,
+        winner: true,
       },
     });
   }

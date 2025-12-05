@@ -199,7 +199,7 @@ describe("TournamentService - basic flows", () => {
     }
   });
 
-  it("createTournament should throw BadRequestError when maxTeamSize <= minTeamSize", async () => {
+  it("createTournament should throw BadRequestError when maxTeamSize < minTeamSize", async () => {
     usrRepo.getById = async () =>
       ({ id: "u-1", role: "tournament_admin" } as any);
     tourRepo.countByUserAndStatus = async () => 0;
@@ -209,7 +209,7 @@ describe("TournamentService - basic flows", () => {
         name: "Test",
         mode: "championship",
         teamMode: "flex",
-        minTeamSize: 2,
+        minTeamSize: 3,
         maxTeamSize: 2,
         startDate: "2024-01-01",
         endDate: "2024-01-02",
