@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { notificationApi, type RawNotification } from './notification.api'
 
-export type Notification = RawNotification
+export interface Notification extends RawNotification {}
 
 const notifications = ref<Notification[]>([])
 const loadingNotifications = ref(false)
@@ -41,7 +41,7 @@ export function useNotificationService() {
     await notificationApi.markActionCompleted(id)
   }
 
-  function open(notif: Notification, router?: { push: (url: string) => void }) {
+  function open(notif: Notification, router?: any) {
     if (notif.actionUrl && router) {
       router.push(notif.actionUrl)
     }
@@ -83,11 +83,11 @@ export function useNotificationService() {
   async function deleteAll() {
     const deletableNotifs = notifications.value.filter(n => !n.requiresAction)
     if (deletableNotifs.length === 0) return
-
+    
     // Optimistic update
     const backup = [...notifications.value]
     notifications.value = notifications.value.filter(n => n.requiresAction)
-
+    
     try {
       await Promise.all(deletableNotifs.map(n => notificationApi.delete(n.id)))
     } catch (error) {
@@ -99,14 +99,14 @@ export function useNotificationService() {
 
   const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
 
-  return {
-    notifications,
-    unreadCount,
-    load,
-    add,
-    markRead,
-    markActionCompleted,
-    open,
+  return { 
+    notifications, 
+    unreadCount, 
+    load, 
+    add, 
+    markRead, 
+    markActionCompleted, 
+    open, 
     deleteNotification,
     markAllAsRead,
     deleteAll

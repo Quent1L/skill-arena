@@ -27,7 +27,7 @@ export const notificationApi = {
   async resend(id: string, messageKey?: string): Promise<void> {
     await http.post(`${BASE_URL}/notifications/${id}/resend`, messageKey ? { messageKey } : undefined)
   },
-  async registerPushDevice(payload: { subscriptionEndpoint: string; subscriptionData: unknown; deviceType: 'WEB' | 'ANDROID' | 'IOS' }): Promise<void> {
+  async registerPushDevice(payload: { subscriptionEndpoint: string; subscriptionData: any; deviceType: 'WEB'|'ANDROID'|'IOS' }): Promise<void> {
     await http.post(`${BASE_URL}/me/pushDevices`, payload)
   },
   async removePushDevice(deviceId: string): Promise<void> {

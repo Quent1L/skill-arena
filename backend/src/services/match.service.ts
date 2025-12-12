@@ -4,7 +4,7 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { db } from "../config/database";
 import { matches } from "../db/schema";
-import { eq, and, ne, or } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
@@ -25,10 +25,6 @@ import {
 import i18next from "../config/i18n";
 import type { UpdateMatchData } from "../repository/match.repository";
 import { notificationService } from "./notification.service";
-import { matchInputValidator } from "./validators/match-input.validator";
-import { matchRuleValidator } from "./validators/match-rule.validator";
-import { matchPermissionValidator } from "./validators/match-permission.validator";
-import { matchStatusValidator } from "./validators/match-status.validator";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -42,7 +38,15 @@ export class MatchService {
     tournamentId: string,
     userId: string
   ): Promise<boolean> {
-    return await matchPermissionValidator.canManageMatches(tournamentId, userId);
+    const user = await userRepository.getById(userId);
+    if (!user) return false;
+    if (user.role === "super_admin") return true;
+
+    // Check if user is tournament admin
+    return await tournamentRepository.isUserTournamentAdmin(
+      tournamentId,
+      userId
+    );
   }
 
   /**
@@ -99,7 +103,17 @@ export class MatchService {
     createdBy: string,
     tournament: NonNullable<TournamentFromRepository>
   ) {
-    await matchPermissionValidator.checkCreatePermissions(input, createdBy, tournament);
+    if (this.isPlayerInMatch(input, createdBy)) {
+      return;
+    }
+
+    const canManage = await this.canManageMatches(
+      input.tournamentId,
+      createdBy
+    );
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
   }
 
   /**
@@ -109,7 +123,43 @@ export class MatchService {
     input: CreateMatchInput,
     tournament: NonNullable<TournamentFromRepository>
   ) {
-    await matchInputValidator.validateMatchInput(input, tournament);
+    if (tournament.teamMode === "static") {
+      await this.validateStaticTeamInput(input);
+    } else if (tournament.teamMode === "flex") {
+      await this.validateFlexTeamInput(input);
+    }
+  }
+
+  /**
+   * Validate static team input
+   */
+  private async validateStaticTeamInput(input: CreateMatchInput) {
+    if (!input.teamAId || !input.teamBId) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
+    }
+    await matchRepository.validateTeamsForTournament(
+      input.tournamentId,
+      input.teamAId,
+      input.teamBId
+    );
+  }
+
+  /**
+   * Validate flex team input
+   */
+  private async validateFlexTeamInput(input: CreateMatchInput) {
+    if (
+      !input.playerIdsA ||
+      !input.playerIdsB ||
+      input.playerIdsA.length === 0 ||
+      input.playerIdsB.length === 0
+    ) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_PLAYERS);
+    }
+    await matchRepository.validatePlayersForTournament(input.tournamentId, [
+      ...input.playerIdsA,
+      ...input.playerIdsB,
+    ]);
   }
 
   /**
@@ -204,7 +254,15 @@ export class MatchService {
     }
   }
 
-
+  private isPlayerInMatch(input: CreateMatchInput, playerId: string) {
+    if (input.playerIdsA?.includes(playerId)) {
+      return true;
+    }
+    if (input.playerIdsB?.includes(playerId)) {
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Validate match rules against tournament settings
@@ -213,7 +271,190 @@ export class MatchService {
     input: CreateMatchInput & { matchId?: string },
     tournament: NonNullable<TournamentFromRepository>
   ) {
-    await matchRuleValidator.validateMatchRules(input, tournament);
+    if (
+      tournament.teamMode === "flex" &&
+      input.playerIdsA &&
+      input.playerIdsB
+    ) {
+      await this.validateFlexTeamRules(input, tournament);
+    } else if (
+      tournament.teamMode === "static" &&
+      input.teamAId &&
+      input.teamBId
+    ) {
+      // For static teams, check team constraints
+      // TODO: Implement static team validation - need to get team participants and check rules
+    }
+  }
+
+  /**
+   * Validate flex team match rules
+   */
+  private async validateFlexTeamRules(
+    input: CreateMatchInput & { matchId?: string },
+    tournament: NonNullable<TournamentFromRepository>
+  ) {
+    if (!input.playerIdsA || !input.playerIdsB) return;
+
+    if (input.playerIdsA.length !== input.playerIdsB.length) {
+      throw new BadRequestError(ErrorCode.MATCH_TEAM_SIZE_MISMATCH, {
+        teamASize: input.playerIdsA.length,
+        teamBSize: input.playerIdsB.length,
+      });
+    }
+
+    const allPlayerIds = [...input.playerIdsA, ...input.playerIdsB];
+    const excludeMatchId = input.matchId; // Exclude match being edited from validation
+
+    for (const playerId of allPlayerIds) {
+      await this.validatePlayerMatchLimit(tournament, playerId, excludeMatchId);
+      await this.validatePartnerConstraints(
+        input,
+        tournament,
+        playerId,
+        excludeMatchId
+      );
+      await this.validateOpponentConstraints(
+        input,
+        tournament,
+        playerId,
+        excludeMatchId
+      );
+    }
+  }
+
+  /**
+   * Get player display name
+   */
+  private async getPlayerName(playerId: string): Promise<string> {
+    const player = await userRepository.getById(playerId);
+    return player?.displayName || `Joueur ${playerId.substring(0, 8)}`;
+  }
+
+  /**
+   * Validate max matches per player
+   */
+  private async validatePlayerMatchLimit(
+    tournament: NonNullable<TournamentFromRepository>,
+    playerId: string,
+    excludeMatchId?: string
+  ) {
+    const playerMatchCount = await matchRepository.countMatchesForUser(
+      tournament.id,
+      playerId,
+      excludeMatchId
+    );
+    if (playerMatchCount >= tournament.maxMatchesPerPlayer) {
+      const playerName = await this.getPlayerName(playerId);
+      throw new ConflictError(ErrorCode.MAX_MATCHES_EXCEEDED, {
+        max: tournament.maxMatchesPerPlayer,
+        playerName,
+      });
+    }
+  }
+
+  /**
+   * Validate partner constraints
+   */
+  private async validatePartnerConstraints(
+    input: CreateMatchInput & { matchId?: string },
+    tournament: NonNullable<TournamentFromRepository>,
+    playerId: string,
+    excludeMatchId?: string
+  ) {
+    // Determine which team the player is in
+    const isInTeamA = input.playerIdsA?.includes(playerId);
+    const isInTeamB = input.playerIdsB?.includes(playerId);
+
+    // Get the player's teammates (partners)
+    let teammates: string[] = [];
+    if (isInTeamA && input.playerIdsA) {
+      teammates = input.playerIdsA.filter((id) => id !== playerId);
+    } else if (isInTeamB && input.playerIdsB) {
+      teammates = input.playerIdsB.filter((id) => id !== playerId);
+    }
+
+    // For flex tournaments, get team size to count only matches with same format
+    const teamSize =
+      tournament.teamMode === "flex" && input.playerIdsA
+        ? input.playerIdsA.length
+        : undefined;
+
+    // Validate each teammate
+    for (const teammateId of teammates) {
+      const partnerCount = await matchRepository.countMatchesWithSamePartner(
+        tournament.id,
+        playerId,
+        teammateId,
+        excludeMatchId,
+        teamSize // Pass team size for flex mode
+      );
+
+      if (partnerCount >= tournament.maxTimesWithSamePartner) {
+        const [playerName, partnerName] = await Promise.all([
+          this.getPlayerName(playerId),
+          this.getPlayerName(teammateId),
+        ]);
+        throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
+          max: tournament.maxTimesWithSamePartner,
+          playerName,
+          partnerName,
+          teamSize, // Add team size to error details
+        });
+      }
+    }
+  }
+
+  /**
+   * Validate opponent constraints
+   */
+  private async validateOpponentConstraints(
+    input: CreateMatchInput & { matchId?: string },
+    tournament: NonNullable<TournamentFromRepository>,
+    playerId: string,
+    excludeMatchId?: string
+  ) {
+    // Determine which team the player is in
+    const isInTeamA = input.playerIdsA?.includes(playerId);
+    const isInTeamB = input.playerIdsB?.includes(playerId);
+
+    // Get the opposing team's players
+    let opponents: string[] = [];
+    if (isInTeamA && input.playerIdsB) {
+      opponents = input.playerIdsB;
+    } else if (isInTeamB && input.playerIdsA) {
+      opponents = input.playerIdsA;
+    }
+
+    // For flex tournaments, get team size to count only matches with same format
+    const teamSize =
+      tournament.teamMode === "flex" && input.playerIdsA
+        ? input.playerIdsA.length
+        : undefined;
+
+    // Validate each opponent
+    for (const opponentId of opponents) {
+      const opponentCount = await matchRepository.countMatchesWithSameOpponent(
+        tournament.id,
+        playerId,
+        opponentId,
+        excludeMatchId,
+        teamSize // Pass team size for flex mode
+      );
+
+      if (opponentCount >= tournament.maxTimesWithSameOpponent) {
+        const [playerName, opponentName] = await Promise.all([
+          this.getPlayerName(playerId),
+          this.getPlayerName(opponentId),
+        ]);
+        throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
+          max: tournament.maxTimesWithSameOpponent,
+          playerName,
+          opponentName,
+          teamSize, // Add team size to error details
+        });
+      }
+    }
   }
 
   /**
@@ -342,21 +583,28 @@ export class MatchService {
    * Validate user can report match
    */
   private async validateReportPermissions(matchId: string, userId: string) {
-    await matchPermissionValidator.validateReportPermissions(matchId, userId);
+    const isParticipant = await matchRepository.isUserInMatch(matchId, userId);
+    if (!isParticipant) {
+      throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT);
+    }
   }
 
   /**
    * Validate match status allows reporting
    */
   private validateReportStatus(status: MatchStatus) {
-    matchStatusValidator.validateReportStatus(status);
+    if (!["scheduled", "reported", "pending_confirmation"].includes(status)) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
+    }
   }
 
   /**
    * Validate scores are non-negative
    */
   private validateScores(input: ReportMatchResultInput) {
-    matchInputValidator.validateScores(input.scoreA, input.scoreB);
+    if (input.scoreA < 0 || input.scoreB < 0) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_SCORE);
+    }
   }
 
   /**
@@ -366,7 +614,14 @@ export class MatchService {
     tournamentId: string,
     input: ReportMatchResultInput
   ) {
-    await matchInputValidator.validateDrawAllowed(tournamentId, input.scoreA, input.scoreB);
+    if (input.scoreA !== input.scoreB) {
+      return;
+    }
+
+    const tournament = await matchRepository.getTournament(tournamentId);
+    if (!tournament?.allowDraw) {
+      throw new BadRequestError(ErrorCode.MATCH_DRAW_NOT_ALLOWED);
+    }
   }
 
   /**
@@ -556,7 +811,142 @@ export class MatchService {
     tournament: NonNullable<TournamentFromRepository>,
     errors: string[]
   ) {
-    await matchInputValidator.validateMatchInputForValidation(input, tournament, errors);
+    if (tournament.teamMode === "static") {
+      await this.validateStaticTeamsForValidation(input, errors);
+    } else if (tournament.teamMode === "flex") {
+      await this.validateFlexPlayersForValidation(input, errors);
+    }
+  }
+
+  /**
+   * Validate static teams for validation
+   */
+  private async validateStaticTeamsForValidation(
+    input: CreateMatchInput,
+    errors: string[]
+  ) {
+    if (input.teamAId) {
+      await this.validateTeamForValidation(
+        input.tournamentId,
+        input.teamAId,
+        undefined,
+        errors,
+        "équipe A"
+      );
+    }
+
+    if (input.teamBId) {
+      await this.validateTeamForValidation(
+        input.tournamentId,
+        undefined,
+        input.teamBId,
+        errors,
+        "équipe B"
+      );
+    }
+
+    if (input.teamAId && input.teamBId && input.teamAId === input.teamBId) {
+      errors.push("Les deux équipes ne peuvent pas être identiques");
+    }
+  }
+
+  /**
+   * Validate team for validation (helper)
+   */
+  private async validateTeamForValidation(
+    tournamentId: string,
+    teamAId: string | undefined,
+    teamBId: string | undefined,
+    errors: string[],
+    teamLabel: string
+  ) {
+    try {
+      await matchRepository.validateTeamsForTournament(
+        tournamentId,
+        teamAId,
+        teamBId
+      );
+    } catch (error) {
+      errors.push(
+        error instanceof Error
+          ? error.message
+          : `Erreur de validation ${teamLabel}`
+      );
+    }
+  }
+
+  /**
+   * Validate flex players for validation
+   */
+  private async validateFlexPlayersForValidation(
+    input: CreateMatchInput,
+    errors: string[]
+  ) {
+    if (input.playerIdsA) {
+      await this.validatePlayersForValidation(
+        input.tournamentId,
+        input.playerIdsA,
+        errors,
+        "joueurs équipe A"
+      );
+    }
+
+    if (input.playerIdsB) {
+      await this.validatePlayersForValidation(
+        input.tournamentId,
+        input.playerIdsB,
+        errors,
+        "joueurs équipe B"
+      );
+    }
+
+    if (input.playerIdsA && input.playerIdsB) {
+      await this.checkOverlappingPlayers(input, errors);
+    }
+  }
+
+  /**
+   * Validate players for validation (helper)
+   */
+  private async validatePlayersForValidation(
+    tournamentId: string,
+    playerIds: string[],
+    errors: string[],
+    label: string
+  ) {
+    try {
+      await matchRepository.validatePlayersForTournament(
+        tournamentId,
+        playerIds
+      );
+    } catch (error) {
+      errors.push(
+        error instanceof Error ? error.message : `Erreur de validation ${label}`
+      );
+    }
+  }
+
+  /**
+   * Check for overlapping players between teams
+   */
+  private async checkOverlappingPlayers(
+    input: CreateMatchInput,
+    errors: string[]
+  ) {
+    if (!input.playerIdsA || !input.playerIdsB) return;
+
+    const overlappingPlayers = input.playerIdsA.filter((playerId: string) =>
+      input.playerIdsB?.includes(playerId)
+    );
+    if (overlappingPlayers.length > 0) {
+      // Get the name of the first overlapping player
+      const firstOverlappingPlayerId = overlappingPlayers[0];
+      const playerName = await this.getPlayerName(firstOverlappingPlayerId);
+      const errorMessage = String(
+        i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", { playerName })
+      );
+      errors.push(errorMessage);
+    }
   }
 
   /**
@@ -712,122 +1102,7 @@ export class MatchService {
       updateData.finalizedBy = finalizedBy;
     }
 
-    const finalizedMatch = await matchRepository.update(id, updateData);
-
-    // Handle bracket progression if this is a bracket match
-    await this.progressBracketMatch(id);
-
-    return finalizedMatch;
-  }
-
-  /**
-   * Progress match in bracket - route winner and loser to next matches
-   */
-  private async progressBracketMatch(matchId: string) {
-    const match = await matchRepository.getByIdSimple(matchId);
-    if (!match) return;
-
-    // Only progress if match has a winner
-    if (!match.winnerId) return;
-
-    // Get tournament to check if it's a bracket tournament
-    const tournament = await matchRepository.getTournament(match.tournamentId);
-    if (!tournament || tournament.mode !== "bracket") return;
-
-    // Determine loser team ID
-    const loserId =
-      match.winnerId === match.teamAId ? match.teamBId : match.teamAId;
-
-    // Progress winner to next match
-    if (match.nextMatchWinId) {
-      await this.assignTeamToNextMatch(match.nextMatchWinId, match.winnerId);
-    }
-
-    // Progress loser to next match (for double elimination)
-    if (match.nextMatchLoseId && loserId) {
-      await this.assignTeamToNextMatch(match.nextMatchLoseId, loserId);
-    }
-
-    // Check for bracket reset scenario (Grand Final in double elimination)
-    if (match.bracketType === "grand_final") {
-      await this.handleGrandFinalResult(match);
-    }
-  }
-
-  /**
-   * Assign a team to the next match's available slot
-   */
-  private async assignTeamToNextMatch(nextMatchId: string, teamId: string) {
-    const nextMatch = await matchRepository.getByIdSimple(nextMatchId);
-    if (!nextMatch) return;
-
-    // Assign to first available slot (teamA or teamB)
-    if (!nextMatch.teamAId) {
-      await matchRepository.updateMatchTeam(nextMatchId, "A", teamId);
-    } else if (!nextMatch.teamBId) {
-      await matchRepository.updateMatchTeam(nextMatchId, "B", teamId);
-    }
-    // If both slots are filled, the match is ready to be played
-  }
-
-  /**
-   * Handle Grand Final result for double elimination bracket reset
-   */
-  private async handleGrandFinalResult(grandFinalMatch: any) {
-    // 1. Find the match that fed into Grand Final from Loser Bracket
-    const incomingMatches = await db.query.matches.findMany({
-      where: eq(matches.nextMatchWinId, grandFinalMatch.id),
-    });
-
-    const lbSourceMatch = incomingMatches.find(m => m.bracketType === "loser");
-
-    // If we can't find the source (e.g. manual match creation or weird state), we can't determine if reset is needed
-    if (!lbSourceMatch) return;
-
-    // 2. Check if the winner of Grand Final is the one who came from Loser Bracket
-    // If LB winner wins, they have 1 loss each -> Reset needed
-    if (grandFinalMatch.winnerId === lbSourceMatch.winnerId) {
-      // Check if reset match already exists
-      let resetMatch = await db.query.matches.findFirst({
-        where: and(
-          eq(matches.tournamentId, grandFinalMatch.tournamentId),
-          eq(matches.bracketType, "grand_final"),
-          eq(matches.round, grandFinalMatch.round + 1)
-        ),
-      });
-
-      if (!resetMatch) {
-        // Create reset match
-        const [inserted] = await db.insert(matches).values({
-          tournamentId: grandFinalMatch.tournamentId,
-          round: grandFinalMatch.round + 1,
-          sequence: grandFinalMatch.sequence + 1,
-          bracketType: "grand_final",
-          matchPosition: grandFinalMatch.matchPosition + 50, // Visual offset
-          status: "scheduled",
-          // In a reset, the same teams play again
-          teamAId: grandFinalMatch.teamAId,
-          teamBId: grandFinalMatch.teamBId,
-        }).returning();
-        resetMatch = inserted;
-
-        if (!resetMatch) return;
-
-        // Link current grand final to reset match for history
-        await matchRepository.update(grandFinalMatch.id, {
-          nextMatchWinId: resetMatch.id,
-          // Loser also goes to reset match effectively, but we track winner path
-        });
-      } else {
-        // Ensure teams are assigned if match existed
-        if (!resetMatch.teamAId) {
-          await matchRepository.updateMatchTeam(resetMatch.id, "A", grandFinalMatch.teamAId);
-        }
-        if (!resetMatch.teamBId) {
-          await matchRepository.updateMatchTeam(resetMatch.id, "B", grandFinalMatch.teamBId);
-        }
-      }
-    }
+    return await matchRepository.update(id, updateData);
   }
 
   /**
@@ -900,11 +1175,11 @@ export class MatchService {
       (playerId) => playerId !== createdBy
     );
 
-    const matchDate = match.playedAt
+    const matchDate = match.playedAt 
       ? new Date(match.playedAt).toLocaleString('fr-FR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      })
+          dateStyle: 'short',
+          timeStyle: 'short'
+        })
       : 'À définir';
 
     // Calculate match format (1v1, 2v2, etc.)
@@ -912,14 +1187,14 @@ export class MatchService {
     const matchFormat = `${teamSize}v${teamSize}`;
 
     // Determine if match is scheduled (future) or reported (past/present)
-    const isScheduled = match.status === 'scheduled' ||
+    const isScheduled = match.status === 'scheduled' || 
       (match.playedAt && new Date(match.playedAt) > new Date());
 
-    const titleKey = isScheduled
-      ? "notifications.MATCH_SCHEDULED_TITLE"
+    const titleKey = isScheduled 
+      ? "notifications.MATCH_SCHEDULED_TITLE" 
       : "notifications.MATCH_CREATED_TITLE";
-    const messageKey = isScheduled
-      ? "notifications.MATCH_SCHEDULED_MESSAGE"
+    const messageKey = isScheduled 
+      ? "notifications.MATCH_SCHEDULED_MESSAGE" 
       : "notifications.MATCH_CREATED_MESSAGE";
 
     for (const playerId of playerIds) {
@@ -946,8 +1221,8 @@ export class MatchService {
         })
       );
 
-      const teammatesText = teammateNames.length > 0
-        ? teammateNames.join(', ')
+      const teammatesText = teammateNames.length > 0 
+        ? teammateNames.join(', ') 
         : 'Aucun';
       const opponentsText = opponentNames.join(', ');
 
@@ -956,7 +1231,7 @@ export class MatchService {
         type: "match_created",
         titleKey,
         messageKey,
-        translationParams: {
+        translationParams: { 
           creatorName,
           tournamentName,
           matchFormat,

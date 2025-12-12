@@ -19,7 +19,7 @@ import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
 import NotificationsInit from '@/components/NotificationsInit.vue'
 import { usePageTransitions } from '@/utils/transitions'
 
-usePageTransitions()
+const { transitionName } = usePageTransitions()
 </script>
 
 <style>

@@ -33,24 +33,18 @@ export class WebSocketService {
 
   public send(userId: string, data: any) {
     const userConns = this.connections.get(userId);
-    console.log(`[WS] Attempting to send to user ${userId}, connections: ${userConns?.size || 0}`);
-    
     if (userConns) {
       const message = JSON.stringify(data);
-      console.log(`[WS] Sending message to user ${userId}:`, message);
-      
       for (const ws of userConns) {
         // Check for readyState if available (Bun/standard WS)
         if (ws.readyState === 1) {
           ws.send(message);
-          console.log(`[WS] Message sent successfully to user ${userId}`);
         } else if (typeof ws.readyState === "undefined") {
           // Hono WSContext might not have readyState directly exposed or it's different
           // Try sending anyway or check documentation.
           // For Hono WSContext, we just call send.
           try {
             ws.send(message);
-            console.log(`[WS] Message sent successfully to user ${userId} (no readyState)`);
           } catch (e) {
             console.error(`[WS] Failed to send to user ${userId}`, e);
           }

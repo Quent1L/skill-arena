@@ -33,7 +33,7 @@ async function handleMarkAllAsRead() {
       summary: 'Toutes les notifications sont marquées comme lues',
       life: 2000,
     })
-  } catch {
+  } catch (error) {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -51,7 +51,7 @@ async function handleDeleteAll() {
       summary: 'Toutes les notifications ont été supprimées',
       life: 2000,
     })
-  } catch {
+  } catch (error) {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
