@@ -14,7 +14,7 @@ export default defineConfig({
     Components({
       resolvers: [PrimeVueResolver()],
     }),
-    vueDevTools(),
+    vueDevTools({ launchEditor: 'antigravity' }),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
@@ -46,8 +46,29 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    alias: [
+      {
+        find: '@',
+        replacement: fileURLToPath(new URL('./src', import.meta.url)),
+      },
+      {
+        find: /^brackets-viewer$/,
+        replacement: fileURLToPath(
+          new URL(
+            './node_modules/brackets-viewer/dist/brackets-viewer.min.js',
+            import.meta.url,
+          ),
+        ),
+      },
+      {
+        find: 'brackets-viewer-css',
+        replacement: fileURLToPath(
+          new URL(
+            './node_modules/brackets-viewer/dist/brackets-viewer.min.css',
+            import.meta.url,
+          ),
+        ),
+      },
+    ],
   },
 })

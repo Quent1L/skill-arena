@@ -33,47 +33,14 @@
       </div>
     </div>
 
-    <!-- Bracket Content -->
-    <div v-else>
-      <!-- Navigation -->
-      <BracketNavigation
-        v-model:current-round-index="currentRoundIndex"
-        v-model:selected-bracket-type="selectedBracketType"
-        :total-rounds="currentRounds.length"
-        :current-round-label="currentRoundLabel"
-        :is-double-elimination="isDoubleElimination"
+    <!-- Bracket Viewer Container -->
+    <div v-else class="bracket-container w-full overflow-hidden">
+      <CustomBracket
+        v-if="bracketData"
+        :matches="bracketData.match"
+        :participants="bracketData.participant"
+        @match-click="handleMatchClick"
       />
-
-      <!-- Swipeable Round Container -->
-      <div
-        ref="roundContainer"
-        class="bracket-round-container mt-6 overflow-x-auto pb-4 snap-x snap-mandatory"
-        @touchstart="handleTouchStart"
-        @touchend="handleTouchEnd"
-      >
-        <div class="flex gap-4 px-4" :style="{ minWidth: 'max-content' }">
-          <!-- Current Round (mobile: single round, desktop: all visible) -->
-          <template v-if="isMobile">
-            <BracketRound
-              v-if="currentRound"
-              :round-number="currentRound.roundNumber"
-              :matches="currentRound.matches"
-              :round-label="currentRoundLabel"
-              class="snap-center"
-            />
-          </template>
-          <template v-else>
-            <BracketRound
-              v-for="round in currentRounds"
-              :key="round.roundNumber"
-              :round-number="round.roundNumber"
-              :matches="round.matches"
-              :round-label="getRoundLabel(round.roundNumber)"
-              class="snap-center"
-            />
-          </template>
-        </div>
-      </div>
     </div>
 
     <!-- Generate Bracket Dialog -->
@@ -140,13 +107,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useBracketService, type BracketRound as BracketRoundType } from '@/composables/bracket/bracket.service'
-import { useViewport } from '@/composables/useViewport'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useBracketService } from '@/composables/bracket/bracket.service'
 import { useToast } from 'primevue/usetoast'
-import BracketNavigation from './BracketNavigation.vue'
-import BracketRound from './BracketRound.vue'
 import type { BracketType } from '@/composables/bracket/bracket.api'
+import CustomBracket from './CustomBracket.vue'
+import type { Match } from 'brackets-model'
 
 interface Props {
   tournamentId: string
@@ -157,77 +124,20 @@ const props = withDefaults(defineProps<Props>(), {
   canManage: false,
 })
 
+const router = useRouter()
 const toast = useToast()
-const { isMobile } = useViewport()
 const {
   loading,
   error,
   generating,
-  organizedBracket,
+  bracketData,
   hasMatches,
-  isDoubleElimination,
   loadBracket,
   generateBracket,
-  getRoundLabel: getServiceRoundLabel,
 } = useBracketService()
 
-const selectedBracketType = ref<'winner' | 'loser' | 'grand_final'>('winner')
-const currentRoundIndex = ref(0)
 const showGenerateDialog = ref(false)
 const bracketTypeToGenerate = ref<BracketType>('single')
-
-// Touch handling for swipe
-const touchStartX = ref(0)
-const roundContainer = ref<HTMLElement | null>(null)
-
-const currentRounds = computed<BracketRoundType[]>(() => {
-  if (selectedBracketType.value === 'grand_final') {
-    return organizedBracket.value.grandFinal.length > 0
-      ? [{ roundNumber: 999, matches: organizedBracket.value.grandFinal }]
-      : []
-  }
-  if (selectedBracketType.value === 'loser') {
-    return organizedBracket.value.loser
-  }
-  return organizedBracket.value.winner
-})
-
-const currentRound = computed(() => {
-  return currentRounds.value[currentRoundIndex.value] || null
-})
-
-const currentRoundLabel = computed(() => {
-  if (!currentRound.value) return ''
-  if (selectedBracketType.value === 'grand_final') return 'Grande Finale'
-  return getRoundLabel(currentRound.value.roundNumber)
-})
-
-function getRoundLabel(roundNumber: number): string {
-  const totalRounds = currentRounds.value.length
-  return getServiceRoundLabel(roundNumber, totalRounds, selectedBracketType.value)
-}
-
-// Reset round index when changing bracket type
-watch(selectedBracketType, () => {
-  currentRoundIndex.value = 0
-})
-
-function handleTouchStart(e: TouchEvent) {
-  touchStartX.value = e.touches[0].clientX
-}
-
-function handleTouchEnd(e: TouchEvent) {
-  const touchEndX = e.changedTouches[0].clientX
-  const diff = touchStartX.value - touchEndX
-
-  if (Math.abs(diff) > 50) {
-    if (diff > 0 && currentRoundIndex.value < currentRounds.value.length - 1) {
-      currentRoundIndex.value++
-    } else if (diff < 0 && currentRoundIndex.value > 0) {
-      currentRoundIndex.value--
-    }
-  }
-}
 
 async function handleGenerateBracket() {
   try {
@@ -249,6 +159,13 @@ async function handleGenerateBracket() {
   }
 }
 
+// Handle click on bracket match to navigate to match detail
+function handleMatchClick(match: Match) {
+  if (match?.id) {
+    router.push(`/matches/${match.id}`);
+  }
+}
+
 onMounted(() => {
   loadBracket(props.tournamentId)
 })
@@ -257,34 +174,15 @@ onMounted(() => {
 watch(() => props.tournamentId, (newId) => {
   if (newId) {
     loadBracket(newId)
-    currentRoundIndex.value = 0
-    selectedBracketType.value = 'winner'
   }
 })
 </script>
 
 <style scoped>
-.bracket-round-container {
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-}
-
-.bracket-round-container::-webkit-scrollbar {
-  height: 6px;
-}
-
-.bracket-round-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.bracket-round-container::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
-}
-
-@media (max-width: 768px) {
-  .bracket-round-container {
-    scroll-snap-type: x mandatory;
-  }
+.bracket-container {
+  min-height: 500px;
+  width: 100%;
+  background: var(--bracket-bg-color, var(--surface-ground));
+  color: var(--bracket-text-color, var(--text-color));
 }
 </style>

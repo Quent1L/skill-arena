@@ -68,8 +68,8 @@
         <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
       </div>
 
-      <!-- Tab 3: Matches -->
-      <div v-show="activeTab === 'matches'" class="h-full p-2">
+      <!-- Tab 3: Matches (only for non-bracket mode) -->
+      <div v-if="!isBracketMode" v-show="activeTab === 'matches'" class="h-full p-2">
         <MatchList :tournament-id="tournamentId" />
       </div>
 
@@ -140,7 +140,9 @@
         <span class="text-xs font-medium">Classement</span>
       </button>
 
+      <!-- Matches tab (only for non-bracket mode) -->
       <button
+        v-if="!isBracketMode"
         @click="activeTab = 'matches'"
         class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
         :class="

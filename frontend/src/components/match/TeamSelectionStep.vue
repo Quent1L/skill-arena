@@ -25,6 +25,7 @@
           <TeamSelector
             v-model="playerIdsAModel"
             :tournament-id="tournamentId"
+            :disabled="isEditMode"
             @validate="onValidate"
           />
         </div>
@@ -36,6 +37,7 @@
           <TeamSelector
             v-model="playerIdsBModel"
             :tournament-id="tournamentId"
+            :disabled="isEditMode"
             @validate="onValidate"
           />
         </div>
@@ -92,6 +94,7 @@ interface Props {
   maxDate?: Date | null
   validation?: ValidationResult
   disabled?: boolean
+  isEditMode?: boolean
 }
 
 interface Emits {

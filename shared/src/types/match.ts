@@ -70,12 +70,24 @@ export interface Match {
 /**
  * Match with relations - returned by list/getById endpoints
  */
+/**
+ * Bracket opponent data from brackets-manager
+ */
+export interface BracketOpponent {
+  id?: string;
+  position?: number;
+  name?: string;
+  score?: number;
+  result?: 'win' | 'loss' | 'draw';
+}
+
 export interface MatchModel extends Match {
   tournament?: {
     id: string;
     name: string;
     status: string;
     teamMode: string;
+    mode?: string;
   };
   teamA?: {
     id: string;
@@ -97,6 +109,9 @@ export interface MatchModel extends Match {
       };
     }>;
   };
+  // Bracket match opponents (from brackets-manager)
+  opponent1?: BracketOpponent;
+  opponent2?: BracketOpponent;
   winner?: {
     id: string;
     name?: string;

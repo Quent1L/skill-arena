@@ -20,6 +20,7 @@
           title="Équipe A"
           v-model:selected-ids="matchData.playerIdsA"
           :all-players="allPlayers"
+          :disabled="isEditMode"
           @validate="validate"
         />
 
@@ -27,6 +28,7 @@
           title="Équipe B"
           v-model:selected-ids="matchData.playerIdsB"
           :all-players="allPlayers"
+          :disabled="isEditMode"
           @validate="validate"
         />
 
@@ -194,6 +196,8 @@ const canProceed = computed(() => {
 const isFutureDate = computed(() => {
   return matchData.value.playedAt > new Date()
 })
+
+const isEditMode = computed(() => !!props.matchId)
 
 async function loadPlayers() {
   try {

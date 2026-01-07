@@ -30,6 +30,7 @@ declare module 'vue' {
     Chip: typeof import('primevue/chip')['default']
     Column: typeof import('primevue/column')['default']
     ConfirmDialog: typeof import('primevue/confirmdialog')['default']
+    CustomBracket: typeof import('./src/components/bracket/CustomBracket.vue')['default']
     DataTable: typeof import('primevue/datatable')['default']
     DatePicker: typeof import('primevue/datepicker')['default']
     Dialog: typeof import('primevue/dialog')['default']

@@ -15,5 +15,6 @@ export interface BracketMatch {
 
 export interface BracketParticipant {
   teamId: string;
+  name: string;
   seed?: number;
 }

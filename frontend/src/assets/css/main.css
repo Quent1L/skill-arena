@@ -1,3 +1,11 @@
+:root {
+    --bracket-bg-color: var(--p-surface-900);
+  --bracket-card-bg-color: var(--p-surface-800);
+  --bracket-border-color: var(--p-surface-800)!important;
+  --bracket-text-color: var(--p-text-color);
+  --match-background: var(--p-surface-700) !important;
+}
+
 .main-app {
   background: var(--p-surface-50);
 }
@@ -17,3 +25,5 @@ header {
     box-shadow: 0px 2px 4px var(--p-surface-950);
   }
 }
+
+

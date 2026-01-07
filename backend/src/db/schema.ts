@@ -290,6 +290,60 @@ export const matches = pgTable("matches", {
   nextMatchWinId: uuid("next_match_win_id"),
   nextMatchLoseId: uuid("next_match_lose_id"),
   matchPosition: integer("match_position"),
+  // Brackets Manager fields
+  stageId: uuid("stage_id").references(() => stages.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  roundId: uuid("round_id").references(() => rounds.id, { onDelete: "cascade" }),
+  number: integer("number"), // Match number in round
+  childCount: integer("child_count").default(0),
+  opponent1: jsonb("opponent1"), // Brackets participant result
+  opponent2: jsonb("opponent2"), // Brackets participant result
+  bracketStatus: integer("bracket_status"), // Brackets status enum
+});
+
+// Brackets Manager Tables
+export const stages = pgTable("stages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // single_elimination, double_elimination, round_robin
+  number: integer("number").notNull(),
+  settings: jsonb("settings").notNull(), // StageSettings
+});
+
+export const groups = pgTable("groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stageId: uuid("stage_id")
+    .notNull()
+    .references(() => stages.id, { onDelete: "cascade" }),
+  number: integer("number").notNull(),
+});
+
+export const rounds = pgTable("rounds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stageId: uuid("stage_id")
+    .notNull()
+    .references(() => stages.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id")
+    .notNull()
+    .references(() => groups.id, { onDelete: "cascade" }),
+  number: integer("number").notNull(),
+});
+
+export const matchGames = pgTable("match_games", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  stageId: uuid("stage_id")
+    .notNull()
+    .references(() => stages.id, { onDelete: "cascade" }),
+  parentMatchId: uuid("parent_match_id")
+    .notNull()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  number: integer("number").notNull(),
+  opponent1: jsonb("opponent1"), // Result object
+  opponent2: jsonb("opponent2"), // Result object
+  status: integer("status").notNull(), // Brackets status enum
 });
 
 export const matchParticipation = pgTable(
@@ -575,6 +629,48 @@ export const matchParticipationRelations = relations(
     }),
   })
 );
+
+export const stagesRelations = relations(stages, ({ one, many }) => ({
+  tournament: one(tournaments, {
+    fields: [stages.tournamentId],
+    references: [tournaments.id],
+  }),
+  groups: many(groups),
+  rounds: many(rounds),
+  matches: many(matches),
+}));
+
+export const groupsRelations = relations(groups, ({ one, many }) => ({
+  stage: one(stages, {
+    fields: [groups.stageId],
+    references: [stages.id],
+  }),
+  rounds: many(rounds),
+  matches: many(matches),
+}));
+
+export const roundsRelations = relations(rounds, ({ one, many }) => ({
+  stage: one(stages, {
+    fields: [rounds.stageId],
+    references: [stages.id],
+  }),
+  group: one(groups, {
+    fields: [rounds.groupId],
+    references: [groups.id],
+  }),
+  matches: many(matches),
+}));
+
+export const matchGamesRelations = relations(matchGames, ({ one }) => ({
+  stage: one(stages, {
+    fields: [matchGames.stageId],
+    references: [stages.id],
+  }),
+  parentMatch: one(matches, {
+    fields: [matchGames.parentMatchId],
+    references: [matches.id],
+  }),
+}));
 
 export const matchConfirmationsRelations = relations(
   matchConfirmations,

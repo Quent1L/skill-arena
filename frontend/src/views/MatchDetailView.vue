@@ -44,12 +44,15 @@
 
         <template #content>
           <div class="space-y-6">
-            <!-- Scores et Vainqueur -->
+            <!-- Scores et Vainqueur (only shown if not scheduled) -->
             <div
+              v-if="match.status !== 'scheduled'"
               class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg"
             >
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'B' }">
-                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">Équipe A</div>
+                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
+                  {{ getTeamALabel }}
+                </div>
                 <div
                   class="text-5xl font-bold"
                   :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'"
@@ -74,7 +77,9 @@
               <div class="text-3xl font-bold text-surface-400 pt-8">-</div>
 
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
-                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">Équipe B</div>
+                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
+                  {{ getTeamBLabel }}
+                </div>
                 <div
                   class="text-5xl font-bold"
                   :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'"
@@ -93,6 +98,36 @@
                     severity="success"
                     icon="fa fa-trophy"
                   />
+                </div>
+              </div>
+            </div>
+
+            <!-- Teams display for scheduled matches -->
+            <div
+              v-else
+              class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg"
+            >
+              <div class="text-center flex-1">
+                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
+                  {{ getTeamALabel }}
+                </div>
+                <div v-if="match.teamA?.participants" class="mt-2 text-sm">
+                  <div v-for="p in match.teamA.participants" :key="p.user?.id">
+                    {{ p.user?.displayName }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-3xl font-bold text-surface-400 pt-8">vs</div>
+
+              <div class="text-center flex-1">
+                <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
+                  {{ getTeamBLabel }}
+                </div>
+                <div v-if="match.teamB?.participants" class="mt-2 text-sm">
+                  <div v-for="p in match.teamB.participants" :key="p.user?.id">
+                    {{ p.user?.displayName }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -204,6 +239,33 @@ const canManageMatch = computed(() => {
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
 })
 
+// Get team/opponent label for bracket matches
+const getTeamALabel = computed(() => {
+  if (!match.value) return 'Équipe A'
+  // For bracket matches, use opponent1 name
+  const opponent1 = match.value.opponent1 as { id?: string; name?: string } | undefined
+  if (opponent1?.name) return opponent1.name
+  // Fallback to teamA name or participants
+  if (match.value.teamA?.name) return match.value.teamA.name
+  if (match.value.teamA?.participants?.[0]?.user?.displayName) {
+    return match.value.teamA.participants.map(p => p.user?.displayName).join(', ')
+  }
+  return 'Équipe A'
+})
+
+const getTeamBLabel = computed(() => {
+  if (!match.value) return 'Équipe B'
+  // For bracket matches, use opponent2 name
+  const opponent2 = match.value.opponent2 as { id?: string; name?: string } | undefined
+  if (opponent2?.name) return opponent2.name
+  // Fallback to teamB name or participants
+  if (match.value.teamB?.name) return match.value.teamB.name
+  if (match.value.teamB?.participants?.[0]?.user?.displayName) {
+    return match.value.teamB.participants.map(p => p.user?.displayName).join(', ')
+  }
+  return 'Équipe B'
+})
+
 async function loadMatch() {
   try {
     loading.value = true
@@ -264,7 +326,15 @@ async function handleFinalize(reason: MatchFinalizationReason) {
 
 function completeMatch() {
   if (!match.value || !match.value.tournamentId) return
-  router.push(`/tournaments/${match.value.tournamentId}/create-match?matchId=${match.value.id}`)
+  
+  // Build query params with match data to pre-fill the form
+  const params = new URLSearchParams({
+    matchId: match.value.id,
+    teamAId: match.value.teamAId || '',
+    teamBId: match.value.teamBId || '',
+  })
+  
+  router.push(`/tournaments/${match.value.tournamentId}/create-match?${params.toString()}`)
 }
 
 function getStatusLabel(status: string): string {

@@ -84,8 +84,9 @@
             </div>
           </Tab>
           <Tab :value="isBracketMode ? '1' : '0'">Classement</Tab>
-          <Tab :value="isBracketMode ? '2' : '1'">Matchs</Tab>
-          <Tab :value="isBracketMode ? '3' : '2'">
+          <!-- Hide MatchList tab for bracket mode - matches are accessed via bracket -->
+          <Tab v-if="!isBracketMode" value="1">Matchs</Tab>
+          <Tab :value="isBracketMode ? '2' : '2'">
             <div class="flex items-center">
               <div>Participants</div>
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
@@ -103,12 +104,13 @@
           <TabPanel :value="isBracketMode ? '1' : '0'">
             <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
           </TabPanel>
-          <TabPanel :value="isBracketMode ? '2' : '1'">
+          <!-- MatchList panel only for non-bracket mode -->
+          <TabPanel v-if="!isBracketMode" value="1">
             <div class="p-0">
               <MatchList :tournament-id="tournamentId" />
             </div>
           </TabPanel>
-          <TabPanel :value="isBracketMode ? '3' : '2'">
+          <TabPanel :value="isBracketMode ? '2' : '2'">
             <Card>
               <template #content>
                 <!-- Use manager component for bracket mode with admin rights -->

@@ -29,6 +29,7 @@
                   :max-date="tournamentMaxDate"
                   :validation="teamSelectorValidation"
                   :disabled="!canProceedToNext"
+                  :is-edit-mode="isEditMode"
                   @validate="() => validateCurrentStep('1')"
                   @next="() => goToStep(activateCallback, '2')"
                   @create="createMatch"
@@ -358,6 +359,8 @@ async function loadExistingMatch() {
 onMounted(async () => {
   await loadTournament()
   await loadPlayersMap(tournamentId)
+  console.log('isEditMode.value', isEditMode.value)
+  console.log('matchId', matchId)
   if (isEditMode.value) {
     await loadExistingMatch()
   }

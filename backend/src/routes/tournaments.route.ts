@@ -251,14 +251,23 @@ tournaments.post("/:id/generate-bracket", requireAuth, async (c) => {
     return c.json({ error: "Permission refusée" }, 403);
   }
 
-  // Check if bracket already exists
+  // Import bracket generator service early to check and cleanup existing data
+  const { bracketGeneratorService } = await import("../services/bracket-generator.service");
+
+  // Check if bracket already exists (check both matches and stages)
   const { matchRepository } = await import("../repository/match.repository");
   const existingMatches = await matchRepository.list({ tournamentId });
+  const hasExistingStages = await bracketGeneratorService.hasBracketData(tournamentId);
 
   if (existingMatches.length > 0) {
     return c.json({
       error: "Un bracket existe déjà pour ce tournoi. Supprimez les matchs existants avant de générer un nouveau bracket."
     }, 400);
+  }
+
+  // Clean up orphaned stages/groups/rounds if they exist without matches
+  if (hasExistingStages) {
+    await bracketGeneratorService.cleanupBracketData(tournamentId);
   }
 
   // Get bracket type from request body
@@ -278,19 +287,22 @@ tournaments.post("/:id/generate-bracket", requireAuth, async (c) => {
     return c.json({ error: "Au moins 2 participants requis pour générer un bracket" }, 400);
   }
 
-  // Import bracket generator service and team repository
-  const { bracketGeneratorService } = await import("../services/bracket-generator.service");
+  // Import team repository
   const { teamRepository } = await import("../repository/team.repository");
 
   // For participants without teams, create individual teams (for 1v1 bracket mode)
-  const bracketParticipants: { teamId: string; seed: number }[] = [];
+  const bracketParticipants: { teamId: string; seed: number; name: string }[] = [];
   for (let i = 0; i < participants.length; i++) {
     const p = participants[i];
     let teamId: string;
+    let teamName: string;
 
     // If participant doesn't have a team, create one
     if (p.teamId) {
       teamId = p.teamId;
+      // Need to fetch team name
+      const team = await teamRepository.getById(teamId);
+      teamName = team?.name || `Team ${i+1}`;
     } else {
       const team = await teamRepository.createTeamForParticipant(
         tournamentId,
@@ -298,78 +310,33 @@ tournaments.post("/:id/generate-bracket", requireAuth, async (c) => {
         p.id
       );
       teamId = team.id;
+      teamName = team.name;
     }
 
     bracketParticipants.push({
       teamId,
       seed: i + 1,
+      name: teamName,
     });
   }
 
   // Generate bracket
-  const bracket = await bracketGeneratorService.generateBracket(
+  // This now uses BracketsManager internally and writes directly to DB
+  await bracketGeneratorService.generateBracket(
     tournamentId,
     bracketParticipants,
     bracketType
   );
 
-  // Auto-finalize bye matches (matches with only one team)
-  for (const match of bracket) {
-    if (match.teamAId && !match.teamBId) {
-      // Team A has a bye, auto-advance them
-      const createdMatch = await matchRepository.getByIdSimple(match.id!);
-      if (createdMatch) {
-        await matchRepository.update(createdMatch.id, {
-          status: "finalized",
-          winnerId: match.teamAId,
-          winnerSide: "A",
-          finalizedAt: new Date(),
-          finalizationReason: "auto_validation",
-        });
-
-        // Progress the winner to next match
-        if (createdMatch.nextMatchWinId) {
-          const nextMatch = await matchRepository.getByIdSimple(createdMatch.nextMatchWinId);
-          if (nextMatch) {
-            if (!nextMatch.teamAId) {
-              await matchRepository.updateMatchTeam(createdMatch.nextMatchWinId, "A", match.teamAId);
-            } else if (!nextMatch.teamBId) {
-              await matchRepository.updateMatchTeam(createdMatch.nextMatchWinId, "B", match.teamAId);
-            }
-          }
-        }
-      }
-    } else if (!match.teamAId && match.teamBId) {
-      // Team B has a bye, auto-advance them
-      const createdMatch = await matchRepository.getByIdSimple(match.id!);
-      if (createdMatch) {
-        await matchRepository.update(createdMatch.id, {
-          status: "finalized",
-          winnerId: match.teamBId,
-          winnerSide: "B",
-          finalizedAt: new Date(),
-          finalizationReason: "auto_validation",
-        });
-
-        // Progress the winner to next match
-        if (createdMatch.nextMatchWinId) {
-          const nextMatch = await matchRepository.getByIdSimple(createdMatch.nextMatchWinId);
-          if (nextMatch) {
-            if (!nextMatch.teamAId) {
-              await matchRepository.updateMatchTeam(createdMatch.nextMatchWinId, "A", match.teamBId);
-            } else if (!nextMatch.teamBId) {
-              await matchRepository.updateMatchTeam(createdMatch.nextMatchWinId, "B", match.teamBId);
-            }
-          }
-        }
-      }
-    }
-  }
+  // No need to manually finalize byes or save, BracketsManager handles it (mostly).
+  // If byes need progression, BracketsManager usually handles it if we start the stage?
+  // Or we might need to manually trigger updates?
+  // brackets-manager usually sets up the structure. Byes are handled by the structure (empty slots).
+  // We can rely on brackets-viewer to render it correctly.
 
   return c.json({
     success: true,
     bracketType,
-    matchesCreated: bracket.length,
     message: `Bracket ${bracketType} généré avec succès`
   }, 201);
 });
@@ -385,17 +352,13 @@ tournaments.get("/:id/bracket", async (c) => {
     return c.json({ error: "ID de tournoi invalide" }, 400);
   }
 
-  // Import match repository
-  const { matchRepository } = await import("../repository/match.repository");
+  // Import bracket generator service
+  const { bracketGeneratorService } = await import("../services/bracket-generator.service");
 
-  // Get all bracket matches ordered by sequence
-  const bracketMatches = await matchRepository.getBracketMatches(tournamentId);
+  // Get all bracket data using BracketsManager via service
+  const bracketData = await bracketGeneratorService.getBracketData(tournamentId);
 
-  return c.json({
-    tournamentId,
-    matches: bracketMatches,
-    totalMatches: bracketMatches.length,
-  });
+  return c.json(bracketData);
 });
 
 export default tournaments;

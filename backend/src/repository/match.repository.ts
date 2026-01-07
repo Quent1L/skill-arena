@@ -167,6 +167,31 @@ export class MatchRepository {
       }
     }
 
+    // For bracket matches, resolve opponent1/opponent2 to team names
+    // opponent1.id and opponent2.id reference the teams table (bracket participants)
+    if (match.opponent1 || match.opponent2) {
+      const opponent1Data = match.opponent1 as { id?: string; position?: number } | null;
+      const opponent2Data = match.opponent2 as { id?: string; position?: number } | null;
+
+      if (opponent1Data?.id) {
+        const team1 = await db.query.teams.findFirst({
+          where: eq(teams.id, opponent1Data.id),
+        });
+        if (team1) {
+          (match as any).opponent1 = { ...opponent1Data, name: team1.name };
+        }
+      }
+
+      if (opponent2Data?.id) {
+        const team2 = await db.query.teams.findFirst({
+          where: eq(teams.id, opponent2Data.id),
+        });
+        if (team2) {
+          (match as any).opponent2 = { ...opponent2Data, name: team2.name };
+        }
+      }
+    }
+
     return match;
   }
 

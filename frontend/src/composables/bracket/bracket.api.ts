@@ -1,20 +1,23 @@
 import http from '@/config/ApiConfig'
-import type { ClientMatchModel } from '@skill-arena/shared/types/index'
+import type { Stage, Match, MatchGame, Participant, Group, Round } from 'brackets-model'
 
 const BASE_URL = '/api/tournaments'
 
 export type BracketType = 'single' | 'double'
 
+// Using strict types from brackets-model
 export interface BracketResponse {
-  tournamentId: string
-  matches: ClientMatchModel[]
-  totalMatches: number
+  stage: Stage[]
+  match: Match[]
+  match_game: MatchGame[]
+  participant: Participant[]
+  group: Group[]
+  round: Round[]
 }
 
 export interface GenerateBracketResponse {
   success: boolean
   bracketType: BracketType
-  matchesCreated: number
   message: string
 }
 
