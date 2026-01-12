@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../config/database";
-import { teams, tournamentParticipants, appUsers } from "../db/schema";
+import { teams, tournamentRegistrations, appUsers } from "../db/schema";
 
 export class TeamRepository {
   /**
@@ -30,9 +30,9 @@ export class TeamRepository {
 
     // Update participant to link to this team
     await db
-      .update(tournamentParticipants)
+      .update(tournamentRegistrations)
       .set({ teamId: team.id })
-      .where(eq(tournamentParticipants.id, participantId));
+      .where(eq(tournamentRegistrations.id, participantId));
 
     return team;
   }
@@ -44,6 +44,17 @@ export class TeamRepository {
     return await db.query.teams.findFirst({
       where: eq(teams.id, id),
     });
+  }
+  /**
+   * Get team members user IDs
+   */
+  async getTeamMembers(teamId: string): Promise<string[]> {
+    const members = await db
+      .select({ userId: tournamentRegistrations.userId })
+      .from(tournamentRegistrations)
+      .where(eq(tournamentRegistrations.teamId, teamId));
+
+    return members.map((m) => m.userId);
   }
 }
 

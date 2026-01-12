@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { 
-  type MatchStatus, 
+import {
+  type MatchStatus,
   type MatchFinalizationReason,
   type MatchTeamSide,
+  type ParticipantRole,
   matchStatusSchema,
   matchFinalizationReasonSchema,
   matchTeamSideSchema,
+  participantRoleSchema,
 } from "./enums";
 
 // ============================================
@@ -13,6 +15,30 @@ import {
 // ============================================
 
 export type BracketType = 'winner' | 'loser' | 'grand_final';
+
+export interface MatchParticipantPlayer {
+  playerId: string;
+  player?: {
+    id: string;
+    displayName: string;
+    avatarUrl?: string;
+  };
+}
+
+export interface MatchParticipant {
+  id: string;
+  matchId: string;
+  teamId?: string;
+  role: ParticipantRole;
+  position: number;
+  score: number;
+  isWinner: boolean;
+  team?: {
+    id: string;
+    name: string;
+  };
+  players?: MatchParticipantPlayer[];
+}
 
 export interface Match {
   id: string;
@@ -23,12 +49,10 @@ export interface Match {
   matchPosition?: number;
   nextMatchWinId?: string;
   nextMatchLoseId?: string;
-  teamAId?: string;
-  teamBId?: string;
-  scoreA: number;
-  scoreB: number;
-  winnerId?: string;
-  winnerSide?: MatchTeamSide;
+
+  // New unified participant model
+  participants: MatchParticipant[];
+
   status: MatchStatus;
   reportedBy?: string;
   reportedAt?: string;
@@ -89,26 +113,9 @@ export interface MatchModel extends Match {
     teamMode: string;
     mode?: string;
   };
-  teamA?: {
-    id: string;
-    name?: string;
-    participants?: Array<{
-      user?: {
-        id: string;
-        displayName: string;
-      };
-    }>;
-  };
-  teamB?: {
-    id: string;
-    name?: string;
-    participants?: Array<{
-      user?: {
-        id: string;
-        displayName: string;
-      };
-    }>;
-  };
+  // Legacy fields removed from interface to enforce usage of participants
+  // teamA, teamB are now accessed via participants array
+
   // Bracket match opponents (from brackets-manager)
   opponent1?: BracketOpponent;
   opponent2?: BracketOpponent;
@@ -124,16 +131,6 @@ export interface MatchModel extends Match {
     id: string;
     displayName: string;
   };
-  participations?: Array<{
-    id: string;
-    matchId: string;
-    playerId: string;
-    teamSide: MatchTeamSide;
-    player?: {
-      id: string;
-      displayName: string;
-    };
-  }>;
   confirmations?: MatchConfirmation[];
 }
 

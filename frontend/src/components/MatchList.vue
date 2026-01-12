@@ -30,21 +30,21 @@
             <div
               class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4"
             >
-              <!-- Team A -->
+              <!-- Team A (Position 1) -->
               <div
                 class="flex items-center justify-center sm:justify-end gap-2 flex-1 min-w-0 order-1 sm:order-1"
               >
                 <span
                   :class="[
                     'text-sm md:text-base lg:text-lg font-medium text-gray-900 dark:text-white truncate text-center sm:text-right',
-                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'A' },
+                    { 'font-bold text-green-600 dark:text-green-400': isWinner(match, 1) },
                   ]"
-                  :title="getFullTeamLabel(match.teamA)"
+                  :title="getName(match, 1)"
                 >
-                  {{ getTeamLabel(match.teamA) }}
+                  {{ getName(match, 1) }}
                 </span>
                 <i
-                  v-if="match.winnerSide === 'A'"
+                  v-if="isWinner(match, 1)"
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>
@@ -57,23 +57,23 @@
                 <span
                   :class="[
                     'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'A'
+                    isWinner(match, 1)
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-800 dark:text-gray-100',
                   ]"
                 >
-                  {{ match.scoreA }}
+                  {{ getScore(match, 1) }}
                 </span>
                 <span class="text-gray-400">-</span>
                 <span
                   :class="[
                     'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'B'
+                    isWinner(match, 2)
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-800 dark:text-gray-100',
                   ]"
                 >
-                  {{ match.scoreB }}
+                  {{ getScore(match, 2) }}
                 </span>
               </div>
 
@@ -85,21 +85,21 @@
                 <span class="text-base md:text-lg font-semibold text-gray-400">VS</span>
               </div>
 
-              <!-- Team B -->
+              <!-- Team B (Position 2) -->
               <div
                 class="flex items-center justify-center sm:justify-start gap-2 flex-1 min-w-0 order-3 sm:order-3"
               >
                 <span
                   :class="[
                     'text-sm md:text-base lg:text-lg font-medium text-gray-900 dark:text-white truncate text-center sm:text-left',
-                    { 'font-bold text-green-600 dark:text-green-400': match.winnerSide === 'B' },
+                    { 'font-bold text-green-600 dark:text-green-400': isWinner(match, 2) },
                   ]"
-                  :title="getFullTeamLabel(match.teamB)"
+                  :title="getName(match, 2)"
                 >
-                  {{ getTeamLabel(match.teamB) }}
+                  {{ getName(match, 2) }}
                 </span>
                 <i
-                  v-if="match.winnerSide === 'B'"
+                  v-if="isWinner(match, 2)"
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>
@@ -121,6 +121,7 @@ import { useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match/match.service'
 import { useViewport } from '@/composables/useViewport'
 import type { ClientMatchModel } from '@skill-arena/shared/types/index'
+import { getParticipant, getParticipantName } from '@/utils/match-participants'
 
 interface Props {
   tournamentId?: string
@@ -154,49 +155,11 @@ function formatDate(date: string | Date) {
   return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
 }
 
-function getTeamLabel(
-  team: { name?: string; participants?: Array<{ user?: { displayName?: string } }> } | undefined,
-): string {
-  if (!team) return 'N/A'
-
-  // Adjust max length based on screen size
-  // Use a more generous limit to avoid unnecessary truncation
-  const maxLength = isMobile.value ? 30 : 45
-
-  if (team.name) {
-    return team.name.length > maxLength ? team.name.substring(0, maxLength) + '...' : team.name
-  }
-
-  // For teams with participants
-  if (team.participants && team.participants.length > 0) {
-    const names = team.participants.map((p) => p.user?.displayName || 'Joueur')
-    const label = names.join(', ')
-
-    // Only truncate if the label is actually too long
-    // This ensures we show all names if there's space
-    if (label.length > maxLength) {
-      // Show first name + count if too long
-      const first = names[0] || 'Joueur'
-      const rest = names.length - 1
-      return rest > 0 ? `${first} +${rest}` : first.substring(0, maxLength) + '...'
-    }
-
-    // If we have space, show all names
-    return label
-  }
-  return 'Équipe'
-}
-
-function getFullTeamLabel(
-  team: { name?: string; participants?: Array<{ user?: { displayName?: string } }> } | undefined,
-): string {
-  if (!team) return 'N/A'
-  if (team.name) return team.name
-  if (team.participants && team.participants.length > 0) {
-    return team.participants.map((p) => p.user?.displayName || 'Joueur').join(', ')
-  }
-  return 'Équipe'
-}
+// Helper accessors for template
+const getP = (match: ClientMatchModel, pos: number) => getParticipant(match, pos)
+const getName = (match: ClientMatchModel, pos: number) => getParticipantName(getParticipant(match, pos))
+const getScore = (match: ClientMatchModel, pos: number) => getParticipant(match, pos)?.score ?? 0
+const isWinner = (match: ClientMatchModel, pos: number) => getParticipant(match, pos)?.isWinner ?? false
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {

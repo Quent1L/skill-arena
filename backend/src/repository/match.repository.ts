@@ -1,52 +1,59 @@
-import { eq, and, ne, sql, count } from "drizzle-orm";
+import { eq, and, ne, sql, count, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   matches,
-  matchParticipation,
-  tournamentParticipants,
-  teams,
+  matchSides,
+  tournamentEntries,
+  tournamentEntryPlayers,
   tournaments,
   appUsers,
+  teams,
 } from "../db/schema";
-import { type MatchStatus, type MatchFinalizationReason, type MatchTeamSide } from "@skill-arena/shared/types/index";
+import { type MatchStatus } from "@skill-arena/shared/types/index";
 
-// Type for synthetic team object used in flex team mode
-type AppUser = typeof appUsers.$inferSelect;
-
-interface SyntheticTeamParticipant {
-  user: AppUser;
-}
-
-interface SyntheticTeam {
-  participants: SyntheticTeamParticipant[];
-}
+// TODO: Update types in shared package or define here temporarily
+// export interface CreateMatchData { ... } matching new schema
 
 export interface CreateMatchData {
   tournamentId: string;
   round?: number;
-  teamAId?: string;
-  teamBId?: string;
-  scoreA?: number;
-  scoreB?: number;
-  winnerId?: string;
-  winnerSide?: MatchTeamSide;
+  // stage/group/round FKs
+  stageId: string;
+  groupId?: string;
+  roundId?: string;
+  matchNumber: number;
+
   status?: MatchStatus;
+  scheduledAt?: Date;
+
   reportedBy?: string;
   reportedAt?: Date;
   reportProof?: string;
   confirmationDeadline?: Date;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
+
+  // Brackets fields
+  bracketType?: "winner" | "loser" | "grand_final";
+  sequence?: number; // Check if still needed in new schema
+  nextMatchWinId?: string;
+  nextMatchLoseId?: string;
+  matchPosition?: number;
+  childCount?: number;
+  bracketStatus?: number;
+  opponent1?: unknown;
+  opponent2?: unknown;
+
+  // Sides to create immediately
+  sides?: {
+    entryId: string;
+    position: number;
+    score?: number;
+    pointsAwarded?: number;
+  }[];
 }
 
 export interface UpdateMatchData {
-  round?: number;
-  teamAId?: string;
-  teamBId?: string;
-  scoreA?: number;
-  scoreB?: number;
-  winnerId?: string;
-  winnerSide?: MatchTeamSide;
   status?: MatchStatus;
   reportedBy?: string;
   reportedAt?: Date;
@@ -54,24 +61,29 @@ export interface UpdateMatchData {
   confirmationDeadline?: Date;
   finalizedAt?: Date;
   finalizedBy?: string;
-  finalizationReason?: MatchFinalizationReason;
-  playedAt?: Date;
+  // finalizationReason?: MatchFinalizationReason; // Removed from schema? Or kept? Checked schema: removed from enum? No, kept as enum but check column. matches table in schema update has `finalizationReason`? I don't see it in matches table definition in previous turn.
+  // Actually I removed `matchFinalizationReasonEnum` usage in matches table in my replace.
+  // It was in the diff:
+  // -  finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
+  // So likely removed.
+
+  scheduledAt?: Date;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
   nextMatchWinId?: string;
   nextMatchLoseId?: string;
+  opponent1?: unknown; // JSONB
+  opponent2?: unknown; // JSONB
+
+  // TODO: Add support for updating sides via this method or separate repository call
 }
 
 export interface MatchFilters {
   tournamentId?: string;
   status?: MatchStatus;
-  round?: number;
-}
-
-export interface CreateMatchParticipationData {
-  matchId: string;
-  playerId: string;
-  teamSide: "A" | "B";
+  stageId?: string;
+  groupId?: string;
+  roundId?: string;
 }
 
 export class MatchRepository {
@@ -79,7 +91,21 @@ export class MatchRepository {
    * Create a new match
    */
   async create(data: CreateMatchData) {
-    const [match] = await db.insert(matches).values(data).returning();
+    const { sides, ...matchData } = data;
+
+    // 1. Create the match
+    const [match] = await db.insert(matches).values(matchData).returning();
+
+    // 2. Create sides if provided
+    if (sides && sides.length > 0) {
+      await db.insert(matchSides).values(
+        sides.map(s => ({
+          matchId: match.id,
+          ...s
+        }))
+      );
+    }
+
     return match;
   }
 
@@ -91,26 +117,26 @@ export class MatchRepository {
       where: eq(matches.id, id),
       with: {
         tournament: true,
-        teamA: {
+        stage: true,
+        group: true,
+        round: true,
+        sides: {
           with: {
-            participants: {
+            entry: {
               with: {
-                user: true,
-              },
-            },
+                team: true,
+                players: {
+                  with: {
+                    player: true
+                  }
+                }
+              }
+            }
           },
+          orderBy: (matchSides, { asc }) => [asc(matchSides.position)],
         },
-        teamB: {
-          with: {
-            participants: {
-              with: {
-                user: true,
-              },
-            },
-          },
-        },
-        winner: true,
         reporter: true,
+        finalizer: true,
         outcomeType: {
           with: {
             discipline: true,
@@ -118,17 +144,8 @@ export class MatchRepository {
         },
         outcomeReason: {
           with: {
-            outcomeType: {
-              with: {
-                discipline: true,
-              },
-            },
-          },
-        },
-        participations: {
-          with: {
-            player: true,
-          },
+            outcomeType: true
+          }
         },
         confirmations: {
           with: {
@@ -138,59 +155,7 @@ export class MatchRepository {
       },
     });
 
-    if (!match) return match;
-
-    // If tournament uses flex teams, matches may not have teamA/teamB rows.
-    // Populate synthetic team objects from participations so frontend gets participant info.
-    if (
-      (!match.teamA || !match.teamB) &&
-      match.participations &&
-      match.participations.length > 0
-    ) {
-      const playersA: SyntheticTeamParticipant[] = match.participations
-        .filter((p) => p.teamSide === "A")
-        .map((p) => ({ user: p.player }));
-
-      const playersB: SyntheticTeamParticipant[] = match.participations
-        .filter((p) => p.teamSide === "B")
-        .map((p) => ({ user: p.player }));
-
-      const syntheticTeamA: SyntheticTeam = { participants: playersA };
-      const syntheticTeamB: SyntheticTeam = { participants: playersB };
-
-      // Use unknown as intermediate type for type-safe casting
-      if (!match.teamA) {
-        match.teamA = syntheticTeamA as unknown as typeof match.teamA;
-      }
-      if (!match.teamB) {
-        match.teamB = syntheticTeamB as unknown as typeof match.teamB;
-      }
-    }
-
-    // For bracket matches, resolve opponent1/opponent2 to team names
-    // opponent1.id and opponent2.id reference the teams table (bracket participants)
-    if (match.opponent1 || match.opponent2) {
-      const opponent1Data = match.opponent1 as { id?: string; position?: number } | null;
-      const opponent2Data = match.opponent2 as { id?: string; position?: number } | null;
-
-      if (opponent1Data?.id) {
-        const team1 = await db.query.teams.findFirst({
-          where: eq(teams.id, opponent1Data.id),
-        });
-        if (team1) {
-          (match as any).opponent1 = { ...opponent1Data, name: team1.name };
-        }
-      }
-
-      if (opponent2Data?.id) {
-        const team2 = await db.query.teams.findFirst({
-          where: eq(teams.id, opponent2Data.id),
-        });
-        if (team2) {
-          (match as any).opponent2 = { ...opponent2Data, name: team2.name };
-        }
-      }
-    }
+    if (!match) return null;
 
     return match;
   }
@@ -216,94 +181,42 @@ export class MatchRepository {
     if (filters?.status) {
       conditions.push(eq(matches.status, filters.status));
     }
-    if (filters?.round) {
-      conditions.push(eq(matches.round, filters.round));
+    if (filters?.stageId) {
+      conditions.push(eq(matches.stageId, filters.stageId));
+    }
+    if (filters?.groupId) {
+      conditions.push(eq(matches.groupId, filters.groupId));
+    }
+    if (filters?.roundId) {
+      conditions.push(eq(matches.roundId, filters.roundId));
     }
 
     const result = await db.query.matches.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,
       with: {
         tournament: true,
-        teamA: {
+        sides: {
           with: {
-            participants: {
+            entry: {
               with: {
-                user: true,
-              },
-            },
+                team: true,
+                players: {
+                  with: {
+                    player: true
+                  }
+                }
+              }
+            }
           },
+          orderBy: (matchSides, { asc }) => [asc(matchSides.position)],
         },
-        teamB: {
-          with: {
-            participants: {
-              with: {
-                user: true,
-              },
-            },
-          },
-        },
-        // Include participations for flex team mode so frontend can show players
-        participations: {
-          with: {
-            player: true,
-          },
-        },
-        winner: true,
         reporter: true,
-        outcomeType: {
-          with: {
-            discipline: true,
-          },
-        },
-        outcomeReason: {
-          with: {
-            outcomeType: {
-              with: {
-                discipline: true,
-              },
-            },
-          },
-        },
+        outcomeType: true,
       },
       orderBy: (matches, { desc }) => [desc(matches.id)],
     });
 
-    // Post-process results: for flex tournaments where teamA/teamB are null,
-    // synthesize team objects from participations so frontend can render players.
-    const processed = result.map((m) => {
-      if (
-        (!m.teamA || !m.teamB) &&
-        m.participations &&
-        m.participations.length > 0
-      ) {
-        const playersA: SyntheticTeamParticipant[] = m.participations
-          .filter((p) => p.teamSide === "A")
-          .map((p) => ({ user: p.player }));
-
-        const playersB: SyntheticTeamParticipant[] = m.participations
-          .filter((p) => p.teamSide === "B")
-          .map((p) => ({ user: p.player }));
-
-        const syntheticTeamA: SyntheticTeam = { participants: playersA };
-        const syntheticTeamB: SyntheticTeam = { participants: playersB };
-
-        if (!m.teamA) {
-          m.teamA = syntheticTeamA as unknown as typeof m.teamA;
-        }
-        if (!m.teamB) {
-          m.teamB = syntheticTeamB as unknown as typeof m.teamB;
-        }
-      }
-
-      // Ensure createdAt exists (some DB setups may not have it yet)
-      if (!m.createdAt) {
-        m.createdAt = new Date();
-      }
-
-      return m;
-    });
-
-    return processed;
+    return result;
   }
 
   /**
@@ -347,241 +260,112 @@ export class MatchRepository {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
 
-    // For static teams: count matches where user is in teamA or teamB
-    const staticMatches = await db
+    // Match -> MatchSide -> TournamentEntry -> TournamentEntryPlayers -> User
+    const result = await db
       .select({ count: count() })
       .from(matches)
-      .innerJoin(
-        teams,
-        sql`${matches.teamAId} = ${teams.id} OR ${matches.teamBId} = ${teams.id}`
-      )
-      .innerJoin(
-        tournamentParticipants,
-        eq(teams.id, tournamentParticipants.teamId)
-      )
+      .innerJoin(matchSides, eq(matches.id, matchSides.matchId))
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
       .where(
         and(
           ...matchConditions,
-          eq(tournamentParticipants.userId, userId)
+          eq(tournamentEntryPlayers.playerId, userId)
         )
       );
 
-    // For flex teams: count matches where user is in match_participation
-    const flexMatches = await db
-      .select({ count: count() })
-      .from(matches)
-      .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
-      .where(
-        and(
-          ...matchConditions,
-          eq(matchParticipation.playerId, userId)
-        )
-      );
-
-    return (staticMatches[0]?.count ?? 0) + (flexMatches[0]?.count ?? 0);
-  }
-
-  /**
-   * Helper: Get team size for a match (number of players per side)
-   * Returns the size of team A (assumes both teams have same size)
-   */
-  private async getMatchTeamSize(matchId: string): Promise<number> {
-    const participations = await db
-      .select({ teamSide: matchParticipation.teamSide })
-      .from(matchParticipation)
-      .where(eq(matchParticipation.matchId, matchId));
-
-    // Count players in team A (or B, both should be equal)
-    const teamASize = participations.filter(p => p.teamSide === "A").length;
-    return teamASize;
+    return result[0]?.count ?? 0;
   }
 
   /**
    * Count matches between same players (partners)
-   * For flex tournaments, only counts matches with the same team size
    */
   async countMatchesWithSamePartner(
     tournamentId: string,
     userId: string,
     partnerId: string,
-    excludeMatchId?: string,
-    teamSize?: number // Optional: filter by team size (for flex mode)
+    excludeMatchId?: string
   ) {
-    // Simplified implementation - count matches where both users participated
+    // Two users are partners if they are in the SAME TournamentEntry that is in a Match
     const matchConditions = [eq(matches.tournamentId, tournamentId)];
     if (excludeMatchId) {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
 
-    const userMatches = await db
-      .select({ id: matches.id })
-      .from(matches)
-      .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
-      .where(
-        and(
-          ...matchConditions,
-          eq(matchParticipation.playerId, userId)
-        )
-      );
-
-    let count = 0;
-    for (const match of userMatches) {
-      // Check if partner was in the same match on the same team
-      const partnerInMatch = await db
-        .select({ teamSide: matchParticipation.teamSide })
-        .from(matchParticipation)
-        .where(
-          and(
-            eq(matchParticipation.matchId, match.id),
-            eq(matchParticipation.playerId, partnerId)
+    // This is checking if they played TOGETHER (same side)
+    const result = await db.execute(sql`
+        SELECT COUNT(DISTINCT m.id) as count
+        FROM matches m
+        JOIN match_sides ms ON m.id = ms.match_id
+        JOIN tournament_entries te ON ms.entry_id = te.id
+        WHERE m.tournament_id = ${tournamentId}
+          ${excludeMatchId ? sql`AND m.id != ${excludeMatchId}` : sql``}
+          AND EXISTS (
+             SELECT 1 FROM tournament_entry_players tep1 
+             WHERE tep1.entry_id = te.id AND tep1.player_id = ${userId}
           )
-        );
-
-      if (partnerInMatch.length === 0) {
-        continue; // Partner not in this match
-      }
-
-      // If teamSize is specified (flex mode), check if match has same team size
-      if (teamSize !== undefined) {
-        const matchTeamSize = await this.getMatchTeamSize(match.id);
-        if (matchTeamSize !== teamSize) {
-          continue; // Different team size, skip
-        }
-      }
-
-      // Also verify they were on the same team
-      const userSide = await db
-        .select({ teamSide: matchParticipation.teamSide })
-        .from(matchParticipation)
-        .where(
-          and(
-            eq(matchParticipation.matchId, match.id),
-            eq(matchParticipation.playerId, userId)
+          AND EXISTS (
+             SELECT 1 FROM tournament_entry_players tep2
+             WHERE tep2.entry_id = te.id AND tep2.player_id = ${partnerId}
           )
-        );
+    `);
 
-      if (userSide.length > 0 && userSide[0].teamSide === partnerInMatch[0].teamSide) {
-        count++;
-      }
-    }
-
-    return count;
+    return Number(result[0]?.count ?? 0);
   }
 
   /**
    * Count matches against same opponent
-   * For flex tournaments, only counts matches with the same team size
    */
   async countMatchesWithSameOpponent(
     tournamentId: string,
     userId: string,
     opponentId: string,
-    excludeMatchId?: string,
-    teamSize?: number // Optional: filter by team size (for flex mode)
+    excludeMatchId?: string
   ) {
-    // Simplified implementation
-    const matchConditions = [eq(matches.tournamentId, tournamentId)];
-    if (excludeMatchId) {
-      matchConditions.push(ne(matches.id, excludeMatchId));
-    }
+    // Two users are opponents if they are in DIFFERENT TournamentEntries (Sides) of the SAME Match
 
-    const userMatches = await db
-      .select({ id: matches.id, teamSide: matchParticipation.teamSide })
-      .from(matches)
-      .innerJoin(matchParticipation, eq(matches.id, matchParticipation.matchId))
-      .where(
-        and(
-          ...matchConditions,
-          eq(matchParticipation.playerId, userId)
-        )
-      );
+    // Logic:
+    // Match M
+    // Side S1 -> Entry E1 -> Player User
+    // Side S2 -> Entry E2 -> Player Opponent
+    // S1 != S2
 
-    let count = 0;
-    for (const userMatch of userMatches) {
-      // Check if opponent was in the same match on the opposite team
-      const opponentInMatch = await db
-        .select()
-        .from(matchParticipation)
-        .where(
-          and(
-            eq(matchParticipation.matchId, userMatch.id),
-            eq(matchParticipation.playerId, opponentId),
-            sql`${matchParticipation.teamSide} != ${userMatch.teamSide}`
-          )
-        );
+    const result = await db.execute(sql`
+        SELECT COUNT(DISTINCT m.id) as count
+        FROM matches m
+        JOIN match_sides s1 ON m.id = s1.match_id
+        JOIN tournament_entries e1 ON s1.entry_id = e1.id
+        JOIN tournament_entry_players tep1 ON e1.id = tep1.entry_id
+        
+        JOIN match_sides s2 ON m.id = s2.match_id
+        JOIN tournament_entries e2 ON s2.entry_id = e2.id
+        JOIN tournament_entry_players tep2 ON e2.id = tep2.entry_id
+        
+        WHERE m.tournament_id = ${tournamentId}
+          ${excludeMatchId ? sql`AND m.id != ${excludeMatchId}` : sql``}
+          AND tep1.player_id = ${userId}
+          AND tep2.player_id = ${opponentId}
+          AND s1.id != s2.id
+    `);
 
-      if (opponentInMatch.length === 0) {
-        continue; // Opponent not in this match on opposite team
-      }
-
-      // If teamSize is specified (flex mode), check if match has same team size
-      if (teamSize !== undefined) {
-        const matchTeamSize = await this.getMatchTeamSize(userMatch.id);
-        if (matchTeamSize !== teamSize) {
-          continue; // Different team size, skip
-        }
-      }
-
-      count++;
-    }
-
-    return count;
+    return Number(result[0]?.count ?? 0);
   }
 
   /**
-   * Create match participation (for flex teams)
-   */
-  async createMatchParticipation(data: CreateMatchParticipationData) {
-    const [participation] = await db
-      .insert(matchParticipation)
-      .values(data)
-      .returning();
-    return participation;
-  }
-
-  /**
-   * Delete match participation
-   */
-  async deleteMatchParticipation(matchId: string) {
-    await db
-      .delete(matchParticipation)
-      .where(eq(matchParticipation.matchId, matchId));
-  }
-
-  /**
-   * Check if user is participant in match
+   * Check if user is in match
    */
   async isUserInMatch(matchId: string, userId: string): Promise<boolean> {
-    // Check static teams
-    const staticParticipation = await db
-      .select()
-      .from(matches)
-      .innerJoin(
-        teams,
-        sql`${matches.teamAId} = ${teams.id} OR ${matches.teamBId} = ${teams.id}`
-      )
-      .innerJoin(
-        tournamentParticipants,
-        eq(teams.id, tournamentParticipants.teamId)
-      )
-      .where(
-        and(eq(matches.id, matchId), eq(tournamentParticipants.userId, userId))
-      )
-      .limit(1);
+    const result = await db
+      .select({ count: count() })
+      .from(matchSides)
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+      .where(and(
+        eq(matchSides.matchId, matchId),
+        eq(tournamentEntryPlayers.playerId, userId)
+      ));
 
-    if (staticParticipation.length > 0) {
-      return true;
-    }
-
-    // Check flex teams
-    const flexParticipation = await db.query.matchParticipation.findFirst({
-      where: and(
-        eq(matchParticipation.matchId, matchId),
-        eq(matchParticipation.playerId, userId)
-      ),
-    });
-
-    return !!flexParticipation;
+    return (result[0]?.count ?? 0) > 0;
   }
 
   /**
@@ -593,9 +377,66 @@ export class MatchRepository {
     });
   }
 
+  // syncOpponentsFromParticipants removed or adapted? 
+  // It was used for compatibility with brackets-manager which expects opponent1/opponent2 in match table.
+  // In new schema we still have opponent1/opponent2 jsonb fields in matches.
+  // So we should adapt it to read from matchSides.
+
   /**
-   * Check if teams exist and belong to tournament
+   * Update scores for match sides
    */
+  async updateSideScores(matchId: string, scoreA: number | null, scoreB: number | null) {
+    const sides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, matchId),
+      orderBy: (matchSides, { asc }) => [asc(matchSides.position)],
+    });
+
+    if (sides.length >= 2) {
+      if (scoreA !== null && sides[0]) {
+        await db.update(matchSides).set({ score: scoreA }).where(eq(matchSides.id, sides[0].id));
+      }
+      if (scoreB !== null && sides[1]) {
+        await db.update(matchSides).set({ score: scoreB }).where(eq(matchSides.id, sides[1].id));
+      }
+    }
+  }
+
+  async syncOpponentsFromParticipants(matchId: string) {
+    const sides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, matchId),
+      orderBy: (matchSides, { asc }) => [asc(matchSides.position)],
+      with: {
+        entry: true
+      }
+    });
+
+    const p1 = sides[0];
+    const p2 = sides[1];
+
+    // Format depends on what brackets-manager expects. Assuming similar structure.
+    const opponent1 = p1 ? {
+      id: p1.entryId, // Or teamId if entry has it? Bracket manager usually wants participant ID.
+      position: p1.position,
+      score: p1.score,
+      result: p1.score != null ? (p1.score > (p2?.score ?? -1) ? 'win' : 'loss') : null // Simplified logic
+    } : null;
+
+    const opponent2 = p2 ? {
+      id: p2.entryId,
+      position: p2.position,
+      score: p2.score,
+      result: p2.score != null ? (p2.score > (p1?.score ?? -1) ? 'win' : 'loss') : null
+    } : null;
+
+    await db.update(matches)
+      .set({ opponent1, opponent2 })
+      .where(eq(matches.id, matchId));
+  }
+  // ... inside MatchRepository class
+
+  /**
+    * Check if teams exist and belong to tournament
+    */
   async validateTeamsForTournament(
     tournamentId: string,
     teamAId?: string,
@@ -632,13 +473,17 @@ export class MatchRepository {
     playerIds: string[]
   ) {
     for (const playerId of playerIds) {
-      const participant = await db.query.tournamentParticipants.findFirst({
-        where: and(
-          eq(tournamentParticipants.tournamentId, tournamentId),
-          eq(tournamentParticipants.userId, playerId)
-        ),
-      });
-      if (!participant) {
+      // Check in tournamentEntryPlayers
+      const entryPlayer = await db.select()
+        .from(tournamentEntryPlayers)
+        .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+        .where(and(
+          eq(tournamentEntries.tournamentId, tournamentId),
+          eq(tournamentEntryPlayers.playerId, playerId)
+        ))
+        .limit(1);
+
+      if (entryPlayer.length === 0) {
         throw new Error(`Joueur ${playerId} n'est pas inscrit au tournoi`);
       }
     }
@@ -648,52 +493,20 @@ export class MatchRepository {
    * Get all participations for a match
    */
   async getParticipationsByMatchId(matchId: string) {
-    return await db.query.matchParticipation.findMany({
-      where: eq(matchParticipation.matchId, matchId),
-      with: {
-        player: true,
-      },
-    });
-  }
+    // Retrieve sides -> entry -> players
+    const result = await db
+      .select({
+        player: appUsers
+      })
+      .from(matchSides)
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+      .innerJoin(appUsers, eq(tournamentEntryPlayers.playerId, appUsers.id))
+      .where(eq(matchSides.matchId, matchId));
 
-  /**
-   * Update match team (for bracket progression)
-   */
-  async updateMatchTeam(matchId: string, side: "A" | "B", teamId: string) {
-    const updateData = side === "A" ? { teamAId: teamId } : { teamBId: teamId };
-    await db.update(matches).set(updateData).where(eq(matches.id, matchId));
-  }
-
-  /**
-   * Get next match for winner or loser
-   */
-  async getNextMatch(matchId: string, isWinner: boolean) {
-    const match = await db.query.matches.findFirst({
-      where: eq(matches.id, matchId),
-    });
-
-    if (!match) return null;
-
-    const nextMatchId = isWinner ? match.nextMatchWinId : match.nextMatchLoseId;
-    if (!nextMatchId) return null;
-
-    return await this.getByIdSimple(nextMatchId);
-  }
-
-  /**
-   * Get all bracket matches for a tournament, ordered by sequence
-   */
-  async getBracketMatches(tournamentId: string) {
-    return await db.query.matches.findMany({
-      where: eq(matches.tournamentId, tournamentId),
-      orderBy: (matches, { asc }) => [asc(matches.sequence)],
-      with: {
-        teamA: true,
-        teamB: true,
-        winner: true,
-      },
-    });
+    return result.map(r => ({ player: r.player }));
   }
 }
 
 export const matchRepository = new MatchRepository();
+

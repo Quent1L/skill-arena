@@ -58,16 +58,11 @@ export class StandingsService {
       );
     }
 
-    // 4. Get match participations for flex mode if needed
-    const matchParticipations =
-      tournament.teamMode === "flex"
-        ? await standingsRepository.getMatchParticipations(
-            matches.map((m) => m.id)
-          )
-        : [];
-
-    // 5. Process each match
+    // 4. Process each match
     for (const match of matches) {
+      // Skip if not enough participants (need 2 for score calculation usually)
+      if (!match.participants || match.participants.length < 2) continue;
+
       if (tournament.teamMode === "static") {
         this.processStaticTeamMatch(
           match,
@@ -77,14 +72,13 @@ export class StandingsService {
       } else {
         this.processFlexTeamMatch(
           match,
-          matchParticipations,
           standingsMap,
           tournament
         );
       }
     }
 
-    // 6. Convert map to array and sort
+    // 5. Convert map to array and sort
     const standings = Array.from(standingsMap.values());
     this.sortStandings(standings);
 
@@ -146,15 +140,7 @@ export class StandingsService {
    * Process a match for static team mode
    */
   private processStaticTeamMatch(
-    match: {
-      id: string;
-      teamAId: string | null;
-      teamBId: string | null;
-      scoreA: number;
-      scoreB: number;
-      winnerId: string | null;
-      winnerSide: "A" | "B" | null;
-    },
+    match: any, // Typed as result of getMatchesForStandings
     standingsMap: Map<string, StandingsEntry>,
     tournament: {
       pointPerVictory: number | null;
@@ -163,75 +149,70 @@ export class StandingsService {
       allowDraw: boolean | null;
     }
   ) {
-    if (!match.teamAId || !match.teamBId) {
-      return;
-    }
+    const p1 = match.participants[0];
+    const p2 = match.participants[1];
 
-    const teamA = standingsMap.get(match.teamAId);
-    const teamB = standingsMap.get(match.teamBId);
+    if (!p1.teamId || !p2.teamId) return;
 
-    if (!teamA || !teamB) {
-      return;
-    }
+    const team1 = standingsMap.get(p1.teamId);
+    const team2 = standingsMap.get(p2.teamId);
+
+    if (!team1 || !team2) return;
+
+    const score1 = p1.score ?? 0;
+    const score2 = p2.score ?? 0;
 
     // Update scores
-    teamA.scored += match.scoreA;
-    teamA.conceded += match.scoreB;
-    teamB.scored += match.scoreB;
-    teamB.conceded += match.scoreA;
+    team1.scored += score1;
+    team1.conceded += score2;
+    team2.scored += score2;
+    team2.conceded += score1;
 
     // Update score difference
-    teamA.scoreDiff = teamA.scored - teamA.conceded;
-    teamB.scoreDiff = teamB.scored - teamB.conceded;
+    team1.scoreDiff = team1.scored - team1.conceded;
+    team2.scoreDiff = team2.scored - team2.conceded;
 
     // Determine result
-    const isDraw = match.scoreA === match.scoreB && tournament.allowDraw;
+    const isDraw = score1 === score2 && tournament.allowDraw;
 
     if (isDraw) {
-      teamA.draws += 1;
-      teamB.draws += 1;
-      teamA.points += tournament.pointPerDraw ?? 1;
-      teamB.points += tournament.pointPerDraw ?? 1;
-    } else if (match.winnerId) {
-      if (match.winnerId === match.teamAId) {
-        teamA.wins += 1;
-        teamB.losses += 1;
-        teamA.points += tournament.pointPerVictory ?? 3;
-        teamB.points += tournament.pointPerLoss ?? 0;
-      } else {
-        teamB.wins += 1;
-        teamA.losses += 1;
-        teamB.points += tournament.pointPerVictory ?? 3;
-        teamA.points += tournament.pointPerLoss ?? 0;
+      team1.draws += 1;
+      team2.draws += 1;
+      team1.points += tournament.pointPerDraw ?? 1;
+      team2.points += tournament.pointPerDraw ?? 1;
+    } else if (p1.isWinner) {
+      team1.wins += 1;
+      team2.losses += 1;
+      team1.points += tournament.pointPerVictory ?? 3;
+      team2.points += tournament.pointPerLoss ?? 0;
+    } else if (p2.isWinner) {
+      team2.wins += 1;
+      team1.losses += 1;
+      team2.points += tournament.pointPerVictory ?? 3;
+      team1.points += tournament.pointPerLoss ?? 0;
+    } else {
+      // Fallback based on score if isWinner not set properly or draw not allowed but scores equal?
+      if (score1 > score2) {
+        team1.wins += 1; team2.losses += 1;
+        team1.points += tournament.pointPerVictory ?? 3;
+        team2.points += tournament.pointPerLoss ?? 0;
+      } else if (score2 > score1) {
+        team2.wins += 1; team1.losses += 1;
+        team2.points += tournament.pointPerVictory ?? 3;
+        team1.points += tournament.pointPerLoss ?? 0;
       }
     }
 
     // Increment matches played
-    teamA.matchesPlayed += 1;
-    teamB.matchesPlayed += 1;
+    team1.matchesPlayed += 1;
+    team2.matchesPlayed += 1;
   }
 
   /**
    * Process a match for flex team mode
    */
   private processFlexTeamMatch(
-    match: {
-      id: string;
-      teamAId: string | null;
-      teamBId: string | null;
-      scoreA: number;
-      scoreB: number;
-      winnerId: string | null;
-      winnerSide: "A" | "B" | null;
-    },
-    matchParticipations: Array<{
-      matchId: string;
-      playerId: string;
-      teamSide: "A" | "B";
-      player: {
-        id: string;
-      };
-    }>,
+    match: any,
     standingsMap: Map<string, StandingsEntry>,
     tournament: {
       pointPerVictory: number | null;
@@ -240,62 +221,61 @@ export class StandingsService {
       allowDraw: boolean | null;
     }
   ) {
-    // Get players for each side
-    const playersA = matchParticipations
-      .filter((p) => p.matchId === match.id && p.teamSide === "A")
-      .map((p) => p.playerId);
+    const p1 = match.participants[0];
+    const p2 = match.participants[1];
 
-    const playersB = matchParticipations
-      .filter((p) => p.matchId === match.id && p.teamSide === "B")
-      .map((p) => p.playerId);
+    // Get players for each side from match_participant_players relation
+    const players1 = p1.players?.map((pp: any) => pp.playerId) ?? [];
+    const players2 = p2.players?.map((pp: any) => pp.playerId) ?? [];
 
-    // Determine result
-    const isDraw = match.scoreA === match.scoreB && tournament.allowDraw;
-    const teamAWins = match.winnerSide === "A";
+    const score1 = p1.score ?? 0;
+    const score2 = p2.score ?? 0;
 
-    // Update stats for all players in team A
-    for (const playerId of playersA) {
+    const isDraw = score1 === score2 && tournament.allowDraw;
+    const p1Wins = p1.isWinner || (score1 > score2 && !isDraw); // Helper logic
+    const p2Wins = p2.isWinner || (score2 > score1 && !isDraw);
+
+    // Update stats for all players in team 1
+    for (const playerId of players1) {
       const player = standingsMap.get(playerId);
       if (!player) continue;
 
-      player.scored += match.scoreA;
-      player.conceded += match.scoreB;
+      player.scored += score1;
+      player.conceded += score2;
       player.scoreDiff = player.scored - player.conceded;
 
       if (isDraw) {
         player.draws += 1;
         player.points += tournament.pointPerDraw ?? 1;
-      } else if (teamAWins) {
+      } else if (p1Wins) {
         player.wins += 1;
         player.points += tournament.pointPerVictory ?? 3;
       } else {
         player.losses += 1;
         player.points += tournament.pointPerLoss ?? 0;
       }
-
       player.matchesPlayed += 1;
     }
 
-    // Update stats for all players in team B
-    for (const playerId of playersB) {
+    // Update stats for all players in team 2
+    for (const playerId of players2) {
       const player = standingsMap.get(playerId);
       if (!player) continue;
 
-      player.scored += match.scoreB;
-      player.conceded += match.scoreA;
+      player.scored += score2;
+      player.conceded += score1;
       player.scoreDiff = player.scored - player.conceded;
 
       if (isDraw) {
         player.draws += 1;
         player.points += tournament.pointPerDraw ?? 1;
-      } else if (teamAWins) {
+      } else if (p1Wins) { // p1 won means p2 lost
         player.losses += 1;
         player.points += tournament.pointPerLoss ?? 0;
       } else {
         player.wins += 1;
         player.points += tournament.pointPerVictory ?? 3;
       }
-
       player.matchesPlayed += 1;
     }
   }
@@ -331,4 +311,3 @@ export class StandingsService {
 }
 
 export const standingsService = new StandingsService();
-

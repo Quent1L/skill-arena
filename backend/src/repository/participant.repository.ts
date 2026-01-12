@@ -1,6 +1,6 @@
 import { eq, and, ilike } from "drizzle-orm";
 import { db } from "../config/database";
-import { tournaments, tournamentParticipants, appUsers } from "../db/schema";
+import { tournaments, tournamentEntries, appUsers, tournamentEntryPlayers, teams, entryTypeEnum } from "../db/schema";
 
 export class ParticipantRepository {
   async findTournamentById(tournamentId: string) {
@@ -15,82 +15,105 @@ export class ParticipantRepository {
     userId: string,
     tournamentId: string
   ) {
-    return await db
-      .select()
-      .from(tournamentParticipants)
+    // Find entry where user is a player
+    const result = await db
+      .select({
+        entry: tournamentEntries
+      })
+      .from(tournamentEntries)
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
       .where(
         and(
-          eq(tournamentParticipants.tournamentId, tournamentId),
-          eq(tournamentParticipants.userId, userId)
+          eq(tournamentEntries.tournamentId, tournamentId),
+          eq(tournamentEntryPlayers.playerId, userId)
         )
-      )
-      .then((rows) => rows[0]);
+      );
+
+    return result[0]?.entry;
   }
 
-  async createParticipation(userId: string, tournamentId: string) {
-    const [participation] = await db
-      .insert(tournamentParticipants)
-      .values({
+  async createParticipation(userId: string, tournamentId: string, teamId?: string) {
+    // If individual entry
+    if (!teamId) {
+      return await db.transaction(async (tx) => {
+        const [entry] = await tx.insert(tournamentEntries).values({
+          tournamentId,
+          entryType: "PLAYER",
+        }).returning();
+
+        await tx.insert(tournamentEntryPlayers).values({
+          entryId: entry.id,
+          playerId: userId
+        });
+        return entry;
+      });
+    } else {
+      // Team entry
+      const [entry] = await db.insert(tournamentEntries).values({
         tournamentId,
-        userId,
-      })
-      .returning();
+        entryType: "TEAM",
+        teamId
+      }).returning();
 
-    return participation;
+      // Assuming team members are already handled or will be added separately?
+      // For now, returning entry.
+      return entry;
+    }
+
   }
 
+  /**
+   * Get participation details (Entry + Players + Team)
+   */
   async findParticipationWithDetails(participationId: string) {
-    return await db
-      .select({
-        id: tournamentParticipants.id,
-        tournamentId: tournamentParticipants.tournamentId,
-        userId: tournamentParticipants.userId,
-        teamId: tournamentParticipants.teamId,
-        matchesPlayed: tournamentParticipants.matchesPlayed,
-        joinedAt: tournamentParticipants.joinedAt,
-        tournament: {
-          id: tournaments.id,
-          name: tournaments.name,
-          status: tournaments.status,
-          mode: tournaments.mode,
-        },
-        user: {
-          id: appUsers.id,
-          displayName: appUsers.displayName,
-        },
-      })
-      .from(tournamentParticipants)
-      .innerJoin(
-        tournaments,
-        eq(tournamentParticipants.tournamentId, tournaments.id)
-      )
-      .innerJoin(appUsers, eq(tournamentParticipants.userId, appUsers.id))
-      .where(eq(tournamentParticipants.id, participationId))
-      .then((rows) => rows[0]);
+    const result = await db.query.tournamentEntries.findFirst({
+      where: eq(tournamentEntries.id, participationId),
+      with: {
+        tournament: true,
+        team: true,
+        players: {
+          with: {
+            player: true
+          }
+        }
+      }
+    });
+
+    if (!result) return null;
+
+    // Compatibility mapping
+    return {
+      ...result,
+      user: result.players[0]?.player,
+      userId: result.players[0]?.playerId
+    };
   }
 
   async deleteParticipation(participationId: string) {
     await db
-      .delete(tournamentParticipants)
-      .where(eq(tournamentParticipants.id, participationId));
+      .delete(tournamentEntries)
+      .where(eq(tournamentEntries.id, participationId));
   }
 
   async findTournamentParticipants(tournamentId: string) {
-    return await db
-      .select({
-        id: tournamentParticipants.id,
-        userId: tournamentParticipants.userId,
-        teamId: tournamentParticipants.teamId,
-        matchesPlayed: tournamentParticipants.matchesPlayed,
-        joinedAt: tournamentParticipants.joinedAt,
-        user: {
-          id: appUsers.id,
-          displayName: appUsers.displayName,
-        },
-      })
-      .from(tournamentParticipants)
-      .innerJoin(appUsers, eq(tournamentParticipants.userId, appUsers.id))
-      .where(eq(tournamentParticipants.tournamentId, tournamentId));
+    const entries = await db.query.tournamentEntries.findMany({
+      where: eq(tournamentEntries.tournamentId, tournamentId),
+      with: {
+        team: true,
+        players: {
+          with: {
+            player: true
+          }
+        }
+      }
+    });
+
+    // Map to expected format if needed, or return entries
+    return entries.map(e => ({
+      ...e,
+      user: e.players[0]?.player, // For single player entries compatibility
+      userId: e.players[0]?.playerId
+    }));
   }
 
   /**

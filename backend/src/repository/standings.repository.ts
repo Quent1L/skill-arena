@@ -2,10 +2,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   tournaments,
-  tournamentParticipants,
+  tournamentRegistrations,
   teams,
   matches,
-  matchParticipation,
+  matchParticipants,
 } from "../db/schema";
 import { type MatchStatus } from "@skill-arena/shared/types/index";
 
@@ -35,7 +35,7 @@ export class StandingsRepository {
     return await db.query.teams.findMany({
       where: eq(teams.tournamentId, tournamentId),
       with: {
-        participants: {
+        registrations: {
           with: {
             user: true,
           },
@@ -48,8 +48,8 @@ export class StandingsRepository {
    * Get all participants for a tournament (for flex team mode)
    */
   async getTournamentParticipants(tournamentId: string) {
-    return await db.query.tournamentParticipants.findMany({
-      where: eq(tournamentParticipants.tournamentId, tournamentId),
+    return await db.query.tournamentRegistrations.findMany({
+      where: eq(tournamentRegistrations.tournamentId, tournamentId),
       with: {
         user: true,
       },
@@ -59,7 +59,6 @@ export class StandingsRepository {
   /**
    * Get matches for standings calculation
    * Includes only the specified statuses (finalized for official, reported + finalized for provisional)
-   * Automatically excludes: scheduled, pending_confirmation, disputed, cancelled
    */
   async getMatchesForStandings(
     tournamentId: string,
@@ -72,33 +71,22 @@ export class StandingsRepository {
       ),
       columns: {
         id: true,
-        teamAId: true,
-        teamBId: true,
-        scoreA: true,
-        scoreB: true,
-        winnerId: true,
-        winnerSide: true,
         status: true,
+        bracketType: true,
       },
-    });
-  }
-
-  /**
-   * Get match participations for flex team mode
-   */
-  async getMatchParticipations(matchIds: string[]) {
-    if (matchIds.length === 0) {
-      return [];
-    }
-
-    return await db.query.matchParticipation.findMany({
-      where: inArray(matchParticipation.matchId, matchIds),
       with: {
-        player: true,
-      },
+        participants: {
+          with: {
+            players: {
+              with: {
+                player: true
+              }
+            }
+          }
+        }
+      }
     });
   }
 }
 
 export const standingsRepository = new StandingsRepository();
-

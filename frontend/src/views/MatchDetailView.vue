@@ -49,24 +49,24 @@
               v-if="match.status !== 'scheduled'"
               class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg"
             >
-              <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'B' }">
+              <div class="text-center flex-1" :class="{ 'opacity-50': isWinnerB }">
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
                   {{ getTeamALabel }}
                 </div>
                 <div
                   class="text-5xl font-bold"
-                  :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'"
+                  :class="isWinnerA ? 'text-green-600' : 'text-primary'"
                 >
-                  {{ match.scoreA }}
+                  {{ scoreA }}
                 </div>
-                <div v-if="match.teamA?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamA.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                <div v-if="p1?.players" class="mt-2 text-sm">
+                  <div v-for="p in p1.players" :key="p.player?.id">
+                    {{ p.player?.displayName }}
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
                   <Tag
-                    v-if="match.winnerSide === 'A'"
+                    v-if="isWinnerA"
                     value="Vainqueur"
                     severity="success"
                     icon="fa fa-trophy"
@@ -76,24 +76,24 @@
 
               <div class="text-3xl font-bold text-surface-400 pt-8">-</div>
 
-              <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
+              <div class="text-center flex-1" :class="{ 'opacity-50': isWinnerA }">
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
                   {{ getTeamBLabel }}
                 </div>
                 <div
                   class="text-5xl font-bold"
-                  :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'"
+                  :class="isWinnerB ? 'text-green-600' : 'text-primary'"
                 >
-                  {{ match.scoreB }}
+                  {{ scoreB }}
                 </div>
-                <div v-if="match.teamB?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamB.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                <div v-if="p2?.players" class="mt-2 text-sm">
+                  <div v-for="p in p2.players" :key="p.player?.id">
+                    {{ p.player?.displayName }}
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
                   <Tag
-                    v-if="match.winnerSide === 'B'"
+                    v-if="isWinnerB"
                     value="Vainqueur"
                     severity="success"
                     icon="fa fa-trophy"
@@ -111,9 +111,9 @@
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
                   {{ getTeamALabel }}
                 </div>
-                <div v-if="match.teamA?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamA.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                <div v-if="p1?.players" class="mt-2 text-sm">
+                  <div v-for="p in p1.players" :key="p.player?.id">
+                    {{ p.player?.displayName }}
                   </div>
                 </div>
               </div>
@@ -124,9 +124,9 @@
                 <div class="text-sm text-surface-500 dark:text-surface-400 mb-2">
                   {{ getTeamBLabel }}
                 </div>
-                <div v-if="match.teamB?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamB.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                <div v-if="p2?.players" class="mt-2 text-sm">
+                  <div v-for="p in p2.players" :key="p.player?.id">
+                    {{ p.player?.displayName }}
                   </div>
                 </div>
               </div>
@@ -219,6 +219,7 @@ import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
 import type { ClientMatchModel, MatchFinalizationReason } from '@skill-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
+import { getParticipant, getParticipantName, getScore, isWinner } from '@/utils/match-participants'
 
 const route = useRoute()
 const router = useRouter()
@@ -239,31 +240,39 @@ const canManageMatch = computed(() => {
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
 })
 
+// Helper accessors for template
+const p1 = computed(() => match.value ? getParticipant(match.value, 1) : undefined)
+const p2 = computed(() => match.value ? getParticipant(match.value, 2) : undefined)
+
+const scoreA = computed(() => match.value ? getScore(match.value, 1) : 0)
+const scoreB = computed(() => match.value ? getScore(match.value, 2) : 0)
+
+const isWinnerA = computed(() => match.value ? isWinner(match.value, 1) : false)
+const isWinnerB = computed(() => match.value ? isWinner(match.value, 2) : false)
+
+
 // Get team/opponent label for bracket matches
 const getTeamALabel = computed(() => {
   if (!match.value) return 'Équipe A'
-  // For bracket matches, use opponent1 name
-  const opponent1 = match.value.opponent1 as { id?: string; name?: string } | undefined
-  if (opponent1?.name) return opponent1.name
-  // Fallback to teamA name or participants
-  if (match.value.teamA?.name) return match.value.teamA.name
-  if (match.value.teamA?.participants?.[0]?.user?.displayName) {
-    return match.value.teamA.participants.map(p => p.user?.displayName).join(', ')
+  // For bracket matches, use opponent1 name if available and NO participant is set (pseudo-bye handling?)
+  // Actually, getParticipantName handles Team name or Players.
+  if (!p1.value) {
+     // Check bracket opponent fallback
+      const opponent1 = match.value.opponent1 as { id?: string; name?: string } | undefined
+      if (opponent1?.name) return opponent1.name
+      return 'Équipe A'
   }
-  return 'Équipe A'
+  return getParticipantName(p1.value)
 })
 
 const getTeamBLabel = computed(() => {
   if (!match.value) return 'Équipe B'
-  // For bracket matches, use opponent2 name
-  const opponent2 = match.value.opponent2 as { id?: string; name?: string } | undefined
-  if (opponent2?.name) return opponent2.name
-  // Fallback to teamB name or participants
-  if (match.value.teamB?.name) return match.value.teamB.name
-  if (match.value.teamB?.participants?.[0]?.user?.displayName) {
-    return match.value.teamB.participants.map(p => p.user?.displayName).join(', ')
+   if (!p2.value) {
+      const opponent2 = match.value.opponent2 as { id?: string; name?: string } | undefined
+      if (opponent2?.name) return opponent2.name
+      return 'Équipe B'
   }
-  return 'Équipe B'
+  return getParticipantName(p2.value)
 })
 
 async function loadMatch() {
@@ -330,8 +339,6 @@ function completeMatch() {
   // Build query params with match data to pre-fill the form
   const params = new URLSearchParams({
     matchId: match.value.id,
-    teamAId: match.value.teamAId || '',
-    teamBId: match.value.teamBId || '',
   })
   
   router.push(`/tournaments/${match.value.tournamentId}/create-match?${params.toString()}`)

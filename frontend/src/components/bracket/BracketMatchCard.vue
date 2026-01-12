@@ -19,17 +19,17 @@
     <div
       class="flex items-center justify-between py-1.5 px-2 rounded"
       :class="{
-        'bg-green-50 dark:bg-green-900/20': match.winnerSide === 'A',
+        'bg-green-50 dark:bg-green-900/20': isWinnerA,
       }"
     >
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <i v-if="match.winnerSide === 'A'" class="fa fa-trophy text-yellow-500 text-xs"></i>
+        <i v-if="isWinnerA" class="fa fa-trophy text-yellow-500 text-xs"></i>
         <span
           class="text-sm font-medium truncate"
           :class="{
-            'text-green-700 dark:text-green-400 font-bold': match.winnerSide === 'A',
-            'text-gray-900 dark:text-white': match.winnerSide !== 'A',
-            'text-gray-400 dark:text-gray-500 italic': !match.teamAId,
+            'text-green-700 dark:text-green-400 font-bold': isWinnerA,
+            'text-gray-900 dark:text-white': !isWinnerA,
+            'text-gray-400 dark:text-gray-500 italic': !p1,
           }"
         >
           {{ teamALabel }}
@@ -39,11 +39,11 @@
         v-if="hasScore"
         class="text-sm font-semibold ml-2"
         :class="{
-          'text-green-700 dark:text-green-400': match.winnerSide === 'A',
-          'text-gray-700 dark:text-gray-300': match.winnerSide !== 'A',
+          'text-green-700 dark:text-green-400': isWinnerA,
+          'text-gray-700 dark:text-gray-300': !isWinnerA,
         }"
       >
-        {{ match.scoreA }}
+        {{ scoreA }}
       </span>
     </div>
 
@@ -54,17 +54,17 @@
     <div
       class="flex items-center justify-between py-1.5 px-2 rounded"
       :class="{
-        'bg-green-50 dark:bg-green-900/20': match.winnerSide === 'B',
+        'bg-green-50 dark:bg-green-900/20': isWinnerB,
       }"
     >
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <i v-if="match.winnerSide === 'B'" class="fa fa-trophy text-yellow-500 text-xs"></i>
+        <i v-if="isWinnerB" class="fa fa-trophy text-yellow-500 text-xs"></i>
         <span
           class="text-sm font-medium truncate"
           :class="{
-            'text-green-700 dark:text-green-400 font-bold': match.winnerSide === 'B',
-            'text-gray-900 dark:text-white': match.winnerSide !== 'B',
-            'text-gray-400 dark:text-gray-500 italic': !match.teamBId,
+            'text-green-700 dark:text-green-400 font-bold': isWinnerB,
+            'text-gray-900 dark:text-white': !isWinnerB,
+            'text-gray-400 dark:text-gray-500 italic': !p2,
           }"
         >
           {{ teamBLabel }}
@@ -74,11 +74,11 @@
         v-if="hasScore"
         class="text-sm font-semibold ml-2"
         :class="{
-          'text-green-700 dark:text-green-400': match.winnerSide === 'B',
-          'text-gray-700 dark:text-gray-300': match.winnerSide !== 'B',
+          'text-green-700 dark:text-green-400': isWinnerB,
+          'text-gray-700 dark:text-gray-300': !isWinnerB,
         }"
       >
-        {{ match.scoreB }}
+        {{ scoreB }}
       </span>
     </div>
 
@@ -96,6 +96,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClientMatchModel } from '@skill-arena/shared/types/index'
+import { getParticipant, getParticipantName } from '@/utils/match-participants'
 
 interface Props {
   match: ClientMatchModel
@@ -117,8 +118,11 @@ const matchLabel = computed(() => {
   return `${bracketPrefix} R${round}-M${seq + 1}`
 })
 
+const p1 = computed(() => getParticipant(props.match, 1))
+const p2 = computed(() => getParticipant(props.match, 2))
+
 const isBye = computed(() => {
-  return (!props.match.teamAId && props.match.teamBId) || (props.match.teamAId && !props.match.teamBId)
+  return (!!p1.value && !p2.value) || (!p1.value && !!p2.value)
 })
 
 const hasScore = computed(() => {
@@ -126,22 +130,20 @@ const hasScore = computed(() => {
 })
 
 const teamALabel = computed(() => {
-  if (!props.match.teamAId) return 'BYE'
-  if (props.match.teamA?.name) return props.match.teamA.name
-  if (props.match.teamA?.participants?.length) {
-    return props.match.teamA.participants.map((p) => p.user?.displayName || 'Joueur').join(', ')
-  }
-  return 'Équipe A'
+  if (!p1.value) return 'BYE'
+  return getParticipantName(p1.value)
 })
 
 const teamBLabel = computed(() => {
-  if (!props.match.teamBId) return 'BYE'
-  if (props.match.teamB?.name) return props.match.teamB.name
-  if (props.match.teamB?.participants?.length) {
-    return props.match.teamB.participants.map((p) => p.user?.displayName || 'Joueur').join(', ')
-  }
-  return 'Équipe B'
+  if (!p2.value) return 'BYE'
+  return getParticipantName(p2.value)
 })
+
+const scoreA = computed(() => p1.value?.score ?? 0)
+const scoreB = computed(() => p2.value?.score ?? 0)
+
+const isWinnerA = computed(() => p1.value?.isWinner ?? false)
+const isWinnerB = computed(() => p2.value?.isWinner ?? false)
 
 const statusLabel = computed(() => {
   const labels: Record<string, string> = {

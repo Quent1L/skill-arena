@@ -3,7 +3,9 @@
 export {
   type ClientMatchModel as Match,
   type ClientMatchModel as MatchModel,
-  type MatchParticipation as MatchParticipant,
+  type MatchParticipant,
+  type MatchParticipantPlayer,
+  type MatchParticipation,
   type MatchStatus,
 } from '@skill-arena/shared/types/index'
 

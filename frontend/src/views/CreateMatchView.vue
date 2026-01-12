@@ -278,62 +278,48 @@ watch(
   { deep: true },
 )
 
+import { getParticipant, getParticipantByRole } from '@/utils/match-participants'
+
+// ... existing imports ...
+
 async function loadExistingMatch() {
   if (!matchId) return
 
   try {
     const match = await getMatch(matchId)
 
-    // Extract playerIds from participations
-    const playerIdsA: string[] = []
-    const playerIdsB: string[] = []
+    // Extract playerIds using new Participant model
+    let playerIdsA: string[] = []
+    let playerIdsB: string[] = []
 
-    if (match.participations) {
-      match.participations.forEach((p: { playerId: string; teamSide: 'A' | 'B' }) => {
-        if (p.teamSide === 'A') {
-          playerIdsA.push(p.playerId)
-        } else if (p.teamSide === 'B') {
-          playerIdsB.push(p.playerId)
-        }
-      })
-    }
+    // Try to find by Role first (HOME/AWAY), fallback to Position (1/2)
+    const p1 = getParticipantByRole(match, 'HOME') ?? getParticipant(match, 1)
+    const p2 = getParticipantByRole(match, 'AWAY') ?? getParticipant(match, 2)
 
-    // Extract playerIds from team participants (for static teams)
-    if (match.teamA?.participants) {
-      match.teamA.participants.forEach((p: { user?: { id?: string } }) => {
-        if (p.user?.id && !playerIdsA.includes(p.user.id)) {
-          playerIdsA.push(p.user.id)
-        }
-      })
+    if (p1 && p1.players) {
+      playerIdsA = p1.players.map(p => p.playerId)
     }
-    if (match.teamB?.participants) {
-      match.teamB.participants.forEach((p: { user?: { id?: string } }) => {
-        if (p.user?.id && !playerIdsB.includes(p.user.id)) {
-          playerIdsB.push(p.user.id)
-        }
-      })
+    if (p2 && p2.players) {
+      playerIdsB = p2.players.map(p => p.playerId)
     }
 
     // Populate match data
     matchData.value.playerIdsA = playerIdsA
     matchData.value.playerIdsB = playerIdsB
-    matchData.value.scoreA = match.scoreA
-    matchData.value.scoreB = match.scoreB
+    matchData.value.scoreA = p1?.score ?? 0
+    matchData.value.scoreB = p2?.score ?? 0
     matchData.value.status = match.status
     matchData.value.outcomeTypeId = match.outcomeTypeId || undefined
     matchData.value.outcomeReasonId = match.outcomeReasonId || undefined
     matchData.value.reportProof = match.reportProof || ''
 
-    // Determine winner (use winnerSide if available, otherwise fallback to winnerId)
-    if (match.winnerSide) {
-      matchData.value.winner = match.winnerSide === 'A' ? 'teamA' : 'teamB'
-    } else if (match.winnerId) {
-      // Fallback for old matches without winnerSide
-      if (match.teamAId && match.winnerId === match.teamAId) {
-        matchData.value.winner = 'teamA'
-      } else if (match.teamBId && match.winnerId === match.teamBId) {
-        matchData.value.winner = 'teamB'
-      }
+    // Determine winner based on isWinner flag
+    if (p1?.isWinner) {
+      matchData.value.winner = 'teamA'
+    } else if (p2?.isWinner) {
+      matchData.value.winner = 'teamB'
+    } else {
+      matchData.value.winner = null
     }
 
     // playedAt is already a Date object (converted by interceptor)

@@ -7,14 +7,13 @@ export interface BracketMatch {
   sequence: number;
   bracketType: BracketTreeType;
   matchPosition: number;
-  teamAId?: string;
-  teamBId?: string;
   nextMatchWinId?: string;
   nextMatchLoseId?: string;
+  // Participants are now handled via relation or derived from brackets manager
 }
 
 export interface BracketParticipant {
-  teamId: string;
+  id: string; // Generic ID (teamId or userId)
   name: string;
   seed?: number;
 }
