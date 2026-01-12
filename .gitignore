@@ -3,3 +3,5 @@
 # TypeScript
 **/*.tsbuildinfo
 **/.env
+.idea
+.vscode
