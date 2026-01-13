@@ -27,7 +27,7 @@ import type {
   TournamentStatus,
   TournamentMode,
   JoinTournamentRequest,
-} from "@skill-arena/shared/types/index";
+} from "@skill-arena/shared";
 
 let tourRepo: Partial<TournamentRepository>;
 let partRepo: Partial<ParticipantRepository>;
@@ -547,7 +547,7 @@ describe("TournamentService - basic flows", () => {
       tournamentId: "t-1",
     } as JoinTournamentRequest);
     expect(res).toBeTruthy();
-    expect(res.userId).toBe("u-1");
+    expect(res!.userId).toBe("u-1");
   });
 
   it("leaveTournament should throw NotFoundError when tournament not found", async () => {

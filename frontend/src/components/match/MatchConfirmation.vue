@@ -6,13 +6,13 @@
         <h3 class="text-xl font-semibold">Confirmation du résultat</h3>
       </div>
     </template>
-    
+
     <template #content>
       <div class="space-y-4">
         <!-- Infos de saisie -->
         <div class="bg-surface-50 dark:bg-surface-800 p-3 rounded-lg text-center text-sm text-surface-500 dark:text-surface-400">
           <p>
-            Résultat saisi par 
+            Résultat saisi par
             <span class="font-semibold">{{ match.reporter?.displayName || 'Inconnu' }}</span>
             le {{ formatDate(match.reportedAt) }}
           </p>
@@ -23,16 +23,16 @@
           <h4 class="font-semibold text-surface-700 dark:text-surface-300">
             Confirmations des joueurs ({{ confirmedCount }}/{{ totalPlayers }})
           </h4>
-          
+
           <div class="space-y-2">
-            <div 
-              v-for="player in playersWithStatus" 
+            <div
+              v-for="player in playersWithStatus"
               :key="player.playerId"
               class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-2"
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <i 
+                  <i
                     :class="[
                       'fa text-lg',
                       player.status === 'confirmed' ? 'fa-check-circle text-green-500' :
@@ -44,26 +44,26 @@
                     {{ player.displayName || 'Joueur inconnu' }}
                   </span>
                 </div>
-                
-                <Tag 
+
+                <Tag
                   v-if="player.status === 'confirmed'"
                   severity="success"
                   value="Confirmé"
                 />
-                <Tag 
+                <Tag
                   v-else-if="player.status === 'contested'"
                   severity="danger"
                   value="Contesté"
                 />
-                <Tag 
+                <Tag
                   v-else
                   severity="warn"
                   value="En attente"
                 />
               </div>
-              
+
               <!-- Détails de contestation -->
-              <div 
+              <div
                 v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof)"
                 class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
               >
@@ -76,7 +76,7 @@
                 <div v-if="player.contestationProof" class="text-sm">
                   <span class="font-semibold text-surface-700 dark:text-surface-300">Preuve :</span>
                   <p class="text-surface-600 dark:text-surface-400 mt-1">
-                    <a 
+                    <a
                       v-if="isUrl(player.contestationProof)"
                       :href="player.contestationProof"
                       target="_blank"
@@ -112,14 +112,14 @@
         <!-- Actions pour le joueur connecté -->
         <div v-if="canUserConfirm" class="space-y-3">
           <Divider />
-          
+
           <div v-if="!userConfirmation">
             <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
               Confirmez-vous ce résultat ?
             </p>
-            
+
             <div class="flex gap-3">
-              <Button 
+              <Button
                 label="Confirmer"
                 icon="fa fa-check"
                 severity="success"
@@ -128,7 +128,7 @@
                 @click="confirmMatch"
                 class="flex-1"
               />
-              <Button 
+              <Button
                 label="Contester"
                 icon="fa fa-times"
                 severity="danger"
@@ -139,10 +139,10 @@
               />
             </div>
           </div>
-          
+
           <div v-else class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
             <div class="flex items-center gap-2">
-              <i 
+              <i
                 :class="[
                   'fa text-lg',
                   userConfirmation.isConfirmed ? 'fa-check-circle text-green-500' :
@@ -160,8 +160,8 @@
   </Card>
 
   <!-- Dialog de contestation -->
-  <Dialog 
-    v-model:visible="contestDialogVisible" 
+  <Dialog
+    v-model:visible="contestDialogVisible"
     header="Contester le résultat"
     :modal="true"
     :style="{ width: '500px' }"
@@ -171,7 +171,7 @@
         <label for="contestReason" class="block text-sm font-medium mb-2">
           Raison de la contestation (optionnel)
         </label>
-        <Textarea 
+        <Textarea
           id="contestReason"
           v-model="contestReason"
           rows="4"
@@ -179,12 +179,12 @@
           class="w-full"
         />
       </div>
-      
+
       <div>
         <label for="contestProof" class="block text-sm font-medium mb-2">
           Preuve (lien, description) (optionnel)
         </label>
-        <InputText 
+        <InputText
           id="contestProof"
           v-model="contestProof"
           placeholder="Lien vers une capture d'écran, vidéo, etc."
@@ -192,15 +192,15 @@
         />
       </div>
     </div>
-    
+
     <template #footer>
-      <Button 
-        label="Annuler" 
+      <Button
+        label="Annuler"
         severity="secondary"
         @click="contestDialogVisible = false"
       />
-      <Button 
-        label="Contester" 
+      <Button
+        label="Contester"
         severity="danger"
         icon="fa fa-times"
         :loading="contesting"
@@ -212,7 +212,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { type ClientMatchModel } from '@skill-arena/shared/types/index';
+import { type ClientMatchModel } from '@skill-arena/shared';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -248,9 +248,39 @@ const shouldShowConfirmation = computed(() => {
 
 const confirmations = computed(() => props.match.confirmations || []);
 
+// Extract participants from teamA and teamB
+const participants = computed(() => {
+  const result: Array<{ playerId: string; displayName: string }> = [];
+
+  // Extract from teamA
+  if (props.match.teamA?.participants) {
+    for (const participant of props.match.teamA.participants) {
+      if (participant.user) {
+        result.push({
+          playerId: participant.user.id,
+          displayName: participant.user.displayName,
+        });
+      }
+    }
+  }
+
+  // Extract from teamB
+  if (props.match.teamB?.participants) {
+    for (const participant of props.match.teamB.participants) {
+      if (participant.user) {
+        result.push({
+          playerId: participant.user.id,
+          displayName: participant.user.displayName,
+        });
+      }
+    }
+  }
+
+  return result;
+});
+
 const totalPlayers = computed(() => {
-  const participations = props.match.participations || [];
-  return participations.length;
+  return participants.value.length;
 });
 
 const confirmedCount = computed(() => {
@@ -258,15 +288,14 @@ const confirmedCount = computed(() => {
 });
 
 const playersWithStatus = computed(() => {
-  const participations = props.match.participations || [];
   const confirmationsMap = new Map(
     confirmations.value.map(c => [c.playerId, c])
   );
 
-  return participations.map(participation => {
-    const confirmation = confirmationsMap.get(participation.playerId);
+  return participants.value.map(participant => {
+    const confirmation = confirmationsMap.get(participant.playerId);
     let status: 'confirmed' | 'contested' | 'pending' = 'pending';
-    
+
     if (confirmation) {
       if (confirmation.isConfirmed) {
         status = 'confirmed';
@@ -276,8 +305,8 @@ const playersWithStatus = computed(() => {
     }
 
     return {
-      playerId: participation.playerId,
-      displayName: participation.player?.displayName || 'Joueur inconnu',
+      playerId: participant.playerId,
+      displayName: participant.displayName || 'Joueur inconnu',
       status,
       contestationReason: confirmation?.contestationReason,
       contestationProof: confirmation?.contestationProof,
@@ -293,11 +322,8 @@ const userConfirmation = computed(() => {
 const canUserConfirm = computed(() => {
   if (!props.currentUserId) return false;
   if (props.match.status === 'finalized') return false;
-  
-  const participations = props.match.participations || [];
-  const isParticipant = participations.some(p => p.playerId === props.currentUserId);
-  
-  return isParticipant;
+
+  return participants.value.some(p => p.playerId === props.currentUserId);
 });
 
 const isExpired = computed(() => {

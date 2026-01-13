@@ -7,7 +7,7 @@ import {
   type TournamentMode,
   type TournamentStatus,
   type JoinTournamentRequest,
-} from "@skill-arena/shared/types/index";
+} from "@skill-arena/shared";
 import {
   ErrorCode,
   NotFoundError,
@@ -420,7 +420,7 @@ export class TournamentService {
    * Leave tournament
    */
   async leaveTournament(userId: string, tournamentId: string) {
-    // Vérifier que le tournoi existe
+    // Verify tournament exists
     const tournament = await participantRepository.findTournamentById(
       tournamentId
     );
@@ -429,12 +429,12 @@ export class TournamentService {
       throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
-    // Ne pas permettre de quitter un tournoi en cours ou terminé
+    // Don't allow leaving ongoing or finished tournaments
     if (["ongoing", "finished"].includes(tournament.status)) {
       throw new BadRequestError(ErrorCode.CANNOT_LEAVE_ONGOING_TOURNAMENT);
     }
 
-    // Vérifier que l'utilisateur est inscrit
+    // Verify user is registered
     const participation =
       await participantRepository.findParticipationByUserAndTournament(
         userId,
@@ -445,7 +445,7 @@ export class TournamentService {
       throw new BadRequestError(ErrorCode.NOT_REGISTERED);
     }
 
-    // Supprimer la participation
+    // Remove participation
     await participantRepository.deleteParticipation(participation.id);
 
     return { message: "Vous avez quitté le tournoi avec succès" };
