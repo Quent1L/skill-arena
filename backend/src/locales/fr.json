@@ -1,9 +1,9 @@
 {
   "notifications": {
     "MATCH_CREATED_TITLE": "{{creatorName}} vous a ajouté dans un match {{matchFormat}}",
-    "MATCH_CREATED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}",
+    "MATCH_CREATED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}",
     "MATCH_SCHEDULED_TITLE": "{{creatorName}} vous a programmé un match {{matchFormat}}",
-    "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}"
+    "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}"
   },
   "errors": {
     "UNKNOWN": "Une erreur inattendue s'est produite",

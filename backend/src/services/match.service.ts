@@ -1,10 +1,10 @@
 import { matchRepository } from "../repository/match.repository";
 import { matchConfirmationRepository } from "../repository/match-confirmation.repository";
-import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
+import { entryRepository } from "../repository/entry.repository";
 import { db } from "../config/database";
 import { matches } from "../db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
@@ -54,25 +54,24 @@ export class MatchService {
     await this.validateMatchInput(input, tournament);
     await this.validateMatchRules(input, tournament);
 
-    const match = await this.createMatchRecord(input, createdBy);
-    await this.createMatchParticipations(input, tournament, match.id);
+    const matchId = await this.createMatchRecord(input, createdBy);
 
     // If match is reported, create automatic confirmation for the creator
     if (input.status === "reported") {
       await matchConfirmationRepository.upsert({
-        matchId: match.id,
+        matchId,
         playerId: createdBy,
         isConfirmed: true,
         isContested: false,
       });
 
       // Check if match can be validated immediately
-      await this.checkAndFinalizeMatch(match.id);
+      await this.checkAndFinalizeMatch(matchId);
     }
 
-    await this.notifyMatchCreated(match.id, createdBy, tournament.name);
+    await this.notifyMatchCreated(matchId, createdBy, tournament.name);
 
-    return await matchRepository.getById(match.id);
+    return await matchRepository.getById(matchId);
   }
 
   /**
@@ -118,9 +117,10 @@ export class MatchService {
   private async createMatchRecord(input: CreateMatchInput, createdBy: string) {
     const matchData: any = {
       tournamentId: input.tournamentId,
-      round: input.round,
       teamAId: input.teamAId,
       teamBId: input.teamBId,
+      playerIdsA: input.playerIdsA,
+      playerIdsB: input.playerIdsB,
       status: input.status ?? ("scheduled" as const),
     };
 
@@ -136,75 +136,36 @@ export class MatchService {
       matchData.outcomeTypeId = input.outcomeTypeId;
       matchData.outcomeReasonId = input.outcomeReasonId;
       matchData.reportedBy = createdBy;
-      matchData.reportedAt = new Date();
 
       // Calculate confirmation deadline (72 hours from now)
       const confirmationDeadline = new Date();
       confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
       matchData.confirmationDeadline = confirmationDeadline;
 
-      // Determine winner side and winnerId
+      // Determine winner
       // Priority 1: Use explicit winner selection from user (handles forfeit, abandon, etc.)
       if (input.winner) {
-        matchData.winnerSide = input.winner === "teamA" ? "A" : "B";
-        matchData.winnerId =
-          input.winner === "teamA" ? input.teamAId : input.teamBId;
+        matchData.winner = input.winner;
       }
       // Priority 2: If no explicit winner but winner is explicitly null (draw)
       else if (input.winner === null) {
-        // Match nul - winnerSide and winnerId remain undefined
+        matchData.winner = null;
       }
       // Priority 3: Fall back to score-based calculation (if winner field was not provided)
       else if (input.winner === undefined) {
         if (input.scoreA > input.scoreB) {
-          matchData.winnerSide = "A";
-          matchData.winnerId = input.teamAId; // For static teams
+          matchData.winner = "teamA";
         } else if (input.scoreB > input.scoreA) {
-          matchData.winnerSide = "B";
-          matchData.winnerId = input.teamBId; // For static teams
+          matchData.winner = "teamB";
+        } else {
+          // If scores are equal, it's a draw
+          matchData.winner = null;
         }
-        // If scores are equal, no winner (draw) - winnerSide and winnerId remain undefined
       }
     }
 
     return await matchRepository.create(matchData);
   }
-
-  /**
-   * Create match participations for flex teams
-   */
-  private async createMatchParticipations(
-    input: CreateMatchInput,
-    tournament: NonNullable<TournamentFromRepository>,
-    matchId: string
-  ) {
-    if (
-      tournament.teamMode !== "flex" ||
-      !input.playerIdsA ||
-      !input.playerIdsB
-    ) {
-      return;
-    }
-
-    const participations = [
-      ...input.playerIdsA.map((playerId: string) => ({
-        matchId,
-        playerId,
-        teamSide: "A" as const,
-      })),
-      ...input.playerIdsB.map((playerId: string) => ({
-        matchId,
-        playerId,
-        teamSide: "B" as const,
-      })),
-    ];
-
-    for (const participation of participations) {
-      await matchRepository.createMatchParticipation(participation);
-    }
-  }
-
-
 
   /**
    * Validate match rules against tournament settings
@@ -259,7 +220,6 @@ export class MatchService {
     }
 
     const updateData: UpdateMatchData = {};
-    if (input.round !== undefined) updateData.round = input.round;
     if (input.scoreA !== undefined) updateData.scoreA = input.scoreA;
     if (input.scoreB !== undefined) updateData.scoreB = input.scoreB;
     if (input.status !== undefined) updateData.status = input.status;
@@ -293,9 +253,7 @@ export class MatchService {
       throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_DELETED);
     }
 
-    // Delete participations first (cascade should handle this, but let's be safe)
-    await matchRepository.deleteMatchParticipation(id);
-
+    // Delete match (cascade will handle match_sides and match_results)
     await matchRepository.delete(id);
 
     return { success: true, message: "Match supprimé avec succès" };
@@ -380,20 +338,11 @@ export class MatchService {
     const updateData: UpdateMatchData = {
       scoreA: input.scoreA,
       scoreB: input.scoreB,
-      reportedBy,
-      reportedAt: new Date(),
       status: "reported",
       reportProof: input.reportProof,
     };
 
-    if (input.scoreA > input.scoreB) {
-      updateData.winnerSide = "A";
-      updateData.winnerId = match?.teamAId || undefined;
-    } else if (input.scoreB > input.scoreA) {
-      updateData.winnerSide = "B";
-      updateData.winnerId = match?.teamBId || undefined;
-    }
-    // If equal, no winner (draw) - winnerSide and winnerId remain undefined
+    // Note: Winner is calculated automatically in the repository based on scores
 
     return updateData;
   }
@@ -598,25 +547,58 @@ export class MatchService {
     warnings: string[],
     excludeMatchId?: string
   ) {
-    if (!input.teamAId || !input.teamBId) return;
+    // Get or determine entry IDs based on team mode
+    let entryAId: string | undefined;
+    let entryBId: string | undefined;
 
-    const conditions = [
-      eq(matches.tournamentId, input.tournamentId),
-      eq(matches.teamAId, input.teamAId),
-      eq(matches.teamBId, input.teamBId),
-    ];
+    try {
+      if (input.teamAId && input.teamBId) {
+        // Static mode: find entries by teamId (don't create)
+        const entryA = await entryRepository.findExistingEntry(
+          input.tournamentId,
+          input.teamAId,
+          undefined
+        );
+        const entryB = await entryRepository.findExistingEntry(
+          input.tournamentId,
+          input.teamBId,
+          undefined
+        );
+        entryAId = entryA?.id;
+        entryBId = entryB?.id;
+      } else if (input.playerIdsA && input.playerIdsB) {
+        // Flex mode: find entries by playerIds (don't create)
+        const entryA = await entryRepository.findExistingEntry(
+          input.tournamentId,
+          undefined,
+          input.playerIdsA
+        );
+        const entryB = await entryRepository.findExistingEntry(
+          input.tournamentId,
+          undefined,
+          input.playerIdsB
+        );
+        entryAId = entryA?.id;
+        entryBId = entryB?.id;
+      }
 
-    // Exclude the match being edited
-    if (excludeMatchId) {
-      conditions.push(ne(matches.id, excludeMatchId));
-    }
+      if (!entryAId || !entryBId) return;
 
-    const existingMatch = await db.query.matches.findFirst({
-      where: and(...conditions),
-    });
+      // Find matches with the same entries
+      const duplicates = await matchRepository.findMatchesWithSameEntries(
+        input.tournamentId,
+        entryAId,
+        entryBId,
+        excludeMatchId
+      );
 
-    if (existingMatch) {
-      warnings.push("Un match similaire existe déjà");
+      if (duplicates.length > 0) {
+        warnings.push("Un match similaire existe déjà");
+      }
+    } catch (error) {
+      // Don't fail the validation if duplicate check fails
+      // Just log the error and continue
+      console.error("Error checking for duplicate matches:", error);
     }
   }
 
@@ -845,7 +827,6 @@ export class MatchService {
           creatorName,
           tournamentName,
           matchFormat,
-          round: match.round?.toString() || '1',
           matchDate,
           opponents: opponentsText,
           teammates: teammatesText

@@ -138,6 +138,14 @@ export const notificationTypeEnum = pgEnum("notification_type", [
 
 export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
 
+export const entryTypeEnum = pgEnum("entry_type", ["PLAYER", "TEAM"]);
+
+export const participantStatusEnum = pgEnum("participant_status", [
+  "active",
+  "withdrawn",
+  "removed",
+]);
+
 export const appUsers = pgTable("app_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   externalId: text("external_id")
@@ -200,6 +208,27 @@ export const tournamentAdmins = pgTable(
   (table) => [unique().on(table.tournamentId, table.userId)]
 );
 
+// ********************************************************************
+// Tournament Participants - User registration/enrollment in tournaments
+// Tracks who CAN play (vs tournamentEntries which tracks who DID play)
+// ***************************************************************
+
+export const tournamentParticipants = pgTable(
+  "tournament_participants",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    status: participantStatusEnum("status").notNull().default("active"),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.tournamentId, table.userId)]
+);
+
 export const teams = pgTable(
   "teams",
   {
@@ -216,57 +245,47 @@ export const teams = pgTable(
   (table) => [unique().on(table.tournamentId, table.name)]
 );
 
-export const tournamentParticipants = pgTable(
-  "tournament_participants",
+// ********************************************************************
+// [Start] New generic entry-based tables (replaces tournamentParticipants)
+// ***************************************************************
+
+export const tournamentEntries = pgTable("tournament_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  entryType: entryTypeEnum("entry_type").notNull(),
+  teamId: uuid("team_id").references(() => teams.id, {
+    onDelete: "cascade",
+  }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tournamentEntryPlayers = pgTable(
+  "tournament_entry_players",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tournamentId: uuid("tournament_id")
+    entryId: uuid("entry_id")
       .notNull()
-      .references(() => tournaments.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
+      .references(() => tournamentEntries.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
-    teamId: uuid("team_id").references(() => teams.id, {
-      onDelete: "set null",
-    }),
-    matchesPlayed: integer("matches_played").notNull().default(0),
-    joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.tournamentId, table.userId)]
+  (table) => [unique().on(table.entryId, table.playerId)]
 );
+
+// ********************************************************************
+// [End] New generic entry-based tables
+// ***************************************************************
 
 export const matches = pgTable("matches", {
   id: uuid("id").primaryKey().defaultRandom(),
   tournamentId: uuid("tournament_id")
     .notNull()
     .references(() => tournaments.id, { onDelete: "cascade" }),
-  round: integer("round"),
-  teamAId: uuid("team_a_id").references(() => teams.id, {
-    onDelete: "set null",
-  }),
-  teamBId: uuid("team_b_id").references(() => teams.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  scoreA: integer("score_a").notNull().default(0),
-  scoreB: integer("score_b").notNull().default(0),
-  winnerId: uuid("winner_id").references(() => teams.id, {
-    onDelete: "set null",
-  }),
-  winnerSide: matchTeamSideEnum("winner_side"),
   status: matchStatusEnum("status").notNull().default("scheduled"),
   playedAt: timestamp("played_at").notNull().default(new Date()),
-  reportedBy: uuid("reported_by").references(() => appUsers.id, {
-    onDelete: "set null",
-  }),
-  reportedAt: timestamp("reported_at"),
-  reportProof: text("report_proof"),
   confirmationDeadline: timestamp("confirmation_deadline"),
-  finalizedAt: timestamp("finalized_at"),
-  finalizedBy: uuid("finalized_by").references(() => appUsers.id, {
-    onDelete: "set null",
-  }),
-  finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
   outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
     onDelete: "set null",
   }),
@@ -276,22 +295,79 @@ export const matches = pgTable("matches", {
       onDelete: "set null",
     }
   ),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const matchParticipation = pgTable(
-  "match_participation",
+// ********************************************************************
+// [Start] New match sides and results tables
+// ***************************************************************
+
+export const matchSides = pgTable(
+  "match_sides",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     matchId: uuid("match_id")
       .notNull()
       .references(() => matches.id, { onDelete: "cascade" }),
-    playerId: uuid("player_id")
+    entryId: uuid("entry_id")
       .notNull()
-      .references(() => appUsers.id, { onDelete: "cascade" }),
-    teamSide: matchTeamSideEnum("team_side").notNull(),
+      .references(() => tournamentEntries.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    score: integer("score").notNull().default(0),
+    pointsAwarded: integer("points_awarded").default(0),
   },
-  (table) => [unique().on(table.matchId, table.playerId)]
+  (table) => [unique().on(table.matchId, table.entryId)]
 );
+
+export const matchResults = pgTable("match_results", {
+  matchId: uuid("match_id")
+    .primaryKey()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  reportedBy: uuid("reported_by").references(() => appUsers.id, {
+    onDelete: "set null",
+  }),
+  reportedAt: timestamp("reported_at"),
+  reportProof: text("report_proof"),
+  finalizedBy: uuid("finalized_by").references(() => appUsers.id, {
+    onDelete: "set null",
+  }),
+  finalizedAt: timestamp("finalized_at"),
+  finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
+});
+
+// Future support for multi-game matches (BO3, BO5, etc.)
+export const matchGames = pgTable(
+  "match_games",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    gameNumber: integer("game_number").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.matchId, table.gameNumber)]
+);
+
+export const matchGameSides = pgTable(
+  "match_game_sides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchGameId: uuid("match_game_id")
+      .notNull()
+      .references(() => matchGames.id, { onDelete: "cascade" }),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => tournamentEntries.id, { onDelete: "restrict" }),
+    position: integer("position").notNull(),
+    score: integer("score").notNull().default(0),
+  },
+  (table) => [unique().on(table.matchGameId, table.entryId)]
+);
+
+// ********************************************************************
+// [End] New match sides and results tables
+// ***************************************************************
 
 export const matchConfirmations = pgTable(
   "match_confirmations",
@@ -321,9 +397,9 @@ export const championshipStandings = pgTable("championship_standings", {
   tournamentId: uuid("tournament_id")
     .notNull()
     .references(() => tournaments.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
+  entryId: uuid("entry_id")
     .notNull()
-    .references(() => appUsers.id, { onDelete: "cascade" }),
+    .references(() => tournamentEntries.id, { onDelete: "cascade" }),
   points: integer("points").notNull().default(0),
   wins: integer("wins").notNull().default(0),
   losses: integer("losses").notNull().default(0),
@@ -421,14 +497,13 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   }),
   createdTournaments: many(tournaments),
   tournamentAdmins: many(tournamentAdmins),
-  tournamentParticipants: many(tournamentParticipants),
   createdTeams: many(teams),
-  reportedMatches: many(matches, { relationName: "reportedBy" }),
-  finalizedMatches: many(matches, { relationName: "finalizedBy" }),
+  tournamentEntryPlayers: many(tournamentEntryPlayers),
   matchConfirmations: many(matchConfirmations),
-  standings: many(championshipStandings),
   notifications: many(notifications),
   pushDevices: many(userPushDevices),
+  reportedMatches: many(matchResults, { relationName: "reportedBy" }),
+  finalizedMatches: many(matchResults, { relationName: "finalizedBy" }),
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
@@ -442,6 +517,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   }),
   admins: many(tournamentAdmins),
   participants: many(tournamentParticipants),
+  entries: many(tournamentEntries),
   teams: many(teams),
   matches: many(matches),
   standings: many(championshipStandings),
@@ -461,21 +537,6 @@ export const tournamentAdminsRelations = relations(
   })
 );
 
-export const teamsRelations = relations(teams, ({ one, many }) => ({
-  tournament: one(tournaments, {
-    fields: [teams.tournamentId],
-    references: [tournaments.id],
-  }),
-  creator: one(appUsers, {
-    fields: [teams.createdBy],
-    references: [appUsers.id],
-  }),
-  participants: many(tournamentParticipants),
-  matchesAsTeamA: many(matches, { relationName: "teamA" }),
-  matchesAsTeamB: many(matches, { relationName: "teamB" }),
-  wins: many(matches, { relationName: "winner" }),
-}));
-
 export const tournamentParticipantsRelations = relations(
   tournamentParticipants,
   ({ one }) => ({
@@ -487,42 +548,64 @@ export const tournamentParticipantsRelations = relations(
       fields: [tournamentParticipants.userId],
       references: [appUsers.id],
     }),
+  })
+);
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  tournament: one(tournaments, {
+    fields: [teams.tournamentId],
+    references: [tournaments.id],
+  }),
+  creator: one(appUsers, {
+    fields: [teams.createdBy],
+    references: [appUsers.id],
+  }),
+  entries: many(tournamentEntries),
+}));
+
+// ********************************************************************
+// [Start] New entry-based relations
+// ***************************************************************
+
+export const tournamentEntriesRelations = relations(
+  tournamentEntries,
+  ({ one, many }) => ({
+    tournament: one(tournaments, {
+      fields: [tournamentEntries.tournamentId],
+      references: [tournaments.id],
+    }),
     team: one(teams, {
-      fields: [tournamentParticipants.teamId],
+      fields: [tournamentEntries.teamId],
       references: [teams.id],
+    }),
+    players: many(tournamentEntryPlayers),
+    matchSides: many(matchSides),
+    standings: many(championshipStandings),
+  })
+);
+
+export const tournamentEntryPlayersRelations = relations(
+  tournamentEntryPlayers,
+  ({ one }) => ({
+    entry: one(tournamentEntries, {
+      fields: [tournamentEntryPlayers.entryId],
+      references: [tournamentEntries.id],
+    }),
+    player: one(appUsers, {
+      fields: [tournamentEntryPlayers.playerId],
+      references: [appUsers.id],
     }),
   })
 );
+
+// ********************************************************************
+// [End] New entry-based relations
+// ***************************************************************
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({
   tournament: one(tournaments, {
     fields: [matches.tournamentId],
     references: [tournaments.id],
-  }),
-  teamA: one(teams, {
-    fields: [matches.teamAId],
-    references: [teams.id],
-    relationName: "teamA",
-  }),
-  teamB: one(teams, {
-    fields: [matches.teamBId],
-    references: [teams.id],
-    relationName: "teamB",
-  }),
-  winner: one(teams, {
-    fields: [matches.winnerId],
-    references: [teams.id],
-    relationName: "winner",
-  }),
-  reporter: one(appUsers, {
-    fields: [matches.reportedBy],
-    references: [appUsers.id],
-    relationName: "reportedBy",
-  }),
-  finalizer: one(appUsers, {
-    fields: [matches.finalizedBy],
-    references: [appUsers.id],
-    relationName: "finalizedBy",
   }),
   outcomeType: one(outcomeTypes, {
     fields: [matches.outcomeTypeId],
@@ -532,23 +615,69 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     fields: [matches.outcomeReasonId],
     references: [outcomeReasons.id],
   }),
-  participations: many(matchParticipation),
+  sides: many(matchSides),
+  result: one(matchResults, {
+    fields: [matches.id],
+    references: [matchResults.matchId],
+  }),
+  games: many(matchGames),
   confirmations: many(matchConfirmations),
 }));
 
-export const matchParticipationRelations = relations(
-  matchParticipation,
-  ({ one }) => ({
-    match: one(matches, {
-      fields: [matchParticipation.matchId],
-      references: [matches.id],
-    }),
-    player: one(appUsers, {
-      fields: [matchParticipation.playerId],
-      references: [appUsers.id],
-    }),
-  })
-);
+// ********************************************************************
+// [Start] New match-related relations
+// ***************************************************************
+
+export const matchSidesRelations = relations(matchSides, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchSides.matchId],
+    references: [matches.id],
+  }),
+  entry: one(tournamentEntries, {
+    fields: [matchSides.entryId],
+    references: [tournamentEntries.id],
+  }),
+}));
+
+export const matchResultsRelations = relations(matchResults, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchResults.matchId],
+    references: [matches.id],
+  }),
+  reporter: one(appUsers, {
+    fields: [matchResults.reportedBy],
+    references: [appUsers.id],
+    relationName: "reportedBy",
+  }),
+  finalizer: one(appUsers, {
+    fields: [matchResults.finalizedBy],
+    references: [appUsers.id],
+    relationName: "finalizedBy",
+  }),
+}));
+
+export const matchGamesRelations = relations(matchGames, ({ one, many }) => ({
+  match: one(matches, {
+    fields: [matchGames.matchId],
+    references: [matches.id],
+  }),
+  sides: many(matchGameSides),
+}));
+
+export const matchGameSidesRelations = relations(matchGameSides, ({ one }) => ({
+  game: one(matchGames, {
+    fields: [matchGameSides.matchGameId],
+    references: [matchGames.id],
+  }),
+  entry: one(tournamentEntries, {
+    fields: [matchGameSides.entryId],
+    references: [tournamentEntries.id],
+  }),
+}));
+
+// ********************************************************************
+// [End] New match-related relations
+// ***************************************************************
 
 export const matchConfirmationsRelations = relations(
   matchConfirmations,
@@ -571,9 +700,9 @@ export const championshipStandingsRelations = relations(
       fields: [championshipStandings.tournamentId],
       references: [tournaments.id],
     }),
-    user: one(appUsers, {
-      fields: [championshipStandings.userId],
-      references: [appUsers.id],
+    entry: one(tournamentEntries, {
+      fields: [championshipStandings.entryId],
+      references: [tournamentEntries.id],
     }),
   })
 );

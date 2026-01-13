@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { 
-  type MatchStatus, 
+import {
+  type MatchStatus,
   type MatchFinalizationReason,
   type MatchTeamSide,
   matchStatusSchema,
   matchFinalizationReasonSchema,
-  matchTeamSideSchema,
 } from "./enums";
+import type { MatchSideModel, MatchResultModel } from "./entry";
 
 // ============================================
 // Types et interfaces pour les matchs
@@ -113,6 +113,10 @@ export interface MatchModel extends Match {
     };
   }>;
   confirmations?: MatchConfirmation[];
+
+  // New entry-based fields (optional for backward compatibility)
+  sides?: MatchSideModel[];
+  result?: MatchResultModel;
 }
 
 export interface MatchParticipation {
@@ -308,7 +312,7 @@ export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'pl
  * Type pour MatchModel côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt' | 'confirmations'> {
+export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt' | 'confirmations' | 'result'> {
   createdAt: Date;
   updatedAt: Date;
   playedAt: Date;
@@ -316,6 +320,23 @@ export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'update
   confirmationDeadline?: Date;
   finalizedAt?: Date;
   confirmations?: ClientMatchConfirmation[];
+  result?: {
+    matchId: string;
+    reportedBy?: string;
+    reportedAt?: Date;
+    reportProof?: string;
+    finalizedBy?: string;
+    finalizedAt?: Date;
+    finalizationReason?: "consensus" | "auto_validation" | "admin_override";
+    reporter?: {
+      id: string;
+      displayName: string;
+    };
+    finalizer?: {
+      id: string;
+      displayName: string;
+    };
+  };
 }
 
 /**

@@ -2,12 +2,12 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   tournaments,
-  tournamentParticipants,
+  tournamentEntries,
   teams,
   matches,
-  matchParticipation,
+  matchSides,
 } from "../db/schema";
-import { type MatchStatus } from "@skill-arena/shared/types/index";
+import { type MatchStatus } from "@skill-arena/shared";
 
 export class StandingsRepository {
   /**
@@ -34,10 +34,20 @@ export class StandingsRepository {
   async getTournamentTeams(tournamentId: string) {
     return await db.query.teams.findMany({
       where: eq(teams.tournamentId, tournamentId),
+    });
+  }
+
+  /**
+   * Get all entries for a tournament
+   */
+  async getTournamentEntries(tournamentId: string) {
+    return await db.query.tournamentEntries.findMany({
+      where: eq(tournamentEntries.tournamentId, tournamentId),
       with: {
-        participants: {
+        team: true,
+        players: {
           with: {
-            user: true,
+            player: true,
           },
         },
       },
@@ -45,21 +55,8 @@ export class StandingsRepository {
   }
 
   /**
-   * Get all participants for a tournament (for flex team mode)
-   */
-  async getTournamentParticipants(tournamentId: string) {
-    return await db.query.tournamentParticipants.findMany({
-      where: eq(tournamentParticipants.tournamentId, tournamentId),
-      with: {
-        user: true,
-      },
-    });
-  }
-
-  /**
    * Get matches for standings calculation
-   * Includes only the specified statuses (finalized for official, reported + finalized for provisional)
-   * Automatically excludes: scheduled, pending_confirmation, disputed, cancelled
+   * Returns matches with their sides
    */
   async getMatchesForStandings(
     tournamentId: string,
@@ -72,30 +69,37 @@ export class StandingsRepository {
       ),
       columns: {
         id: true,
-        teamAId: true,
-        teamBId: true,
-        scoreA: true,
-        scoreB: true,
-        winnerId: true,
-        winnerSide: true,
         status: true,
       },
     });
   }
 
   /**
-   * Get match participations for flex team mode
+   * Get match sides for standings calculation
    */
-  async getMatchParticipations(matchIds: string[]) {
+  async getMatchSides(matchIds: string[]) {
     if (matchIds.length === 0) {
       return [];
     }
 
-    return await db.query.matchParticipation.findMany({
-      where: inArray(matchParticipation.matchId, matchIds),
+    return await db.query.matchSides.findMany({
+      where: inArray(matchSides.matchId, matchIds),
       with: {
-        player: true,
+        entry: {
+          with: {
+            team: true,
+            players: {
+              with: {
+                player: true,
+              },
+            },
+          },
+        },
       },
+      orderBy: (matchSides, { asc }) => [
+        asc(matchSides.matchId),
+        asc(matchSides.position),
+      ],
     });
   }
 }

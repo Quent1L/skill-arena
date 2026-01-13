@@ -1,9 +1,13 @@
 /// <reference lib="webworker" />
 
+import { precacheAndRoute } from 'workbox-precaching'
+
 declare const self: ServiceWorkerGlobalScope
 
-// Simple service worker for push notifications
-// No workbox needed in development mode
+// Precache and route assets
+precacheAndRoute(self.__WB_MANIFEST)
+
+// Service worker for push notifications
 
 self.addEventListener('install', () => {
   console.log('[SW] Service worker installed')

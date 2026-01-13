@@ -1,4 +1,5 @@
 import { matchRepository } from "../../repository/match.repository";
+import { userRepository } from "../../repository/user.repository";
 import { BadRequestError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput } from "@skill-arena/shared/types/index";
 import i18next from "../../config/i18n";
@@ -34,7 +35,7 @@ export class MatchInputValidator {
         if (!input.teamAId || !input.teamBId) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
         }
-        await matchRepository.validateTeamsForTournament(
+        await matchRepository.validateEntriesForTournament(
             input.tournamentId,
             input.teamAId,
             input.teamBId
@@ -53,10 +54,13 @@ export class MatchInputValidator {
         ) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_PLAYERS);
         }
-        await matchRepository.validatePlayersForTournament(input.tournamentId, [
-            ...input.playerIdsA,
-            ...input.playerIdsB,
-        ]);
+        await matchRepository.validateEntriesForTournament(
+            input.tournamentId,
+            undefined,
+            undefined,
+            input.playerIdsA,
+            input.playerIdsB
+        );
     }
 
     /**
@@ -144,7 +148,7 @@ export class MatchInputValidator {
         teamLabel: string
     ): Promise<void> {
         try {
-            await matchRepository.validateTeamsForTournament(
+            await matchRepository.validateEntriesForTournament(
                 tournamentId,
                 teamAId,
                 teamBId
@@ -198,9 +202,12 @@ export class MatchInputValidator {
         label: string
     ): Promise<void> {
         try {
-            await matchRepository.validatePlayersForTournament(
+            await matchRepository.validateEntriesForTournament(
                 tournamentId,
-                playerIds
+                undefined,
+                undefined,
+                playerIds,
+                []
             );
         } catch (error) {
             errors.push(
@@ -222,9 +229,13 @@ export class MatchInputValidator {
             input.playerIdsB?.includes(playerId)
         );
         if (overlappingPlayers.length > 0) {
+            // Get player information to display name instead of ID
+            const player = await userRepository.getById(overlappingPlayers[0]);
+            const playerName = player?.displayName || overlappingPlayers[0];
+
             const errorMessage = String(
                 i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", {
-                    playerName: overlappingPlayers[0],
+                    playerName,
                 })
             );
             errors.push(errorMessage);
