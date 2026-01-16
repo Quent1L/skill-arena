@@ -59,7 +59,12 @@
 
         <div class="mt-4">
           <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Participants</h3>
-          <TournamentParticipantsList :participants="participants" :loading="loadingParticipants" />
+          <TournamentParticipantsList
+            :participants="participants"
+            :loading="loadingParticipants"
+            :tournament-id="tournamentId"
+            @participant-added="$emit('participant-added')"
+          />
         </div>
       </div>
 
@@ -190,6 +195,7 @@ defineEmits<{
   (e: 'leave'): void
   (e: 'create-match'): void
   (e: 'edit'): void
+  (e: 'participant-added'): void
 }>()
 
 const activeTab = ref('detail')

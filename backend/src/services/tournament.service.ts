@@ -116,7 +116,7 @@ export class TournamentService {
     if (minSize < 1) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
     }
-    if (maxSize <= minSize) {
+    if (maxSize < minSize) {
       throw new BadRequestError(ErrorCode.INVALID_TEAM_SIZE);
     }
   }
@@ -414,6 +414,44 @@ export class TournamentService {
     if (existingParticipation) {
       throw new ConflictError(ErrorCode.ALREADY_REGISTERED);
     }
+  }
+
+  /**
+   * Admin adds a participant to tournament
+   */
+  async adminAddParticipant(
+    adminUserId: string,
+    tournamentId: string,
+    targetUserId: string
+  ) {
+    const canManage = await this.canManageTournament(
+      tournamentId,
+      adminUserId
+    );
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    const tournament = await this.getTournamentForJoin(tournamentId);
+    if (!tournament) {
+      throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
+    }
+
+    const targetUser = await userRepository.getById(targetUserId);
+    if (!targetUser) {
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    await this.checkNotAlreadyRegistered(targetUserId, tournamentId);
+
+    const participation = await participantRepository.createParticipation(
+      targetUserId,
+      tournamentId
+    );
+
+    return await participantRepository.findParticipationWithDetails(
+      participation.id
+    );
   }
 
   /**

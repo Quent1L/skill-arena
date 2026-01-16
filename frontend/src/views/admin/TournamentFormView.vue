@@ -135,6 +135,9 @@
                   :class="{ 'p-invalid': errors.minTeamSize }"
                 />
                 <small class="p-error">{{ errors.minTeamSize }}</small>
+                <small v-if="!errors.minTeamSize" class="text-gray-600 text-xs mt-1 block">
+                  Exemple : 1 pour joueurs solo, 2 pour duos
+                </small>
               </div>
               <!-- Max Team Size -->
               <div>
@@ -151,6 +154,9 @@
                   :class="{ 'p-invalid': errors.maxTeamSize }"
                 />
                 <small class="p-error">{{ errors.maxTeamSize }}</small>
+                <small v-if="!errors.maxTeamSize" class="text-gray-600 text-xs mt-1 block">
+                  Même valeur que min pour tailles fixes (ex: 1v1, 2v2 strict)
+                </small>
               </div>
 
               <!-- Dates -->
@@ -418,9 +424,21 @@ const onSubmit = handleSubmit(async (values) => {
     }
 
     if (isEditMode.value && route.params.id) {
-      // For update, exclude disciplineId (not editable after creation)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { disciplineId, ...updateData } = values
+      // Filter to include only editable fields based on original tournament status
+      const allowedFields =
+        currentTournament.value?.status === 'draft'
+          ? Object.keys(values)
+          : ['description', 'startDate', 'endDate', 'status']
+
+      const updateData = Object.entries(values).reduce(
+        (acc, [key, value]) => {
+          if (allowedFields.includes(key)) {
+            acc[key] = value
+          }
+          return acc
+        },
+        {} as Record<string, unknown>,
+      )
       await updateTournament(route.params.id as string, updateData as UpdateTournamentFormData)
     } else {
       // For create, cast to CreateTournamentFormData

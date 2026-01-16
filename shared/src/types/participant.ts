@@ -15,6 +15,11 @@ export const joinTournamentSchema = z.object({
   tournamentId: z.string().uuid(),
 });
 
+// Schéma pour qu'un admin ajoute un participant
+export const adminAddParticipantSchema = z.object({
+  userId: z.string().uuid(),
+});
+
 // Schéma pour la réponse de l'inscription
 export const joinTournamentResponseSchema = z.object({
   id: z.string().uuid(),
@@ -55,3 +60,6 @@ export type JoinTournamentResponse = z.infer<
   typeof joinTournamentResponseSchema
 >;
 export type ParticipantListItem = z.infer<typeof participantListItemSchema>;
+export type AdminAddParticipantRequest = z.infer<
+  typeof adminAddParticipantSchema
+>;

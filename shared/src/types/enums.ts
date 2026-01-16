@@ -54,6 +54,15 @@ export const outcomeTypeNameEnum = {
 } as const;
 export type OutcomeTypeName = (typeof outcomeTypeNameEnum)[keyof typeof outcomeTypeNameEnum];
 
+export const bracketTypeEnum = ["single_elimination", "double_elimination"] as const;
+export type BracketType = (typeof bracketTypeEnum)[number];
+
+export const seedingTypeEnum = ["random", "championship_based"] as const;
+export type SeedingType = (typeof seedingTypeEnum)[number];
+
+export const bracketRoundTypeEnum = ["winners", "losers", "bronze"] as const;
+export type BracketRoundType = (typeof bracketRoundTypeEnum)[number];
+
 // ============================================
 // Schémas Zod pour la validation
 // ============================================
@@ -66,3 +75,6 @@ export const tournamentAdminRoleSchema = z.enum(tournamentAdminRoleEnum);
 export const matchStatusSchema = z.enum(matchStatusEnum);
 export const matchFinalizationReasonSchema = z.enum(matchFinalizationReasonEnum);
 export const matchTeamSideSchema = z.enum(matchTeamSideEnum);
+export const bracketTypeSchema = z.enum(bracketTypeEnum);
+export const seedingTypeSchema = z.enum(seedingTypeEnum);
+export const bracketRoundTypeSchema = z.enum(bracketRoundTypeEnum);

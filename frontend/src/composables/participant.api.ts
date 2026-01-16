@@ -5,6 +5,7 @@ export interface ParticipantAPI {
   joinTournament: (tournamentId: string) => Promise<JoinTournamentResponse>
   leaveTournament: (tournamentId: string) => Promise<{ message: string }>
   getTournamentParticipants: (tournamentId: string) => Promise<ParticipantListItem[]>
+  adminAddParticipant: (tournamentId: string, userId: string) => Promise<JoinTournamentResponse>
 }
 
 export const participantApi: ParticipantAPI = {
@@ -22,6 +23,13 @@ export const participantApi: ParticipantAPI = {
 
   async getTournamentParticipants(tournamentId: string) {
     const response = await http.get(`/api/tournaments/${tournamentId}/participants`)
+    return response.data
+  },
+
+  async adminAddParticipant(tournamentId: string, userId: string) {
+    const response = await http.post(`/api/tournaments/${tournamentId}/participants/add`, {
+      userId,
+    })
     return response.data
   },
 }

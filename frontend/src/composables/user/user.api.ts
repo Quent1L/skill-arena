@@ -31,4 +31,12 @@ export const userApi = {
     const response = await http.get<UserResponse>(`${BASE_URL}/me`)
     return response.data
   },
+
+  /**
+   * Get all users (admin only)
+   */
+  async list(): Promise<UserResponse[]> {
+    const response = await http.get<UserResponse[]>(`${BASE_URL}`)
+    return response.data
+  },
 }

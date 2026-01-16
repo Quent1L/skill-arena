@@ -134,6 +134,59 @@ export function useParticipantService() {
     return false
   }
 
+  /**
+   * Admin adds a participant to tournament
+   */
+  async function adminAddParticipant(
+    tournamentId: string,
+    userId: string,
+  ): Promise<JoinTournamentResponse | null> {
+    try {
+      loading.value = true
+      error.value = null
+
+      const result = await participantApi.adminAddParticipant(tournamentId, userId)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Participant ajouté',
+        detail: 'Le participant a été ajouté avec succès',
+        life: 3000,
+      })
+
+      return result
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout du participant"
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: "Erreur d'ajout",
+        detail: message,
+        life: 5000,
+      })
+
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Admin adds participant and reload participants
+   */
+  async function adminAddParticipantAndReload(
+    tournamentId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const result = await adminAddParticipant(tournamentId, userId)
+    if (result) {
+      await getTournamentParticipants(tournamentId)
+      return true
+    }
+    return false
+  }
+
   return {
     // State
     participants,
@@ -148,5 +201,7 @@ export function useParticipantService() {
     isUserParticipant,
     joinTournamentAndReload,
     leaveTournamentAndReload,
+    adminAddParticipant,
+    adminAddParticipantAndReload,
   }
 }
