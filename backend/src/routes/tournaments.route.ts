@@ -1,13 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
 import { tournamentService } from "../services/tournament.service";
 import { standingsService } from "../services/standings.service";
+import { bracketService } from "../services/bracket.service";
 import {
   createTournamentRequestSchema,
   updateTournamentSchema,
   changeTournamentStatusSchema,
   listTournamentsQuerySchema,
   joinTournamentSchema,
+  adminAddParticipantSchema,
 } from "../schemas/tournament.schema";
+import { generateBracketSchema } from "@skill-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 
@@ -122,6 +125,26 @@ tournaments.post(
   }
 );
 
+// POST /tournaments/:id/participants/add - Admin adds a participant
+tournaments.post(
+  "/:id/participants/add",
+  requireAuth,
+  zValidator("json", adminAddParticipantSchema),
+  async (c) => {
+    const tournamentId = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const { userId: targetUserId } = c.req.valid("json");
+
+    const participation = await tournamentService.adminAddParticipant(
+      appUserId,
+      tournamentId,
+      targetUserId
+    );
+
+    return c.json(participation, 201);
+  }
+);
+
 // DELETE /tournaments/:id/participants - Leave tournament
 tournaments.delete("/:id/participants", requireAuth, async (c) => {
   const tournamentId = c.req.param("id");
@@ -188,6 +211,59 @@ tournaments.get("/:id/standings/provisional", async (c) => {
 
   const standings = await standingsService.getProvisionalStandings(tournamentId);
   return c.json(standings);
+});
+
+// ============================================
+// Bracket Routes
+// ============================================
+
+// POST /tournaments/:id/bracket - Generate or regenerate bracket
+tournaments.post(
+  "/:id/bracket",
+  requireAuth,
+  zValidator("json", generateBracketSchema),
+  async (c) => {
+    const tournamentId = c.req.param("id");
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
+
+    const bracket = await bracketService.generateBracket(
+      tournamentId,
+      data,
+      appUserId
+    );
+
+    return c.json(bracket, 201);
+  }
+);
+
+// GET /tournaments/:id/bracket - Get bracket data
+tournaments.get("/:id/bracket", async (c) => {
+  const tournamentId = c.req.param("id");
+  const bracket = await bracketService.getBracketData(tournamentId);
+
+  if (!bracket) {
+    return c.json({ error: "No bracket found for this tournament" }, 404);
+  }
+
+  return c.json(bracket);
+});
+
+// GET /tournaments/:id/bracket/can-generate - Check if bracket can be generated
+tournaments.get("/:id/bracket/can-generate", async (c) => {
+  const tournamentId = c.req.param("id");
+  const result = await bracketService.canGenerateBracket(tournamentId);
+  return c.json(result);
+});
+
+// DELETE /tournaments/:id/bracket - Delete bracket and all matches
+tournaments.delete("/:id/bracket", requireAuth, async (c) => {
+  const tournamentId = c.req.param("id");
+  const appUserId = c.get("appUserId");
+
+  await bracketService.deleteBracket(tournamentId, appUserId);
+
+  return c.json({ success: true, message: "Bracket deleted successfully" });
 });
 
 export default tournaments;

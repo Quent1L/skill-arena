@@ -1,6 +1,8 @@
 import {
   joinTournamentSchema,
   type JoinTournamentRequest,
+  adminAddParticipantSchema,
+  type AdminAddParticipantRequest,
 } from "@skill-arena/shared/types/index";
 
 // Re-export des schémas et types depuis le package partagé
@@ -21,4 +23,9 @@ export {
 } from "@skill-arena/shared/types/index";
 
 // Re-export des types participants
-export { joinTournamentSchema, type JoinTournamentRequest };
+export {
+  joinTournamentSchema,
+  type JoinTournamentRequest,
+  adminAddParticipantSchema,
+  type AdminAddParticipantRequest,
+};

@@ -146,6 +146,22 @@ export const participantStatusEnum = pgEnum("participant_status", [
   "removed",
 ]);
 
+export const bracketTypeEnum = pgEnum("bracket_type", [
+  "single_elimination",
+  "double_elimination",
+]);
+
+export const seedingTypeEnum = pgEnum("seeding_type", [
+  "random",
+  "championship_based",
+]);
+
+export const bracketRoundTypeEnum = pgEnum("bracket_round_type", [
+  "winners",
+  "losers",
+  "bronze",
+]);
+
 export const appUsers = pgTable("app_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   externalId: text("external_id")
@@ -411,6 +427,98 @@ export const championshipStandings = pgTable("championship_standings", {
     .notNull(),
 });
 
+// ********************************************************************
+// [Start] Bracket tournament tables
+// ***************************************************************
+
+export const bracketConfigs = pgTable("bracket_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .unique()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  bracketType: bracketTypeEnum("bracket_type").notNull(),
+  seedingType: seedingTypeEnum("seeding_type").notNull(),
+  sourceTournamentId: uuid("source_tournament_id").references(
+    () => tournaments.id,
+    { onDelete: "set null" }
+  ),
+  totalParticipants: integer("total_participants").notNull(),
+  roundsCount: integer("rounds_count").notNull(),
+  hasBronzeMatch: boolean("has_bronze_match").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const bracketRounds = pgTable(
+  "bracket_rounds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bracketConfigId: uuid("bracket_config_id")
+      .notNull()
+      .references(() => bracketConfigs.id, { onDelete: "cascade" }),
+    roundNumber: integer("round_number").notNull(),
+    roundName: text("round_name").notNull(),
+    bracketType: bracketRoundTypeEnum("bracket_type").notNull(),
+    matchesCount: integer("matches_count").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.bracketConfigId, table.roundNumber, table.bracketType),
+  ]
+);
+
+export const bracketSeeds = pgTable(
+  "bracket_seeds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bracketConfigId: uuid("bracket_config_id")
+      .notNull()
+      .references(() => bracketConfigs.id, { onDelete: "cascade" }),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => tournamentEntries.id, { onDelete: "cascade" }),
+    seedNumber: integer("seed_number").notNull(),
+    seedingScore: integer("seeding_score"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.bracketConfigId, table.entryId),
+    unique().on(table.bracketConfigId, table.seedNumber),
+  ]
+);
+
+export const bracketMatchMetadata = pgTable(
+  "bracket_match_metadata",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .unique()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    bracketRoundId: uuid("bracket_round_id")
+      .notNull()
+      .references(() => bracketRounds.id, { onDelete: "cascade" }),
+    matchNumber: integer("match_number").notNull(),
+    winnerToMatchId: uuid("winner_to_match_id").references(() => matches.id, {
+      onDelete: "set null",
+    }),
+    loserToMatchId: uuid("loser_to_match_id").references(() => matches.id, {
+      onDelete: "set null",
+    }),
+    isByeMatch: boolean("is_bye_match").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.bracketRoundId, table.matchNumber)]
+);
+
+// ********************************************************************
+// [End] Bracket tournament tables
+// ***************************************************************
+
 export const disciplines = pgTable("disciplines", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -521,6 +629,11 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   teams: many(teams),
   matches: many(matches),
   standings: many(championshipStandings),
+  bracketConfig: one(bracketConfigs, {
+    fields: [tournaments.id],
+    references: [bracketConfigs.tournamentId],
+  }),
+  sourcedBrackets: many(bracketConfigs, { relationName: "sourceTournament" }),
 }));
 
 export const tournamentAdminsRelations = relations(
@@ -622,6 +735,10 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
   }),
   games: many(matchGames),
   confirmations: many(matchConfirmations),
+  bracketMetadata: one(bracketMatchMetadata, {
+    fields: [matches.id],
+    references: [bracketMatchMetadata.matchId],
+  }),
 }));
 
 // ********************************************************************
@@ -706,6 +823,77 @@ export const championshipStandingsRelations = relations(
     }),
   })
 );
+
+// ********************************************************************
+// [Start] Bracket tournament relations
+// ***************************************************************
+
+export const bracketConfigsRelations = relations(
+  bracketConfigs,
+  ({ one, many }) => ({
+    tournament: one(tournaments, {
+      fields: [bracketConfigs.tournamentId],
+      references: [tournaments.id],
+    }),
+    sourceTournament: one(tournaments, {
+      fields: [bracketConfigs.sourceTournamentId],
+      references: [tournaments.id],
+      relationName: "sourceTournament",
+    }),
+    rounds: many(bracketRounds),
+    seeds: many(bracketSeeds),
+  })
+);
+
+export const bracketRoundsRelations = relations(
+  bracketRounds,
+  ({ one, many }) => ({
+    bracketConfig: one(bracketConfigs, {
+      fields: [bracketRounds.bracketConfigId],
+      references: [bracketConfigs.id],
+    }),
+    matchMetadata: many(bracketMatchMetadata),
+  })
+);
+
+export const bracketSeedsRelations = relations(bracketSeeds, ({ one }) => ({
+  bracketConfig: one(bracketConfigs, {
+    fields: [bracketSeeds.bracketConfigId],
+    references: [bracketConfigs.id],
+  }),
+  entry: one(tournamentEntries, {
+    fields: [bracketSeeds.entryId],
+    references: [tournamentEntries.id],
+  }),
+}));
+
+export const bracketMatchMetadataRelations = relations(
+  bracketMatchMetadata,
+  ({ one }) => ({
+    match: one(matches, {
+      fields: [bracketMatchMetadata.matchId],
+      references: [matches.id],
+    }),
+    bracketRound: one(bracketRounds, {
+      fields: [bracketMatchMetadata.bracketRoundId],
+      references: [bracketRounds.id],
+    }),
+    winnerToMatch: one(matches, {
+      fields: [bracketMatchMetadata.winnerToMatchId],
+      references: [matches.id],
+      relationName: "winnerToMatch",
+    }),
+    loserToMatch: one(matches, {
+      fields: [bracketMatchMetadata.loserToMatchId],
+      references: [matches.id],
+      relationName: "loserToMatch",
+    }),
+  })
+);
+
+// ********************************************************************
+// [End] Bracket tournament relations
+// ***************************************************************
 
 export const disciplinesRelations = relations(disciplines, ({ many }) => ({
   outcomeTypes: many(outcomeTypes),

@@ -22,6 +22,28 @@ export class UserRepository {
     const [createdUser] = await db.insert(appUsers).values(appUser).returning();
     return createdUser;
   }
+
+  /**
+   * Get all users (for admin use)
+   */
+  async getAllUsers() {
+    return await db.query.appUsers.findMany({
+      with: {
+        externalUser: {
+          columns: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+            emailVerified: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: (users, { desc }) => [desc(users.createdAt)],
+    });
+  }
 }
 
 export const userRepository = new UserRepository();

@@ -45,6 +45,13 @@ export class UserService {
 
     return appUser;
   }
+
+  /**
+   * Get all users (admin only)
+   */
+  async getAllUsers() {
+    return await userRepository.getAllUsers();
+  }
 }
 
 export const userService = new UserService();

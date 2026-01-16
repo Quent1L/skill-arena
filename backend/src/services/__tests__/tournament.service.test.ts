@@ -199,7 +199,7 @@ describe("TournamentService - basic flows", () => {
     }
   });
 
-  it("createTournament should throw BadRequestError when maxTeamSize <= minTeamSize", async () => {
+  it("createTournament should throw BadRequestError when maxTeamSize < minTeamSize", async () => {
     usrRepo.getById = async () =>
       ({ id: "u-1", role: "tournament_admin" } as any);
     tourRepo.countByUserAndStatus = async () => 0;
@@ -210,7 +210,7 @@ describe("TournamentService - basic flows", () => {
         mode: "championship",
         teamMode: "flex",
         minTeamSize: 2,
-        maxTeamSize: 2,
+        maxTeamSize: 1,
         startDate: "2024-01-01",
         endDate: "2024-01-02",
       } as CreateTournamentInput);
@@ -251,6 +251,34 @@ describe("TournamentService - basic flows", () => {
     expect(addedAdminTournamentId!).toBe("t-new");
     expect(addedAdminUserId).not.toBeNull();
     expect(addedAdminUserId!).toBe("u-1");
+  });
+
+  it("createTournament should succeed when maxTeamSize equals minTeamSize (solo tournaments)", async () => {
+    usrRepo.getById = async () =>
+      ({ id: "u-1", role: "tournament_admin" } as any);
+    tourRepo.countByUserAndStatus = async () => 0;
+    tourRepo.create = async (data: CreateTournamentData) =>
+      ({ id: "t-solo", ...data } as any);
+    let addedAdminTournamentId: string | null = null;
+    tourRepo.addAdmin = async (tournamentId: string) => {
+      addedAdminTournamentId = tournamentId;
+    };
+
+    const input: CreateTournamentInput = {
+      createdBy: "u-1",
+      name: "Solo Tournament",
+      mode: "bracket",
+      teamMode: "flex",
+      minTeamSize: 1,
+      maxTeamSize: 1,
+      startDate: "2024-01-01",
+      endDate: "2024-01-02",
+    } as CreateTournamentInput;
+
+    const result = await tournamentService.createTournament(input);
+    expect(result).toBeTruthy();
+    expect(result?.id).toBe("t-solo");
+    expect(addedAdminTournamentId).toBe("t-solo");
   });
 
   it("getTournamentById should throw NotFoundError when tournament not found", async () => {

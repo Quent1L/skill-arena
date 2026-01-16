@@ -28,6 +28,7 @@
         @leave="leaveTournament"
         @create-match="createMatch"
         @edit="editTournament"
+        @participant-added="handleParticipantAdded"
       />
     </div>
 
@@ -78,7 +79,8 @@
         <TabList>
           <Tab value="0">Classement</Tab>
           <Tab value="1">Matchs</Tab>
-          <Tab value="2">
+          <Tab value="2">Bracket</Tab>
+          <Tab value="3">
             <div class="flex items-center">
               <div>Participants</div>
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
@@ -95,11 +97,16 @@
             </div>
           </TabPanel>
           <TabPanel value="2">
+            <BracketView :tournament-id="tournamentId" :tournament="tournament" />
+          </TabPanel>
+          <TabPanel value="3">
             <Card>
               <template #content>
                 <TournamentParticipantsList
                   :participants="participants"
                   :loading="loadingParticipants"
+                  :tournament-id="tournamentId"
+                  @participant-added="handleParticipantAdded"
                 />
               </template>
             </Card>
@@ -141,6 +148,7 @@ import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
+import BracketView from '@/components/bracket/BracketView.vue'
 import { calculateDuration } from '@/utils/DateUtils'
 import { useViewport } from '@/composables/useViewport'
 
@@ -196,7 +204,7 @@ const tournamentDuration = computed(() => {
 
 onMounted(() => {
   const tab = route.query.tab as string | undefined
-  if (tab && ['0', '1', '2'].includes(tab)) {
+  if (tab && ['0', '1', '2', '3'].includes(tab)) {
     activeTab.value = tab
   }
 })
@@ -237,6 +245,10 @@ function editTournament() {
 
 function createMatch() {
   router.push(`/tournaments/${tournamentId.value}/create-match`)
+}
+
+async function handleParticipantAdded() {
+  await loadParticipants()
 }
 
 onMounted(async () => {
