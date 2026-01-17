@@ -3,7 +3,7 @@ import type {
   ClientBracketData,
   GenerateBracketInput,
   CanGenerateBracketResponse,
-} from '@skill-arena/shared'
+} from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
 
@@ -14,13 +14,10 @@ export const bracketApi = {
   /**
    * Generate or regenerate bracket for a tournament
    */
-  async generate(
-    tournamentId: string,
-    payload: GenerateBracketInput
-  ): Promise<ClientBracketData> {
+  async generate(tournamentId: string, payload: GenerateBracketInput): Promise<ClientBracketData> {
     const response = await http.post<ClientBracketData>(
       `${BASE_URL}/${tournamentId}/bracket`,
-      payload
+      payload,
     )
     return response.data
   },
@@ -28,16 +25,9 @@ export const bracketApi = {
   /**
    * Get bracket data for a tournament
    */
-  async getBracket(tournamentId: string): Promise<ClientBracketData | null> {
-    try {
-      const response = await http.get<ClientBracketData>(`${BASE_URL}/${tournamentId}/bracket`)
-      return response.data
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        return null
-      }
-      throw error
-    }
+  async getBracket(tournamentId: string): Promise<ClientBracketData> {
+    const response = await http.get<ClientBracketData>(`${BASE_URL}/${tournamentId}/bracket`)
+    return response.data
   },
 
   /**
@@ -45,7 +35,7 @@ export const bracketApi = {
    */
   async canGenerate(tournamentId: string): Promise<CanGenerateBracketResponse> {
     const response = await http.get<CanGenerateBracketResponse>(
-      `${BASE_URL}/${tournamentId}/bracket/can-generate`
+      `${BASE_URL}/${tournamentId}/bracket/can-generate`,
     )
     return response.data
   },

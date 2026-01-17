@@ -12,9 +12,9 @@
       <!-- Bouton administration (visible seulement pour les admins) -->
       <div v-if="canManageTournaments" class="flex gap-3">
         <Button
-          label="Gestion des tournois"
+          label="Administration"
           icon="fas fa-crown"
-          @click="router.push('/admin/tournaments')"
+          @click="router.push('/admin')"
           class="bg-blue-600 hover:bg-blue-700"
         />
       </div>

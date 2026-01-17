@@ -44,6 +44,16 @@
     "MAX_OPPONENT_MATCHES_EXCEEDED": "{{playerName}} has already played {{max}} times against {{opponentName}}",
     "NOT_A_PARTICIPANT": "Only participants can perform this action",
     "PLAYER_NOT_IN_TOURNAMENT": "Player is not participating in this tournament",
-    "TEAM_NOT_IN_TOURNAMENT": "Team is not participating in this tournament"
+    "TEAM_NOT_IN_TOURNAMENT": "Team is not participating in this tournament",
+    "DISCIPLINE_NOT_FOUND": "Discipline not found",
+    "OUTCOME_TYPE_NOT_FOUND": "Outcome type not found",
+    "OUTCOME_REASON_NOT_FOUND": "Outcome reason not found",
+    "MATCH_ALREADY_FINALIZED": "Cannot modify a finalized match",
+    "INVALID_TOURNAMENT_MODE": "Invalid tournament mode",
+    "BRACKET_CANNOT_REGENERATE": "Cannot regenerate bracket for a tournament in this state",
+    "SOURCE_TOURNAMENT_NOT_FOUND": "Source tournament not found",
+    "SOURCE_TOURNAMENT_NOT_FINISHED": "Source tournament is not finished yet",
+    "DISCIPLINE_MISMATCH": "Discipline mismatch between tournaments",
+    "INSUFFICIENT_PARTICIPANTS": "Insufficient participants to generate bracket"
   }
 }

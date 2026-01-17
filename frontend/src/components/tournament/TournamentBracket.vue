@@ -15,7 +15,7 @@
             :key="`match-${matchData.match.id}`"
             class="bracket-item"
           >
-            <div class="bracket-match" tabindex="0">
+            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
               <table class="bracket-table">
                 <caption class="bracket-caption">
                   <time :datetime="matchData.match.playedAt?.toISOString()">
@@ -36,10 +36,7 @@
                     :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
                   >
                     <td class="bracket-country">
-                      <abbr
-                        class="bracket-code"
-                        :title="getEntryName(side.entryId)"
-                      >
+                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
                         {{ getEntryCode(side.entryId) }}
                       </abbr>
                     </td>
@@ -78,10 +75,7 @@
       </div>
 
       <!-- Bronze Medal Match (if exists) -->
-      <div
-        v-if="bronzeRound"
-        class="bracket-round bracket-round--bronze"
-      >
+      <div v-if="bronzeRound" class="bracket-round bracket-round--bronze">
         <h3 class="bracket-round-title">{{ bronzeRound.roundName }}</h3>
         <ul class="bracket-list">
           <li
@@ -89,7 +83,7 @@
             :key="`match-${matchData.match.id}`"
             class="bracket-item"
           >
-            <div class="bracket-match" tabindex="0">
+            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
               <table class="bracket-table">
                 <caption class="bracket-caption">
                   <time :datetime="matchData.match.playedAt?.toISOString()">
@@ -110,10 +104,7 @@
                     :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
                   >
                     <td class="bracket-country">
-                      <abbr
-                        class="bracket-code"
-                        :title="getEntryName(side.entryId)"
-                      >
+                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
                         {{ getEntryCode(side.entryId) }}
                       </abbr>
                     </td>
@@ -158,7 +149,7 @@
             :key="`match-${matchData.match.id}`"
             class="bracket-item"
           >
-            <div class="bracket-match" tabindex="0">
+            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
               <table class="bracket-table">
                 <caption class="bracket-caption">
                   <time :datetime="matchData.match.playedAt?.toISOString()">
@@ -179,10 +170,7 @@
                     :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
                   >
                     <td class="bracket-country">
-                      <abbr
-                        class="bracket-code"
-                        :title="getEntryName(side.entryId)"
-                      >
+                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
                         {{ getEntryCode(side.entryId) }}
                       </abbr>
                     </td>
@@ -214,57 +202,105 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ClientBracketData, ClientBracketRound, ClientBracketMatchWithMetadata } from '@skill-arena/shared'
-import type { ClientMatch, ClientMatchSide } from '@skill-arena/shared'
+import { useRouter } from 'vue-router'
+import type {
+  ClientBracketData,
+  ClientBracketRound,
+  ClientBracketMatchWithMetadata,
+  MatchModel,
+  MatchSideModel,
+} from '@skill-arena/shared'
 
 interface Props {
   bracketData: ClientBracketData
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
 
 // Organize rounds by bracket type
 const winnersRounds = computed(() =>
   props.bracketData.rounds
-    .filter(r => r.bracketType === 'winners')
-    .sort((a, b) => a.roundNumber - b.roundNumber)
+    .filter((r) => r.bracketType === 'winners')
+    .sort((a, b) => a.roundNumber - b.roundNumber),
 )
 
 const losersRounds = computed(() =>
   props.bracketData.rounds
-    .filter(r => r.bracketType === 'losers')
-    .sort((a, b) => a.roundNumber - b.roundNumber)
+    .filter((r) => r.bracketType === 'losers')
+    .sort((a, b) => a.roundNumber - b.roundNumber),
 )
 
-const bronzeRound = computed(() =>
-  props.bracketData.rounds.find(r => r.bracketType === 'bronze')
-)
+const bronzeRound = computed(() => props.bracketData.rounds.find((r) => r.bracketType === 'bronze'))
 
 // Get matches for a specific round
 function getMatchesForRound(roundId: string): ClientBracketMatchWithMetadata[] {
   return props.bracketData.matches
-    .filter(m => m.round.id === roundId)
+    .filter((m) => m.round.id === roundId)
     .sort((a, b) => a.metadata.matchNumber - b.metadata.matchNumber)
 }
 
 // Get entry name from seed data
 function getEntryName(entryId: string): string {
-  const seed = props.bracketData.seeds.find(s => s.entryId === entryId)
-  return seed?.entry?.name || 'Unknown'
+  const seed = props.bracketData.seeds.find((s) => s.entryId === entryId)
+  if (!seed?.entry) return 'Unknown'
+
+  // For TEAM entries, use team name
+  if (seed.entry.entryType === 'TEAM' && seed.entry.team) {
+    return seed.entry.team.name
+  }
+
+  // For PLAYER entries, use first player's displayName
+  if (seed.entry.entryType === 'PLAYER' && seed.entry.players?.length > 0) {
+    return seed.entry.players[0].player.displayName
+  }
+
+  return 'Unknown'
 }
 
 // Get entry code (first 3-4 letters of name)
 function getEntryCode(entryId: string): string {
   const name = getEntryName(entryId)
-  return name.substring(0, 4).toUpperCase()
+  return name.toUpperCase()
 }
 
 // Check if a side is the winner
-function isWinner(match: ClientMatch, side: ClientMatchSide): boolean {
-  if (match.status !== 'confirmed' && match.status !== 'finalized') {
+function isWinner(match: unknown, side: { entryId: string; score: number; pointsAwarded: number }): boolean {
+  const m = match as {
+    status: string
+    winnerId?: string
+    sides?: Array<{ entryId: string; score: number; pointsAwarded: number }>
+  }
+
+  if (m.status !== 'confirmed' && m.status !== 'finalized') {
     return false
   }
-  return match.winnerId === side.entryId
+
+  // If winnerId is explicitly set, use it
+  if (m.winnerId) {
+    return m.winnerId === side.entryId
+  }
+
+  // Fallback: determine winner by pointsAwarded (primary) or score (secondary)
+  if (m.sides && m.sides.length > 0) {
+    // Find the side with highest pointsAwarded
+    const maxPoints = Math.max(...m.sides.map(s => s.pointsAwarded))
+    const winnersWithPoints = m.sides.filter(s => s.pointsAwarded === maxPoints && maxPoints > 0)
+
+    if (winnersWithPoints.length === 1 && winnersWithPoints[0]) {
+      return winnersWithPoints[0].entryId === side.entryId
+    }
+
+    // If pointsAwarded is tied or all zero, use score
+    const maxScore = Math.max(...m.sides.map(s => s.score))
+    const winnersWithScore = m.sides.filter(s => s.score === maxScore && maxScore > 0)
+
+    if (winnersWithScore.length === 1 && winnersWithScore[0]) {
+      return winnersWithScore[0].entryId === side.entryId
+    }
+  }
+
+  return false
 }
 
 // Get round class for styling
@@ -284,6 +320,11 @@ function formatDate(date?: Date): string {
     month: 'long',
     year: 'numeric',
   })
+}
+
+// Navigate to match detail
+function goToMatch(matchId: string): void {
+  router.push(`/matches/${matchId}`)
 }
 </script>
 
@@ -491,7 +532,20 @@ function formatDate(date?: Date): string {
   cursor: pointer;
   transition:
     padding 0.2s ease-in-out,
-    border 0.2s linear;
+    border 0.2s linear,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.bracket-match:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  border-color: rgba(33, 150, 243, 0.3);
+}
+
+.bracket-match:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .bracket-match:focus {

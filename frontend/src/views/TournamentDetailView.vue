@@ -77,10 +77,10 @@
 
       <Tabs v-model:value="activeTab">
         <TabList>
-          <Tab value="0">Classement</Tab>
-          <Tab value="1">Matchs</Tab>
-          <Tab value="2">Bracket</Tab>
-          <Tab value="3">
+          <Tab v-if="tournament.mode === 'championship'" value="0">Classement</Tab>
+          <Tab :value="tournament.mode === 'championship' ? '1' : '0'">Matchs</Tab>
+          <Tab v-if="tournament.mode === 'bracket'" :value="tournament.mode === 'championship' ? '2' : '1'">Bracket</Tab>
+          <Tab :value="tournament.mode === 'bracket' ? (tournament.mode === 'championship' ? '3' : '2') : (tournament.mode === 'championship' ? '2' : '1')">
             <div class="flex items-center">
               <div>Participants</div>
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
@@ -88,18 +88,18 @@
           </Tab>
         </TabList>
         <TabPanels>
-          <TabPanel value="0">
+          <TabPanel v-if="tournament.mode === 'championship'" value="0">
             <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
           </TabPanel>
-          <TabPanel value="1">
+          <TabPanel :value="tournament.mode === 'championship' ? '1' : '0'">
             <div class="p-0">
               <MatchList :tournament-id="tournamentId" />
             </div>
           </TabPanel>
-          <TabPanel value="2">
+          <TabPanel v-if="tournament.mode === 'bracket'" :value="tournament.mode === 'championship' ? '2' : '1'">
             <BracketView :tournament-id="tournamentId" :tournament="tournament" />
           </TabPanel>
-          <TabPanel value="3">
+          <TabPanel :value="tournament.mode === 'bracket' ? (tournament.mode === 'championship' ? '3' : '2') : (tournament.mode === 'championship' ? '2' : '1')">
             <Card>
               <template #content>
                 <TournamentParticipantsList
@@ -204,8 +204,20 @@ const tournamentDuration = computed(() => {
 
 onMounted(() => {
   const tab = route.query.tab as string | undefined
-  if (tab && ['0', '1', '2', '3'].includes(tab)) {
-    activeTab.value = tab
+  if (tab) {
+    // Validate tab value based on tournament mode
+    let validTabs: string[]
+    if (tournament.value?.mode === 'championship') {
+      validTabs = ['0', '1', '2'] // Classement, Matchs, Participants
+    } else if (tournament.value?.mode === 'bracket') {
+      validTabs = ['0', '1', '2'] // Matchs, Bracket, Participants
+    } else {
+      validTabs = ['0', '1'] // Matchs, Participants (fallback)
+    }
+
+    if (validTabs.includes(tab)) {
+      activeTab.value = tab
+    }
   }
 })
 

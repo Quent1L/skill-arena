@@ -1,7 +1,8 @@
 import { ref, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { bracketApi } from './bracket.api'
-import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/shared'
+import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/shared/types/index'
+import { XiorError } from 'xior'
 
 /**
  * Bracket service - Business logic and state management
@@ -30,6 +31,13 @@ export function useBracketService() {
       bracketData.value = data
       return data
     } catch (err: unknown) {
+      // Handle 404 gracefully - bracket not yet initialized
+      if (err instanceof Error && err.message?.includes('404')) {
+        bracketData.value = null
+        error.value = null
+        return null
+      }
+
       error.value = err instanceof Error ? err.message : 'Error loading bracket'
       toast.add({
         severity: 'error',
