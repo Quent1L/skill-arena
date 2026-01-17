@@ -46,6 +46,18 @@ const routes: RouteRecordRaw[] = [
   },
 
   {
+    path: '/admin',
+    name: 'admin',
+    component: () => import('@/views/admin/AdminView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Administration',
+      title: 'Administration',
+      requiresAuth: true,
+    },
+  },
+
+  {
     path: '/admin/tournaments',
     name: 'admin-tournaments',
     component: () => import('@/views/admin/TournamentList.vue'),
@@ -54,6 +66,7 @@ const routes: RouteRecordRaw[] = [
       breadcrumb: 'Gestion des tournois',
       title: 'Gestion des tournois',
       requiresAuth: true,
+      parent: 'admin',
     },
   },
 
@@ -90,6 +103,7 @@ const routes: RouteRecordRaw[] = [
       breadcrumb: 'Gestion des disciplines',
       title: 'Gestion des disciplines',
       requiresAuth: true,
+      parent: 'admin',
     },
   },
   {

@@ -1,6 +1,6 @@
-import xior, {  XiorError } from 'xior'
+import xior, { XiorError } from 'xior'
 import { convertStringDatesToJS } from '@/utils/DateUtils'
-const baseURL = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin;
+const baseURL = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
 
 const http = xior.create({
   baseURL,

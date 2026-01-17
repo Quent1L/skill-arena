@@ -44,6 +44,16 @@
     "MAX_OPPONENT_MATCHES_EXCEEDED": "{{playerName}} a déjà joué {{max}} fois contre {{opponentName}} (format {{teamSize}}v{{teamSize}})",
     "NOT_A_PARTICIPANT": "Seuls les participants peuvent effectuer cette action",
     "PLAYER_NOT_IN_TOURNAMENT": "Le joueur ne participe pas à ce tournoi",
-    "TEAM_NOT_IN_TOURNAMENT": "L'équipe ne participe pas à ce tournoi"
+    "TEAM_NOT_IN_TOURNAMENT": "L'équipe ne participe pas à ce tournoi",
+    "DISCIPLINE_NOT_FOUND": "Discipline non trouvée",
+    "OUTCOME_TYPE_NOT_FOUND": "Type de résultat non trouvé",
+    "OUTCOME_REASON_NOT_FOUND": "Raison du résultat non trouvée",
+    "MATCH_ALREADY_FINALIZED": "Impossible de modifier un match finalisé",
+    "INVALID_TOURNAMENT_MODE": "Mode de tournoi invalide",
+    "BRACKET_CANNOT_REGENERATE": "Impossible de régénérer le bracket pour un tournoi dans cet état",
+    "SOURCE_TOURNAMENT_NOT_FOUND": "Tournoi source non trouvé",
+    "SOURCE_TOURNAMENT_NOT_FINISHED": "Le tournoi source n'est pas encore terminé",
+    "DISCIPLINE_MISMATCH": "Les disciplines des tournois ne correspondent pas",
+    "INSUFFICIENT_PARTICIPANTS": "Nombre de participants insuffisant pour générer le bracket"
   }
 }

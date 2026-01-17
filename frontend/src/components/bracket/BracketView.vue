@@ -1,7 +1,22 @@
 <template>
   <div class="bracket-view">
-    <!-- Admin Controls -->
-    <div v-if="canManage" class="mb-6 flex gap-3 items-center flex-wrap">
+    <!-- Wrong Tournament Type Guard -->
+    <div
+      v-if="!isBracketTournament"
+      class="flex flex-col items-center justify-center py-20 text-center"
+    >
+      <i class="fa fa-exclamation-triangle text-6xl text-orange-400 mb-4" />
+      <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        Not a Bracket Tournament
+      </h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        This tournament is not configured for bracket mode.
+      </p>
+    </div>
+
+    <template v-else>
+      <!-- Admin Controls -->
+      <div v-if="canManage" class="mb-6 flex gap-3 items-center flex-wrap">
       <Button
         v-if="!hasBracket"
         label="Generate Bracket"
@@ -100,21 +115,21 @@
       <TournamentBracket :bracket-data="bracketData" />
     </div>
 
-    <!-- Generate/Regenerate Dialog -->
-    <GenerateBracketDialog
-      v-model="showGenerateDialog"
-      :is-regeneration="hasBracket"
-      :current-discipline-id="tournament?.disciplineId"
-      @submit="handleGenerateSubmit"
-    />
+      <!-- Generate/Regenerate Dialog -->
+      <GenerateBracketDialog
+        v-model="showGenerateDialog"
+        :is-regeneration="hasBracket"
+        :current-discipline-id="tournament?.disciplineId"
+        @submit="handleGenerateSubmit"
+      />
 
-    <!-- Delete Confirmation Dialog -->
-    <Dialog
-      v-model:visible="showDeleteDialog"
-      header="Delete Bracket"
-      :modal="true"
-      :style="{ width: '450px' }"
-    >
+      <!-- Delete Confirmation Dialog -->
+      <Dialog
+        v-model:visible="showDeleteDialog"
+        header="Delete Bracket"
+        :modal="true"
+        :style="{ width: '450px' }"
+      >
       <div class="flex items-start gap-4">
         <i class="fa fa-exclamation-triangle text-4xl text-orange-500" />
         <div>
@@ -140,6 +155,7 @@
         </div>
       </template>
     </Dialog>
+    </template>
   </div>
 </template>
 
@@ -180,8 +196,15 @@ const canManage = computed(() => {
   return props.tournament ? canManageTournament(props.tournament) : false
 })
 
+const isBracketTournament = computed(() => {
+  return props.tournament?.mode === 'bracket'
+})
+
 onMounted(async () => {
-  await loadBracketData()
+  // Only load bracket data if this is a bracket tournament
+  if (isBracketTournament.value) {
+    await loadBracketData()
+  }
 })
 
 async function loadBracketData() {
