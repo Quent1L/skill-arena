@@ -40,6 +40,15 @@
               <small v-if="errors.password" class="text-red-500">
                 {{ errors.password }}
               </small>
+              <div class="text-right">
+                <Button
+                  link
+                  label="Mot de passe oublié ?"
+                  @click="router.push('/forgot-password')"
+                  class="text-sm text-blue-600 hover:text-blue-700 p-0"
+                  type="button"
+                />
+              </div>
             </div>
 
             <Message v-if="error" severity="error" :closable="false">
