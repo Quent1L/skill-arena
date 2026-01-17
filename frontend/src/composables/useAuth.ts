@@ -201,6 +201,68 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Demande de réinitialisation de mot de passe
+   */
+  async function requestPasswordReset(email: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await authClient.forgetPassword({
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (result.error) {
+        error.value = result.error.message || 'Erreur lors de la demande de réinitialisation'
+        throw new Error(result.error.message)
+      }
+
+      return result
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Une erreur est survenue lors de la demande de réinitialisation'
+      error.value = message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Réinitialisation du mot de passe avec token
+   */
+  async function resetPassword(token: string, newPassword: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await authClient.resetPassword({
+        newPassword,
+        token,
+      })
+
+      if (result.error) {
+        error.value = result.error.message || 'Erreur lors de la réinitialisation du mot de passe'
+        throw new Error(result.error.message)
+      }
+
+      return result
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Une erreur est survenue lors de la réinitialisation du mot de passe'
+      error.value = message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     currentUser,
     appUser,
@@ -219,5 +281,7 @@ export function useAuth() {
     initialize,
     authClient,
     token,
+    requestPasswordReset,
+    resetPassword,
   }
 }

@@ -43,7 +43,35 @@ export const registerSchema = z
   })
 
 /**
+ * Schéma de validation pour la demande de réinitialisation de mot de passe
+ */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "L'adresse email est requise")
+    .regex(emailRegex, 'Adresse email invalide'),
+})
+
+/**
+ * Schéma de validation pour la réinitialisation de mot de passe
+ */
+export const resetPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, 'Le mot de passe est requis')
+      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    passwordConfirm: z.string().min(1, 'La confirmation du mot de passe est requise'),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: 'Les mots de passe ne correspondent pas',
+    path: ['passwordConfirm'],
+  })
+
+/**
  * Types inférés des schémas
  */
 export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>

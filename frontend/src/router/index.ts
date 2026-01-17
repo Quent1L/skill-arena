@@ -44,6 +44,26 @@ const routes: RouteRecordRaw[] = [
       hideBreadcrumb: true,
     },
   },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/views/ForgotPasswordView.vue'),
+    beforeEnter: redirectIfAuthenticated,
+    meta: {
+      breadcrumb: 'Mot de passe oublié',
+      hideBreadcrumb: true,
+    },
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/views/ResetPasswordView.vue'),
+    beforeEnter: redirectIfAuthenticated,
+    meta: {
+      breadcrumb: 'Réinitialiser le mot de passe',
+      hideBreadcrumb: true,
+    },
+  },
 
   {
     path: '/admin',
