@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useForm } from 'vee-validate'
@@ -123,6 +124,9 @@ import { registerSchema } from '@/schemas/auth.schema'
 const router = useRouter()
 const route = useRoute()
 const { register, loading, error } = useAuth()
+
+// Note: La vérification du code d'invitation est gérée par le hook backend
+// lors de l'inscription. Pas besoin de vérifier le cookie côté frontend.
 
 const { defineField, handleSubmit, errors } = useForm({
   validationSchema: toTypedSchema(registerSchema),

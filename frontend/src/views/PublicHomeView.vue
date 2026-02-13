@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full max-w-2xl">
+  <div class="w-full flex items-center justify-center">
     <div class="text-center space-y-6 p-6">
       <img src="@/assets/img/skill-arena-logo-2.png" alt="Skill Arena Logo" class="mx-auto h-80" />
 

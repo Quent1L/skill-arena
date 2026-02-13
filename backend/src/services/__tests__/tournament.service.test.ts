@@ -278,7 +278,8 @@ describe("TournamentService - basic flows", () => {
     const result = await tournamentService.createTournament(input);
     expect(result).toBeTruthy();
     expect(result?.id).toBe("t-solo");
-    expect(addedAdminTournamentId).toBe("t-solo");
+    expect(addedAdminTournamentId).not.toBeNull();
+    expect(addedAdminTournamentId!).toBe("t-solo");
   });
 
   it("getTournamentById should throw NotFoundError when tournament not found", async () => {

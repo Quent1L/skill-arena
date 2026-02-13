@@ -34,7 +34,7 @@ export interface UpdateOutcomeReasonInput {
 // ============================================
 
 export const createOutcomeReasonSchema = z.object({
-  outcomeTypeId: z.uuid("ID de type de résultat invalide"),
+  outcomeTypeId: z.string().uuid("ID de type de résultat invalide"),
   name: z
     .string({ message: "Le nom est requis" })
     .min(1, "Le nom ne peut pas être vide")
@@ -42,7 +42,7 @@ export const createOutcomeReasonSchema = z.object({
 });
 
 export const updateOutcomeReasonSchema = z.object({
-  outcomeTypeId: z.uuid("ID de type de résultat invalide").optional(),
+  outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
   name: z
     .string()
     .min(1, "Le nom ne peut pas être vide")

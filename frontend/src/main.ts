@@ -10,31 +10,27 @@ import ToastService from 'primevue/toastservice'
 import ConfirmationService from 'primevue/confirmationservice'
 import localeFR from '@/config/locales/fr.json'
 import themePreset from './config/PrimevuePreset'
-import { useAuth } from './composables/useAuth'
+import { errorService } from './composables/useErrorService'
 
 // Initialisation du thème depuis localStorage
-const savedTheme = localStorage.getItem('theme') || 'light'
-console.log('Theme saved:', savedTheme) // Debug
+const savedTheme = localStorage.getItem('theme') || 'dark'
+console.log('Theme saved:', savedTheme)
 if (savedTheme === 'dark') {
   document.documentElement.classList.add('my-app-dark')
-  console.log('Dark mode applied') // Debug
+  console.log('Dark mode applied')
 } else {
-  document.documentElement.classList.remove('my-app-dark') // S'assurer que la classe dark est supprimée
-  console.log('Light mode applied') // Debug
+  document.documentElement.classList.remove('my-app-dark')
+  console.log('Light mode applied')
 }
 
-const { initialize } = useAuth()
+// Installer les intercepteurs d'erreurs globaux dès le démarrage
+// Les erreurs seront loggées dans la console jusqu'à ce que le Toast soit disponible
+errorService.install()
 
-// Initialiser la session au démarrage
-try {
-  await initialize()
-} catch (error) {
-  console.error("❌ Erreur lors de l'initialisation de la session:", error)
-  // Continuer le démarrage même en cas d'erreur
-}
-
+// Créer l'application Vue
 const app = createApp(App)
 
+// Configurer PrimeVue et les services
 app.use(PrimeVue, {
   locale: localeFR,
   theme: {

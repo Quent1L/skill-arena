@@ -4,6 +4,7 @@
 
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { errorService } from '@/composables/useErrorService.ts'
 
 /**
  * Middleware pour vérifier l'authentification
@@ -16,7 +17,6 @@ export async function requireAuth(
   const { isAuthenticated, isInitialized, initialize } = useAuth()
 
   try {
-    // Initialiser la session si ce n'est pas déjà fait
     if (!isInitialized.value) {
       await initialize()
     }
@@ -31,6 +31,13 @@ export async function requireAuth(
     }
   } catch (error) {
     console.error('❌ Error during authentication check:', error)
+
+    if (error instanceof Error && error.cause === 'INVITATION_CODE_REQUIRED') {
+      errorService.showError(error)
+      next('/submit-invitation')
+      return
+    }
+
     next({
       path: '/login',
       query: { redirect: to.fullPath },
@@ -72,6 +79,14 @@ export async function requireAdmin(
     }
   } catch (error) {
     console.error('❌ Error checking admin status:', error)
+
+    // Si l'erreur est INVITATION_CODE_REQUIRED, rediriger vers /submit-invitation
+    if (error instanceof Error && error.message === 'INVITATION_CODE_REQUIRED') {
+      next('/submit-invitation')
+      return
+    }
+
+    // Autres erreurs - rediriger vers login
     next({
       path: '/login',
       query: { redirect: to.fullPath },

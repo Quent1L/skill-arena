@@ -53,6 +53,27 @@
           </div>
         </template>
       </Card>
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToDisciplines">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-gamepad text-5xl text-purple-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Gestion des invitations
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              Créez, modifiez et gérez les codes d'invitations
+            </p>
+            <Button
+              label="Accéder"
+              icon="fa fa-arrow-right"
+              class="bg-purple-600 hover:bg-purple-700"
+              @click.stop="navigateToInvitaionCode"
+            />
+          </div>
+        </template>
+      </Card>
     </div>
   </div>
 </template>
@@ -68,6 +89,10 @@ function navigateToTournaments() {
 
 function navigateToDisciplines() {
   router.push('/admin/disciplines')
+}
+
+function navigateToInvitaionCode() {
+  router.push('/admin/invitations')
 }
 </script>
 

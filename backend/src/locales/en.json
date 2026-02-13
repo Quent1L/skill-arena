@@ -63,6 +63,13 @@
     "EMAIL_SEND_FAILED": "Failed to send email",
     "INVALID_RESET_TOKEN": "The reset link is invalid or has expired",
     "PASSWORD_RESET_REQUIRED": "Please provide a new password",
-    "INVALID_EMAIL": "Invalid email address"
+    "INVALID_EMAIL": "Invalid email address",
+    "INVITATION_CODE_REQUIRED": "Invitation code is required for account registration",
+    "INVITATION_CODE_INVALID": "Invalid invitation code",
+    "INVITATION_CODE_EXPIRED": "This invitation code has expired",
+    "INVITATION_CODE_EXHAUSTED": "This invitation code has reached its maximum usage limit",
+    "INVITATION_CODE_INACTIVE": "This invitation code has been deactivated",
+    "INVITATION_CODE_ALREADY_USED": "You have already used an invitation code",
+    "INVITATION_CODE_NOT_FOUND": "Invitation code not found"
   }
 }

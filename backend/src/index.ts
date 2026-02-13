@@ -11,6 +11,8 @@ import outcomeTypes from "./routes/outcome-types.route";
 import outcomeReasons from "./routes/outcome-reasons.route";
 import notifications from "./routes/notification.route";
 import config from "./routes/config.route";
+import invitations from "./routes/invitations.route";
+import adminInvitations from "./routes/admin/invitations.route";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
@@ -72,6 +74,10 @@ app.route("/api/outcome-reasons", outcomeReasons);
 app.route("/api", notifications);
 
 app.route("/api/config", config);
+
+app.route("/api/invitations", invitations);
+
+app.route("/api/admin/invitations", adminInvitations);
 
 app.get(
   "/api/ws",
