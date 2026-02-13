@@ -80,6 +80,41 @@ export const verification = pgTable("verification", {
 // ***************************************************************
 
 // ********************************************************************
+// [Start] Invitation codes for account registration
+// ***************************************************************
+
+export const invitationCodes = pgTable("invitation_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").unique().notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+  maxUses: integer("max_uses").notNull().default(1),
+  usedCount: integer("used_count").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  notes: text("notes"),
+});
+
+export const invitationUsages = pgTable("invitation_usages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  codeId: uuid("code_id")
+    .notNull()
+    .references(() => invitationCodes.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  usedAt: timestamp("used_at").defaultNow().notNull(),
+  email: text("email").notNull(),
+  ipAddress: text("ip_address"),
+});
+
+// ********************************************************************
+// [End] Invitation codes
+// ***************************************************************
+
+// ********************************************************************
 // [Start] Skill Arena application tables
 // ***************************************************************
 
@@ -612,6 +647,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   pushDevices: many(userPushDevices),
   reportedMatches: many(matchResults, { relationName: "reportedBy" }),
   finalizedMatches: many(matchResults, { relationName: "finalizedBy" }),
+  createdInvitationCodes: many(invitationCodes),
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
@@ -957,3 +993,22 @@ export const userPushDevicesRelations = relations(
     }),
   })
 );
+
+export const invitationCodesRelations = relations(invitationCodes, ({ one, many }) => ({
+  creator: one(appUsers, {
+    fields: [invitationCodes.createdBy],
+    references: [appUsers.id],
+  }),
+  usages: many(invitationUsages),
+}));
+
+export const invitationUsagesRelations = relations(invitationUsages, ({ one }) => ({
+  code: one(invitationCodes, {
+    fields: [invitationUsages.codeId],
+    references: [invitationCodes.id],
+  }),
+  user: one(user, {
+    fields: [invitationUsages.userId],
+    references: [user.id],
+  }),
+}));

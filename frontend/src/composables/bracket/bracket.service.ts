@@ -2,7 +2,6 @@ import { ref, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { bracketApi } from './bracket.api'
 import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/shared/types/index'
-import { XiorError } from 'xior'
 
 /**
  * Bracket service - Business logic and state management

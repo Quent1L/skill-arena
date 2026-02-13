@@ -39,8 +39,8 @@ export const notificationService = {
     const notification = await notificationRepository.create(data);
 
     const lng = "fr";
-    const title = i18next.t(data.titleKey, { lng, ...data.translationParams });
-    const message = i18next.t(data.messageKey, { lng, ...data.translationParams });
+    const title = String(i18next.t(data.titleKey, { lng, ...data.translationParams }));
+    const message = String(i18next.t(data.messageKey, { lng, ...data.translationParams }));
 
     // Payload for WebSocket (HTML entities preserved for v-html)
     const payload = {

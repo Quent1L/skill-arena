@@ -35,12 +35,31 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/signup',
+    name: 'signup',
+    component: () => import('@/views/SignupView.vue'),
+    beforeEnter: redirectIfAuthenticated,
+    meta: {
+      breadcrumb: 'Inscription',
+      hideBreadcrumb: true,
+    },
+  },
+  {
     path: '/register',
     name: 'register',
     component: () => import('@/views/RegisterView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Inscription',
+      hideBreadcrumb: true,
+    },
+  },
+  {
+    path: '/submit-invitation',
+    name: 'submit-invitation',
+    component: () => import('@/views/SubmitInvitationView.vue'),
+    meta: {
+      breadcrumb: 'Code d\'invitation',
       hideBreadcrumb: true,
     },
   },
@@ -136,6 +155,18 @@ const routes: RouteRecordRaw[] = [
       title: 'Modifier la discipline',
       requiresAuth: true,
       parent: 'admin-disciplines',
+    },
+  },
+  {
+    path: '/admin/invitations',
+    name: 'admin-invitations',
+    component: () => import('@/views/admin/AdminInvitationsView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Codes d\'invitation',
+      title: 'Gestion des codes d\'invitation',
+      requiresAuth: true,
+      parent: 'admin',
     },
   },
   {

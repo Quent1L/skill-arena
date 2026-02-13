@@ -5,6 +5,7 @@
 import { ref, computed } from 'vue'
 import { authClient } from '@/lib/auth-client'
 import { userApi, type UserResponse } from '@/composables/user/user.api'
+import { useConfigService } from '@/composables/config/config.service'
 
 const sessionData = ref()
 const appUserData = ref<UserResponse | null>(null)
@@ -135,16 +136,29 @@ export function useAuth() {
       const result = await authClient.signUp.email(signUpData)
 
       if (result.error) {
-        error.value = result.error.message || "Erreur lors de l'inscription"
-        throw new Error(result.error.message)
+        // Better Auth peut retourner l'erreur dans différents formats
+        const errorMessage =
+          result.error?.message ?? "Erreur lors de l'inscription"
+
+        error.value = errorMessage
+        throw new Error(errorMessage)
       }
 
       await initialize()
 
       return result
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Une erreur est survenue lors de l'inscription"
+    } catch (err: any) {
+      // Gérer les erreurs spécifiques du code d'invitation
+      let message = "Une erreur est survenue lors de l'inscription"
+
+      if (err instanceof Error) {
+        message = err.message
+      } else if (err?.error?.message) {
+        message = err.error.message
+      } else if (err?.message) {
+        message = err.message
+      }
+
       error.value = message
       throw err
     } finally {
@@ -168,13 +182,23 @@ export function useAuth() {
       if (sessionData.value?.data?.user) {
         try {
           await fetchUserData()
-        } catch (userDataError) {
-          console.warn('Impossible de récupérer les données utilisateur:', userDataError)
-          // Continue même si on ne peut pas récupérer les données utilisateur
+        } catch (fetchError: any) {
+          // Si l'erreur est INVITATION_CODE_REQUIRED, la propager pour que le guard la gère
+          if (fetchError?.cause === 'INVITATION_CODE_REQUIRED') {
+            throw fetchError
+          }
+          // Pour les autres erreurs (401, etc.), réinitialiser silencieusement
+          console.warn('Erreur lors de la récupération des données utilisateur:', fetchError)
+          sessionData.value = { data: { user: null, session: null } }
+          appUserData.value = null
         }
       }
-    } catch {
-      // Ignore les erreurs d'initialisation
+    } catch (err: any) {
+      // Si c'est INVITATION_CODE_REQUIRED, propager l'erreur
+      if (err?.cause === 'INVITATION_CODE_REQUIRED') {
+        throw err
+      }
+      // Ignore les autres erreurs d'initialisation
       sessionData.value = { data: { user: null, session: null } }
       appUserData.value = null
     }
@@ -188,9 +212,20 @@ export function useAuth() {
     error.value = null
 
     try {
+      // Déconnecter de Better Auth
       await authClient.signOut()
       sessionData.value = undefined
       appUserData.value = null
+
+      // Si Keycloak est activé, rediriger vers le logout Keycloak
+      const { config } = useConfigService()
+      if (config.value?.auth?.keycloak?.enabled && config.value?.auth?.keycloak?.issuer) {
+        const keycloakLogoutUrl = buildKeycloakLogoutUrl(
+          config.value.auth.keycloak.issuer,
+          config.value.auth.keycloak.clientId || undefined
+        )
+        window.location.href = keycloakLogoutUrl
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Une erreur est survenue lors de la déconnexion'
@@ -199,6 +234,24 @@ export function useAuth() {
     } finally {
       loading.value = false
     }
+  }
+
+  /**
+   * Construit l'URL de logout Keycloak
+   */
+  function buildKeycloakLogoutUrl(issuer: string, clientId?: string): string {
+    const postLogoutRedirectUri = window.location.origin + '/login'
+    const logoutUrl = `${issuer}/protocol/openid-connect/logout`
+
+    const params = new URLSearchParams({
+      post_logout_redirect_uri: postLogoutRedirectUri,
+    })
+
+    if (clientId) {
+      params.append('client_id', clientId)
+    }
+
+    return `${logoutUrl}?${params.toString()}`
   }
 
   /**

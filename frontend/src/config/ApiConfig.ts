@@ -15,7 +15,7 @@ http.interceptors.response.use(
   },
   async (error: XiorError) => {
     console.error('HTTP Error:', error.message, error.response)
-    throw new Error(error.response?.data?.error?.message ?? error.message)
+    throw new Error(error.response?.data?.error?.message ?? error.message, {cause: error.response?.data.error?.code})
   },
 )
 

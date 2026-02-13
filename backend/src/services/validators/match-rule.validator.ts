@@ -108,9 +108,9 @@ export class MatchRuleValidator {
         // Get the player's teammates (partners)
         let teammates: string[] = [];
         if (isInTeamA && input.playerIdsA) {
-            teammates = input.playerIdsA.filter((id) => id !== playerId);
+            teammates = input.playerIdsA.filter((id: string) => id !== playerId);
         } else if (isInTeamB && input.playerIdsB) {
-            teammates = input.playerIdsB.filter((id) => id !== playerId);
+            teammates = input.playerIdsB.filter((id: string) => id !== playerId);
         }
 
         // For flex tournaments, get team size to count only matches with same format

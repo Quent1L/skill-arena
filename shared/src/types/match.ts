@@ -205,7 +205,7 @@ export const createMatchSchema = z.object({
   outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
   outcomeReasonId: z.string().uuid("ID de raison de résultat invalide").optional(),
   winner: z.enum(['teamA', 'teamB']).nullable().optional(),
-  playedAt: z.iso.datetime().optional()
+  playedAt: z.string().datetime().optional()
 });
 
 export const updateMatchSchema = z.object({
@@ -214,7 +214,7 @@ export const updateMatchSchema = z.object({
   scoreB: z.number().int().min(0).optional(),
   status: matchStatusSchema.optional(),
   reportProof: z.string().optional(),
-  playedAt: z.iso.datetime(),
+  playedAt: z.string().datetime(),
   outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
   outcomeReasonId: z
     .string()
@@ -256,7 +256,7 @@ export const validateMatchSchema = z
     playerIdsA: z.array(z.string().uuid()).optional(),
     playerIdsB: z.array(z.string().uuid()).optional(),
     matchId: z.string().uuid("ID de match invalide").optional(), // Match ID to exclude from validation (for edit mode)
-    playedAt: z.iso.datetime().optional(),
+    playedAt: z.string().datetime().optional(),
   })
   .refine(
     (data) => {

@@ -1,5 +1,6 @@
 import { userRepository } from "../repository/user.repository";
-import { ErrorCode, NotFoundError } from "../types/errors";
+import { invitationRepository } from "../repository/invitation.repository";
+import { ErrorCode, NotFoundError, UnauthorizedError } from "../types/errors";
 
 export class UserService {
   /**
@@ -11,7 +12,23 @@ export class UserService {
   ): Promise<string> {
     let appUser = await userRepository.getByExternalId(betterAuthUserId);
 
-    appUser ??= await userRepository.createAppUser({
+    // Si le appUser existe déjà, le retourner
+    if (appUser) {
+      return appUser.id;
+    }
+
+    // Sinon, vérifier qu'un code d'invitation a été consommé avant de créer le appUser
+    const hasValidInvitation = await invitationRepository.hasUserUsedCode(betterAuthUserId);
+
+    if (!hasValidInvitation) {
+      throw new UnauthorizedError(
+        ErrorCode.INVITATION_CODE_REQUIRED,
+        { betterAuthUserId }
+      );
+    }
+
+    // Code d'invitation valide, créer le appUser
+    appUser = await userRepository.createAppUser({
       externalId: betterAuthUserId,
       displayName: displayName,
       role: "player",
