@@ -19,6 +19,9 @@ import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
 import { jobScheduler } from "./jobs/scheduler";
+import { runMigrations } from "./utils/migrate";
+
+await runMigrations();
 
 const app = createAppHonoOptional();
 
