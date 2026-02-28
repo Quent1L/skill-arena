@@ -1,3 +1,183 @@
+<template>
+  <div>
+    <div class="max-w-2xl mx-auto p-4">
+      <h1 class="text-2xl font-bold mb-6">Paramètres</h1>
+
+      <div class="space-y-6">
+        <!-- Apparence -->
+        <Card v-if="false">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-palette"></i>
+              <span>Apparence</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium">Mode sombre</p>
+                <p class="text-sm opacity-70">Activer le thème sombre pour l'interface</p>
+              </div>
+              <ToggleSwitch :value="darkMode" @update:model-value="toggleDarkMode" />
+            </div>
+          </template>
+        </Card>
+
+        <!-- Notifications -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-bell"></i>
+              <span>Notifications</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium">Notifications push</p>
+                <p class="text-sm opacity-70">Recevoir des notifications sur cet appareil</p>
+              </div>
+              <ToggleSwitch
+                :model-value="pushEnabled"
+                @update:model-value="togglePushNotifications"
+                :disabled="pushLoading"
+              />
+            </div>
+            <Message v-if="!notificationSupported" severity="warn" class="mt-3">
+              Les notifications push ne sont pas supportées par votre navigateur
+            </Message>
+          </template>
+        </Card>
+
+        <!-- Compte -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-user"></i>
+              <span>Compte</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="space-y-3">
+              <Button
+                label="Modifier le profil"
+                outlined
+                icon="fas fa-edit"
+                @click="$router.push('/profile')"
+                class="w-full"
+              />
+              <Button
+                label="Changer le mot de passe"
+                outlined
+                icon="fas fa-key"
+                severity="secondary"
+                class="w-full"
+                @click="openChangePasswordDialog"
+              />
+            </div>
+          </template>
+        </Card>
+      </div>
+    </div>
+
+    <!-- Dialog changement de mot de passe -->
+    <Dialog
+      v-model:visible="showChangePasswordDialog"
+      header="Changer le mot de passe"
+      modal
+      :style="{ width: '28rem' }"
+      :closable="!authLoading"
+    >
+      <form @submit="onChangePassword" class="space-y-4">
+        <Message v-if="changePasswordSuccess" severity="success" :closable="false">
+          <i class="fa fa-check mr-2"></i>
+          Mot de passe modifié avec succès.
+        </Message>
+
+        <template v-if="!changePasswordSuccess">
+          <div class="flex flex-col gap-2">
+            <label for="current-password" class="font-medium">Mot de passe actuel</label>
+            <Password
+              input-id="current-password"
+              v-model="currentPassword"
+              :feedback="false"
+              toggle-mask
+              :disabled="authLoading"
+              :invalid="!!errors.currentPassword"
+              class="w-full"
+              input-class="w-full"
+            />
+            <small v-if="errors.currentPassword" class="text-red-500">
+              {{ errors.currentPassword }}
+            </small>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label for="new-password" class="font-medium">Nouveau mot de passe</label>
+            <Password
+              input-id="new-password"
+              v-model="newPassword"
+              toggle-mask
+              :disabled="authLoading"
+              :invalid="!!errors.newPassword"
+              class="w-full"
+              input-class="w-full"
+            />
+            <small v-if="errors.newPassword" class="text-red-500">
+              {{ errors.newPassword }}
+            </small>
+          </div>
+
+          <div class="flex flex-col gap-2">
+            <label for="password-confirm" class="font-medium"
+              >Confirmer le nouveau mot de passe</label
+            >
+            <Password
+              input-id="password-confirm"
+              v-model="passwordConfirm"
+              :feedback="false"
+              toggle-mask
+              :disabled="authLoading"
+              :invalid="!!errors.passwordConfirm"
+              class="w-full"
+              input-class="w-full"
+            />
+            <small v-if="errors.passwordConfirm" class="text-red-500">
+              {{ errors.passwordConfirm }}
+            </small>
+          </div>
+
+          <Message v-if="authError" severity="error" :closable="false">
+            {{ authError }}
+          </Message>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <Button
+              label="Annuler"
+              severity="secondary"
+              outlined
+              type="button"
+              :disabled="authLoading"
+              @click="showChangePasswordDialog = false"
+            />
+            <Button
+              label="Confirmer"
+              type="submit"
+              icon="fas fa-check"
+              :loading="authLoading"
+              :disabled="authLoading"
+            />
+          </div>
+        </template>
+
+        <div v-else class="flex justify-end pt-2">
+          <Button label="Fermer" type="button" @click="showChangePasswordDialog = false" />
+        </div>
+      </form>
+    </Dialog>
+  </div>
+</template>
+
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useNotificationPush } from '@/composables/notification/notification.push'
@@ -100,183 +280,3 @@ async function togglePushNotifications(newValue: boolean) {
   }
 }
 </script>
-
-<template>
-  <div class="max-w-2xl mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-6">Paramètres</h1>
-
-    <div class="space-y-6">
-      <!-- Apparence -->
-      <Card>
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="fas fa-palette"></i>
-            <span>Apparence</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-medium">Mode sombre</p>
-              <p class="text-sm opacity-70">Activer le thème sombre pour l'interface</p>
-            </div>
-            <ToggleSwitch :value="darkMode" @update:model-value="toggleDarkMode" />
-          </div>
-        </template>
-      </Card>
-
-      <!-- Notifications -->
-      <Card>
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="fas fa-bell"></i>
-            <span>Notifications</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-medium">Notifications push</p>
-              <p class="text-sm opacity-70">Recevoir des notifications sur cet appareil</p>
-            </div>
-            <ToggleSwitch
-              :model-value="pushEnabled"
-              @update:model-value="togglePushNotifications"
-              :disabled="pushLoading"
-            />
-          </div>
-          <Message v-if="!notificationSupported" severity="warn" class="mt-3">
-            Les notifications push ne sont pas supportées par votre navigateur
-          </Message>
-        </template>
-      </Card>
-
-      <!-- Compte -->
-      <Card>
-        <template #title>
-          <div class="flex items-center gap-2">
-            <i class="fas fa-user"></i>
-            <span>Compte</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="space-y-3">
-            <Button
-              label="Modifier le profil"
-              outlined
-              icon="fas fa-edit"
-              @click="$router.push('/profile')"
-              class="w-full"
-            />
-            <Button
-              label="Changer le mot de passe"
-              outlined
-              icon="fas fa-key"
-              severity="secondary"
-              class="w-full"
-              @click="openChangePasswordDialog"
-            />
-          </div>
-        </template>
-      </Card>
-    </div>
-  </div>
-
-  <!-- Dialog changement de mot de passe -->
-  <Dialog
-    v-model:visible="showChangePasswordDialog"
-    header="Changer le mot de passe"
-    modal
-    :style="{ width: '28rem' }"
-    :closable="!authLoading"
-  >
-    <form @submit="onChangePassword" class="space-y-4">
-      <Message v-if="changePasswordSuccess" severity="success" :closable="false">
-        <i class="fa fa-check mr-2"></i>
-        Mot de passe modifié avec succès.
-      </Message>
-
-      <template v-if="!changePasswordSuccess">
-        <div class="flex flex-col gap-2">
-          <label for="current-password" class="font-medium">Mot de passe actuel</label>
-          <Password
-            input-id="current-password"
-            v-model="currentPassword"
-            :feedback="false"
-            toggle-mask
-            :disabled="authLoading"
-            :invalid="!!errors.currentPassword"
-            class="w-full"
-            input-class="w-full"
-          />
-          <small v-if="errors.currentPassword" class="text-red-500">
-            {{ errors.currentPassword }}
-          </small>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <label for="new-password" class="font-medium">Nouveau mot de passe</label>
-          <Password
-            input-id="new-password"
-            v-model="newPassword"
-            toggle-mask
-            :disabled="authLoading"
-            :invalid="!!errors.newPassword"
-            class="w-full"
-            input-class="w-full"
-          />
-          <small v-if="errors.newPassword" class="text-red-500">
-            {{ errors.newPassword }}
-          </small>
-        </div>
-
-        <div class="flex flex-col gap-2">
-          <label for="password-confirm" class="font-medium">Confirmer le nouveau mot de passe</label>
-          <Password
-            input-id="password-confirm"
-            v-model="passwordConfirm"
-            :feedback="false"
-            toggle-mask
-            :disabled="authLoading"
-            :invalid="!!errors.passwordConfirm"
-            class="w-full"
-            input-class="w-full"
-          />
-          <small v-if="errors.passwordConfirm" class="text-red-500">
-            {{ errors.passwordConfirm }}
-          </small>
-        </div>
-
-        <Message v-if="authError" severity="error" :closable="false">
-          {{ authError }}
-        </Message>
-
-        <div class="flex justify-end gap-2 pt-2">
-          <Button
-            label="Annuler"
-            severity="secondary"
-            outlined
-            type="button"
-            :disabled="authLoading"
-            @click="showChangePasswordDialog = false"
-          />
-          <Button
-            label="Confirmer"
-            type="submit"
-            icon="fas fa-check"
-            :loading="authLoading"
-            :disabled="authLoading"
-          />
-        </div>
-      </template>
-
-      <div v-else class="flex justify-end pt-2">
-        <Button
-          label="Fermer"
-          type="button"
-          @click="showChangePasswordDialog = false"
-        />
-      </div>
-    </form>
-  </Dialog>
-</template>

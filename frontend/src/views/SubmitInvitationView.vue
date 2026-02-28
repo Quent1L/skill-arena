@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
-        <h1 class="text-4xl font-bold">Skill Arena</h1>
+        <h1 class="text-4xl font-bold">Skol</h1>
         <p class="mt-2">Activation du compte</p>
         <p class="mt-1 text-sm text-gray-300">Soumettez votre code d'invitation</p>
       </div>
@@ -17,8 +17,8 @@
                   Code d'invitation requis
                 </p>
                 <p class="text-sm">
-                  Votre compte a été créé avec succès, mais vous devez soumettre un code d'invitation
-                  pour accéder à l'application.
+                  Votre compte a été créé avec succès, mais vous devez soumettre un code
+                  d'invitation pour accéder à l'application.
                 </p>
               </div>
             </Message>

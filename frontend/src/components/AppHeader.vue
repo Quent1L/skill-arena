@@ -3,8 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <div class="flex items-center cursor-pointer" @click="router.push('/')">
-          <img src="@/assets/img/skill-arena-logo.png" alt="Skill Arena Logo" class="w-20 mr-2" />
-          <h1 class="text-2xl font-bold">Skill Arena</h1>
+          <SkolLogo height="50" width="150"></SkolLogo>
         </div>
 
         <div class="flex items-center gap-3">
@@ -62,6 +61,7 @@ import type { User } from '@/types'
 import type { MenuItem } from 'primevue/menuitem'
 import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
+import SkolLogo from './SkolLogo.vue'
 
 const router = useRouter()
 const { currentUser, isAuthenticated, logout } = useAuth()

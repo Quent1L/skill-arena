@@ -29,11 +29,11 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'Skill Arena',
-        short_name: 'Skill Arena',
-        description: 'La chance ne fait pas tout !',
-        theme_color: '#10b981',
-        background_color: '#ffffff',
+        name: 'Skol',
+        short_name: 'Skol',
+        description: 'Skill Or Luck ?',
+        theme_color: '#a78bfa',
+        background_color: '#1e293b',
         display: 'standalone',
         icons: [
           {

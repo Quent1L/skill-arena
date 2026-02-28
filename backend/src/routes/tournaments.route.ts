@@ -12,6 +12,7 @@ import {
 } from "../schemas/tournament.schema";
 import { generateBracketSchema } from "@skill-arena/shared";
 import { requireAuth } from "../middleware/auth";
+import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";
 
 const tournaments = createAppHono();
@@ -40,7 +41,15 @@ tournaments.get(
   zValidator("query", listTournamentsQuerySchema),
   async (c) => {
     const filters = c.req.valid("query");
-    const tournamentsList = await tournamentService.listTournaments(filters);
+    const betterAuthUser = c.get("user");
+
+    let isAdmin = false;
+    if (betterAuthUser) {
+      const appUser = await userRepository.getByExternalId(betterAuthUser.id);
+      isAdmin = appUser?.role === "super_admin";
+    }
+
+    const tournamentsList = await tournamentService.listTournaments(filters, isAdmin);
     return c.json(tournamentsList);
   }
 );

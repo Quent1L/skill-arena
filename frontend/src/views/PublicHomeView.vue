@@ -1,7 +1,7 @@
 <template>
   <div class="w-full flex items-center justify-center">
     <div class="text-center space-y-6 p-6">
-      <img src="@/assets/img/skill-arena-logo-2.png" alt="Skill Arena Logo" class="mx-auto h-80" />
+      <img src="@/assets/img/skill-arena-logo-2.png" alt="Skol Logo" class="mx-auto h-80" />
 
       <p class="text-xl md:text-2xl text-white/90 drop-shadow-md">La chance ne suffira pas</p>
 

@@ -12,16 +12,17 @@ import localeFR from '@/config/locales/fr.json'
 import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
 
+// Forcer le dark mode
+document.documentElement.classList.add('my-app-dark')
+
 // Initialisation du thème depuis localStorage
-const savedTheme = localStorage.getItem('theme') || 'dark'
-console.log('Theme saved:', savedTheme)
-if (savedTheme === 'dark') {
-  document.documentElement.classList.add('my-app-dark')
+//const savedTheme = localStorage.getItem('theme') || 'dark'
+
+/**if (savedTheme === 'dark') {
   console.log('Dark mode applied')
 } else {
   document.documentElement.classList.remove('my-app-dark')
-  console.log('Light mode applied')
-}
+}**/
 
 // Installer les intercepteurs d'erreurs globaux dès le démarrage
 // Les erreurs seront loggées dans la console jusqu'à ce que le Toast soit disponible

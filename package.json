@@ -1,7 +1,7 @@
 {
   "name": "skill-arena-monorepo",
   "version": "0.1.0",
-  "description": "Skill Arena - Tournament Management Application",
+  "description": "Skol - Tournament Management Application",
   "private": true,
   "scripts": {
     "setup:db": "cd backend && bun run db:push",

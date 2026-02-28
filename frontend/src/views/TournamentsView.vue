@@ -129,12 +129,17 @@ const filters = ref<{
   mode?: TournamentMode
 }>({})
 
-const statusOptions = [
-  { label: 'Brouillon', value: 'draft' },
-  { label: 'Ouvert aux inscriptions', value: 'open' },
-  { label: 'En cours', value: 'ongoing' },
-  { label: 'Terminé', value: 'finished' },
-]
+const statusOptions = computed(() => {
+  const base = [
+    { label: 'Ouvert aux inscriptions', value: 'open' },
+    { label: 'En cours', value: 'ongoing' },
+    { label: 'Terminé', value: 'finished' },
+  ]
+  if (isSuperAdmin.value) {
+    base.unshift({ label: 'Brouillon', value: 'draft' })
+  }
+  return base
+})
 
 const modeOptions = [
   { label: 'Championnat', value: 'championship' },

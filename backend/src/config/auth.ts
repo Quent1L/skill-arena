@@ -105,11 +105,10 @@ plugins.push({
         // Hook pour l'inscription email/password
         matcher: (context: any) => context.path === "/sign-up/email",
         handler: async (context: any) => {
-          await processInvitationCode(
-            context.user,
-            context.request,
-            "Email Registration Hook"
-          );
+          const user =
+            context.context?.newSession?.user ?? context.context?.returned?.user;
+          await processInvitationCode(user, context.request, "Email Registration Hook");
+          return {};
         },
       },
       {
@@ -122,15 +121,14 @@ plugins.push({
         },
         handler: async (context: any) => {
           // Vérifier si c'est un nouvel utilisateur
-          if (!context.user || !context.isNewUser) {
-            return; // Utilisateur existant, rien à faire
+          const user =
+            context.context?.newSession?.user ?? context.context?.returned?.user;
+          if (!user || !context.isNewUser) {
+            return {};
           }
 
-          await processInvitationCode(
-            context.user,
-            context.request,
-            "Keycloak Hook"
-          );
+          await processInvitationCode(user, context.request, "Keycloak Hook");
+          return {};
         },
       },
     ],

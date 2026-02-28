@@ -58,6 +58,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     ScoreInput: typeof import('./src/components/match/ScoreInput.vue')['default']
     Select: typeof import('primevue/select')['default']
+    SkolLogo: typeof import('./src/components/SkolLogo.vue')['default']
     SpeedDial: typeof import('primevue/speeddial')['default']
     StandingsTable: typeof import('./src/components/tournament/StandingsTable.vue')['default']
     Step: typeof import('primevue/step')['default']
