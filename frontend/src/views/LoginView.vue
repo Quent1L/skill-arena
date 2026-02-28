@@ -22,8 +22,8 @@
           </Message>
 
           <form v-if="!noAuthMethodAvailable" @submit="onSubmit" class="space-y-6">
-            <!-- Formulaire Email/Password (seulement si activé) -->
-            <template v-if="emailPasswordEnabled">
+            <!-- Formulaire Email/Password (seulement si activé ou ?native=true) -->
+            <template v-if="showEmailPassword">
               <div class="flex flex-col gap-2">
                 <label for="email" class="font-medium">Adresse email</label>
                 <InputText
@@ -78,8 +78,8 @@
                 :disabled="loading"
               />
 
-              <!-- Séparateur "Ou" uniquement si les deux méthodes sont activées -->
-              <div v-if="keycloakEnabled" class="relative">
+              <!-- Séparateur "Ou" uniquement si les deux méthodes sont affichées -->
+              <div v-if="keycloakEnabled && showEmailPassword" class="relative">
                 <div class="absolute inset-0 flex items-center">
                   <div class="w-full border-t border-gray-300"></div>
                 </div>
@@ -151,7 +151,9 @@ const { config } = useConfigService()
 const isKeycloakLoading = ref(false)
 const emailPasswordEnabled = computed(() => config.value?.auth?.emailPassword?.enabled ?? true)
 const keycloakEnabled = computed(() => config.value?.auth?.keycloak?.enabled ?? false)
-const noAuthMethodAvailable = computed(() => !emailPasswordEnabled.value && !keycloakEnabled.value)
+const forceNative = computed(() => route.query.native === 'true')
+const showEmailPassword = computed(() => emailPasswordEnabled.value || forceNative.value)
+const noAuthMethodAvailable = computed(() => !showEmailPassword.value && !keycloakEnabled.value)
 
 // Détecter les erreurs OAuth dans l'URL (redirection depuis Better Auth)
 if (route.query.error) {
@@ -196,9 +198,9 @@ async function loginWithKeycloak() {
       providerId: 'keycloak',
       callbackURL,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     isKeycloakLoading.value = false
-    error.value = err.message || 'Erreur lors de la connexion Keycloak'
+    error.value = err instanceof Error ? err.message : 'Erreur lors de la connexion Keycloak'
     console.error('Keycloak sign-in error:', err)
   }
 }

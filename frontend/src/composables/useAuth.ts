@@ -316,6 +316,38 @@ export function useAuth() {
     }
   }
 
+  /**
+   * Changement de mot de passe (utilisateur connecté)
+   */
+  async function changePassword(currentPassword: string, newPassword: string) {
+    loading.value = true
+    error.value = null
+
+    try {
+      const result = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      })
+
+      if (result.error) {
+        error.value = result.error.message || 'Erreur lors du changement de mot de passe'
+        throw new Error(result.error.message)
+      }
+
+      return result
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Une erreur est survenue lors du changement de mot de passe'
+      error.value = message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     currentUser,
     appUser,
@@ -336,5 +368,6 @@ export function useAuth() {
     token,
     requestPasswordReset,
     resetPassword,
+    changePassword,
   }
 }

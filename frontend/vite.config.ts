@@ -14,7 +14,7 @@ export default defineConfig({
     Components({
       resolvers: [PrimeVueResolver()],
     }),
-    vueDevTools({ launchEditor: 'webstorm' }),
+    vueDevTools({ launchEditor: 'code' }),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',

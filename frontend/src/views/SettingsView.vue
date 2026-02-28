@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useNotificationPush } from '@/composables/notification/notification.push'
+import { useAuth } from '@/composables/useAuth'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { changePasswordSchema } from '@/schemas/auth.schema'
 
 const darkMode = ref(false)
 const pushEnabled = ref(false)
@@ -11,6 +15,35 @@ const notificationSupported = computed(
 )
 
 const { enablePush, disablePush } = useNotificationPush()
+const { changePassword, loading: authLoading, error: authError } = useAuth()
+
+const showChangePasswordDialog = ref(false)
+const changePasswordSuccess = ref(false)
+
+const { defineField, handleSubmit, errors, resetForm } = useForm({
+  validationSchema: toTypedSchema(changePasswordSchema),
+})
+
+const [currentPassword] = defineField('currentPassword')
+const [newPassword] = defineField('newPassword')
+const [passwordConfirm] = defineField('passwordConfirm')
+
+function openChangePasswordDialog() {
+  changePasswordSuccess.value = false
+  authError.value = null
+  resetForm()
+  showChangePasswordDialog.value = true
+}
+
+const onChangePassword = handleSubmit(async (values) => {
+  try {
+    await changePassword(values.currentPassword, values.newPassword)
+    changePasswordSuccess.value = true
+    resetForm()
+  } catch {
+    // error displayed via authError
+  }
+})
 
 onMounted(() => {
   const theme = localStorage.getItem('theme')
@@ -141,10 +174,109 @@ async function togglePushNotifications(newValue: boolean) {
               icon="fas fa-key"
               severity="secondary"
               class="w-full"
+              @click="openChangePasswordDialog"
             />
           </div>
         </template>
       </Card>
     </div>
   </div>
+
+  <!-- Dialog changement de mot de passe -->
+  <Dialog
+    v-model:visible="showChangePasswordDialog"
+    header="Changer le mot de passe"
+    modal
+    :style="{ width: '28rem' }"
+    :closable="!authLoading"
+  >
+    <form @submit="onChangePassword" class="space-y-4">
+      <Message v-if="changePasswordSuccess" severity="success" :closable="false">
+        <i class="fa fa-check mr-2"></i>
+        Mot de passe modifié avec succès.
+      </Message>
+
+      <template v-if="!changePasswordSuccess">
+        <div class="flex flex-col gap-2">
+          <label for="current-password" class="font-medium">Mot de passe actuel</label>
+          <Password
+            input-id="current-password"
+            v-model="currentPassword"
+            :feedback="false"
+            toggle-mask
+            :disabled="authLoading"
+            :invalid="!!errors.currentPassword"
+            class="w-full"
+            input-class="w-full"
+          />
+          <small v-if="errors.currentPassword" class="text-red-500">
+            {{ errors.currentPassword }}
+          </small>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label for="new-password" class="font-medium">Nouveau mot de passe</label>
+          <Password
+            input-id="new-password"
+            v-model="newPassword"
+            toggle-mask
+            :disabled="authLoading"
+            :invalid="!!errors.newPassword"
+            class="w-full"
+            input-class="w-full"
+          />
+          <small v-if="errors.newPassword" class="text-red-500">
+            {{ errors.newPassword }}
+          </small>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label for="password-confirm" class="font-medium">Confirmer le nouveau mot de passe</label>
+          <Password
+            input-id="password-confirm"
+            v-model="passwordConfirm"
+            :feedback="false"
+            toggle-mask
+            :disabled="authLoading"
+            :invalid="!!errors.passwordConfirm"
+            class="w-full"
+            input-class="w-full"
+          />
+          <small v-if="errors.passwordConfirm" class="text-red-500">
+            {{ errors.passwordConfirm }}
+          </small>
+        </div>
+
+        <Message v-if="authError" severity="error" :closable="false">
+          {{ authError }}
+        </Message>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            label="Annuler"
+            severity="secondary"
+            outlined
+            type="button"
+            :disabled="authLoading"
+            @click="showChangePasswordDialog = false"
+          />
+          <Button
+            label="Confirmer"
+            type="submit"
+            icon="fas fa-check"
+            :loading="authLoading"
+            :disabled="authLoading"
+          />
+        </div>
+      </template>
+
+      <div v-else class="flex justify-end pt-2">
+        <Button
+          label="Fermer"
+          type="button"
+          @click="showChangePasswordDialog = false"
+        />
+      </div>
+    </form>
+  </Dialog>
 </template>
