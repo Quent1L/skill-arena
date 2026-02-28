@@ -172,28 +172,27 @@ const authConfig: any = {
   plugins,
 };
 
-// Activer email/password seulement si configuré
-if (isEmailPasswordEnabled) {
-  authConfig.emailAndPassword = {
-    enabled: true,
-    sendResetPassword: async ({ user, url }: any) => {
-      void emailService.sendEmail({
-        to: user.email,
-        subject: i18next.t("emails.password_reset_subject"),
-        text: i18next.t("emails.password_reset_text", {
-          url,
-          expiresIn: 60,
-        }),
-        html: i18next.t("emails.password_reset_html", {
-          url,
-          expiresIn: 60,
-        }),
-      });
-    },
-    resetPasswordTokenExpiresIn: 3600,
-    minPasswordLength: 8,
-    maxPasswordLength: 128,
-  };
-}
+// Email/password est toujours activé dans Better Auth pour permettre la connexion admin.
+// ENABLE_EMAIL_PASSWORD=false masque uniquement le formulaire côté frontend.
+authConfig.emailAndPassword = {
+  enabled: true,
+  sendResetPassword: async ({ user, url }: any) => {
+    void emailService.sendEmail({
+      to: user.email,
+      subject: i18next.t("emails.password_reset_subject"),
+      text: i18next.t("emails.password_reset_text", {
+        url,
+        expiresIn: 60,
+      }),
+      html: i18next.t("emails.password_reset_html", {
+        url,
+        expiresIn: 60,
+      }),
+    });
+  },
+  resetPasswordTokenExpiresIn: 3600,
+  minPasswordLength: 8,
+  maxPasswordLength: 128,
+};
 
 export const auth = betterAuth(authConfig);

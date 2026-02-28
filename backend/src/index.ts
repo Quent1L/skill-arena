@@ -20,8 +20,10 @@ import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
 import { jobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
+import { initializeAdminIfNeeded } from "./utils/init-admin";
 
 await runMigrations();
+await initializeAdminIfNeeded();
 
 const app = createAppHonoOptional();
 

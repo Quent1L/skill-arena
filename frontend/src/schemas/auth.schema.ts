@@ -69,9 +69,27 @@ export const resetPasswordSchema = z
   })
 
 /**
+ * Schéma de validation pour le changement de mot de passe (utilisateur connecté)
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Le mot de passe actuel est requis'),
+    newPassword: z
+      .string()
+      .min(1, 'Le nouveau mot de passe est requis')
+      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    passwordConfirm: z.string().min(1, 'La confirmation du mot de passe est requise'),
+  })
+  .refine((data) => data.newPassword === data.passwordConfirm, {
+    message: 'Les mots de passe ne correspondent pas',
+    path: ['passwordConfirm'],
+  })
+
+/**
  * Types inférés des schémas
  */
 export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>
