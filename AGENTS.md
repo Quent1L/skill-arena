@@ -1,18 +1,20 @@
 Vite) concurrently.
 
 3. **Run type checks:**
+
    ```bash
    bun run type-check
    ```
 
 4. **Run tests:**
+
    ```bash
    # Backend tests
    cd backend && bun test
-   
+
    # Frontend tests
    cd frontend && bun test
-   
+
    # Shared tests
    cd shared && bun test
    ```
@@ -48,14 +50,16 @@ bun run clean
 ### 1. Importing from Wrong Workspace
 
 ❌ **BAD:**
+
 ```typescript
 // backend/src/services/tournament.service.ts
-import { Tournament } from '../types/tournament'; // Local duplicate
+import { Tournament } from "../types/tournament"; // Local duplicate
 ```
 
 ✅ **GOOD:**
+
 ```typescript
-import { Tournament } from '@skill-arena/shared';
+import { Tournament } from "@skill-arena/shared";
 ```
 
 ### 2. Not Building Shared Package
@@ -89,10 +93,10 @@ Always use I18n keys for user-facing errors (see [I18n Error Messages](#i18n-err
 
 ```typescript
 // ❌ BAD
-throw new ValidationError('Invalid email format');
+throw new ValidationError("Invalid email format");
 
 // ✅ GOOD
-throw new ValidationError('INVALID_EMAIL_FORMAT');
+throw new ValidationError("INVALID_EMAIL_FORMAT");
 ```
 
 ### 6. Long Functions
@@ -102,31 +106,33 @@ Break down functions longer than 30 lines (see [Keep Functions Small](#keep-func
 ### 7. Business Logic in API Layer (Frontend)
 
 ❌ **BAD:**
+
 ```typescript
 // frontend/src/api/tournament.api.ts
 export const tournamentApi = {
   async getTournaments(): Promise<Tournament[]> {
     try {
-      const response = await http.get<Tournament[]>('/api/tournaments');
+      const response = await http.get<Tournament[]>("/api/tournaments");
       // ❌ Business logic in API layer
-      return response.data.filter(t => t.isActive);
+      return response.data.filter((t) => t.isActive);
     } catch (err) {
       // ❌ Error handling in API layer
       console.error(err);
       return [];
     }
-  }
+  },
 };
 ```
 
 ✅ **GOOD:**
+
 ```typescript
 // frontend/src/api/tournament.api.ts
 export const tournamentApi = {
   async getTournaments(): Promise<Tournament[]> {
-    const response = await http.get<Tournament[]>('/api/tournaments');
+    const response = await http.get<Tournament[]>("/api/tournaments");
     return response.data;
-  }
+  },
 };
 
 // frontend/src/services/tournament.service.ts
@@ -134,9 +140,9 @@ export function useTournamentService() {
   async function loadActiveTournaments() {
     try {
       const allTournaments = await tournamentApi.getTournaments();
-      tournaments.value = allTournaments.filter(t => t.isActive);
+      tournaments.value = allTournaments.filter((t) => t.isActive);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to load';
+      error.value = err instanceof Error ? err.message : "Failed to load";
     }
   }
 }
@@ -145,6 +151,7 @@ export function useTournamentService() {
 ### 8. Try-Catch in API Layer (Frontend)
 
 ❌ **BAD:**
+
 ```typescript
 // frontend/src/api/tournament.api.ts
 export const tournamentApi = {
@@ -155,18 +162,19 @@ export const tournamentApi = {
     } catch (err) {
       throw err; // Unnecessary try-catch
     }
-  }
+  },
 };
 ```
 
 ✅ **GOOD:**
+
 ```typescript
 // frontend/src/api/tournament.api.ts
 export const tournamentApi = {
   async getTournamentById(id: string): Promise<Tournament> {
     const response = await http.get<Tournament>(`/api/tournaments/${id}`);
     return response.data;
-  }
+  },
 };
 ```
 
@@ -175,9 +183,10 @@ export const tournamentApi = {
 ### 9. Components Calling API Layer Directly
 
 ❌ **BAD:**
+
 ```vue
 <script setup lang="ts">
-import { tournamentApi } from '@/api/tournament.api';
+import { tournamentApi } from "@/api/tournament.api";
 
 const tournaments = ref<Tournament[]>([]);
 
@@ -188,9 +197,10 @@ async function loadData() {
 ```
 
 ✅ **GOOD:**
+
 ```vue
 <script setup lang="ts">
-import { useTournamentService } from '@/services/tournament.service';
+import { useTournamentService } from "@/services/tournament.service";
 
 const { tournaments, loadTournaments } = useTournamentService();
 
@@ -208,22 +218,23 @@ Always validate external input (API requests, user input) with Zod.
 
 ```typescript
 // ✅ GOOD - Backend route validation
-import { zValidator } from '@hono/zod-validator';
-import { CreateTournamentSchema } from '@skill-arena/shared';
+import { zValidator } from "@hono/zod-validator";
+import { CreateTournamentSchema } from "@skill-arena/shared";
 
 tournamentRoute.post(
-  '/',
-  zValidator('json', CreateTournamentSchema),
+  "/",
+  zValidator("json", CreateTournamentSchema),
   async (c) => {
-    const data = c.req.valid('json');
+    const data = c.req.valid("json");
     // data is now typed and validated
-  }
+  },
 );
 ```
 
 ### 11. Duplicating State Management
 
 ❌ **BAD:**
+
 ```typescript
 // Multiple services managing the same data
 // service1.ts
@@ -234,6 +245,7 @@ const tournaments = ref<Tournament[]>([]); // Duplicate state
 ```
 
 ✅ **GOOD:**
+
 ```typescript
 // Single source of truth
 // tournament.service.ts
@@ -248,19 +260,21 @@ export function useTournamentService() {
 ### 12. Manual Date Conversion
 
 ❌ **BAD:**
+
 ```typescript
 // frontend/src/services/tournament.service.ts
 async function loadTournaments() {
   const data = await tournamentApi.getTournaments();
   // ❌ Manual date conversion
-  tournaments.value = data.map(t => ({
+  tournaments.value = data.map((t) => ({
     ...t,
-    startDate: new Date(t.startDate)
+    startDate: new Date(t.startDate),
   }));
 }
 ```
 
 ✅ **GOOD:**
+
 ```typescript
 // frontend/src/services/tournament.service.ts
 async function loadTournaments() {
@@ -380,7 +394,7 @@ shared/
 - ✅ xior interceptor handles date conversion automatically
 - ✅ Write unit tests for all services
 - ✅ Use PrimeVue components consistently
-- ✅ Use Font Awesome icons (fa fa-*) for action buttons, not PrimeIcons
+- ✅ Use Font Awesome icons (fa fa-\*) for action buttons, not PrimeIcons
 
 ### Shared
 
@@ -419,6 +433,7 @@ shared/
 Before submitting code, verify:
 
 **General:**
+
 - [ ] All code is in English
 - [ ] No `any` types used
 - [ ] Functions are < 30 lines
@@ -427,6 +442,7 @@ Before submitting code, verify:
 - [ ] Commit messages follow Conventional Commits
 
 **Backend:**
+
 - [ ] Routes only handle HTTP, delegate to services
 - [ ] Services contain business logic, no HTTP concerns
 - [ ] Repositories only do database operations
@@ -436,6 +452,7 @@ Before submitting code, verify:
 - [ ] Unit tests written for services/repositories
 
 **Frontend:**
+
 - [ ] API layer is 1:1 mirror of backend routes
 - [ ] No business logic or try-catch in API layer
 - [ ] Services handle all business logic and state
@@ -444,11 +461,13 @@ Before submitting code, verify:
 - [ ] Unit tests written for services
 
 **Shared:**
+
 - [ ] Types/schemas imported from `@skill-arena/shared`
 - [ ] No type duplication across workspaces
 - [ ] Zod schemas defined before type inference
 
 **Build & Deploy:**
+
 - [ ] No `dist/` or build artifacts committed
 - [ ] Type-check passes (`bun run type-check`)
 - [ ] Tests pass (`bun test`)
@@ -457,4 +476,4 @@ Before submitting code, verify:
 ---
 
 **Last Updated:** November 2025  
-**Maintainers:** Skill Arena Development Team
+**Maintainers:** Skol Development Team

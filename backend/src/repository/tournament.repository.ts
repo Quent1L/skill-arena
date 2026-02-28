@@ -1,4 +1,4 @@
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, ne } from "drizzle-orm";
 import { db } from "../config/database";
 import { tournaments, tournamentAdmins, appUsers } from "../db/schema";
 import {
@@ -52,6 +52,7 @@ export interface TournamentFilters {
   status?: TournamentStatus;
   mode?: TournamentMode;
   createdBy?: string;
+  excludeDraft?: boolean;
 }
 
 export class TournamentRepository {
@@ -144,6 +145,9 @@ export class TournamentRepository {
     }
     if (filters?.createdBy) {
       conditions.push(eq(tournaments.createdBy, filters.createdBy));
+    }
+    if (filters?.excludeDraft) {
+      conditions.push(ne(tournaments.status, "draft"));
     }
 
     const result = await db.query.tournaments.findMany({

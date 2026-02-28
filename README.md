@@ -1,4 +1,4 @@
-# Skill Arena - Tournament Management App
+# Skol - Tournament Management App
 
 Une application de gestion de tournois avec un backend Hono/Bun et un frontend Vue 3.
 

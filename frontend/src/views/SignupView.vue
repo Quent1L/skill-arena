@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
-        <h1 class="text-4xl font-bold">Skill Arena</h1>
+        <h1 class="text-4xl font-bold">Skol</h1>
         <p class="mt-2">Créer un compte</p>
         <p class="mt-1 text-sm text-gray-300">Code d'invitation requis</p>
       </div>
@@ -17,7 +17,8 @@
                 Aucune méthode d'authentification n'est disponible
               </p>
               <p class="text-sm">
-                Contactez l'administrateur système. La configuration de l'authentification est incorrecte.
+                Contactez l'administrateur système. La configuration de l'authentification est
+                incorrecte.
               </p>
             </div>
           </Message>
@@ -52,7 +53,9 @@
 
             <div v-if="codeValid" class="space-y-4">
               <div class="text-center">
-                <p class="text-sm text-gray-600 font-medium">Choisissez votre méthode d'inscription :</p>
+                <p class="text-sm text-gray-600 font-medium">
+                  Choisissez votre méthode d'inscription :
+                </p>
               </div>
 
               <Button
@@ -75,7 +78,7 @@
                 severity="secondary"
               >
                 <i class="fa fa-building mr-2"></i>
-                {{ isSigningIn ? 'Connexion...' : 'S\'inscrire avec Keycloak (SSO)' }}
+                {{ isSigningIn ? 'Connexion...' : "S'inscrire avec Keycloak (SSO)" }}
               </Button>
             </div>
 
@@ -131,12 +134,12 @@ onMounted(() => {
   const errorDescription = route.query.error_description as string
 
   if (error) {
-    const errorMessage = errorDescription || 'Une erreur est survenue lors de l\'inscription'
+    const errorMessage = errorDescription || "Une erreur est survenue lors de l'inscription"
 
     // Afficher l'erreur à l'utilisateur
     toast.add({
       severity: 'error',
-      summary: 'Erreur d\'inscription',
+      summary: "Erreur d'inscription",
       detail: errorMessage,
       life: 8000,
     })
@@ -203,15 +206,13 @@ async function proceedToKeycloakRegistration() {
     // En prod (dockerisé), le frontend est servi par le backend, donc '/' suffit
     // Redirige vers la page d'accueil. Si pas de code d'invitation, le guard détectera
     // l'erreur INVITATION_CODE_REQUIRED et redirigera automatiquement vers /submit-invitation
-    const callbackURL = import.meta.env.DEV
-      ? 'http://localhost:5173/'
-      : '/'
+    const callbackURL = import.meta.env.DEV ? 'http://localhost:5173/' : '/'
 
     // IMPORTANT: requestSignUp: true pour forcer la création de compte
     await authClient.signIn.oauth2({
       providerId: 'keycloak',
       callbackURL,
-      requestSignUp: true,  // Force le sign-up (avec code d'invitation)
+      requestSignUp: true, // Force le sign-up (avec code d'invitation)
     })
   } catch (error: any) {
     isSigningIn.value = false

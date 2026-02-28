@@ -115,7 +115,7 @@ export const invitationUsages = pgTable("invitation_usages", {
 // ***************************************************************
 
 // ********************************************************************
-// [Start] Skill Arena application tables
+// [Start] Skol application tables
 // ***************************************************************
 
 // Enums
@@ -256,7 +256,7 @@ export const tournamentAdmins = pgTable(
     role: tournamentAdminRoleEnum("role").notNull().default("co_admin"),
     addedAt: timestamp("added_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.tournamentId, table.userId)]
+  (table) => [unique().on(table.tournamentId, table.userId)],
 );
 
 // ********************************************************************
@@ -277,7 +277,7 @@ export const tournamentParticipants = pgTable(
     status: participantStatusEnum("status").notNull().default("active"),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.tournamentId, table.userId)]
+  (table) => [unique().on(table.tournamentId, table.userId)],
 );
 
 export const teams = pgTable(
@@ -293,7 +293,7 @@ export const teams = pgTable(
       .references(() => appUsers.id, { onDelete: "restrict" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.tournamentId, table.name)]
+  (table) => [unique().on(table.tournamentId, table.name)],
 );
 
 // ********************************************************************
@@ -322,7 +322,7 @@ export const tournamentEntryPlayers = pgTable(
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
   },
-  (table) => [unique().on(table.entryId, table.playerId)]
+  (table) => [unique().on(table.entryId, table.playerId)],
 );
 
 // ********************************************************************
@@ -344,7 +344,7 @@ export const matches = pgTable("matches", {
     () => outcomeReasons.id,
     {
       onDelete: "set null",
-    }
+    },
   ),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -367,7 +367,7 @@ export const matchSides = pgTable(
     score: integer("score").notNull().default(0),
     pointsAwarded: integer("points_awarded").default(0),
   },
-  (table) => [unique().on(table.matchId, table.entryId)]
+  (table) => [unique().on(table.matchId, table.entryId)],
 );
 
 export const matchResults = pgTable("match_results", {
@@ -397,7 +397,7 @@ export const matchGames = pgTable(
     gameNumber: integer("game_number").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.matchId, table.gameNumber)]
+  (table) => [unique().on(table.matchId, table.gameNumber)],
 );
 
 export const matchGameSides = pgTable(
@@ -413,7 +413,7 @@ export const matchGameSides = pgTable(
     position: integer("position").notNull(),
     score: integer("score").notNull().default(0),
   },
-  (table) => [unique().on(table.matchGameId, table.entryId)]
+  (table) => [unique().on(table.matchGameId, table.entryId)],
 );
 
 // ********************************************************************
@@ -440,7 +440,7 @@ export const matchConfirmations = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [unique().on(table.matchId, table.playerId)]
+  (table) => [unique().on(table.matchId, table.playerId)],
 );
 
 export const championshipStandings = pgTable("championship_standings", {
@@ -476,7 +476,7 @@ export const bracketConfigs = pgTable("bracket_configs", {
   seedingType: seedingTypeEnum("seeding_type").notNull(),
   sourceTournamentId: uuid("source_tournament_id").references(
     () => tournaments.id,
-    { onDelete: "set null" }
+    { onDelete: "set null" },
   ),
   totalParticipants: integer("total_participants").notNull(),
   roundsCount: integer("rounds_count").notNull(),
@@ -503,7 +503,7 @@ export const bracketRounds = pgTable(
   },
   (table) => [
     unique().on(table.bracketConfigId, table.roundNumber, table.bracketType),
-  ]
+  ],
 );
 
 export const bracketSeeds = pgTable(
@@ -523,7 +523,7 @@ export const bracketSeeds = pgTable(
   (table) => [
     unique().on(table.bracketConfigId, table.entryId),
     unique().on(table.bracketConfigId, table.seedNumber),
-  ]
+  ],
 );
 
 export const bracketMatchMetadata = pgTable(
@@ -547,7 +547,7 @@ export const bracketMatchMetadata = pgTable(
     isByeMatch: boolean("is_bye_match").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [unique().on(table.bracketRoundId, table.matchNumber)]
+  (table) => [unique().on(table.bracketRoundId, table.matchNumber)],
 );
 
 // ********************************************************************
@@ -614,7 +614,7 @@ export const notificationStatus = pgTable(
     readAt: timestamp("read_at"),
     actionCompletedAt: timestamp("action_completed_at"),
   },
-  (table) => [unique().on(table.notificationId, table.userId)]
+  (table) => [unique().on(table.notificationId, table.userId)],
 );
 
 export const userPushDevices = pgTable("user_push_devices", {
@@ -683,7 +683,7 @@ export const tournamentAdminsRelations = relations(
       fields: [tournamentAdmins.userId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
 export const tournamentParticipantsRelations = relations(
@@ -697,7 +697,7 @@ export const tournamentParticipantsRelations = relations(
       fields: [tournamentParticipants.userId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -730,7 +730,7 @@ export const tournamentEntriesRelations = relations(
     players: many(tournamentEntryPlayers),
     matchSides: many(matchSides),
     standings: many(championshipStandings),
-  })
+  }),
 );
 
 export const tournamentEntryPlayersRelations = relations(
@@ -744,7 +744,7 @@ export const tournamentEntryPlayersRelations = relations(
       fields: [tournamentEntryPlayers.playerId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
 // ********************************************************************
@@ -843,7 +843,7 @@ export const matchConfirmationsRelations = relations(
       fields: [matchConfirmations.playerId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
 export const championshipStandingsRelations = relations(
@@ -857,7 +857,7 @@ export const championshipStandingsRelations = relations(
       fields: [championshipStandings.entryId],
       references: [tournamentEntries.id],
     }),
-  })
+  }),
 );
 
 // ********************************************************************
@@ -878,7 +878,7 @@ export const bracketConfigsRelations = relations(
     }),
     rounds: many(bracketRounds),
     seeds: many(bracketSeeds),
-  })
+  }),
 );
 
 export const bracketRoundsRelations = relations(
@@ -889,7 +889,7 @@ export const bracketRoundsRelations = relations(
       references: [bracketConfigs.id],
     }),
     matchMetadata: many(bracketMatchMetadata),
-  })
+  }),
 );
 
 export const bracketSeedsRelations = relations(bracketSeeds, ({ one }) => ({
@@ -924,7 +924,7 @@ export const bracketMatchMetadataRelations = relations(
       references: [matches.id],
       relationName: "loserToMatch",
     }),
-  })
+  }),
 );
 
 // ********************************************************************
@@ -945,7 +945,7 @@ export const outcomeTypesRelations = relations(
     }),
     outcomeReasons: many(outcomeReasons),
     matches: many(matches),
-  })
+  }),
 );
 
 export const outcomeReasonsRelations = relations(
@@ -956,7 +956,7 @@ export const outcomeReasonsRelations = relations(
       references: [outcomeTypes.id],
     }),
     matches: many(matches),
-  })
+  }),
 );
 
 export const notificationsRelations = relations(
@@ -967,7 +967,7 @@ export const notificationsRelations = relations(
       references: [appUsers.id],
     }),
     statuses: many(notificationStatus),
-  })
+  }),
 );
 
 export const notificationStatusRelations = relations(
@@ -981,7 +981,7 @@ export const notificationStatusRelations = relations(
       fields: [notificationStatus.userId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
 export const userPushDevicesRelations = relations(
@@ -991,24 +991,30 @@ export const userPushDevicesRelations = relations(
       fields: [userPushDevices.userId],
       references: [appUsers.id],
     }),
-  })
+  }),
 );
 
-export const invitationCodesRelations = relations(invitationCodes, ({ one, many }) => ({
-  creator: one(appUsers, {
-    fields: [invitationCodes.createdBy],
-    references: [appUsers.id],
+export const invitationCodesRelations = relations(
+  invitationCodes,
+  ({ one, many }) => ({
+    creator: one(appUsers, {
+      fields: [invitationCodes.createdBy],
+      references: [appUsers.id],
+    }),
+    usages: many(invitationUsages),
   }),
-  usages: many(invitationUsages),
-}));
+);
 
-export const invitationUsagesRelations = relations(invitationUsages, ({ one }) => ({
-  code: one(invitationCodes, {
-    fields: [invitationUsages.codeId],
-    references: [invitationCodes.id],
+export const invitationUsagesRelations = relations(
+  invitationUsages,
+  ({ one }) => ({
+    code: one(invitationCodes, {
+      fields: [invitationUsages.codeId],
+      references: [invitationCodes.id],
+    }),
+    user: one(user, {
+      fields: [invitationUsages.userId],
+      references: [user.id],
+    }),
   }),
-  user: one(user, {
-    fields: [invitationUsages.userId],
-    references: [user.id],
-  }),
-}));
+);

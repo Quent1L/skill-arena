@@ -173,12 +173,12 @@ export class TournamentService {
   /**
    * List all tournaments (with optional filters)
    */
-  async listTournaments(filters?: {
-    status?: TournamentStatus;
-    mode?: TournamentMode;
-    createdBy?: string;
-  }) {
-    return await tournamentRepository.list(filters);
+  async listTournaments(
+    filters?: { status?: TournamentStatus; mode?: TournamentMode; createdBy?: string },
+    isAdmin = false
+  ) {
+    const repoFilters = { ...filters, ...(!isAdmin && { excludeDraft: true }) };
+    return await tournamentRepository.list(repoFilters);
   }
 
   /**

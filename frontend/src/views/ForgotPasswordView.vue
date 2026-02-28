@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
-        <h1 class="text-4xl font-bold">Skill Arena</h1>
+        <h1 class="text-4xl font-bold">Skol</h1>
         <p class="mt-2">Réinitialisation de mot de passe</p>
       </div>
 
@@ -10,8 +10,8 @@
         <template #content>
           <div v-if="!submitted">
             <p class="text-gray-700 mb-6">
-              Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre
-              mot de passe.
+              Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot
+              de passe.
             </p>
 
             <form @submit="onSubmit" class="space-y-6">

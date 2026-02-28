@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold">Skill Arena</h1>
+        <h1 class="text-4xl font-bold">Skol</h1>
         <p class="mt-2">Créez votre compte</p>
       </div>
 

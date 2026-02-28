@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
-        <h1 class="text-4xl font-bold">Skill Arena</h1>
+        <h1 class="text-4xl font-bold">Skol</h1>
         <p class="mt-2">Connectez-vous à votre compte</p>
       </div>
 
@@ -16,7 +16,8 @@
                 Aucune méthode d'authentification n'est disponible
               </p>
               <p class="text-sm">
-                Contactez l'administrateur système. La configuration de l'authentification est incorrecte.
+                Contactez l'administrateur système. La configuration de l'authentification est
+                incorrecte.
               </p>
             </div>
           </Message>
@@ -190,9 +191,7 @@ async function loginWithKeycloak() {
   isKeycloakLoading.value = true
 
   try {
-    const callbackURL = import.meta.env.DEV
-      ? 'http://localhost:5173/'
-      : '/'
+    const callbackURL = import.meta.env.DEV ? 'http://localhost:5173/' : '/'
 
     await authClient.signIn.oauth2({
       providerId: 'keycloak',
