@@ -5,11 +5,13 @@ import { outcomeTypes } from "../db/schema";
 export interface CreateOutcomeTypeData {
   disciplineId: string;
   name: string;
+  isDefault?: boolean;
 }
 
 export interface UpdateOutcomeTypeData {
   disciplineId?: string;
   name?: string;
+  isDefault?: boolean;
 }
 
 export class OutcomeTypeRepository {
@@ -44,6 +46,13 @@ export class OutcomeTypeRepository {
       },
       orderBy: (outcomeTypes, { asc }) => [asc(outcomeTypes.name)],
     });
+  }
+
+  async resetDefault(disciplineId: string) {
+    await db
+      .update(outcomeTypes)
+      .set({ isDefault: false })
+      .where(eq(outcomeTypes.disciplineId, disciplineId));
   }
 
   async update(id: string, data: UpdateOutcomeTypeData) {

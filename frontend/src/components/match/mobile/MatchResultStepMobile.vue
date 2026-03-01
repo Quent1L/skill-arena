@@ -83,6 +83,9 @@
     <!-- Score -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
       <label class="block text-sm font-medium mb-3">Score</label>
+      <Message v-if="scoreInstructions" severity="info" :closable="false" class="mb-3">
+        {{ scoreInstructions }}
+      </Message>
       <div class="flex items-center justify-center gap-4">
         <div class="flex flex-col items-center">
           <span class="text-xs text-blue-500 font-bold mb-1">Équipe A</span>
@@ -119,11 +122,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
-import {
-  outcomeTypeNameEnum,
-  type OutcomeReason,
-  type OutcomeType,
-} from '@skill-arena/shared/types/index'
+import { disciplineApi } from '@/composables/discipline/discipline.api'
+import { type OutcomeReason, type OutcomeType } from '@skill-arena/shared/types/index'
 
 interface Props {
   teamAPlayers: string[]
@@ -148,6 +148,7 @@ const outcomeTypes = ref<OutcomeType[]>([])
 const outcomeReasons = ref<OutcomeReason[]>([])
 const loadingOutcomeTypes = ref(false)
 const loadingOutcomeReasons = ref(false)
+const scoreInstructions = ref<string | null>(null)
 
 const filteredOutcomeReasons = computed(() => {
   if (!outcomeTypeId.value) return []
@@ -160,7 +161,7 @@ const selectedOutcomeType = computed(() => {
 })
 
 const isNormalOutcomeType = computed(() => {
-  return selectedOutcomeType.value?.name === outcomeTypeNameEnum.NORMAL
+  return selectedOutcomeType.value?.isDefault === true
 })
 
 const showOutcomeReasonSelection = computed(() => {
@@ -176,16 +177,21 @@ async function loadOutcomeTypes() {
     const disciplineId = tournament.disciplineId || undefined
 
     if (disciplineId) {
-      outcomeTypes.value = await outcomeTypeApi.list(disciplineId)
+      const [types, discipline] = await Promise.all([
+        outcomeTypeApi.list(disciplineId),
+        disciplineApi.getById(disciplineId),
+      ])
+      outcomeTypes.value = types
+      scoreInstructions.value = discipline.scoreInstructions ?? null
     } else {
       outcomeTypes.value = await outcomeTypeApi.list()
     }
 
-    // Auto-select "Normal" type if no type is already selected
+    // Auto-select default type if no type is already selected
     if (!outcomeTypeId.value && outcomeTypes.value.length > 0) {
-      const normalType = outcomeTypes.value.find((type) => type.name === outcomeTypeNameEnum.NORMAL)
-      if (normalType) {
-        outcomeTypeId.value = normalType.id
+      const defaultType = outcomeTypes.value.find((type) => type.isDefault)
+      if (defaultType) {
+        outcomeTypeId.value = defaultType.id
       }
     }
   } catch (error) {

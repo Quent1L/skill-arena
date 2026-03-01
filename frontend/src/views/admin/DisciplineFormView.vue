@@ -24,6 +24,18 @@
                 />
                 <small class="p-error">{{ errors.name }}</small>
               </div>
+              <div>
+                <label for="scoreInstructions" class="block text-sm font-medium mb-2">
+                  Instructions de saisie du score
+                </label>
+                <Textarea
+                  id="scoreInstructions"
+                  v-model="scoreInstructions"
+                  class="w-full"
+                  :rows="3"
+                  placeholder="Indiquez comment saisir le score pour cette discipline..."
+                />
+              </div>
             </div>
           </div>
 
@@ -87,14 +99,15 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import Textarea from 'primevue/textarea'
 import {
   createDisciplineSchema,
   updateDisciplineSchema,
   type CreateDisciplineRequestData,
   type OutcomeType,
 } from '@skill-arena/shared/types/index'
+import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
-import type { OutcomeReasonResponse } from '@/composables/outcome-reason.api'
 import { useConfirm } from 'primevue/useconfirm'
 import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
 import OutcomeTypeDialog from './components/OutcomeTypeDialog.vue'
@@ -131,6 +144,7 @@ const { handleSubmit, defineField, errors, setValues } = useForm({
 })
 
 const [name] = defineField('name')
+const [scoreInstructions] = defineField('scoreInstructions')
 
 // Outcome Types management
 const outcomeTypeTableRef = ref<InstanceType<typeof OutcomeTypeTable> | null>(null)
@@ -139,7 +153,7 @@ const editingOutcomeType = ref<OutcomeType | null>(null)
 
 // Outcome Reasons management
 const outcomeReasonDialogVisible = ref(false)
-const editingOutcomeReason = ref<OutcomeReasonResponse | null>(null)
+const editingOutcomeReason = ref<OutcomeReason | null>(null)
 const currentOutcomeTypeForReason = ref<OutcomeType | null>(null)
 
 function showOutcomeTypeDialog(outcomeType?: OutcomeType) {
@@ -147,18 +161,20 @@ function showOutcomeTypeDialog(outcomeType?: OutcomeType) {
   outcomeTypeDialogVisible.value = true
 }
 
-async function handleOutcomeTypeSubmit(values: { name: string }) {
+async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean }) {
   if (!currentDiscipline.value) return
 
   try {
     if (editingOutcomeType.value) {
       await updateOutcomeType(editingOutcomeType.value.id, {
         name: values.name,
+        isDefault: values.isDefault,
       })
     } else {
       await createOutcomeType({
         disciplineId: currentDiscipline.value.id,
         name: values.name,
+        isDefault: values.isDefault,
       })
     }
 
@@ -169,7 +185,7 @@ async function handleOutcomeTypeSubmit(values: { name: string }) {
   }
 }
 
-function showOutcomeReasonDialog(outcomeType: OutcomeType, outcomeReason?: OutcomeReasonResponse) {
+function showOutcomeReasonDialog(outcomeType: OutcomeType, outcomeReason?: OutcomeReason) {
   editingOutcomeReason.value = outcomeReason || null
   currentOutcomeTypeForReason.value = outcomeType
   outcomeReasonDialogVisible.value = true
@@ -224,7 +240,7 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
   })
 }
 
-function confirmDeleteOutcomeReason(outcomeReason: OutcomeReasonResponse) {
+function confirmDeleteOutcomeReason(outcomeReason: OutcomeReason) {
   confirm.require({
     message:
       'Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.',
@@ -262,6 +278,7 @@ onMounted(async () => {
     if (currentDiscipline.value) {
       setValues({
         name: currentDiscipline.value.name,
+        scoreInstructions: currentDiscipline.value.scoreInstructions,
       })
     }
   }

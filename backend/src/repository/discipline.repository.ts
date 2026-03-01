@@ -4,10 +4,12 @@ import { disciplines } from "../db/schema";
 
 export interface CreateDisciplineData {
   name: string;
+  scoreInstructions?: string | null;
 }
 
 export interface UpdateDisciplineData {
   name?: string;
+  scoreInstructions?: string | null;
 }
 
 export class DisciplineRepository {

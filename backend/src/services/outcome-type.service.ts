@@ -12,9 +12,13 @@ import {
 export class OutcomeTypeService {
   async createOutcomeType(input: CreateOutcomeTypeInput) {
     await this.validateDisciplineExists(input.disciplineId);
+    if (input.isDefault) {
+      await outcomeTypeRepository.resetDefault(input.disciplineId);
+    }
     return await outcomeTypeRepository.create({
       disciplineId: input.disciplineId,
       name: input.name,
+      isDefault: input.isDefault ?? false,
     });
   }
 
@@ -34,13 +38,18 @@ export class OutcomeTypeService {
   }
 
   async updateOutcomeType(id: string, input: UpdateOutcomeTypeInput) {
-    await this.getOutcomeTypeById(id);
+    const existing = await this.getOutcomeTypeById(id);
+    const disciplineId = input.disciplineId ?? existing.disciplineId;
     if (input.disciplineId) {
       await this.validateDisciplineExists(input.disciplineId);
+    }
+    if (input.isDefault) {
+      await outcomeTypeRepository.resetDefault(disciplineId);
     }
     return await outcomeTypeRepository.update(id, {
       disciplineId: input.disciplineId,
       name: input.name,
+      isDefault: input.isDefault,
     });
   }
 
