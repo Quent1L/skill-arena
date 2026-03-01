@@ -1,12 +1,33 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  afterEach,
+} from "bun:test";
+import {
+  createTestDatabase,
+  closeTestDatabase,
+} from "../../config/test-database";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
+import * as schema from "../../db/schema";
+
+// Initialize the test database BEFORE any imports that use `db`.
+// createTestDatabase() calls setTestDatabase() so the shared `db` proxy
+// routes to the PGlite instance when tests run.
+const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
+
+// Static imports — they are hoisted but `db` is accessed lazily through the
+// proxy, so they all see the PGlite instance by the time any test runs.
 import { matchService } from "../match.service";
-import { db } from "../../config/database";
 import {
   tournaments,
   appUsers,
   user as betterAuthUser,
   teams,
   tournamentParticipants,
+  matches,
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
@@ -23,7 +44,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
   beforeAll(async () => {
     // Create Better Auth user
-    const [authUser] = await db
+    const [authUser] = await testDb
       .insert(betterAuthUser)
       .values({
         id: `test-auth-duplicate-${Date.now()}`,
@@ -35,7 +56,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
     betterAuthUserId = authUser.id;
 
     // Create app user with super_admin role
-    const [user] = await db
+    const [user] = await testDb
       .insert(appUsers)
       .values({
         displayName: "Test User Duplicate",
@@ -47,7 +68,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
     // Create players for flex mode
     const players = await Promise.all([
-      db
+      testDb
         .insert(betterAuthUser)
         .values({
           id: `player1-${Date.now()}`,
@@ -57,7 +78,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
         })
         .returning()
         .then((r) => r[0]),
-      db
+      testDb
         .insert(betterAuthUser)
         .values({
           id: `player2-${Date.now()}`,
@@ -67,7 +88,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
         })
         .returning()
         .then((r) => r[0]),
-      db
+      testDb
         .insert(betterAuthUser)
         .values({
           id: `player3-${Date.now()}`,
@@ -77,7 +98,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
         })
         .returning()
         .then((r) => r[0]),
-      db
+      testDb
         .insert(betterAuthUser)
         .values({
           id: `player4-${Date.now()}`,
@@ -91,15 +112,15 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
     const appPlayers = await Promise.all(
       players.map((p) =>
-        db
+        testDb
           .insert(appUsers)
           .values({
             displayName: p.name,
             externalId: p.id,
           })
           .returning()
-          .then((r) => r[0])
-      )
+          .then((r) => r[0]),
+      ),
     );
 
     [player1Id, player2Id, player3Id, player4Id] = appPlayers.map((p) => p.id);
@@ -110,7 +131,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       .toISOString()
       .split("T")[0];
 
-    const [tournament] = await db
+    const [tournament] = await testDb
       .insert(tournaments)
       .values({
         name: `Test Tournament Duplicate ${Date.now()}`,
@@ -131,7 +152,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
     testTournamentId = tournament.id;
 
     // Create teams for static mode tests
-    const [teamA] = await db
+    const [teamA] = await testDb
       .insert(teams)
       .values({
         tournamentId: testTournamentId,
@@ -141,7 +162,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       .returning();
     teamAId = teamA.id;
 
-    const [teamB] = await db
+    const [teamB] = await testDb
       .insert(teams)
       .values({
         tournamentId: testTournamentId,
@@ -153,28 +174,14 @@ describe("Match Duplicate Detection Integration Tests", () => {
   });
 
   afterAll(async () => {
-    // Cleanup: delete test data
-    if (testUserId) {
-      await db.delete(tournaments).where(eq(tournaments.createdBy, testUserId));
-    }
-    if (betterAuthUserId) {
-      await db.delete(betterAuthUser).where(eq(betterAuthUser.id, betterAuthUserId));
-    }
-    // Clean up player auth users
-    const playerAuthIds = await db
-      .select({ id: appUsers.externalId })
-      .from(appUsers)
-      .where(eq(appUsers.displayName, "Player 1"));
-    for (const { id } of playerAuthIds) {
-      await db.delete(betterAuthUser).where(eq(betterAuthUser.id, id));
-    }
+    await closeTestDatabase();
   });
 
   describe("Static mode duplicate detection", () => {
     afterEach(async () => {
-      // Clean up matches between tests
-      const { matches } = await import("../../db/schema");
-      await db.delete(matches).where(eq(matches.tournamentId, testTournamentId));
+      await testDb
+        .delete(matches)
+        .where(eq(matches.tournamentId, testTournamentId));
     });
 
     it("should detect duplicate match with same teams", async () => {
@@ -188,7 +195,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
           scoreB: 1,
           status: "finalized",
         },
-        testUserId
+        testUserId,
       );
 
       // Validate second match - should warn about duplicate
@@ -204,7 +211,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
     it("should NOT detect duplicate when teams are different", async () => {
       // Create team C
-      const [teamC] = await db
+      const [teamC] = await testDb
         .insert(teams)
         .values({
           tournamentId: testTournamentId,
@@ -222,7 +229,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
       expect(validation.valid).toBe(true);
       expect(validation.warnings).not.toContain(
-        "Un match similaire existe déjà"
+        "Un match similaire existe déjà",
       );
     });
 
@@ -237,7 +244,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
           scoreB: 0,
           status: "scheduled",
         },
-        testUserId
+        testUserId,
       );
 
       // Validate the same match (edit mode) - should NOT warn
@@ -250,7 +257,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
       // Should not warn about itself
       expect(validation.warnings).not.toContain(
-        "Un match similaire existe déjà"
+        "Un match similaire existe déjà",
       );
     });
   });
@@ -265,7 +272,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
         .toISOString()
         .split("T")[0];
 
-      const [tournament] = await db
+      const [tournament] = await testDb
         .insert(tournaments)
         .values({
           name: `Flex Tournament ${Date.now()}`,
@@ -287,22 +294,22 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
       // Register all players in the flex tournament
       await Promise.all([
-        db.insert(tournamentParticipants).values({
+        testDb.insert(tournamentParticipants).values({
           tournamentId: flexTournamentId,
           userId: player1Id,
           status: "active",
         }),
-        db.insert(tournamentParticipants).values({
+        testDb.insert(tournamentParticipants).values({
           tournamentId: flexTournamentId,
           userId: player2Id,
           status: "active",
         }),
-        db.insert(tournamentParticipants).values({
+        testDb.insert(tournamentParticipants).values({
           tournamentId: flexTournamentId,
           userId: player3Id,
           status: "active",
         }),
-        db.insert(tournamentParticipants).values({
+        testDb.insert(tournamentParticipants).values({
           tournamentId: flexTournamentId,
           userId: player4Id,
           status: "active",
@@ -311,9 +318,9 @@ describe("Match Duplicate Detection Integration Tests", () => {
     });
 
     afterEach(async () => {
-      // Clean up matches between tests to avoid hitting partner/opponent limits
-      const { matches } = await import("../../db/schema");
-      await db.delete(matches).where(eq(matches.tournamentId, flexTournamentId));
+      await testDb
+        .delete(matches)
+        .where(eq(matches.tournamentId, flexTournamentId));
     });
 
     it("should detect duplicate match with same player composition", async () => {
@@ -327,7 +334,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
           scoreB: 1,
           status: "finalized",
         },
-        testUserId
+        testUserId,
       );
 
       // Validate second match with same players - should warn
@@ -352,7 +359,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
           scoreB: 1,
           status: "finalized",
         },
-        testUserId
+        testUserId,
       );
 
       // Validate with same players but different order
@@ -376,7 +383,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
 
       expect(validation.valid).toBe(true);
       expect(validation.warnings).not.toContain(
-        "Un match similaire existe déjà"
+        "Un match similaire existe déjà",
       );
     });
   });

@@ -4,16 +4,11 @@ import {
   tournamentEntries,
   tournamentEntryPlayers
 } from "../db/schema";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type * as schema from "../db/schema";
-
-type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
-
 export class EntryRepository {
   /**
    * Get entry by ID with players and team info
    */
-  async getById(entryId: string, tx?: DbTransaction) {
+  async getById(entryId: string, tx?: any) {
     const dbInstance = tx || db;
     return await dbInstance.query.tournamentEntries.findFirst({
       where: eq(tournamentEntries.id, entryId),
@@ -55,9 +50,9 @@ export class EntryRepository {
       teamId?: string;
       playerIds: string[];
     },
-    tx?: DbTransaction
+    tx?: any
   ) {
-    const performCreate = async (dbInstance: DbTransaction) => {
+    const performCreate = async (dbInstance: any) => {
       // Create entry
       const [entry] = await dbInstance
         .insert(tournamentEntries)
@@ -98,7 +93,7 @@ export class EntryRepository {
     tournamentId: string,
     teamId?: string,
     playerIds?: string[],
-    tx?: DbTransaction
+    tx?: any
   ) {
     const dbInstance = tx || db;
 

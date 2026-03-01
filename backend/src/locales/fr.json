@@ -3,7 +3,9 @@
     "MATCH_CREATED_TITLE": "{{creatorName}} vous a ajouté dans un match {{matchFormat}}",
     "MATCH_CREATED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}",
     "MATCH_SCHEDULED_TITLE": "{{creatorName}} vous a programmé un match {{matchFormat}}",
-    "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}"
+    "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}",
+    "MATCH_SCORE_PROPOSAL_TITLE": "{{proposerName}} propose un score corrigé",
+    "MATCH_SCORE_PROPOSAL_MESSAGE": "⚠️ Score proposé : {{scoreA}} - {{scoreB}}\nConfirmez ou contestez ce résultat avant la deadline."
   },
   "emails": {
     "password_reset_subject": "Réinitialisation de votre mot de passe",

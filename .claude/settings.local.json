@@ -5,7 +5,10 @@
       "Bash(bun run:*)",
       "Bash(ls:*)",
       "WebSearch",
-      "WebFetch(domain:orm.drizzle.team)"
+      "WebFetch(domain:orm.drizzle.team)",
+      "Bash(bun test src/services/__tests__/match.service.test.ts --filter \"Auto-Finalization\")",
+      "Bash(bun test src/services/__tests__/match.service.test.ts)",
+      "Bash(bun test)"
     ]
   }
 }

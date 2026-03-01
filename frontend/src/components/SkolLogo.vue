@@ -129,7 +129,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'SkolLogo',
 
@@ -164,8 +164,6 @@ export default {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@900&family=Rajdhani:wght@700&display=swap');
-
 /* ============================
    WRAPPER
    ============================ */

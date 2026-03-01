@@ -1,5 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { db } from "../../config/database";
+import {
+  createTestDatabase,
+  closeTestDatabase,
+} from "../../config/test-database";
+import type { PgliteDatabase } from "drizzle-orm/pglite";
+import * as schema from "../../db/schema";
+import { randomUUID } from "crypto";
+
+// Initialize the test database BEFORE any imports that use `db`
+// createTestDatabase() will call setTestDatabase() to make the shared `db` export point to the test instance
+const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
+
+// Now import the services - they will use the test database through the shared `db` proxy
 import { matchService } from "../match.service";
 import { entryRepository } from "../../repository/entry.repository";
 import { matchRepository } from "../../repository/match.repository";
@@ -8,14 +20,10 @@ import {
   appUsers,
   user as betterAuthUser,
   tournamentParticipants,
-  matches,
-  matchSides,
   tournamentEntries,
-  tournamentEntryPlayers,
 } from "../../db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ConflictError, ErrorCode } from "../../types/errors";
-import { randomUUID } from "crypto";
 
 describe("Match Partner Validation", () => {
   let tournamentId: string;
@@ -35,7 +43,7 @@ describe("Match Partner Validation", () => {
     const timestamp = Date.now();
 
     // Create Better Auth users first
-    const [authUser1] = await db
+    const [authUser1] = await testDb
       .insert(betterAuthUser)
       .values({
         id: `test-auth-1-${timestamp}`,
@@ -46,7 +54,7 @@ describe("Match Partner Validation", () => {
       .returning();
     authUser1Id = authUser1.id;
 
-    const [authUser2] = await db
+    const [authUser2] = await testDb
       .insert(betterAuthUser)
       .values({
         id: `test-auth-2-${timestamp}`,
@@ -57,7 +65,7 @@ describe("Match Partner Validation", () => {
       .returning();
     authUser2Id = authUser2.id;
 
-    const [authUser3] = await db
+    const [authUser3] = await testDb
       .insert(betterAuthUser)
       .values({
         id: `test-auth-3-${timestamp}`,
@@ -68,7 +76,7 @@ describe("Match Partner Validation", () => {
       .returning();
     authUser3Id = authUser3.id;
 
-    const [authUser4] = await db
+    const [authUser4] = await testDb
       .insert(betterAuthUser)
       .values({
         id: `test-auth-4-${timestamp}`,
@@ -80,7 +88,7 @@ describe("Match Partner Validation", () => {
     authUser4Id = authUser4.id;
 
     // Create app users
-    const [user1] = await db
+    const [user1] = await testDb
       .insert(appUsers)
       .values({
         externalId: authUser1Id,
@@ -90,7 +98,7 @@ describe("Match Partner Validation", () => {
       .returning();
     player1Id = user1.id;
 
-    const [user2] = await db
+    const [user2] = await testDb
       .insert(appUsers)
       .values({
         externalId: authUser2Id,
@@ -100,7 +108,7 @@ describe("Match Partner Validation", () => {
       .returning();
     player2Id = user2.id;
 
-    const [user3] = await db
+    const [user3] = await testDb
       .insert(appUsers)
       .values({
         externalId: authUser3Id,
@@ -110,7 +118,7 @@ describe("Match Partner Validation", () => {
       .returning();
     player3Id = user3.id;
 
-    const [user4] = await db
+    const [user4] = await testDb
       .insert(appUsers)
       .values({
         externalId: authUser4Id,
@@ -126,26 +134,24 @@ describe("Match Partner Validation", () => {
       .toISOString()
       .split("T")[0];
 
-    await db
-      .insert(tournaments)
-      .values({
-        id: tournamentId,
-        name: "Test Tournament Partner Validation",
-        createdBy: player1Id,
-        teamMode: "flex",
-        mode: "championship",
-        status: "open",
-        minTeamSize: 1,
-        maxTeamSize: 2,
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2, // Allow max 2 matches with same partner
-        maxTimesWithSameOpponent: 10,
-        startDate: today,
-        endDate: nextWeek,
-      });
+    await testDb.insert(tournaments).values({
+      id: tournamentId,
+      name: "Test Tournament Partner Validation",
+      createdBy: player1Id,
+      teamMode: "flex",
+      mode: "championship",
+      status: "open",
+      minTeamSize: 1,
+      maxTeamSize: 2,
+      maxMatchesPerPlayer: 10,
+      maxTimesWithSamePartner: 2, // Allow max 2 matches with same partner
+      maxTimesWithSameOpponent: 10,
+      startDate: today,
+      endDate: nextWeek,
+    });
 
     // Add participants
-    await db.insert(tournamentParticipants).values([
+    await testDb.insert(tournamentParticipants).values([
       { tournamentId, userId: player1Id },
       { tournamentId, userId: player2Id },
       { tournamentId, userId: player3Id },
@@ -153,64 +159,14 @@ describe("Match Partner Validation", () => {
     ]);
   });
 
-
   afterAll(async () => {
-    // Clean up - delete in reverse dependency order
-    await db
-      .delete(matchSides)
-      .where(
-        inArray(
-          matchSides.matchId,
-          db
-            .select({ id: matches.id })
-            .from(matches)
-            .where(eq(matches.tournamentId, tournamentId))
-        )
-      );
-
-    await db.delete(matches).where(eq(matches.tournamentId, tournamentId));
-
-    await db
-      .delete(tournamentEntryPlayers)
-      .where(
-        inArray(
-          tournamentEntryPlayers.entryId,
-          db
-            .select({ id: tournamentEntries.id })
-            .from(tournamentEntries)
-            .where(eq(tournamentEntries.tournamentId, tournamentId))
-        )
-      );
-
-    await db
-      .delete(tournamentEntries)
-      .where(eq(tournamentEntries.tournamentId, tournamentId));
-
-    await db
-      .delete(tournamentParticipants)
-      .where(eq(tournamentParticipants.tournamentId, tournamentId));
-
-    await db.delete(tournaments).where(eq(tournaments.id, tournamentId));
-
-    await db
-      .delete(appUsers)
-      .where(
-        inArray(appUsers.id, [player1Id, player2Id, player3Id, player4Id])
-      );
-
-    await db
-      .delete(betterAuthUser)
-      .where(
-        inArray(betterAuthUser.id, [
-          authUser1Id,
-          authUser2Id,
-          authUser3Id,
-          authUser4Id,
-        ])
-      );
+    // Close the test database
+    await closeTestDatabase();
   });
 
   it("Step 1: should count matches correctly after creating first match", async () => {
+    console.log("[DEBUG] Test 1 starting...");
+    console.log("[DEBUG] About to call matchService.createMatch...");
     // Create first match: Player1 + Player2 vs Player3 + Player4
     await matchService.createMatch(
       {
@@ -219,14 +175,14 @@ describe("Match Partner Validation", () => {
         playerIdsB: [player3Id, player4Id],
         status: "scheduled",
       },
-      player1Id
+      player1Id,
     );
 
     // Check that entry was created for Player1 + Player2
     const entry12 = await entryRepository.findExistingEntry(
       tournamentId,
       undefined,
-      [player1Id, player2Id]
+      [player1Id, player2Id],
     );
     expect(entry12).toBeTruthy();
 
@@ -236,7 +192,7 @@ describe("Match Partner Validation", () => {
       player1Id,
       player2Id,
       undefined,
-      2 // team size
+      2, // team size
     );
 
     expect(Number(count)).toBe(1);
@@ -251,7 +207,7 @@ describe("Match Partner Validation", () => {
         playerIdsB: [player3Id, player4Id],
         status: "scheduled",
       },
-      player1Id
+      player1Id,
     );
 
     // Count matches where Player1 and Player2 played together (should be 2 now)
@@ -260,7 +216,7 @@ describe("Match Partner Validation", () => {
       player1Id,
       player2Id,
       undefined,
-      2 // team size
+      2, // team size
     );
 
     expect(Number(count)).toBe(2);
@@ -278,13 +234,13 @@ describe("Match Partner Validation", () => {
           playerIdsB: [player3Id, player4Id],
           status: "scheduled",
         },
-        player1Id
+        player1Id,
       );
       throw new Error("Expected ConflictError");
     } catch (error) {
       expect(error).toBeInstanceOf(ConflictError);
       expect((error as ConflictError).code).toBe(
-        ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED
+        ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED,
       );
     }
   });
@@ -306,7 +262,7 @@ describe("Match Partner Validation", () => {
 
   it("should not create duplicate entries during validation", async () => {
     // Get entries before validation
-    const entriesBefore = await db
+    const entriesBefore = await testDb
       .select()
       .from(tournamentEntries)
       .where(eq(tournamentEntries.tournamentId, tournamentId));
@@ -329,7 +285,7 @@ describe("Match Partner Validation", () => {
     });
 
     // Get entries after validation
-    const entriesAfter = await db
+    const entriesAfter = await testDb
       .select()
       .from(tournamentEntries)
       .where(eq(tournamentEntries.tournamentId, tournamentId));
@@ -350,7 +306,7 @@ describe("Match Partner Validation", () => {
         playerIdsB: [player2Id, player4Id],
         status: "scheduled",
       },
-      player1Id
+      player1Id,
     );
 
     expect(match).toBeTruthy();
@@ -360,7 +316,7 @@ describe("Match Partner Validation", () => {
     const entry13 = await entryRepository.findExistingEntry(
       tournamentId,
       undefined,
-      [player1Id, player3Id]
+      [player1Id, player3Id],
     );
     expect(entry13).toBeTruthy();
 
@@ -370,7 +326,7 @@ describe("Match Partner Validation", () => {
       player1Id,
       player3Id,
       undefined,
-      2 // team size
+      2, // team size
     );
 
     expect(Number(count)).toBe(1);
@@ -388,7 +344,7 @@ describe("Match Partner Validation", () => {
       player1Id,
       player3Id,
       undefined,
-      2 // team size
+      2, // team size
     );
 
     // Player1 played against Player3 in 2 matches (Match 1 and Match 2)
@@ -403,7 +359,7 @@ describe("Match Partner Validation", () => {
       player1Id,
       player2Id,
       undefined,
-      2 // team size
+      2, // team size
     );
 
     // Player1 and Player2 were partners in Match 1 and Match 2,
@@ -417,7 +373,7 @@ describe("Match Partner Validation", () => {
     // and maxTimesWithSameOpponent is 2 (set to 10 but let's assume it was 2)
 
     // First, update tournament settings to have lower opponent limit
-    await db
+    await testDb
       .update(tournaments)
       .set({ maxTimesWithSameOpponent: 2 })
       .where(eq(tournaments.id, tournamentId));
@@ -430,13 +386,13 @@ describe("Match Partner Validation", () => {
           playerIdsB: [player3Id, player2Id],
           status: "scheduled",
         },
-        player1Id
+        player1Id,
       );
       throw new Error("Expected ConflictError");
     } catch (error) {
       expect(error).toBeInstanceOf(ConflictError);
       expect((error as ConflictError).code).toBe(
-        ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED
+        ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED,
       );
     }
   });

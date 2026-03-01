@@ -7,17 +7,19 @@
       :allow-draw="tournament?.allowDraw ?? false"
       :initial-data="matchData"
       :match-id="matchId"
+      :is-contest-mode="isContestMode"
+      :contest-reason="contestReason"
     />
   </div>
   <div v-else class="create-match-view">
     <div class="max-w-4xl mx-auto p-6">
       <h1 class="text-2xl font-semibold p-4">
-        {{ isEditMode ? 'Compléter le match' : 'Créer un match' }}
+        {{ isContestMode ? 'Proposer une correction de score' : isEditMode ? 'Compléter le match' : 'Créer un match' }}
       </h1>
       <Card class="mb-6">
         <template #content>
           <Stepper :value="activeStep" class="w-full" linear>
-            <StepItem value="1">
+            <StepItem v-if="!isContestMode" value="1">
               <Step>Saisie des équipes</Step>
               <StepPanel v-slot="{ activateCallback }" value="1">
                 <TeamSelectionStep
@@ -51,6 +53,8 @@
                   :allow-draw="tournament?.allowDraw ?? false"
                   :loading="matchLoading"
                   :disabled="!canCreateMatch"
+                  :hide-previous-button="isContestMode"
+                  :submit-label="isContestMode ? 'Proposer la correction' : undefined"
                   @previous="activateCallback('1')"
                   @create="createMatch"
                 />
@@ -65,7 +69,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
@@ -81,6 +85,7 @@ import MatchResultStep from '@/components/match/MatchResultStep.vue'
 import MatchFormStepper from '@/components/match/mobile/MatchFormStepper.vue'
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 
 const {
@@ -92,6 +97,7 @@ const {
   canCreateMatch: canCreateMatchCheck,
   createMatchWithNavigation,
   updateMatchWithNavigation,
+  contestMatchResult,
   getMatch,
   getTeamPlayersNames,
 } = useMatchService()
@@ -100,6 +106,8 @@ const { isMobile } = useViewport()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined
+const isContestMode = computed(() => route.query.contest === 'true')
+const contestReason = computed(() => route.query.contestReason as string | undefined)
 const isEditMode = computed(() => !!matchId)
 
 const activeStep = ref('1')
@@ -236,6 +244,20 @@ watch(
 async function createMatch() {
   if (!canCreateMatch.value) return
 
+  // Contest mode: submit a score correction
+  if (isContestMode.value && matchId) {
+    await contestMatchResult(matchId, {
+      proposedScoreA: matchData.value.scoreA,
+      proposedScoreB: matchData.value.scoreB,
+      proposedWinner: matchData.value.winner,
+      proposedOutcomeTypeId: matchData.value.outcomeTypeId || undefined,
+      proposedOutcomeReasonId: matchData.value.outcomeReasonId || undefined,
+      contestationReason: contestReason.value,
+    })
+    router.push(`/matches/${matchId}`)
+    return
+  }
+
   // Determine the correct status based on the scheduled date at submission time
   const now = new Date()
   if (matchData.value.playedAt && matchData.value.playedAt > now) {
@@ -340,8 +362,17 @@ async function loadExistingMatch() {
       scheduledDate.value = match.playedAt
     }
 
-    // If match is already reported, go to step 2
-    if (match.status === 'reported' && scheduledDate.value && scheduledDate.value <= new Date()) {
+    // If match is already reported or pending_confirmation, go to step 2
+    if (
+      (match.status === 'reported' || match.status === 'pending_confirmation') &&
+      scheduledDate.value &&
+      scheduledDate.value <= new Date()
+    ) {
+      activeStep.value = '2'
+    }
+
+    // In contest mode, jump directly to step 2 (score entry)
+    if (isContestMode.value) {
       activeStep.value = '2'
     }
   } catch (err) {
@@ -365,6 +396,11 @@ onMounted(async () => {
 
 watch(activeStep, async (newStep, oldStep) => {
   if (newStep !== oldStep) {
+    // Prevent going back to step 1 in contest mode
+    if (newStep === '1' && isContestMode.value) {
+      activeStep.value = '2'
+      return
+    }
     // Prevent access to step 2 if date is in the future
     if (newStep === '2' && !canAccessResultStep.value) {
       activeStep.value = '1'

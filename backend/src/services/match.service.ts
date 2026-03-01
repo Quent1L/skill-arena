@@ -2,9 +2,6 @@ import { matchRepository } from "../repository/match.repository";
 import { matchConfirmationRepository } from "../repository/match-confirmation.repository";
 import { userRepository } from "../repository/user.repository";
 import { entryRepository } from "../repository/entry.repository";
-import { db } from "../config/database";
-import { matches } from "../db/schema";
-import { eq, and } from "drizzle-orm";
 import {
   type CreateMatchRequestData as CreateMatchInput,
   type UpdateMatchRequestData as UpdateMatchInput,
@@ -40,9 +37,12 @@ export class MatchService {
    */
   async canManageMatches(
     tournamentId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
-    return await matchPermissionValidator.canManageMatches(tournamentId, userId);
+    return await matchPermissionValidator.canManageMatches(
+      tournamentId,
+      userId,
+    );
   }
 
   /**
@@ -96,9 +96,13 @@ export class MatchService {
   private async checkCreatePermissions(
     input: CreateMatchInput,
     createdBy: string,
-    tournament: NonNullable<TournamentFromRepository>
+    tournament: NonNullable<TournamentFromRepository>,
   ) {
-    await matchPermissionValidator.checkCreatePermissions(input, createdBy, tournament);
+    await matchPermissionValidator.checkCreatePermissions(
+      input,
+      createdBy,
+      tournament,
+    );
   }
 
   /**
@@ -106,7 +110,7 @@ export class MatchService {
    */
   private async validateMatchInput(
     input: CreateMatchInput,
-    tournament: NonNullable<TournamentFromRepository>
+    tournament: NonNullable<TournamentFromRepository>,
   ) {
     await matchInputValidator.validateMatchInput(input, tournament);
   }
@@ -172,7 +176,7 @@ export class MatchService {
    */
   private async validateMatchRules(
     input: CreateMatchInput & { matchId?: string },
-    tournament: NonNullable<TournamentFromRepository>
+    tournament: NonNullable<TournamentFromRepository>,
   ) {
     await matchRuleValidator.validateMatchRules(input, tournament);
   }
@@ -208,7 +212,7 @@ export class MatchService {
     // Check permissions
     const canManage = await this.canManageMatches(
       match.tournamentId,
-      updatedBy
+      updatedBy,
     );
     if (!canManage) {
       throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
@@ -229,8 +233,12 @@ export class MatchService {
       updateData.outcomeTypeId = input.outcomeTypeId;
     if (input.outcomeReasonId !== undefined)
       updateData.outcomeReasonId = input.outcomeReasonId;
+    if (input.winner !== undefined) updateData.winner = input.winner;
 
-    return await matchRepository.update(id, updateData);
+    const result = await matchRepository.update(id, updateData);
+    // Admin update may resolve a pending score dispute — delete blocking action notifications
+    await notificationService.deleteActionsByMatchId(id);
+    return result;
   }
 
   /**
@@ -242,7 +250,7 @@ export class MatchService {
     // Check permissions
     const canManage = await this.canManageMatches(
       match.tournamentId,
-      deletedBy
+      deletedBy,
     );
     if (!canManage) {
       throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
@@ -265,7 +273,7 @@ export class MatchService {
   async reportMatchResult(
     id: string,
     input: ReportMatchResultInput,
-    reportedBy: string
+    reportedBy: string,
   ) {
     const match = await this.getMatchById(id);
     await this.validateReportPermissions(id, reportedBy);
@@ -322,9 +330,13 @@ export class MatchService {
    */
   private async validateDrawAllowed(
     tournamentId: string,
-    input: ReportMatchResultInput
+    input: ReportMatchResultInput,
   ) {
-    await matchInputValidator.validateDrawAllowed(tournamentId, input.scoreA, input.scoreB);
+    await matchInputValidator.validateDrawAllowed(
+      tournamentId,
+      input.scoreA,
+      input.scoreB,
+    );
   }
 
   /**
@@ -333,16 +345,27 @@ export class MatchService {
   private buildReportUpdateData(
     input: ReportMatchResultInput,
     match: Awaited<ReturnType<typeof matchRepository.getById>>,
-    reportedBy: string
+    reportedBy: string,
   ): UpdateMatchData {
     const updateData: UpdateMatchData = {
       scoreA: input.scoreA,
       scoreB: input.scoreB,
       status: "reported",
       reportProof: input.reportProof,
+      outcomeTypeId: input.outcomeTypeId,
+      outcomeReasonId: input.outcomeReasonId,
     };
 
-    // Note: Winner is calculated automatically in the repository based on scores
+    // Pass explicit winner if provided, otherwise derive from scores
+    if (input.winner !== undefined) {
+      updateData.winner = input.winner;
+    } else if (input.scoreA > input.scoreB) {
+      updateData.winner = "teamA";
+    } else if (input.scoreB > input.scoreA) {
+      updateData.winner = "teamB";
+    } else {
+      updateData.winner = null;
+    }
 
     return updateData;
   }
@@ -353,7 +376,7 @@ export class MatchService {
   async confirmMatch(
     id: string,
     input: ConfirmMatchInput,
-    confirmedBy: string
+    confirmedBy: string,
   ) {
     const match = await this.getMatchById(id);
 
@@ -388,12 +411,17 @@ export class MatchService {
   }
 
   /**
-   * Contest match result
+   * Contest match result.
+   * If proposedScoreA + proposedScoreB are provided, creates a score proposal:
+   *  - resets other players' confirmations
+   *  - sets match to pending_confirmation
+   *  - notifies all participants
+   * Otherwise (simple contestation), sets match to disputed (legacy behaviour).
    */
   async contestMatch(
     id: string,
     input: ContestMatchInput,
-    contestedBy: string
+    contestedBy: string,
   ) {
     const match = await this.getMatchById(id);
 
@@ -403,7 +431,7 @@ export class MatchService {
       throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT);
     }
 
-    // Check if match is in reported state
+    // Check if match is in reported / pending_confirmation state
     if (!["reported", "pending_confirmation"].includes(match.status)) {
       throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
     }
@@ -413,7 +441,10 @@ export class MatchService {
       throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED);
     }
 
-    // Create or update contestation
+    const hasScoreProposal =
+      input.proposedScoreA !== undefined && input.proposedScoreB !== undefined;
+
+    // Upsert the contesting player's confirmation
     await matchConfirmationRepository.upsert({
       matchId: id,
       playerId: contestedBy,
@@ -421,12 +452,47 @@ export class MatchService {
       isContested: true,
       contestationReason: input.contestationReason,
       contestationProof: input.contestationProof,
+      proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
+      proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
+      proposedWinner: hasScoreProposal ? (input.proposedWinner ?? null) : null,
+      proposedOutcomeTypeId: hasScoreProposal
+        ? (input.proposedOutcomeTypeId ?? null)
+        : null,
+      proposedOutcomeReasonId: hasScoreProposal
+        ? (input.proposedOutcomeReasonId ?? null)
+        : null,
     });
 
-    // Update match status to disputed
-    await matchRepository.update(id, {
-      status: "disputed",
-    });
+    if (hasScoreProposal) {
+      // Reset all other players' confirmations so they review the new proposal
+      await matchConfirmationRepository.resetConfirmationsExcept(
+        id,
+        contestedBy,
+      );
+
+      // Extend the confirmation deadline by 72h from now
+      const confirmationDeadline = new Date();
+      confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
+
+      // Move to pending_confirmation
+      await matchRepository.update(id, {
+        status: "pending_confirmation",
+        confirmationDeadline,
+      });
+
+      // Notify all other participants about the score proposal
+      await this.notifyScoreProposal(
+        id,
+        contestedBy,
+        input.proposedScoreA!,
+        input.proposedScoreB!,
+      );
+    } else {
+      // Simple contestation — mark as disputed (legacy)
+      await matchRepository.update(id, {
+        status: "disputed",
+      });
+    }
 
     return await matchRepository.getById(id);
   }
@@ -447,7 +513,7 @@ export class MatchService {
 
       if (!this.isTournamentOpenForMatches(tournament)) {
         errors.push(
-          "Le tournoi doit être ouvert ou en cours pour créer des matchs"
+          "Le tournoi doit être ouvert ou en cours pour créer des matchs",
         );
         return { valid: false, errors, warnings };
       }
@@ -456,7 +522,7 @@ export class MatchService {
       await this.validateTournamentRulesForValidation(
         input,
         tournament,
-        errors
+        errors,
       );
       await this.checkSimilarMatch(input, warnings, input.matchId);
 
@@ -475,7 +541,7 @@ export class MatchService {
       errors.push(
         error instanceof Error
           ? error.message
-          : "Erreur inattendue lors de la validation"
+          : "Erreur inattendue lors de la validation",
       );
       return { valid: false, errors, warnings };
     }
@@ -492,7 +558,7 @@ export class MatchService {
    * Check if tournament is open for creating matches
    */
   private isTournamentOpenForMatches(
-    tournament: TournamentFromRepository
+    tournament: TournamentFromRepository,
   ): boolean {
     return tournament ? ["open", "ongoing"].includes(tournament.status) : false;
   }
@@ -503,9 +569,13 @@ export class MatchService {
   private async validateMatchInputForValidation(
     input: CreateMatchInput,
     tournament: NonNullable<TournamentFromRepository>,
-    errors: string[]
+    errors: string[],
   ) {
-    await matchInputValidator.validateMatchInputForValidation(input, tournament, errors);
+    await matchInputValidator.validateMatchInputForValidation(
+      input,
+      tournament,
+      errors,
+    );
   }
 
   /**
@@ -514,7 +584,7 @@ export class MatchService {
   private async validateTournamentRulesForValidation(
     input: CreateMatchInput,
     tournament: NonNullable<TournamentFromRepository>,
-    errors: string[]
+    errors: string[],
   ) {
     if (
       tournament.teamMode === "flex" &&
@@ -527,7 +597,7 @@ export class MatchService {
         if (error instanceof AppError) {
           // Translate the error using i18n
           const translatedMessage = String(
-            i18next.t(`errors.${error.code}`, error.details || {})
+            i18next.t(`errors.${error.code}`, error.details || {}),
           );
           errors.push(translatedMessage);
         } else {
@@ -545,7 +615,7 @@ export class MatchService {
   private async checkSimilarMatch(
     input: CreateMatchInput & { matchId?: string },
     warnings: string[],
-    excludeMatchId?: string
+    excludeMatchId?: string,
   ) {
     // Get or determine entry IDs based on team mode
     let entryAId: string | undefined;
@@ -557,12 +627,12 @@ export class MatchService {
         const entryA = await entryRepository.findExistingEntry(
           input.tournamentId,
           input.teamAId,
-          undefined
+          undefined,
         );
         const entryB = await entryRepository.findExistingEntry(
           input.tournamentId,
           input.teamBId,
-          undefined
+          undefined,
         );
         entryAId = entryA?.id;
         entryBId = entryB?.id;
@@ -571,12 +641,12 @@ export class MatchService {
         const entryA = await entryRepository.findExistingEntry(
           input.tournamentId,
           undefined,
-          input.playerIdsA
+          input.playerIdsA,
         );
         const entryB = await entryRepository.findExistingEntry(
           input.tournamentId,
           undefined,
-          input.playerIdsB
+          input.playerIdsB,
         );
         entryAId = entryA?.id;
         entryBId = entryB?.id;
@@ -589,7 +659,7 @@ export class MatchService {
         input.tournamentId,
         entryAId,
         entryBId,
-        excludeMatchId
+        excludeMatchId,
       );
 
       if (duplicates.length > 0) {
@@ -614,31 +684,52 @@ export class MatchService {
       return;
     }
 
+    // Only process reported and pending_confirmation statuses
+    if (!["reported", "pending_confirmation"].includes(match.status)) {
+      return;
+    }
+
     // Get all participants
-    const participants = await matchRepository.getParticipationsByMatchId(
-      matchId
-    );
+    const participants =
+      await matchRepository.getParticipationsByMatchId(matchId);
     const totalPlayers = participants.length;
 
     if (totalPlayers === 0) return;
 
     // Get all confirmations
-    const confirmations = await matchConfirmationRepository.getByMatchId(
-      matchId
-    );
+    const confirmations =
+      await matchConfirmationRepository.getByMatchId(matchId);
 
-    // Check if any player has contested
-    const hasContestation = confirmations.some((c) => c.isContested);
-    if (hasContestation) {
-      // Match has contestation, set to disputed
+    // Check if any player has contested (without a score proposal — simple dispute)
+    const hasSimpleContestation = confirmations.some(
+      (c) =>
+        c.isContested &&
+        (c.proposedScoreA === null || c.proposedScoreA === undefined),
+    );
+    if (hasSimpleContestation) {
       await matchRepository.update(matchId, {
         status: "disputed",
       });
       return;
     }
 
+    // In pending_confirmation mode the proposer's submission IS their vote.
+    // Treat them as confirmed so majority/team checks work correctly.
+    const activeProposal =
+      await matchConfirmationRepository.getActiveProposal(matchId);
+    const proposerPlayerId =
+      match.status === "pending_confirmation"
+        ? activeProposal?.playerId
+        : undefined;
+
+    const effectiveConfirmations = confirmations.map((c) =>
+      c.playerId === proposerPlayerId ? { ...c, isConfirmed: true } : c,
+    );
+
     // Count confirmed players
-    const confirmedCount = confirmations.filter((c) => c.isConfirmed).length;
+    const confirmedCount = effectiveConfirmations.filter(
+      (c) => c.isConfirmed,
+    ).length;
 
     // Check if more than 50% have confirmed
     const hasaMajority = confirmedCount > totalPlayers / 2;
@@ -647,21 +738,62 @@ export class MatchService {
     const teamAParticipants = participants.filter((p) => p.teamSide === "A");
     const teamBParticipants = participants.filter((p) => p.teamSide === "B");
 
-    const teamAConfirmed = confirmations.some(
+    const teamAConfirmed = effectiveConfirmations.some(
       (c) =>
         c.isConfirmed &&
-        teamAParticipants.some((p) => p.playerId === c.playerId)
+        teamAParticipants.some((p) => p.playerId === c.playerId),
     );
-    const teamBConfirmed = confirmations.some(
+    const teamBConfirmed = effectiveConfirmations.some(
       (c) =>
         c.isConfirmed &&
-        teamBParticipants.some((p) => p.playerId === c.playerId)
+        teamBParticipants.some((p) => p.playerId === c.playerId),
     );
 
     const bothTeamsConfirmed = teamAConfirmed && teamBConfirmed;
 
     // If all conditions are met, finalize the match
-    if (hasaMajority && bothTeamsConfirmed && !hasContestation) {
+    if (hasaMajority && bothTeamsConfirmed) {
+      // If there's an active score proposal, apply those scores before finalizing
+      if (
+        activeProposal &&
+        activeProposal.proposedScoreA !== null &&
+        activeProposal.proposedScoreA !== undefined &&
+        activeProposal.proposedScoreB !== null &&
+        activeProposal.proposedScoreB !== undefined
+      ) {
+        const updateData: UpdateMatchData = {
+          scoreA: activeProposal.proposedScoreA,
+          scoreB: activeProposal.proposedScoreB,
+        };
+
+        // Apply proposed winner if provided
+        if (
+          activeProposal.proposedWinner !== null &&
+          activeProposal.proposedWinner !== undefined
+        ) {
+          updateData.winner = activeProposal.proposedWinner as
+            | "teamA"
+            | "teamB"
+            | null;
+        }
+
+        // Apply proposed outcome type/reason if provided
+        if (
+          activeProposal.proposedOutcomeTypeId !== null &&
+          activeProposal.proposedOutcomeTypeId !== undefined
+        ) {
+          updateData.outcomeTypeId = activeProposal.proposedOutcomeTypeId;
+        }
+        if (
+          activeProposal.proposedOutcomeReasonId !== null &&
+          activeProposal.proposedOutcomeReasonId !== undefined
+        ) {
+          updateData.outcomeReasonId = activeProposal.proposedOutcomeReasonId;
+        }
+
+        await matchRepository.update(matchId, updateData);
+      }
+
       await this.finalizeMatch(matchId, {
         finalizationReason: "consensus",
       });
@@ -674,7 +806,7 @@ export class MatchService {
   async finalizeMatch(
     id: string,
     input: FinalizeMatchInput,
-    finalizedBy?: string
+    finalizedBy?: string,
   ) {
     const match = await this.getMatchById(id);
 
@@ -694,7 +826,10 @@ export class MatchService {
       updateData.finalizedBy = finalizedBy;
     }
 
-    return await matchRepository.update(id, updateData);
+    const result = await matchRepository.update(id, updateData);
+    // Auto-delete any pending MATCH_SCORE_PROPOSAL action notifications for this match
+    await notificationService.deleteActionsByMatchId(id);
+    return result;
   }
 
   /**
@@ -704,13 +839,9 @@ export class MatchService {
   async autoFinalizeExpiredMatches() {
     const now = new Date();
 
-    // Get all matches that are reported/pending_confirmation and have expired deadline
-    const expiredMatches = await db.query.matches.findMany({
-      where: and(
-        eq(matches.status, "reported")
-        // confirmationDeadline is in the past
-      ),
-    });
+    // Get all matches that are reported or pending_confirmation and have an expired deadline
+    const expiredMatches =
+      await matchRepository.getMatchesPendingFinalization();
 
     const finalized: string[] = [];
     const disputed: string[] = [];
@@ -719,15 +850,63 @@ export class MatchService {
       if (!match.confirmationDeadline) continue;
       if (new Date(match.confirmationDeadline) > now) continue;
 
-      // Check if there are any contestations
-      const hasContestation =
-        await matchConfirmationRepository.hasAnyContestation(match.id);
+      // Check if there are any simple contestations (no score proposal)
+      const confirmations = await matchConfirmationRepository.getByMatchId(
+        match.id,
+      );
+      const hasSimpleContestation = confirmations.some(
+        (c) =>
+          c.isContested &&
+          (c.proposedScoreA === null || c.proposedScoreA === undefined),
+      );
 
-      if (hasContestation) {
+      if (hasSimpleContestation) {
         // Keep as disputed
         disputed.push(match.id);
       } else {
-        // Auto-finalize
+        // Apply active score proposal if any, then auto-finalize
+        const activeProposal =
+          await matchConfirmationRepository.getActiveProposal(match.id);
+        if (
+          activeProposal &&
+          activeProposal.proposedScoreA !== null &&
+          activeProposal.proposedScoreA !== undefined &&
+          activeProposal.proposedScoreB !== null &&
+          activeProposal.proposedScoreB !== undefined
+        ) {
+          const updateData: UpdateMatchData = {
+            scoreA: activeProposal.proposedScoreA,
+            scoreB: activeProposal.proposedScoreB,
+          };
+
+          // Apply proposed winner if provided
+          if (
+            activeProposal.proposedWinner !== null &&
+            activeProposal.proposedWinner !== undefined
+          ) {
+            updateData.winner = activeProposal.proposedWinner as
+              | "teamA"
+              | "teamB"
+              | null;
+          }
+
+          // Apply proposed outcome type/reason if provided
+          if (
+            activeProposal.proposedOutcomeTypeId !== null &&
+            activeProposal.proposedOutcomeTypeId !== undefined
+          ) {
+            updateData.outcomeTypeId = activeProposal.proposedOutcomeTypeId;
+          }
+          if (
+            activeProposal.proposedOutcomeReasonId !== null &&
+            activeProposal.proposedOutcomeReasonId !== undefined
+          ) {
+            updateData.outcomeReasonId = activeProposal.proposedOutcomeReasonId;
+          }
+
+          await matchRepository.update(match.id, updateData);
+        }
+
         await this.finalizeMatch(match.id, {
           finalizationReason: "auto_validation",
         });
@@ -748,38 +927,38 @@ export class MatchService {
   private async notifyMatchCreated(
     matchId: string,
     createdBy: string,
-    tournamentName: string
+    tournamentName: string,
   ) {
     const match = await matchRepository.getById(matchId);
     if (!match) return;
 
-    const participants = await matchRepository.getParticipationsByMatchId(
-      matchId
-    );
+    const participants =
+      await matchRepository.getParticipationsByMatchId(matchId);
 
     const creator = await userRepository.getById(createdBy);
-    const creatorName = creator?.displayName || 'Un joueur';
+    const creatorName = creator?.displayName || "Un joueur";
 
     const teamAParticipants = participants.filter((p) => p.teamSide === "A");
     const teamBParticipants = participants.filter((p) => p.teamSide === "B");
 
     const playerIds = [...new Set(participants.map((p) => p.playerId))].filter(
-      (playerId) => playerId !== createdBy
+      (playerId) => playerId !== createdBy,
     );
 
     const matchDate = match.playedAt
-      ? new Date(match.playedAt).toLocaleString('fr-FR', {
-        dateStyle: 'short',
-        timeStyle: 'short'
-      })
-      : 'À définir';
+      ? new Date(match.playedAt).toLocaleString("fr-FR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        })
+      : "À définir";
 
     // Calculate match format (1v1, 2v2, etc.)
     const teamSize = teamAParticipants.length;
     const matchFormat = `${teamSize}v${teamSize}`;
 
     // Determine if match is scheduled (future) or reported (past/present)
-    const isScheduled = match.status === 'scheduled' ||
+    const isScheduled =
+      match.status === "scheduled" ||
       (match.playedAt && new Date(match.playedAt) > new Date());
 
     const titleKey = isScheduled
@@ -802,21 +981,20 @@ export class MatchService {
           .filter((p) => p.playerId !== playerId)
           .map(async (p) => {
             const user = await userRepository.getById(p.playerId);
-            return user?.displayName || 'Joueur inconnu';
-          })
+            return user?.displayName || "Joueur inconnu";
+          }),
       );
 
       const opponentNames = await Promise.all(
         opponents.map(async (p) => {
           const user = await userRepository.getById(p.playerId);
-          return user?.displayName || 'Joueur inconnu';
-        })
+          return user?.displayName || "Joueur inconnu";
+        }),
       );
 
-      const teammatesText = teammateNames.length > 0
-        ? teammateNames.join(', ')
-        : 'Aucun';
-      const opponentsText = opponentNames.join(', ');
+      const teammatesText =
+        teammateNames.length > 0 ? teammateNames.join(", ") : "Aucun";
+      const opponentsText = opponentNames.join(", ");
 
       await notificationService.send({
         userId: playerId,
@@ -829,10 +1007,48 @@ export class MatchService {
           matchFormat,
           matchDate,
           opponents: opponentsText,
-          teammates: teammatesText
+          teammates: teammatesText,
         },
         actionUrl: `/matches/${matchId}`,
         requiresAction: false,
+      });
+    }
+  }
+  /**
+   * Notify all match participants (except the proposer) about a new score proposal
+   */
+  private async notifyScoreProposal(
+    matchId: string,
+    proposedBy: string,
+    proposedScoreA: number,
+    proposedScoreB: number,
+  ) {
+    const match = await matchRepository.getById(matchId);
+    if (!match) return;
+
+    const participants =
+      await matchRepository.getParticipationsByMatchId(matchId);
+    const proposer = await userRepository.getById(proposedBy);
+    const proposerName = proposer?.displayName || "Un joueur";
+
+    const playerIds = [...new Set(participants.map((p) => p.playerId))].filter(
+      (playerId) => playerId !== proposedBy,
+    );
+
+    for (const playerId of playerIds) {
+      await notificationService.send({
+        userId: playerId,
+        type: "MATCH_SCORE_PROPOSAL",
+        titleKey: "notifications.MATCH_SCORE_PROPOSAL_TITLE",
+        messageKey: "notifications.MATCH_SCORE_PROPOSAL_MESSAGE",
+        translationParams: {
+          proposerName,
+          scoreA: String(proposedScoreA),
+          scoreB: String(proposedScoreB),
+        },
+        actionUrl: `/matches/${matchId}`,
+        requiresAction: true,
+        matchId,
       });
     }
   }

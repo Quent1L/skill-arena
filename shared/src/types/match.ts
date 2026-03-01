@@ -134,6 +134,11 @@ export interface MatchConfirmation {
   isContested: boolean;
   contestationReason?: string;
   contestationProof?: string;
+  proposedScoreA?: number | null;
+  proposedScoreB?: number | null;
+  proposedWinner?: "teamA" | "teamB" | null;
+  proposedOutcomeTypeId?: string | null;
+  proposedOutcomeReasonId?: string | null;
   createdAt: string;
   updatedAt: string;
   player?: {
@@ -155,7 +160,7 @@ export interface CreateMatchInput {
   reportProof?: string;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
-  winner?: 'teamA' | 'teamB' | null; // Explicit winner selection (overrides score-based calculation)
+  winner?: "teamA" | "teamB" | null; // Explicit winner selection (overrides score-based calculation)
 }
 
 export interface UpdateMatchInput {
@@ -166,12 +171,16 @@ export interface UpdateMatchInput {
   reportProof?: string;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
+  winner?: "teamA" | "teamB" | null;
 }
 
 export interface ReportMatchResultInput {
   scoreA: number;
   scoreB: number;
   reportProof?: string;
+  winner?: "teamA" | "teamB" | null;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string;
 }
 
 export interface ConfirmMatchInput {
@@ -181,6 +190,11 @@ export interface ConfirmMatchInput {
 export interface ContestMatchInput {
   contestationReason?: string;
   contestationProof?: string;
+  proposedScoreA?: number;
+  proposedScoreB?: number;
+  proposedWinner?: "teamA" | "teamB" | null;
+  proposedOutcomeTypeId?: string;
+  proposedOutcomeReasonId?: string;
 }
 
 export interface FinalizeMatchInput {
@@ -203,9 +217,12 @@ export const createMatchSchema = z.object({
   scoreB: z.number().int().min(0).optional(),
   reportProof: z.string().optional(),
   outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
-  outcomeReasonId: z.string().uuid("ID de raison de résultat invalide").optional(),
-  winner: z.enum(['teamA', 'teamB']).nullable().optional(),
-  playedAt: z.string().datetime().optional()
+  outcomeReasonId: z
+    .string()
+    .uuid("ID de raison de résultat invalide")
+    .optional(),
+  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
+  playedAt: z.string().datetime().optional(),
 });
 
 export const updateMatchSchema = z.object({
@@ -220,22 +237,51 @@ export const updateMatchSchema = z.object({
     .string()
     .uuid("ID de raison de résultat invalide")
     .optional(),
+  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
 });
 
 export const reportMatchResultSchema = z.object({
   scoreA: z.number().int().min(0, "Le score doit être positif"),
   scoreB: z.number().int().min(0, "Le score doit être positif"),
   reportProof: z.string().optional(),
+  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
+  outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
+  outcomeReasonId: z
+    .string()
+    .uuid("ID de raison de résultat invalide")
+    .optional(),
 });
 
 export const confirmMatchSchema = z.object({
   // Empty - just confirms the match result
 });
 
-export const contestMatchSchema = z.object({
-  contestationReason: z.string().optional(),
-  contestationProof: z.string().optional(),
-});
+export const contestMatchSchema = z
+  .object({
+    contestationReason: z.string().optional(),
+    contestationProof: z.string().optional(),
+    proposedScoreA: z.number().int().min(0).optional(),
+    proposedScoreB: z.number().int().min(0).optional(),
+    proposedWinner: z.enum(["teamA", "teamB"]).nullable().optional(),
+    proposedOutcomeTypeId: z
+      .string()
+      .uuid("ID de type de résultat invalide")
+      .optional(),
+    proposedOutcomeReasonId: z
+      .string()
+      .uuid("ID de raison de résultat invalide")
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      const hasA = data.proposedScoreA !== undefined;
+      const hasB = data.proposedScoreB !== undefined;
+      return hasA === hasB; // both or neither
+    },
+    {
+      message: "proposedScoreA et proposedScoreB doivent être fournis ensemble",
+    },
+  );
 
 export const finalizeMatchSchema = z.object({
   finalizationReason: matchFinalizationReasonSchema,
@@ -272,7 +318,7 @@ export const validateMatchSchema = z
     },
     {
       message: "tournamentId est requis pour la validation",
-    }
+    },
   );
 
 export type ValidateMatchRequestData = z.infer<typeof validateMatchSchema>;
@@ -299,7 +345,15 @@ export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
  * Type pour Match côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt'> {
+export interface ClientMatch extends Omit<
+  Match,
+  | "createdAt"
+  | "updatedAt"
+  | "playedAt"
+  | "reportedAt"
+  | "confirmationDeadline"
+  | "finalizedAt"
+> {
   createdAt: Date;
   updatedAt: Date;
   playedAt: Date;
@@ -312,7 +366,17 @@ export interface ClientMatch extends Omit<Match, 'createdAt' | 'updatedAt' | 'pl
  * Type pour MatchModel côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'updatedAt' | 'playedAt' | 'reportedAt' | 'confirmationDeadline' | 'finalizedAt' | 'confirmations' | 'result'> {
+export interface ClientMatchModel extends Omit<
+  MatchModel,
+  | "createdAt"
+  | "updatedAt"
+  | "playedAt"
+  | "reportedAt"
+  | "confirmationDeadline"
+  | "finalizedAt"
+  | "confirmations"
+  | "result"
+> {
   createdAt: Date;
   updatedAt: Date;
   playedAt: Date;
@@ -343,7 +407,10 @@ export interface ClientMatchModel extends Omit<MatchModel, 'createdAt' | 'update
  * Type pour MatchConfirmation côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientMatchConfirmation extends Omit<MatchConfirmation, 'createdAt' | 'updatedAt'> {
+export interface ClientMatchConfirmation extends Omit<
+  MatchConfirmation,
+  "createdAt" | "updatedAt"
+> {
   createdAt: Date;
   updatedAt: Date;
 }
@@ -352,7 +419,10 @@ export interface ClientMatchConfirmation extends Omit<MatchConfirmation, 'create
  * Type pour CreateMatchRequestData côté frontend
  * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
  */
-export interface ClientCreateMatchRequest extends Omit<CreateMatchRequestData, 'playedAt'> {
+export interface ClientCreateMatchRequest extends Omit<
+  CreateMatchRequestData,
+  "playedAt"
+> {
   playedAt?: Date | string;
 }
 
@@ -360,7 +430,10 @@ export interface ClientCreateMatchRequest extends Omit<CreateMatchRequestData, '
  * Type pour UpdateMatchRequestData côté frontend
  * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
  */
-export interface ClientUpdateMatchRequest extends Omit<UpdateMatchRequestData, 'playedAt'> {
+export interface ClientUpdateMatchRequest extends Omit<
+  UpdateMatchRequestData,
+  "playedAt"
+> {
   playedAt?: Date | string;
 }
 
@@ -368,6 +441,9 @@ export interface ClientUpdateMatchRequest extends Omit<UpdateMatchRequestData, '
  * Type pour ValidateMatchRequestData côté frontend
  * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
  */
-export interface ClientValidateMatchRequest extends Omit<ValidateMatchRequestData, 'playedAt'> {
+export interface ClientValidateMatchRequest extends Omit<
+  ValidateMatchRequestData,
+  "playedAt"
+> {
   playedAt?: Date | string;
 }

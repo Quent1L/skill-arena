@@ -16,6 +16,7 @@ export const notificationRepository = {
           translationParams: data.translationParams,
           actionUrl: data.actionUrl,
           requiresAction: data.requiresAction,
+          matchId: data.matchId,
         })
         .returning();
 
@@ -47,7 +48,7 @@ export const notificationRepository = {
       .from(notifications)
       .innerJoin(
         notificationStatus,
-        eq(notifications.id, notificationStatus.notificationId)
+        eq(notifications.id, notificationStatus.notificationId),
       )
       .where(eq(notificationStatus.userId, userId))
       .orderBy(desc(notifications.createdAt));
@@ -65,8 +66,8 @@ export const notificationRepository = {
       .where(
         and(
           eq(notificationStatus.notificationId, notificationId),
-          eq(notificationStatus.userId, userId)
-        )
+          eq(notificationStatus.userId, userId),
+        ),
       )
       .returning();
   },
@@ -83,8 +84,8 @@ export const notificationRepository = {
       .where(
         and(
           eq(notificationStatus.notificationId, notificationId),
-          eq(notificationStatus.userId, userId)
-        )
+          eq(notificationStatus.userId, userId),
+        ),
       )
       .returning();
   },
@@ -113,8 +114,8 @@ export const notificationRepository = {
       .where(
         and(
           eq(notificationStatus.notificationId, notificationId),
-          eq(notificationStatus.userId, userId)
-        )
+          eq(notificationStatus.userId, userId),
+        ),
       );
     return status;
   },
@@ -133,8 +134,8 @@ export const notificationRepository = {
       .where(
         and(
           eq(notificationStatus.notificationId, notificationId),
-          eq(notificationStatus.userId, userId)
-        )
+          eq(notificationStatus.userId, userId),
+        ),
       );
 
     const remainingStatuses = await db
@@ -147,5 +148,27 @@ export const notificationRepository = {
         .delete(notifications)
         .where(eq(notifications.id, notificationId));
     }
+  },
+
+  async deleteActionsByMatchId(matchId: string) {
+    // Find all requiresAction notifications for this match
+    const toDelete = await db
+      .select({ id: notifications.id, userId: notifications.userId })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.matchId, matchId),
+          eq(notifications.requiresAction, true),
+        ),
+      );
+
+    if (toDelete.length === 0) return toDelete;
+
+    // Delete notifications (cascade handles notification_status rows)
+    for (const notif of toDelete) {
+      await db.delete(notifications).where(eq(notifications.id, notif.id));
+    }
+
+    return toDelete;
   },
 };

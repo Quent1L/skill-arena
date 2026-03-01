@@ -27,15 +27,17 @@ Vite) concurrently.
 ### Database Workflow
 
 ```bash
-# Push schema changes to database
+# Push schema changes to database (development shortcut)
 bun run setup:db
 
 # Generate migration
 cd backend && bun run db:generate
 
-# Apply migrations
-cd backend && bun run db:migrate
+# Push schema directly (bypasses migrations)
+cd backend && bun run db:push
 ```
+
+> **Note:** Migrations from `backend/drizzle/` are applied automatically at server startup (`backend/src/utils/migrate.ts`). There is no manual `db:migrate` command — just generate the migration file and restart the server. Use `IF NOT EXISTS` / conditional blocks in migration SQL to make them idempotent if `db:push` was used beforehand.
 
 ### Cleaning Build Artifacts
 

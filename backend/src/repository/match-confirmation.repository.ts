@@ -9,6 +9,11 @@ export interface CreateMatchConfirmationData {
   isContested: boolean;
   contestationReason?: string;
   contestationProof?: string;
+  proposedScoreA?: number | null;
+  proposedScoreB?: number | null;
+  proposedWinner?: string | null;
+  proposedOutcomeTypeId?: string | null;
+  proposedOutcomeReasonId?: string | null;
 }
 
 export interface UpdateMatchConfirmationData {
@@ -16,6 +21,11 @@ export interface UpdateMatchConfirmationData {
   isContested?: boolean;
   contestationReason?: string;
   contestationProof?: string;
+  proposedScoreA?: number | null;
+  proposedScoreB?: number | null;
+  proposedWinner?: string | null;
+  proposedOutcomeTypeId?: string | null;
+  proposedOutcomeReasonId?: string | null;
 }
 
 export class MatchConfirmationRepository {
@@ -88,10 +98,63 @@ export class MatchConfirmationRepository {
         isContested: data.isContested,
         contestationReason: data.contestationReason,
         contestationProof: data.contestationProof,
+        proposedScoreA: data.proposedScoreA,
+        proposedScoreB: data.proposedScoreB,
+        proposedWinner: data.proposedWinner,
+        proposedOutcomeTypeId: data.proposedOutcomeTypeId,
+        proposedOutcomeReasonId: data.proposedOutcomeReasonId,
       });
     }
     
     return await this.create(data);
+  }
+
+  /**
+   * Reset all confirmations for a match except for the given player.
+   * Used when a new score proposal replaces the previous one.
+   */
+  async resetConfirmationsExcept(matchId: string, excludePlayerId: string) {
+    const confirmations = await this.getByMatchId(matchId);
+    const toReset = confirmations.filter((c) => c.playerId !== excludePlayerId);
+
+    for (const c of toReset) {
+      await db
+        .update(matchConfirmations)
+        .set({
+          isConfirmed: false,
+          isContested: false,
+          contestationReason: null,
+          contestationProof: null,
+          proposedScoreA: null,
+          proposedScoreB: null,
+          proposedWinner: null,
+          proposedOutcomeTypeId: null,
+          proposedOutcomeReasonId: null,
+        })
+        .where(
+          and(
+            eq(matchConfirmations.matchId, matchId),
+            eq(matchConfirmations.playerId, c.playerId)
+          )
+        );
+    }
+  }
+
+  /**
+   * Get the most recent active score proposal for a match.
+   * Returns the confirmation with non-null proposedScoreA/B, ordered by updatedAt desc.
+   */
+  async getActiveProposal(matchId: string) {
+    const confirmations = await this.getByMatchId(matchId);
+    const proposals = confirmations.filter(
+      (c) => c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
+             c.proposedScoreB !== null && c.proposedScoreB !== undefined
+    );
+    if (proposals.length === 0) return null;
+    // Most recently updated proposal (copy to avoid mutating the filtered array)
+    return [...proposals].sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    )[0];
   }
 
   /**

@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
-import { matchSides } from "../db/schema";
+import { matchSides, matches } from "../db/schema";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type * as schema from "../db/schema";
 
@@ -136,13 +136,27 @@ export class MatchSidesRepository {
   }
 
   /**
-   * Get the winning entry (highest score)
-   * Returns null if it's a draw
+   * Get the winning entry based on the persisted winnerSide on the match record.
+   * Returns null if it's a draw (winnerSide is null).
    */
   async getWinnerEntry(matchId: string) {
-    const sides = await db.query.matchSides.findMany({
-      where: eq(matchSides.matchId, matchId),
-      orderBy: (matchSides, { desc }) => [desc(matchSides.score)],
+    // Read winnerSide from the match record
+    const match = await db.query.matches.findFirst({
+      where: eq(matches.id, matchId),
+      columns: { winnerSide: true },
+    });
+
+    if (!match || !match.winnerSide) {
+      return null;
+    }
+
+    const winnerPosition = match.winnerSide === "A" ? 1 : 2;
+
+    const side = await db.query.matchSides.findFirst({
+      where: and(
+        eq(matchSides.matchId, matchId),
+        eq(matchSides.position, winnerPosition),
+      ),
       with: {
         entry: {
           with: {
@@ -157,16 +171,7 @@ export class MatchSidesRepository {
       },
     });
 
-    if (sides.length === 0) {
-      return null;
-    }
-
-    // Check for draw (multiple sides with same highest score)
-    if (sides.length > 1 && sides[0].score === sides[1].score) {
-      return null;
-    }
-
-    return sides[0].entry;
+    return side?.entry ?? null;
   }
 
   /**

@@ -13,14 +13,12 @@ const mockBracketRepository = {
   getConfigByTournamentId: mock(() => Promise.resolve(null)),
   deleteAllBracketData: mock(() => Promise.resolve()),
   createConfig: mock((config: any) =>
-    Promise.resolve({ id: "bracket-config-1", ...config })
+    Promise.resolve({ id: "bracket-config-1", ...config }),
   ),
   createSeeds: mock(() => Promise.resolve()),
   getBracketDataByTournamentId: mock(() => Promise.resolve(null)),
   createRounds: mock((rounds: any[]) =>
-    Promise.resolve(
-      rounds.map((r, i) => ({ id: `round-${i}`, ...r }))
-    )
+    Promise.resolve(rounds.map((r, i) => ({ id: `round-${i}`, ...r }))),
   ),
   createMatchMetadata: mock(() => Promise.resolve()),
 };
@@ -33,7 +31,7 @@ const mockTournamentRepository = {
       status: "open",
       disciplineId: "discipline-1",
       startDate: new Date("2026-01-20"),
-    })
+    }),
   ),
 };
 
@@ -44,12 +42,47 @@ const mockEntryRepository = {
       { id: "entry-2", name: "Entry 2" },
       { id: "entry-3", name: "Entry 3" },
       { id: "entry-4", name: "Entry 4" },
-    ])
+    ]),
+  ),
+  create: mock((_data: any, _tx?: any) =>
+    Promise.resolve({ id: "new-entry", ..._data }),
+  ),
+  getById: mock(() => Promise.resolve(undefined)),
+  getOrCreateForMatch: mock(() => Promise.resolve({ id: "new-entry" })),
+  findExistingEntry: mock(() => Promise.resolve(undefined)),
+  getByPlayerId: mock(() => Promise.resolve([])),
+  isPlayerInEntry: mock(() => Promise.resolve(false)),
+};
+
+// Mock participants that will be converted to entries
+const mockParticipantRepository = {
+  findTournamentParticipants: mock(() =>
+    Promise.resolve([
+      { userId: "user-1", tournamentId: "tournament-1" },
+      { userId: "user-2", tournamentId: "tournament-1" },
+      { userId: "user-3", tournamentId: "tournament-1" },
+      { userId: "user-4", tournamentId: "tournament-1" },
+    ]),
   ),
 };
 
 const mockMatchRepository = {
   list: mock(() => Promise.resolve([])),
+  create: mock(() => Promise.resolve("match-1")),
+  getById: mock(() => Promise.resolve(undefined)),
+  getByIdSimple: mock(() => Promise.resolve(undefined)),
+  update: mock(() => Promise.resolve({ id: "match-1" })),
+  delete: mock(() => Promise.resolve()),
+  countByTournament: mock(() => Promise.resolve(0)),
+  countMatchesForUser: mock(() => Promise.resolve(0)),
+  countMatchesWithSamePartner: mock(() => Promise.resolve(0)),
+  countMatchesWithSameOpponent: mock(() => Promise.resolve(0)),
+  isUserInMatch: mock(() => Promise.resolve(false)),
+  getTournament: mock(() => Promise.resolve(undefined)),
+  validateEntriesForTournament: mock(() => Promise.resolve(undefined)),
+  getParticipationsByMatchId: mock(() => Promise.resolve([])),
+  findMatchesWithSameEntries: mock(() => Promise.resolve([])),
+  getMatchesPendingFinalization: mock(() => Promise.resolve([])),
 };
 
 const mockStandingsService = {
@@ -61,7 +94,7 @@ const mockStandingsService = {
         { id: "entry-3", points: 60 },
         { id: "entry-4", points: 40 },
       ],
-    })
+    }),
   ),
 };
 
@@ -75,14 +108,36 @@ const mockInsert = {
   })),
 };
 
+// Default entries returned by tx.query.tournamentEntries.findMany
+let mockEntriesForQuery = [
+  { id: "entry-1", name: "Entry 1", players: [{ playerId: "user-1" }] },
+  { id: "entry-2", name: "Entry 2", players: [{ playerId: "user-2" }] },
+  { id: "entry-3", name: "Entry 3", players: [{ playerId: "user-3" }] },
+  { id: "entry-4", name: "Entry 4", players: [{ playerId: "user-4" }] },
+];
+
 const mockDb = {
   transaction: mock(async (callback: any) => {
     const tx = {
       insert: mock(() => mockInsert),
+      query: {
+        tournamentEntries: {
+          findMany: mock(() => Promise.resolve(mockEntriesForQuery)),
+        },
+      },
     };
     return await callback(tx);
   }),
 };
+
+// Smart proxy for `db` that routes to PGlite when setTestDatabase() is called
+// by integration test files that run in the same Bun process.
+let _activeMockDb: any = mockDb;
+const proxyDb = new Proxy({} as any, {
+  get(_target, prop) {
+    return (_activeMockDb as any)[prop];
+  },
+});
 
 // Mock modules
 mock.module("../../repository/bracket.repository", () => ({
@@ -95,6 +150,10 @@ mock.module("../../repository/tournament.repository", () => ({
 
 mock.module("../../repository/entry.repository", () => ({
   entryRepository: mockEntryRepository,
+}));
+
+mock.module("../../repository/participant.repository", () => ({
+  participantRepository: mockParticipantRepository,
 }));
 
 mock.module("../../repository/match.repository", () => ({
@@ -110,12 +169,13 @@ mock.module("../tournament.service", () => ({
 }));
 
 mock.module("../../config/database", () => ({
-  db: mockDb,
-}));
-
-mock.module("../../db/schema", () => ({
-  matches: {},
-  matchSides: {},
+  db: proxyDb,
+  setTestDatabase: (db: any) => {
+    _activeMockDb = db;
+  },
+  resetDatabase: () => {
+    _activeMockDb = mockDb;
+  },
 }));
 
 describe("BracketService", () => {
@@ -133,25 +193,39 @@ describe("BracketService", () => {
     mockBracketRepository.createMatchMetadata.mockClear();
     mockTournamentRepository.getById.mockClear();
     mockEntryRepository.getByTournament.mockClear();
+    mockEntryRepository.create.mockClear();
+    mockParticipantRepository.findTournamentParticipants.mockClear();
     mockMatchRepository.list.mockClear();
     mockStandingsService.getOfficialStandings.mockClear();
     mockTournamentService.canManageTournament.mockClear();
     mockDb.transaction.mockClear();
     mockInsert.values.mockClear();
+    // Reset default entries for tx.query
+    mockEntriesForQuery = [
+      { id: "entry-1", name: "Entry 1", players: [{ playerId: "user-1" }] },
+      { id: "entry-2", name: "Entry 2", players: [{ playerId: "user-2" }] },
+      { id: "entry-3", name: "Entry 3", players: [{ playerId: "user-3" }] },
+      { id: "entry-4", name: "Entry 4", players: [{ playerId: "user-4" }] },
+    ];
   });
 
   describe("getBracketData", () => {
     it("should return bracket data for a tournament", async () => {
-      const mockData = { config: {} as any, rounds: [], matches: [], seeds: [] };
+      const mockData = {
+        config: {} as any,
+        rounds: [],
+        matches: [],
+        seeds: [],
+      };
       mockBracketRepository.getBracketDataByTournamentId.mockResolvedValue(
-        mockData as any
+        mockData as any,
       );
 
       const result = await bracketService.getBracketData("tournament-1");
 
       expect(result).toBe(mockData);
       expect(
-        mockBracketRepository.getBracketDataByTournamentId
+        mockBracketRepository.getBracketDataByTournamentId,
       ).toHaveBeenCalledWith("tournament-1");
     });
   });
@@ -204,15 +278,15 @@ describe("BracketService", () => {
         disciplineId: "discipline-1",
         startDate: new Date("2026-01-20"),
       } as any);
-      mockMatchRepository.list.mockResolvedValue(
-        [{ id: "match-1", status: "confirmed" }] as any
-      );
+      mockMatchRepository.list.mockResolvedValue([
+        { id: "match-1", status: "confirmed" },
+      ] as any);
 
       const result = await bracketService.canGenerateBracket("tournament-1");
 
       expect(result.canGenerate).toBe(false);
       expect(result.reason).toBe(
-        "Cannot regenerate: matches already finalized/confirmed"
+        "Cannot regenerate: matches already finalized/confirmed",
       );
     });
 
@@ -224,9 +298,9 @@ describe("BracketService", () => {
         disciplineId: "discipline-1",
         startDate: new Date("2026-01-20"),
       } as any);
-      mockMatchRepository.list.mockResolvedValue(
-        [{ id: "match-1", status: "scheduled" }] as any
-      );
+      mockMatchRepository.list.mockResolvedValue([
+        { id: "match-1", status: "scheduled" },
+      ] as any);
 
       const result = await bracketService.canGenerateBracket("tournament-1");
 
@@ -240,7 +314,7 @@ describe("BracketService", () => {
       mockTournamentService.canManageTournament.mockResolvedValue(false);
 
       await expect(
-        bracketService.deleteBracket("tournament-1", "user-1")
+        bracketService.deleteBracket("tournament-1", "user-1"),
       ).rejects.toThrow(ForbiddenError);
     });
 
@@ -250,7 +324,7 @@ describe("BracketService", () => {
       await bracketService.deleteBracket("tournament-1", "user-1");
 
       expect(mockBracketRepository.deleteAllBracketData).toHaveBeenCalledWith(
-        "tournament-1"
+        "tournament-1",
       );
     });
   });
@@ -266,7 +340,7 @@ describe("BracketService", () => {
       mockTournamentService.canManageTournament.mockResolvedValue(false);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(ForbiddenError);
     });
 
@@ -275,7 +349,7 @@ describe("BracketService", () => {
       mockTournamentRepository.getById.mockResolvedValue(null as any);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -290,7 +364,7 @@ describe("BracketService", () => {
       } as any);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -305,7 +379,7 @@ describe("BracketService", () => {
       } as any);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -318,12 +392,12 @@ describe("BracketService", () => {
         disciplineId: "discipline-1",
         startDate: new Date("2026-01-20"),
       } as any);
-      mockMatchRepository.list.mockResolvedValue(
-        [{ id: "match-1", status: "confirmed" }] as any
-      );
+      mockMatchRepository.list.mockResolvedValue([
+        { id: "match-1", status: "confirmed" },
+      ] as any);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(ConflictError);
     });
 
@@ -340,9 +414,16 @@ describe("BracketService", () => {
       mockEntryRepository.getByTournament.mockResolvedValue([
         { id: "entry-1", name: "Entry 1" } as any,
       ]);
+      // Also set the entries returned by tx.query (used in getOrCreateEntriesFromParticipants)
+      mockEntriesForQuery = [
+        { id: "entry-1", name: "Entry 1", players: [{ playerId: "user-1" }] },
+      ];
+      mockParticipantRepository.findTournamentParticipants.mockResolvedValue([
+        { userId: "user-1", tournamentId: "tournament-1" },
+      ]);
 
       await expect(
-        bracketService.generateBracket("tournament-1", defaultInput, "user-1")
+        bracketService.generateBracket("tournament-1", defaultInput, "user-1"),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -366,7 +447,7 @@ describe("BracketService", () => {
       const result = await bracketService.generateBracket(
         "tournament-1",
         defaultInput,
-        "user-1"
+        "user-1",
       );
 
       expect(mockBracketRepository.createConfig).toHaveBeenCalled();
@@ -481,7 +562,7 @@ describe("BracketService", () => {
       await bracketService.generateBracket("tournament-1", input, "user-1");
 
       expect(mockStandingsService.getOfficialStandings).toHaveBeenCalledWith(
-        "source-tournament"
+        "source-tournament",
       );
     });
 
@@ -512,7 +593,7 @@ describe("BracketService", () => {
       };
 
       await expect(
-        bracketService.generateBracket("tournament-1", input, "user-1")
+        bracketService.generateBracket("tournament-1", input, "user-1"),
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -549,7 +630,7 @@ describe("BracketService", () => {
       };
 
       await expect(
-        bracketService.generateBracket("tournament-1", input, "user-1")
+        bracketService.generateBracket("tournament-1", input, "user-1"),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -586,7 +667,7 @@ describe("BracketService", () => {
       };
 
       await expect(
-        bracketService.generateBracket("tournament-1", input, "user-1")
+        bracketService.generateBracket("tournament-1", input, "user-1"),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -611,7 +692,7 @@ describe("BracketService", () => {
       await bracketService.generateBracket(
         "tournament-1",
         defaultInput,
-        "user-1"
+        "user-1",
       );
 
       expect(mockBracketRepository.deleteAllBracketData).toHaveBeenCalled();
@@ -658,7 +739,7 @@ describe("BracketService", () => {
       const service = bracketService as any;
       const seeds = await service.generateChampionshipSeeding(
         entries,
-        "source-tournament"
+        "source-tournament",
       );
 
       expect(seeds.length).toBe(4);
@@ -691,7 +772,7 @@ describe("BracketService", () => {
       const service = bracketService as any;
       const seeds = await service.generateChampionshipSeeding(
         entries,
-        "source-tournament"
+        "source-tournament",
       );
 
       expect(seeds.length).toBe(4);
@@ -715,7 +796,7 @@ describe("BracketService", () => {
           { entryId: "e3", seedNumber: 3 },
           { entryId: "e4", seedNumber: 4 },
         ],
-        false
+        false,
       );
 
       expect(rounds.length).toBe(2); // Semifinals + Final
@@ -746,12 +827,10 @@ describe("BracketService", () => {
           { entryId: "e3", seedNumber: 3 },
           { entryId: "e4", seedNumber: 4 },
         ],
-        true
+        true,
       );
 
-      const bronzeMatch = rounds.find(
-        (r: any) => r.bracketType === "bronze"
-      );
+      const bronzeMatch = rounds.find((r: any) => r.bracketType === "bronze");
       expect(bronzeMatch).toBeDefined();
       expect(bronzeMatch.roundName).toBe("Bronze Medal Match");
     });
@@ -766,7 +845,7 @@ describe("BracketService", () => {
           { entryId: "e4", seedNumber: 4 },
           { entryId: "e5", seedNumber: 5 },
         ],
-        false
+        false,
       );
 
       const firstRound = rounds[0];
@@ -794,10 +873,10 @@ describe("BracketService", () => {
       ]);
 
       const winnersRounds = rounds.filter(
-        (r: any) => r.bracketType === "winners"
+        (r: any) => r.bracketType === "winners",
       );
       const losersRounds = rounds.filter(
-        (r: any) => r.bracketType === "losers"
+        (r: any) => r.bracketType === "losers",
       );
 
       expect(winnersRounds.length).toBeGreaterThan(0);
@@ -826,7 +905,7 @@ describe("BracketService", () => {
       const doubleElimRounds4 =
         singleElimRounds4 + (singleElimRounds4 - 1) * 2 + 1;
       expect(service.calculateRoundsCount(4, "double_elimination")).toBe(
-        doubleElimRounds4
+        doubleElimRounds4,
       );
     });
 
@@ -866,6 +945,15 @@ describe("BracketService", () => {
           { id: "entry-1", name: "Entry 1" },
           { id: "entry-2", name: "Entry 2" },
         ] as any);
+        // Also set the entries returned by tx.query (used in getOrCreateEntriesFromParticipants)
+        mockEntriesForQuery = [
+          { id: "entry-1", name: "Entry 1", players: [{ playerId: "user-1" }] },
+          { id: "entry-2", name: "Entry 2", players: [{ playerId: "user-2" }] },
+        ];
+        mockParticipantRepository.findTournamentParticipants.mockResolvedValue([
+          { userId: "user-1", tournamentId: "tournament-1" },
+          { userId: "user-2", tournamentId: "tournament-1" },
+        ]);
 
         await bracketService.generateBracket(
           "tournament-1",
@@ -874,7 +962,7 @@ describe("BracketService", () => {
             seedingType: "random",
             hasBronzeMatch: false,
           },
-          "user-1"
+          "user-1",
         );
 
         const roundsCall = mockBracketRepository.createRounds.mock.calls[0][0];
@@ -961,7 +1049,7 @@ describe("BracketService", () => {
         const service = bracketService as any;
         const seeds = await service.generateChampionshipSeeding(
           entries,
-          "source-tournament"
+          "source-tournament",
         );
 
         expect(seeds.length).toBe(4);
@@ -986,7 +1074,7 @@ describe("BracketService", () => {
         const service = bracketService as any;
         const seeds = await service.generateChampionshipSeeding(
           entries,
-          "source-tournament"
+          "source-tournament",
         );
 
         expect(seeds.length).toBe(2);
@@ -1013,7 +1101,7 @@ describe("BracketService", () => {
         const service = bracketService as any;
         const seeds = await service.generateChampionshipSeeding(
           entries,
-          "source-tournament"
+          "source-tournament",
         );
 
         expect(seeds.length).toBe(3);
@@ -1033,7 +1121,7 @@ describe("BracketService", () => {
             { entryId: "e3", seedNumber: 3 },
             { entryId: "e4", seedNumber: 4 },
           ],
-          false
+          false,
         );
 
         // First round matches should advance to next round
@@ -1076,7 +1164,7 @@ describe("BracketService", () => {
             { entryId: "e1", seedNumber: 1 },
             { entryId: "e2", seedNumber: 2 },
           ],
-          true
+          true,
         );
 
         const bronzeMatch = rounds.find((r: any) => r.bracketType === "bronze");
@@ -1092,7 +1180,7 @@ describe("BracketService", () => {
             { entryId: "e3", seedNumber: 3 },
             { entryId: "e4", seedNumber: 4 },
           ],
-          true
+          true,
         );
 
         const bronzeMatch = rounds.find((r: any) => r.bracketType === "bronze");
@@ -1141,10 +1229,10 @@ describe("BracketService", () => {
         ]);
 
         const losersRounds = rounds.filter(
-          (r: any) => r.bracketType === "losers"
+          (r: any) => r.bracketType === "losers",
         );
         const winnersRounds = rounds.filter(
-          (r: any) => r.bracketType === "winners"
+          (r: any) => r.bracketType === "winners",
         );
 
         // For 4 participants: 2 winners rounds, (2-1)*2 = 2 losers rounds, 1 grand final
