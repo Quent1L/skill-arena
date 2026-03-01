@@ -8,6 +8,7 @@ export interface OutcomeType {
   id: string;
   disciplineId: string;
   name: string;
+  isDefault: boolean;
   discipline?: {
     id: string;
     name: string;
@@ -17,11 +18,13 @@ export interface OutcomeType {
 export interface CreateOutcomeTypeInput {
   disciplineId: string;
   name: string;
+  isDefault?: boolean;
 }
 
 export interface UpdateOutcomeTypeInput {
   disciplineId?: string;
   name?: string;
+  isDefault?: boolean;
 }
 
 // ============================================
@@ -34,6 +37,7 @@ export const createOutcomeTypeSchema = z.object({
     .string({ message: "Le nom est requis" })
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
+  isDefault: z.boolean().optional(),
 });
 
 export const updateOutcomeTypeSchema = z.object({
@@ -43,6 +47,7 @@ export const updateOutcomeTypeSchema = z.object({
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .optional(),
+  isDefault: z.boolean().optional(),
 });
 
 // ============================================

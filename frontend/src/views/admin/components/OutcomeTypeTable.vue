@@ -25,6 +25,7 @@
       <Column field="name" header="Nom" sortable>
         <template #body="{ data }">
           <span class="font-medium">{{ data.name }}</span>
+          <Tag v-if="data.isDefault" value="Par défaut" severity="success" class="ml-2" />
         </template>
       </Column>
 
@@ -123,6 +124,7 @@ import { ref, computed } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Tag from 'primevue/tag'
 import type { OutcomeType } from '@skill-arena/shared/types/outcome-type'
 import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
 

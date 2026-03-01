@@ -571,6 +571,7 @@ export const bracketMatchMetadata = pgTable(
 export const disciplines = pgTable("disciplines", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  scoreInstructions: text("score_instructions"),
 });
 
 export const outcomeTypes = pgTable("outcome_types", {
@@ -581,6 +582,7 @@ export const outcomeTypes = pgTable("outcome_types", {
     .references(() => disciplines.id, { onDelete: "cascade" }),
 
   name: text("name").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
 });
 
 export const outcomeReasons = pgTable("outcome_reasons", {

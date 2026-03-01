@@ -7,14 +7,17 @@ import { z } from "zod";
 export interface Discipline {
   id: string;
   name: string;
+  scoreInstructions?: string | null;
 }
 
 export interface CreateDisciplineInput {
   name: string;
+  scoreInstructions?: string | null;
 }
 
 export interface UpdateDisciplineInput {
   name?: string;
+  scoreInstructions?: string | null;
 }
 
 // ============================================
@@ -26,6 +29,7 @@ export const createDisciplineSchema = z.object({
     .string({ message: "Le nom est requis" })
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
+  scoreInstructions: z.string().max(500).nullish(),
 });
 
 export const updateDisciplineSchema = z.object({
@@ -34,6 +38,7 @@ export const updateDisciplineSchema = z.object({
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .optional(),
+  scoreInstructions: z.string().max(500).nullish(),
 });
 
 // ============================================

@@ -134,6 +134,12 @@ export async function errorHandler(err: Error, c: Context) {
     if (errObj.where) errorDetails.errorWhere = errObj.where;
     if (errObj.query) errorDetails.errorQuery = errObj.query;
     if (errObj.parameters) errorDetails.errorParameters = errObj.parameters;
+    if (errObj.cause) {
+      const cause = errObj.cause as Record<string, unknown>;
+      if (cause.message) errorDetails.causeMessage = cause.message;
+      if (cause.code) errorDetails.causeCode = cause.code;
+      if (cause.detail) errorDetails.causeDetail = cause.detail;
+    }
   }
 
   console.error("[UnknownError]", JSON.stringify(errorDetails, null, 2));

@@ -13,6 +13,7 @@ export class DisciplineService {
   async createDiscipline(input: CreateDisciplineInput) {
     return await disciplineRepository.create({
       name: input.name,
+      scoreInstructions: input.scoreInstructions,
     });
   }
 
@@ -32,6 +33,7 @@ export class DisciplineService {
     await this.getDisciplineById(id);
     return await disciplineRepository.update(id, {
       name: input.name,
+      scoreInstructions: input.scoreInstructions,
     });
   }
 
