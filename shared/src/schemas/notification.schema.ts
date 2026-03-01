@@ -7,6 +7,7 @@ export const NotificationTypeEnum = z.enum([
   "TOURNAMENT_UPDATE",
   "SYSTEM_ALERT",
   "match_created",
+  "MATCH_SCORE_PROPOSAL",
 ]);
 
 export const DeviceTypeEnum = z.enum(["WEB", "ANDROID", "IOS"]);
@@ -19,6 +20,7 @@ export const CreateNotificationSchema = z.object({
   translationParams: z.record(z.string(), z.any()).optional(),
   actionUrl: z.string().optional(),
   requiresAction: z.boolean().default(false),
+  matchId: z.string().uuid().optional(),
 });
 
 export const RegisterDeviceSchema = z.object({

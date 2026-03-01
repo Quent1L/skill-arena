@@ -64,6 +64,7 @@ matches.patch(
         reportProof: data.reportProof,
         outcomeTypeId: data.outcomeTypeId,
         outcomeReasonId: data.outcomeReasonId,
+        winner: data.winner,
         playedAt: data.playedAt,
       },
       appUserId
@@ -98,6 +99,9 @@ matches.post(
         scoreA: data.scoreA,
         scoreB: data.scoreB,
         reportProof: data.reportProof,
+        winner: data.winner,
+        outcomeTypeId: data.outcomeTypeId,
+        outcomeReasonId: data.outcomeReasonId,
       },
       appUserId
     );

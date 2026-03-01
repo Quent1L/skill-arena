@@ -9,6 +9,7 @@ import {
   date,
   unique,
   jsonb,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -169,6 +170,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "TOURNAMENT_UPDATE",
   "SYSTEM_ALERT",
   "match_created",
+  "MATCH_SCORE_PROPOSAL",
 ]);
 
 export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
@@ -335,7 +337,7 @@ export const matches = pgTable("matches", {
     .notNull()
     .references(() => tournaments.id, { onDelete: "cascade" }),
   status: matchStatusEnum("status").notNull().default("scheduled"),
-  playedAt: timestamp("played_at").notNull().default(new Date()),
+  playedAt: timestamp("played_at").notNull().defaultNow(),
   confirmationDeadline: timestamp("confirmation_deadline"),
   outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
     onDelete: "set null",
@@ -346,6 +348,7 @@ export const matches = pgTable("matches", {
       onDelete: "set null",
     },
   ),
+  winnerSide: varchar("winner_side", { length: 1 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -434,6 +437,17 @@ export const matchConfirmations = pgTable(
     isContested: boolean("is_contested").notNull().default(false),
     contestationReason: text("contestation_reason"),
     contestationProof: text("contestation_proof"),
+    proposedScoreA: integer("proposed_score_a"),
+    proposedScoreB: integer("proposed_score_b"),
+    proposedWinner: text("proposed_winner"),
+    proposedOutcomeTypeId: uuid("proposed_outcome_type_id").references(
+      () => outcomeTypes.id,
+      { onDelete: "set null" },
+    ),
+    proposedOutcomeReasonId: uuid("proposed_outcome_reason_id").references(
+      () => outcomeReasons.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -590,6 +604,9 @@ export const notifications = pgTable("notifications", {
   translationParams: jsonb("translation_params"),
   actionUrl: text("action_url"),
   requiresAction: boolean("requires_action").notNull().default(false),
+  matchId: uuid("match_id").references(() => matches.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -965,6 +982,10 @@ export const notificationsRelations = relations(
     user: one(appUsers, {
       fields: [notifications.userId],
       references: [appUsers.id],
+    }),
+    match: one(matches, {
+      fields: [notifications.matchId],
+      references: [matches.id],
     }),
     statuses: many(notificationStatus),
   }),

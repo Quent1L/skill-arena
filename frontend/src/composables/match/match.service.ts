@@ -267,11 +267,14 @@ export function useMatchService() {
   ): Promise<ClientMatchModel> => {
     try {
       const match = await matchApi.contestResult(id, data)
+      const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
       toast.add({
         severity: 'warn',
-        summary: 'Contestation enregistrée',
-        detail: 'Votre contestation a été enregistrée. Un administrateur examinera le cas.',
-        life: 5000,
+        summary: hasProposal ? 'Score proposé' : 'Contestation enregistrée',
+        detail: hasProposal
+          ? `Vous avez proposé le score ${data.proposedScoreA} - ${data.proposedScoreB}. Les autres joueurs doivent reconfirmer.`
+          : 'Votre contestation a été enregistrée. Un administrateur examinera le cas.',
+        life: 6000,
       })
       return match
     } catch (err) {

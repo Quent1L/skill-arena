@@ -6,7 +6,8 @@
     "build": "tsc --build",
     "db:generate": "bun run drizzle-kit generate",
     "db:push": "bun run drizzle-kit push",
-    "job:auto-finalize": "bun run src/jobs/auto-finalize-matches.job.ts"
+    "job:auto-finalize": "bun run src/jobs/auto-finalize-matches.job.ts",
+    "test:integration": "bun test src/services/__tests__/match-partner-validation.integration.test.ts src/services/__tests__/match-duplicate-detection.test.ts src/services/__tests__/tournament-participation.test.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
@@ -23,6 +24,7 @@
     "zod": "4.1.13"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.15",
     "@types/bun": "^1.3.6",
     "@types/nodemailer": "^7.0.5",
     "@types/pg": "^8.16.0",

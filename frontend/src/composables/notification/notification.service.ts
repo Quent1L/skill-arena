@@ -27,14 +27,14 @@ export function useNotificationService() {
   }
 
   async function markRead(id: string) {
-    const notif = notifications.value.find(n => n.id === id)
+    const notif = notifications.value.find((n) => n.id === id)
     if (!notif || notif.isRead) return
     notif.isRead = true
     await notificationApi.markRead(id)
   }
 
   async function markActionCompleted(id: string) {
-    const notif = notifications.value.find(n => n.id === id)
+    const notif = notifications.value.find((n) => n.id === id)
     if (!notif || notif.actionCompleted) return
     notif.actionCompleted = true
     notif.isRead = true
@@ -51,13 +51,13 @@ export function useNotificationService() {
   }
 
   async function deleteNotification(id: string) {
-    const notif = notifications.value.find(n => n.id === id)
+    const notif = notifications.value.find((n) => n.id === id)
     if (!notif) return
     if (notif.requiresAction) {
       throw new Error('Cannot delete blocking notification')
     }
     // Optimistic update
-    notifications.value = notifications.value.filter(n => n.id !== id)
+    notifications.value = notifications.value.filter((n) => n.id !== id)
     try {
       await notificationApi.delete(id)
     } catch (error) {
@@ -68,47 +68,54 @@ export function useNotificationService() {
   }
 
   async function markAllAsRead() {
-    const unreadNotifs = notifications.value.filter(n => !n.isRead)
+    const unreadNotifs = notifications.value.filter((n) => !n.isRead)
     // Optimistic update
-    unreadNotifs.forEach(n => { n.isRead = true })
+    unreadNotifs.forEach((n) => {
+      n.isRead = true
+    })
     try {
-      await Promise.all(unreadNotifs.map(n => notificationApi.markRead(n.id)))
+      await Promise.all(unreadNotifs.map((n) => notificationApi.markRead(n.id)))
     } catch (error) {
       // Rollback on error
-      unreadNotifs.forEach(n => { n.isRead = false })
+      unreadNotifs.forEach((n) => {
+        n.isRead = false
+      })
       throw error
     }
   }
 
   async function deleteAll() {
-    const deletableNotifs = notifications.value.filter(n => !n.requiresAction)
+    const deletableNotifs = notifications.value.filter((n) => !n.requiresAction)
     if (deletableNotifs.length === 0) return
 
     // Optimistic update
     const backup = [...notifications.value]
-    notifications.value = notifications.value.filter(n => n.requiresAction)
+    notifications.value = notifications.value.filter((n) => n.requiresAction)
 
     try {
-      await Promise.all(deletableNotifs.map(n => notificationApi.delete(n.id)))
+      await Promise.all(deletableNotifs.map((n) => notificationApi.delete(n.id)))
     } catch (error) {
       // Rollback on error
       notifications.value = backup
       throw error
     }
   }
-
-  const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+  function remove(id: string) {
+    notifications.value = notifications.value.filter((n) => n.id !== id)
+  }
+  const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length)
 
   return {
     notifications,
     unreadCount,
     load,
     add,
+    remove,
     markRead,
     markActionCompleted,
     open,
     deleteNotification,
     markAllAsRead,
-    deleteAll
+    deleteAll,
   }
 }

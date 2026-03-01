@@ -70,6 +70,7 @@ export class StandingsRepository {
       columns: {
         id: true,
         status: true,
+        winnerSide: true,
       },
     });
   }

@@ -6,9 +6,9 @@
     >
       <div class="flex items-center">
         <Button icon="fas fa-arrow-left" text rounded @click="goBack" class="mr-2" />
-        <h1 class="text-lg font-bold">{{ step === 1 ? 'Nouveau Match' : 'Résultat' }}</h1>
+        <h1 class="text-lg font-bold">{{ isContestMode ? 'Proposer une correction' : step === 1 ? 'Nouveau Match' : 'Résultat' }}</h1>
       </div>
-      <div class="text-sm font-medium text-gray-500">{{ step }}/2</div>
+      <div v-if="!isContestMode" class="text-sm font-medium text-gray-500">{{ step }}/2</div>
     </div>
 
     <div class="p-4 space-y-4">
@@ -76,7 +76,7 @@
       </div>
       <Button
         v-else
-        label="Enregistrer le match"
+        :label="isContestMode ? 'Proposer la correction' : 'Enregistrer le match'"
         icon="fas fa-check"
         class="w-full"
         :loading="loading"
@@ -110,6 +110,8 @@ interface Props {
   allowDraw?: boolean
   initialData?: Partial<ClientCreateMatchRequest & ClientUpdateMatchRequest>
   matchId?: string
+  isContestMode?: boolean
+  contestReason?: string
 }
 
 const props = defineProps<Props>()
@@ -120,13 +122,14 @@ const {
   validateMatchForStep,
   createMatchWithNavigation,
   updateMatchWithNavigation,
+  contestMatchResult,
   getTeamPlayersNames,
   loadPlayersMap,
   loading,
 } = useMatchService()
 const { getTournamentParticipants } = useParticipantService()
 
-const step = ref(1)
+const step = ref(props.isContestMode ? 2 : 1)
 const allPlayers = ref<{ id: string; displayName: string }[]>([])
 
 const matchData = ref<{
@@ -220,7 +223,7 @@ async function validate() {
 }
 
 function goBack() {
-  if (step.value > 1) {
+  if (step.value > 1 && !props.isContestMode) {
     step.value--
   } else {
     router.back()
@@ -249,6 +252,20 @@ async function scheduleMatch() {
 }
 
 async function submit() {
+  // Contest mode: submit a score correction
+  if (props.isContestMode && props.matchId) {
+    await contestMatchResult(props.matchId, {
+      proposedScoreA: Number(matchData.value.scoreA),
+      proposedScoreB: Number(matchData.value.scoreB),
+      proposedWinner: matchData.value.winner,
+      proposedOutcomeTypeId: matchData.value.outcomeTypeId || undefined,
+      proposedOutcomeReasonId: matchData.value.outcomeReasonId || undefined,
+      contestationReason: props.contestReason,
+    })
+    router.push(`/matches/${props.matchId}`)
+    return
+  }
+
   const data = {
     ...matchData.value,
     // Ensure scores are numbers

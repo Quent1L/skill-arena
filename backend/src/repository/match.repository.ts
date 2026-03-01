@@ -10,7 +10,10 @@ import {
   appUsers,
   tournamentParticipants,
 } from "../db/schema";
-import { type MatchStatus, type MatchFinalizationReason } from "@skill-arena/shared";
+import {
+  type MatchStatus,
+  type MatchFinalizationReason,
+} from "@skill-arena/shared";
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
 import { matchResultRepository } from "./match-result.repository";
@@ -49,6 +52,7 @@ export interface CreateMatchData {
 export interface UpdateMatchData {
   scoreA?: number;
   scoreB?: number;
+  winner?: "teamA" | "teamB" | null;
   status?: MatchStatus;
   reportProof?: string;
   confirmationDeadline?: Date;
@@ -84,8 +88,10 @@ export class MatchRepository {
         })
         .returning();
 
-      // 2. Get tournament for points calculation
-      const tournament = await this.getTournament(data.tournamentId);
+      // 2. Get tournament for points calculation (use tx to avoid deadlock on PGlite)
+      const tournament = await tx.query.tournaments.findFirst({
+        where: eq(tournaments.id, data.tournamentId),
+      });
       if (!tournament) {
         throw new Error("Tournament not found");
       }
@@ -95,13 +101,13 @@ export class MatchRepository {
         data.tournamentId,
         data.teamAId,
         data.playerIdsA,
-        tx
+        tx,
       );
       const entryB = await entryRepository.getOrCreateForMatch(
         data.tournamentId,
         data.teamBId,
         data.playerIdsB,
-        tx
+        tx,
       );
 
       if (!entryA || !entryB) {
@@ -112,18 +118,27 @@ export class MatchRepository {
       const scoreA = data.scoreA ?? 0;
       const scoreB = data.scoreB ?? 0;
       const isDraw = data.winner === null || scoreA === scoreB;
-      const isAWinner = data.winner === "teamA" || (data.winner === undefined && scoreA > scoreB);
+      const isAWinner =
+        data.winner === "teamA" ||
+        (data.winner === undefined && scoreA > scoreB);
+
+      // Persist winnerSide on the match record
+      const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";
+      await tx
+        .update(matches)
+        .set({ winnerSide: winnerSideValue })
+        .where(eq(matches.id, match.id));
 
       const pointsA = isDraw
-        ? tournament.pointPerDraw ?? 1
+        ? (tournament.pointPerDraw ?? 1)
         : isAWinner
-        ? tournament.pointPerVictory ?? 3
-        : tournament.pointPerLoss ?? 0;
+          ? (tournament.pointPerVictory ?? 3)
+          : (tournament.pointPerLoss ?? 0);
       const pointsB = isDraw
-        ? tournament.pointPerDraw ?? 1
+        ? (tournament.pointPerDraw ?? 1)
         : isAWinner
-        ? tournament.pointPerLoss ?? 0
-        : tournament.pointPerVictory ?? 3;
+          ? (tournament.pointPerLoss ?? 0)
+          : (tournament.pointPerVictory ?? 3);
 
       // 5. Create match_sides
       await matchSidesRepository.createSides(
@@ -142,11 +157,14 @@ export class MatchRepository {
             pointsAwarded: pointsB,
           },
         ],
-        tx
+        tx,
       );
 
       // 6. Create match_results if reported
-      if (data.status && ["reported", "confirmed", "finalized"].includes(data.status)) {
+      if (
+        data.status &&
+        ["reported", "confirmed", "finalized"].includes(data.status)
+      ) {
         await matchResultRepository.create(
           match.id,
           {
@@ -154,7 +172,7 @@ export class MatchRepository {
             reportedAt: new Date(),
             reportProof: data.reportProof,
           },
-          tx
+          tx,
         );
       }
 
@@ -208,13 +226,13 @@ export class MatchRepository {
     // Determine winner info
     const scoreA = sides[0]?.score ?? 0;
     const scoreB = sides[1]?.score ?? 0;
-    const winnerSide = this.determineWinnerSide(sides);
+    const winnerSide = this.determineWinnerSide(match);
     const winnerId =
       winnerSide === "A"
         ? sides[0]?.entry?.teamId || sides[0]?.entry?.id
         : winnerSide === "B"
-        ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
-        : null;
+          ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
+          : null;
 
     // Build response with backward-compatible format
     return {
@@ -268,13 +286,14 @@ export class MatchRepository {
   }
 
   /**
-   * Determine winner side from match sides
+   * Determine winner side from the persisted winnerSide column on the match record
    */
-  private determineWinnerSide(sides: any[]): "A" | "B" | null {
-    if (!sides[0] || !sides[1]) return null;
-    if (sides[0].score > sides[1].score) return "A";
-    if (sides[1].score > sides[0].score) return "B";
-    return null; // draw
+  private determineWinnerSide(match: {
+    winnerSide: string | null;
+  }): "A" | "B" | null {
+    if (match.winnerSide === "A" || match.winnerSide === "B")
+      return match.winnerSide;
+    return null;
   }
 
   /**
@@ -331,13 +350,13 @@ export class MatchRepository {
         const teamB = sides[1] ? this.buildTeamObject(sides[1]) : null;
         const scoreA = sides[0]?.score ?? 0;
         const scoreB = sides[1]?.score ?? 0;
-        const winnerSide = this.determineWinnerSide(sides);
+        const winnerSide = this.determineWinnerSide(m);
         const winnerId =
           winnerSide === "A"
             ? sides[0]?.entry?.teamId || sides[0]?.entry?.id
             : winnerSide === "B"
-            ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
-            : null;
+              ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
+              : null;
 
         return {
           ...m,
@@ -357,7 +376,7 @@ export class MatchRepository {
           reporter: result?.reporter,
           sides: sides,
         };
-      })
+      }),
     );
 
     return processed;
@@ -368,18 +387,31 @@ export class MatchRepository {
    */
   async update(id: string, data: UpdateMatchData) {
     return await db.transaction(async (tx) => {
-      // Update match record
-      const [updated] = await tx
-        .update(matches)
-        .set({
-          status: data.status,
-          playedAt: data.playedAt,
-          outcomeTypeId: data.outcomeTypeId,
-          outcomeReasonId: data.outcomeReasonId,
-          confirmationDeadline: data.confirmationDeadline,
-        })
-        .where(eq(matches.id, id))
-        .returning();
+      // Only update the match record if there are fields to set
+      const matchFields = {
+        status: data.status,
+        playedAt: data.playedAt,
+        outcomeTypeId: data.outcomeTypeId,
+        outcomeReasonId: data.outcomeReasonId,
+        confirmationDeadline: data.confirmationDeadline,
+      };
+      const hasMatchFields = Object.values(matchFields).some(
+        (v) => v !== undefined,
+      );
+
+      let updated: typeof matches.$inferSelect | undefined;
+      if (hasMatchFields) {
+        [updated] = await tx
+          .update(matches)
+          .set(matchFields)
+          .where(eq(matches.id, id))
+          .returning();
+      } else {
+        const rows = await tx.select().from(matches).where(eq(matches.id, id));
+        updated = rows[0];
+      }
+
+      if (!updated) throw new Error(`Match ${id} not found`);
 
       // Update match_sides scores if provided
       if (data.scoreA !== undefined || data.scoreB !== undefined) {
@@ -403,32 +435,46 @@ export class MatchRepository {
           if (tournament) {
             const scoreA = data.scoreA ?? sides[0]?.score ?? 0;
             const scoreB = data.scoreB ?? sides[1]?.score ?? 0;
-            const isDraw = scoreA === scoreB;
-            const isAWinner = scoreA > scoreB;
+
+            // Use explicit winner if provided, otherwise derive from scores
+            const hasExplicitWinner = data.winner !== undefined;
+            const isDraw = hasExplicitWinner
+              ? data.winner === null
+              : scoreA === scoreB;
+            const isAWinner = hasExplicitWinner
+              ? data.winner === "teamA"
+              : scoreA > scoreB;
+
+            // Persist winnerSide on the match record
+            const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";
+            await tx
+              .update(matches)
+              .set({ winnerSide: winnerSideValue })
+              .where(eq(matches.id, id));
 
             const pointsA = isDraw
-              ? tournament.pointPerDraw ?? 1
+              ? (tournament.pointPerDraw ?? 1)
               : isAWinner
-              ? tournament.pointPerVictory ?? 3
-              : tournament.pointPerLoss ?? 0;
+                ? (tournament.pointPerVictory ?? 3)
+                : (tournament.pointPerLoss ?? 0);
             const pointsB = isDraw
-              ? tournament.pointPerDraw ?? 1
+              ? (tournament.pointPerDraw ?? 1)
               : isAWinner
-              ? tournament.pointPerLoss ?? 0
-              : tournament.pointPerVictory ?? 3;
+                ? (tournament.pointPerLoss ?? 0)
+                : (tournament.pointPerVictory ?? 3);
 
             if (sides[0]) {
               await matchSidesRepository.updatePointsAwarded(
                 id,
                 sides[0].entryId,
-                pointsA
+                pointsA,
               );
             }
             if (sides[1]) {
               await matchSidesRepository.updatePointsAwarded(
                 id,
                 sides[1].entryId,
-                pointsB
+                pointsB,
               );
             }
           }
@@ -485,7 +531,7 @@ export class MatchRepository {
   async countMatchesForUser(
     tournamentId: string,
     userId: string,
-    excludeMatchId?: string
+    excludeMatchId?: string,
   ) {
     const matchConditions = [eq(matches.tournamentId, tournamentId)];
     if (excludeMatchId) {
@@ -498,13 +544,13 @@ export class MatchRepository {
       .from(tournamentEntryPlayers)
       .innerJoin(
         tournamentEntries,
-        eq(tournamentEntryPlayers.entryId, tournamentEntries.id)
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
       )
       .where(
         and(
           eq(tournamentEntryPlayers.playerId, userId),
-          eq(tournamentEntries.tournamentId, tournamentId)
-        )
+          eq(tournamentEntries.tournamentId, tournamentId),
+        ),
       );
 
     if (userEntries.length === 0) {
@@ -517,16 +563,8 @@ export class MatchRepository {
     const result = await db
       .select({ count: sql<number>`COUNT(DISTINCT ${matches.id})` })
       .from(matches)
-      .innerJoin(
-        sql`match_sides`,
-        sql`${matches.id} = match_sides.match_id`
-      )
-      .where(
-        and(
-          ...matchConditions,
-          sql`match_sides.entry_id IN ${entryIds}`
-        )
-      );
+      .innerJoin(sql`match_sides`, sql`${matches.id} = match_sides.match_id`)
+      .where(and(...matchConditions, sql`match_sides.entry_id IN ${entryIds}`));
 
     return result[0]?.count ?? 0;
   }
@@ -540,7 +578,7 @@ export class MatchRepository {
     userId: string,
     partnerId: string,
     excludeMatchId?: string,
-    teamSize?: number
+    teamSize?: number,
   ) {
     // Get entries where both users are together
     const userEntries = await db
@@ -548,13 +586,13 @@ export class MatchRepository {
       .from(tournamentEntryPlayers)
       .innerJoin(
         tournamentEntries,
-        eq(tournamentEntryPlayers.entryId, tournamentEntries.id)
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
       )
       .where(
         and(
           eq(tournamentEntryPlayers.playerId, userId),
-          eq(tournamentEntries.tournamentId, tournamentId)
-        )
+          eq(tournamentEntries.tournamentId, tournamentId),
+        ),
       );
 
     if (userEntries.length === 0) {
@@ -567,7 +605,7 @@ export class MatchRepository {
       const partnerInEntry = await db.query.tournamentEntryPlayers.findFirst({
         where: and(
           eq(tournamentEntryPlayers.entryId, entryId),
-          eq(tournamentEntryPlayers.playerId, partnerId)
+          eq(tournamentEntryPlayers.playerId, partnerId),
         ),
       });
 
@@ -591,16 +629,8 @@ export class MatchRepository {
       const entryMatches = await db
         .select({ count: sql<number>`COUNT(DISTINCT ${matches.id})` })
         .from(matches)
-        .innerJoin(
-          sql`match_sides`,
-          sql`${matches.id} = match_sides.match_id`
-        )
-        .where(
-          and(
-            ...matchConditions,
-            sql`match_sides.entry_id = ${entryId}`
-          )
-        );
+        .innerJoin(sql`match_sides`, sql`${matches.id} = match_sides.match_id`)
+        .where(and(...matchConditions, sql`match_sides.entry_id = ${entryId}`));
 
       count += entryMatches[0]?.count ?? 0;
     }
@@ -616,7 +646,7 @@ export class MatchRepository {
     userId: string,
     opponentId: string,
     excludeMatchId?: string,
-    teamSize?: number
+    teamSize?: number,
   ) {
     // Get user's entries
     const userEntries = await db
@@ -624,13 +654,13 @@ export class MatchRepository {
       .from(tournamentEntryPlayers)
       .innerJoin(
         tournamentEntries,
-        eq(tournamentEntryPlayers.entryId, tournamentEntries.id)
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
       )
       .where(
         and(
           eq(tournamentEntryPlayers.playerId, userId),
-          eq(tournamentEntries.tournamentId, tournamentId)
-        )
+          eq(tournamentEntries.tournamentId, tournamentId),
+        ),
       );
 
     // Get opponent's entries
@@ -639,13 +669,13 @@ export class MatchRepository {
       .from(tournamentEntryPlayers)
       .innerJoin(
         tournamentEntries,
-        eq(tournamentEntryPlayers.entryId, tournamentEntries.id)
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
       )
       .where(
         and(
           eq(tournamentEntryPlayers.playerId, opponentId),
-          eq(tournamentEntries.tournamentId, tournamentId)
-        )
+          eq(tournamentEntries.tournamentId, tournamentId),
+        ),
       );
 
     if (userEntries.length === 0 || opponentEntries.length === 0) {
@@ -659,10 +689,10 @@ export class MatchRepository {
     if (teamSize !== undefined) {
       // Get full entry details to check team size
       const userEntriesDetails = await Promise.all(
-        userEntryIds.map((id) => entryRepository.getById(id))
+        userEntryIds.map((id) => entryRepository.getById(id)),
       );
       const opponentEntriesDetails = await Promise.all(
-        opponentEntryIds.map((id) => entryRepository.getById(id))
+        opponentEntryIds.map((id) => entryRepository.getById(id)),
       );
 
       userEntryIds = userEntriesDetails
@@ -694,8 +724,8 @@ export class MatchRepository {
       .where(
         and(
           ...matchConditions,
-          inArray(sql`match_sides.entry_id`, userEntryIds)
-        )
+          inArray(sql`match_sides.entry_id`, userEntryIds),
+        ),
       );
 
     for (const { matchId } of opposingMatches) {
@@ -711,8 +741,8 @@ export class MatchRepository {
         .where(
           and(
             sql`match_sides.match_id = ${matchId}`,
-            inArray(sql`match_sides.entry_id`, userEntryIds)
-          )
+            inArray(sql`match_sides.entry_id`, userEntryIds),
+          ),
         )
         .limit(1);
 
@@ -729,13 +759,16 @@ export class MatchRepository {
         .where(
           and(
             sql`match_sides.match_id = ${matchId}`,
-            inArray(sql`match_sides.entry_id`, opponentEntryIds)
-          )
+            inArray(sql`match_sides.entry_id`, opponentEntryIds),
+          ),
         )
         .limit(1);
 
       // Only count if they are on opposite sides (different positions)
-      if (opponentSide.length > 0 && opponentSide[0].position !== userPosition) {
+      if (
+        opponentSide.length > 0 &&
+        opponentSide[0].position !== userPosition
+      ) {
         matchedMatchIds.add(matchId);
       }
     }
@@ -753,7 +786,7 @@ export class MatchRepository {
     for (const side of sides) {
       const isInEntry = await entryRepository.isPlayerInEntry(
         side.entryId,
-        userId
+        userId,
       );
       if (isInEntry) {
         return true;
@@ -780,7 +813,7 @@ export class MatchRepository {
     teamAId?: string,
     teamBId?: string,
     playerIdsA?: string[],
-    playerIdsB?: string[]
+    playerIdsB?: string[],
   ) {
     // For static teams: validate team IDs
     if (teamAId) {
@@ -814,7 +847,7 @@ export class MatchRepository {
           where: and(
             eq(tournamentParticipants.userId, playerId),
             eq(tournamentParticipants.tournamentId, tournamentId),
-            eq(tournamentParticipants.status, "active")
+            eq(tournamentParticipants.status, "active"),
           ),
         });
         if (!participant) {
@@ -855,7 +888,7 @@ export class MatchRepository {
     tournamentId: string,
     entryAId: string,
     entryBId: string,
-    excludeMatchId?: string
+    excludeMatchId?: string,
   ): Promise<string[]> {
     // Step 1: Find all matches in the tournament that contain either entry
     const matchesWithEntries = await db
@@ -870,10 +903,10 @@ export class MatchRepository {
           eq(matches.tournamentId, tournamentId),
           or(
             eq(matchSides.entryId, entryAId),
-            eq(matchSides.entryId, entryBId)
+            eq(matchSides.entryId, entryBId),
           ),
-          excludeMatchId ? ne(matches.id, excludeMatchId) : sql`true`
-        )
+          excludeMatchId ? ne(matches.id, excludeMatchId) : sql`true`,
+        ),
       )
       .groupBy(matchSides.matchId)
       .having(sql`count(DISTINCT ${matchSides.entryId}) = 2`);
@@ -888,6 +921,17 @@ export class MatchRepository {
     }
 
     return duplicateMatchIds;
+  }
+
+  /**
+   * Get all matches with status 'reported' or 'pending_confirmation'.
+   * Used by auto-finalization job to find matches that may need to be finalized.
+   */
+  async getMatchesPendingFinalization() {
+    return db.query.matches.findMany({
+      where: (m, { or, eq: eqOp }) =>
+        or(eqOp(m.status, "reported"), eqOp(m.status, "pending_confirmation")),
+    });
   }
 }
 

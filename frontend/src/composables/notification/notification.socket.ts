@@ -10,7 +10,7 @@ const WS_BASE = import.meta.env.DEV
   : window.location.origin.replace('http', 'ws')
 
 export function useNotificationSocket() {
-  const { add } = useNotificationService()
+  const { add, remove } = useNotificationService()
   const { isAuthenticated } = useAuth()
 
   function connect() {
@@ -18,7 +18,7 @@ export function useNotificationSocket() {
       console.log('[WS] Not authenticated, skipping connection')
       return
     }
-    
+
     // Check if already connected or connecting
     if (socket) {
       if (socket.readyState === WebSocket.OPEN) {
@@ -52,6 +52,10 @@ export function useNotificationSocket() {
           const notificationWithDates = convertStringDatesToJS(payload.data)
           console.log('[WS] New notification (parsed):', notificationWithDates)
           add(notificationWithDates)
+        }
+        if (payload.event === 'notification_deleted') {
+          console.log('[WS] Notification deleted:', payload.data.id)
+          remove(payload.data.id)
         }
       } catch (e) {
         console.error('[WS] Parse error', e)

@@ -77,9 +77,10 @@
     </div>
 
     <div class="flex pt-6 justify-between">
-      <Button label="Précédent" severity="secondary" icon="fas fa-arrow-left" @click="onPrevious" />
+      <Button v-if="!hidePreviousButton" label="Précédent" severity="secondary" icon="fas fa-arrow-left" @click="onPrevious" />
+      <div v-else />
       <Button
-        label="Créer le match"
+        :label="submitLabel || 'Créer le match'"
         icon="fas fa-check"
         @click="onCreate"
         :loading="loading"
@@ -113,6 +114,8 @@ interface Props {
   allowDraw?: boolean
   loading?: boolean
   disabled?: boolean
+  hidePreviousButton?: boolean
+  submitLabel?: string
 }
 
 interface Emits {

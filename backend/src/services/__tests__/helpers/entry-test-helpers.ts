@@ -129,8 +129,8 @@ export function buildSyntheticMatchFromSides(
     // Synthetic scores
     scoreA: sideA?.score ?? 0,
     scoreB: sideB?.score ?? 0,
-    // Synthetic winner
-    winnerSide: determineWinnerSide(sideA?.score, sideB?.score),
+    // Synthetic winner — read from persisted winnerSide on the match record
+    winnerSide: baseMatch.winnerSide ?? determineWinnerSide(sideA?.score, sideB?.score),
     // Result metadata
     reportedBy: result?.reportedBy || null,
     reportedAt: result?.reportedAt || null,

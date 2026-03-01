@@ -64,7 +64,8 @@ export class StandingsService {
       const sides = matchSidesMap.get(match.id) || [];
       if (sides.length !== 2) continue; // Skip incomplete matches
 
-      this.processMatch(sides, standingsMap, tournament, tournament.teamMode);
+      const winnerSide = (match.winnerSide === "A" || match.winnerSide === "B") ? match.winnerSide : null;
+      this.processMatch(sides, standingsMap, tournament, tournament.teamMode, winnerSide);
     }
 
     // 6. Convert map to array and sort
@@ -167,7 +168,8 @@ export class StandingsService {
       pointPerLoss: number | null;
       allowDraw: boolean | null;
     },
-    teamMode: "static" | "flex"
+    teamMode: "static" | "flex",
+    winnerSide: "A" | "B" | null
   ) {
     if (sides.length !== 2) return;
 
@@ -185,8 +187,8 @@ export class StandingsService {
 
       if (!entryA || !entryB) return;
 
-      this.updateStandingsForSide(entryA, sideA, sideB, tournament);
-      this.updateStandingsForSide(entryB, sideB, sideA, tournament);
+      this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide);
+      this.updateStandingsForSide(entryB, sideB, sideA, tournament, winnerSide === "A" ? "B" : winnerSide === "B" ? "A" : null);
     } else {
       // Flex mode: update each player individually
       const playersA = sideA.entry?.players || [];
@@ -201,12 +203,16 @@ export class StandingsService {
         const opponentStanding = standingsMap.get(playersB[0]?.playerId);
         if (!opponentStanding) continue;
 
+        const isWinner = winnerSide === "A";
+        const isDraw = winnerSide === null;
         this.updateStandingsForPlayer(
           playerStanding,
           sideA.score,
           sideB.score,
           sideA.pointsAwarded,
-          tournament
+          tournament,
+          isWinner,
+          isDraw
         );
       }
 
@@ -215,19 +221,24 @@ export class StandingsService {
         const playerStanding = standingsMap.get(player.playerId);
         if (!playerStanding) continue;
 
+        const isWinner = winnerSide === "B";
+        const isDraw = winnerSide === null;
         this.updateStandingsForPlayer(
           playerStanding,
           sideB.score,
           sideA.score,
           sideB.pointsAwarded,
-          tournament
+          tournament,
+          isWinner,
+          isDraw
         );
       }
     }
   }
 
   /**
-   * Update standings for a side (static mode)
+   * Update standings for a side (static mode).
+   * isWinner indicates whether this side won the match (derived from match.winnerSide).
    */
   private updateStandingsForSide(
     entry: StandingsEntry,
@@ -238,16 +249,19 @@ export class StandingsService {
       pointPerDraw: number | null;
       pointPerLoss: number | null;
       allowDraw: boolean | null;
-    }
+    },
+    winnerSide: "A" | "B" | null
   ) {
     // Update scores
     entry.scored += side.score;
     entry.conceded += opponentSide.score;
     entry.scoreDiff = entry.scored - entry.conceded;
 
-    // Determine result
-    const isDraw = side.score === opponentSide.score && tournament.allowDraw;
-    const wins = side.score > opponentSide.score;
+    // Determine result from persisted winnerSide
+    // winnerSide here is already relative to THIS side:
+    //   "A" means this side won, "B" means opponent won, null means draw
+    const isDraw = winnerSide === null;
+    const wins = winnerSide === "A";
 
     if (isDraw) {
       entry.draws += 1;
@@ -264,7 +278,8 @@ export class StandingsService {
   }
 
   /**
-   * Update standings for a player (flex mode)
+   * Update standings for a player (flex mode).
+   * isWinner and isDraw are derived from the persisted match.winnerSide.
    */
   private updateStandingsForPlayer(
     playerStanding: StandingsEntry,
@@ -276,21 +291,19 @@ export class StandingsService {
       pointPerDraw: number | null;
       pointPerLoss: number | null;
       allowDraw: boolean | null;
-    }
+    },
+    isWinner: boolean,
+    isDraw: boolean
   ) {
     // Update scores
     playerStanding.scored += ownScore;
     playerStanding.conceded += opponentScore;
     playerStanding.scoreDiff = playerStanding.scored - playerStanding.conceded;
 
-    // Determine result
-    const isDraw = ownScore === opponentScore && tournament.allowDraw;
-    const wins = ownScore > opponentScore;
-
     if (isDraw) {
       playerStanding.draws += 1;
       playerStanding.points += pointsAwarded ?? tournament.pointPerDraw ?? 1;
-    } else if (wins) {
+    } else if (isWinner) {
       playerStanding.wins += 1;
       playerStanding.points += pointsAwarded ?? tournament.pointPerVictory ?? 3;
     } else {

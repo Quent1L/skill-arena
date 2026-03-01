@@ -17,6 +17,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@fontsource/exo-2": "^5.2.8",
+    "@fontsource/rajdhani": "^5.2.7",
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@primeuix/themes": "^2.0.3",
     "@skill-arena/shared": "workspace:*",

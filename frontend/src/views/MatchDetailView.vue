@@ -135,7 +135,6 @@
         :match="match"
         :current-user-id="currentUser?.id"
         :confirming="confirming"
-        :contesting="contesting"
         @confirm="handleConfirm"
         @contest="handleContest"
       />
@@ -187,14 +186,13 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { getMatch, confirmMatchResult, contestMatchResult, finalizeMatch } = useMatchService()
+const { getMatch, confirmMatchResult, finalizeMatch } = useMatchService()
 const { appUser } = useAuth()
 
 const match = ref<ClientMatchModel | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const confirming = ref(false)
-const contesting = ref(false)
 
 const currentUser = computed(() => appUser.value)
 
@@ -232,21 +230,17 @@ async function handleConfirm() {
   }
 }
 
-async function handleContest(data: { reason?: string; proof?: string }) {
-  if (!match.value) return
+function handleContest(data: { reason?: string }) {
+  if (!match.value?.tournamentId) return
 
-  try {
-    contesting.value = true
-    const updatedMatch = await contestMatchResult(match.value.id, {
-      contestationReason: data.reason,
-      contestationProof: data.proof,
-    })
-    match.value = updatedMatch
-  } catch (err) {
-    console.error('Error contesting match:', err)
-  } finally {
-    contesting.value = false
-  }
+  router.push({
+    path: `/tournaments/${match.value.tournamentId}/create-match`,
+    query: {
+      matchId: match.value.id,
+      contest: 'true',
+      ...(data.reason && { contestReason: data.reason }),
+    },
+  })
 }
 
 async function handleFinalize(reason: MatchFinalizationReason) {
@@ -271,7 +265,7 @@ function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
     scheduled: 'Planifié',
     reported: 'Résultat saisi',
-    pending_confirmation: 'En attente de confirmation',
+    pending_confirmation: 'Proposition de score',
     confirmed: 'Confirmé',
     disputed: 'Contesté',
     finalized: 'Finalisé',

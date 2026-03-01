@@ -33,7 +33,8 @@ cd frontend && bun run lint
 # Database
 bun run setup:db                 # Push schema to database
 cd backend && bun run db:generate # Generate migration
-cd backend && bun run db:push    # Push migrations
+cd backend && bun run db:push    # Push schema directly (dev shortcut)
+# Migrations are applied automatically at server startup (no manual migrate command)
 
 # Build
 bun run build                    # Build shared + frontend
@@ -85,7 +86,9 @@ skill-arena/
 ### Database
 
 - Schema in `backend/src/db/schema.ts` using Drizzle ORM
-- Migrations in `backend/drizzle/`
+- Migrations in `backend/drizzle/` — **applied automatically at server startup** via `backend/src/utils/migrate.ts`
+- No manual `db:migrate` command needed: generate the migration with `db:generate`, then restart the server
+- When using `db:push` during development, write migration SQL with `IF NOT EXISTS` / conditional blocks to stay idempotent
 - Uses PostgreSQL with Better Auth for authentication
 
 ### Validation

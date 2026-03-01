@@ -18,6 +18,52 @@
           </p>
         </div>
 
+        <!-- Score en cours de validation -->
+        <div
+          v-if="activeProposal"
+          class="p-4 rounded-lg border-2 border-warn-400 dark:border-warn-500 bg-warn-50 dark:bg-warn-900/20 space-y-3"
+        >
+          <div class="flex items-center gap-2 text-warn-700 dark:text-warn-300 text-sm font-semibold">
+            <i class="fa fa-exclamation-triangle"></i>
+            Score contesté — correction proposée par
+            <span class="font-bold">{{ activeProposal.player?.displayName || 'un joueur' }}</span>
+          </div>
+
+          <div class="flex items-center justify-center gap-6">
+            <div class="text-center">
+              <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score original</p>
+              <p class="text-2xl font-bold text-surface-400 dark:text-surface-500 line-through">
+                {{ match.scoreA }} - {{ match.scoreB }}
+              </p>
+            </div>
+
+            <i class="fa fa-arrow-right text-warn-500 text-xl"></i>
+
+            <div class="text-center">
+              <p class="text-xs text-warn-600 dark:text-warn-400 mb-1 uppercase tracking-wide font-semibold">Score proposé</p>
+              <p class="text-3xl font-bold text-warn-700 dark:text-warn-300">
+                {{ activeProposal.proposedScoreA }} - {{ activeProposal.proposedScoreB }}
+              </p>
+            </div>
+          </div>
+
+          <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+            <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
+          </div>
+          <!-- Proposed winner change -->
+          <div v-if="activeProposal.proposedWinner !== undefined && activeProposal.proposedWinner !== null" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+            <span class="font-semibold text-warn-600 dark:text-warn-400">Vainqueur proposé :</span>
+            <span class="ml-2 font-bold">{{ activeProposal.proposedWinner === 'teamA' ? 'Équipe A' : 'Équipe B' }}</span>
+          </div>        </div>
+
+        <!-- Score normal (aucune contestation active) -->
+        <div v-else class="flex items-center justify-center gap-4 py-2">
+          <div class="text-center">
+            <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score</p>
+            <p class="text-3xl font-bold text-primary">{{ match.scoreA }} - {{ match.scoreB }}</p>
+          </div>
+        </div>
+
         <!-- Statut des confirmations -->
         <div v-if="playersWithStatus && playersWithStatus.length > 0" class="space-y-3">
           <h4 class="font-semibold text-surface-700 dark:text-surface-300">
@@ -64,9 +110,13 @@
 
               <!-- Détails de contestation -->
               <div
-                v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof)"
+                v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof || player.hasProposal)"
                 class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
               >
+                <div v-if="player.hasProposal" class="text-sm">
+                  <span class="font-semibold text-warn-600 dark:text-warn-400">Score proposé :</span>
+                  <span class="ml-2 font-bold">{{ player.proposedScoreA }} - {{ player.proposedScoreB }}</span>
+                </div>
                 <div v-if="player.contestationReason" class="text-sm">
                   <span class="font-semibold text-surface-700 dark:text-surface-300">Raison :</span>
                   <p class="text-surface-600 dark:text-surface-400 mt-1 whitespace-pre-wrap">
@@ -115,7 +165,7 @@
 
           <div v-if="!userConfirmation">
             <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
-              Confirmez-vous ce résultat ?
+              {{ activeProposal ? 'Acceptez-vous le score corrigé proposé ?' : 'Confirmez-vous ce résultat ?' }}
             </p>
 
             <div class="flex gap-3">
@@ -164,9 +214,14 @@
     v-model:visible="contestDialogVisible"
     header="Contester le résultat"
     :modal="true"
-    :style="{ width: '500px' }"
+    :style="{ width: '480px' }"
   >
     <div class="space-y-4">
+      <p class="text-sm text-surface-600 dark:text-surface-400">
+        Vous allez être redirigé vers le formulaire de saisie pour proposer un score corrigé.
+        Vous pouvez indiquer une raison optionnelle ci-dessous.
+      </p>
+
       <div>
         <label for="contestReason" class="block text-sm font-medium mb-2">
           Raison de la contestation (optionnel)
@@ -174,20 +229,8 @@
         <Textarea
           id="contestReason"
           v-model="contestReason"
-          rows="4"
+          rows="3"
           placeholder="Expliquez pourquoi vous contestez ce résultat..."
-          class="w-full"
-        />
-      </div>
-
-      <div>
-        <label for="contestProof" class="block text-sm font-medium mb-2">
-          Preuve (lien, description) (optionnel)
-        </label>
-        <InputText
-          id="contestProof"
-          v-model="contestProof"
-          placeholder="Lien vers une capture d'écran, vidéo, etc."
           class="w-full"
         />
       </div>
@@ -200,10 +243,9 @@
         @click="contestDialogVisible = false"
       />
       <Button
-        label="Contester"
-        severity="danger"
-        icon="fa fa-times"
-        :loading="contesting"
+        label="Saisir le score corrigé"
+        severity="warn"
+        icon="fa fa-edit"
         @click="submitContest"
       />
     </template>
@@ -218,7 +260,6 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Dialog from 'primevue/dialog';
 import Textarea from 'primevue/textarea';
-import InputText from 'primevue/inputtext';
 import Divider from 'primevue/divider';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -232,7 +273,7 @@ interface Props {
 
 interface Emits {
   (event: 'confirm'): void;
-  (event: 'contest', data: { reason?: string; proof?: string }): void;
+  (event: 'contest', data: { reason?: string }): void;
 }
 
 const props = defineProps<Props>();
@@ -240,7 +281,6 @@ const emit = defineEmits<Emits>();
 
 const contestDialogVisible = ref(false);
 const contestReason = ref('');
-const contestProof = ref('');
 
 const shouldShowConfirmation = computed(() => {
   return ['reported', 'pending_confirmation', 'disputed'].includes(props.match.status);
@@ -287,6 +327,14 @@ const confirmedCount = computed(() => {
   return confirmations.value.filter(c => c.isConfirmed).length;
 });
 
+const activeProposal = computed(() => {
+  return confirmations.value.find(
+    c => c.isContested &&
+         c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
+         c.proposedScoreB !== null && c.proposedScoreB !== undefined
+  ) ?? null;
+});
+
 const playersWithStatus = computed(() => {
   const confirmationsMap = new Map(
     confirmations.value.map(c => [c.playerId, c])
@@ -310,13 +358,19 @@ const playersWithStatus = computed(() => {
       status,
       contestationReason: confirmation?.contestationReason,
       contestationProof: confirmation?.contestationProof,
+      hasProposal: confirmation?.proposedScoreA !== null && confirmation?.proposedScoreA !== undefined,
+      proposedScoreA: confirmation?.proposedScoreA,
+      proposedScoreB: confirmation?.proposedScoreB,
     };
   });
 });
 
 const userConfirmation = computed(() => {
   if (!props.currentUserId) return null;
-  return confirmations.value.find(c => c.playerId === props.currentUserId);
+  const confirmation = confirmations.value.find(c => c.playerId === props.currentUserId);
+  // A "reset" confirmation (both flags false) means they haven't voted yet
+  if (!confirmation || (!confirmation.isConfirmed && !confirmation.isContested)) return null;
+  return confirmation;
 });
 
 const canUserConfirm = computed(() => {
@@ -358,14 +412,10 @@ function confirmMatch() {
 function openContestDialog() {
   contestDialogVisible.value = true;
   contestReason.value = '';
-  contestProof.value = '';
 }
 
 function submitContest() {
-  emit('contest', {
-    reason: contestReason.value || undefined,
-    proof: contestProof.value || undefined,
-  });
+  emit('contest', { reason: contestReason.value || undefined });
   contestDialogVisible.value = false;
 }
 
