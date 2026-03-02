@@ -7,11 +7,11 @@ export const generateInvitationCodeSchema = z.object({
 });
 
 export const validateInvitationCodeSchema = z.object({
-  code: z.string().length(32, "Invitation code must be 32 characters"),
+  code: z.string().regex(/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/, "Format du code invalide"),
 });
 
 export const consumeInvitationCodeSchema = z.object({
-  code: z.string().length(32, "Invitation code must be 32 characters"),
+  code: z.string().regex(/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/, "Format du code invalide"),
 });
 
 export type GenerateInvitationCodeInput = z.infer<typeof generateInvitationCodeSchema>;

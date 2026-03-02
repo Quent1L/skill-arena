@@ -28,7 +28,7 @@
               <InputText
                 id="code"
                 v-model="invitationCode"
-                placeholder="Entrez votre code d'invitation (32 caractères)"
+                placeholder="ex: tigre-riviere-soleil"
                 :disabled="isValidating || codeValid || isSubmitting"
                 class="w-full"
                 @input="debouncedValidate"
@@ -113,7 +113,7 @@ const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
 
 const debouncedValidate = useDebounceFn(async () => {
-  if (invitationCode.value.length !== 32) {
+  if (!/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/.test(invitationCode.value)) {
     codeValid.value = false
     codeError.value = null
     return

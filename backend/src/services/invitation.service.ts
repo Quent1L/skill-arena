@@ -1,5 +1,5 @@
-import { randomBytes } from "crypto";
 import { invitationRepository } from "../repository/invitation.repository";
+import { generatePassphrase } from "../utils/passphrase";
 import {
   BadRequestError,
   ErrorCode,
@@ -14,7 +14,10 @@ export class InvitationService {
     expiresInDays?: number;
     notes?: string;
   }) {
-    const code = randomBytes(16).toString("hex");
+    let code: string;
+    do {
+      code = generatePassphrase();
+    } while (await invitationRepository.findByCode(code));
     const expiresAt = data.expiresInDays
       ? new Date(Date.now() + data.expiresInDays * 24 * 60 * 60 * 1000)
       : null;
