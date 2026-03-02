@@ -67,6 +67,7 @@ export interface UpdateMatchData {
 export interface MatchFilters {
   tournamentId?: string;
   status?: MatchStatus;
+  playerId?: string;
 }
 
 export class MatchRepository {
@@ -316,6 +317,17 @@ export class MatchRepository {
     }
     if (filters?.status) {
       conditions.push(eq(matches.status, filters.status));
+    }
+    if (filters?.playerId) {
+      const playerMatchIds = await db
+        .select({ matchId: matchSides.matchId })
+        .from(matchSides)
+        .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+        .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+        .where(eq(tournamentEntryPlayers.playerId, filters.playerId));
+      const ids = playerMatchIds.map((r) => r.matchId);
+      if (ids.length === 0) return [];
+      conditions.push(inArray(matches.id, ids));
     }
 
     const matchList = await db.query.matches.findMany({

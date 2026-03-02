@@ -23,7 +23,7 @@ export async function runMigrations(): Promise<void> {
     // 2. Checks which migrations have been applied
     // 3. Applies only the pending ones
     // 4. Does everything in a transaction
-    await migrate(db, { migrationsFolder: "./drizzle" });
+    await migrate(db, { migrationsFolder: process.env.MIGRATIONS_FOLDER ?? "./drizzle" });
 
     console.log("✅ Database migrations completed successfully");
     console.log("=".repeat(80));

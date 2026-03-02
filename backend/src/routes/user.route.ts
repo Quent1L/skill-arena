@@ -4,7 +4,8 @@ import { createAppHono } from "../types/hono";
 import { userRepository } from "../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../types/errors";
 import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema } from "@skill-arena/shared";
+import { updateProfileSchema, playerStatsFiltersSchema } from "@skill-arena/shared";
+import { playerStatsService } from "../services/player-stats.service";
 
 const users = createAppHono();
 
@@ -88,6 +89,28 @@ users.get("/", requireAuth, async (c) => {
   }));
 
   return c.json(usersResponse);
+});
+
+// GET /users/:id - Public player profile
+users.get("/:id", async (c) => {
+  const id = c.req.param("id");
+  const player = await playerStatsService.getPlayerProfile(id);
+  return c.json(player);
+});
+
+// GET /users/:id/tournaments - Tournaments list for filter dropdown
+users.get("/:id/tournaments", async (c) => {
+  const id = c.req.param("id");
+  const tournaments = await playerStatsService.getPlayerTournaments(id);
+  return c.json({ tournaments });
+});
+
+// GET /users/:id/stats - Player stats (filterable)
+users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c) => {
+  const id = c.req.param("id");
+  const filters = c.req.valid("query");
+  const result = await playerStatsService.getPlayerStats(id, filters);
+  return c.json(result);
 });
 
 export default users;

@@ -213,6 +213,17 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/players/:id',
+    name: 'player-detail',
+    component: () => import('@/views/PlayerDetailView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      breadcrumb: 'Profil du joueur',
+      title: 'Profil du joueur',
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),

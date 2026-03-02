@@ -58,7 +58,10 @@
                 </div>
                 <div v-if="match.teamA?.participants" class="mt-2 text-sm">
                   <div v-for="p in match.teamA.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                    <RouterLink v-if="p.user?.id" :to="`/players/${p.user.id}`" class="hover:underline text-blue-600 dark:text-blue-400">
+                      {{ p.user?.displayName }}
+                    </RouterLink>
+                    <span v-else>{{ p.user?.displayName }}</span>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -83,7 +86,10 @@
                 </div>
                 <div v-if="match.teamB?.participants" class="mt-2 text-sm">
                   <div v-for="p in match.teamB.participants" :key="p.user?.id">
-                    {{ p.user?.displayName }}
+                    <RouterLink v-if="p.user?.id" :to="`/players/${p.user.id}`" class="hover:underline text-blue-600 dark:text-blue-400">
+                      {{ p.user?.displayName }}
+                    </RouterLink>
+                    <span v-else>{{ p.user?.displayName }}</span>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">

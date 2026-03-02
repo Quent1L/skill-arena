@@ -53,6 +53,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copier uniquement ce qui est nécessaire à l'exécution
 COPY --from=build --chown=nodejs:nodejs /app/backend/dist ./backend/dist
+COPY --from=build --chown=nodejs:nodejs /app/backend/drizzle ./backend/drizzle
 COPY --from=build --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
 
 # Si le backend a vraiment besoin du package.json (rare avec un build bundlé)
@@ -60,6 +61,7 @@ COPY --from=build --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV MIGRATIONS_FOLDER=./backend/drizzle
 
 EXPOSE 3000
 

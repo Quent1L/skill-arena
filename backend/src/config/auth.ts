@@ -164,7 +164,12 @@ const authConfig: any = {
       trustedProviders: ["keycloak"],
     },
   },
-  trustedOrigins: ["http://localhost:5173", "http://localhost:3000"],
+  trustedOrigins: [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+  ],
   baseURL: process.env.BETTER_AUTH_URL || process.env.BASE_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET,
   plugins,
