@@ -231,8 +231,9 @@ function goToMatch(id: string) {
 async function loadMatches() {
   loading.value = true
   try {
-    const filters: { tournamentId?: string } = {}
+    const filters: { tournamentId?: string; playerId?: string } = {}
     if (props.tournamentId) filters.tournamentId = props.tournamentId
+    if (props.playerId) filters.playerId = props.playerId
 
     const result = await listMatches(filters)
 

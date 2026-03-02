@@ -70,7 +70,7 @@
 
       <!-- Tab 2: Standings (hidden for bracket mode) -->
       <div v-if="tournament.mode !== 'bracket'" v-show="activeTab === 'standings'" class="h-full p-2">
-        <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
+        <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" :team-mode="tournament.teamMode" />
       </div>
 
       <!-- Tab 3: Bracket (only for bracket mode) -->

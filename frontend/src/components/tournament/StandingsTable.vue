@@ -76,7 +76,15 @@
 
       <Column field="name" header="Nom">
         <template #body="{ data }">
-          <div class="font-medium text-gray-900 dark:text-white" :title="data.name">
+          <RouterLink
+            v-if="teamMode === 'flex'"
+            :to="`/players/${data.id}`"
+            class="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            :title="data.name"
+          >
+            {{ data.shortName }}
+          </RouterLink>
+          <div v-else class="font-medium text-gray-900 dark:text-white" :title="data.name">
             {{ data.shortName }}
           </div>
         </template>
@@ -170,10 +178,12 @@ import { useStandingsService } from '@/composables/standings.service'
 interface Props {
   tournamentId: string
   allowDraw?: boolean
+  teamMode?: 'static' | 'flex'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   allowDraw: true,
+  teamMode: 'flex',
 })
 
 const { standings, loading, error, loadOfficialStandings, loadProvisionalStandings } =

@@ -9,9 +9,20 @@
         </p>
       </div>
 
-      <!-- Bouton administration (visible seulement pour les admins) -->
-      <div v-if="canManageTournaments" class="flex gap-3">
+      <div class="flex items-center gap-2">
+        <!-- Bouton filtres mobile -->
+        <div class="md:hidden">
+          <Button
+            icon="fa fa-filter"
+            severity="secondary"
+            @click="showFilterDrawer = true"
+            :badge="activeFilterCount > 0 ? String(activeFilterCount) : undefined"
+            badge-severity="info"
+          />
+        </div>
+        <!-- Bouton administration (visible seulement pour les admins) -->
         <Button
+          v-if="canManageTournaments"
           label="Administration"
           icon="fas fa-crown"
           @click="router.push('/admin')"
@@ -20,44 +31,96 @@
       </div>
     </div>
 
-    <!-- Filtres -->
-    <Card class="mb-6">
+    <!-- Filtres desktop (masqués sur mobile) -->
+    <div class="mb-6 hidden md:block">
+    <Card>
       <template #content>
         <div class="flex flex-wrap gap-4">
           <div class="flex-1 min-w-48">
-            <label for="status-filter" class="block text-sm font-medium mb-2">Statut</label>
+            <label class="block text-sm font-medium mb-2">Statut</label>
             <Select
-              id="status-filter"
               v-model="filters.status"
               :options="statusOptions"
               option-label="label"
               option-value="value"
               placeholder="Tous les statuts"
               class="w-full"
+              show-clear
               @change="loadTournaments"
             />
           </div>
-
           <div class="flex-1 min-w-48">
-            <label for="mode-filter" class="block text-sm font-medium mb-2">Mode</label>
+            <label class="block text-sm font-medium mb-2">Mode</label>
             <Select
-              id="mode-filter"
               v-model="filters.mode"
               :options="modeOptions"
               option-label="label"
               option-value="value"
               placeholder="Tous les modes"
               class="w-full"
+              show-clear
               @change="loadTournaments"
             />
           </div>
-
           <div class="flex items-end">
             <Button label="Réinitialiser" text @click="resetFilters" class="text-gray-600" />
           </div>
         </div>
       </template>
     </Card>
+    </div>
+
+    <!-- Drawer filtres mobile -->
+    <Drawer
+      v-model:visible="showFilterDrawer"
+      position="bottom"
+      :style="{ height: 'auto', maxHeight: '85vh', borderRadius: '1rem 1rem 0 0' }"
+      header="Filtres"
+    >
+      <div class="flex flex-col gap-5 pb-2">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Statut</label>
+          <Select
+            v-model="draftFilters.status"
+            :options="statusOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Tous les statuts"
+            class="w-full"
+            show-clear
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Mode</label>
+          <Select
+            v-model="draftFilters.mode"
+            :options="modeOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Tous les modes"
+            class="w-full"
+            show-clear
+          />
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex gap-3 pt-2">
+          <Button
+            label="Réinitialiser"
+            severity="secondary"
+            icon="fa fa-rotate-left"
+            class="flex-1"
+            @click="resetMobileFilters"
+          />
+          <Button
+            label="Appliquer"
+            icon="fa fa-check"
+            class="flex-1"
+            @click="applyMobileFilters"
+          />
+        </div>
+      </template>
+    </Drawer>
 
     <!-- Message d'erreur -->
     <Message v-if="error" severity="error" :closable="true" class="mb-6">
@@ -112,22 +175,22 @@ import { useRouter } from 'vue-router'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useAuth } from '@/composables/useAuth'
 import TournamentCard from '@/components/TournamentCard.vue'
+import Drawer from 'primevue/drawer'
 import type { TournamentStatus, TournamentMode, BaseTournament } from '@skill-arena/shared'
 
 const router = useRouter()
 const { tournaments, loading, error, listTournaments } = useTournamentService()
 const { isSuperAdmin, isAuthenticated } = useAuth()
 
-// Permissions
-const canManageTournaments = computed(() => {
-  return isAuthenticated.value && isSuperAdmin.value
-})
+const canManageTournaments = computed(() => isAuthenticated.value && isSuperAdmin.value)
 
-// Filtres
-const filters = ref<{
-  status?: TournamentStatus
-  mode?: TournamentMode
-}>({})
+// Filtres actifs (desktop + résultat des filtres mobile)
+const filters = ref<{ status?: TournamentStatus; mode?: TournamentMode }>({})
+
+// Filtres brouillons pour le drawer mobile
+const draftFilters = ref<{ status?: TournamentStatus; mode?: TournamentMode }>({})
+
+const showFilterDrawer = ref(false)
 
 const statusOptions = computed(() => {
   const base = [
@@ -135,9 +198,7 @@ const statusOptions = computed(() => {
     { label: 'En cours', value: 'ongoing' },
     { label: 'Terminé', value: 'finished' },
   ]
-  if (isSuperAdmin.value) {
-    base.unshift({ label: 'Brouillon', value: 'draft' })
-  }
+  if (isSuperAdmin.value) base.unshift({ label: 'Brouillon', value: 'draft' })
   return base
 })
 
@@ -146,22 +207,31 @@ const modeOptions = [
   { label: 'Bracket', value: 'bracket' },
 ]
 
-const hasFilters = computed(() => {
-  return !!(filters.value.status || filters.value.mode)
-})
+const hasFilters = computed(() => !!(filters.value.status || filters.value.mode))
 
-// Actions
+const activeFilterCount = computed(() =>
+  [filters.value.status, filters.value.mode].filter(Boolean).length
+)
+
 function resetFilters() {
   filters.value = {}
+  draftFilters.value = {}
+  loadTournaments()
+}
+
+function resetMobileFilters() {
+  draftFilters.value = {}
+}
+
+function applyMobileFilters() {
+  filters.value = { ...draftFilters.value }
+  showFilterDrawer.value = false
   loadTournaments()
 }
 
 async function loadTournaments() {
   try {
-    await listTournaments({
-      status: filters.value.status,
-      mode: filters.value.mode,
-    })
+    await listTournaments({ status: filters.value.status, mode: filters.value.mode })
   } catch (err) {
     console.error('Erreur lors du chargement des tournois:', err)
   }
@@ -171,7 +241,6 @@ function viewTournament(tournament: BaseTournament) {
   router.push(`/tournaments/${tournament.id}`)
 }
 
-// Lifecycle
 onMounted(() => {
   loadTournaments()
 })

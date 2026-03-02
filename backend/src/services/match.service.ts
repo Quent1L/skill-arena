@@ -199,6 +199,7 @@ export class MatchService {
     tournamentId?: string;
     status?: MatchStatus;
     round?: number;
+    playerId?: string;
   }) {
     return await matchRepository.list(filters);
   }

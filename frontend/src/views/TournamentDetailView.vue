@@ -89,7 +89,7 @@
         </TabList>
         <TabPanels>
           <TabPanel v-if="tournament.mode === 'championship'" value="0">
-            <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" />
+            <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" :team-mode="tournament.teamMode" />
           </TabPanel>
           <TabPanel :value="tournament.mode === 'championship' ? '1' : '0'">
             <div class="p-0">

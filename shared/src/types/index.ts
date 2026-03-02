@@ -17,6 +17,7 @@ export * from "./outcome-reason";
 export * from "./standings";
 export * from "./entry";
 export * from "./bracket";
+export * from "./player";
 
 // ============================================
 // Types utilitaires

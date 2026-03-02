@@ -291,6 +291,7 @@ export const listMatchesQuerySchema = z.object({
   tournamentId: z.string().uuid().optional(),
   status: matchStatusSchema.optional(),
   round: z.number().int().min(1).optional(),
+  playerId: z.string().uuid().optional(),
 });
 
 export const validateMatchSchema = z
