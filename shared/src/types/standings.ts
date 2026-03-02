@@ -5,6 +5,7 @@
 export interface StandingsEntry {
   id: string;
   name: string;
+  shortName: string;
   points: number;
   wins: number;
   draws: number;

@@ -60,6 +60,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       .insert(appUsers)
       .values({
         displayName: "Test User Duplicate",
+        shortName: "TUD",
         externalId: betterAuthUserId,
         role: "super_admin",
       })
@@ -116,6 +117,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
           .insert(appUsers)
           .values({
             displayName: p.name,
+            shortName: p.name.substring(0, 5).toUpperCase(),
             externalId: p.id,
           })
           .returning()

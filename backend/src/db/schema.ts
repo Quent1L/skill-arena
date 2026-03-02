@@ -206,6 +206,7 @@ export const appUsers = pgTable("app_users", {
     .unique()
     .references(() => user.id, { onDelete: "cascade" }),
   displayName: text("display_name").notNull(),
+  shortName: text("short_name").notNull(),
   role: userRoleEnum("role").notNull().default("player"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")

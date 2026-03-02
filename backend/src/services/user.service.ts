@@ -1,6 +1,7 @@
 import { userRepository } from "../repository/user.repository";
 import { invitationRepository } from "../repository/invitation.repository";
 import { ErrorCode, NotFoundError, UnauthorizedError } from "../types/errors";
+import type { UpdateProfileInput } from "@skill-arena/shared";
 
 export class UserService {
   /**
@@ -31,6 +32,7 @@ export class UserService {
     appUser = await userRepository.createAppUser({
       externalId: betterAuthUserId,
       displayName: displayName,
+      shortName: displayName.substring(0, 5).toUpperCase(),
       role: "player",
     });
 
@@ -61,6 +63,17 @@ export class UserService {
     }
 
     return appUser;
+  }
+
+  /**
+   * Update user profile (displayName and shortName)
+   */
+  async updateProfile(appUserId: string, data: UpdateProfileInput) {
+    const appUser = await userRepository.getById(appUserId);
+    if (!appUser) {
+      throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
+    }
+    return await userRepository.updateAppUser(appUserId, data);
   }
 
   /**

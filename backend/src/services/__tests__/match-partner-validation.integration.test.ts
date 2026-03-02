@@ -93,6 +93,7 @@ describe("Match Partner Validation", () => {
       .values({
         externalId: authUser1Id,
         displayName: "Player 1",
+        shortName: "PLY1",
         role: "player",
       })
       .returning();
@@ -103,6 +104,7 @@ describe("Match Partner Validation", () => {
       .values({
         externalId: authUser2Id,
         displayName: "Player 2",
+        shortName: "PLY2",
         role: "player",
       })
       .returning();
@@ -113,6 +115,7 @@ describe("Match Partner Validation", () => {
       .values({
         externalId: authUser3Id,
         displayName: "Player 3",
+        shortName: "PLY3",
         role: "player",
       })
       .returning();
@@ -123,6 +126,7 @@ describe("Match Partner Validation", () => {
       .values({
         externalId: authUser4Id,
         displayName: "Player 4",
+        shortName: "PLY4",
         role: "player",
       })
       .returning();
