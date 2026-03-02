@@ -6,6 +6,7 @@ export interface UserResponse {
   id: string
   externalId: string
   displayName: string
+  shortName: string
   role: 'player' | 'tournament_admin' | 'super_admin'
   createdAt: string
   updatedAt: string
@@ -29,6 +30,14 @@ export const userApi = {
    */
   async me(): Promise<UserResponse> {
     const response = await http.get<UserResponse>(`${BASE_URL}/me`)
+    return response.data
+  },
+
+  /**
+   * Update current user profile
+   */
+  async updateProfile(data: { displayName: string; shortName: string }): Promise<UserResponse> {
+    const response = await http.patch<UserResponse>(`${BASE_URL}/me`, data)
     return response.data
   },
 

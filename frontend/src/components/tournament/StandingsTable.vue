@@ -76,8 +76,8 @@
 
       <Column field="name" header="Nom">
         <template #body="{ data }">
-          <div class="font-medium text-gray-900 dark:text-white">
-            {{ data.name }}
+          <div class="font-medium text-gray-900 dark:text-white" :title="data.name">
+            {{ data.shortName }}
           </div>
         </template>
       </Column>

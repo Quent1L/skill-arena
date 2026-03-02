@@ -59,6 +59,7 @@ describe("Tournament Participation Integration Tests", () => {
       .insert(appUsers)
       .values({
         displayName: "Test User Participation",
+        shortName: "TESTP",
         externalId: betterAuthUserId1,
       })
       .returning();
@@ -68,6 +69,7 @@ describe("Tournament Participation Integration Tests", () => {
       .insert(appUsers)
       .values({
         displayName: "Another Test User",
+        shortName: "ANOTH",
         externalId: betterAuthUserId2,
       })
       .returning();

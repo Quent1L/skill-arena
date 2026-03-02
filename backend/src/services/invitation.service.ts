@@ -97,6 +97,7 @@ export class InvitationService {
     const appUser = await userRepository.createAppUser({
       externalId: betterAuthUserId,
       displayName: displayName,
+      shortName: displayName.substring(0, 5).toUpperCase(),
       role: "player",
     });
 

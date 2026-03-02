@@ -233,6 +233,17 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
     },
   },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfileView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      breadcrumb: 'Mon profil',
+      title: 'Mon profil',
+      requiresAuth: true,
+    },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',

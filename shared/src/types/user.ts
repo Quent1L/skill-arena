@@ -18,6 +18,7 @@ export interface AppUser {
   id: string;
   externalId: string; // Référence vers Better Auth user
   displayName: string;
+  shortName: string;
   role: UserRole;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string

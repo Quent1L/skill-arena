@@ -91,6 +91,7 @@ export class StandingsService {
         standingsMap.set(team.id, {
           id: team.id,
           name: team.name,
+          shortName: team.name.substring(0, 5).toUpperCase(),
           points: 0,
           wins: 0,
           draws: 0,
@@ -105,7 +106,7 @@ export class StandingsService {
       // For flex mode, standings are by individual player
       // Get all unique players from all entries
       const entries = await standingsRepository.getTournamentEntries(tournamentId);
-      const playersMap = new Map<string, { id: string; name: string }>();
+      const playersMap = new Map<string, { id: string; name: string; shortName: string }>();
 
       for (const entry of entries) {
         for (const ep of entry.players) {
@@ -113,6 +114,7 @@ export class StandingsService {
             playersMap.set(ep.playerId, {
               id: ep.playerId,
               name: ep.player.displayName,
+              shortName: ep.player.shortName,
             });
           }
         }
@@ -123,6 +125,7 @@ export class StandingsService {
         standingsMap.set(player.id, {
           id: player.id,
           name: player.name,
+          shortName: player.shortName,
           points: 0,
           wins: 0,
           draws: 0,

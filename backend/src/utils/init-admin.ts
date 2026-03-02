@@ -36,6 +36,7 @@ export async function initializeAdminIfNeeded(): Promise<void> {
   await db.insert(appUsers).values({
     externalId: userId,
     displayName: "Admin",
+    shortName: "ADMIN",
     role: "super_admin",
   });
 

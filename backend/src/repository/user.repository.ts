@@ -23,6 +23,15 @@ export class UserRepository {
     return createdUser;
   }
 
+  async updateAppUser(id: string, data: { displayName?: string; shortName?: string }) {
+    const [updated] = await db
+      .update(appUsers)
+      .set(data)
+      .where(eq(appUsers.id, id))
+      .returning();
+    return updated;
+  }
+
   /**
    * Get all users (for admin use)
    */
