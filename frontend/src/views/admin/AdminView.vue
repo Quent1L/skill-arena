@@ -53,7 +53,10 @@
           </div>
         </template>
       </Card>
-      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToDisciplines">
+      <Card
+        class="cursor-pointer hover:shadow-lg transition-shadow"
+        @click="navigateToInvitaionCode"
+      >
         <template #content>
           <div class="text-center py-8">
             <div class="mb-4">
