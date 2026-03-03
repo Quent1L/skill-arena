@@ -29,7 +29,7 @@
               <InputText
                 id="code"
                 v-model="invitationCode"
-                placeholder="Entrez votre code d'invitation (32 caractères)"
+                placeholder="Entrez votre code d'invitation (ex: tigre-riviere-soleil-ocean)"
                 :disabled="isValidating || codeValid"
                 class="w-full"
                 @input="debouncedValidate"
@@ -162,9 +162,9 @@ async function validateCode() {
     return
   }
 
-  if (invitationCode.value.length !== 32) {
+  if (!/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/.test(invitationCode.value)) {
     codeValid.value = false
-    codeError.value = 'Le code doit contenir 32 caractères'
+    codeError.value = 'Format invalide (ex: tigre-riviere-soleil-ocean)'
     return
   }
 

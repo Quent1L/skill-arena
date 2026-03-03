@@ -33,7 +33,12 @@ export async function requireAuth(
     console.error('❌ Error during authentication check:', error)
 
     if (error instanceof Error && error.cause === 'INVITATION_CODE_REQUIRED') {
-      errorService.showError(error)
+      const hasCookieCode = document.cookie
+        .split('; ')
+        .some(row => row.startsWith('invitation_code='))
+      if (!hasCookieCode) {
+        errorService.showError(error)
+      }
       next('/submit-invitation')
       return
     }

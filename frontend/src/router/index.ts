@@ -228,8 +228,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SettingsView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      breadcrumb: 'Paramètres',
-      title: 'Paramètres',
+      hideBreadcrumb: true,
       requiresAuth: true,
     },
   },

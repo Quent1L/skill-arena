@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full flex items-center justify-center">
+  <div class="w-full flex items-center justify-center h-full">
     <div class="text-center space-y-6 p-6">
-      <SkolLogo class="mx-auto h-80"></SkolLogo>
+      <SkolLogo class="mx-auto"></SkolLogo>
 
       <p class="text-xl md:text-2xl text-white/90 drop-shadow-md">La chance ne suffira pas</p>
 
