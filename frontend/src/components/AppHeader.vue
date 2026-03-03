@@ -64,16 +64,16 @@ import NotificationDropdown from './NotificationDropdown.vue'
 import SkolLogo from './SkolLogo.vue'
 
 const router = useRouter()
-const { currentUser, isAuthenticated, logout } = useAuth()
+const { currentUser, appUser, isAuthenticated, logout } = useAuth()
 const menu = ref()
 const notifDropdown = useTemplateRef('notifDropdown')
 
 const menuItems = computed<MenuItem[]>(() => [
   {
-    label: 'Mon profil',
-    icon: 'fas fa-user',
+    label: 'Mes stats',
+    icon: 'fas fa-chart-bar',
     command: () => {
-      router.push('/profile')
+      router.push(`/players/${appUser.value?.id}`)
     },
   },
   {

@@ -59,7 +59,7 @@ const routes: RouteRecordRaw[] = [
     name: 'submit-invitation',
     component: () => import('@/views/SubmitInvitationView.vue'),
     meta: {
-      breadcrumb: 'Code d\'invitation',
+      breadcrumb: "Code d'invitation",
       hideBreadcrumb: true,
     },
   },
@@ -163,8 +163,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminInvitationsView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Codes d\'invitation',
-      title: 'Gestion des codes d\'invitation',
+      breadcrumb: "Codes d'invitation",
+      title: "Gestion des codes d'invitation",
       requiresAuth: true,
       parent: 'admin',
     },
@@ -218,8 +218,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PlayerDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      breadcrumb: 'Profil du joueur',
-      title: 'Profil du joueur',
+      hideBreadcrumb: true,
       requiresAuth: true,
     },
   },
@@ -241,17 +240,6 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: requireAuth,
     meta: {
       hideBreadcrumb: true,
-      requiresAuth: true,
-    },
-  },
-  {
-    path: '/profile',
-    name: 'profile',
-    component: () => import('@/views/ProfileView.vue'),
-    beforeEnter: requireAuth,
-    meta: {
-      breadcrumb: 'Mon profil',
-      title: 'Mon profil',
       requiresAuth: true,
     },
   },
