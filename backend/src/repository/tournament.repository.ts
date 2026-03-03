@@ -46,6 +46,7 @@ export interface UpdateTournamentData {
   endDate?: string;
   status?: TournamentStatus;
   disciplineId?: string;
+  rulesId?: string | null;
 }
 
 export interface TournamentFilters {
@@ -111,6 +112,7 @@ export class TournamentRepository {
       with: {
         creator: true,
         discipline: true,
+        rules: true,
         admins: {
           with: {
             user: true,

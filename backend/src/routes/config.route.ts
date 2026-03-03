@@ -17,6 +17,7 @@ configRoute.get("/", (c) => {
     realm: process.env.KEYCLOAK_ISSUER
       ? process.env.KEYCLOAK_ISSUER.split("/realms/")[1]?.split("/")[0]
       : null,
+    loginLabel: process.env.KEYCLOAK_LOGIN_LABEL || null,
   };
 
   return c.json({

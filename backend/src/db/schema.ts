@@ -215,6 +215,20 @@ export const appUsers = pgTable("app_users", {
     .notNull(),
 });
 
+export const gameRules = pgTable("game_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 export const tournaments = pgTable("tournaments", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
@@ -238,6 +252,9 @@ export const tournaments = pgTable("tournaments", {
   endDate: date("end_date").notNull(),
   status: tournamentStatusEnum("status").notNull().default("draft"),
   disciplineId: uuid("discipline_id").references(() => disciplines.id, {
+    onDelete: "set null",
+  }),
+  rulesId: uuid("rules_id").references(() => gameRules.id, {
     onDelete: "set null",
   }),
   createdBy: uuid("created_by")
@@ -668,6 +685,15 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   reportedMatches: many(matchResults, { relationName: "reportedBy" }),
   finalizedMatches: many(matchResults, { relationName: "finalizedBy" }),
   createdInvitationCodes: many(invitationCodes),
+  createdGameRules: many(gameRules),
+}));
+
+export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
+  creator: one(appUsers, {
+    fields: [gameRules.createdBy],
+    references: [appUsers.id],
+  }),
+  tournaments: many(tournaments),
 }));
 
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
@@ -678,6 +704,10 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   discipline: one(disciplines, {
     fields: [tournaments.disciplineId],
     references: [disciplines.id],
+  }),
+  rules: one(gameRules, {
+    fields: [tournaments.rulesId],
+    references: [gameRules.id],
   }),
   admins: many(tournamentAdmins),
   participants: many(tournamentParticipants),

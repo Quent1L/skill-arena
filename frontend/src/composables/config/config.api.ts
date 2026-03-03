@@ -5,6 +5,7 @@ export interface KeycloakConfig {
   clientId: string | null;
   issuer: string | null;
   realm: string | null;
+  loginLabel: string | null;
 }
 
 export interface EmailPasswordConfig {

@@ -45,6 +45,13 @@ export class ParticipantRepository {
         userId,
         status: "active",
       })
+      .onConflictDoUpdate({
+        target: [tournamentParticipants.tournamentId, tournamentParticipants.userId],
+        set: {
+          status: "active",
+          joinedAt: sql`now()`,
+        },
+      })
       .returning();
 
     return participation;

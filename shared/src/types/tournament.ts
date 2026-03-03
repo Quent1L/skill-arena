@@ -35,6 +35,11 @@ export interface BaseTournament {
     id: string;
     name: string;
   };
+  rulesId?: string | null;
+  rules?: {
+    id: string;
+    title: string;
+  } | null;
   createdBy: string; // uuid
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
@@ -78,6 +83,7 @@ export interface UpdateTournamentInput {
   endDate?: string;
   status?: TournamentStatus;
   disciplineId?: string;
+  rulesId?: string | null;
 }
 
 export interface ChangeTournamentStatusInput {
@@ -337,6 +343,7 @@ export const updateTournamentSchema = z
       .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
       .optional(),
     status: tournamentStatusSchema.optional(),
+    rulesId: z.string().uuid().nullable().optional(),
   })
   .refine(
     (data) => {

@@ -54,6 +54,7 @@ declare module 'vue' {
     Popover: typeof import('primevue/popover')['default']
     ProgressSpinner: typeof import('primevue/progressspinner')['default']
     PwaInstallBanner: typeof import('./src/components/PwaInstallBanner.vue')['default']
+    RichTextEditor: typeof import('./src/components/editor/RichTextEditor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ScoreInput: typeof import('./src/components/match/ScoreInput.vue')['default']

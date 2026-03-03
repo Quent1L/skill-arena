@@ -28,6 +28,7 @@
         @leave="leaveTournament"
         @create-match="createMatch"
         @edit="editTournament"
+        @view-rules="viewRules"
         @participant-added="handleParticipantAdded"
       />
     </div>
@@ -49,10 +50,12 @@
               :can-manage="canManageTournament"
               :joining="joining"
               :leaving="leaving"
+              :rules-id="tournament.rulesId"
               @join="joinTournament"
               @leave="leaveTournament"
               @create-match="createMatch"
               @edit="editTournament"
+              @view-rules="viewRules"
             />
           </div>
         </template>
@@ -257,6 +260,10 @@ function editTournament() {
 
 function createMatch() {
   router.push(`/tournaments/${tournamentId.value}/create-match`)
+}
+
+function viewRules() {
+  router.push(`/tournaments/${tournamentId.value}/rules`)
 }
 
 async function handleParticipantAdded() {

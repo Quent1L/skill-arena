@@ -78,7 +78,7 @@
                 severity="secondary"
               >
                 <i class="fa fa-building mr-2"></i>
-                {{ isSigningIn ? 'Connexion...' : "S'inscrire avec Keycloak (SSO)" }}
+                {{ isSigningIn ? 'Connexion...' : keycloakLoginLabel }}
               </Button>
             </div>
 
@@ -127,6 +127,9 @@ const isSigningIn = ref(false)
 const emailPasswordEnabled = computed(() => config.value?.auth?.emailPassword?.enabled ?? true)
 const keycloakEnabled = computed(() => config.value?.auth?.keycloak?.enabled ?? false)
 const noAuthMethodAvailable = computed(() => !emailPasswordEnabled.value && !keycloakEnabled.value)
+const keycloakLoginLabel = computed(
+  () => config.value?.auth?.keycloak?.loginLabel ?? "S'inscrire avec Keycloak (SSO)"
+)
 
 onMounted(() => {
   // Vérifier si une erreur OAuth est présente dans l'URL

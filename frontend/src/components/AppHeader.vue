@@ -28,6 +28,9 @@
               <template #itemicon="{ item }">
                 <i :class="item.icon"></i>
               </template>
+              <template #end>
+                <div class="w-full flex justify-center text-xs text-gray-500 h-7 pt-2">Version {{ appVersion }}</div>
+              </template>
             </Menu>
 
             <Button
@@ -62,6 +65,8 @@ import type { MenuItem } from 'primevue/menuitem'
 import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
 import SkolLogo from './SkolLogo.vue'
+
+const appVersion = __APP_VERSION__
 
 const router = useRouter()
 const { currentUser, appUser, isAuthenticated, logout } = useAuth()

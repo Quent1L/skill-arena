@@ -231,6 +231,7 @@ export class TournamentService {
       "startDate",
       "endDate",
       "status",
+      "rulesId",
     ]);
     const attemptedFields = Object.keys(input);
     const invalidFields = attemptedFields.filter(

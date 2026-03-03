@@ -90,8 +90,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Administration',
-      title: 'Administration',
+      hideBreadcrumb: true,
       requiresAuth: true,
     },
   },
@@ -170,6 +169,42 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/rules',
+    name: 'admin-rules',
+    component: () => import('@/views/admin/GameRulesList.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Règles du jeu',
+      title: 'Gestion des règles du jeu',
+      requiresAuth: true,
+      parent: 'admin',
+    },
+  },
+  {
+    path: '/admin/rules/new',
+    name: 'admin-rules-new',
+    component: () => import('@/views/admin/GameRulesFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Nouveau règlement',
+      title: 'Nouveau règlement',
+      requiresAuth: true,
+      parent: 'admin-rules',
+    },
+  },
+  {
+    path: '/admin/rules/:id/edit',
+    name: 'admin-rules-edit',
+    component: () => import('@/views/admin/GameRulesFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Modifier le règlement',
+      title: 'Modifier le règlement',
+      requiresAuth: true,
+      parent: 'admin-rules',
+    },
+  },
+  {
     path: '/',
     name: 'tournaments',
     component: () => import('@/views/TournamentsView.vue'),
@@ -220,6 +255,14 @@ const routes: RouteRecordRaw[] = [
     meta: {
       hideBreadcrumb: true,
       requiresAuth: true,
+    },
+  },
+  {
+    path: '/tournaments/:id/rules',
+    name: 'tournament-rules',
+    component: () => import('@/views/TournamentRulesView.vue'),
+    meta: {
+      hideBreadcrumb: true,
     },
   },
   {
