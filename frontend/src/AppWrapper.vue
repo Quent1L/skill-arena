@@ -8,6 +8,7 @@
           <component :is="Component" :key="route.path" />
         </Transition>
       </RouterView>
+      <PwaInstallBanner />
     </NotificationsInit>
   </div>
 </template>
@@ -17,6 +18,7 @@ import { RouterView } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
 import NotificationsInit from '@/components/NotificationsInit.vue'
+import PwaInstallBanner from '@/components/PwaInstallBanner.vue'
 import { usePageTransitions } from '@/utils/transitions'
 
 usePageTransitions()

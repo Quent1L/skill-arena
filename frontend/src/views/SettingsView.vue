@@ -23,6 +23,118 @@
           </template>
         </Card>
 
+        <!-- Profil -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-user-edit"></i>
+              <span>Profil</span>
+            </div>
+          </template>
+          <template #content>
+            <form @submit="onSubmitProfile" class="space-y-4">
+              <Message v-if="profileSuccess" severity="success" :closable="false">
+                <i class="fa fa-check mr-2"></i>
+                Profil mis à jour avec succès.
+              </Message>
+
+              <div class="flex flex-col gap-2">
+                <label for="display-name" class="font-medium">Nom d'affichage</label>
+                <InputText
+                  id="display-name"
+                  v-model="displayName"
+                  :invalid="!!profileErrors.displayName"
+                  :disabled="profileLoading"
+                  class="w-full"
+                  maxlength="50"
+                />
+                <small v-if="profileErrors.displayName" class="text-red-500">
+                  {{ profileErrors.displayName }}
+                </small>
+              </div>
+
+              <div class="flex flex-col gap-2">
+                <label for="short-name" class="font-medium">Nom court (classement)</label>
+                <InputText
+                  id="short-name"
+                  v-model="shortName"
+                  :invalid="!!profileErrors.shortName"
+                  :disabled="profileLoading"
+                  class="w-full"
+                  maxlength="5"
+                  @input="shortName = (shortName ?? '').toUpperCase()"
+                />
+                <small class="opacity-60">
+                  Jusqu'à 5 caractères, affiché dans le classement à la place du nom complet.
+                </small>
+                <small v-if="profileErrors.shortName" class="text-red-500">
+                  {{ profileErrors.shortName }}
+                </small>
+              </div>
+
+              <Message v-if="profileError" severity="error" :closable="false">
+                {{ profileError }}
+              </Message>
+
+              <div class="flex justify-end gap-2 pt-2">
+                <Button
+                  label="Annuler"
+                  severity="secondary"
+                  outlined
+                  type="button"
+                  :disabled="profileLoading"
+                  @click="$router.back()"
+                />
+                <Button
+                  label="Enregistrer"
+                  type="submit"
+                  icon="fas fa-save"
+                  :loading="profileLoading"
+                  :disabled="profileLoading"
+                />
+              </div>
+            </form>
+          </template>
+        </Card>
+
+        <!-- Application -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-mobile-alt"></i>
+              <span>Application</span>
+            </div>
+          </template>
+          <template #content>
+            <Message v-if="isInstalled" severity="success" :closable="false">
+              L'application est déjà installée sur cet appareil.
+            </Message>
+
+            <div v-else-if="canInstall" class="flex items-center justify-between gap-4">
+              <div>
+                <p class="font-medium">Installer l'application</p>
+                <p class="text-sm opacity-70">Accès rapide depuis l'écran d'accueil</p>
+              </div>
+              <Button icon="fas fa-download" label="Installer" @click="triggerInstall" />
+            </div>
+
+            <Message
+              v-if="isIOS && showIOSInstructions"
+              severity="info"
+              :closable="true"
+              class="mt-3"
+              @close="showIOSInstructions = false"
+            >
+              Appuyez sur <i class="fas fa-share-from-square mx-1"></i> puis
+              <strong>"Sur l'écran d'accueil"</strong>
+            </Message>
+
+            <Message v-else-if="!isInstalled && !canInstall" severity="secondary" :closable="false">
+              L'installation n'est pas disponible sur ce navigateur.
+            </Message>
+          </template>
+        </Card>
+
         <!-- Notifications -->
         <Card>
           <template #title>
@@ -58,23 +170,14 @@
             </div>
           </template>
           <template #content>
-            <div class="space-y-3">
-              <Button
-                label="Modifier le profil"
-                outlined
-                icon="fas fa-edit"
-                @click="$router.push('/profile')"
-                class="w-full"
-              />
-              <Button
-                label="Changer le mot de passe"
-                outlined
-                icon="fas fa-key"
-                severity="secondary"
-                class="w-full"
-                @click="openChangePasswordDialog"
-              />
-            </div>
+            <Button
+              label="Changer le mot de passe"
+              outlined
+              icon="fas fa-key"
+              severity="secondary"
+              class="w-full"
+              @click="openChangePasswordDialog"
+            />
           </template>
         </Card>
       </div>
@@ -181,10 +284,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useNotificationPush } from '@/composables/notification/notification.push'
+import { usePWAInstall } from '@/composables/pwa/pwa.install'
 import { useAuth } from '@/composables/useAuth'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
 import { changePasswordSchema } from '@/schemas/auth.schema'
+import { userApi } from '@/composables/user/user.api'
+
+const { isInstalled, isIOS, canInstall, showIOSInstructions, triggerInstall } = usePWAInstall()
 
 const darkMode = ref(false)
 const pushEnabled = ref(false)
@@ -197,6 +305,47 @@ const notificationSupported = computed(
 const { enablePush, disablePush } = useNotificationPush()
 const { changePassword, loading: authLoading, error: authError } = useAuth()
 
+// Profile form
+const profileSchema = z.object({
+  displayName: z.string().min(1, 'Le nom est requis').max(50),
+  shortName: z
+    .string()
+    .min(1, 'Le nom court est requis')
+    .max(5, 'Maximum 5 caractères')
+    .transform((v) => v.toUpperCase()),
+})
+
+const profileLoading = ref(false)
+const profileSuccess = ref(false)
+const profileError = ref<string | null>(null)
+
+const {
+  defineField: defineProfileField,
+  handleSubmit: handleProfileSubmit,
+  errors: profileErrors,
+  setValues: setProfileValues,
+} = useForm({
+  validationSchema: toTypedSchema(profileSchema),
+})
+
+const [displayName] = defineProfileField('displayName')
+const [shortName] = defineProfileField('shortName')
+
+const onSubmitProfile = handleProfileSubmit(async (values) => {
+  profileLoading.value = true
+  profileSuccess.value = false
+  profileError.value = null
+  try {
+    await userApi.updateProfile(values)
+    profileSuccess.value = true
+  } catch {
+    profileError.value = 'Une erreur est survenue lors de la mise à jour.'
+  } finally {
+    profileLoading.value = false
+  }
+})
+
+// Change password form
 const showChangePasswordDialog = ref(false)
 const changePasswordSuccess = ref(false)
 
@@ -225,13 +374,19 @@ const onChangePassword = handleSubmit(async (values) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   const theme = localStorage.getItem('theme')
   darkMode.value = theme === 'dark'
 
-  // Check if push is enabled
   if ('Notification' in window) {
     pushEnabled.value = Notification.permission === 'granted'
+  }
+
+  try {
+    const user = await userApi.me()
+    setProfileValues({ displayName: user.displayName, shortName: user.shortName })
+  } catch {
+    profileError.value = 'Impossible de charger le profil.'
   }
 })
 
