@@ -77,6 +77,29 @@
           </div>
         </template>
       </Card>
+
+      <!-- Card Règles du jeu -->
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRules">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-scroll text-5xl text-green-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Règles du jeu
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              Créez et gérez les règlements associés aux tournois
+            </p>
+            <Button
+              label="Accéder"
+              icon="fa fa-arrow-right"
+              class="bg-green-600 hover:bg-green-700"
+              @click.stop="navigateToRules"
+            />
+          </div>
+        </template>
+      </Card>
     </div>
   </div>
 </template>
@@ -96,6 +119,10 @@ function navigateToDisciplines() {
 
 function navigateToInvitaionCode() {
   router.push('/admin/invitations')
+}
+
+function navigateToRules() {
+  router.push('/admin/rules')
 }
 </script>
 

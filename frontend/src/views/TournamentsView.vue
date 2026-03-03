@@ -23,10 +23,9 @@
         <!-- Bouton administration (visible seulement pour les admins) -->
         <Button
           v-if="canManageTournaments"
-          label="Administration"
-          icon="fas fa-crown"
+          icon="fas fa-gears"
+          v-tooltip.top="'Administration'"
           @click="router.push('/admin')"
-          class="bg-blue-600 hover:bg-blue-700"
         />
       </div>
     </div>

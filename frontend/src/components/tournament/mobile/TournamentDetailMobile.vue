@@ -36,10 +36,12 @@
           :can-manage="canManage"
           :joining="joining"
           :leaving="leaving"
+          :rules-id="tournament.rulesId"
           @join="$emit('join')"
           @leave="$emit('leave')"
           @create-match="$emit('create-match')"
           @edit="$emit('edit')"
+          @view-rules="$emit('view-rules')"
         />
 
         <TournamentInfoGrid
@@ -224,6 +226,7 @@ defineEmits<{
   (e: 'create-match'): void
   (e: 'edit'): void
   (e: 'participant-added'): void
+  (e: 'view-rules'): void
 }>()
 
 const activeTab = ref('detail')

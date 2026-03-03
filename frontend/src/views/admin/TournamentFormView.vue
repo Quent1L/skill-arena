@@ -69,6 +69,23 @@
                 <small class="p-error">{{ errors.disciplineId }}</small>
               </div>
 
+              <!-- Règles du jeu -->
+              <div>
+                <label for="rulesId" class="block text-sm font-medium mb-2">
+                  Règles du jeu
+                </label>
+                <Select
+                  id="rulesId"
+                  v-model="rulesId"
+                  :options="rulesOptions"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="Aucun règlement"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
+
               <!-- Description -->
               <div class="lg:col-span-2">
                 <label for="description" class="block text-sm font-medium mb-2">
@@ -328,6 +345,7 @@ import {
 } from '@skill-arena/shared/types/index'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
+import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 
 const router = useRouter()
 const route = useRoute()
@@ -342,6 +360,7 @@ const {
 } = useTournamentService()
 
 const { disciplines, listDisciplines } = useDisciplineService()
+const { rules: gameRulesList, loadRules } = useGameRulesService()
 
 const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id)
 const editableFields = ref<string[]>(['all'])
@@ -350,6 +369,13 @@ const disciplineOptions = computed(() => {
   return disciplines.value.map((d) => ({
     label: d.name,
     value: d.id,
+  }))
+})
+
+const rulesOptions = computed(() => {
+  return gameRulesList.value.map((r) => ({
+    label: r.title,
+    value: r.id,
   }))
 })
 
@@ -397,6 +423,7 @@ const [allowDraw] = defineField('allowDraw')
 const [startDate] = defineField('startDate')
 const [endDate] = defineField('endDate')
 const [disciplineId] = defineField('disciplineId')
+const rulesId = ref<string | null>(null)
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
@@ -428,7 +455,7 @@ const onSubmit = handleSubmit(async (values) => {
       const allowedFields =
         currentTournament.value?.status === 'draft'
           ? Object.keys(values)
-          : ['description', 'startDate', 'endDate', 'status']
+          : ['description', 'startDate', 'endDate', 'status', 'rulesId']
 
       const updateData = Object.entries(values).reduce(
         (acc, [key, value]) => {
@@ -439,6 +466,8 @@ const onSubmit = handleSubmit(async (values) => {
         },
         {} as Record<string, unknown>,
       )
+      // rulesId is always editable
+      updateData.rulesId = rulesId.value ?? null
       await updateTournament(route.params.id as string, updateData as UpdateTournamentFormData)
     } else {
       // For create, cast to CreateTournamentFormData
@@ -452,8 +481,8 @@ const onSubmit = handleSubmit(async (values) => {
 })
 
 onMounted(async () => {
-  // Charger les disciplines pour le select
-  await listDisciplines()
+  // Charger les disciplines et les règles pour les selects
+  await Promise.all([listDisciplines(), loadRules()])
 
   if (isEditMode.value && route.params.id) {
     await getTournament(route.params.id as string)
@@ -478,6 +507,7 @@ onMounted(async () => {
         endDate: currentTournament.value.endDate,
         disciplineId: currentTournament.value.disciplineId,
       })
+      rulesId.value = currentTournament.value.rulesId ?? null
     }
   } else {
     // Set defaults for new tournament
