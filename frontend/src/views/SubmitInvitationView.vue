@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
 import Card from 'primevue/card'
@@ -111,6 +111,32 @@ const codeError = ref<string | null>(null)
 const remainingUses = ref(0)
 const isSubmitting = ref(false)
 const submitError = ref<string | null>(null)
+
+onMounted(async () => {
+  const cookieCode = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('invitation_code='))
+    ?.split('=')[1]
+
+  if (!cookieCode) return
+
+  invitationCode.value = cookieCode
+  isValidating.value = true
+  codeError.value = null
+
+  try {
+    const result = await validateCode(cookieCode)
+    if (result.valid) {
+      codeValid.value = true
+      remainingUses.value = result.remainingUses
+      await submitCode()
+    }
+  } catch (err: any) {
+    codeError.value = err.message || 'Code invalide'
+  } finally {
+    isValidating.value = false
+  }
+})
 
 const debouncedValidate = useDebounceFn(async () => {
   if (!/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/.test(invitationCode.value)) {
@@ -144,6 +170,7 @@ async function submitCode() {
 
   try {
     await consumeCode(invitationCode.value)
+    document.cookie = 'invitation_code=; path=/; max-age=0'
 
     // Rafraîchir les données utilisateur pour obtenir l'appUser
     await fetchUserData()

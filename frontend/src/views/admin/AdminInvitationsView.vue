@@ -92,7 +92,7 @@
           <Column field="code" header="Code" sortable>
             <template #body="{ data }">
               <div class="flex items-center gap-2">
-                <code class="bg-gray-100 px-2 py-1 rounded font-mono text-sm">
+                <code class="px-2 py-1 rounded font-mono text-sm">
                   {{ data.code }}
                 </code>
                 <Button
