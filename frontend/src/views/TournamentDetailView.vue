@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading && !isMobile" class="flex justify-center py-12">
+  <div v-if="loading" class="flex justify-center py-12">
     <ProgressSpinner />
   </div>
 
@@ -80,10 +80,10 @@
 
       <Tabs v-model:value="activeTab">
         <TabList>
-          <Tab v-if="tournament.mode === 'championship'" value="0">Classement</Tab>
-          <Tab :value="tournament.mode === 'championship' ? '1' : '0'">Matchs</Tab>
-          <Tab v-if="tournament.mode === 'bracket'" :value="tournament.mode === 'championship' ? '2' : '1'">Bracket</Tab>
-          <Tab :value="tournament.mode === 'bracket' ? (tournament.mode === 'championship' ? '3' : '2') : (tournament.mode === 'championship' ? '2' : '1')">
+          <Tab v-if="tournament.mode === 'championship'" value="standings">Classement</Tab>
+          <Tab value="matches">Matchs</Tab>
+          <Tab v-if="tournament.mode === 'bracket'" value="bracket">Bracket</Tab>
+          <Tab value="participants">
             <div class="flex items-center">
               <div>Participants</div>
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
@@ -91,18 +91,18 @@
           </Tab>
         </TabList>
         <TabPanels>
-          <TabPanel v-if="tournament.mode === 'championship'" value="0">
+          <TabPanel v-if="tournament.mode === 'championship'" value="standings">
             <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" :team-mode="tournament.teamMode" />
           </TabPanel>
-          <TabPanel :value="tournament.mode === 'championship' ? '1' : '0'">
+          <TabPanel value="matches">
             <div class="p-0">
               <MatchList :tournament-id="tournamentId" />
             </div>
           </TabPanel>
-          <TabPanel v-if="tournament.mode === 'bracket'" :value="tournament.mode === 'championship' ? '2' : '1'">
+          <TabPanel v-if="tournament.mode === 'bracket'" value="bracket">
             <BracketView :tournament-id="tournamentId" :tournament="tournament" />
           </TabPanel>
-          <TabPanel :value="tournament.mode === 'bracket' ? (tournament.mode === 'championship' ? '3' : '2') : (tournament.mode === 'championship' ? '2' : '1')">
+          <TabPanel value="participants">
             <Card>
               <template #content>
                 <TournamentParticipantsList
@@ -140,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
@@ -180,7 +180,7 @@ const {
 
 const joining = ref(false)
 const leaving = ref(false)
-const activeTab = ref('0')
+const activeTab = ref('matches')
 const { isMobile } = useViewport()
 
 const tournamentId = computed(() => route.params.id as string)
@@ -208,20 +208,17 @@ const tournamentDuration = computed(() => {
 onMounted(() => {
   const tab = route.query.tab as string | undefined
   if (tab) {
-    // Validate tab value based on tournament mode
-    let validTabs: string[]
-    if (tournament.value?.mode === 'championship') {
-      validTabs = ['0', '1', '2'] // Classement, Matchs, Participants
-    } else if (tournament.value?.mode === 'bracket') {
-      validTabs = ['0', '1', '2'] // Matchs, Bracket, Participants
-    } else {
-      validTabs = ['0', '1'] // Matchs, Participants (fallback)
-    }
-
+    const validTabs = ['matches', 'participants']
+    if (tournament.value?.mode === 'championship') validTabs.push('standings')
+    if (tournament.value?.mode === 'bracket') validTabs.push('bracket')
     if (validTabs.includes(tab)) {
       activeTab.value = tab
     }
   }
+})
+
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } })
 })
 
 async function loadTournament() {

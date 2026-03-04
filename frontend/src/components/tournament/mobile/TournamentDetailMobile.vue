@@ -22,7 +22,7 @@
     <!-- Content Area -->
     <div class="flex-1 overflow-y-auto pb-20">
       <!-- Tab 1: Detail & Participants -->
-      <div v-show="activeTab === 'detail'" class="space-y-4 p-4">
+      <div v-show="activeTab === 'participants'" class="space-y-4 p-4">
         <TournamentHeader
           :name="tournament.name"
           :description="tournament.description"
@@ -71,8 +71,16 @@
       </div>
 
       <!-- Tab 2: Standings (hidden for bracket mode) -->
-      <div v-if="tournament.mode !== 'bracket'" v-show="activeTab === 'standings'" class="h-full p-2">
-        <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" :team-mode="tournament.teamMode" />
+      <div
+        v-if="tournament.mode !== 'bracket'"
+        v-show="activeTab === 'standings'"
+        class="h-full p-2"
+      >
+        <StandingsTable
+          :tournament-id="tournamentId"
+          :allow-draw="tournament.allowDraw"
+          :team-mode="tournament.teamMode"
+        />
       </div>
 
       <!-- Tab 3: Bracket (only for bracket mode) -->
@@ -103,21 +111,21 @@
       class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center h-16 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
     >
       <button
-        @click="activeTab = 'detail'"
+        @click="activeTab = 'participants'"
         class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
         :class="
-          activeTab === 'detail'
+          activeTab === 'participants'
             ? 'text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
         "
       >
         <div
           class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-          :class="activeTab === 'detail' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+          :class="activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
         ></div>
         <i
           class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
-          :class="activeTab === 'detail' ? 'scale-110' : 'group-hover:scale-105'"
+          :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
         ></i>
         <span class="text-xs font-medium">Détail</span>
       </button>
@@ -190,8 +198,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { ClientBaseTournament, ParticipantListItem } from '@skill-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
@@ -200,10 +208,11 @@ import TournamentParticipantsList from '@/components/tournament/TournamentPartic
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
 
+const route = useRoute()
 const router = useRouter()
 
 // Define props
-defineProps<{
+const props = defineProps<{
   tournament: ClientBaseTournament
   participants: ParticipantListItem[]
   participantCount: number
@@ -229,10 +238,26 @@ defineEmits<{
   (e: 'view-rules'): void
 }>()
 
-const activeTab = ref('detail')
+const activeTab = ref('participants')
+
+onMounted(() => {
+  const tab = route.query.tab as string | undefined
+  if (tab) {
+    const validTabs = ['participants', 'matches']
+    if (props.tournament.mode !== 'bracket') validTabs.push('standings')
+    if (props.tournament.mode === 'bracket') validTabs.push('bracket')
+    if (validTabs.includes(tab)) {
+      activeTab.value = tab
+    }
+  }
+})
+
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } })
+})
 
 const tabTitles: Record<string, string> = {
-  detail: 'Détail du tournoi',
+  participants: 'Détail du tournoi',
   standings: 'Classement',
   bracket: 'Bracket',
   matches: 'Matchs',
