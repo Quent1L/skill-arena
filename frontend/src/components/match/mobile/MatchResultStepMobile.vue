@@ -18,7 +18,7 @@
 
     <!-- Winner Selection -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-      <label class="block text-sm font-medium mb-3">Vainqueur</label>
+      <label class="block text-sm font-medium mb-3">Vainqueur <span class="text-red-500">*</span></label>
       <div class="grid grid-cols-3 gap-2">
         <Button
           label="Équipe A"
