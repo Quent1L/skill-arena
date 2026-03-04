@@ -210,6 +210,21 @@ export const notificationService = {
     return await notificationRepository.delete(notificationId, userId);
   },
 
+  async deleteActionsByMatchIdForUser(matchId: string, userId: string) {
+    const deleted =
+      await notificationRepository.deleteActionsByMatchIdForUser(
+        matchId,
+        userId,
+      );
+    for (const notif of deleted) {
+      webSocketService.send(notif.userId, {
+        event: "notification_deleted",
+        data: { id: notif.id },
+      });
+    }
+    return deleted;
+  },
+
   async deleteActionsByMatchId(matchId: string) {
     const deleted =
       await notificationRepository.deleteActionsByMatchId(matchId);

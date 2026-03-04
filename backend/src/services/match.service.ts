@@ -405,6 +405,9 @@ export class MatchService {
       isContested: false,
     });
 
+    // Auto-dismiss action notification for this user (they've acted)
+    await notificationService.deleteActionsByMatchIdForUser(id, confirmedBy);
+
     // Check if match can be validated
     await this.checkAndFinalizeMatch(id);
 
@@ -465,6 +468,9 @@ export class MatchService {
     });
 
     if (hasScoreProposal) {
+      // Auto-dismiss action notification for the contesting user (they've acted)
+      await notificationService.deleteActionsByMatchIdForUser(id, contestedBy);
+
       // Reset all other players' confirmations so they review the new proposal
       await matchConfirmationRepository.resetConfirmationsExcept(
         id,
