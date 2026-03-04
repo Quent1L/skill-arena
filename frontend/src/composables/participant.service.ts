@@ -101,7 +101,7 @@ export function useParticipantService() {
    * Check if user is participant
    */
   function isUserParticipant(userId: string | null | undefined): boolean {
-    if (!userId || !participants.value.length) return false
+    if (!participants.value.length) return false
     return participants.value.some((p) => p.userId === userId)
   }
 

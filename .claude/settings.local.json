@@ -16,7 +16,9 @@
       "Bash(bun test backend/src/services/__tests__/match-duplicate-detection.test.ts)",
       "Bash(bun test backend/src/services/__tests__/bracket.service.test.ts backend/src/services/__tests__/match-duplicate-detection.test.ts)",
       "Bash(bun test src/services/__tests__/match-duplicate-detection.test.ts)",
-      "Bash(bun test src/services/__tests__/match.service.test.ts src/services/__tests__/match-duplicate-detection.test.ts)"
+      "Bash(bun test src/services/__tests__/match.service.test.ts src/services/__tests__/match-duplicate-detection.test.ts)",
+      "Bash(grep:*)",
+      "Bash(bun test:*)"
     ]
   }
 }

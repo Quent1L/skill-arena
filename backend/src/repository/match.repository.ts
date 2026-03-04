@@ -789,6 +789,156 @@ export class MatchRepository {
   }
 
   /**
+   * Count matches where exactly the given players formed a team together.
+   * Only counts entries with the exact same player composition.
+   */
+  async countMatchesForTeam(
+    tournamentId: string,
+    playerIds: string[],
+    excludeMatchId?: string,
+  ): Promise<number> {
+    if (playerIds.length === 0) return 0;
+
+    // Find candidate entries: entries in this tournament containing the first player
+    const candidateRows = await db
+      .select({ entryId: tournamentEntryPlayers.entryId })
+      .from(tournamentEntryPlayers)
+      .innerJoin(
+        tournamentEntries,
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
+      )
+      .where(
+        and(
+          eq(tournamentEntries.tournamentId, tournamentId),
+          eq(tournamentEntryPlayers.playerId, playerIds[0]),
+        ),
+      );
+
+    if (candidateRows.length === 0) return 0;
+
+    // Filter to entries whose player set matches exactly
+    const exactEntryIds: string[] = [];
+    for (const { entryId } of candidateRows) {
+      const entry = await entryRepository.getById(entryId);
+      if (!entry) continue;
+      const entryPlayerIds = entry.players.map((ep: any) => ep.player.id as string);
+      if (
+        entryPlayerIds.length === playerIds.length &&
+        playerIds.every((id) => entryPlayerIds.includes(id))
+      ) {
+        exactEntryIds.push(entryId);
+      }
+    }
+
+    if (exactEntryIds.length === 0) return 0;
+
+    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    if (excludeMatchId) {
+      matchConditions.push(ne(matches.id, excludeMatchId));
+    }
+
+    const result = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${matches.id})` })
+      .from(matches)
+      .innerJoin(sql`match_sides`, sql`${matches.id} = match_sides.match_id`)
+      .where(
+        and(...matchConditions, inArray(sql`match_sides.entry_id`, exactEntryIds)),
+      );
+
+    return Number(result[0]?.count ?? 0);
+  }
+
+  /**
+   * Count matches where exactly team A (playerIdsA) faced exactly team B (playerIdsB),
+   * regardless of which side (position 1 or 2) each team was on.
+   */
+  async countMatchesTeamsVsTeam(
+    tournamentId: string,
+    playerIdsA: string[],
+    playerIdsB: string[],
+    excludeMatchId?: string,
+  ): Promise<number> {
+    const findExactEntries = async (playerIds: string[]): Promise<string[]> => {
+      if (playerIds.length === 0) return [];
+      const candidateRows = await db
+        .select({ entryId: tournamentEntryPlayers.entryId })
+        .from(tournamentEntryPlayers)
+        .innerJoin(
+          tournamentEntries,
+          eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
+        )
+        .where(
+          and(
+            eq(tournamentEntries.tournamentId, tournamentId),
+            eq(tournamentEntryPlayers.playerId, playerIds[0]),
+          ),
+        );
+
+      const exactEntryIds: string[] = [];
+      for (const { entryId } of candidateRows) {
+        const entry = await entryRepository.getById(entryId);
+        if (!entry) continue;
+        const entryPlayerIds = entry.players.map((ep: any) => ep.player.id as string);
+        if (
+          entryPlayerIds.length === playerIds.length &&
+          playerIds.every((id) => entryPlayerIds.includes(id))
+        ) {
+          exactEntryIds.push(entryId);
+        }
+      }
+      return exactEntryIds;
+    };
+
+    const [teamAEntries, teamBEntries] = await Promise.all([
+      findExactEntries(playerIdsA),
+      findExactEntries(playerIdsB),
+    ]);
+
+    if (teamAEntries.length === 0 || teamBEntries.length === 0) return 0;
+
+    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    if (excludeMatchId) {
+      matchConditions.push(ne(matches.id, excludeMatchId));
+    }
+
+    // Find all match_sides where a team A entry appears
+    const aMatchSides = await db
+      .select({
+        matchId: sql<string>`match_sides.match_id`,
+        position: sql<number>`match_sides.position`,
+      })
+      .from(sql`match_sides`)
+      .innerJoin(matches, sql`matches.id = match_sides.match_id`)
+      .where(
+        and(
+          ...matchConditions,
+          inArray(sql`match_sides.entry_id`, teamAEntries),
+        ),
+      );
+
+    let count = 0;
+    for (const { matchId, position: aPosition } of aMatchSides) {
+      // Check if a team B entry is in the same match on the opposite side
+      const bSide = await db
+        .select({ position: sql<number>`match_sides.position` })
+        .from(sql`match_sides`)
+        .where(
+          and(
+            sql`match_sides.match_id = ${matchId}`,
+            inArray(sql`match_sides.entry_id`, teamBEntries),
+          ),
+        )
+        .limit(1);
+
+      if (bSide.length > 0 && bSide[0].position !== aPosition) {
+        count++;
+      }
+    }
+
+    return count;
+  }
+
+  /**
    * Check if user is participant in match
    */
   async isUserInMatch(matchId: string, userId: string): Promise<boolean> {

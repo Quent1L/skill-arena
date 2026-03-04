@@ -54,8 +54,8 @@ beforeEach(() => {
   repo.isUserInMatch = async (_matchId: string, _userId: string) => false;
   repo.validateEntriesForTournament = async () => undefined; // Replaces validateTeams/PlayersForTournament
   repo.countMatchesForUser = async () => 0;
-  repo.countMatchesWithSamePartner = async () => 0;
-  repo.countMatchesWithSameOpponent = async () => 0;
+  repo.countMatchesForTeam = async () => 0;
+  repo.countMatchesTeamsVsTeam = async () => 0;
   repo.getParticipationsByMatchId = async () => [];
   repo.update = async (_id: string, _data: UpdateMatchData) =>
     ({ id: _id }) as any;
@@ -489,7 +489,7 @@ describe("MatchService - basic flows", () => {
         maxTimesWithSameOpponent: 10,
       }) as any;
 
-    repo.countMatchesWithSamePartner = async () => 2; // exceeds
+    repo.countMatchesForTeam = async () => 2; // exceeds
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -516,7 +516,7 @@ describe("MatchService - basic flows", () => {
         maxTimesWithSameOpponent: 1,
       }) as any;
 
-    repo.countMatchesWithSameOpponent = async () => 3; // exceeds
+    repo.countMatchesTeamsVsTeam = async () => 3; // exceeds
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -736,18 +736,13 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 0;
 
-    // Player A1 has already played 2 matches with A2 (max reached)
-    repo.countMatchesWithSamePartner = async (
-      _tournamentId: string,
-      playerId: string,
-      partnerId: string,
-    ) => {
-      if (playerId === "A1" && partnerId === "A2") return 2;
-      if (playerId === "A2" && partnerId === "A1") return 2;
+    // Team [A1, A2] has already played 2 matches together (max reached)
+    repo.countMatchesForTeam = async (_tid: string, playerIds: string[]) => {
+      if (playerIds.includes("A1") && playerIds.includes("A2")) return 2;
       return 0;
     };
 
-    repo.countMatchesWithSameOpponent = async () => 0;
+    repo.countMatchesTeamsVsTeam = async () => 0;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -780,18 +775,13 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 0;
 
-    // Player B1 has already played 2 matches with B2 (max reached)
-    repo.countMatchesWithSamePartner = async (
-      _tournamentId: string,
-      playerId: string,
-      partnerId: string,
-    ) => {
-      if (playerId === "B1" && partnerId === "B2") return 2;
-      if (playerId === "B2" && partnerId === "B1") return 2;
+    // Team [B1, B2] has already played 2 matches together (max reached)
+    repo.countMatchesForTeam = async (_tid: string, playerIds: string[]) => {
+      if (playerIds.includes("B1") && playerIds.includes("B2")) return 2;
       return 0;
     };
 
-    repo.countMatchesWithSameOpponent = async () => 0;
+    repo.countMatchesTeamsVsTeam = async () => 0;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -823,17 +813,10 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 0;
-    repo.countMatchesWithSamePartner = async () => 0;
+    repo.countMatchesForTeam = async () => 0;
 
-    // Player A1 has already played 2 matches against B1 (max reached)
-    repo.countMatchesWithSameOpponent = async (
-      _tournamentId: string,
-      playerId: string,
-      opponentId: string,
-    ) => {
-      if (playerId === "A1" && opponentId === "B1") return 2;
-      return 0;
-    };
+    // Teams [A1,A2] vs [B1,B2] have already faced each other 2 times (max reached)
+    repo.countMatchesTeamsVsTeam = async () => 2;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -865,17 +848,10 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 0;
-    repo.countMatchesWithSamePartner = async () => 0;
+    repo.countMatchesForTeam = async () => 0;
 
-    // Player B2 has already played 2 matches against A2 (max reached)
-    repo.countMatchesWithSameOpponent = async (
-      _tournamentId: string,
-      playerId: string,
-      opponentId: string,
-    ) => {
-      if (playerId === "B2" && opponentId === "A2") return 2;
-      return 0;
-    };
+    // Teams [A1,A2] vs [B1,B2] have already faced each other 2 times (max reached)
+    repo.countMatchesTeamsVsTeam = async () => 2;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -908,18 +884,13 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 0;
 
-    // Player A2 has already played 2 matches with A3 (max reached)
-    repo.countMatchesWithSamePartner = async (
-      _tournamentId: string,
-      playerId: string,
-      partnerId: string,
-    ) => {
-      if (playerId === "A2" && partnerId === "A3") return 2;
-      if (playerId === "A3" && partnerId === "A2") return 2;
+    // Team [A1, A2, A3] has already played 2 matches together (max reached)
+    repo.countMatchesForTeam = async (_tid: string, playerIds: string[]) => {
+      if (playerIds.includes("A1") && playerIds.includes("A2") && playerIds.includes("A3")) return 2;
       return 0;
     };
 
-    repo.countMatchesWithSameOpponent = async () => 0;
+    repo.countMatchesTeamsVsTeam = async () => 0;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
@@ -951,8 +922,8 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 1; // Only 1 match played
-    repo.countMatchesWithSamePartner = async () => 1; // Only 1 match together
-    repo.countMatchesWithSameOpponent = async () => 1; // Only 1 match against
+    repo.countMatchesForTeam = async () => 1; // Only 1 match as this team
+    repo.countMatchesTeamsVsTeam = async () => 1; // Only 1 match against these opponents
 
     // Mock creation and retrieval
     repo.create = async (_data: any) => "m-success";
@@ -992,18 +963,13 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 1;
 
-    // A1 has played with B1 (opponent) many times, but that shouldn't affect partner validation
-    repo.countMatchesWithSamePartner = async (
-      _tournamentId: string,
-      playerId: string,
-      partnerId: string,
-    ) => {
-      // A1's actual partner is A2, and they've only played 1 match together
-      if (playerId === "A1" && partnerId === "A2") return 1;
+    // Team [A1,A2] has played 1 match together (under limit)
+    repo.countMatchesForTeam = async (_tid: string, playerIds: string[]) => {
+      if (playerIds.includes("A1") && playerIds.includes("A2")) return 1;
       return 0;
     };
 
-    repo.countMatchesWithSameOpponent = async () => 4; // High but still under limit
+    repo.countMatchesTeamsVsTeam = async () => 4; // High but still under limit
 
     // Mock creation and retrieval
     repo.create = async (_data: any) => "m-no-confusion";
@@ -1044,23 +1010,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 5; // Many matches played
 
-    // Mock: A1 and A2 have played 2 times together in 1v1, but 0 times in 2v2
-    repo.countMatchesWithSamePartner = async (
-      _tournamentId: string,
-      playerId: string,
-      partnerId: string,
-      _excludeMatchId: string | undefined,
-      teamSize: number | undefined,
-    ) => {
-      // Different counts based on team size
-      if (playerId === "A1" && partnerId === "A2") {
-        if (teamSize === 1) return 2; // 2 matches in 1v1
-        if (teamSize === 2) return 0; // 0 matches in 2v2
-      }
-      return 0;
-    };
+    // Mock: [A1,A2] as a 2-person team have played 0 times together (only played solo before)
+    // The new repo method naturally handles this — it only counts exact team composition matches
+    repo.countMatchesForTeam = async () => 0;
 
-    repo.countMatchesWithSameOpponent = async () => 0;
+    repo.countMatchesTeamsVsTeam = async () => 0;
 
     // Mock creation and retrieval
     repo.create = async (_data: any) => "m-independent";
@@ -1100,22 +1054,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 5;
-    repo.countMatchesWithSamePartner = async () => 0;
+    repo.countMatchesForTeam = async () => 0;
 
-    // Mock: A1 has played against B1 twice in 1v1, but never in 2v2
-    repo.countMatchesWithSameOpponent = async (
-      _tournamentId: string,
-      playerId: string,
-      opponentId: string,
-      _excludeMatchId: string | undefined,
-      teamSize: number | undefined,
-    ) => {
-      if (playerId === "A1" && opponentId === "B1") {
-        if (teamSize === 1) return 2; // 2 matches in 1v1 (max reached)
-        if (teamSize === 2) return 0; // 0 matches in 2v2
-      }
-      return 0;
-    };
+    // Mock: [A1,A2] as a team have never faced [B1,B2] as a team (only faced as solo)
+    // The new repo method naturally handles this — it checks exact team composition
+    repo.countMatchesTeamsVsTeam = async () => 0;
 
     // Mock creation and retrieval
     repo.create = async (_data: any) => "m-opponent-independent";
@@ -1155,22 +1098,10 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     repo.validateEntriesForTournament = async () => undefined;
     repo.countMatchesForUser = async () => 5;
-    repo.countMatchesWithSamePartner = async () => 0;
+    repo.countMatchesForTeam = async () => 0;
 
-    // Mock: A1 vs B1 in 1v1 (1 time) and in 2v2 (2 times = max reached for 2v2)
-    repo.countMatchesWithSameOpponent = async (
-      _tournamentId: string,
-      playerId: string,
-      opponentId: string,
-      _excludeMatchId: string | undefined,
-      teamSize: number | undefined,
-    ) => {
-      if (playerId === "A1" && opponentId === "B1") {
-        if (teamSize === 1) return 1; // 1 match in 1v1 (under limit)
-        if (teamSize === 2) return 2; // 2 matches in 2v2 (max reached!)
-      }
-      return 0;
-    };
+    // Mock: [A1,A2] as a team have faced [B1,B2] as a team 2 times (max reached for 2v2)
+    repo.countMatchesTeamsVsTeam = async () => 2;
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
