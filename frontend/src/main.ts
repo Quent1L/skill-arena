@@ -14,6 +14,25 @@ import localeFR from '@/config/locales/fr.json'
 import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload()
+  })
+}
+
+window.addEventListener('vite:preloadError', () => {
+  window.location.reload()
+})
+
+window.addEventListener('error', (event) => {
+  if (
+    event.message?.includes('Failed to fetch dynamically imported module') ||
+    event.message?.includes('Importing a module script failed')
+  ) {
+    window.location.reload()
+  }
+})
+
 // Forcer le dark mode
 document.documentElement.classList.add('my-app-dark')
 
