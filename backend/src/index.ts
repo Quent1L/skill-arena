@@ -28,8 +28,8 @@ await initializeAdminIfNeeded();
 
 const app = createAppHonoOptional();
 
-// Logger middleware - must be first to log all requests
-app.use("*", logger());
+// Logger middleware - only log API routes (static files are excluded)
+app.use("/api/*", logger());
 
 // Configuration CORS en mode développement
 app.use(
