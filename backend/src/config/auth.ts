@@ -143,6 +143,7 @@ if (isKeycloakEnabled) {
           clientId: process.env.KEYCLOAK_CLIENT_ID!,
           clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
           issuer: process.env.KEYCLOAK_ISSUER!,
+          pkce: process.env.KEYCLOAK_PKCE === "true",
           // Note: disableImplicitSignUp is NOT set (defaults to false)
           // This allows account creation which will then be validated by the invitation-code-validator hook
           // The hook will delete the user if no valid invitation code is present
