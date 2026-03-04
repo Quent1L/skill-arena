@@ -802,6 +802,27 @@ export class MatchService {
   }
 
   /**
+   * Cancel a match (admin or participant only, not finalized/cancelled)
+   */
+  async cancelMatch(id: string, cancelledBy: string) {
+    const match = await this.getMatchById(id);
+
+    const isAdmin = await this.canManageMatches(match.tournamentId, cancelledBy);
+    const isParticipant = await matchRepository.isUserInMatch(id, cancelledBy);
+
+    if (!isAdmin && !isParticipant) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    matchStatusValidator.validateCanCancel(match.status);
+
+    await matchRepository.update(id, { status: "cancelled" });
+    await notificationService.deleteActionsByMatchId(id);
+
+    return await matchRepository.getById(id);
+  }
+
+  /**
    * Finalize a match
    */
   async finalizeMatch(

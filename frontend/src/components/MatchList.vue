@@ -49,9 +49,9 @@
                 ></i>
               </div>
 
-              <!-- Score (only shown for non-scheduled matches) -->
+              <!-- Score (only shown for non-scheduled, non-cancelled matches) -->
               <div
-                v-if="match.status !== 'scheduled'"
+                v-if="match.status !== 'scheduled' && match.status !== 'cancelled'"
                 class="flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
               >
                 <span
@@ -68,7 +68,7 @@
                 <span
                   :class="[
                     'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'B'
+                    (match.status !== 'cancelled' && match.winnerSide === 'B')
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-800 dark:text-gray-100',
                   ]"
@@ -77,12 +77,14 @@
                 </span>
               </div>
 
-              <!-- VS indicator for scheduled matches -->
+              <!-- VS / - indicator for scheduled and cancelled matches -->
               <div
                 v-else
                 class="flex items-center justify-center gap-2 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
               >
-                <span class="text-base md:text-lg font-semibold text-gray-400">VS</span>
+                <span class="text-base md:text-lg font-semibold text-gray-400">
+                  {{ match.status === 'cancelled' ? '-' : 'VS' }}
+                </span>
               </div>
 
               <!-- Team B -->
@@ -99,7 +101,7 @@
                   {{ getTeamLabel(match.teamB) }}
                 </span>
                 <i
-                  v-if="match.winnerSide === 'B'"
+                  v-if="match.status !== 'cancelled' && match.winnerSide === 'B'"
                   class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs md:text-sm"
                 ></i>
               </div>

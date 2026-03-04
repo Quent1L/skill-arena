@@ -102,6 +102,14 @@ export const matchApi = {
   },
 
   /**
+   * Cancel a match
+   */
+  async cancel(id: string): Promise<ClientMatchModel> {
+    const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/cancel`)
+    return response.data
+  },
+
+  /**
    * Validate match possibility
    * @param payload - Validation data with Date objects (will be serialized to ISO strings)
    */

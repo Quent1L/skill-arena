@@ -27,6 +27,15 @@
             severity="info"
             @click="completeMatch"
           />
+          <Button
+            v-if="canCancelMatch"
+            label="Annuler le match"
+            icon="fa fa-ban"
+            severity="danger"
+            outlined
+            :loading="cancelling"
+            @click="showCancelDialog = true"
+          />
           <Tag :value="getStatusLabel(match.status)" :severity="getStatusSeverity(match.status)" />
         </div>
       </div>
@@ -58,7 +67,11 @@
                 </div>
                 <div v-if="match.teamA?.participants" class="mt-2 text-sm">
                   <div v-for="p in match.teamA.participants" :key="p.user?.id">
-                    <RouterLink v-if="p.user?.id" :to="`/players/${p.user.id}`" class="hover:underline text-blue-600 dark:text-blue-400">
+                    <RouterLink
+                      v-if="p.user?.id"
+                      :to="`/players/${p.user.id}`"
+                      class="hover:underline text-blue-600 dark:text-blue-400"
+                    >
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
@@ -86,7 +99,11 @@
                 </div>
                 <div v-if="match.teamB?.participants" class="mt-2 text-sm">
                   <div v-for="p in match.teamB.participants" :key="p.user?.id">
-                    <RouterLink v-if="p.user?.id" :to="`/players/${p.user.id}`" class="hover:underline text-blue-600 dark:text-blue-400">
+                    <RouterLink
+                      v-if="p.user?.id"
+                      :to="`/players/${p.user.id}`"
+                      class="hover:underline text-blue-600 dark:text-blue-400"
+                    >
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
@@ -145,6 +162,35 @@
         @contest="handleContest"
       />
 
+      <!-- Cancel Confirmation Dialog -->
+      <Dialog
+        v-model:visible="showCancelDialog"
+        header="Annuler le match"
+        modal
+        :closable="!cancelling"
+        :style="{ maxWidth: '600px' }"
+      >
+        <p class="text-surface-600 dark:text-surface-400">
+          Êtes-vous sûr de vouloir annuler ce match ? Cette action ne peut pas être défaite.
+        </p>
+        <template #footer>
+          <Button
+            label="Non, conserver"
+            severity="secondary"
+            outlined
+            :disabled="cancelling"
+            @click="showCancelDialog = false"
+          />
+          <Button
+            label="Oui, annuler le match"
+            icon="fa fa-ban"
+            severity="danger"
+            :loading="cancelling"
+            @click="handleCancel"
+          />
+        </template>
+      </Dialog>
+
       <!-- Admin Actions -->
       <Card v-if="canManageMatch" class="bg-warn-50 dark:bg-warn-900/20">
         <template #header>
@@ -183,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
@@ -192,20 +238,36 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { getMatch, confirmMatchResult, finalizeMatch } = useMatchService()
+const { getMatch, confirmMatchResult, finalizeMatch, cancelMatch } = useMatchService()
 const { appUser } = useAuth()
 
 const match = ref<ClientMatchModel | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const confirming = ref(false)
+const cancelling = ref(false)
+const showCancelDialog = ref(false)
 
 const currentUser = computed(() => appUser.value)
 
 const canManageMatch = computed(() => {
-  // Logique pour déterminer si l'utilisateur peut gérer le match
-  // À adapter selon votre système d'auth
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
+})
+
+const isParticipant = computed(() => {
+  if (!match.value || !appUser.value) return false
+  const uid = appUser.value.id
+  return (
+    (match.value.teamA?.participants?.some((p) => p.user?.id === uid) ||
+      match.value.teamB?.participants?.some((p) => p.user?.id === uid)) ??
+    false
+  )
+})
+
+const canCancelMatch = computed(() => {
+  if (!match.value) return false
+  if (match.value.status === 'finalized' || match.value.status === 'cancelled') return false
+  return canManageMatch.value || isParticipant.value
 })
 
 async function loadMatch() {
@@ -247,6 +309,21 @@ function handleContest(data: { reason?: string }) {
       ...(data.reason && { contestReason: data.reason }),
     },
   })
+}
+
+async function handleCancel() {
+  if (!match.value) return
+
+  try {
+    cancelling.value = true
+
+    match.value = await cancelMatch(match.value.id)
+    showCancelDialog.value = false
+  } catch (err) {
+    console.error('Error cancelling match:', err)
+  } finally {
+    cancelling.value = false
+  }
 }
 
 async function handleFinalize(reason: MatchFinalizationReason) {

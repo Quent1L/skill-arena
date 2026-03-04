@@ -254,7 +254,7 @@ async function createMatch() {
       proposedOutcomeReasonId: matchData.value.outcomeReasonId || undefined,
       contestationReason: contestReason.value,
     })
-    router.push(`/matches/${matchId}`)
+    await router.replace(`/matches/${matchId}`)
     return
   }
 
