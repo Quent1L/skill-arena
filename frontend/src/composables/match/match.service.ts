@@ -139,7 +139,7 @@ export function useMatchService() {
         life: 3000,
       })
 
-      router.push(`/tournaments/${tournamentId}?tab=1`)
+      await router.replace(`/tournaments/${tournamentId}?tab=1`)
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la création du match'
@@ -179,7 +179,7 @@ export function useMatchService() {
         life: 3000,
       })
 
-      router.push(`/tournaments/${tournamentId}?tab=1`)
+      await router.replace(`/tournaments/${tournamentId}?tab=1`)
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du match'
@@ -289,6 +289,28 @@ export function useMatchService() {
     }
   }
 
+  const cancelMatch = async (id: string): Promise<ClientMatchModel> => {
+    try {
+      const match = await matchApi.cancel(id)
+      toast.add({
+        severity: 'info',
+        summary: 'Match annulé',
+        detail: 'Le match a été annulé avec succès',
+        life: 3000,
+      })
+      return match
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'annulation"
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: errorMessage,
+        life: 5000,
+      })
+      throw err
+    }
+  }
+
   const finalizeMatch = async (
     id: string,
     data: FinalizeMatchRequestData,
@@ -343,6 +365,7 @@ export function useMatchService() {
     reportMatchResult,
     confirmMatchResult,
     contestMatchResult,
+    cancelMatch,
     finalizeMatch,
     validateMatch,
   }

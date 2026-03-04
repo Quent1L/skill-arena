@@ -142,6 +142,15 @@ matches.post(
   }
 );
 
+// POST /matches/:id/cancel - Cancel match (admin or participant)
+matches.post("/:id/cancel", requireAuth, async (c) => {
+  const id = c.req.param("id");
+  const appUserId = c.get("appUserId");
+
+  const match = await matchService.cancelMatch(id, appUserId);
+  return c.json(match);
+});
+
 // POST /matches/:id/finalize - Finalize match (admin only)
 matches.post(
   "/:id/finalize",

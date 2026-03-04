@@ -49,6 +49,18 @@ export class MatchStatusValidator {
             throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_DELETED);
         }
     }
+
+    /**
+     * Validate match can be cancelled
+     */
+    validateCanCancel(status: MatchStatus): void {
+        if (status === "finalized") {
+            throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED);
+        }
+        if (status === "cancelled") {
+            throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_CANCELLED);
+        }
+    }
 }
 
 export const matchStatusValidator = new MatchStatusValidator();
