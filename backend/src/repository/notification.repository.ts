@@ -150,6 +150,29 @@ export const notificationRepository = {
     }
   },
 
+  async deleteActionsByMatchIdForUser(matchId: string, userId: string) {
+    const toDelete = await db
+      .select({ id: notifications.id, userId: notificationStatus.userId })
+      .from(notifications)
+      .innerJoin(
+        notificationStatus,
+        eq(notifications.id, notificationStatus.notificationId),
+      )
+      .where(
+        and(
+          eq(notifications.matchId, matchId),
+          eq(notifications.requiresAction, true),
+          eq(notificationStatus.userId, userId),
+        ),
+      );
+
+    for (const notif of toDelete) {
+      await db.delete(notifications).where(eq(notifications.id, notif.id));
+    }
+
+    return toDelete;
+  },
+
   async deleteActionsByMatchId(matchId: string) {
     // Find all requiresAction notifications for this match
     const toDelete = await db

@@ -11,6 +11,8 @@ const { notifications, markAllAsRead, deleteAll } = useNotificationService()
 const toast = useToast()
 
 const hasNotifications = computed(() => notifications.value.length > 0)
+const hasDeletableNotifs = computed(() => notifications.value.some((n) => !n.requiresAction))
+const hasUnreadNotifs = computed(() => notifications.value.some((n) => !n.isRead))
 
 function toggle(event: Event) {
   popover.value?.toggle(event)
@@ -70,25 +72,37 @@ defineExpose({ toggle })
       <div class="flex justify-between items-center pb-3 border-b">
         <h3 class="font-semibold">Notifications</h3>
         <div v-if="hasNotifications" class="flex items-center gap-1">
-          <Button 
-            text 
-            rounded 
-            size="small" 
-            @click="handleMarkAllAsRead"
-            v-tooltip.bottom="'Tout marquer comme lu'"
+          <span
+            v-tooltip.bottom="hasUnreadNotifs ? 'Tout marquer comme lu' : 'Toutes les notifications ont déjà été lues'"
+            class="inline-flex"
           >
-            <i class="fas fa-check text-sm"></i>
-          </Button>
-          <Button 
-            text 
-            rounded 
-            size="small" 
-            @click="handleDeleteAll"
-            v-tooltip.bottom="'Tout supprimer'"
-            class="text-red-500 hover:text-red-600"
+            <Button
+              text
+              rounded
+              size="small"
+              :disabled="!hasUnreadNotifs"
+              @click="handleMarkAllAsRead"
+              style="pointer-events: auto"
+            >
+              <i class="fas fa-check text-sm"></i>
+            </Button>
+          </span>
+          <span
+            v-tooltip.bottom="hasDeletableNotifs ? 'Tout supprimer' : 'Les notifications de type action ne peuvent pas être supprimées'"
+            class="inline-flex"
           >
-            <i class="fas fa-trash text-sm"></i>
-          </Button>
+            <Button
+              text
+              rounded
+              size="small"
+              :disabled="!hasDeletableNotifs"
+              @click="handleDeleteAll"
+              class="text-red-500 hover:text-red-600"
+              style="pointer-events: auto"
+            >
+              <i class="fas fa-trash text-sm"></i>
+            </Button>
+          </span>
           <Button text size="small" label="Tout voir" @click="viewAll" />
         </div>
       </div>
