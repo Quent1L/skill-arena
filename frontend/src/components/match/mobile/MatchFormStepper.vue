@@ -79,6 +79,7 @@
         :label="isContestMode ? 'Proposer la correction' : 'Enregistrer le match'"
         icon="fas fa-check"
         class="w-full"
+        :disabled="!canSubmit || loading"
         :loading="loading"
         @click="submit"
       />
@@ -198,6 +199,10 @@ const isFutureDate = computed(() => {
   return matchData.value.playedAt > new Date()
 })
 
+const canSubmit = computed(() => {
+  return matchData.value.winner !== null || props.allowDraw
+})
+
 async function loadPlayers() {
   try {
     const participants = await getTournamentParticipants(props.tournamentId)
@@ -262,7 +267,7 @@ async function submit() {
       proposedOutcomeReasonId: matchData.value.outcomeReasonId || undefined,
       contestationReason: props.contestReason,
     })
-    router.push(`/matches/${props.matchId}`)
+    router.replace(`/matches/${props.matchId}`)
     return
   }
 
