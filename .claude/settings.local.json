@@ -8,7 +8,15 @@
       "WebFetch(domain:orm.drizzle.team)",
       "Bash(bun test src/services/__tests__/match.service.test.ts --filter \"Auto-Finalization\")",
       "Bash(bun test src/services/__tests__/match.service.test.ts)",
-      "Bash(bun test)"
+      "Bash(bun test)",
+      "Bash(git stash pop)",
+      "Bash(git stash pop --index)",
+      "Bash(git checkout stash -- .)",
+      "Bash(git stash drop)",
+      "Bash(bun test backend/src/services/__tests__/match-duplicate-detection.test.ts)",
+      "Bash(bun test backend/src/services/__tests__/bracket.service.test.ts backend/src/services/__tests__/match-duplicate-detection.test.ts)",
+      "Bash(bun test src/services/__tests__/match-duplicate-detection.test.ts)",
+      "Bash(bun test src/services/__tests__/match.service.test.ts src/services/__tests__/match-duplicate-detection.test.ts)"
     ]
   }
 }
