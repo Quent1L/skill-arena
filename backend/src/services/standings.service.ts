@@ -202,11 +202,7 @@ export class StandingsService {
         const playerStanding = standingsMap.get(player.playerId);
         if (!playerStanding) continue;
 
-        // Find a representative player from side B to calculate stats
-        const opponentStanding = standingsMap.get(playersB[0]?.playerId);
-        if (!opponentStanding) continue;
-
-        const isWinner = winnerSide === "A";
+          const isWinner = winnerSide === "A";
         const isDraw = winnerSide === null;
         this.updateStandingsForPlayer(
           playerStanding,
