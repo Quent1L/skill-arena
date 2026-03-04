@@ -18,6 +18,8 @@ type MatchResult = {
   winnerSide: string | null;
   oppEntryId: string;
   oppScore: number;
+  allowDraw: boolean | null;
+  pointsAwarded: number | null;
 };
 
 export class PlayerStatsService {
@@ -59,7 +61,7 @@ export class PlayerStatsService {
     const baseStats = this.aggregateBaseStats(matchResults);
     const partnerStats = await this.computePartnerStats(matchResults, playerEntryIds, playerId);
     const nemesisStats = await this.computeNemesisStats(matchResults, playerEntryIds, playerId);
-    const tournamentHistory = await this.buildTournamentHistory(playerId, entries);
+    const tournamentHistory = await this.buildTournamentHistory(entries, matchResults);
 
     const stats: PlayerDetailStats = {
       ...baseStats,
@@ -85,7 +87,7 @@ export class PlayerStatsService {
       const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
       if (isWin) wins++;
       else if (isLoss) losses++;
-      else draws++;
+      else if (r.winnerSide === null && r.allowDraw) draws++;
     }
 
     const totalMatches = seen.size;
@@ -190,34 +192,55 @@ export class PlayerStatsService {
   }
 
   private async buildTournamentHistory(
-    playerId: string,
-    entries: Array<{ tournamentId: string; tournamentName: string; tournamentMode: string; disciplineName: string | null }>
+    entries: Array<{ entryId: string; tournamentId: string; tournamentName: string; tournamentMode: string; disciplineName: string | null }>,
+    matchResults: MatchResult[]
   ): Promise<PlayerTournamentEntry[]> {
+    const matchesByEntry = new Map<string, MatchResult[]>();
+    for (const r of matchResults) {
+      if (!matchesByEntry.has(r.entryId)) matchesByEntry.set(r.entryId, []);
+      matchesByEntry.get(r.entryId)!.push(r);
+    }
+
+    const entryIdsByTournament = new Map<string, string[]>();
+    for (const entry of entries) {
+      if (!entryIdsByTournament.has(entry.tournamentId))
+        entryIdsByTournament.set(entry.tournamentId, []);
+      entryIdsByTournament.get(entry.tournamentId)!.push(entry.entryId);
+    }
+
     const seen = new Map<string, PlayerTournamentEntry>();
 
     for (const entry of entries) {
       if (seen.has(entry.tournamentId)) continue;
+
       const base: PlayerTournamentEntry = {
         tournamentId: entry.tournamentId,
         tournamentName: entry.tournamentName,
         mode: entry.tournamentMode,
         disciplineName: entry.disciplineName ?? undefined,
-        matchesPlayed: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
+        matchesPlayed: 0, wins: 0, draws: 0, losses: 0,
       };
 
-      if (entry.tournamentMode === "championship") {
-        const standing = await playerStatsRepository.getPlayerStandingsForTournament(playerId, entry.tournamentId);
-        if (standing) {
-          base.matchesPlayed = standing.matchesPlayed;
-          base.wins = standing.wins;
-          base.draws = standing.draws;
-          base.losses = standing.losses;
-          base.points = standing.points;
+      const entryIds = entryIdsByTournament.get(entry.tournamentId) ?? [];
+      const seenMatches = new Set<string>();
+      let totalPoints = 0;
+
+      for (const entryId of entryIds) {
+        for (const r of matchesByEntry.get(entryId) ?? []) {
+          if (seenMatches.has(r.matchId)) continue;
+          seenMatches.add(r.matchId);
+          base.matchesPlayed++;
+          totalPoints += r.pointsAwarded ?? 0;
+          const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
+          const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
+          if (isWin) base.wins++;
+          else if (isLoss) base.losses++;
+          else if (r.winnerSide === null && r.allowDraw) base.draws++;
         }
       }
+
+      if (entry.tournamentMode === "championship" && totalPoints > 0)
+        base.points = totalPoints;
 
       seen.set(entry.tournamentId, base);
     }

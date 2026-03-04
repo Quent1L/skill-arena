@@ -8,7 +8,6 @@ import {
   matches,
   matchSides,
   disciplines,
-  championshipStandings,
 } from "../db/schema";
 
 export class PlayerStatsRepository {
@@ -60,10 +59,14 @@ export class PlayerStatsRepository {
         winnerSide: matches.winnerSide,
         oppEntryId: sql<string>`ms2.entry_id`,
         oppScore: sql<number>`ms2.score`,
+        allowDraw: tournaments.allowDraw,
+        pointsAwarded: matchSides.pointsAwarded,
       })
       .from(matchSides)
       .innerJoin(sql`match_sides ms2`, sql`${matchSides.matchId} = ms2.match_id AND ms2.entry_id != ${matchSides.entryId}`)
       .innerJoin(matches, eq(matchSides.matchId, matches.id))
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournaments, eq(tournamentEntries.tournamentId, tournaments.id))
       .where(and(inArray(matchSides.entryId, playerEntryIds), eq(matches.status, "finalized")));
   }
 
@@ -99,27 +102,6 @@ export class PlayerStatsRepository {
       .groupBy(tournaments.id, disciplines.name);
   }
 
-  async getPlayerStandingsForTournament(playerId: string, tournamentId: string) {
-    const standings = await db
-      .select({
-        entryId: championshipStandings.entryId,
-        points: championshipStandings.points,
-        wins: championshipStandings.wins,
-        losses: championshipStandings.losses,
-        draws: championshipStandings.draws,
-        matchesPlayed: championshipStandings.matchesPlayed,
-      })
-      .from(championshipStandings)
-      .innerJoin(tournamentEntries, eq(championshipStandings.entryId, tournamentEntries.id))
-      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
-      .where(
-        and(
-          eq(tournamentEntryPlayers.playerId, playerId),
-          eq(tournamentEntries.tournamentId, tournamentId)
-        )
-      );
-    return standings[0] ?? null;
-  }
 }
 
 export const playerStatsRepository = new PlayerStatsRepository();
