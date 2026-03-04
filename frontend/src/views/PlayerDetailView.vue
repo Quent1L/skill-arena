@@ -2,7 +2,13 @@
   <div class="max-w-5xl mx-auto p-4 space-y-6">
     <div v-if="error && !player" class="text-center text-red-500 py-8">
       <p>{{ error }}</p>
-      <Button label="Retour" icon="fa fa-arrow-left" severity="secondary" @click="router.back()" class="mt-4" />
+      <Button
+        label="Retour"
+        icon="fa fa-arrow-left"
+        severity="secondary"
+        @click="router.back()"
+        class="mt-4"
+      />
     </div>
 
     <template v-else>
@@ -12,7 +18,9 @@
           <Button icon="fa fa-arrow-left" severity="secondary" text @click="router.back()" />
           <div>
             <h1 class="text-2xl font-bold">{{ player?.displayName ?? '...' }}</h1>
-            <span v-if="player?.shortName" class="text-surface-500 dark:text-surface-400 text-sm">{{ player.shortName }}</span>
+            <span v-if="player?.shortName" class="text-surface-500 dark:text-surface-400 text-sm">{{
+              player.shortName
+            }}</span>
           </div>
         </div>
         <!-- Bouton filtres mobile -->
@@ -29,37 +37,43 @@
 
       <!-- Filtres desktop (masqués sur mobile) -->
       <div class="hidden md:block">
-      <Card>
-        <template #content>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="flex flex-col gap-1">
-              <label class="text-sm text-surface-500">Tournoi</label>
-              <Select
-                v-model="selectedTournamentId"
-                :options="tournamentOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="Tous les tournois"
-                class="w-full"
-                show-clear
+        <Card>
+          <template #content>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="flex flex-col gap-1">
+                <label class="text-sm text-surface-500">Tournoi</label>
+                <Select
+                  v-model="selectedTournamentId"
+                  :options="tournamentOptions"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="Tous les tournois"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="text-sm text-surface-500">Mode</label>
+                <SelectButton
+                  v-model="selectedMode"
+                  :options="modeOptions"
+                  option-label="label"
+                  option-value="value"
+                  class="w-full"
+                />
+              </div>
+            </div>
+            <div class="mt-3 flex justify-end">
+              <Button
+                label="Réinitialiser"
+                severity="secondary"
+                icon="fa fa-rotate-left"
+                size="small"
+                @click="resetFilters"
               />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="text-sm text-surface-500">Mode</label>
-              <SelectButton
-                v-model="selectedMode"
-                :options="modeOptions"
-                option-label="label"
-                option-value="value"
-                class="w-full"
-              />
-            </div>
-          </div>
-          <div class="mt-3 flex justify-end">
-            <Button label="Réinitialiser" severity="secondary" icon="fa fa-rotate-left" size="small" @click="resetFilters" />
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
       </div>
 
       <!-- Drawer filtres mobile -->
@@ -128,15 +142,21 @@
           <template #content>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
               <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.totalMatches }}</div>
+                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  {{ stats.totalMatches }}
+                </div>
                 <div class="text-sm text-surface-500 mt-1">Matchs joués</div>
               </div>
               <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold text-green-600 dark:text-green-400">{{ stats.winRate }}%</div>
+                <div class="text-3xl font-bold text-green-600 dark:text-green-400">
+                  {{ stats.winRate }}%
+                </div>
                 <div class="text-sm text-surface-500 mt-1">Taux de victoire</div>
               </div>
               <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold">{{ stats.wins }}/{{ stats.draws }}/{{ stats.losses }}</div>
+                <div class="text-3xl font-bold">
+                  {{ stats.wins }}/{{ stats.draws }}/{{ stats.losses }}
+                </div>
                 <div class="text-sm text-surface-500 mt-1">V / N / D</div>
               </div>
               <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
@@ -149,22 +169,48 @@
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div v-if="stats.mostFrequentPartners.length > 0">
                 <h3 class="text-sm font-semibold text-surface-500 mb-2">Partenaires fréquents</h3>
-                <div v-for="p in stats.mostFrequentPartners" :key="p.playerId" class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0">
-                  <RouterLink :to="`/players/${p.playerId}`" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">{{ p.shortName }}</RouterLink>
+                <div
+                  v-for="p in stats.mostFrequentPartners"
+                  :key="p.playerId"
+                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
+                >
+                  <RouterLink
+                    :to="`/players/${p.playerId}`"
+                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                    >{{ p.displayName }}</RouterLink
+                  >
                   <span class="text-sm text-surface-500">{{ p.count }} matchs</span>
                 </div>
               </div>
               <div v-if="stats.bestPartners.length > 0">
                 <h3 class="text-sm font-semibold text-surface-500 mb-2">Meilleurs partenaires</h3>
-                <div v-for="p in stats.bestPartners" :key="p.playerId" class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0">
-                  <RouterLink :to="`/players/${p.playerId}`" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">{{ p.shortName }}</RouterLink>
-                  <span class="text-sm text-green-600">{{ p.count > 0 ? Math.round(p.wins / p.count * 100) : 0 }}% V</span>
+                <div
+                  v-for="p in stats.bestPartners"
+                  :key="p.playerId"
+                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
+                >
+                  <RouterLink
+                    :to="`/players/${p.playerId}`"
+                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                    >{{ p.displayName }}</RouterLink
+                  >
+                  <span class="text-sm text-green-600"
+                    >{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</span
+                  >
                 </div>
               </div>
               <div v-if="stats.nemeses.length > 0">
                 <h3 class="text-sm font-semibold text-surface-500 mb-2">Adversaires difficiles</h3>
-                <div v-for="p in stats.nemeses" :key="p.playerId" class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0">
-                  <RouterLink :to="`/players/${p.playerId}`" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">{{ p.shortName }}</RouterLink>
+                <div
+                  v-for="p in stats.nemeses"
+                  :key="p.playerId"
+                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
+                >
+                  <RouterLink
+                    :to="`/players/${p.playerId}`"
+                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                    >{{ p.displayName }}</RouterLink
+                  >
                   <span class="text-sm text-red-400">{{ p.losses }} défaites</span>
                 </div>
               </div>
@@ -188,7 +234,9 @@
                 class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors no-underline"
               >
                 <div class="flex items-center justify-between sm:flex-1 gap-2 min-w-0">
-                  <span class="font-medium text-blue-600 dark:text-blue-400 truncate">{{ entry.tournamentName }}</span>
+                  <span class="font-medium text-blue-600 dark:text-blue-400 truncate">{{
+                    entry.tournamentName
+                  }}</span>
                   <Tag
                     :value="entry.mode === 'championship' ? 'Championnat' : 'Bracket'"
                     :severity="entry.mode === 'championship' ? 'info' : 'warn'"
@@ -197,11 +245,21 @@
                 </div>
                 <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm flex-shrink-0">
                   <span class="text-surface-500">{{ entry.matchesPlayed }} MJ</span>
-                  <span class="text-green-600 dark:text-green-400 font-medium">{{ entry.wins }}V</span>
+                  <span class="text-green-600 dark:text-green-400 font-medium"
+                    >{{ entry.wins }}V</span
+                  >
                   <span class="text-surface-500">{{ entry.draws }}N</span>
-                  <span class="text-red-600 dark:text-red-400 font-medium">{{ entry.losses }}D</span>
-                  <span v-if="entry.points !== undefined" class="text-blue-600 dark:text-blue-400 font-semibold">{{ entry.points }} pts</span>
-                  <span v-if="entry.disciplineName" class="text-surface-400 italic">{{ entry.disciplineName }}</span>
+                  <span class="text-red-600 dark:text-red-400 font-medium"
+                    >{{ entry.losses }}D</span
+                  >
+                  <span
+                    v-if="entry.points !== undefined"
+                    class="text-blue-600 dark:text-blue-400 font-semibold"
+                    >{{ entry.points }} pts</span
+                  >
+                  <span v-if="entry.disciplineName" class="text-surface-400 italic">{{
+                    entry.disciplineName
+                  }}</span>
                 </div>
               </RouterLink>
             </div>
@@ -245,8 +303,16 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const route = useRoute()
 const router = useRouter()
-const { player, stats, availableTournaments, loading, error, loadPlayer, loadTournaments, loadStats } =
-  usePlayerService()
+const {
+  player,
+  stats,
+  availableTournaments,
+  loading,
+  error,
+  loadPlayer,
+  loadTournaments,
+  loadStats,
+} = usePlayerService()
 
 const playerId = computed(() => route.params.id as string)
 
@@ -271,8 +337,8 @@ const modeOptions = [
   { label: 'Bracket', value: 'bracket' },
 ]
 
-const activeFilterCount = computed(() =>
-  [selectedTournamentId.value, selectedMode.value].filter(Boolean).length
+const activeFilterCount = computed(
+  () => [selectedTournamentId.value, selectedMode.value].filter(Boolean).length,
 )
 
 // Desktop: apply on change
