@@ -190,13 +190,10 @@ describe("Match Partner Validation", () => {
     );
     expect(entry12).toBeTruthy();
 
-    // Count matches where Player1 and Player2 played together
-    const count = await matchRepository.countMatchesWithSamePartner(
+    // Count matches where Player1 and Player2 played together as a complete team
+    const count = await matchRepository.countMatchesForTeam(
       tournamentId,
-      player1Id,
-      player2Id,
-      undefined,
-      2, // team size
+      [player1Id, player2Id],
     );
 
     expect(Number(count)).toBe(1);
@@ -214,13 +211,10 @@ describe("Match Partner Validation", () => {
       player1Id,
     );
 
-    // Count matches where Player1 and Player2 played together (should be 2 now)
-    const count = await matchRepository.countMatchesWithSamePartner(
+    // Count matches where Player1 and Player2 played together as a complete team (should be 2 now)
+    const count = await matchRepository.countMatchesForTeam(
       tournamentId,
-      player1Id,
-      player2Id,
-      undefined,
-      2, // team size
+      [player1Id, player2Id],
     );
 
     expect(Number(count)).toBe(2);
@@ -324,70 +318,98 @@ describe("Match Partner Validation", () => {
     );
     expect(entry13).toBeTruthy();
 
-    // Count matches where Player1 and Player3 played together
-    const count = await matchRepository.countMatchesWithSamePartner(
+    // Count matches where Player1 and Player3 played together as a complete team
+    const count = await matchRepository.countMatchesForTeam(
       tournamentId,
-      player1Id,
-      player3Id,
-      undefined,
-      2, // team size
+      [player1Id, player3Id],
     );
 
     expect(Number(count)).toBe(1);
   });
 
-  it("Step 7: should count opponent matches correctly - Player1 vs Player3", async () => {
+  it("Step 7: should count team-vs-team opponent matches correctly", async () => {
     // At this point, we have:
-    // - Match 1: Player1+Player2 vs Player3+Player4
-    // - Match 2: Player1+Player2 vs Player3+Player4
-    // - Match 3: Player1+Player3 vs Player2+Player4
+    // - Match 1: [Player1+Player2] vs [Player3+Player4]
+    // - Match 2: [Player1+Player2] vs [Player3+Player4]
+    // - Match 3: [Player1+Player3] vs [Player2+Player4]
 
-    // Count matches where Player1 played against Player3
-    const count = await matchRepository.countMatchesWithSameOpponent(
+    // Count matches where [Player1+Player2] faced [Player3+Player4] as complete teams
+    const count12vs34 = await matchRepository.countMatchesTeamsVsTeam(
       tournamentId,
-      player1Id,
-      player3Id,
-      undefined,
-      2, // team size
+      [player1Id, player2Id],
+      [player3Id, player4Id],
     );
+    // [P1+P2] faced [P3+P4] in Match 1 and Match 2
+    expect(Number(count12vs34)).toBe(2);
 
-    // Player1 played against Player3 in 2 matches (Match 1 and Match 2)
-    // In Match 3, they are partners, not opponents
-    expect(Number(count)).toBe(2);
+    // Count matches where [Player1+Player3] faced [Player2+Player4] as complete teams
+    const count13vs24 = await matchRepository.countMatchesTeamsVsTeam(
+      tournamentId,
+      [player1Id, player3Id],
+      [player2Id, player4Id],
+    );
+    // [P1+P3] faced [P2+P4] only in Match 3
+    expect(Number(count13vs24)).toBe(1);
   });
 
-  it("Step 8: should not count partner matches as opponent matches", async () => {
-    // Count matches where Player1 played against Player2
-    const count = await matchRepository.countMatchesWithSameOpponent(
+  it("Step 8: should not count crossed-team compositions as team-vs-team matches", async () => {
+    // [P1+P4] as a team never faced [P2+P3] as a team in any existing match
+    const count14vs23 = await matchRepository.countMatchesTeamsVsTeam(
       tournamentId,
-      player1Id,
-      player2Id,
-      undefined,
-      2, // team size
+      [player1Id, player4Id],
+      [player2Id, player3Id],
     );
-
-    // Player1 and Player2 were partners in Match 1 and Match 2,
-    // and opponents in Match 3
-    expect(Number(count)).toBe(1);
+    expect(Number(count14vs23)).toBe(0);
   });
 
-  it("Step 9: should prevent creating match when opponent limit exceeded", async () => {
-    // Try to create a third match: Player1+Player4 vs Player3+Player2
-    // This should fail because Player1 has already played against Player3 twice
-    // and maxTimesWithSameOpponent is 2 (set to 10 but let's assume it was 2)
+  it("Step 9 (regression): should allow {P1,P4} vs {P2,P3} even though individual pairs played before", async () => {
+    // REGRESSION: Old code would block this because P4 individually played against P3
+    // twice (in matches 1 and 2) and maxTimesWithSameOpponent would be 2.
+    // New code checks COMPLETE TEAM compositions: [P1,P4] never faced [P2,P3] as teams → allowed.
 
-    // First, update tournament settings to have lower opponent limit
+    // Update tournament settings to have lower opponent limit (triggers old bug)
     await testDb
       .update(tournaments)
       .set({ maxTimesWithSameOpponent: 2 })
       .where(eq(tournaments.id, tournamentId));
 
+    // [P1,P4] vs [P2,P3] — these teams never faced each other → should be allowed
+    const result = await matchService.createMatch(
+      {
+        tournamentId,
+        playerIdsA: [player1Id, player4Id],
+        playerIdsB: [player2Id, player3Id],
+        status: "scheduled",
+      },
+      player1Id,
+    );
+    expect(result).toBeTruthy();
+    expect(result?.id).toBeDefined();
+
+    // Verify the count is now 1
+    const count = await matchRepository.countMatchesTeamsVsTeam(
+      tournamentId,
+      [player1Id, player4Id],
+      [player2Id, player3Id],
+    );
+    expect(Number(count)).toBe(1);
+  });
+
+  it("Step 10: should block match when complete team-vs-team opponent limit is reached", async () => {
+    // At this point [P1,P2] faced [P3,P4] twice and maxTimesWithSameOpponent = 2.
+    // Raise the partner limit to avoid the partner check blocking first.
+    await testDb
+      .update(tournaments)
+      .set({ maxTimesWithSamePartner: 10 })
+      .where(eq(tournaments.id, tournamentId));
+
+    // [P1,P2] vs [P3,P4] → opponent count = 2 = limit → should be blocked
     try {
       await matchService.createMatch(
         {
           tournamentId,
-          playerIdsA: [player1Id, player4Id],
-          playerIdsB: [player3Id, player2Id],
+          playerIdsA: [player1Id, player2Id],
+          playerIdsB: [player3Id, player4Id],
           status: "scheduled",
         },
         player1Id,

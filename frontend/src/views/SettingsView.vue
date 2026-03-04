@@ -39,7 +39,7 @@
               </Message>
 
               <div class="flex flex-col gap-2">
-                <label for="display-name" class="font-medium">Nom d'affichage</label>
+                <label for="display-name" class="font-medium">Nom</label>
                 <InputText
                   id="display-name"
                   v-model="displayName"
@@ -54,7 +54,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label for="short-name" class="font-medium">Nom court (classement)</label>
+                <label for="short-name" class="font-medium">Nom court (affichage mobile)</label>
                 <InputText
                   id="short-name"
                   v-model="shortName"

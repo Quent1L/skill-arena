@@ -51,23 +51,19 @@ export class MatchRuleValidator {
         }
 
         const allPlayerIds = [...input.playerIdsA, ...input.playerIdsB];
-        const excludeMatchId = input.matchId; // Exclude match being edited from validation
+        const excludeMatchId = input.matchId;
 
+        // Per-player match limit (unchanged)
         for (const playerId of allPlayerIds) {
             await this.validatePlayerMatchLimit(tournament, playerId, excludeMatchId);
-            await this.validatePartnerConstraints(
-                input,
-                tournament,
-                playerId,
-                excludeMatchId
-            );
-            await this.validateOpponentConstraints(
-                input,
-                tournament,
-                playerId,
-                excludeMatchId
-            );
         }
+
+        // Partner check: once per team as a complete unit
+        await this.validateTeamPartnerConstraints(input, tournament, input.playerIdsA, excludeMatchId);
+        await this.validateTeamPartnerConstraints(input, tournament, input.playerIdsB, excludeMatchId);
+
+        // Opponent check: complete team A vs complete team B
+        await this.validateTeamOpponentConstraints(input, tournament, excludeMatchId);
     }
 
     /**
@@ -93,106 +89,59 @@ export class MatchRuleValidator {
     }
 
     /**
-     * Validate partner constraints
+     * Validate that a complete team hasn't exceeded the partner match limit.
+     * Skipped for 1v1 (no partners).
      */
-    private async validatePartnerConstraints(
+    private async validateTeamPartnerConstraints(
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>,
-        playerId: string,
+        teamPlayerIds: string[],
         excludeMatchId?: string
     ): Promise<void> {
-        // Determine which team the player is in
-        const isInTeamA = input.playerIdsA?.includes(playerId);
-        const isInTeamB = input.playerIdsB?.includes(playerId);
+        if (teamPlayerIds.length <= 1) return;
 
-        // Get the player's teammates (partners)
-        let teammates: string[] = [];
-        if (isInTeamA && input.playerIdsA) {
-            teammates = input.playerIdsA.filter((id: string) => id !== playerId);
-        } else if (isInTeamB && input.playerIdsB) {
-            teammates = input.playerIdsB.filter((id: string) => id !== playerId);
-        }
+        const count = await matchRepository.countMatchesForTeam(
+            tournament.id,
+            teamPlayerIds,
+            excludeMatchId,
+        );
 
-        // For flex tournaments, get team size to count only matches with same format
-        const teamSize =
-            tournament.teamMode === "flex" && input.playerIdsA
-                ? input.playerIdsA.length
-                : undefined;
-
-        // Validate each teammate
-        for (const teammateId of teammates) {
-            const partnerCount = await matchRepository.countMatchesWithSamePartner(
-                tournament.id,
-                playerId,
-                teammateId,
-                excludeMatchId,
-                teamSize // Pass team size for flex mode
-            );
-
-            if (partnerCount >= tournament.maxTimesWithSamePartner) {
-                const [playerName, partnerName] = await Promise.all([
-                    this.getPlayerName(playerId),
-                    this.getPlayerName(teammateId),
-                ]);
-                throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
-                    max: tournament.maxTimesWithSamePartner,
-                    playerName,
-                    partnerName,
-                    teamSize, // Add team size to error details
-                });
-            }
+        if (count >= tournament.maxTimesWithSamePartner) {
+            const names = await Promise.all(teamPlayerIds.map((id) => this.getPlayerName(id)));
+            throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
+                max: tournament.maxTimesWithSamePartner,
+                teamName: names.join(", "),
+            });
         }
     }
 
     /**
-     * Validate opponent constraints
+     * Validate that the complete team A hasn't exceeded the opponent match limit against team B.
      */
-    private async validateOpponentConstraints(
+    private async validateTeamOpponentConstraints(
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>,
-        playerId: string,
         excludeMatchId?: string
     ): Promise<void> {
-        // Determine which team the player is in
-        const isInTeamA = input.playerIdsA?.includes(playerId);
-        const isInTeamB = input.playerIdsB?.includes(playerId);
+        if (!input.playerIdsA || !input.playerIdsB) return;
 
-        // Get the opposing team's players
-        let opponents: string[] = [];
-        if (isInTeamA && input.playerIdsB) {
-            opponents = input.playerIdsB;
-        } else if (isInTeamB && input.playerIdsA) {
-            opponents = input.playerIdsA;
-        }
+        const count = await matchRepository.countMatchesTeamsVsTeam(
+            tournament.id,
+            input.playerIdsA,
+            input.playerIdsB,
+            excludeMatchId,
+        );
 
-        // For flex tournaments, get team size to count only matches with same format
-        const teamSize =
-            tournament.teamMode === "flex" && input.playerIdsA
-                ? input.playerIdsA.length
-                : undefined;
-
-        // Validate each opponent
-        for (const opponentId of opponents) {
-            const opponentCount = await matchRepository.countMatchesWithSameOpponent(
-                tournament.id,
-                playerId,
-                opponentId,
-                excludeMatchId,
-                teamSize // Pass team size for flex mode
-            );
-
-            if (opponentCount >= tournament.maxTimesWithSameOpponent) {
-                const [playerName, opponentName] = await Promise.all([
-                    this.getPlayerName(playerId),
-                    this.getPlayerName(opponentId),
-                ]);
-                throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
-                    max: tournament.maxTimesWithSameOpponent,
-                    playerName,
-                    opponentName,
-                    teamSize, // Add team size to error details
-                });
-            }
+        if (count >= tournament.maxTimesWithSameOpponent) {
+            const [namesA, namesB] = await Promise.all([
+                Promise.all(input.playerIdsA.map((id) => this.getPlayerName(id))),
+                Promise.all(input.playerIdsB.map((id) => this.getPlayerName(id))),
+            ]);
+            throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
+                max: tournament.maxTimesWithSameOpponent,
+                teamName: namesA.join(", "),
+                opponentTeamName: namesB.join(", "),
+            });
         }
     }
 

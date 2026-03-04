@@ -26,11 +26,11 @@
           </div>
 
           <Button
-            v-if="canCreateMatch && isDesktop"
+            v-if="canCreateMatch"
             label="Créer un match"
             icon="fa fa-plus"
             @click="emit('create-match')"
-            class="bg-blue-600 hover:bg-blue-700"
+            class="bg-blue-600 hover:bg-blue-700 hidden md:flex"
           />
           <Button
             v-if="rulesId"
