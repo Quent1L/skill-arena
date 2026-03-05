@@ -29,6 +29,7 @@
         @create-match="createMatch"
         @edit="editTournament"
         @view-rules="viewRules"
+        @recalculate-points="handleRecalculatePoints"
         @participant-added="handleParticipantAdded"
       />
     </div>
@@ -56,6 +57,7 @@
               @create-match="createMatch"
               @edit="editTournament"
               @view-rules="viewRules"
+              @recalculate-points="handleRecalculatePoints"
             />
           </div>
         </template>
@@ -167,6 +169,7 @@ const {
   canCreateMatchInTournament,
   canManageTournament: canManageTournamentCheck,
   loadTournamentWithErrorHandling,
+  recalculatePoints,
 } = useTournamentService()
 const {
   participants,
@@ -257,6 +260,10 @@ function editTournament() {
 
 function createMatch() {
   router.push(`/tournaments/${tournamentId.value}/create-match`)
+}
+
+async function handleRecalculatePoints() {
+  await recalculatePoints(tournamentId.value)
 }
 
 function viewRules() {

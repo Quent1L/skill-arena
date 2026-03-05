@@ -78,4 +78,12 @@ export const tournamentApi = {
     const response = await http.delete<{ success: boolean; message: string }>(`${BASE_URL}/${id}`)
     return response.data
   },
+
+  /**
+   * Recalculate points for all matches in a tournament (admin only)
+   */
+  async recalculatePoints(id: string): Promise<{ updatedMatches: number }> {
+    const response = await http.post<{ updatedMatches: number }>(`${BASE_URL}/${id}/recalculate-points`)
+    return response.data
+  },
 }

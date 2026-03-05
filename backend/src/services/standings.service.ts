@@ -1,5 +1,7 @@
 import { standingsRepository } from "../repository/standings.repository";
-import { NotFoundError, ErrorCode } from "../types/errors";
+import { matchSidesRepository } from "../repository/match-sides.repository";
+import { tournamentService } from "./tournament.service";
+import { NotFoundError, ForbiddenError, ErrorCode } from "../types/errors";
 import {
   type MatchStatus,
   type StandingsEntry,
@@ -311,6 +313,75 @@ export class StandingsService {
     }
 
     playerStanding.matchesPlayed += 1;
+  }
+
+  /**
+   * Recalculate and persist pointsAwarded for all reported/finalized matches
+   * in a tournament. Cancelled matches are excluded.
+   */
+  async recalculatePoints(
+    tournamentId: string,
+    userId: string
+  ): Promise<{ updatedMatches: number }> {
+    const canManage = await tournamentService.canManageTournament(
+      tournamentId,
+      userId
+    );
+    if (!canManage) throw new ForbiddenError(ErrorCode.FORBIDDEN);
+
+    const tournament =
+      await standingsRepository.getTournamentWithScoring(tournamentId);
+    if (!tournament) throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
+
+    // Only reported + finalized — cancelled matches are excluded
+    const matchList = await standingsRepository.getMatchesForStandings(
+      tournamentId,
+      ["reported", "finalized"]
+    );
+    const allSides = await standingsRepository.getMatchSides(
+      matchList.map((m) => m.id)
+    );
+
+    const sidesMap = new Map<string, typeof allSides>();
+    for (const side of allSides) {
+      if (!sidesMap.has(side.matchId)) sidesMap.set(side.matchId, []);
+      sidesMap.get(side.matchId)!.push(side);
+    }
+
+    for (const match of matchList) {
+      const sides = sidesMap.get(match.id) ?? [];
+      if (sides.length !== 2) continue;
+
+      const [sideA, sideB] = sides;
+      // winnerSide is the source of truth (null = draw, "A"/"B" = winner)
+      // If allowDraw = false, winnerSide should never be null (validated at creation)
+      const isDraw = match.winnerSide === null;
+      const isAWinner = match.winnerSide === "A";
+
+      const pointsA = isDraw
+        ? (tournament.pointPerDraw ?? 1)
+        : isAWinner
+          ? (tournament.pointPerVictory ?? 3)
+          : (tournament.pointPerLoss ?? 0);
+      const pointsB = isDraw
+        ? (tournament.pointPerDraw ?? 1)
+        : isAWinner
+          ? (tournament.pointPerLoss ?? 0)
+          : (tournament.pointPerVictory ?? 3);
+
+      await matchSidesRepository.updatePointsAwarded(
+        match.id,
+        sideA.entryId,
+        pointsA
+      );
+      await matchSidesRepository.updatePointsAwarded(
+        match.id,
+        sideB.entryId,
+        pointsB
+      );
+    }
+
+    return { updatedMatches: matchList.length };
   }
 
   /**
