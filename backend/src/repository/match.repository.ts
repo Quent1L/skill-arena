@@ -545,7 +545,10 @@ export class MatchRepository {
     userId: string,
     excludeMatchId?: string,
   ) {
-    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    const matchConditions = [
+      eq(matches.tournamentId, tournamentId),
+      ne(matches.status, "cancelled"),
+    ];
     if (excludeMatchId) {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
@@ -633,7 +636,10 @@ export class MatchRepository {
       }
 
       // Count matches with this entry
-      const matchConditions = [eq(matches.tournamentId, tournamentId)];
+      const matchConditions = [
+        eq(matches.tournamentId, tournamentId),
+        ne(matches.status, "cancelled"),
+      ];
       if (excludeMatchId) {
         matchConditions.push(ne(matches.id, excludeMatchId));
       }
@@ -721,7 +727,10 @@ export class MatchRepository {
     }
 
     // Find matches where user and opponent entries face each other
-    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    const matchConditions = [
+      eq(matches.tournamentId, tournamentId),
+      ne(matches.status, "cancelled"),
+    ];
     if (excludeMatchId) {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
@@ -832,7 +841,10 @@ export class MatchRepository {
 
     if (exactEntryIds.length === 0) return 0;
 
-    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    const matchConditions = [
+      eq(matches.tournamentId, tournamentId),
+      ne(matches.status, "cancelled"),
+    ];
     if (excludeMatchId) {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
@@ -896,7 +908,10 @@ export class MatchRepository {
 
     if (teamAEntries.length === 0 || teamBEntries.length === 0) return 0;
 
-    const matchConditions = [eq(matches.tournamentId, tournamentId)];
+    const matchConditions = [
+      eq(matches.tournamentId, tournamentId),
+      ne(matches.status, "cancelled"),
+    ];
     if (excludeMatchId) {
       matchConditions.push(ne(matches.id, excludeMatchId));
     }
@@ -1063,6 +1078,7 @@ export class MatchRepository {
       .where(
         and(
           eq(matches.tournamentId, tournamentId),
+          ne(matches.status, "cancelled"),
           or(
             eq(matchSides.entryId, entryAId),
             eq(matchSides.entryId, entryBId),
