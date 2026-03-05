@@ -95,6 +95,7 @@ const emit = defineEmits<{
   'create-match': []
   edit: []
   'view-rules': []
+  'recalculate-points': []
 }>()
 
 const menu = ref<InstanceType<typeof Menu> | null>(null)
@@ -106,7 +107,10 @@ const menuItems = computed(() => {
   const items = []
 
   if (props.canManage) {
-    items.push({ label: 'Modifier', icon: 'fa fa-pencil', command: () => emit('edit') })
+    items.push(
+      { label: 'Modifier', icon: 'fa fa-pencil', command: () => emit('edit') },
+      { label: 'Recalculer les points', icon: 'fa fa-calculator', command: () => emit('recalculate-points') },
+    )
   }
   if (props.isAuthenticated && props.isParticipant && props.canLeave) {
     items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => emit('leave') })

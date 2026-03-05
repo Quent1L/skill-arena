@@ -220,6 +220,13 @@ export function useTournamentService() {
   }
 
   /**
+   * Recalculate points for all matches in a tournament (admin only)
+   */
+  async function recalculatePoints(id: string): Promise<{ updatedMatches: number }> {
+    return await tournamentApi.recalculatePoints(id)
+  }
+
+  /**
    * Delete tournament
    */
   async function deleteTournament(id: string) {
@@ -325,5 +332,6 @@ export function useTournamentService() {
     updateTournament,
     changeTournamentStatus,
     deleteTournament,
+    recalculatePoints,
   }
 }

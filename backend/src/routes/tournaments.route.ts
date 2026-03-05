@@ -222,6 +222,14 @@ tournaments.get("/:id/standings/provisional", async (c) => {
   return c.json(standings);
 });
 
+// POST /tournaments/:id/recalculate-points - Admin: recalculate all match points
+tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
+  const tournamentId = c.req.param("id");
+  const appUserId = c.get("appUserId");
+  const result = await standingsService.recalculatePoints(tournamentId, appUserId);
+  return c.json(result);
+});
+
 // ============================================
 // Bracket Routes
 // ============================================
