@@ -195,10 +195,15 @@ usePageTransitions()
 .zoom-enter-active,
 .zoom-leave-active,
 .zoom-out-enter-active,
-.zoom-out-leave-active,
+.zoom-out-leave-active {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
 .fade-enter-active,
 .fade-leave-active {
-  will-change: transform, opacity;
+  will-change: opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }

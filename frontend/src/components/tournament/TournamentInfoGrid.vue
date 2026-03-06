@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="md:hidden mb-4">
+    <div>
       <Button
         :label="showDetails ? 'Masquer les détails' : 'Voir les détails'"
         :icon="showDetails ? 'fa fa-chevron-up' : 'fa fa-chevron-down'"
@@ -11,8 +11,8 @@
     </div>
 
     <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-      :class="{ 'hidden md:grid': !showDetails }"
+      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4"
+      :class="{ 'hidden': !showDetails }"
     >
       <div class="space-y-4">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Informations générales</h3>
@@ -31,11 +31,6 @@
           <div class="flex justify-between">
             <span class="text-gray-600 dark:text-gray-400">Taille équipe :</span>
             <span class="font-medium">{{ minTeamSize }}-{{ maxTeamSize }} joueurs</span>
-          </div>
-
-          <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Participants :</span>
-            <span class="font-medium">{{ participantCount }} inscrits</span>
           </div>
         </div>
       </div>

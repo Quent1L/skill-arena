@@ -84,7 +84,7 @@ defineExpose({ toggle })
               @click="handleMarkAllAsRead"
               style="pointer-events: auto"
             >
-              <i class="fas fa-check text-sm"></i>
+              <i class="fas fa-check-double text-sm"></i>
             </Button>
           </span>
           <span
@@ -106,7 +106,7 @@ defineExpose({ toggle })
           <Button text size="small" label="Tout voir" @click="viewAll" />
         </div>
       </div>
-      <NotificationList @close="close" />
+      <NotificationList :constrained="true" @close="close" />
     </div>
   </Popover>
 </template>

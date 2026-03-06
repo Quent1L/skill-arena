@@ -62,7 +62,7 @@ const home = computed<{ icon: string; command: () => void } | null>(() => {
 })
 
 const showHeader = computed(() => {
-  return !route.meta.hideBreadcrumb || route.meta.title
+  return !route.meta.hideBreadcrumb && route.meta.title
 })
 
 const allItems = computed<BreadcrumbItem[]>(() => {

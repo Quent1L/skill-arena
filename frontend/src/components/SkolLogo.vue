@@ -1,7 +1,7 @@
 <template>
   <div
     class="skol-logo"
-    :class="{ 'is-loaded': loaded }"
+    :class="{ 'is-loaded': loaded, 'no-animate': !animated }"
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
   >
@@ -142,6 +142,10 @@ export default {
       type: [Number, String],
       default: 130,
     },
+    animated: {
+      type: Boolean,
+      default: true,
+    },
   },
 
   data() {
@@ -154,6 +158,10 @@ export default {
   },
 
   mounted() {
+    if (!this.animated) {
+      this.loaded = true
+      return
+    }
     this.$nextTick(() => {
       setTimeout(() => {
         this.loaded = true
@@ -167,6 +175,19 @@ export default {
 /* ============================
    WRAPPER
    ============================ */
+.no-animate .sk-text,
+.no-animate .sk-underline,
+.no-animate .sk-die,
+.no-animate .sk-question {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+
+.no-animate .sk-underline {
+  stroke-dashoffset: 0;
+}
+
 .skol-logo {
   display: inline-block;
   cursor: pointer;

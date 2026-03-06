@@ -25,6 +25,7 @@
             label="Compléter le match"
             icon="fas fa-edit"
             severity="info"
+            size="small"
             @click="completeMatch"
           />
           <Button
@@ -34,9 +35,9 @@
             severity="danger"
             outlined
             :loading="cancelling"
+            size="small"
             @click="showCancelDialog = true"
           />
-          <Tag :value="getStatusLabel(match.status)" :severity="getStatusSeverity(match.status)" />
         </div>
       </div>
 
@@ -44,7 +45,14 @@
       <Card>
         <template #header>
           <div class="p-4">
-            <h2 class="text-2xl font-bold">Match</h2>
+            <div class="flex justify-between">
+              <div class="text-2xl font-bold">Match</div>
+              <Tag
+                :value="getStatusLabel(match.status)"
+                :severity="getStatusSeverity(match.status)"
+              />
+            </div>
+
             <p v-if="match.tournament" class="text-surface-500 dark:text-surface-400">
               {{ match.tournament.name }}
             </p>

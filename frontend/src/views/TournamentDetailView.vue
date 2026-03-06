@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading" class="flex justify-center py-12">
+  <div v-if="isInitialLoading" class="flex justify-center py-12">
     <ProgressSpinner />
   </div>
 
@@ -80,8 +80,8 @@
         </template>
       </Card>
 
-      <Tabs v-model:value="activeTab">
-        <TabList>
+      <Tabs v-model:value="activeTab" class="mt-4">
+        <TabList style="border-radius: 0.5rem 0.5rem 0 0">
           <Tab v-if="tournament.mode === 'championship'" value="standings">Classement</Tab>
           <Tab value="matches">Matchs</Tab>
           <Tab v-if="tournament.mode === 'bracket'" value="bracket">Bracket</Tab>
@@ -92,9 +92,13 @@
             </div>
           </Tab>
         </TabList>
-        <TabPanels>
+        <TabPanels style="border-radius: 0 0 0.5rem 0.5rem">
           <TabPanel v-if="tournament.mode === 'championship'" value="standings">
-            <StandingsTable :tournament-id="tournamentId" :allow-draw="tournament.allowDraw" :team-mode="tournament.teamMode" />
+            <StandingsTable
+              :tournament-id="tournamentId"
+              :allow-draw="tournament.allowDraw"
+              :team-mode="tournament.teamMode"
+            />
           </TabPanel>
           <TabPanel value="matches">
             <div class="p-0">
@@ -181,6 +185,7 @@ const {
   getTournamentParticipants,
 } = useParticipantService()
 
+const isInitialLoading = ref(true)
 const joining = ref(false)
 const leaving = ref(false)
 const activeTab = ref('matches')
@@ -279,6 +284,7 @@ onMounted(async () => {
   if (tournament.value) {
     await loadParticipants()
   }
+  isInitialLoading.value = false
 })
 </script>
 
