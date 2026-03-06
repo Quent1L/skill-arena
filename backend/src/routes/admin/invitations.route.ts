@@ -45,7 +45,7 @@ adminInvitations.patch(
   requireAuth,
   requireSuperAdmin,
   async (c) => {
-    const codeId = c.req.param("id");
+    const codeId = c.req.param("id")!;
     const updated = await invitationService.deactivateCode(codeId);
     return c.json(updated);
   }

@@ -39,7 +39,7 @@ matches.get("/", zValidator("query", listMatchesQuerySchema), async (c) => {
 
 // GET /matches/:id - Get single match
 matches.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const match = await matchService.getMatchById(id);
   return c.json(match);
 });
@@ -50,7 +50,7 @@ matches.patch(
   requireAuth,
   zValidator("json", updateMatchSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -76,7 +76,7 @@ matches.patch(
 
 // DELETE /matches/:id - Delete match
 matches.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
   const result = await matchService.deleteMatch(id, appUserId);
@@ -89,7 +89,7 @@ matches.post(
   requireAuth,
   zValidator("json", reportMatchResultSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -116,7 +116,7 @@ matches.post(
   requireAuth,
   zValidator("json", confirmMatchSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -132,7 +132,7 @@ matches.post(
   requireAuth,
   zValidator("json", contestMatchSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -144,7 +144,7 @@ matches.post(
 
 // POST /matches/:id/cancel - Cancel match (admin or participant)
 matches.post("/:id/cancel", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
   const match = await matchService.cancelMatch(id, appUserId);
@@ -157,7 +157,7 @@ matches.post(
   requireAuth,
   zValidator("json", finalizeMatchSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 

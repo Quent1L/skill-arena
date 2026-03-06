@@ -32,7 +32,7 @@ outcomeReasons.get("/", async (c) => {
 
 // GET /outcome-reasons/:id - Get single outcome reason
 outcomeReasons.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const outcomeReason = await outcomeReasonService.getOutcomeReasonById(id);
   return c.json(outcomeReason);
 });
@@ -43,7 +43,7 @@ outcomeReasons.patch(
   requireAuth,
   zValidator("json", updateOutcomeReasonSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const data = c.req.valid("json");
     const outcomeReason = await outcomeReasonService.updateOutcomeReason(
       id,
@@ -55,7 +55,7 @@ outcomeReasons.patch(
 
 // DELETE /outcome-reasons/:id - Delete outcome reason
 outcomeReasons.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const result = await outcomeReasonService.deleteOutcomeReason(id);
   return c.json(result);
 });

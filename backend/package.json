@@ -12,24 +12,24 @@
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
     "@skill-arena/shared": "workspace:*",
-    "better-auth": "*",
-    "dotenv": "^17.2.3",
+    "better-auth": "1.5.4",
+    "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.11.5",
-    "i18next": "^25.8.0",
+    "hono": "^4.12.5",
+    "i18next": "^25.8.14",
     "i18next-http-middleware": "^3.9.2",
-    "nodemailer": "^7.0.12",
-    "pg": "^8.17.2",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.20.0",
     "web-push": "^3.6.7",
-    "zod": "4.1.13"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.15",
-    "@types/bun": "^1.3.6",
-    "@types/nodemailer": "^7.0.5",
-    "@types/pg": "^8.16.0",
+    "@types/bun": "^1.3.10",
+    "@types/nodemailer": "^7.0.11",
+    "@types/pg": "^8.18.0",
     "@types/web-push": "^3.6.4",
-    "drizzle-kit": "^0.31.8",
+    "drizzle-kit": "^0.31.9",
     "tsx": "^4.21.0",
     "typescript": "*"
   }

@@ -56,7 +56,7 @@ tournaments.get(
 
 // GET /tournaments/:id - Get single tournament
 tournaments.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const tournament = await tournamentService.getTournamentById(id);
   return c.json(tournament);
 });
@@ -67,7 +67,7 @@ tournaments.patch(
   requireAuth,
   zValidator("json", updateTournamentSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -87,7 +87,7 @@ tournaments.patch(
   requireAuth,
   zValidator("json", changeTournamentStatusSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const { status } = c.req.valid("json");
 
@@ -103,7 +103,7 @@ tournaments.patch(
 
 // DELETE /tournaments/:id - Delete tournament
 tournaments.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
   const result = await tournamentService.deleteTournament(id, appUserId);
@@ -116,7 +116,7 @@ tournaments.post(
   requireAuth,
   zValidator("json", joinTournamentSchema),
   async (c) => {
-    const tournamentId = c.req.param("id");
+    const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
 
     // Validation de l'UUID du tournoi
@@ -140,7 +140,7 @@ tournaments.post(
   requireAuth,
   zValidator("json", adminAddParticipantSchema),
   async (c) => {
-    const tournamentId = c.req.param("id");
+    const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const { userId: targetUserId } = c.req.valid("json");
 
@@ -156,7 +156,7 @@ tournaments.post(
 
 // DELETE /tournaments/:id/participants - Leave tournament
 tournaments.delete("/:id/participants", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
   // Validation de l'UUID du tournoi
@@ -176,7 +176,7 @@ tournaments.delete("/:id/participants", requireAuth, async (c) => {
 
 // GET /tournaments/:id/participants - Get tournament participants
 tournaments.get("/:id/participants", async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
 
   // Validation de l'UUID du tournoi
   const uuidRegex =
@@ -194,7 +194,7 @@ tournaments.get("/:id/participants", async (c) => {
 
 // GET /tournaments/:id/standings/official - Get official standings (finalized matches only)
 tournaments.get("/:id/standings/official", async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
 
   // Validation de l'UUID du tournoi
   const uuidRegex =
@@ -209,7 +209,7 @@ tournaments.get("/:id/standings/official", async (c) => {
 
 // GET /tournaments/:id/standings/provisional - Get provisional standings (reported + finalized matches)
 tournaments.get("/:id/standings/provisional", async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
 
   // Validation de l'UUID du tournoi
   const uuidRegex =
@@ -224,7 +224,7 @@ tournaments.get("/:id/standings/provisional", async (c) => {
 
 // POST /tournaments/:id/recalculate-points - Admin: recalculate all match points
 tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
   const result = await standingsService.recalculatePoints(tournamentId, appUserId);
   return c.json(result);
@@ -240,7 +240,7 @@ tournaments.post(
   requireAuth,
   zValidator("json", generateBracketSchema),
   async (c) => {
-    const tournamentId = c.req.param("id");
+    const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
 
@@ -256,7 +256,7 @@ tournaments.post(
 
 // GET /tournaments/:id/bracket - Get bracket data
 tournaments.get("/:id/bracket", async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
   const bracket = await bracketService.getBracketData(tournamentId);
 
   if (!bracket) {
@@ -268,14 +268,14 @@ tournaments.get("/:id/bracket", async (c) => {
 
 // GET /tournaments/:id/bracket/can-generate - Check if bracket can be generated
 tournaments.get("/:id/bracket/can-generate", async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
   const result = await bracketService.canGenerateBracket(tournamentId);
   return c.json(result);
 });
 
 // DELETE /tournaments/:id/bracket - Delete bracket and all matches
 tournaments.delete("/:id/bracket", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id");
+  const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
   await bracketService.deleteBracket(tournamentId, appUserId);

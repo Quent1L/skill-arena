@@ -29,7 +29,7 @@ disciplines.get("/", async (c) => {
 
 // GET /disciplines/:id - Get single discipline
 disciplines.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const discipline = await disciplineService.getDisciplineById(id);
   return c.json(discipline);
 });
@@ -40,7 +40,7 @@ disciplines.patch(
   requireAuth,
   zValidator("json", updateDisciplineSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const data = c.req.valid("json");
     const discipline = await disciplineService.updateDiscipline(id, data);
     return c.json(discipline);
@@ -49,7 +49,7 @@ disciplines.patch(
 
 // DELETE /disciplines/:id - Delete discipline
 disciplines.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const result = await disciplineService.deleteDiscipline(id);
   return c.json(result);
 });
