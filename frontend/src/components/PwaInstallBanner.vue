@@ -2,8 +2,8 @@
   <Transition name="slide-up">
     <div
       v-if="shouldShowBanner"
-      class="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-3 px-4 py-3 shadow-lg"
-      style="background: var(--p-surface-100); border-top: 1px solid var(--p-surface-200)"
+      class="fixed bottom-15 left-0 right-0 z-50 flex items-center justify-between gap-3 px-4 py-3 shadow-lg"
+      style="background: var(--p-surface-700)"
     >
       <div class="flex items-center gap-3 min-w-0">
         <img src="@/assets/img/icon-192x192.png" alt="Skol" class="w-10 h-10 rounded-xl shrink-0" />
@@ -14,12 +14,7 @@
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <Button
-          size="small"
-          label="Installer"
-          icon="fas fa-download"
-          @click="triggerInstall"
-        />
+        <Button size="small" label="Installer" icon="fas fa-download" @click="triggerInstall" />
         <Button
           size="small"
           icon="fas fa-times"
@@ -35,8 +30,8 @@
   <Transition name="fade">
     <div
       v-if="showIOSInstructions"
-      class="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 shadow-lg"
-      style="background: var(--p-surface-100); border-top: 1px solid var(--p-surface-200)"
+      class="fixed bottom-15 left-0 right-0 z-50 px-4 py-3 shadow-lg"
+      style="background: var(--p-surface-700);"
     >
       <div class="flex items-start justify-between gap-2">
         <p class="text-sm">

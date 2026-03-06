@@ -1,5 +1,16 @@
 <template>
-  <div :class="classes">
+  <div class="relative overflow-hidden rounded-lg">
+    <div
+      class="absolute inset-y-0 right-0 flex items-center justify-center w-16 bg-red-500"
+      :style="{ opacity: deleteRevealOpacity }"
+    >
+      <i class="fas fa-trash text-white text-sm"></i>
+    </div>
+    <div
+      :class="classes"
+      :style="cardStyle"
+      ref="cardRef"
+    >
     <div class="flex justify-between items-start gap-2">
       <div class="flex-1 cursor-pointer" @click="handleClick">
         <div class="flex items-center justify-between gap-2 mb-1">
@@ -33,6 +44,7 @@
         </Button>
       </div>
     </div>
+    </div>
   </div>
 </template>
 
@@ -40,13 +52,46 @@
 import type { Notification } from '@/composables/notification/notification.service'
 import { useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
-import { computed } from 'vue'
+import { computed, ref, useTemplateRef } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useSwipe } from '@vueuse/core'
 
 const props = defineProps<{ notif: Notification }>()
 const { open, deleteNotification } = useNotificationService()
 const router = useRouter()
 const toast = useToast()
+
+const cardRef = useTemplateRef<HTMLElement>('cardRef')
+const swipeOffset = ref(0)
+const isSnapping = ref(false)
+const SWIPE_THRESHOLD = 100
+
+const canSwipe = computed(() => !props.notif.requiresAction)
+
+const cardStyle = computed(() => ({
+  transform: `translateX(${-Math.max(0, swipeOffset.value)}px)`,
+  transition: isSnapping.value ? 'transform 0.2s ease' : 'none',
+  position: 'relative' as const,
+}))
+
+const deleteRevealOpacity = computed(() => Math.min(Math.max(0, swipeOffset.value) / SWIPE_THRESHOLD, 1))
+
+const { lengthX } = useSwipe(cardRef, {
+  onSwipe() {
+    if (!canSwipe.value) return
+    isSnapping.value = false
+    swipeOffset.value = lengthX.value
+  },
+  onSwipeEnd() {
+    if (!canSwipe.value) return
+    if (swipeOffset.value > SWIPE_THRESHOLD) {
+      void handleDelete(new Event('swipe'))
+    } else {
+      isSnapping.value = true
+      swipeOffset.value = 0
+    }
+  },
+})
 
 const emit = defineEmits<{
   click: []

@@ -20,7 +20,7 @@
     </div>
 
     <!-- Content Area -->
-    <div class="flex-1 overflow-y-auto pb-20">
+    <div ref="contentAreaRef" class="flex-1 overflow-y-auto pb-24">
       <!-- Tab 1: Detail & Participants -->
       <div v-show="activeTab === 'participants'" class="space-y-4 p-4">
         <TournamentHeader
@@ -60,7 +60,10 @@
         />
 
         <div class="mt-4">
-          <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Participants</h3>
+          <div class="flex items-center text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
+            Participants
+            <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
+          </div>
           <TournamentParticipantsList
             :participants="participants"
             :loading="loadingParticipants"
@@ -77,9 +80,11 @@
         class="h-full p-2"
       >
         <StandingsTable
+          class="h-full"
           :tournament-id="tournamentId"
           :allow-draw="tournament.allowDraw"
           :team-mode="tournament.teamMode"
+          v-model:standings-type="standingsType"
         />
       </div>
 
@@ -108,7 +113,7 @@
 
     <!-- Bottom Navigation -->
     <div
-      class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center h-16 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
+      class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
     >
       <button
         @click="activeTab = 'participants'"
@@ -121,7 +126,9 @@
       >
         <div
           class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-          :class="activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+          :class="
+            activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+          "
         ></div>
         <i
           class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
@@ -200,6 +207,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSwipe } from '@vueuse/core'
 import type { ClientBaseTournament, ParticipantListItem } from '@skill-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
@@ -238,6 +246,21 @@ defineEmits<{
   (e: 'view-rules'): void
 }>()
 
+const contentAreaRef = ref<HTMLElement | null>(null)
+const standingsType = ref<'official' | 'provisional'>('official')
+const standingsTypeValues = ['official', 'provisional'] as const
+
+useSwipe(contentAreaRef, {
+  onSwipeEnd(_e, direction) {
+    if (activeTab.value !== 'standings') return
+    const currentIndex = standingsTypeValues.indexOf(standingsType.value)
+    const next = standingsTypeValues[currentIndex + 1]
+    const prev = standingsTypeValues[currentIndex - 1]
+    if (direction === 'left' && next) standingsType.value = next
+    else if (direction === 'right' && prev) standingsType.value = prev
+  },
+})
+
 const activeTab = ref('participants')
 
 onMounted(() => {
@@ -267,5 +290,6 @@ const tabTitles: Record<string, string> = {
 <style scoped>
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+  height: calc(4rem + env(safe-area-inset-bottom));
 }
 </style>

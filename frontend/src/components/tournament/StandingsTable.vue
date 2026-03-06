@@ -29,9 +29,6 @@
         <div v-if="standings.length > 0" :key="`standings-${standingsType}`" class="relative">
           <DataTable
             :value="standings"
-            :paginator="standings.length > 10"
-            :rows="20"
-            :rowsPerPageOptions="[10, 20, 50]"
             class="p-datatable-sm"
             striped-rows
             :loading="loading"
@@ -150,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import SelectButton from 'primevue/selectbutton'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
@@ -161,6 +158,7 @@ interface Props {
   tournamentId: string
   allowDraw?: boolean
   teamMode?: 'static' | 'flex'
+  standingsType?: 'official' | 'provisional'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -168,10 +166,22 @@ const props = withDefaults(defineProps<Props>(), {
   teamMode: 'flex',
 })
 
+const emit = defineEmits<{
+  (e: 'update:standingsType', value: 'official' | 'provisional'): void
+}>()
+
 const { standings, loading, error, loadOfficialStandings, loadProvisionalStandings } =
   useStandingsService()
 
-const standingsType = ref<'official' | 'provisional'>('official')
+const internalStandingsType = ref<'official' | 'provisional'>('official')
+
+const standingsType = computed({
+  get: () => props.standingsType ?? internalStandingsType.value,
+  set: (val) => {
+    internalStandingsType.value = val
+    emit('update:standingsType', val)
+  },
+})
 
 const standingsTypeOptions = [
   { label: 'Officiel', value: 'official' },
