@@ -93,21 +93,21 @@ users.get("/", requireAuth, async (c) => {
 
 // GET /users/:id - Public player profile
 users.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const player = await playerStatsService.getPlayerProfile(id);
   return c.json(player);
 });
 
 // GET /users/:id/tournaments - Tournaments list for filter dropdown
 users.get("/:id/tournaments", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const tournaments = await playerStatsService.getPlayerTournaments(id);
   return c.json({ tournaments });
 });
 
 // GET /users/:id/stats - Player stats (filterable)
 users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const filters = c.req.valid("query");
   const result = await playerStatsService.getPlayerStats(id, filters);
   return c.json(result);

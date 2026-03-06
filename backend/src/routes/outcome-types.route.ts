@@ -32,7 +32,7 @@ outcomeTypes.get("/", async (c) => {
 
 // GET /outcome-types/:id - Get single outcome type
 outcomeTypes.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const outcomeType = await outcomeTypeService.getOutcomeTypeById(id);
   return c.json(outcomeType);
 });
@@ -43,7 +43,7 @@ outcomeTypes.patch(
   requireAuth,
   zValidator("json", updateOutcomeTypeSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const data = c.req.valid("json");
     const outcomeType = await outcomeTypeService.updateOutcomeType(id, data);
     return c.json(outcomeType);
@@ -52,7 +52,7 @@ outcomeTypes.patch(
 
 // DELETE /outcome-types/:id - Delete outcome type
 outcomeTypes.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const result = await outcomeTypeService.deleteOutcomeType(id);
   return c.json(result);
 });

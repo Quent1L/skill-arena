@@ -48,8 +48,8 @@ function makeMatch(id: string, winnerSide: "A" | "B" | null, status = "finalized
 
 const mockRepo = {
   getTournamentWithScoring: mock(() => Promise.resolve(DEFAULT_TOURNAMENT as any)),
-  getMatchesForStandings: mock(() => Promise.resolve([] as any[])),
-  getMatchSides: mock(() => Promise.resolve([] as any[])),
+  getMatchesForStandings: mock((_id: string, _statuses: string[]) => Promise.resolve([] as any[])),
+  getMatchSides: mock((_ids: string[]) => Promise.resolve([] as any[])),
   getTournamentTeams: mock(() => Promise.resolve([TEAM_A, TEAM_B] as any[])),
   getTournamentEntries: mock(() => Promise.resolve([] as any[])),
 };

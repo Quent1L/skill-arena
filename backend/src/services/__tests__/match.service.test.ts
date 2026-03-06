@@ -86,6 +86,7 @@ beforeEach(() => {
   notifService =
     notificationService as unknown as Partial<NotificationServiceType>;
   notifService.deleteActionsByMatchId = async () => [];
+  notifService.deleteActionsByMatchIdForUser = async () => [];
   notifService.send = async () => undefined as any;
 });
 

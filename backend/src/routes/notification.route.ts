@@ -16,7 +16,7 @@ app.get('/me/notifications', requireAuth, async (c) => {
 
 app.post('/me/notifications/:id/read', requireAuth, async (c) => {
   const appUserId = c.get('appUserId');
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   
   await notificationService.markAsRead(id, appUserId);
   return c.json({ success: true });
@@ -24,7 +24,7 @@ app.post('/me/notifications/:id/read', requireAuth, async (c) => {
 
 app.post('/me/notifications/:id/action-completed', requireAuth, async (c) => {
   const appUserId = c.get('appUserId');
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   
   await notificationService.markActionCompleted(id, appUserId);
   return c.json({ success: true });
@@ -53,7 +53,7 @@ app.get('/me/pushDevices', requireAuth, async (c) => {
 
 app.delete('/me/pushDevices/:id', requireAuth, async (c) => {
   const appUserId = c.get('appUserId');
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   
   await notificationService.removePushDevice(appUserId, id);
   return c.json({ success: true });
@@ -61,7 +61,7 @@ app.delete('/me/pushDevices/:id', requireAuth, async (c) => {
 
 
 app.post('/notifications/:id/resend', requireAuth, async (c) => {
-    const id = c.req.param('id');
+    const id = c.req.param('id')!;
     const body = await c.req.json().catch(() => ({}));
     
     try {
@@ -75,7 +75,7 @@ app.post('/notifications/:id/resend', requireAuth, async (c) => {
 
 app.delete('/me/notifications/:id', requireAuth, async (c) => {
   const appUserId = c.get('appUserId');
-  const id = c.req.param('id');
+  const id = c.req.param('id')!;
   
   try {
     await notificationService.delete(id, appUserId);

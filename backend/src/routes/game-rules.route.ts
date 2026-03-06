@@ -33,7 +33,7 @@ gameRules.post(
 
 // GET /game-rules/:id - Get single game rule (public)
 gameRules.get("/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const rule = await gameRulesService.getGameRuleById(id);
   return c.json(rule);
 });
@@ -44,7 +44,7 @@ gameRules.patch(
   requireAuth,
   zValidator("json", updateGameRuleSchema),
   async (c) => {
-    const id = c.req.param("id");
+    const id = c.req.param("id")!;
     const data = c.req.valid("json");
     const appUserId = c.get("appUserId");
     const rule = await gameRulesService.updateGameRule(id, appUserId, data);
@@ -54,7 +54,7 @@ gameRules.patch(
 
 // DELETE /game-rules/:id - Delete game rule
 gameRules.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const appUserId = c.get("appUserId");
   await gameRulesService.deleteGameRule(id, appUserId);
   return c.json({ success: true });
