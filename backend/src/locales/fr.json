@@ -46,6 +46,7 @@
     "MATCH_OVERLAPPING_PLAYERS": "{{playerName}} ne peut pas être dans les deux équipes",
     "MATCH_INVALID_SCORE": "Les scores ne peuvent pas être négatifs",
     "MATCH_DRAW_NOT_ALLOWED": "Les matchs nuls ne sont pas autorisés dans ce tournoi",
+    "MATCH_SCORE_OUT_OF_RANGE": "Le score est en dehors des limites autorisées pour ce tournoi",
     "MATCH_SAME_REPORTER_CONFIRMER": "Le même utilisateur ne peut pas reporter et confirmer le résultat",
     "MATCH_TEAM_SIZE_MISMATCH": "Le nombre de joueurs dans les équipes A ({{teamASize}}) et B ({{teamBSize}}) doit être le même",
     "MAX_MATCHES_EXCEEDED": "{{playerName}} a atteint le nombre maximum de matchs ({{max}})",

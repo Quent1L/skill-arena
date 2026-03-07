@@ -307,6 +307,39 @@
             </div>
           </div>
 
+          <!-- Contraintes de score -->
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">Contraintes de score</h2>
+            <div class="flex gap-4">
+              <div class="flex-1">
+                <label for="minScore" class="block text-sm font-medium mb-2">Score minimum</label>
+                <InputNumber
+                  id="minScore"
+                  v-model="minScore"
+                  :min="0"
+                  :disabled="!isFieldEditable('minScore')"
+                  placeholder="Aucune limite"
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.minScore }"
+                />
+                <small class="p-error">{{ errors.minScore }}</small>
+              </div>
+              <div class="flex-1">
+                <label for="maxScore" class="block text-sm font-medium mb-2">Score maximum</label>
+                <InputNumber
+                  id="maxScore"
+                  v-model="maxScore"
+                  :min="0"
+                  :disabled="!isFieldEditable('maxScore')"
+                  placeholder="Aucune limite"
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.maxScore }"
+                />
+                <small class="p-error">{{ errors.maxScore }}</small>
+              </div>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
@@ -421,6 +454,8 @@ const [allowDraw] = defineField('allowDraw')
 const [startDate] = defineField('startDate')
 const [endDate] = defineField('endDate')
 const [disciplineId] = defineField('disciplineId')
+const [minScore] = defineField('minScore')
+const [maxScore] = defineField('maxScore')
 const rulesId = ref<string | null>(null)
 
 function isFieldEditable(fieldName: string): boolean {
@@ -504,6 +539,8 @@ onMounted(async () => {
         startDate: currentTournament.value.startDate,
         endDate: currentTournament.value.endDate,
         disciplineId: currentTournament.value.disciplineId,
+        minScore: currentTournament.value.minScore ?? null,
+        maxScore: currentTournament.value.maxScore ?? null,
       })
       rulesId.value = currentTournament.value.rulesId ?? null
     }

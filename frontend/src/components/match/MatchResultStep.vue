@@ -58,7 +58,8 @@
             <div class="text-xs text-gray-500 mb-2">Score A</div>
             <InputNumber
               v-model="scoreAModel"
-              :min="0"
+              :min="props.minScore ?? 0"
+              :max="props.maxScore ?? undefined"
               class="text-2xl font-bold"
               input-class="w-20 text-center"
             />
@@ -68,13 +69,20 @@
             <div class="text-xs text-gray-500 mb-2">Score B</div>
             <InputNumber
               v-model="scoreBModel"
-              :min="0"
+              :min="props.minScore ?? 0"
+              :max="props.maxScore ?? undefined"
               class="text-2xl font-bold"
               input-class="w-20 text-center"
             />
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-if="validationMessages.length > 0" class="mt-4 flex flex-col gap-2">
+      <Message v-for="msg in validationMessages" :key="msg" severity="warn" :closable="false">
+        {{ msg }}
+      </Message>
     </div>
 
     <div class="flex pt-6 justify-between">
@@ -114,6 +122,8 @@ interface Props {
   disabled?: boolean
   hidePreviousButton?: boolean
   submitLabel?: string
+  minScore?: number | null
+  maxScore?: number | null
 }
 
 interface Emits {
@@ -168,8 +178,29 @@ const filteredWinnerOptions = computed(() => {
 })
 
 const canCreate = computed(() => {
-  // Require winner and scores to be set
-  return winnerModel.value !== null && scoreAModel.value >= 0 && scoreBModel.value >= 0
+  if (winnerModel.value === null) return false
+  const inRange = (v: number) =>
+    (props.minScore == null || v >= props.minScore) &&
+    (props.maxScore == null || v <= props.maxScore)
+  return inRange(scoreAModel.value) && inRange(scoreBModel.value)
+})
+
+const validationMessages = computed<string[]>(() => {
+  const messages: string[] = []
+  if (winnerModel.value === null) {
+    messages.push(
+      props.allowDraw
+        ? 'Sélectionnez un vainqueur ou choisissez match nul.'
+        : 'Sélectionnez un vainqueur.'
+    )
+  }
+  if (props.minScore != null && (scoreAModel.value < props.minScore || scoreBModel.value < props.minScore)) {
+    messages.push(`Le score minimum autorisé est ${props.minScore}.`)
+  }
+  if (props.maxScore != null && (scoreAModel.value > props.maxScore || scoreBModel.value > props.maxScore)) {
+    messages.push(`Le score maximum autorisé est ${props.maxScore}.`)
+  }
+  return messages
 })
 
 async function loadOutcomeTypes() {

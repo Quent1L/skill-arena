@@ -74,6 +74,8 @@
           v-model:outcome-type-id="matchData.outcomeTypeId"
           v-model:outcome-reason-id="matchData.outcomeReasonId"
           :allow-draw="allowDraw"
+          :min-score="minScore"
+          :max-score="maxScore"
         />
       </div>
     </div>
@@ -137,6 +139,8 @@ interface Props {
   minDate?: Date
   maxDate?: Date
   allowDraw?: boolean
+  minScore?: number | null
+  maxScore?: number | null
   initialData?: Partial<ClientCreateMatchRequest & ClientUpdateMatchRequest>
   matchId?: string
   isContestMode?: boolean

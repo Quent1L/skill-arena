@@ -73,6 +73,23 @@ export class MatchInputValidator {
     }
 
     /**
+     * Validate scores are within the tournament's allowed range
+     */
+    validateScoreRange(
+        scoreA: number,
+        scoreB: number,
+        minScore: number | null | undefined,
+        maxScore: number | null | undefined
+    ): void {
+        if (minScore != null && (scoreA < minScore || scoreB < minScore)) {
+            throw new BadRequestError(ErrorCode.MATCH_SCORE_OUT_OF_RANGE);
+        }
+        if (maxScore != null && (scoreA > maxScore || scoreB > maxScore)) {
+            throw new BadRequestError(ErrorCode.MATCH_SCORE_OUT_OF_RANGE);
+        }
+    }
+
+    /**
      * Validate draw is allowed if scores are equal
      */
     async validateDrawAllowed(

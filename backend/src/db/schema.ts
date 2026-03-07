@@ -257,6 +257,8 @@ export const tournaments = pgTable("tournaments", {
   rulesId: uuid("rules_id").references(() => gameRules.id, {
     onDelete: "set null",
   }),
+  minScore: integer("min_score"),
+  maxScore: integer("max_score"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => appUsers.id, { onDelete: "restrict" }),
