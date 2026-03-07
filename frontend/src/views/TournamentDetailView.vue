@@ -83,8 +83,8 @@
       <Tabs v-model:value="activeTab" class="mt-4">
         <TabList style="border-radius: 0.5rem 0.5rem 0 0">
           <Tab v-if="tournament.mode === 'championship'" value="standings">Classement</Tab>
-          <Tab value="matches">Matchs</Tab>
           <Tab v-if="tournament.mode === 'bracket'" value="bracket">Bracket</Tab>
+          <Tab value="matches">Matchs</Tab>
           <Tab value="participants">
             <div class="flex items-center">
               <div>Participants</div>
@@ -100,13 +100,17 @@
               :team-mode="tournament.teamMode"
             />
           </TabPanel>
-          <TabPanel value="matches">
-            <div class="p-0">
-              <MatchList :tournament-id="tournamentId" />
-            </div>
-          </TabPanel>
+
           <TabPanel v-if="tournament.mode === 'bracket'" value="bracket">
             <BracketView :tournament-id="tournamentId" :tournament="tournament" />
+          </TabPanel>
+          <TabPanel value="matches">
+            <div class="p-0">
+              <MatchList
+                :tournament-id="tournamentId"
+                :bracket-mode="tournament.mode === 'bracket'"
+              />
+            </div>
           </TabPanel>
           <TabPanel value="participants">
             <Card>
@@ -213,18 +217,6 @@ const tournamentDuration = computed(() => {
   return calculateDuration(tournament.value.startDate, tournament.value.endDate)
 })
 
-onMounted(() => {
-  const tab = route.query.tab as string | undefined
-  if (tab) {
-    const validTabs = ['matches', 'participants']
-    if (tournament.value?.mode === 'championship') validTabs.push('standings')
-    if (tournament.value?.mode === 'bracket') validTabs.push('bracket')
-    if (validTabs.includes(tab)) {
-      activeTab.value = tab
-    }
-  }
-})
-
 watch(activeTab, (tab) => {
   router.replace({ query: { ...route.query, tab } })
 })
@@ -284,6 +276,13 @@ onMounted(async () => {
   if (tournament.value) {
     await loadParticipants()
   }
+  const tab = route.query.tab as string | undefined
+  const validTabs = ['matches', 'participants']
+  if (tournament.value?.mode === 'championship') validTabs.push('standings')
+  if (tournament.value?.mode === 'bracket') validTabs.push('bracket')
+  if (tab && validTabs.includes(tab)) activeTab.value = tab
+  else if (validTabs.includes('bracket')) activeTab.value = 'bracket'
+
   isInitialLoading.value = false
 })
 </script>

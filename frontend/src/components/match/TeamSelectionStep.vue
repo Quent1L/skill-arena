@@ -18,26 +18,70 @@
       />
     </div>
 
+    <!-- Bracket lock notice -->
+    <div
+      v-if="props.bracketLocked && bracketTeamsReady"
+      class="mb-4 px-4 py-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-300"
+    >
+      <i class="fa fa-lock mr-2" />
+      Les participants sont verrouillés car le bracket est généré. Seule la date peut être modifiée.
+    </div>
+    <div
+      v-if="props.bracketLocked && !bracketTeamsReady"
+      class="mb-4 px-4 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300"
+    >
+      <i class="fa fa-hourglass-half mr-2" />
+      Les adversaires ne sont pas encore déterminés. Ce match ne peut pas être complété tant que les deux équipes ne sont pas connues.
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       <div>
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe A</h4>
-          <TeamSelector
-            v-model="playerIdsAModel"
-            :tournament-id="tournamentId"
-            @validate="onValidate"
-          />
+          <template v-if="props.bracketLocked">
+            <div class="space-y-1">
+              <p
+                v-for="name in props.teamANames"
+                :key="name"
+                class="text-sm text-gray-700 dark:text-gray-300 py-1"
+              >
+                {{ name }}
+              </p>
+              <p v-if="!props.teamANames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+            </div>
+          </template>
+          <template v-else>
+            <TeamSelector
+              v-model="playerIdsAModel"
+              :tournament-id="tournamentId"
+              @validate="onValidate"
+            />
+          </template>
         </div>
       </div>
 
       <div>
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe B</h4>
-          <TeamSelector
-            v-model="playerIdsBModel"
-            :tournament-id="tournamentId"
-            @validate="onValidate"
-          />
+          <template v-if="props.bracketLocked">
+            <div class="space-y-1">
+              <p
+                v-for="name in props.teamBNames"
+                :key="name"
+                class="text-sm text-gray-700 dark:text-gray-300 py-1"
+              >
+                {{ name }}
+              </p>
+              <p v-if="!props.teamBNames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+            </div>
+          </template>
+          <template v-else>
+            <TeamSelector
+              v-model="playerIdsBModel"
+              :tournament-id="tournamentId"
+              @validate="onValidate"
+            />
+          </template>
         </div>
       </div>
     </div>
@@ -61,7 +105,7 @@
       label="Programmer le match"
       icon="fas fa-calendar-check"
       @click="onCreate"
-      :disabled="disabled || !scheduledDate"
+      :disabled="isNextDisabled"
       class="bg-green-600 hover:bg-green-700"
     />
     <Button
@@ -70,7 +114,7 @@
       icon="fas fa-arrow-right"
       iconPos="right"
       @click="onNext"
-      :disabled="disabled || !scheduledDate"
+      :disabled="isNextDisabled"
       class="bg-blue-600 hover:bg-blue-700"
     />
   </div>
@@ -79,6 +123,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TeamSelector from '@/components/TeamSelector.vue'
+
+
 
 interface ValidationResult {
   valid: boolean
@@ -92,6 +138,9 @@ interface Props {
   maxDate?: Date | null
   validation?: ValidationResult
   disabled?: boolean
+  bracketLocked?: boolean
+  teamANames?: string[]
+  teamBNames?: string[]
 }
 
 interface Emits {
@@ -100,13 +149,23 @@ interface Emits {
   (e: 'create'): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const playerIdsAModel = defineModel<string[]>('playerIdsA', { required: true })
 const playerIdsBModel = defineModel<string[]>('playerIdsB', { required: true })
 const scheduledDate = defineModel<Date | null>('scheduledDate', { default: null })
 const now = new Date()
+
+const bracketTeamsReady = computed(
+  () => (props.teamANames?.length ?? 0) > 0 && (props.teamBNames?.length ?? 0) > 0,
+)
+
+const isNextDisabled = computed(() => {
+  if (!scheduledDate.value) return true
+  if (props.bracketLocked) return !bracketTeamsReady.value
+  return props.disabled ?? false
+})
 
 // Check if selected date is in the future
 const isFutureDate = computed(() => {

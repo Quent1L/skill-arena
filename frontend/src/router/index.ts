@@ -242,8 +242,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/MatchDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      breadcrumb: 'Détails du match',
-      title: 'Détails du match',
+      hideBreadcrumb: true,
       requiresAuth: true,
     },
   },

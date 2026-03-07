@@ -32,9 +32,12 @@ export interface TournamentEntryModel extends TournamentEntry {
     name: string;
   };
   players: Array<{
-    id: string;
-    displayName: string;
-    email: string;
+    playerId: string;
+    player: {
+      id: string;
+      displayName: string;
+      shortName: string;
+    };
   }>;
 }
 

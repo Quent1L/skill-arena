@@ -5,7 +5,9 @@
     "MATCH_SCHEDULED_TITLE": "{{creatorName}} scheduled a {{matchFormat}} match for you",
     "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}",
     "MATCH_SCORE_PROPOSAL_TITLE": "{{proposerName}} proposed a corrected score",
-    "MATCH_SCORE_PROPOSAL_MESSAGE": "⚠️ Proposed score: {{scoreA}} - {{scoreB}}\nPlease confirm or contest this result before the deadline."
+    "MATCH_SCORE_PROPOSAL_MESSAGE": "⚠️ Proposed score: {{scoreA}} - {{scoreB}}\nPlease confirm or contest this result before the deadline.",
+    "MATCH_VALIDATION_TITLE": "{{reporterName}} reported the match result ({{matchFormat}})",
+    "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}\n✅ Please confirm or contest this result before the deadline."
   },
   "emails": {
     "password_reset_subject": "Password Reset",

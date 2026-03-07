@@ -9,6 +9,9 @@
       :match-id="matchId"
       :is-contest-mode="isContestMode"
       :contest-reason="contestReason"
+      :bracket-locked="isBracketMatch"
+      :team-a-names="teamAPlayers"
+      :team-b-names="teamBPlayers"
     />
   </div>
   <div v-else class="create-match-view">
@@ -31,6 +34,9 @@
                   :max-date="tournamentMaxDate"
                   :validation="teamSelectorValidation"
                   :disabled="!canProceedToNext"
+                  :bracket-locked="isBracketMatch"
+                  :team-a-names="teamAPlayers"
+                  :team-b-names="teamBPlayers"
                   @validate="() => validateCurrentStep('1')"
                   @next="() => goToStep(activateCallback, '2')"
                   @create="createMatch"
@@ -109,9 +115,9 @@ const matchId = route.query.matchId as string | undefined
 const isContestMode = computed(() => route.query.contest === 'true')
 const contestReason = computed(() => route.query.contestReason as string | undefined)
 const isEditMode = computed(() => !!matchId)
+const isBracketMatch = computed(() => isEditMode.value && tournament.value?.mode === 'bracket')
 
 const activeStep = ref('1')
-const scheduledDate = ref<Date | null>(new Date()) // Default to current date/time
 
 // Local type for form data that includes all fields needed for both create and update
 // Uses client types where dates are Date objects (not strings)
@@ -151,13 +157,13 @@ const canProceedToNext = computed(() =>
 
 const canCreateMatch = computed(() => {
   // For scheduled matches (future date), just check if date is set
-  if (scheduledDate.value && scheduledDate.value > now) {
-    return !!scheduledDate.value
+  if (matchData.value.playedAt && matchData.value.playedAt > now) {
+    return !!matchData.value.playedAt
   }
   // For reported matches (past/present date), check all required fields
   return canCreateMatchCheck(
     matchData.value.status ?? 'reported',
-    scheduledDate.value,
+    matchData.value.playedAt ?? null,
     matchData.value.scoreA ?? 0,
     matchData.value.scoreB ?? 0,
   )
@@ -186,8 +192,8 @@ const scoreB = computed({
 
 // Step 2 (Vainqueur) is only accessible if scheduled date is in the past or present
 const canAccessResultStep = computed(() => {
-  if (!scheduledDate.value) return false
-  return scheduledDate.value <= now
+  if (!matchData.value.playedAt) return false
+  return matchData.value.playedAt <= now
 })
 
 const tournamentMinDate = computed(() => {
@@ -216,7 +222,7 @@ async function validateCurrentStep(step?: string) {
 }
 
 watch(
-  scheduledDate,
+  () => matchData.value.playedAt,
   (newDate) => {
     if (!newDate) return
 
@@ -359,14 +365,14 @@ async function loadExistingMatch() {
 
     // playedAt is already a Date object (converted by interceptor)
     if (match.playedAt) {
-      scheduledDate.value = match.playedAt
+      matchData.value.playedAt = match.playedAt
     }
 
     // If match is already reported or pending_confirmation, go to step 2
     if (
       (match.status === 'reported' || match.status === 'pending_confirmation') &&
-      scheduledDate.value &&
-      scheduledDate.value <= new Date()
+      matchData.value.playedAt &&
+      matchData.value.playedAt <= new Date()
     ) {
       activeStep.value = '2'
     }

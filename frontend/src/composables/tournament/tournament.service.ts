@@ -271,7 +271,7 @@ export function useTournamentService() {
    */
   function isTournamentOpenForJoin(tournament: TournamentResponse | null): boolean {
     if (!tournament) return false
-    return ['open', 'ongoing'].includes(tournament.status)
+    return ['open'].includes(tournament.status)
   }
 
   /**
@@ -290,7 +290,7 @@ export function useTournamentService() {
     isAuthenticated: boolean,
     isParticipant: boolean,
   ): boolean {
-    if (!isAuthenticated || !isParticipant || !tournament) return false
+    if (!isAuthenticated || !isParticipant || !tournament || tournament.mode === 'bracket') return false
     return ['open', 'ongoing'].includes(tournament.status)
   }
 

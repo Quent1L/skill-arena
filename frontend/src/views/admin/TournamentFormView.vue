@@ -71,9 +71,7 @@
 
               <!-- Règles du jeu -->
               <div>
-                <label for="rulesId" class="block text-sm font-medium mb-2">
-                  Règles du jeu
-                </label>
+                <label for="rulesId" class="block text-sm font-medium mb-2"> Règles du jeu </label>
                 <Select
                   id="rulesId"
                   v-model="rulesId"
@@ -207,6 +205,18 @@
                 <small class="p-error">{{ errors.endDate }}</small>
               </div>
             </div>
+
+
+              <div class="flex items-center py-4">
+                <Checkbox
+                  id="allowDraw"
+                  v-model="allowDraw"
+                  :binary="true"
+                  :disabled="!isFieldEditable('allowDraw')"
+                />
+                <label for="allowDraw" class="ml-2"> Autoriser les matchs nuls </label>
+              </div>
+
           </div>
 
           <!-- Règles du championnat -->
@@ -293,18 +303,6 @@
                   :disabled="!isFieldEditable('pointPerLoss')"
                   class="w-full"
                 />
-              </div>
-
-              <div class="sm:col-span-2 lg:col-span-3">
-                <div class="flex items-center">
-                  <Checkbox
-                    id="allowDraw"
-                    v-model="allowDraw"
-                    :binary="true"
-                    :disabled="!isFieldEditable('allowDraw')"
-                  />
-                  <label for="allowDraw" class="ml-2"> Autoriser les matchs nuls </label>
-                </div>
               </div>
             </div>
           </div>

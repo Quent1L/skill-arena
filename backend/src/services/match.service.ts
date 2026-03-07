@@ -26,6 +26,7 @@ import { matchInputValidator } from "./validators/match-input.validator";
 import { matchRuleValidator } from "./validators/match-rule.validator";
 import { matchPermissionValidator } from "./validators/match-permission.validator";
 import { matchStatusValidator } from "./validators/match-status.validator";
+import { bracketService } from "./bracket.service";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -67,6 +68,17 @@ export class MatchService {
 
       // Check if match can be validated immediately
       await this.checkAndFinalizeMatch(matchId);
+
+      const refreshed = await matchRepository.getById(matchId);
+      if (refreshed?.status === "reported") {
+        // Single rich action notification — replaces the informational MATCH_CREATED
+        await this.notifyMatchValidationRequired(matchId, createdBy);
+      } else {
+        // Immediately finalized (e.g. solo match) — just inform participants
+        await this.notifyMatchCreated(matchId, createdBy, tournament.name);
+      }
+
+      return await matchRepository.getById(matchId);
     }
 
     await this.notifyMatchCreated(matchId, createdBy, tournament.name);
@@ -224,6 +236,15 @@ export class MatchService {
       throw new BadRequestError(ErrorCode.MATCH_ALREADY_CONFIRMED);
     }
 
+    // Bracket matches require both teams to be assigned before any update
+    const tournament = await matchRepository.getTournament(match.tournamentId);
+    if (tournament?.mode === "bracket") {
+      const sides = (match as { sides?: { entryId: string }[] }).sides ?? [];
+      if (sides.length < 2) {
+        throw new BadRequestError(ErrorCode.BRACKET_MATCH_TEAMS_NOT_READY);
+      }
+    }
+
     const updateData: UpdateMatchData = {};
     if (input.scoreA !== undefined) updateData.scoreA = input.scoreA;
     if (input.scoreB !== undefined) updateData.scoreB = input.scoreB;
@@ -236,9 +257,19 @@ export class MatchService {
       updateData.outcomeReasonId = input.outcomeReasonId;
     if (input.winner !== undefined) updateData.winner = input.winner;
 
+    if (input.status === "reported") {
+      updateData.reportedBy = updatedBy;
+      const confirmationDeadline = new Date();
+      confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
+      updateData.confirmationDeadline = confirmationDeadline;
+    }
+
     const result = await matchRepository.update(id, updateData);
     // Admin update may resolve a pending score dispute — delete blocking action notifications
     await notificationService.deleteActionsByMatchId(id);
+    if (input.status === "reported") {
+      await this.notifyMatchValidationRequired(id, updatedBy);
+    }
     return result;
   }
 
@@ -301,6 +332,12 @@ export class MatchService {
 
     // Check if match can be validated immediately
     await this.checkAndFinalizeMatch(id);
+
+    // Only notify other participants if match still needs validation
+    const refreshed = await matchRepository.getById(id);
+    if (refreshed?.status === "reported") {
+      await this.notifyMatchValidationRequired(id, reportedBy);
+    }
 
     return updatedMatch;
   }
@@ -857,6 +894,9 @@ export class MatchService {
     const result = await matchRepository.update(id, updateData);
     // Auto-delete any pending MATCH_SCORE_PROPOSAL action notifications for this match
     await notificationService.deleteActionsByMatchId(id);
+    // Advance winner and loser to next bracket rounds if applicable
+    await bracketService.advanceWinnerToNextRound(id);
+    await bracketService.advanceLoserToNextRound(id);
     return result;
   }
 
@@ -1042,6 +1082,83 @@ export class MatchService {
       });
     }
   }
+  /**
+   * Notify all match participants (except the reporter) that validation is required,
+   * with rich match details (same info as MATCH_CREATED but as an action notification)
+   */
+  private async notifyMatchValidationRequired(
+    matchId: string,
+    reportedBy: string,
+  ) {
+    const match = await matchRepository.getById(matchId);
+    if (!match) return;
+
+    const tournament = await matchRepository.getTournament(match.tournamentId);
+    const participants =
+      await matchRepository.getParticipationsByMatchId(matchId);
+    const reporter = await userRepository.getById(reportedBy);
+    const reporterName = reporter?.displayName || "Un joueur";
+
+    const teamAParticipants = participants.filter((p) => p.teamSide === "A");
+    const teamBParticipants = participants.filter((p) => p.teamSide === "B");
+
+    const matchDate = match.playedAt
+      ? new Date(match.playedAt).toLocaleString("fr-FR", {
+          dateStyle: "short",
+          timeStyle: "short",
+        })
+      : "À définir";
+    const matchFormat = `${teamAParticipants.length}v${teamAParticipants.length}`;
+
+    const playerIds = [...new Set(participants.map((p) => p.playerId))].filter(
+      (id) => id !== reportedBy,
+    );
+
+    for (const playerId of playerIds) {
+      const participant = participants.find((p) => p.playerId === playerId);
+      if (!participant) continue;
+
+      const isTeamA = participant.teamSide === "A";
+      const teammates = isTeamA ? teamAParticipants : teamBParticipants;
+      const opponents = isTeamA ? teamBParticipants : teamAParticipants;
+
+      const teammateNames = await Promise.all(
+        teammates
+          .filter((p) => p.playerId !== playerId)
+          .map(async (p) => {
+            const user = await userRepository.getById(p.playerId);
+            return user?.displayName || "Joueur inconnu";
+          }),
+      );
+
+      const opponentNames = await Promise.all(
+        opponents.map(async (p) => {
+          const user = await userRepository.getById(p.playerId);
+          return user?.displayName || "Joueur inconnu";
+        }),
+      );
+
+      await notificationService.send({
+        userId: playerId,
+        type: "MATCH_VALIDATION",
+        titleKey: "notifications.MATCH_VALIDATION_TITLE",
+        messageKey: "notifications.MATCH_VALIDATION_MESSAGE",
+        translationParams: {
+          reporterName,
+          tournamentName: tournament?.name ?? "",
+          matchFormat,
+          matchDate,
+          opponents: opponentNames.join(", "),
+          teammates:
+            teammateNames.length > 0 ? teammateNames.join(", ") : "Aucun",
+        },
+        actionUrl: `/matches/${matchId}`,
+        requiresAction: true,
+        matchId,
+      });
+    }
+  }
+
   /**
    * Notify all match participants (except the proposer) about a new score proposal
    */

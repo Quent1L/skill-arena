@@ -128,6 +128,7 @@ interface Props {
   tournamentId?: string
   playerId?: string
   pageSize?: number
+  bracketMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -245,7 +246,9 @@ async function loadMatches() {
 
     matches.value = result
 
-    displayedMatches.value = matches.value
+    displayedMatches.value = props.bracketMode
+      ? matches.value.filter((m) => m.teamA != null && m.teamB != null)
+      : matches.value
     // reset pagination
     currentPage.value = 0
   } catch (err) {

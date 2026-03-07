@@ -16,21 +16,49 @@
       <div v-if="step === 1" class="space-y-4">
         <MatchBasicInfo v-model="matchData.playedAt" :min-date="minDate" :max-date="maxDate" />
 
-        <TeamCard
-          title="Équipe A"
-          v-model:selected-ids="matchData.playerIdsA"
-          :all-players="allPlayers"
-          @validate="validate"
-        />
+        <!-- Bracket lock notice -->
+        <div
+          v-if="props.bracketLocked && bracketTeamsReady"
+          class="px-4 py-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-300"
+        >
+          <i class="fa fa-lock mr-2" />
+          Les participants sont verrouillés. Seule la date peut être modifiée.
+        </div>
+        <div
+          v-if="props.bracketLocked && !bracketTeamsReady"
+          class="px-4 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300"
+        >
+          <i class="fa fa-hourglass-half mr-2" />
+          Les adversaires ne sont pas encore déterminés. Ce match ne peut pas être complété tant que les deux équipes ne sont pas connues.
+        </div>
 
-        <TeamCard
-          title="Équipe B"
-          v-model:selected-ids="matchData.playerIdsB"
-          :all-players="allPlayers"
-          @validate="validate"
-        />
-
-        <MatchValidationPanel :validation="validationResult" />
+        <template v-if="props.bracketLocked">
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <h4 class="text-sm font-semibold mb-2">Équipe A</h4>
+            <p v-for="name in props.teamANames" :key="name" class="text-sm text-gray-700 dark:text-gray-300 py-1">{{ name }}</p>
+            <p v-if="!props.teamANames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+          </div>
+          <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <h4 class="text-sm font-semibold mb-2">Équipe B</h4>
+            <p v-for="name in props.teamBNames" :key="name" class="text-sm text-gray-700 dark:text-gray-300 py-1">{{ name }}</p>
+            <p v-if="!props.teamBNames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+          </div>
+        </template>
+        <template v-else>
+          <TeamCard
+            title="Équipe A"
+            v-model:selected-ids="matchData.playerIdsA"
+            :all-players="allPlayers"
+            @validate="validate"
+          />
+          <TeamCard
+            title="Équipe B"
+            v-model:selected-ids="matchData.playerIdsB"
+            :all-players="allPlayers"
+            @validate="validate"
+          />
+          <MatchValidationPanel :validation="validationResult" />
+        </template>
       </div>
 
       <!-- Step 2: Result -->
@@ -113,9 +141,13 @@ interface Props {
   matchId?: string
   isContestMode?: boolean
   contestReason?: string
+  bracketLocked?: boolean
+  teamANames?: string[]
+  teamBNames?: string[]
 }
 
 const props = defineProps<Props>()
+
 
 const router = useRouter()
 const {
@@ -186,12 +218,17 @@ watch(
 const teamAPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsA))
 const teamBPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsB))
 
+const bracketTeamsReady = computed(
+  () => (props.teamANames?.length ?? 0) > 0 && (props.teamBNames?.length ?? 0) > 0,
+)
+
 const canProceed = computed(() => {
+  if (!matchData.value.playedAt) return false
+  if (props.bracketLocked) return bracketTeamsReady.value
   return (
     validationResult.value?.valid &&
     matchData.value.playerIdsA.length > 0 &&
-    matchData.value.playerIdsB.length > 0 &&
-    matchData.value.playedAt
+    matchData.value.playerIdsB.length > 0
   )
 })
 

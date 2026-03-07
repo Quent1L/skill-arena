@@ -54,6 +54,7 @@ export interface UpdateMatchData {
   scoreB?: number;
   winner?: "teamA" | "teamB" | null;
   status?: MatchStatus;
+  reportedBy?: string;
   reportProof?: string;
   confirmationDeadline?: Date;
   finalizedAt?: Date;
@@ -496,9 +497,15 @@ export class MatchRepository {
       // Update or create match_results
       const existingResult = await matchResultRepository.getByMatchId(id);
 
-      if (data.reportProof !== undefined || data.finalizedBy !== undefined) {
+      if (
+        data.reportedBy !== undefined ||
+        data.reportProof !== undefined ||
+        data.finalizedBy !== undefined
+      ) {
         if (existingResult) {
           await matchResultRepository.update(id, {
+            reportedBy: data.reportedBy,
+            reportedAt: data.reportedBy ? new Date() : undefined,
             reportProof: data.reportProof,
             finalizedBy: data.finalizedBy,
             finalizedAt: data.finalizedAt,
@@ -506,6 +513,8 @@ export class MatchRepository {
           });
         } else {
           await matchResultRepository.create(id, {
+            reportedBy: data.reportedBy,
+            reportedAt: data.reportedBy ? new Date() : undefined,
             reportProof: data.reportProof,
             finalizedBy: data.finalizedBy,
             finalizedAt: data.finalizedAt,

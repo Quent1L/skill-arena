@@ -4,7 +4,9 @@ import { entryRepository } from "../repository/entry.repository";
 import { matchRepository } from "../repository/match.repository";
 import { participantRepository } from "../repository/participant.repository";
 import { standingsService } from "./standings.service";
+import { standingsRepository } from "../repository/standings.repository";
 import { tournamentService } from "./tournament.service";
+import { notificationService } from "./notification.service";
 import { db } from "../config/database";
 import {
   matches,
@@ -44,7 +46,9 @@ interface MatchData {
   entryBId?: string;
   isByeMatch: boolean;
   winnerToMatchNumber?: number;
+  winnerToRoundNumber?: number;
   loserToMatchNumber?: number;
+  loserToRoundNumber?: number;
 }
 
 export class BracketService {
@@ -70,6 +74,11 @@ export class BracketService {
         tx
       );
       if (existingConfig) {
+        // Delete action notifications for all bracket matches before removing them
+        const existingMatches = await matchRepository.list({ tournamentId });
+        for (const match of existingMatches) {
+          await notificationService.deleteActionsByMatchId(match.id);
+        }
         await bracketRepository.deleteAllBracketData(tournamentId, tx);
       }
 
@@ -190,9 +199,12 @@ export class BracketService {
       };
     }
 
+    const participants = await participantRepository.findTournamentParticipants(tournamentId);
+
     return {
       canGenerate: true,
       matchCount: matches.length,
+      currentParticipants: participants.length,
     };
   }
 
@@ -209,6 +221,11 @@ export class BracketService {
       throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
     }
 
+    // Delete action notifications for all bracket matches before removing them
+    const existingMatches = await matchRepository.list({ tournamentId });
+    for (const match of existingMatches) {
+      await notificationService.deleteActionsByMatchId(match.id);
+    }
     await bracketRepository.deleteAllBracketData(tournamentId);
   }
 
@@ -263,6 +280,10 @@ export class BracketService {
         input.sourceTournamentId!,
         tournament.disciplineId ?? undefined
       );
+      await this.validateParticipantsPlayedInChampionship(
+        tournamentId,
+        input.sourceTournamentId!
+      );
     }
   }
 
@@ -289,6 +310,45 @@ export class BracketService {
       sourceTournament.disciplineId !== targetDisciplineId
     ) {
       throw new BadRequestError(ErrorCode.DISCIPLINE_MISMATCH);
+    }
+  }
+
+  private async validateParticipantsPlayedInChampionship(
+    tournamentId: string,
+    sourceTournamentId: string
+  ) {
+    const participants = await participantRepository.findTournamentParticipants(tournamentId);
+    if (participants.length === 0) return;
+
+    const sourceMatches = await standingsRepository.getMatchesForStandings(
+      sourceTournamentId,
+      ["finalized"]
+    );
+
+    const playersWithMatches = new Set<string>();
+    if (sourceMatches.length > 0) {
+      const sides = await standingsRepository.getMatchSides(
+        sourceMatches.map((m) => m.id)
+      );
+      for (const side of sides) {
+        for (const ep of side.entry?.players ?? []) {
+          playersWithMatches.add(ep.playerId);
+        }
+      }
+    }
+
+    const missing = participants.filter((p) => !playersWithMatches.has(p.userId));
+
+    if (missing.length > 0) {
+      throw new BadRequestError(
+        ErrorCode.CHAMPIONSHIP_PARTICIPANTS_WITHOUT_MATCHES,
+        {
+          participants: missing.map((p) => ({
+            id: p.userId,
+            name: p.user.displayName,
+          })),
+        }
+      );
     }
   }
 
@@ -537,17 +597,22 @@ export class BracketService {
 
     // Bronze match if requested
     if (hasBronzeMatch && totalRounds >= 2) {
+      const semiFinalRoundIndex = totalRounds - 2;
+      rounds[semiFinalRoundIndex] = {
+        ...rounds[semiFinalRoundIndex],
+        matches: rounds[semiFinalRoundIndex].matches.map((m) => ({
+          ...m,
+          loserToMatchNumber: 0,
+          loserToRoundNumber: totalRounds,
+        })),
+      };
+
       rounds.push({
         roundNumber: totalRounds,
         roundName: "Bronze Medal Match",
         bracketType: "bronze",
         matchesCount: 1,
-        matches: [
-          {
-            matchNumber: 0,
-            isByeMatch: false,
-          },
-        ],
+        matches: [{ matchNumber: 0, isByeMatch: false }],
       });
     }
 
@@ -566,6 +631,21 @@ export class BracketService {
     // Winners bracket (same as single elimination for first half)
     const winnersRounds = this.generateSingleEliminationBracket(seeds, false);
 
+    // Enrich winners rounds with loser destinations
+    const winnersRoundsLength = winnersRounds.length;
+    for (let k = 0; k < winnersRounds.length; k++) {
+      const lbIndex = k === 0 ? 0 : 2 * k - 1;
+      const loserToRoundNumber = winnersRoundsLength + lbIndex;
+      winnersRounds[k] = {
+        ...winnersRounds[k],
+        matches: winnersRounds[k].matches.map((m) => ({
+          ...m,
+          loserToMatchNumber: k === 0 ? Math.floor(m.matchNumber / 2) : m.matchNumber,
+          loserToRoundNumber,
+        })),
+      };
+    }
+
     // Add winners bracket rounds
     for (const round of winnersRounds) {
       rounds.push({
@@ -583,21 +663,44 @@ export class BracketService {
 
       rounds.push({
         roundNumber: rounds.length,
-        roundName: `Losers Round ${i + 1}`,
+        roundName: `Tableau des perdants - Tour ${i + 1}`,
         bracketType: "losers",
         matchesCount,
         matches: Array.from({ length: matchesCount }, (_, j) => ({
           matchNumber: j,
           isByeMatch: false,
-          winnerToMatchNumber: i < losersRoundsCount - 1 ? Math.floor(j / 2) : undefined,
+          winnerToMatchNumber: i < losersRoundsCount - 1 ? (i % 2 === 0 ? j : Math.floor(j / 2)) : undefined,
         })),
       });
     }
 
+    const grandFinalRoundNumber = rounds.length;
+
+    // Link last losers round winner → Grande Finale
+    const lastLosersIdx = rounds.length - 1;
+    rounds[lastLosersIdx] = {
+      ...rounds[lastLosersIdx],
+      matches: rounds[lastLosersIdx].matches.map((m) => ({
+        ...m,
+        winnerToMatchNumber: 0,
+      })),
+    };
+
+    // Link winners final winner → Grande Finale (cross-bracket, needs explicit round override)
+    const winnersFinalIdx = winnersRounds.length - 1;
+    rounds[winnersFinalIdx] = {
+      ...rounds[winnersFinalIdx],
+      matches: rounds[winnersFinalIdx].matches.map((m) => ({
+        ...m,
+        winnerToMatchNumber: 0,
+        winnerToRoundNumber: grandFinalRoundNumber,
+      })),
+    };
+
     // Grand Final
     rounds.push({
-      roundNumber: rounds.length,
-      roundName: "Grand Final",
+      roundNumber: grandFinalRoundNumber,
+      roundName: "Grande Finale",
       bracketType: "winners",
       matchesCount: 1,
       matches: [
@@ -637,17 +740,17 @@ export class BracketService {
     totalRounds: number,
     isBronze: boolean
   ): string {
-    if (isBronze) return "Bronze Medal Match";
+    if (isBronze) return "Match pour la 3ème place";
 
     const remainingRounds = totalRounds - roundIndex;
 
-    if (remainingRounds === 1) return "Final";
-    if (remainingRounds === 2) return "Semifinals";
-    if (remainingRounds === 3) return "Quarterfinals";
-    if (remainingRounds === 4) return "Round of 16";
-    if (remainingRounds === 5) return "Round of 32";
+    if (remainingRounds === 1) return "Finale";
+    if (remainingRounds === 2) return "Demi-finales";
+    if (remainingRounds === 3) return "Quarts de finale";
+    if (remainingRounds === 4) return "Huitièmes de finale";
+    if (remainingRounds === 5) return "Seizièmes de finale";
 
-    return `Round ${roundIndex + 1}`;
+    return `Tour ${roundIndex + 1}`;
   }
 
   // ============================================
@@ -671,55 +774,59 @@ export class BracketService {
       tx
     );
 
-    // Create matches for each round
     const tournament = await tournamentRepository.getById(tournamentId);
     const startDate = new Date(tournament!.startDate);
 
+    // Map "roundNumber:matchNumber" → matchId for pass 2
+    const matchIdMap = new Map<string, string>();
+    const pendingLinks: {
+      matchId: string;
+      roundNumber: number;
+      winnerToMatchNumber: number;
+      winnerToRoundNumber?: number;
+    }[] = [];
+    const pendingLoserLinks: {
+      matchId: string;
+      loserToMatchNumber: number;
+      loserToRoundNumber: number;
+    }[] = [];
+
+    // Pass 1: Create all matches and metadata
     for (let i = 0; i < rounds.length; i++) {
       const round = rounds[i];
       const createdRound = createdRounds[i];
 
       for (const matchData of round.matches) {
-        // Calculate match date (spread over tournament duration)
         const matchDate = new Date(startDate);
         matchDate.setDate(matchDate.getDate() + round.roundNumber * 3);
 
-        // Create match record
         const [matchRecord] = await tx
           .insert(matches)
-          .values({
-            tournamentId,
-            status: "scheduled",
-            playedAt: matchDate,
-          })
+          .values({ tournamentId, status: "scheduled", playedAt: matchDate })
           .returning();
 
-        // Create match sides if entries specified
+        matchIdMap.set(`${round.roundNumber}:${matchData.matchNumber}`, matchRecord.id);
+
         if (matchData.entryAId) {
-          await tx
-            .insert(matchSides)
-            .values({
-              matchId: matchRecord.id,
-              entryId: matchData.entryAId,
-              position: 0,
-              score: 0,
-              pointsAwarded: 0,
-            });
+          await tx.insert(matchSides).values({
+            matchId: matchRecord.id,
+            entryId: matchData.entryAId,
+            position: 0,
+            score: 0,
+            pointsAwarded: 0,
+          });
         }
 
         if (matchData.entryBId) {
-          await tx
-            .insert(matchSides)
-            .values({
-              matchId: matchRecord.id,
-              entryId: matchData.entryBId,
-              position: 1,
-              score: 0,
-              pointsAwarded: 0,
-            });
+          await tx.insert(matchSides).values({
+            matchId: matchRecord.id,
+            entryId: matchData.entryBId,
+            position: 1,
+            score: 0,
+            pointsAwarded: 0,
+          });
         }
 
-        // Create match metadata
         await bracketRepository.createMatchMetadata(
           {
             matchId: matchRecord.id,
@@ -729,8 +836,126 @@ export class BracketService {
           },
           tx
         );
+
+        if (matchData.winnerToMatchNumber !== undefined) {
+          pendingLinks.push({
+            matchId: matchRecord.id,
+            roundNumber: round.roundNumber,
+            winnerToMatchNumber: matchData.winnerToMatchNumber,
+            winnerToRoundNumber: matchData.winnerToRoundNumber,
+          });
+        }
+
+        if (
+          matchData.loserToMatchNumber !== undefined &&
+          matchData.loserToRoundNumber !== undefined
+        ) {
+          pendingLoserLinks.push({
+            matchId: matchRecord.id,
+            loserToMatchNumber: matchData.loserToMatchNumber,
+            loserToRoundNumber: matchData.loserToRoundNumber,
+          });
+        }
       }
     }
+
+    // Pass 2: Link winnerToMatchId using the map
+    for (const item of pendingLinks) {
+      const targetRound = item.winnerToRoundNumber ?? item.roundNumber + 1;
+      const key = `${targetRound}:${item.winnerToMatchNumber}`;
+      const nextMatchId = matchIdMap.get(key);
+      if (nextMatchId) {
+        await bracketRepository.updateMatchMetadata(
+          item.matchId,
+          { winnerToMatchId: nextMatchId },
+          tx
+        );
+      }
+    }
+
+    for (const item of pendingLoserLinks) {
+      const key = `${item.loserToRoundNumber}:${item.loserToMatchNumber}`;
+      const loserMatchId = matchIdMap.get(key);
+      if (loserMatchId) {
+        await bracketRepository.updateMatchMetadata(
+          item.matchId,
+          { loserToMatchId: loserMatchId },
+          tx
+        );
+      }
+    }
+  }
+
+  // ============================================
+  // Winner Advancement
+  // ============================================
+
+  /**
+   * After a match is finalized, place the winner in the next bracket match
+   */
+  async advanceWinnerToNextRound(matchId: string) {
+    const metadata = await bracketRepository.getMetadataByMatchId(matchId);
+    if (!metadata?.winnerToMatchId) return;
+
+    const match = await matchRepository.getById(matchId);
+    if (!match?.winnerSide) return;
+
+    const winnerPosition = match.winnerSide === "A" ? 0 : 1;
+    const sides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, matchId),
+    });
+
+    const winnerSide = sides.find((s) => s.position === winnerPosition);
+    if (!winnerSide) return;
+
+    const nextMatchSides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, metadata.winnerToMatchId),
+    });
+
+    if (nextMatchSides.some((s) => s.entryId === winnerSide.entryId)) return;
+    if (nextMatchSides.length >= 2) return;
+
+    await db.insert(matchSides).values({
+      matchId: metadata.winnerToMatchId,
+      entryId: winnerSide.entryId,
+      position: nextMatchSides.length,
+      score: 0,
+      pointsAwarded: 0,
+    });
+  }
+
+  /**
+   * After a match is finalized, place the loser in the losers bracket (double elimination)
+   */
+  async advanceLoserToNextRound(matchId: string) {
+    const metadata = await bracketRepository.getMetadataByMatchId(matchId);
+    if (!metadata?.loserToMatchId) return;
+
+    const match = await matchRepository.getById(matchId);
+    if (!match?.winnerSide) return;
+
+    const loserPosition = match.winnerSide === "A" ? 1 : 0;
+    const sides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, matchId),
+    });
+
+    const loserSide = sides.find((s) => s.position === loserPosition);
+    if (!loserSide) return;
+
+    const nextMatchSides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, metadata.loserToMatchId),
+    });
+
+    if (nextMatchSides.some((s) => s.entryId === loserSide.entryId)) return;
+    if (nextMatchSides.length >= 2) return;
+
+    await db.insert(matchSides).values({
+      matchId: metadata.loserToMatchId,
+      entryId: loserSide.entryId,
+      position: nextMatchSides.length,
+      score: 0,
+      pointsAwarded: 0,
+    });
   }
 
   // ============================================

@@ -21,7 +21,7 @@
 
         <div class="flex items-center gap-3">
           <Button
-            v-if="match.status === 'scheduled'"
+            v-if="canEditMatch"
             label="Compléter le match"
             icon="fas fa-edit"
             severity="info"
@@ -274,8 +274,20 @@ const isParticipant = computed(() => {
 
 const canCancelMatch = computed(() => {
   if (!match.value) return false
-  if (match.value.status === 'finalized' || match.value.status === 'cancelled') return false
+
+  if (
+    match.value.status === 'finalized' ||
+    match.value.status === 'cancelled' ||
+    match.value.tournament?.mode === 'bracket'
+  )
+    return false
   return canManageMatch.value || isParticipant.value
+})
+
+const canEditMatch = computed(() => {
+  if(!match.value) return false
+  return !!(match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value));
+
 })
 
 async function loadMatch() {
@@ -338,10 +350,10 @@ async function handleFinalize(reason: MatchFinalizationReason) {
   if (!match.value) return
 
   try {
-    const updatedMatch = await finalizeMatch(match.value.id, {
+    await finalizeMatch(match.value.id, {
       finalizationReason: reason,
     })
-    match.value = updatedMatch
+    match.value = await getMatch(match.value.id);
   } catch (err) {
     console.error('Error finalizing match:', err)
   }

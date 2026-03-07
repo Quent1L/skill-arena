@@ -1,200 +1,92 @@
 <template>
   <div class="bracket-container">
-    <div class="bracket-tournament tournament--rounded">
-      <!-- Dynamically render winners bracket rounds -->
-      <div
-        v-for="round in winnersRounds"
-        :key="`winners-${round.id}`"
-        class="bracket-round"
-        :class="`bracket-round--${getRoundClass(round)}`"
-      >
-        <h3 class="bracket-round-title">{{ round.roundName }}</h3>
-        <ul class="bracket-list">
-          <li
-            v-for="matchData in getMatchesForRound(round.id)"
-            :key="`match-${matchData.match.id}`"
-            class="bracket-item"
+    <div class="bracket-sections">
+      <!-- Section principale (winners) -->
+      <div class="bracket-section">
+        <h4 class="bracket-section-title">Tableau principal</h4>
+        <div class="bracket-tournament tournament--rounded">
+          <div
+            v-for="round in winnersRounds"
+            :key="`winners-${round.id}`"
+            class="bracket-round"
+            :class="`bracket-round--${getRoundClass(round)}`"
           >
-            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
-              <table class="bracket-table">
-                <caption class="bracket-caption">
-                  <time :datetime="matchData.match.playedAt?.toISOString()">
-                    {{ formatDate(matchData.match.playedAt) }}
-                  </time>
-                </caption>
-                <thead class="sr-only">
-                  <tr>
-                    <th>Team/Player</th>
-                    <th>Score</th>
-                  </tr>
-                </thead>
-                <tbody class="bracket-content">
-                  <tr
-                    v-for="(side, index) in matchData.match.sides"
-                    :key="`side-${side.id}`"
-                    class="bracket-team"
-                    :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
-                        {{ getEntryCode(side.entryId) }}
-                      </abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">{{ side.score || '-' }}</span>
-                      <span
-                        v-if="isWinner(matchData.match, side) && round.roundName === 'Final'"
-                        class="bracket-medal bracket-medal--gold fa fa-trophy"
-                        aria-label="Gold medal"
-                      ></span>
-                      <span
-                        v-else-if="!isWinner(matchData.match, side) && round.roundName === 'Final'"
-                        class="bracket-medal bracket-medal--silver fa fa-trophy"
-                        aria-label="Silver medal"
-                      ></span>
-                    </td>
-                  </tr>
-                  <!-- Show placeholder rows if match has no sides yet -->
-                  <tr
-                    v-for="n in Math.max(0, 2 - (matchData.match.sides?.length || 0))"
-                    :key="`placeholder-${n}`"
-                    class="bracket-team"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code">TBD</abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">-</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </li>
-        </ul>
+            <h3 class="bracket-round-title">{{ round.roundName }}</h3>
+            <ul class="bracket-list">
+              <li
+                v-for="matchData in getMatchesForRound(round.id)"
+                :key="`match-${matchData.match.id}`"
+                class="bracket-item"
+              >
+                <BracketMatchCard
+                  :match="matchData.match"
+                  :round-name="round.roundName"
+                  bracket-type="winners"
+                  :is-final="round.id === finalRoundId"
+                  :seeds="bracketData.seeds"
+                  @click="goToMatch"
+                />
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <!-- Bronze Medal Match (if exists) -->
-      <div v-if="bronzeRound" class="bracket-round bracket-round--bronze">
-        <h3 class="bracket-round-title">{{ bronzeRound.roundName }}</h3>
-        <ul class="bracket-list">
-          <li
-            v-for="matchData in getMatchesForRound(bronzeRound.id)"
-            :key="`match-${matchData.match.id}`"
-            class="bracket-item"
-          >
-            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
-              <table class="bracket-table">
-                <caption class="bracket-caption">
-                  <time :datetime="matchData.match.playedAt?.toISOString()">
-                    {{ formatDate(matchData.match.playedAt) }}
-                  </time>
-                </caption>
-                <thead class="sr-only">
-                  <tr>
-                    <th>Team/Player</th>
-                    <th>Score</th>
-                  </tr>
-                </thead>
-                <tbody class="bracket-content">
-                  <tr
-                    v-for="side in matchData.match.sides"
-                    :key="`side-${side.id}`"
-                    class="bracket-team"
-                    :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
-                        {{ getEntryCode(side.entryId) }}
-                      </abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">{{ side.score || '-' }}</span>
-                      <span
-                        v-if="isWinner(matchData.match, side)"
-                        class="bracket-medal bracket-medal--bronze fa fa-trophy"
-                        aria-label="Bronze medal"
-                      ></span>
-                    </td>
-                  </tr>
-                  <tr
-                    v-for="n in Math.max(0, 2 - (matchData.match.sides?.length || 0))"
-                    :key="`placeholder-${n}`"
-                    class="bracket-team"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code">TBD</abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">-</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </li>
-        </ul>
+      <!-- Match pour la 3ème place (si applicable) -->
+      <div v-if="bronzeRound" class="bracket-section">
+        <h4 class="bracket-section-title">Match pour la 3ème place</h4>
+        <div class="bracket-tournament tournament--rounded">
+          <div class="bracket-round bracket-round--bronze">
+            <ul class="bracket-list">
+              <li
+                v-for="matchData in getMatchesForRound(bronzeRound.id)"
+                :key="`match-${matchData.match.id}`"
+                class="bracket-item"
+              >
+                <BracketMatchCard
+                  :match="matchData.match"
+                  :round-name="bronzeRound.roundName"
+                  bracket-type="bronze"
+                  :seeds="bracketData.seeds"
+                  @click="goToMatch"
+                />
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      <!-- Losers Bracket (for double elimination) -->
-      <div
-        v-for="round in losersRounds"
-        :key="`losers-${round.id}`"
-        class="bracket-round bracket-round--losers"
-      >
-        <h3 class="bracket-round-title">{{ round.roundName }}</h3>
-        <ul class="bracket-list">
-          <li
-            v-for="matchData in getMatchesForRound(round.id)"
-            :key="`match-${matchData.match.id}`"
-            class="bracket-item"
+      <!-- Tableau des perdants (double élimination) -->
+      <div v-if="losersRounds.length > 0" class="bracket-section">
+        <h4 class="bracket-section-title">Tableau des perdants</h4>
+        <div class="bracket-tournament tournament--rounded">
+          <div
+            v-for="round in losersRounds"
+            :key="`losers-${round.id}`"
+            class="bracket-round bracket-round--losers"
+            :class="{
+              'bracket-round--passthrough': isLoserPassthroughRound(round.id),
+              'bracket-round--from-passthrough': isLoserFromPassthrough(round.id),
+            }"
           >
-            <div class="bracket-match" tabindex="0" @click="goToMatch(matchData.match.id)">
-              <table class="bracket-table">
-                <caption class="bracket-caption">
-                  <time :datetime="matchData.match.playedAt?.toISOString()">
-                    {{ formatDate(matchData.match.playedAt) }}
-                  </time>
-                </caption>
-                <thead class="sr-only">
-                  <tr>
-                    <th>Team/Player</th>
-                    <th>Score</th>
-                  </tr>
-                </thead>
-                <tbody class="bracket-content">
-                  <tr
-                    v-for="side in matchData.match.sides"
-                    :key="`side-${side.id}`"
-                    class="bracket-team"
-                    :class="{ 'bracket-team--winner': isWinner(matchData.match, side) }"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code" :title="getEntryName(side.entryId)">
-                        {{ getEntryCode(side.entryId) }}
-                      </abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">{{ side.score || '-' }}</span>
-                    </td>
-                  </tr>
-                  <tr
-                    v-for="n in Math.max(0, 2 - (matchData.match.sides?.length || 0))"
-                    :key="`placeholder-${n}`"
-                    class="bracket-team"
-                  >
-                    <td class="bracket-country">
-                      <abbr class="bracket-code">TBD</abbr>
-                    </td>
-                    <td class="bracket-score">
-                      <span class="bracket-number">-</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </li>
-        </ul>
+            <h3 class="bracket-round-title">{{ round.roundName }}</h3>
+            <ul class="bracket-list">
+              <li
+                v-for="matchData in getMatchesForRound(round.id)"
+                :key="`match-${matchData.match.id}`"
+                class="bracket-item"
+              >
+                <BracketMatchCard
+                  :match="matchData.match"
+                  :round-name="round.roundName"
+                  bracket-type="losers"
+                  :seeds="bracketData.seeds"
+                  @click="goToMatch"
+                />
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -207,9 +99,8 @@ import type {
   ClientBracketData,
   ClientBracketRound,
   ClientBracketMatchWithMetadata,
-  MatchModel,
-  MatchSideModel,
 } from '@skill-arena/shared'
+import BracketMatchCard from '@/components/bracket/BracketMatchCard.vue'
 
 interface Props {
   bracketData: ClientBracketData
@@ -218,12 +109,13 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
-// Organize rounds by bracket type
 const winnersRounds = computed(() =>
   props.bracketData.rounds
     .filter((r) => r.bracketType === 'winners')
     .sort((a, b) => a.roundNumber - b.roundNumber),
 )
+
+const finalRoundId = computed(() => winnersRounds.value.at(-1)?.id)
 
 const losersRounds = computed(() =>
   props.bracketData.rounds
@@ -233,96 +125,34 @@ const losersRounds = computed(() =>
 
 const bronzeRound = computed(() => props.bracketData.rounds.find((r) => r.bracketType === 'bronze'))
 
-// Get matches for a specific round
 function getMatchesForRound(roundId: string): ClientBracketMatchWithMetadata[] {
   return props.bracketData.matches
     .filter((m) => m.round.id === roundId)
     .sort((a, b) => a.metadata.matchNumber - b.metadata.matchNumber)
 }
 
-// Get entry name from seed data
-function getEntryName(entryId: string): string {
-  const seed = props.bracketData.seeds.find((s) => s.entryId === entryId)
-  if (!seed?.entry) return 'Unknown'
-
-  // For TEAM entries, use team name
-  if (seed.entry.entryType === 'TEAM' && seed.entry.team) {
-    return seed.entry.team.name
-  }
-
-  // For PLAYER entries, use first player's displayName
-  if (seed.entry.entryType === 'PLAYER' && seed.entry.players?.length > 0) {
-    return seed.entry.players[0].player.displayName
-  }
-
-  return 'Unknown'
-}
-
-// Get entry code (first 3-4 letters of name)
-function getEntryCode(entryId: string): string {
-  const name = getEntryName(entryId)
-  return name.toUpperCase()
-}
-
-// Check if a side is the winner
-function isWinner(match: unknown, side: { entryId: string; score: number; pointsAwarded: number }): boolean {
-  const m = match as {
-    status: string
-    winnerId?: string
-    sides?: Array<{ entryId: string; score: number; pointsAwarded: number }>
-  }
-
-  if (m.status !== 'confirmed' && m.status !== 'finalized') {
-    return false
-  }
-
-  // If winnerId is explicitly set, use it
-  if (m.winnerId) {
-    return m.winnerId === side.entryId
-  }
-
-  // Fallback: determine winner by pointsAwarded (primary) or score (secondary)
-  if (m.sides && m.sides.length > 0) {
-    // Find the side with highest pointsAwarded
-    const maxPoints = Math.max(...m.sides.map(s => s.pointsAwarded))
-    const winnersWithPoints = m.sides.filter(s => s.pointsAwarded === maxPoints && maxPoints > 0)
-
-    if (winnersWithPoints.length === 1 && winnersWithPoints[0]) {
-      return winnersWithPoints[0].entryId === side.entryId
-    }
-
-    // If pointsAwarded is tied or all zero, use score
-    const maxScore = Math.max(...m.sides.map(s => s.score))
-    const winnersWithScore = m.sides.filter(s => s.score === maxScore && maxScore > 0)
-
-    if (winnersWithScore.length === 1 && winnersWithScore[0]) {
-      return winnersWithScore[0].entryId === side.entryId
-    }
-  }
-
-  return false
-}
-
-// Get round class for styling
 function getRoundClass(round: ClientBracketRound): string {
   const name = round.roundName.toLowerCase()
-  if (name.includes('final') && !name.includes('semi')) return 'gold'
-  if (name.includes('semi')) return 'semifinals'
-  if (name.includes('quarter')) return 'quarterfinals'
+  if (name === 'finale' || name === 'grande finale') return 'gold'
+  if (name.startsWith('demi')) return 'semifinals'
+  if (name.startsWith('quart')) return 'quarterfinals'
   return 'round'
 }
 
-// Format date
-function formatDate(date?: Date): string {
-  if (!date) return 'TBD'
-  return date.toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+function isLoserPassthroughRound(roundId: string): boolean {
+  const idx = losersRounds.value.findIndex((r) => r.id === roundId)
+  const nextRound = losersRounds.value[idx + 1]
+  if (idx < 0 || !nextRound) return false
+  return getMatchesForRound(roundId).length === getMatchesForRound(nextRound.id).length
 }
 
-// Navigate to match detail
+function isLoserFromPassthrough(roundId: string): boolean {
+  const idx = losersRounds.value.findIndex((r) => r.id === roundId)
+  if (idx <= 0) return false
+  const prevRound = losersRounds.value[idx - 1]
+  return prevRound ? isLoserPassthroughRound(prevRound.id) : false
+}
+
 function goToMatch(matchId: string): void {
   router.push(`/matches/${matchId}`)
 }
@@ -354,15 +184,21 @@ function goToMatch(matchId: string): void {
   }
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
+.bracket-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.bracket-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--p-text-muted-color);
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--p-primary-color);
 }
 
 .bracket-tournament {
@@ -521,51 +357,15 @@ function goToMatch(matchId: string): void {
   }
 }
 
-.bracket-match {
-  display: flex;
-  width: 100%;
-  background-color: var(--p-surface-800);
-  padding: 1em;
-  border: 1px solid transparent;
-  border-radius: 0.1em;
-  outline: none;
-  cursor: pointer;
-  transition:
-    padding 0.2s ease-in-out,
-    border 0.2s linear,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.bracket-match:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-  border-color: rgba(33, 150, 243, 0.3);
-}
-
-.bracket-match:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.bracket-match:focus {
-  border-color: #2196f3;
-}
-
-.bracket-match::before,
-.bracket-match::after {
+/* Bracket match connector pseudo-elements (context-dependent, must be here with :deep) */
+:deep(.bracket-match)::before,
+:deep(.bracket-match)::after {
   transition: all 0.2s linear;
 }
 
-@media (max-width: 24em) {
-  .bracket-match {
-    padding: 0.75em 0.5em;
-  }
-}
-
 @media (min-width: 38em) {
-  .bracket-match::before,
-  .bracket-match::after {
+  :deep(.bracket-match)::before,
+  :deep(.bracket-match)::after {
     position: absolute;
     left: 0;
     z-index: 1;
@@ -575,258 +375,90 @@ function goToMatch(matchId: string): void {
     height: 10%;
     border-left: 2px solid #9e9e9e;
   }
-  .bracket-match::before {
+  :deep(.bracket-match)::before {
     bottom: 50%;
     border-bottom: 2px solid #9e9e9e;
     transform: translate(0, 1px);
   }
-  .tournament--rounded .bracket-match::before {
+  .tournament--rounded :deep(.bracket-match)::before {
     border-bottom-left-radius: 0.6em;
   }
-  .bracket-match::after {
+  :deep(.bracket-match)::after {
     top: 50%;
     border-top: 2px solid #9e9e9e;
     transform: translate(0, -1px);
   }
-  .tournament--rounded .bracket-match::after {
+  .tournament--rounded :deep(.bracket-match)::after {
     border-top-left-radius: 0.6em;
   }
 }
 
 @media (min-width: 72em) {
-  .bracket-match::before,
-  .bracket-match::after {
+  :deep(.bracket-match)::before,
+  :deep(.bracket-match)::after {
     width: 1.5em;
   }
-  .bracket-match::before {
+  :deep(.bracket-match)::before {
     transform: translate(0, 1px);
   }
-  .bracket-match::after {
+  :deep(.bracket-match)::after {
     transform: translate(0, -1px);
   }
 }
 
-.bracket-round:last-child .bracket-match::before,
-.bracket-round:last-child .bracket-match::after {
+.bracket-round:last-child :deep(.bracket-match)::before,
+.bracket-round:last-child :deep(.bracket-match)::after {
   border-left: 0;
 }
 
-.bracket-round:last-child .bracket-match::before {
+.bracket-round:last-child :deep(.bracket-match)::before {
   border-bottom-left-radius: 0;
 }
 
-.bracket-round:last-child .bracket-match::after {
+.bracket-round:last-child :deep(.bracket-match)::after {
   display: none;
 }
 
-.bracket-round:first-child .bracket-match::before,
-.bracket-round:first-child .bracket-match::after {
+.bracket-round:first-child :deep(.bracket-match)::before,
+.bracket-round:first-child :deep(.bracket-match)::after {
   display: none;
 }
 
-.bracket-content {
-  display: flex;
-}
-
-.bracket-content::after {
-  content: ':';
-  width: 1em;
-  text-align: center;
-  padding: 0.2em 0.1em;
-}
-
+/* Losers passthrough rounds: straight horizontal connectors (1:1 mapping) */
 @media (min-width: 38em) {
-  .bracket-content::after {
-    order: 1;
+  /* Right side of passthrough round: flat line centered instead of angled bracket */
+  .bracket-round--passthrough .bracket-item::after {
+    height: 0;
+    border-right: none;
+    border-top: 2px solid #9e9e9e;
+    top: 50%;
+    bottom: auto;
+  }
+  .bracket-round--passthrough .bracket-item:nth-child(even)::after {
+    border-bottom: none;
+    border-top: 2px solid #9e9e9e;
+    top: 50%;
+    bottom: auto;
+  }
+  /* Remove rounded corners for passthrough connectors */
+  .tournament--rounded .bracket-round--passthrough .bracket-item:nth-child(odd)::after,
+  .tournament--rounded .bracket-round--passthrough .bracket-item:nth-child(even)::after {
+    border-radius: 0;
+  }
+
+  /* Left side of round receiving from passthrough: single centered connector */
+  .bracket-round--from-passthrough :deep(.bracket-match)::before {
+    display: none;
+  }
+  .bracket-round--from-passthrough :deep(.bracket-match)::after {
+    height: 0;
+    border-left: none;
+    top: 50%;
+    transform: translate(0, -1px);
+  }
+  .tournament--rounded .bracket-round--from-passthrough :deep(.bracket-match)::after {
+    border-top-left-radius: 0;
   }
 }
 
-.bracket-content .bracket-team:first-child {
-  width: 50%;
-  order: 0;
-  text-align: right;
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-content .bracket-team:first-child {
-    align-items: flex-end;
-  }
-}
-
-.bracket-content .bracket-team:first-child .bracket-country {
-  order: 2;
-  justify-content: flex-end;
-}
-
-@media (min-width: 24em) {
-  .bracket-content .bracket-team:first-child .bracket-country {
-    order: 0;
-  }
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-content .bracket-team:first-child .bracket-country {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-  }
-}
-
-.bracket-content .bracket-team:first-child .bracket-score {
-  order: 0;
-}
-
-@media (min-width: 24em) {
-  .bracket-content .bracket-team:first-child .bracket-score {
-    order: 2;
-  }
-}
-
-.bracket-content .bracket-team:last-child {
-  width: 50%;
-  order: 2;
-  text-align: left;
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-content .bracket-team:last-child {
-    align-items: flex-start;
-  }
-}
-
-@media (min-width: 38em) {
-  .bracket-content .bracket-team:last-child .bracket-country {
-    justify-content: flex-start;
-  }
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-content .bracket-team:last-child .bracket-country {
-    align-items: flex-start;
-  }
-}
-
-.bracket-content .bracket-team:last-child .bracket-code {
-  order: 1;
-}
-
-.bracket-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.bracket-caption {
-  font-size: 0.8rem;
-  color: var(--p-text-color);
-  font-weight: 300;
-  padding-bottom: 0.75em;
-}
-
-.bracket-team {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: space-between;
-}
-
-@media (min-width: 24em) {
-  .bracket-team {
-    flex-direction: column-reverse;
-  }
-}
-
-@media (min-width: 38em) {
-  .bracket-team {
-    flex-direction: column-reverse;
-  }
-}
-
-.bracket-country {
-  font-size: 0.95rem;
-  display: flex;
-  margin-top: 0.5em;
-  align-items: center;
-}
-
-@media (max-width: 24em) {
-  .bracket-country {
-    margin-top: 0;
-  }
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-country {
-    display: flex;
-    flex-direction: column;
-  }
-  .bracket-country .bracket-code {
-    margin-top: 0.2em;
-  }
-}
-
-.bracket-code {
-  padding: 0 0.5em;
-  color: var(--p-text-color);
-  font-weight: 600;
-  text-transform: uppercase;
-  border: 0;
-  text-decoration: none;
-  cursor: help;
-  transition: padding 0.2s ease-in-out;
-}
-
-@media (max-width: 24em) {
-  .bracket-code {
-    padding: 0 0.25em;
-  }
-}
-
-@media (min-width: 38em) and (max-width: 52em) {
-  .bracket-code {
-    padding: 0;
-  }
-}
-
-.bracket-score {
-  display: flex;
-  align-items: center;
-}
-
-.bracket-team:first-child .bracket-score {
-  flex-direction: row-reverse;
-  padding-left: 0.75em;
-}
-
-.bracket-team:last-child .bracket-score {
-  padding-right: 0.75em;
-}
-
-.bracket-number {
-  display: inline-block;
-  padding: 0.2em 0.4em 0.2em;
-  border-bottom: 0.075em solid transparent;
-  font-size: 1rem;
-  background-color: var(--p-red-100);
-  border-color: var(--p-red100);
-  color: black;
-}
-
-.bracket-team--winner .bracket-number {
-  background-color: var(--p-yellow-100);
-  border-color: var(--p-yellow-100);
-}
-
-.bracket-medal {
-  padding: 0 0.5em;
-}
-
-.bracket-medal--gold {
-  color: #ffd700;
-}
-
-.bracket-medal--silver {
-  color: #c0c0c0;
-}
-
-.bracket-medal--bronze {
-  color: #cd7f32;
-}
 </style>

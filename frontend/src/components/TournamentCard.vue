@@ -90,8 +90,7 @@
     </template>
 
     <template #footer>
-      <div class="flex justify-between items-center">
-        <Button label="Voir détails" text size="small" @click.stop="$emit('click', tournament)" />
+      <div v-if="tournament.status !== 'finished'" class="flex justify-between items-center">
         <div class="flex items-center gap-2 text-xs text-gray-500">
           <i class="pi pi-calendar"></i>
           <span>{{ timeFromNow }}</span>

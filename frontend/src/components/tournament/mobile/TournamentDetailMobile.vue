@@ -95,7 +95,7 @@
 
       <!-- Tab 4: Matches -->
       <div v-show="activeTab === 'matches'" class="h-full p-2">
-        <MatchList :tournament-id="tournamentId" />
+        <MatchList :tournament-id="tournamentId" :bracket-mode="tournament.mode === 'bracket'" />
       </div>
     </div>
 
