@@ -18,7 +18,9 @@
 
     <!-- Winner Selection -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-      <label class="block text-sm font-medium mb-3">Vainqueur <span class="text-red-500">*</span></label>
+      <label class="block text-sm font-medium mb-3"
+        >Vainqueur <span class="text-red-500">*</span></label
+      >
       <div class="grid grid-cols-3 gap-2">
         <Button
           label="Équipe A"
@@ -41,7 +43,7 @@
 
         <Button
           label="Équipe B"
-          severity="secondary"
+          :severity="winner === 'teamB' ? 'info' : 'secondary'"
           :outlined="winner !== 'teamB'"
           class="w-full"
           :class="winner === 'teamB' ? 'bg-red-100 text-red-600 border border-red-300' : ''"
@@ -94,7 +96,8 @@
             showButtons
             buttonLayout="vertical"
             style="width: 4rem"
-            :min="0"
+            :min="props.minScore ?? 0"
+            :max="props.maxScore ?? undefined"
             inputClass="text-center font-bold text-xl"
             :input-props="{ readonly: true }"
           />
@@ -107,18 +110,25 @@
             showButtons
             buttonLayout="vertical"
             style="width: 4rem"
-            :min="0"
+            :min="props.minScore ?? 0"
+            :max="props.maxScore ?? undefined"
             inputClass="text-center font-bold text-xl"
             :input-props="{ readonly: true }"
           />
         </div>
       </div>
     </div>
+    <div v-if="validationMessages.length > 0" class="space-y-2">
+      <Message v-for="msg in validationMessages" :key="msg" severity="warn" :closable="false">
+        {{ msg }}
+      </Message>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import Message from 'primevue/message'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
@@ -131,6 +141,8 @@ interface Props {
   date?: Date | null
   allowDraw?: boolean
   tournamentId: string
+  minScore?: number | null
+  maxScore?: number | null
 }
 
 const props = defineProps<Props>()
@@ -166,6 +178,32 @@ const isNormalOutcomeType = computed(() => {
 
 const showOutcomeReasonSelection = computed(() => {
   return !isNormalOutcomeType.value
+})
+
+const canCreate = computed(() => {
+  if (winner.value === null) return false
+  const inRange = (v: number) =>
+    (props.minScore == null || v >= props.minScore) &&
+    (props.maxScore == null || v <= props.maxScore)
+  return inRange(scoreA.value) && inRange(scoreB.value)
+})
+
+const validationMessages = computed<string[]>(() => {
+  const messages: string[] = []
+  if (winner.value === null) {
+    messages.push(
+      props.allowDraw
+        ? 'Le match nul est sélectionné, vous pouvez encore sélectionner un vainqueur si vous le souhaitez'
+        : 'Sélectionnez un vainqueur.',
+    )
+  }
+  if (props.minScore != null && (scoreA.value < props.minScore || scoreB.value < props.minScore)) {
+    messages.push(`Le score minimum autorisé est ${props.minScore}.`)
+  }
+  if (props.maxScore != null && (scoreA.value > props.maxScore || scoreB.value > props.maxScore)) {
+    messages.push(`Le score maximum autorisé est ${props.maxScore}.`)
+  }
+  return messages
 })
 
 async function loadOutcomeTypes() {

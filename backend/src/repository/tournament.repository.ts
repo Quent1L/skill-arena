@@ -25,6 +25,8 @@ export interface CreateTournamentData {
   startDate: string;
   endDate: string;
   disciplineId?: string;
+  minScore?: number | null;
+  maxScore?: number | null;
   createdBy: string;
   status: TournamentStatus;
 }
@@ -47,6 +49,8 @@ export interface UpdateTournamentData {
   status?: TournamentStatus;
   disciplineId?: string;
   rulesId?: string | null;
+  minScore?: number | null;
+  maxScore?: number | null;
 }
 
 export interface TournamentFilters {
@@ -86,6 +90,8 @@ export class TournamentRepository {
       ...(data.allowDraw !== null &&
         data.allowDraw !== undefined && { allowDraw: data.allowDraw }),
       ...(data.disciplineId !== undefined && { disciplineId: data.disciplineId }),
+      ...(data.minScore !== undefined && { minScore: data.minScore }),
+      ...(data.maxScore !== undefined && { maxScore: data.maxScore }),
     };
 
     try {

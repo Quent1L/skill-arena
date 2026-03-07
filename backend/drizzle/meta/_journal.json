@@ -169,6 +169,13 @@
       "when": 1772569182986,
       "tag": "0023_far_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772925492199,
+      "tag": "0024_busy_living_tribunal",
+      "breakpoints": true
     }
   ]
 }

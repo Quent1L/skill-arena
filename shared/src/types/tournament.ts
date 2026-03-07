@@ -40,6 +40,8 @@ export interface BaseTournament {
     id: string;
     title: string;
   } | null;
+  minScore?: number | null;
+  maxScore?: number | null;
   createdBy: string; // uuid
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
@@ -62,6 +64,8 @@ export interface CreateTournamentInput {
   startDate: string; // ISO date string
   endDate: string; // ISO date string
   disciplineId?: string;
+  minScore?: number | null;
+  maxScore?: number | null;
   createdBy: string; // uuid
 }
 
@@ -84,6 +88,8 @@ export interface UpdateTournamentInput {
   status?: TournamentStatus;
   disciplineId?: string;
   rulesId?: string | null;
+  minScore?: number | null;
+  maxScore?: number | null;
 }
 
 export interface ChangeTournamentStatusInput {
@@ -148,6 +154,8 @@ export const baseTournamentFormSchema = z.object({
   startDate: z.date({ message: "La date de début est requise" }),
   endDate: z.date({ message: "La date de fin est requise" }),
   disciplineId: z.string({ message: "La discipline est requise" }).uuid("ID de discipline invalide"),
+  minScore: z.number().int().min(0).nullable().optional(),
+  maxScore: z.number().int().min(0).nullable().optional(),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
@@ -176,6 +184,8 @@ export const baseTournamentUpdateFormSchema = z.object({
   endDate: z.date().optional(),
   status: tournamentStatusSchema.optional(),
   disciplineId: z.string().uuid("ID de discipline invalide").optional(),
+  minScore: z.number().int().min(0).nullable().optional(),
+  maxScore: z.number().int().min(0).nullable().optional(),
 });
 
 // Schéma pour la création de tournoi (utilisé par le frontend avec Date objects)
@@ -188,7 +198,19 @@ export const createTournamentFormSchema = baseTournamentFormSchema
     message:
       "La taille maximale doit être supérieure ou égale à la taille minimale",
     path: ["maxTeamSize"],
-  });
+  })
+  .refine(
+    (data) => {
+      if (data.minScore != null && data.maxScore != null) {
+        return data.minScore <= data.maxScore;
+      }
+      return true;
+    },
+    {
+      message: "Le score minimum doit être inférieur ou égal au score maximum",
+      path: ["maxScore"],
+    }
+  );
 
 // Schéma de base pour les données de tournoi
 const baseTournamentDataSchema = z.object({
@@ -238,6 +260,8 @@ const baseTournamentDataSchema = z.object({
     .datetime()
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   disciplineId: z.string().uuid("ID de discipline invalide").optional(),
+  minScore: z.number().int().min(0).nullable().optional(),
+  maxScore: z.number().int().min(0).nullable().optional(),
 });
 
 // Schéma pour l'API (validation des données d'entrée - SANS createdBy)
@@ -307,6 +331,18 @@ export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
         "La taille maximale doit être supérieure ou égale à la taille minimale",
       path: ["maxTeamSize"],
     }
+  )
+  .refine(
+    (data) => {
+      if (data.minScore != null && data.maxScore != null) {
+        return data.minScore <= data.maxScore;
+      }
+      return true;
+    },
+    {
+      message: "Le score minimum doit être inférieur ou égal au score maximum",
+      path: ["maxScore"],
+    }
   );
 
 // Schéma pour la mise à jour (API avec strings ISO)
@@ -344,6 +380,8 @@ export const updateTournamentSchema = z
       .optional(),
     status: tournamentStatusSchema.optional(),
     rulesId: z.string().uuid().nullable().optional(),
+    minScore: z.number().int().min(0).nullable().optional(),
+    maxScore: z.number().int().min(0).nullable().optional(),
   })
   .refine(
     (data) => {
@@ -370,6 +408,18 @@ export const updateTournamentSchema = z
       message:
         "La taille maximale doit être supérieure ou égale à la taille minimale",
       path: ["maxTeamSize"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.minScore != null && data.maxScore != null) {
+        return data.minScore <= data.maxScore;
+      }
+      return true;
+    },
+    {
+      message: "Le score minimum doit être inférieur ou égal au score maximum",
+      path: ["maxScore"],
     }
   );
 

@@ -142,6 +142,8 @@ export class TournamentService {
       startDate: input.startDate,
       endDate: input.endDate,
       disciplineId: input.disciplineId,
+      minScore: input.minScore ?? null,
+      maxScore: input.maxScore ?? null,
       createdBy: input.createdBy,
       status: "draft",
     });

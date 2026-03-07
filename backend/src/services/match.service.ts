@@ -310,8 +310,7 @@ export class MatchService {
     const match = await this.getMatchById(id);
     await this.validateReportPermissions(id, reportedBy);
     await this.validateReportStatus(match.status);
-    await this.validateScores(input);
-    await this.validateDrawAllowed(match.tournamentId, input);
+    await this.validateScoreConstraints(match.tournamentId, input);
 
     const updateData = this.buildReportUpdateData(input, match, reportedBy);
 
@@ -357,19 +356,20 @@ export class MatchService {
   }
 
   /**
-   * Validate scores are non-negative
+   * Validate all score constraints: non-negative, range, draw allowed
    */
-  private validateScores(input: ReportMatchResultInput) {
-    matchInputValidator.validateScores(input.scoreA, input.scoreB);
-  }
-
-  /**
-   * Validate draw is allowed if scores are equal
-   */
-  private async validateDrawAllowed(
+  private async validateScoreConstraints(
     tournamentId: string,
     input: ReportMatchResultInput,
   ) {
+    matchInputValidator.validateScores(input.scoreA, input.scoreB);
+    const tournament = await matchRepository.getTournament(tournamentId);
+    matchInputValidator.validateScoreRange(
+      input.scoreA,
+      input.scoreB,
+      tournament?.minScore,
+      tournament?.maxScore,
+    );
     await matchInputValidator.validateDrawAllowed(
       tournamentId,
       input.scoreA,

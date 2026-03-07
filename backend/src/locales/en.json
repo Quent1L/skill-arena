@@ -46,6 +46,7 @@
     "MATCH_OVERLAPPING_PLAYERS": "{{playerName}} cannot be on both teams",
     "MATCH_INVALID_SCORE": "Scores cannot be negative",
     "MATCH_DRAW_NOT_ALLOWED": "Draws are not allowed in this tournament",
+    "MATCH_SCORE_OUT_OF_RANGE": "Score is outside the allowed range for this tournament",
     "MATCH_SAME_REPORTER_CONFIRMER": "The same user cannot report and confirm the result",
     "MATCH_TEAM_SIZE_MISMATCH": "The number of players in teamA ({{teamASize}}) and teamB ({{teamBSize}}) must be the same",
     "MAX_MATCHES_EXCEEDED": "{{playerName}} has reached the maximum number of matches ({{max}})",
