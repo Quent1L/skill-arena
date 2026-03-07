@@ -7,8 +7,8 @@ import {
   seedingTypeSchema,
   bracketRoundTypeSchema,
 } from "./enums";
-import type { Match } from "./match";
-import type { TournamentEntry } from "./entry";
+import type { Match, ClientMatchModel } from "./match";
+import type { TournamentEntryModel } from "./entry";
 
 // ============================================
 // Interfaces de base pour les brackets
@@ -45,7 +45,7 @@ export interface BracketSeed {
   seedingScore?: number;
   createdAt: string;
   // Relations
-  entry?: TournamentEntry;
+  entry?: TournamentEntryModel;
 }
 
 export interface BracketMatchMetadata {
@@ -87,6 +87,7 @@ export interface CanGenerateBracketResponse {
   canGenerate: boolean;
   reason?: string;
   matchCount?: number;
+  currentParticipants?: number;
 }
 
 // ============================================
@@ -206,7 +207,7 @@ export interface ClientBracketMatchMetadata extends Omit<BracketMatchMetadata, '
  * Type pour BracketMatchWithMetadata côté frontend
  */
 export interface ClientBracketMatchWithMetadata {
-  match: Match; // Match has its own Client type conversion
+  match: ClientMatchModel;
   metadata: ClientBracketMatchMetadata;
   round: ClientBracketRound;
 }

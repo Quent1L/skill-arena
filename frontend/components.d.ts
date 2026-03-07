@@ -15,6 +15,7 @@ declare module 'vue' {
     AutoComplete: typeof import('primevue/autocomplete')['default']
     Avatar: typeof import('primevue/avatar')['default']
     Badge: typeof import('primevue/badge')['default']
+    BracketMatchCard: typeof import('./src/components/bracket/BracketMatchCard.vue')['default']
     BracketView: typeof import('./src/components/bracket/BracketView.vue')['default']
     BreadcrumbMenu: typeof import('./src/components/BreadcrumbMenu.vue')['default']
     Button: typeof import('primevue/button')['default']

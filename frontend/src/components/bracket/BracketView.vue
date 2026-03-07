@@ -7,33 +7,49 @@
     >
       <i class="fa fa-exclamation-triangle text-6xl text-orange-400 mb-4" />
       <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Not a Bracket Tournament
+        Tournoi non compatible bracket
       </h3>
       <p class="text-gray-600 dark:text-gray-400">
-        This tournament is not configured for bracket mode.
+        Ce tournoi n'est pas configuré en mode bracket.
       </p>
     </div>
 
     <template v-else>
+      <!-- Avertissement nombre de participants non optimal -->
+      <div
+        v-if="currentParticipants > 0 && !isOptimalCount"
+        class="mb-4 px-4 py-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2"
+      >
+        <i class="fa fa-exclamation-triangle mt-0.5 shrink-0" />
+        <span>
+          Pour un bracket optimal, il faut
+          <strong>{{ nearestPowersOf2(currentParticipants)[0] }}</strong> ou
+          <strong>{{ nearestPowersOf2(currentParticipants)[1] }}</strong>
+          joueurs. Actuellement <strong>{{ currentParticipants }}</strong> inscrits —
+          la génération du bracket est bloquée.
+        </span>
+      </div>
+
       <!-- Admin Controls -->
       <div v-if="canManage" class="mb-6 flex gap-3 items-center flex-wrap">
       <Button
         v-if="!hasBracket"
-        label="Generate Bracket"
+        label="Générer le bracket"
         icon="fa fa-sitemap"
+        :disabled="!isOptimalCount"
         @click="showGenerateDialog = true"
       />
 
       <template v-else>
         <Button
-          label="Regenerate"
+          label="Regénérer"
           icon="fa fa-redo"
           severity="warning"
           outlined
           @click="handleRegenerate"
         />
         <Button
-          label="Delete Bracket"
+          label="Supprimer le bracket"
           icon="fa fa-trash"
           severity="danger"
           outlined
@@ -42,7 +58,7 @@
       </template>
 
       <Button
-        label="Refresh"
+        label="Actualiser"
         icon="fa fa-sync"
         severity="secondary"
         outlined
@@ -63,22 +79,24 @@
     >
       <i class="fa fa-sitemap text-6xl text-gray-300 dark:text-gray-600 mb-4" />
       <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        No Bracket Generated
+        Aucun bracket généré
       </h3>
       <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
-        The tournament bracket has not been created yet.
+        Le bracket du tournoi n'a pas encore été créé.
         <template v-if="canManage">
-          Click the button below to generate the bracket.
+          Cliquez sur le bouton ci-dessous pour générer le bracket.
         </template>
         <template v-else>
-          An administrator needs to generate the bracket.
+          Un administrateur doit générer le bracket.
         </template>
       </p>
+
       <Button
         v-if="canManage"
-        label="Generate Bracket"
+        label="Générer le bracket"
         icon="fa fa-sitemap"
         size="large"
+        :disabled="!isOptimalCount"
         @click="showGenerateDialog = true"
       />
     </div>
@@ -95,7 +113,7 @@
             </div>
           </div>
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Seeding</div>
+            <div class="text-gray-600 dark:text-gray-400">Classement</div>
             <div class="font-semibold capitalize">
               {{ bracketData.config.seedingType.replace('_', ' ') }}
             </div>
@@ -105,7 +123,7 @@
             <div class="font-semibold">{{ bracketData.config.totalParticipants }}</div>
           </div>
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Rounds</div>
+            <div class="text-gray-600 dark:text-gray-400">Tours</div>
             <div class="font-semibold">{{ bracketData.config.roundsCount }}</div>
           </div>
         </div>
@@ -126,7 +144,7 @@
       <!-- Delete Confirmation Dialog -->
       <Dialog
         v-model:visible="showDeleteDialog"
-        header="Delete Bracket"
+        header="Supprimer le bracket"
         :modal="true"
         :style="{ width: '450px' }"
       >
@@ -134,20 +152,19 @@
         <i class="fa fa-exclamation-triangle text-4xl text-orange-500" />
         <div>
           <p class="mb-3">
-            Are you sure you want to delete the bracket? This will remove all matches and cannot be
-            undone.
+            Êtes-vous sûr de vouloir supprimer le bracket ? Cela supprimera tous les matchs et ne peut pas être annulé.
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            You can regenerate the bracket afterwards if needed.
+            Vous pouvez regénérer le bracket ensuite si nécessaire.
           </p>
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Cancel" severity="secondary" @click="showDeleteDialog = false" />
+          <Button label="Annuler" severity="secondary" @click="showDeleteDialog = false" />
           <Button
-            label="Delete"
+            label="Supprimer"
             severity="danger"
             :loading="deleting"
             @click="handleDeleteBracket"
@@ -161,6 +178,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+
+function nearestPowersOf2(n: number): [number, number] {
+  if (n <= 1) return [1, 2]
+  const lower = Math.pow(2, Math.floor(Math.log2(n)))
+  const upper = lower === n ? n : lower * 2
+  return [lower, upper]
+}
+
+function isPowerOf2(n: number): boolean {
+  return n > 0 && (n & (n - 1)) === 0
+}
 import { useBracketService } from '@/composables/bracket/bracket.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import TournamentBracket from '@/components/tournament/TournamentBracket.vue'
@@ -179,6 +207,7 @@ const {
   bracketData,
   loading,
   hasBracket,
+  currentParticipants,
   loadBracket,
   generateBracket,
   regenerateBracket,
@@ -196,6 +225,10 @@ const canManage = computed(() => {
   return props.tournament ? canManageTournament(props.tournament) : false
 })
 
+const isOptimalCount = computed(() =>
+  currentParticipants.value >= 2 && isPowerOf2(currentParticipants.value)
+)
+
 const isBracketTournament = computed(() => {
   return props.tournament?.mode === 'bracket'
 })
@@ -210,9 +243,7 @@ onMounted(async () => {
 async function loadBracketData() {
   try {
     await loadBracket(props.tournamentId)
-    if (canManage.value) {
-      await checkCanGenerate(props.tournamentId)
-    }
+    await checkCanGenerate(props.tournamentId)
   } catch (error) {
     console.error('Failed to load bracket:', error)
   }
@@ -259,6 +290,6 @@ async function handleDeleteBracket() {
 
 .bracket-container {
   width: 100%;
-  overflow-x: auto;
+
 }
 </style>

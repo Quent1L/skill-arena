@@ -15,7 +15,10 @@ http.interceptors.response.use(
   },
   async (error: XiorError) => {
     console.error('HTTP Error:', error.message, error.response)
-    throw new Error(error.response?.data?.error?.message ?? error.message, {cause: error.response?.data.error?.code})
+    const apiError = error.response?.data?.error
+    const err = new Error(apiError?.message ?? error.message, { cause: apiError?.code })
+    if (apiError?.details) (err as Error & { details: unknown }).details = apiError.details
+    throw err
   },
 )
 

@@ -14,6 +14,7 @@ export function useBracketService() {
   const error = ref<string | null>(null)
   const canGenerate = ref(false)
   const canGenerateReason = ref<string | null>(null)
+  const currentParticipants = ref<number>(0)
 
   // Computed properties
   const hasBracket = computed(() => bracketData.value !== null)
@@ -58,6 +59,7 @@ export function useBracketService() {
       const result = await bracketApi.canGenerate(tournamentId)
       canGenerate.value = result.canGenerate
       canGenerateReason.value = result.reason || null
+      currentParticipants.value = result.currentParticipants ?? 0
       return result
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error checking bracket eligibility'
@@ -91,12 +93,20 @@ export function useBracketService() {
 
       return data
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Error generating bracket'
+      let detail = err instanceof Error ? err.message : 'Error generating bracket'
+      if (err instanceof Error && (err as Error & { cause?: unknown }).cause === 'CHAMPIONSHIP_PARTICIPANTS_WITHOUT_MATCHES') {
+        const participants = ((err as Error & { details?: { participants?: Array<{ name: string }> } }).details?.participants) ?? []
+        const names = participants.map((p) => p.name).join(', ')
+        detail = names.length
+          ? `Ces participants n'ont joué aucun match dans le championnat : ${names}`
+          : "Certains participants n'ont joué aucun match dans le championnat sélectionné"
+      }
+      error.value = detail
       toast.add({
         severity: 'error',
-        summary: 'Generation Failed',
-        detail: error.value,
-        life: 5000,
+        summary: 'Génération impossible',
+        detail,
+        life: 8000,
       })
       throw err
     } finally {
@@ -121,19 +131,27 @@ export function useBracketService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Bracket Regenerated',
-        detail: 'The tournament bracket has been successfully regenerated',
+        summary: 'Bracket regénéré',
+        detail: 'Le tournoi a été regénéré avec succès',
         life: 5000,
       })
 
       return data
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Error regenerating bracket'
+      let detail = err instanceof Error ? err.message : 'Error regenerating bracket'
+      if (err instanceof Error && (err as Error & { cause?: unknown }).cause === 'CHAMPIONSHIP_PARTICIPANTS_WITHOUT_MATCHES') {
+        const participants = ((err as Error & { details?: { participants?: Array<{ name: string }> } }).details?.participants) ?? []
+        const names = participants.map((p) => p.name).join(', ')
+        detail = names.length
+          ? `Ces participants n'ont joué aucun match dans le championnat : ${names}`
+          : "Certains participants n'ont joué aucun match dans le championnat sélectionné"
+      }
+      error.value = detail
       toast.add({
         severity: 'error',
-        summary: 'Regeneration Failed',
-        detail: error.value,
-        life: 5000,
+        summary: 'Génération impossible',
+        detail,
+        life: 8000,
       })
       throw err
     } finally {
@@ -187,6 +205,7 @@ export function useBracketService() {
     error,
     canGenerate,
     canGenerateReason,
+    currentParticipants,
 
     // Computed
     hasBracket,
