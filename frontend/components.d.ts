@@ -75,6 +75,7 @@ declare module 'vue' {
     Tabs: typeof import('primevue/tabs')['default']
     Tag: typeof import('primevue/tag')['default']
     TeamCard: typeof import('./src/components/match/mobile/TeamCard.vue')['default']
+    TeamManagementPanel: typeof import('./src/components/tournament/TeamManagementPanel.vue')['default']
     TeamPreview: typeof import('./src/components/match/TeamPreview.vue')['default']
     TeamSelectionStep: typeof import('./src/components/match/TeamSelectionStep.vue')['default']
     TeamSelector: typeof import('./src/components/TeamSelector.vue')['default']

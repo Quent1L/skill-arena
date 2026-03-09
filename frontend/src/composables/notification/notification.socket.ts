@@ -5,6 +5,21 @@ import { convertStringDatesToJS } from '@/utils/DateUtils'
 let socket: WebSocket | null = null
 let reconnectTimer: number | null = null
 
+type WsEventHandler = (data: unknown) => void
+const eventRegistry = new Map<string, Set<WsEventHandler>>()
+
+export function onWsEvent(event: string, handler: WsEventHandler): () => void {
+  if (!eventRegistry.has(event)) eventRegistry.set(event, new Set())
+  eventRegistry.get(event)!.add(handler)
+  return () => eventRegistry.get(event)?.delete(handler)
+}
+
+export function sendWsMessage(data: unknown): void {
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify(data))
+  }
+}
+
 const WS_BASE = import.meta.env.DEV
   ? 'ws://localhost:3000'
   : window.location.origin.replace('http', 'ws')
@@ -57,6 +72,9 @@ export function useNotificationSocket() {
           console.log('[WS] Notification deleted:', payload.data.id)
           remove(payload.data.id)
         }
+        // Dispatch to generic event registry
+        const handlers = eventRegistry.get(payload.event)
+        handlers?.forEach((h) => h(payload.data))
       } catch (e) {
         console.error('[WS] Parse error', e)
       }

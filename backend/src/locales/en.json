@@ -75,6 +75,12 @@
     "INVITATION_CODE_EXHAUSTED": "This invitation code has reached its maximum usage limit",
     "INVITATION_CODE_INACTIVE": "This invitation code has been deactivated",
     "INVITATION_CODE_ALREADY_USED": "You have already used an invitation code",
-    "INVITATION_CODE_NOT_FOUND": "Invitation code not found"
+    "INVITATION_CODE_NOT_FOUND": "Invitation code not found",
+    "TEAM_FULL": "This team is full",
+    "TEAM_NAME_TAKEN": "This team name is already taken in this tournament",
+    "PLAYER_ALREADY_IN_TEAM": "You are already a member of a team in this tournament",
+    "PLAYER_NOT_IN_TEAM": "You are not a member of this team",
+    "TEAM_SIZE_INVALID": "Team size does not meet the tournament limits",
+    "TEAM_HAS_MATCH": "This team already has a match and cannot be modified"
   }
 }

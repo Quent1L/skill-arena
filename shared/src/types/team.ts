@@ -1,41 +1,45 @@
+import { z } from "zod";
 import { type TournamentAdminRole } from "./enums";
 
 // ============================================
-// Types et interfaces pour les équipes et participants
+// Types et interfaces pour les équipes statiques
 // ============================================
 
-export interface Team {
-  id: string;
-  tournamentId: string;
-  name: string;
-  isFlexTeam: boolean;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-}
-
-export interface TeamMember {
+export interface ClientTeamMember {
   id: string;
   teamId: string;
   userId: string;
-  joinedAt: string; // ISO date string
-  leftAt?: string; // ISO date string
+  joinedAt: string;
+  user: { id: string; displayName: string; shortName: string };
 }
 
-export interface TournamentParticipant {
+export interface ClientTeam {
   id: string;
   tournamentId: string;
-  userId: string;
-  joinedAt: string; // ISO date string
-  leftAt?: string; // ISO date string
+  name: string;
+  createdBy: string;
+  createdAt: string;
+  members: ClientTeamMember[];
+  hasMatch: boolean;
 }
+
+export const createTeamSchema = z.object({
+  name: z.string().min(1).max(50),
+});
+
+export type CreateTeamInput = z.infer<typeof createTeamSchema>;
+
+// ============================================
+// Types conservés pour rétrocompatibilité
+// ============================================
 
 export interface TournamentAdmin {
   id: string;
   tournamentId: string;
   userId: string;
   role: TournamentAdminRole;
-  assignedAt: string; // ISO date string
-  assignedBy: string; // userId
+  assignedAt: string;
+  assignedBy: string;
 }
 
 // ============================================

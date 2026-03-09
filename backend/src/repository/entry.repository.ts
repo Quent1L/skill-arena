@@ -2,7 +2,8 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   tournamentEntries,
-  tournamentEntryPlayers
+  tournamentEntryPlayers,
+  teamMembers,
 } from "../db/schema";
 export class EntryRepository {
   /**
@@ -118,13 +119,19 @@ export class EntryRepository {
         return existing;
       }
 
-      // Create new entry for team
+      // Create new entry for team - read members from team_members table
+      const members = await dbInstance
+        .select({ userId: teamMembers.userId })
+        .from(teamMembers)
+        .where(eq(teamMembers.teamId, teamId));
+      const memberIds = members.map((m: { userId: string }) => m.userId);
+
       const entry = await this.create(
         {
           tournamentId,
           entryType: "TEAM",
           teamId,
-          playerIds: playerIds || [],
+          playerIds: memberIds.length > 0 ? memberIds : (playerIds || []),
         },
         tx
       );

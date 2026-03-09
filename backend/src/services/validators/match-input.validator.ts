@@ -1,5 +1,6 @@
 import { matchRepository } from "../../repository/match.repository";
 import { userRepository } from "../../repository/user.repository";
+import { teamRepository } from "../../repository/team.repository";
 import { BadRequestError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput } from "@skill-arena/shared/types/index";
 import i18next from "../../config/i18n";
@@ -20,7 +21,7 @@ export class MatchInputValidator {
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
         if (tournament.teamMode === "static") {
-            await this.validateStaticTeamInput(input);
+            await this.validateStaticTeamInput(input, tournament);
         } else if (tournament.teamMode === "flex") {
             await this.validateFlexTeamInput(input);
         }
@@ -30,7 +31,8 @@ export class MatchInputValidator {
      * Validate static team input
      */
     private async validateStaticTeamInput(
-        input: CreateMatchInput
+        input: CreateMatchInput,
+        tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
         if (!input.teamAId || !input.teamBId) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
@@ -40,6 +42,17 @@ export class MatchInputValidator {
             input.teamAId,
             input.teamBId
         );
+        const [sizeA, sizeB] = await Promise.all([
+            teamRepository.getMemberCount(input.teamAId),
+            teamRepository.getMemberCount(input.teamBId),
+        ]);
+        const { minTeamSize, maxTeamSize } = tournament;
+        if (
+            sizeA < minTeamSize || sizeA > maxTeamSize ||
+            sizeB < minTeamSize || sizeB > maxTeamSize
+        ) {
+            throw new BadRequestError(ErrorCode.TEAM_SIZE_INVALID);
+        }
     }
 
     /**
@@ -90,16 +103,17 @@ export class MatchInputValidator {
     }
 
     /**
-     * Validate draw is allowed if scores are equal
+     * Validate draw is allowed.
+     * A draw occurs when winner is explicitly null, or scores are tied without an explicit override.
      */
     async validateDrawAllowed(
         tournamentId: string,
         scoreA: number,
-        scoreB: number
+        scoreB: number,
+        winner?: "teamA" | "teamB" | null,
     ): Promise<void> {
-        if (scoreA !== scoreB) {
-            return;
-        }
+        const isDraw = winner === null || (winner === undefined && scoreA === scoreB);
+        if (!isDraw) return;
 
         const tournament = await matchRepository.getTournament(tournamentId);
         if (!tournament?.allowDraw) {
@@ -116,7 +130,7 @@ export class MatchInputValidator {
         errors: string[]
     ): Promise<void> {
         if (tournament.teamMode === "static") {
-            await this.validateStaticTeamsForValidation(input, errors);
+            await this.validateStaticTeamsForValidation(input, tournament, errors);
         } else if (tournament.teamMode === "flex") {
             await this.validateFlexPlayersForValidation(input, errors);
         }
@@ -127,6 +141,7 @@ export class MatchInputValidator {
      */
     private async validateStaticTeamsForValidation(
         input: CreateMatchInput,
+        tournament: NonNullable<TournamentFromRepository>,
         errors: string[]
     ): Promise<void> {
         if (input.teamAId) {
@@ -151,6 +166,38 @@ export class MatchInputValidator {
 
         if (input.teamAId && input.teamBId && input.teamAId === input.teamBId) {
             errors.push("Les deux équipes ne peuvent pas être identiques");
+        }
+
+        if (input.teamAId && input.teamBId) {
+            await this.validateTeamSizesForValidation(
+                input.teamAId,
+                input.teamBId,
+                tournament.minTeamSize,
+                tournament.maxTeamSize,
+                errors,
+            );
+        }
+    }
+
+    /**
+     * Validate team sizes against tournament constraints
+     */
+    private async validateTeamSizesForValidation(
+        teamAId: string,
+        teamBId: string,
+        minTeamSize: number,
+        maxTeamSize: number,
+        errors: string[]
+    ): Promise<void> {
+        const [sizeA, sizeB] = await Promise.all([
+            teamRepository.getMemberCount(teamAId),
+            teamRepository.getMemberCount(teamBId),
+        ]);
+        if (sizeA < minTeamSize || sizeA > maxTeamSize) {
+            errors.push(`L'équipe A a ${sizeA} membre(s), attendu entre ${minTeamSize} et ${maxTeamSize}`);
+        }
+        if (sizeB < minTeamSize || sizeB > maxTeamSize) {
+            errors.push(`L'équipe B a ${sizeB} membre(s), attendu entre ${minTeamSize} et ${maxTeamSize}`);
         }
     }
 

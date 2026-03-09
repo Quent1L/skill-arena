@@ -1,6 +1,6 @@
 <template>
   <div class="pt-6">
-    <TeamPreview :team-a-players="teamAPlayers" :team-b-players="teamBPlayers" />
+    <TeamPreview :team-a-players="teamAPlayers" :team-b-players="teamBPlayers" :team-a-name="teamAName" :team-b-name="teamBName" />
 
     <div class="flex flex-col gap-6 mt-6">
       <!-- 1. Vainqueur -->
@@ -116,6 +116,8 @@ import TeamPreview from './TeamPreview.vue'
 interface Props {
   teamAPlayers: string[]
   teamBPlayers: string[]
+  teamAName?: string
+  teamBName?: string
   tournamentId: string
   allowDraw?: boolean
   loading?: boolean
