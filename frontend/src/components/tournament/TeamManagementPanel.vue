@@ -260,6 +260,10 @@ async function handleDelete(teamId: string) {
   await deleteTeam(props.tournamentId, teamId)
 }
 
+const offCreated = ref<(() => void) | null>(null)
+const offUpdated = ref<(() => void) | null>(null)
+const offDeleted = ref<(() => void) | null>(null)
+
 onMounted(async () => {
   await loadTeams(props.tournamentId)
 
@@ -269,29 +273,29 @@ onMounted(async () => {
 
   sendWsMessage({ event: 'subscribe_tournament', tournamentId: props.tournamentId })
 
-  const offCreated = onWsEvent('team_created', (data) => {
+  offCreated.value = onWsEvent('team_created', (data) => {
     const team = data as ClientTeam
     if (!teams.value.find((t) => t.id === team.id)) {
       teams.value.push(team)
     }
   })
 
-  const offUpdated = onWsEvent('team_updated', (data) => {
+  offUpdated.value = onWsEvent('team_updated', (data) => {
     const team = data as ClientTeam
     const idx = teams.value.findIndex((t) => t.id === team.id)
     if (idx !== -1) teams.value[idx] = team
   })
 
-  const offDeleted = onWsEvent('team_deleted', (data) => {
+  offDeleted.value = onWsEvent('team_deleted', (data) => {
     const { teamId } = data as { teamId: string }
     teams.value = teams.value.filter((t) => t.id !== teamId)
   })
+})
 
-  onUnmounted(() => {
-    sendWsMessage({ event: 'unsubscribe_tournament', tournamentId: props.tournamentId })
-    offCreated()
-    offUpdated()
-    offDeleted()
-  })
+onUnmounted(() => {
+  sendWsMessage({ event: 'unsubscribe_tournament', tournamentId: props.tournamentId })
+  offCreated.value?.()
+  offUpdated.value?.()
+  offDeleted.value?.()
 })
 </script>
