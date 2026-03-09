@@ -60,6 +60,8 @@ export function useMatchService() {
     playerIdsA?: string[],
     playerIdsB?: string[],
     matchId?: string,
+    teamAId?: string,
+    teamBId?: string,
   ): Promise<ValidationResult> {
     try {
       const dataToValidate: ClientValidateMatchRequest = {
@@ -67,6 +69,8 @@ export function useMatchService() {
         playerIdsA,
         playerIdsB,
         ...(matchId && { matchId }),
+        ...(teamAId && { teamAId }),
+        ...(teamBId && { teamBId }),
       }
 
       const result = await matchApi.validate(dataToValidate)
@@ -86,12 +90,19 @@ export function useMatchService() {
   /**
    * Check if can proceed to next step
    */
-  function canProceedToNextStep(step: string, playerIdsA: string[], playerIdsB: string[]): boolean {
+  function canProceedToNextStep(
+    step: string,
+    playerIdsA: string[],
+    playerIdsB: string[],
+    teamAId?: string,
+    teamBId?: string,
+  ): boolean {
     const result = validationResult.value
     if (!result) return false
 
     switch (step) {
       case '1':
+        if (teamAId && teamBId) return result.valid
         return result.valid && playerIdsA.length > 0 && playerIdsB.length > 0
       case '2':
         return result.valid

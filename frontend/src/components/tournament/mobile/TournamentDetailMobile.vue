@@ -97,6 +97,17 @@
       <div v-show="activeTab === 'matches'" class="h-full p-2">
         <MatchList :tournament-id="tournamentId" :bracket-mode="tournament.mode === 'bracket'" />
       </div>
+
+      <!-- Tab 5: Teams (static mode only) -->
+      <div v-if="tournament.teamMode === 'static'" v-show="activeTab === 'teams'" class="h-full">
+        <TeamManagementPanel
+          :tournament-id="tournamentId"
+          :current-user-id="currentUserId"
+          :is-participant="isParticipant"
+          :can-manage="canManage"
+          :tournament-status="tournament.status"
+        />
+      </div>
     </div>
 
     <!-- Speed Dial for Create Match -->
@@ -200,6 +211,27 @@
         ></i>
         <span class="text-xs font-medium">Matchs</span>
       </button>
+
+      <button
+        v-if="tournament.teamMode === 'static'"
+        @click="activeTab = 'teams'"
+        class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
+        :class="
+          activeTab === 'teams'
+            ? 'text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+        "
+      >
+        <div
+          class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+          :class="activeTab === 'teams' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+        ></div>
+        <i
+          class="fas fa-users text-xl mb-1 transition-transform duration-200"
+          :class="activeTab === 'teams' ? 'scale-110' : 'group-hover:scale-105'"
+        ></i>
+        <span class="text-xs font-medium">Équipes</span>
+      </button>
     </div>
   </div>
 </template>
@@ -215,6 +247,7 @@ import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
+import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -235,6 +268,7 @@ const props = defineProps<{
   leaving: boolean
   tournamentId: string
   tournamentDuration: string
+  currentUserId?: string
 }>()
 
 defineEmits<{
@@ -269,6 +303,7 @@ onMounted(() => {
     const validTabs = ['participants', 'matches']
     if (props.tournament.mode !== 'bracket') validTabs.push('standings')
     if (props.tournament.mode === 'bracket') validTabs.push('bracket')
+    if (props.tournament.teamMode === 'static') validTabs.push('teams')
     if (validTabs.includes(tab)) {
       activeTab.value = tab
     }
@@ -284,6 +319,7 @@ const tabTitles: Record<string, string> = {
   standings: 'Classement',
   bracket: 'Bracket',
   matches: 'Matchs',
+  teams: 'Équipes',
 }
 </script>
 

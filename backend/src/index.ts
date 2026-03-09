@@ -14,6 +14,7 @@ import config from "./routes/config.route";
 import invitations from "./routes/invitations.route";
 import adminInvitations from "./routes/admin/invitations.route";
 import gameRulesRouter from "./routes/game-rules.route";
+import teamsRouter from "./routes/teams.route";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
@@ -87,6 +88,8 @@ app.route("/api/admin/invitations", adminInvitations);
 
 app.route("/api/game-rules", gameRulesRouter);
 
+app.route("/api/tournaments", teamsRouter);
+
 app.get(
   "/api/ws",
   upgradeWebSocket(async (c) => {
@@ -114,9 +117,20 @@ app.get(
         console.log(`[WS] App user ${appUserId} connected (BetterAuth: ${user.id})`);
         webSocketService.handleConnection(ws, appUserId);
       },
+      onMessage(event, _ws) {
+        try {
+          const msg = JSON.parse(String(event.data));
+          if (msg.event === 'subscribe_tournament' && msg.tournamentId) {
+            webSocketService.subscribeToTournament(msg.tournamentId, appUserId);
+          } else if (msg.event === 'unsubscribe_tournament' && msg.tournamentId) {
+            webSocketService.unsubscribeFromTournament(msg.tournamentId, appUserId);
+          }
+        } catch {}
+      },
       onClose(_event, ws) {
         console.log(`[WS] App user ${appUserId} disconnected`);
         webSocketService.handleClose(ws, appUserId);
+        webSocketService.unsubscribeUserFromAll(appUserId);
       },
       onError(event, _ws) {
         console.error(`[WS] Error for app user ${appUserId}:`, event);

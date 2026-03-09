@@ -32,6 +32,8 @@
                   v-model:player-ids-a="matchData.playerIdsA"
                   v-model:player-ids-b="matchData.playerIdsB"
                   v-model:scheduled-date="matchData.playedAt"
+                  v-model:team-a-id="matchData.teamAId"
+                  v-model:team-b-id="matchData.teamBId"
                   :min-date="tournamentMinDate"
                   :max-date="tournamentMaxDate"
                   :validation="teamSelectorValidation"
@@ -39,6 +41,8 @@
                   :bracket-locked="isBracketMatch"
                   :team-a-names="teamAPlayers"
                   :team-b-names="teamBPlayers"
+                  :team-mode="tournament?.teamMode"
+                  :teams="teams"
                   @validate="() => validateCurrentStep('1')"
                   @next="() => goToStep(activateCallback, '2')"
                   @create="createMatch"
@@ -52,6 +56,8 @@
                 <MatchResultStep
                   :team-a-players="teamAPlayers"
                   :team-b-players="teamBPlayers"
+                  :team-a-name="teamAName"
+                  :team-b-name="teamBName"
                   :tournament-id="tournamentId"
                   v-model:score-a="scoreA"
                   v-model:score-b="scoreB"
@@ -83,6 +89,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
+import { useTeamService } from '@/composables/team/team.service'
 import { useViewport } from '@/composables/useViewport'
 import type {
   MatchStatus,
@@ -112,6 +119,7 @@ const {
   getTeamPlayersNames,
 } = useMatchService()
 const { loadTournamentWithErrorHandling } = useTournamentService()
+const { teams, loadTeams } = useTeamService()
 const { isMobile } = useViewport()
 
 const tournamentId = route.params.tournamentId as string
@@ -136,6 +144,8 @@ type MatchFormData = Omit<ClientCreateMatchRequest, 'playedAt'> &
     playerIdsA: string[]
     playerIdsB: string[]
     playedAt?: Date
+    teamAId?: string
+    teamBId?: string
   }
 
 const matchData = ref<MatchFormData>({
@@ -150,14 +160,25 @@ const matchData = ref<MatchFormData>({
   outcomeReasonId: undefined,
   winner: null as 'teamA' | 'teamB' | null,
   playedAt: new Date(),
+  teamAId: undefined,
+  teamBId: undefined,
 })
 const now = new Date()
 
 const tournament = ref<ClientBaseTournament | null>(null)
 
-const canProceedToNext = computed(() =>
-  canProceedToNextStep(activeStep.value, matchData.value.playerIdsA, matchData.value.playerIdsB),
-)
+const isStaticMode = computed(() => tournament.value?.teamMode === 'static')
+
+const canProceedToNext = computed(() => {
+  if (isStaticMode.value) {
+    return !!(
+      matchData.value.teamAId &&
+      matchData.value.teamBId &&
+      matchData.value.teamAId !== matchData.value.teamBId
+    )
+  }
+  return canProceedToNextStep(activeStep.value, matchData.value.playerIdsA, matchData.value.playerIdsB)
+})
 
 const canCreateMatch = computed(() => {
   // For scheduled matches (future date), just check if date is set
@@ -175,9 +196,31 @@ const canCreateMatch = computed(() => {
 
 const teamSelectorValidation = computed(() => validationResult.value ?? undefined)
 
-const teamAPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsA))
+const teamAName = computed(() => {
+  if (!isStaticMode.value || !matchData.value.teamAId) return undefined
+  return teams.value.find((t) => t.id === matchData.value.teamAId)?.name
+})
 
-const teamBPlayers = computed(() => getTeamPlayersNames(matchData.value.playerIdsB))
+const teamBName = computed(() => {
+  if (!isStaticMode.value || !matchData.value.teamBId) return undefined
+  return teams.value.find((t) => t.id === matchData.value.teamBId)?.name
+})
+
+const teamAPlayers = computed(() => {
+  if (isStaticMode.value && matchData.value.teamAId) {
+    const team = teams.value.find((t) => t.id === matchData.value.teamAId)
+    return team ? team.members.map((m) => m.user.displayName) : []
+  }
+  return getTeamPlayersNames(matchData.value.playerIdsA)
+})
+
+const teamBPlayers = computed(() => {
+  if (isStaticMode.value && matchData.value.teamBId) {
+    const team = teams.value.find((t) => t.id === matchData.value.teamBId)
+    return team ? team.members.map((m) => m.user.displayName) : []
+  }
+  return getTeamPlayersNames(matchData.value.playerIdsB)
+})
 
 // Computed properties for scoreA and scoreB to handle undefined -> number conversion
 const scoreA = computed({
@@ -221,7 +264,9 @@ async function validateCurrentStep(step?: string) {
     currentStep,
     matchData.value.playerIdsA,
     matchData.value.playerIdsB,
-    matchId, // Pass matchId in edit mode to exclude it from validation
+    matchId,
+    isStaticMode.value ? matchData.value.teamAId : undefined,
+    isStaticMode.value ? matchData.value.teamBId : undefined,
   )
 }
 
@@ -300,13 +345,17 @@ async function createMatch() {
 
 watch(
   () => matchData.value.playerIdsA,
-  () => validateCurrentStep('1'),
+  () => { if (!isStaticMode.value) validateCurrentStep('1') },
   { deep: true },
 )
 watch(
   () => matchData.value.playerIdsB,
-  () => validateCurrentStep('1'),
+  () => { if (!isStaticMode.value) validateCurrentStep('1') },
   { deep: true },
+)
+watch(
+  () => [matchData.value.teamAId, matchData.value.teamBId],
+  () => { if (isStaticMode.value) validateCurrentStep('1') },
 )
 
 async function loadExistingMatch() {
@@ -399,6 +448,9 @@ async function loadExistingMatch() {
 onMounted(async () => {
   await loadTournament()
   await loadPlayersMap(tournamentId)
+  if (tournament.value?.teamMode === 'static') {
+    await loadTeams(tournamentId)
+  }
   if (isEditMode.value) {
     await loadExistingMatch()
   }

@@ -318,6 +318,21 @@ export const teams = pgTable(
   (table) => [unique().on(table.tournamentId, table.name)],
 );
 
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.teamId, table.userId)],
+);
+
 // ********************************************************************
 // [Start] New generic entry-based tables (replaces tournamentParticipants)
 // ***************************************************************
@@ -680,6 +695,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   createdTournaments: many(tournaments),
   tournamentAdmins: many(tournamentAdmins),
   createdTeams: many(teams),
+  teamMemberships: many(teamMembers),
   tournamentEntryPlayers: many(tournamentEntryPlayers),
   matchConfirmations: many(matchConfirmations),
   notifications: many(notifications),
@@ -762,6 +778,18 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
     references: [appUsers.id],
   }),
   entries: many(tournamentEntries),
+  members: many(teamMembers),
+}));
+
+export const teamMembersRelations = relations(teamMembers, ({ one }) => ({
+  team: one(teams, {
+    fields: [teamMembers.teamId],
+    references: [teams.id],
+  }),
+  user: one(appUsers, {
+    fields: [teamMembers.userId],
+    references: [appUsers.id],
+  }),
 }));
 
 // ********************************************************************

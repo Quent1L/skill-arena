@@ -55,6 +55,12 @@ export class MatchService {
     await this.validateMatchInput(input, tournament);
     await this.validateMatchRules(input, tournament);
 
+    if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
+      matchInputValidator.validateScores(input.scoreA, input.scoreB);
+      matchInputValidator.validateScoreRange(input.scoreA, input.scoreB, tournament.minScore, tournament.maxScore);
+      await matchInputValidator.validateDrawAllowed(input.tournamentId, input.scoreA, input.scoreB, input.winner);
+    }
+
     const matchId = await this.createMatchRecord(input, createdBy);
 
     // If match is reported, create automatic confirmation for the creator
@@ -258,6 +264,12 @@ export class MatchService {
     if (input.winner !== undefined) updateData.winner = input.winner;
 
     if (input.status === "reported") {
+      const scoreA = input.scoreA ?? 0;
+      const scoreB = input.scoreB ?? 0;
+      matchInputValidator.validateScores(scoreA, scoreB);
+      matchInputValidator.validateScoreRange(scoreA, scoreB, tournament?.minScore, tournament?.maxScore);
+      await matchInputValidator.validateDrawAllowed(match.tournamentId, scoreA, scoreB, input.winner);
+
       updateData.reportedBy = updatedBy;
       const confirmationDeadline = new Date();
       confirmationDeadline.setHours(confirmationDeadline.getHours() + 72);
@@ -374,6 +386,7 @@ export class MatchService {
       tournamentId,
       input.scoreA,
       input.scoreB,
+      input.winner,
     );
   }
 

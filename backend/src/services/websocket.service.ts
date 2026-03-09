@@ -2,6 +2,8 @@ export class WebSocketService {
   private static instance: WebSocketService;
   // Map userId -> Set of WebSockets (to support multiple tabs/devices)
   private connections: Map<string, Set<any>> = new Map();
+  // Map tournamentId -> Set<userId>
+  private tournamentSubscriptions: Map<string, Set<string>> = new Map();
 
   private constructor() {}
 
@@ -29,6 +31,40 @@ export class WebSocketService {
       }
     }
     console.log(`User ${userId} disconnected`);
+  }
+
+  public subscribeToTournament(tournamentId: string, userId: string): void {
+    if (!this.tournamentSubscriptions.has(tournamentId)) {
+      this.tournamentSubscriptions.set(tournamentId, new Set());
+    }
+    this.tournamentSubscriptions.get(tournamentId)!.add(userId);
+  }
+
+  public unsubscribeFromTournament(tournamentId: string, userId: string): void {
+    const subs = this.tournamentSubscriptions.get(tournamentId);
+    if (subs) {
+      subs.delete(userId);
+      if (subs.size === 0) {
+        this.tournamentSubscriptions.delete(tournamentId);
+      }
+    }
+  }
+
+  public unsubscribeUserFromAll(userId: string): void {
+    for (const [tournamentId, subs] of this.tournamentSubscriptions) {
+      subs.delete(userId);
+      if (subs.size === 0) {
+        this.tournamentSubscriptions.delete(tournamentId);
+      }
+    }
+  }
+
+  public broadcastToTournament(tournamentId: string, data: unknown): void {
+    const subs = this.tournamentSubscriptions.get(tournamentId);
+    if (!subs) return;
+    for (const userId of subs) {
+      this.send(userId, data);
+    }
   }
 
   public send(userId: string, data: any) {

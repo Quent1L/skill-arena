@@ -35,6 +35,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+      <!-- Équipe A -->
       <div>
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe A</h4>
@@ -50,6 +51,27 @@
               <p v-if="!props.teamANames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
             </div>
           </template>
+          <template v-else-if="props.teamMode === 'static'">
+            <Select
+              v-model="teamAIdModel"
+              :options="teamsForA"
+              option-label="name"
+              option-value="id"
+              placeholder="Sélectionner une équipe"
+              class="w-full"
+              @change="onValidate"
+            />
+            <div v-if="teamAIdModel" class="mt-2 space-y-1">
+              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">{{ selectedTeamA?.name }}</p>
+              <p
+                v-for="member in selectedTeamAMembers"
+                :key="member.id"
+                class="text-xs text-gray-600 dark:text-gray-400"
+              >
+                {{ member.user.displayName }}
+              </p>
+            </div>
+          </template>
           <template v-else>
             <TeamSelector
               v-model="playerIdsAModel"
@@ -60,6 +82,7 @@
         </div>
       </div>
 
+      <!-- Équipe B -->
       <div>
         <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe B</h4>
@@ -73,6 +96,27 @@
                 {{ name }}
               </p>
               <p v-if="!props.teamBNames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+            </div>
+          </template>
+          <template v-else-if="props.teamMode === 'static'">
+            <Select
+              v-model="teamBIdModel"
+              :options="teamsForB"
+              option-label="name"
+              option-value="id"
+              placeholder="Sélectionner une équipe"
+              class="w-full"
+              @change="onValidate"
+            />
+            <div v-if="teamBIdModel" class="mt-2 space-y-1">
+              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">{{ selectedTeamB?.name }}</p>
+              <p
+                v-for="member in selectedTeamBMembers"
+                :key="member.id"
+                class="text-xs text-gray-600 dark:text-gray-400"
+              >
+                {{ member.user.displayName }}
+              </p>
             </div>
           </template>
           <template v-else>
@@ -123,8 +167,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import TeamSelector from '@/components/TeamSelector.vue'
-
-
+import type { ClientTeam } from '@skill-arena/shared/types/index'
 
 interface ValidationResult {
   valid: boolean
@@ -141,6 +184,8 @@ interface Props {
   bracketLocked?: boolean
   teamANames?: string[]
   teamBNames?: string[]
+  teamMode?: 'static' | 'flex'
+  teams?: ClientTeam[]
 }
 
 interface Emits {
@@ -155,15 +200,40 @@ const emit = defineEmits<Emits>()
 const playerIdsAModel = defineModel<string[]>('playerIdsA', { required: true })
 const playerIdsBModel = defineModel<string[]>('playerIdsB', { required: true })
 const scheduledDate = defineModel<Date | null>('scheduledDate', { default: null })
+const teamAIdModel = defineModel<string | undefined>('teamAId')
+const teamBIdModel = defineModel<string | undefined>('teamBId')
 const now = new Date()
 
 const bracketTeamsReady = computed(
   () => (props.teamANames?.length ?? 0) > 0 && (props.teamBNames?.length ?? 0) > 0,
 )
 
+const teamsForA = computed(() =>
+  (props.teams ?? []).filter((t) => t.id !== teamBIdModel.value),
+)
+
+const teamsForB = computed(() =>
+  (props.teams ?? []).filter((t) => t.id !== teamAIdModel.value),
+)
+
+const selectedTeamA = computed(() =>
+  (props.teams ?? []).find((t) => t.id === teamAIdModel.value) ?? null,
+)
+
+const selectedTeamB = computed(() =>
+  (props.teams ?? []).find((t) => t.id === teamBIdModel.value) ?? null,
+)
+
+const selectedTeamAMembers = computed(() => selectedTeamA.value?.members ?? [])
+
+const selectedTeamBMembers = computed(() => selectedTeamB.value?.members ?? [])
+
 const isNextDisabled = computed(() => {
   if (!scheduledDate.value) return true
   if (props.bracketLocked) return !bracketTeamsReady.value
+  if (props.teamMode === 'static') {
+    return !teamAIdModel.value || !teamBIdModel.value || teamAIdModel.value === teamBIdModel.value
+  }
   return props.disabled ?? false
 })
 

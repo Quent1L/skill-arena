@@ -1,6 +1,6 @@
 <template>
   <div class="pt-6">
-    <TeamPreview :team-a-players="teamAPlayers" :team-b-players="teamBPlayers" />
+    <TeamPreview :team-a-players="teamAPlayers" :team-b-players="teamBPlayers" :team-a-name="teamAName" :team-b-name="teamBName" />
 
     <ScoreInput
       v-model:mode-selection="modeSelectionModel"
@@ -43,6 +43,8 @@ import ScoreInput from './ScoreInput.vue'
 interface Props {
   teamAPlayers: string[]
   teamBPlayers: string[]
+  teamAName?: string
+  teamBName?: string
   tournamentId: string
   allowDraw?: boolean
   loading?: boolean

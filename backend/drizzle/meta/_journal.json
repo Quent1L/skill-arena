@@ -176,6 +176,13 @@
       "when": 1772925492199,
       "tag": "0024_busy_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1772988433559,
+      "tag": "0025_clean_king_cobra",
+      "breakpoints": true
     }
   ]
 }

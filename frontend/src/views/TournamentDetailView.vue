@@ -24,6 +24,7 @@
         :leaving="leaving"
         :tournament-id="tournamentId"
         :tournament-duration="tournamentDuration"
+        :current-user-id="appUser?.id"
         @join="joinTournament"
         @leave="leaveTournament"
         @create-match="createMatch"
@@ -91,6 +92,7 @@
               <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
             </div>
           </Tab>
+          <Tab v-if="tournament.teamMode === 'static'" value="teams">Équipes</Tab>
         </TabList>
         <TabPanels style="border-radius: 0 0 0.5rem 0.5rem">
           <TabPanel v-if="tournament.mode === 'championship'" value="standings">
@@ -123,6 +125,15 @@
                 />
               </template>
             </Card>
+          </TabPanel>
+          <TabPanel v-if="tournament.teamMode === 'static'" value="teams">
+            <TeamManagementPanel
+              :tournament-id="tournamentId"
+              :current-user-id="appUser?.id"
+              :is-participant="isParticipant"
+              :can-manage="canManageTournament"
+              :tournament-status="tournament.status"
+            />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -162,6 +173,7 @@ import TournamentParticipantsList from '@/components/tournament/TournamentPartic
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
+import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 import { calculateDuration } from '@/utils/DateUtils'
 import { useViewport } from '@/composables/useViewport'
 
@@ -280,6 +292,7 @@ onMounted(async () => {
   const validTabs = ['matches', 'participants']
   if (tournament.value?.mode === 'championship') validTabs.push('standings')
   if (tournament.value?.mode === 'bracket') validTabs.push('bracket')
+  if (tournament.value?.teamMode === 'static') validTabs.push('teams')
   if (tab && validTabs.includes(tab)) activeTab.value = tab
   else if (validTabs.includes('bracket')) activeTab.value = 'bracket'
 
