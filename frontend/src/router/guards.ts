@@ -2,7 +2,7 @@
  * Navigation Guards pour protéger les routes authentifiées
  */
 
-import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import type { RouteLocationNormalized } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { errorService } from '@/composables/useErrorService.ts'
 
@@ -11,8 +11,6 @@ import { errorService } from '@/composables/useErrorService.ts'
  */
 export async function requireAuth(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: NavigationGuardNext,
 ) {
   const { isAuthenticated, isInitialized, initialize } = useAuth()
 
@@ -22,12 +20,12 @@ export async function requireAuth(
     }
 
     if (isAuthenticated.value) {
-      next()
+      return
     } else {
-      next({
+      return {
         path: '/login',
         query: { redirect: to.fullPath },
-      })
+      }
     }
   } catch (error) {
     console.error('❌ Error during authentication check:', error)
@@ -39,14 +37,13 @@ export async function requireAuth(
       if (!hasCookieCode) {
         errorService.showError(error)
       }
-      next('/submit-invitation')
-      return
+      return '/submit-invitation'
     }
 
-    next({
+    return {
       path: '/login',
       query: { redirect: to.fullPath },
-    })
+    }
   }
 }
 
@@ -55,8 +52,6 @@ export async function requireAuth(
  */
 export async function requireAdmin(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: NavigationGuardNext,
 ) {
   const { isAuthenticated, isSuperAdmin, isInitialized, initialize } = useAuth()
 
@@ -68,34 +63,33 @@ export async function requireAdmin(
 
     if (!isAuthenticated.value) {
       console.warn("❌ Pas d'utilisateur connecté")
-      next({
+      return {
         path: '/login',
         query: { redirect: to.fullPath },
-      })
+      }
     } else if (isSuperAdmin.value) {
       console.log('✅ Utilisateur est admin, accès autorisé')
-      next()
+      return
     } else {
       console.warn('❌ Utilisateur connecté mais pas admin')
-      next({
+      return {
         path: '/',
         replace: true,
-      })
+      }
     }
   } catch (error) {
     console.error('❌ Error checking admin status:', error)
 
     // Si l'erreur est INVITATION_CODE_REQUIRED, rediriger vers /submit-invitation
     if (error instanceof Error && error.message === 'INVITATION_CODE_REQUIRED') {
-      next('/submit-invitation')
-      return
+      return '/submit-invitation'
     }
 
     // Autres erreurs - rediriger vers login
-    next({
+    return {
       path: '/login',
       query: { redirect: to.fullPath },
-    })
+    }
   }
 }
 
@@ -103,9 +97,6 @@ export async function requireAdmin(
  * Middleware pour rediriger les utilisateurs déjà connectés
  */
 export async function redirectIfAuthenticated(
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
-  next: NavigationGuardNext,
 ) {
   const { isInitialized, initialize } = useAuth()
 
@@ -113,10 +104,8 @@ export async function redirectIfAuthenticated(
     if (!isInitialized.value) {
       await initialize()
     }
-    next()
   } catch (error) {
     console.error('❌ Error during redirect check:', error)
-    next()
   }
 }
 
