@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen main-app">
     <NotificationsInit>
-      <AppHeader />
-      <BreadcrumbMenu />
+      <AppHeader v-if="route.name !== 'offline'" />
+      <BreadcrumbMenu v-if="route.name !== 'offline'" />
       <RouterView v-slot="{ Component, route }">
         <Transition name="fade" mode="out-in" appear>
           <component :is="Component" :key="route.path" />
@@ -14,7 +14,9 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
+
+const route = useRoute()
 import AppHeader from '@/components/AppHeader.vue'
 import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
 import NotificationsInit from '@/components/NotificationsInit.vue'
