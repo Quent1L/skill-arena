@@ -424,36 +424,6 @@ export const matchResults = pgTable("match_results", {
   finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
 });
 
-// Future support for multi-game matches (BO3, BO5, etc.)
-export const matchGames = pgTable(
-  "match_games",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    matchId: uuid("match_id")
-      .notNull()
-      .references(() => matches.id, { onDelete: "cascade" }),
-    gameNumber: integer("game_number").notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [unique().on(table.matchId, table.gameNumber)],
-);
-
-export const matchGameSides = pgTable(
-  "match_game_sides",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    matchGameId: uuid("match_game_id")
-      .notNull()
-      .references(() => matchGames.id, { onDelete: "cascade" }),
-    entryId: uuid("entry_id")
-      .notNull()
-      .references(() => tournamentEntries.id, { onDelete: "restrict" }),
-    position: integer("position").notNull(),
-    score: integer("score").notNull().default(0),
-  },
-  (table) => [unique().on(table.matchGameId, table.entryId)],
-);
-
 // ********************************************************************
 // [End] New match sides and results tables
 // ***************************************************************
@@ -491,25 +461,6 @@ export const matchConfirmations = pgTable(
   },
   (table) => [unique().on(table.matchId, table.playerId)],
 );
-
-export const championshipStandings = pgTable("championship_standings", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tournamentId: uuid("tournament_id")
-    .notNull()
-    .references(() => tournaments.id, { onDelete: "cascade" }),
-  entryId: uuid("entry_id")
-    .notNull()
-    .references(() => tournamentEntries.id, { onDelete: "cascade" }),
-  points: integer("points").notNull().default(0),
-  wins: integer("wins").notNull().default(0),
-  losses: integer("losses").notNull().default(0),
-  draws: integer("draws").notNull().default(0),
-  matchesPlayed: integer("matches_played").notNull().default(0),
-  lastUpdated: timestamp("last_updated")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
 
 // ********************************************************************
 // [Start] Bracket tournament tables
@@ -732,7 +683,6 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   entries: many(tournamentEntries),
   teams: many(teams),
   matches: many(matches),
-  standings: many(championshipStandings),
   bracketConfig: one(bracketConfigs, {
     fields: [tournaments.id],
     references: [bracketConfigs.tournamentId],
@@ -809,7 +759,6 @@ export const tournamentEntriesRelations = relations(
     }),
     players: many(tournamentEntryPlayers),
     matchSides: many(matchSides),
-    standings: many(championshipStandings),
   }),
 );
 
@@ -849,7 +798,6 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     fields: [matches.id],
     references: [matchResults.matchId],
   }),
-  games: many(matchGames),
   confirmations: many(matchConfirmations),
   bracketMetadata: one(bracketMatchMetadata, {
     fields: [matches.id],
@@ -889,25 +837,6 @@ export const matchResultsRelations = relations(matchResults, ({ one }) => ({
   }),
 }));
 
-export const matchGamesRelations = relations(matchGames, ({ one, many }) => ({
-  match: one(matches, {
-    fields: [matchGames.matchId],
-    references: [matches.id],
-  }),
-  sides: many(matchGameSides),
-}));
-
-export const matchGameSidesRelations = relations(matchGameSides, ({ one }) => ({
-  game: one(matchGames, {
-    fields: [matchGameSides.matchGameId],
-    references: [matchGames.id],
-  }),
-  entry: one(tournamentEntries, {
-    fields: [matchGameSides.entryId],
-    references: [tournamentEntries.id],
-  }),
-}));
-
 // ********************************************************************
 // [End] New match-related relations
 // ***************************************************************
@@ -922,20 +851,6 @@ export const matchConfirmationsRelations = relations(
     player: one(appUsers, {
       fields: [matchConfirmations.playerId],
       references: [appUsers.id],
-    }),
-  }),
-);
-
-export const championshipStandingsRelations = relations(
-  championshipStandings,
-  ({ one }) => ({
-    tournament: one(tournaments, {
-      fields: [championshipStandings.tournamentId],
-      references: [tournaments.id],
-    }),
-    entry: one(tournamentEntries, {
-      fields: [championshipStandings.entryId],
-      references: [tournamentEntries.id],
     }),
   }),
 );

@@ -136,7 +136,6 @@ export async function resetTestDatabase(): Promise<void> {
   // Clear all tables in reverse order of dependencies
   const tablesToClear = [
     "match_confirmations",
-    "match_games",
     "match_results",
     "match_sides",
     "matches",
