@@ -26,6 +26,7 @@ import {
   appUsers,
   user as betterAuthUser,
   teams,
+  teamMembers,
   tournamentParticipants,
   matches,
 } from "../../db/schema";
@@ -173,6 +174,14 @@ describe("Match Duplicate Detection Integration Tests", () => {
       })
       .returning();
     teamBId = teamB.id;
+
+    // Add 2 members to each team to satisfy minTeamSize: 2
+    await testDb.insert(teamMembers).values([
+      { teamId: teamAId, userId: player1Id },
+      { teamId: teamAId, userId: player2Id },
+      { teamId: teamBId, userId: player3Id },
+      { teamId: teamBId, userId: player4Id },
+    ]);
   });
 
   afterAll(async () => {
@@ -221,6 +230,12 @@ describe("Match Duplicate Detection Integration Tests", () => {
           createdBy: testUserId,
         })
         .returning();
+
+      // Add members to teamC to satisfy minTeamSize
+      await testDb.insert(teamMembers).values([
+        { teamId: teamC.id, userId: player1Id },
+        { teamId: teamC.id, userId: player2Id },
+      ]);
 
       // Validate match with different team
       const validation = await matchService.validateMatch({

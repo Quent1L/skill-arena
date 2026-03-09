@@ -609,7 +609,7 @@ export class BracketService {
 
       rounds.push({
         roundNumber: totalRounds,
-        roundName: "Bronze Medal Match",
+        roundName: "Match pour la 3ème place",
         bracketType: "bronze",
         matchesCount: 1,
         matches: [{ matchNumber: 0, isByeMatch: false }],
