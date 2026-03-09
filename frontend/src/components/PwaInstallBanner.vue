@@ -6,7 +6,7 @@
       style="background: var(--p-surface-700)"
     >
       <div class="flex items-center gap-3 min-w-0">
-        <img src="@/assets/img/icon-192x192.png" alt="Skol" class="w-10 h-10 rounded-xl shrink-0" />
+        <img src="/icons/icon-192x192.png" alt="Skol" class="w-10 h-10 rounded-xl shrink-0" />
         <div class="min-w-0">
           <p class="font-semibold text-sm leading-tight">Installer Skol</p>
           <p class="text-xs opacity-60 truncate">Accès rapide depuis l'écran d'accueil</p>

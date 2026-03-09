@@ -284,6 +284,12 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
     },
   },
+  {
+    path: '/offline',
+    name: 'offline',
+    component: () => import('@/views/OfflineView.vue'),
+    meta: { title: 'Hors ligne', hideBreadcrumb: true },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',
@@ -298,6 +304,13 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+router.beforeEach((to) => {
+  if (to.name === 'offline') return true
+  if (!navigator.onLine) {
+    return { name: 'offline', query: { redirect: to.fullPath } }
+  }
 })
 
 export default router
