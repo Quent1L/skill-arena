@@ -19,6 +19,8 @@ import {
   MatchConfirmationRepository,
 } from "../../repository/match-confirmation.repository";
 import { notificationService } from "../notification.service";
+import { bracketRepository } from "../../repository/bracket.repository";
+import { teamRepository } from "../../repository/team.repository";
 import {
   NotFoundError,
   BadRequestError,
@@ -88,6 +90,12 @@ beforeEach(() => {
   notifService.deleteActionsByMatchId = async () => [];
   notifService.deleteActionsByMatchIdForUser = async () => [];
   notifService.send = async () => undefined as any;
+
+  // Mock bracketRepository to prevent real DB calls in finalizeMatch
+  (bracketRepository as any).getMetadataByMatchId = async () => null;
+
+  // Mock teamRepository to prevent real DB calls in static-mode validation
+  (teamRepository as any).getMemberCount = async () => 2;
 });
 
 afterEach(() => {
@@ -106,6 +114,8 @@ afterEach(() => {
   restore(userRepository);
   restore(matchConfirmationRepository);
   restore(notificationService);
+  restore(bracketRepository);
+  restore(teamRepository);
 });
 
 describe("MatchService - basic flows", () => {
@@ -150,7 +160,7 @@ describe("MatchService - basic flows", () => {
       ({ id: _id, ...data }) as any;
     const res = await matchService.updateMatch(
       "m-u",
-      { status: "reported" } as UpdateMatchRequestData,
+      { status: "reported", scoreA: 2, scoreB: 1 } as UpdateMatchRequestData,
       "u-admin",
     );
     expect(res.status).toBe("reported");
