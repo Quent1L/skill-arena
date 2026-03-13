@@ -271,7 +271,7 @@ export function useTournamentService() {
    */
   function isTournamentOpenForJoin(tournament: TournamentResponse | null): boolean {
     if (!tournament) return false
-    return ['open'].includes(tournament.status)
+    return ['open'].includes(tournament.status) || (tournament.status === 'ongoing' && tournament.mode === 'ranked')
   }
 
   /**

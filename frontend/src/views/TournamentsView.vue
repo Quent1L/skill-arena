@@ -127,6 +127,32 @@
     </Message>
 
     <!-- Loading -->
+    <!-- Saisons Ranked actives -->
+    <div v-if="activeRankedSeasons.length > 0" class="mb-8">
+      <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+        <i class="fa fa-ranking-star text-yellow-500"></i>
+        Saisons Ranked actives
+      </h2>
+      <div class="flex flex-wrap gap-3">
+        <Card
+          v-for="season in activeRankedSeasons"
+          :key="season.id"
+          class="cursor-pointer hover:shadow-md transition-shadow min-w-48"
+          @click="router.push(`/ranked/${season.id}`)"
+        >
+          <template #content>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <div class="font-semibold">{{ season.name }}</div>
+                <div class="text-sm text-gray-500">{{ season.discipline?.name }}</div>
+              </div>
+              <Tag severity="success" value="En cours" />
+            </div>
+          </template>
+        </Card>
+      </div>
+    </div>
+
     <div v-if="loading" class="flex justify-center py-12">
       <ProgressSpinner />
     </div>
@@ -172,6 +198,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
+import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useAuth } from '@/composables/useAuth'
 import TournamentCard from '@/components/TournamentCard.vue'
 import Drawer from 'primevue/drawer'
@@ -179,7 +206,12 @@ import type { TournamentStatus, TournamentMode, BaseTournament } from '@skill-ar
 
 const router = useRouter()
 const { tournaments, loading, error, listTournaments } = useTournamentService()
+const { seasons: rankedSeasons, loadSeasons } = useRankedService()
 const { isSuperAdmin, isAuthenticated } = useAuth()
+
+const activeRankedSeasons = computed(() =>
+  rankedSeasons.value.filter((s) => s.status === 'ongoing'),
+)
 
 const canManageTournaments = computed(() => isAuthenticated.value && isSuperAdmin.value)
 
@@ -242,6 +274,7 @@ function viewTournament(tournament: BaseTournament) {
 
 onMounted(() => {
   loadTournaments()
+  loadSeasons({ status: 'ongoing' })
 })
 </script>
 

@@ -225,6 +225,13 @@
       "when": 1775720394818,
       "tag": "0031_add_kiosk_role_and_match_created_by",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1775720394819,
+      "tag": "0028_chubby_warlock",
+      "breakpoints": true
     }
   ]
 }

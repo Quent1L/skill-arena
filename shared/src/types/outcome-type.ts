@@ -9,6 +9,7 @@ export interface OutcomeType {
   disciplineId: string;
   name: string;
   isDefault: boolean;
+  scoreCountsForMmr: boolean;
   discipline?: {
     id: string;
     name: string;
@@ -19,12 +20,14 @@ export interface CreateOutcomeTypeInput {
   disciplineId: string;
   name: string;
   isDefault?: boolean;
+  scoreCountsForMmr?: boolean;
 }
 
 export interface UpdateOutcomeTypeInput {
   disciplineId?: string;
   name?: string;
   isDefault?: boolean;
+  scoreCountsForMmr?: boolean;
 }
 
 // ============================================
@@ -38,6 +41,7 @@ export const createOutcomeTypeSchema = z.object({
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
   isDefault: z.boolean().optional(),
+  scoreCountsForMmr: z.boolean().optional(),
 });
 
 export const updateOutcomeTypeSchema = z.object({
@@ -48,6 +52,7 @@ export const updateOutcomeTypeSchema = z.object({
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .optional(),
   isDefault: z.boolean().optional(),
+  scoreCountsForMmr: z.boolean().optional(),
 });
 
 // ============================================

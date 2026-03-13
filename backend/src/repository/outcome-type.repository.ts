@@ -6,12 +6,14 @@ export interface CreateOutcomeTypeData {
   disciplineId: string;
   name: string;
   isDefault?: boolean;
+  scoreCountsForMmr?: boolean;
 }
 
 export interface UpdateOutcomeTypeData {
   disciplineId?: string;
   name?: string;
   isDefault?: boolean;
+  scoreCountsForMmr?: boolean;
 }
 
 export class OutcomeTypeRepository {

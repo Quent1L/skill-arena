@@ -19,6 +19,7 @@ export * from "./entry";
 export * from "./bracket";
 export * from "./player";
 export * from "./game-rules";
+export * from "./ranked";
 
 // ============================================
 // Types utilitaires

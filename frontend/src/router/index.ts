@@ -205,6 +205,48 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/ranked',
+    name: 'admin-ranked',
+    component: () => import('@/views/admin/RankedSeasonsList.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Saisons Ranked',
+      title: 'Gestion des saisons ranked',
+      requiresAuth: true,
+      parent: 'admin',
+    },
+  },
+  {
+    path: '/admin/ranked/new',
+    name: 'admin-ranked-new',
+    component: () => import('@/views/admin/RankedSeasonFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/admin/ranked/:id/edit',
+    name: 'admin-ranked-edit',
+    component: () => import('@/views/admin/RankedSeasonFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/ranked/:id',
+    name: 'ranked-season-detail',
+    component: () => import('@/views/RankedSeasonDetailView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/',
     name: 'tournaments',
     component: () => import('@/views/TournamentsView.vue'),
