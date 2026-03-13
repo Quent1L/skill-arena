@@ -58,6 +58,7 @@ export interface TournamentFilters {
   mode?: TournamentMode;
   createdBy?: string;
   excludeDraft?: boolean;
+  excludeRanked?: boolean;
 }
 
 export class TournamentRepository {
@@ -156,6 +157,9 @@ export class TournamentRepository {
     }
     if (filters?.excludeDraft) {
       conditions.push(ne(tournaments.status, "draft"));
+    }
+    if (filters?.excludeRanked) {
+      conditions.push(ne(tournaments.mode, "ranked"));
     }
 
     const result = await db.query.tournaments.findMany({

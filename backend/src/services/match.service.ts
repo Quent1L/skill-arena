@@ -27,6 +27,8 @@ import { matchRuleValidator } from "./validators/match-rule.validator";
 import { matchPermissionValidator } from "./validators/match-permission.validator";
 import { matchStatusValidator } from "./validators/match-status.validator";
 import { bracketService } from "./bracket.service";
+import { mmrCalculationService } from "./mmr-calculation.service";
+import { participantRepository } from "../repository/participant.repository";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -54,6 +56,11 @@ export class MatchService {
     await this.checkCreatePermissions(input, createdBy, tournament);
     await this.validateMatchInput(input, tournament);
     await this.validateMatchRules(input, tournament);
+
+    if (tournament.mode === "ranked") {
+      matchInputValidator.validateRankedPlayedAt(input.playedAt);
+      await this.autoRegisterRankedPlayers(input);
+    }
 
     if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
       matchInputValidator.validateScores(input.scoreA, input.scoreB);
@@ -95,6 +102,25 @@ export class MatchService {
   /**
    * Get and validate tournament exists and is in valid status
    */
+  /**
+   * Auto-register ranked season players so they can participate in matches
+   */
+  private async autoRegisterRankedPlayers(input: CreateMatchInput): Promise<void> {
+    const allPlayerIds = [
+      ...(input.playerIdsA ?? []),
+      ...(input.playerIdsB ?? []),
+    ];
+    for (const playerId of allPlayerIds) {
+      const existing = await participantRepository.findParticipationByUserAndTournament(
+        playerId,
+        input.tournamentId,
+      );
+      if (!existing) {
+        await participantRepository.createParticipation(playerId, input.tournamentId);
+      }
+    }
+  }
+
   private async getAndValidateTournament(tournamentId: string) {
     const tournament = await matchRepository.getTournament(tournamentId);
     if (!tournament) {
@@ -910,6 +936,8 @@ export class MatchService {
     // Advance winner and loser to next bracket rounds if applicable
     await bracketService.advanceWinnerToNextRound(id);
     await bracketService.advanceLoserToNextRound(id);
+    // Process MMR calculation for ranked seasons
+    await mmrCalculationService.processMatchFinalization(id);
     return result;
   }
 

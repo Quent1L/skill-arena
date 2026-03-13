@@ -85,6 +85,7 @@ interface Props {
   joining?: boolean
   leaving?: boolean
   rulesId?: string | null
+  showRecalculate?: boolean
 }
 
 const props = defineProps<Props>()
@@ -107,10 +108,10 @@ const menuItems = computed(() => {
   const items = []
 
   if (props.canManage) {
-    items.push(
-      { label: 'Modifier', icon: 'fa fa-pencil', command: () => emit('edit') },
-      { label: 'Recalculer les points', icon: 'fa fa-calculator', command: () => emit('recalculate-points') },
-    )
+    items.push({ label: 'Modifier', icon: 'fa fa-pencil', command: () => emit('edit') })
+    if (props.showRecalculate !== false) {
+      items.push({ label: 'Recalculer les points', icon: 'fa fa-calculator', command: () => emit('recalculate-points') })
+    }
   }
   if (props.isAuthenticated && props.isParticipant && props.canLeave) {
     items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => emit('leave') })
@@ -119,22 +120,25 @@ const menuItems = computed(() => {
   return items
 })
 
-const statusLabels: Record<TournamentStatus, string> = {
+const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
   open: 'Ouvert',
   ongoing: 'En cours',
   finished: 'Terminé',
+  cancelled: 'Annulé',
 }
 
-const statusSeverities: Record<TournamentStatus, 'secondary' | 'success' | 'warn' | 'info'> = {
+const statusSeverities: Record<string, 'secondary' | 'success' | 'warn' | 'info' | 'danger'> = {
   draft: 'secondary',
   open: 'success',
   ongoing: 'warn',
   finished: 'info',
+  cancelled: 'danger',
 }
 
 const modeLabels: Record<TournamentMode, string> = {
   championship: 'Championnat',
   bracket: 'Bracket',
+  ranked: 'Ranked',
 }
 </script>

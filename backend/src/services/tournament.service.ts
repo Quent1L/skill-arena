@@ -179,7 +179,12 @@ export class TournamentService {
     filters?: { status?: TournamentStatus; mode?: TournamentMode; createdBy?: string },
     isAdmin = false
   ) {
-    const repoFilters = { ...filters, ...(!isAdmin && { excludeDraft: true }) };
+    const repoFilters = {
+      ...filters,
+      ...(!isAdmin && { excludeDraft: true }),
+      // Exclude ranked seasons from the main tournament list (they have their own section)
+      ...(!filters?.mode && { excludeRanked: true }),
+    };
     return await tournamentRepository.list(repoFilters);
   }
 

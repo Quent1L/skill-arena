@@ -19,6 +19,7 @@ export class OutcomeTypeService {
       disciplineId: input.disciplineId,
       name: input.name,
       isDefault: input.isDefault ?? false,
+      scoreCountsForMmr: input.scoreCountsForMmr,
     });
   }
 
@@ -50,6 +51,7 @@ export class OutcomeTypeService {
       disciplineId: input.disciplineId,
       name: input.name,
       isDefault: input.isDefault,
+      scoreCountsForMmr: input.scoreCountsForMmr,
     });
   }
 

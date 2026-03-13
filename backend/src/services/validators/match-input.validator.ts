@@ -122,6 +122,21 @@ export class MatchInputValidator {
     }
 
     /**
+     * Validate ranked match: playedAt must be within 48h of now
+     */
+    validateRankedPlayedAt(playedAt: Date | string | undefined): void {
+        if (!playedAt) {
+            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
+        }
+        const played = new Date(playedAt);
+        const diffMs = Math.abs(Date.now() - played.getTime());
+        const diffHours = diffMs / (1000 * 60 * 60);
+        if (diffHours > 48) {
+            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
+        }
+    }
+
+    /**
      * Validate match input for validation endpoint
      */
     async validateMatchInputForValidation(

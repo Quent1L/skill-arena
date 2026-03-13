@@ -15,6 +15,7 @@ import invitations from "./routes/invitations.route";
 import adminInvitations from "./routes/admin/invitations.route";
 import gameRulesRouter from "./routes/game-rules.route";
 import teamsRouter from "./routes/teams.route";
+import rankedRouter from "./routes/ranked.route";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
@@ -89,6 +90,8 @@ app.route("/api/admin/invitations", adminInvitations);
 app.route("/api/game-rules", gameRulesRouter);
 
 app.route("/api/tournaments", teamsRouter);
+
+app.route("/api/ranked", rankedRouter);
 
 app.get(
   "/api/ws",

@@ -10,6 +10,7 @@ import {
   unique,
   jsonb,
   varchar,
+  real,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -129,6 +130,7 @@ export const userRoleEnum = pgEnum("user_role", [
 export const tournamentModeEnum = pgEnum("tournament_mode", [
   "championship",
   "bracket",
+  "ranked",
 ]);
 
 export const teamModeEnum = pgEnum("team_mode", ["static", "flex"]);
@@ -554,6 +556,84 @@ export const bracketMatchMetadata = pgTable(
 // [End] Bracket tournament tables
 // ***************************************************************
 
+// ********************************************************************
+// [Start] Ranked season tables
+// ***************************************************************
+
+export const rankedSeasonConfigs = pgTable("ranked_season_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .unique()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  baseMmr: integer("base_mmr").notNull().default(1000),
+  kFactor: integer("k_factor").notNull().default(32),
+  placementMatches: integer("placement_matches").notNull().default(5),
+  usePreviousMmr: boolean("use_previous_mmr").notNull().default(false),
+  allowAsymmetricMatches: boolean("allow_asymmetric_matches")
+    .notNull()
+    .default(false),
+});
+
+export const playerMmr = pgTable(
+  "player_mmr",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    currentMmr: integer("current_mmr").notNull(),
+    matchesPlayed: integer("matches_played").notNull().default(0),
+    wins: integer("wins").notNull().default(0),
+    losses: integer("losses").notNull().default(0),
+    winStreak: integer("win_streak").notNull().default(0),
+    maxWinStreak: integer("max_win_streak").notNull().default(0),
+  },
+  (table) => [unique().on(table.seasonId, table.playerId)],
+);
+
+export const mmrHistory = pgTable(
+  "mmr_history",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    mmrBefore: integer("mmr_before").notNull(),
+    mmrAfter: integer("mmr_after").notNull(),
+    mmrDelta: integer("mmr_delta").notNull(),
+    kEffective: real("k_effective").notNull(),
+    opponentAvgMmr: integer("opponent_avg_mmr").notNull(),
+    isPlacement: boolean("is_placement").notNull().default(false),
+  },
+  (table) => [unique().on(table.seasonId, table.playerId, table.matchId)],
+);
+
+export const rankBoundaries = pgTable("rank_boundaries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  seasonId: uuid("season_id")
+    .notNull()
+    .unique()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  challengerMax: integer("challenger_max").notNull(),
+  strategistMax: integer("strategist_max").notNull(),
+  masterMax: integer("master_max").notNull(),
+  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+});
+
+// ********************************************************************
+// [End] Ranked season tables
+// ***************************************************************
+
 export const disciplines = pgTable("disciplines", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -569,6 +649,7 @@ export const outcomeTypes = pgTable("outcome_types", {
 
   name: text("name").notNull(),
   isDefault: boolean("is_default").notNull().default(false),
+  scoreCountsForMmr: boolean("score_counts_for_mmr").notNull().default(true),
 });
 
 export const outcomeReasons = pgTable("outcome_reasons", {
@@ -655,6 +736,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   finalizedMatches: many(matchResults, { relationName: "finalizedBy" }),
   createdInvitationCodes: many(invitationCodes),
   createdGameRules: many(gameRules),
+  playerMmrs: many(playerMmr),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
@@ -688,6 +770,15 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
     references: [bracketConfigs.tournamentId],
   }),
   sourcedBrackets: many(bracketConfigs, { relationName: "sourceTournament" }),
+  rankedConfig: one(rankedSeasonConfigs, {
+    fields: [tournaments.id],
+    references: [rankedSeasonConfigs.tournamentId],
+  }),
+  rankBoundaries: one(rankBoundaries, {
+    fields: [tournaments.id],
+    references: [rankBoundaries.seasonId],
+  }),
+  playerMmrs: many(playerMmr),
 }));
 
 export const tournamentAdminsRelations = relations(
@@ -924,6 +1015,60 @@ export const bracketMatchMetadataRelations = relations(
 
 // ********************************************************************
 // [End] Bracket tournament relations
+// ***************************************************************
+
+// ********************************************************************
+// [Start] Ranked season relations
+// ***************************************************************
+
+export const rankedSeasonConfigsRelations = relations(
+  rankedSeasonConfigs,
+  ({ one }) => ({
+    tournament: one(tournaments, {
+      fields: [rankedSeasonConfigs.tournamentId],
+      references: [tournaments.id],
+    }),
+  }),
+);
+
+export const playerMmrRelations = relations(playerMmr, ({ one }) => ({
+  season: one(tournaments, {
+    fields: [playerMmr.seasonId],
+    references: [tournaments.id],
+  }),
+  player: one(appUsers, {
+    fields: [playerMmr.playerId],
+    references: [appUsers.id],
+  }),
+}));
+
+export const mmrHistoryRelations = relations(mmrHistory, ({ one }) => ({
+  season: one(tournaments, {
+    fields: [mmrHistory.seasonId],
+    references: [tournaments.id],
+  }),
+  player: one(appUsers, {
+    fields: [mmrHistory.playerId],
+    references: [appUsers.id],
+  }),
+  match: one(matches, {
+    fields: [mmrHistory.matchId],
+    references: [matches.id],
+  }),
+}));
+
+export const rankBoundariesRelations = relations(
+  rankBoundaries,
+  ({ one }) => ({
+    season: one(tournaments, {
+      fields: [rankBoundaries.seasonId],
+      references: [tournaments.id],
+    }),
+  }),
+);
+
+// ********************************************************************
+// [End] Ranked season relations
 // ***************************************************************
 
 export const disciplinesRelations = relations(disciplines, ({ many }) => ({

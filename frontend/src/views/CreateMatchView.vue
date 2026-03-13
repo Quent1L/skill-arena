@@ -244,6 +244,15 @@ const canAccessResultStep = computed(() => {
 })
 
 const tournamentMinDate = computed(() => {
+  if (tournament.value?.mode === 'ranked') {
+    // For ranked: no older than 48h
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
+    if (tournament.value.startDate) {
+      const startDate = new Date(tournament.value.startDate)
+      return startDate > fortyEightHoursAgo ? tournament.value.startDate : fortyEightHoursAgo.toISOString()
+    }
+    return fortyEightHoursAgo.toISOString()
+  }
   if (!tournament.value?.startDate) return undefined
   return tournament.value.startDate
 })

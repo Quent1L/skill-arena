@@ -190,6 +190,13 @@
       "when": 1773091656004,
       "tag": "0026_dazzling_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1773093416521,
+      "tag": "0027_chubby_warlock",
+      "breakpoints": true
     }
   ]
 }

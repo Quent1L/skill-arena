@@ -112,6 +112,7 @@ const showDetails = ref(false)
 const modeLabels: Record<TournamentMode, string> = {
   championship: 'Championnat',
   bracket: 'Bracket',
+  ranked: 'Ranked',
 }
 
 const teamModeLabels: Record<TeamMode, string> = {

@@ -78,6 +78,29 @@
         </template>
       </Card>
 
+      <!-- Card Saisons Ranked -->
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRanked">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-ranking-star text-5xl text-yellow-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Saisons Ranked
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              Créez et gérez les saisons de mode compétitif ranked
+            </p>
+            <Button
+              label="Accéder"
+              icon="fa fa-arrow-right"
+              class="bg-yellow-600 hover:bg-yellow-700"
+              @click.stop="navigateToRanked"
+            />
+          </div>
+        </template>
+      </Card>
+
       <!-- Card Règles du jeu -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRules">
         <template #content>
@@ -123,6 +146,10 @@ function navigateToInvitaionCode() {
 
 function navigateToRules() {
   router.push('/admin/rules')
+}
+
+function navigateToRanked() {
+  router.push('/admin/ranked')
 }
 </script>
 
