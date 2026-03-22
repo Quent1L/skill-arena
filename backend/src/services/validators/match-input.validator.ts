@@ -77,6 +77,15 @@ export class MatchInputValidator {
     }
 
     /**
+     * Validate that a winner is explicitly set (required when scoreEnabled=false)
+     */
+    validateWinnerRequired(winner?: "teamA" | "teamB" | null): void {
+        if (winner === undefined || winner === null) {
+            throw new BadRequestError(ErrorCode.MATCH_WINNER_REQUIRED);
+        }
+    }
+
+    /**
      * Validate scores are non-negative
      */
     validateScores(scoreA: number, scoreB: number): void {

@@ -83,6 +83,7 @@
           class="h-full"
           :tournament-id="tournamentId"
           :allow-draw="tournament.allowDraw"
+          :score-enabled="tournament.scoreEnabled ?? true"
           :team-mode="tournament.teamMode"
           v-model:standings-type="standingsType"
         />

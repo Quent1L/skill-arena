@@ -24,6 +24,7 @@ export class StandingsRepository {
         pointPerDraw: true,
         pointPerLoss: true,
         allowDraw: true,
+        scoreEnabled: true,
       },
     });
   }

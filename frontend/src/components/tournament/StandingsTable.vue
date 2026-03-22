@@ -111,19 +111,19 @@
               </template>
             </Column>
 
-            <Column field="scored" header="BP">
+            <Column v-if="scoreEnabled" field="scored" header="BP">
               <template #body="{ data }">
                 {{ data.scored }}
               </template>
             </Column>
 
-            <Column field="conceded" header="BC">
+            <Column v-if="scoreEnabled" field="conceded" header="BC">
               <template #body="{ data }">
                 {{ data.conceded }}
               </template>
             </Column>
 
-            <Column field="scoreDiff" header="Diff">
+            <Column v-if="scoreEnabled" field="scoreDiff" header="Diff">
               <template #body="{ data }">
                 <span
                   :class="[
@@ -157,12 +157,14 @@ import { useStandingsService } from '@/composables/standings.service'
 interface Props {
   tournamentId: string
   allowDraw?: boolean
+  scoreEnabled?: boolean
   teamMode?: 'static' | 'flex'
   standingsType?: 'official' | 'provisional'
 }
 
 const props = withDefaults(defineProps<Props>(), {
   allowDraw: true,
+  scoreEnabled: true,
   teamMode: 'flex',
 })
 

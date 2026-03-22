@@ -248,6 +248,7 @@ export const tournaments = pgTable("tournaments", {
   pointPerDraw: integer("point_per_draw").default(1),
   pointPerLoss: integer("point_per_loss").default(0),
   allowDraw: boolean("allow_draw").default(true),
+  scoreEnabled: boolean("score_enabled").notNull().default(true),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   status: tournamentStatusEnum("status").notNull().default("draft"),

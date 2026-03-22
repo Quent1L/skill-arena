@@ -119,10 +119,11 @@ export class MatchRepository {
       // 4. Determine winner and calculate points
       const scoreA = data.scoreA ?? 0;
       const scoreB = data.scoreB ?? 0;
-      const isDraw = data.winner === null || scoreA === scoreB;
-      const isAWinner =
-        data.winner === "teamA" ||
-        (data.winner === undefined && scoreA > scoreB);
+      const hasExplicitWinner = data.winner !== undefined;
+      const isDraw = hasExplicitWinner ? data.winner === null : scoreA === scoreB;
+      const isAWinner = hasExplicitWinner
+        ? data.winner === "teamA"
+        : scoreA > scoreB;
 
       // Persist winnerSide on the match record
       const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";

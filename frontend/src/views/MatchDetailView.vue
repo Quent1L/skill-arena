@@ -70,6 +70,7 @@
                   {{ match.teamA?.name ?? 'Équipe A' }}
                 </div>
                 <div
+                  v-if="match.tournament?.scoreEnabled !== false"
                   class="text-5xl font-bold"
                   :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'"
                 >
@@ -97,13 +98,14 @@
                 </div>
               </div>
 
-              <div class="text-3xl font-bold text-surface-400 pt-8">-</div>
+              <div v-if="match.tournament?.scoreEnabled !== false" class="text-3xl font-bold text-surface-400 pt-8">-</div>
 
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {{ match.teamB?.name ?? 'Équipe B' }}
                 </div>
                 <div
+                  v-if="match.tournament?.scoreEnabled !== false"
                   class="text-5xl font-bold"
                   :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'"
                 >

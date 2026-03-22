@@ -49,40 +49,36 @@
                 ></i>
               </div>
 
-              <!-- Score (only shown for non-scheduled, non-cancelled matches) -->
+              <!-- Score or VS indicator -->
               <div
-                v-if="match.status !== 'scheduled' && match.status !== 'cancelled'"
                 class="flex items-center justify-center gap-2 sm:gap-3 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
               >
-                <span
-                  :class="[
-                    'text-base md:text-lg font-semibold',
-                    match.winnerSide === 'A'
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-gray-800 dark:text-gray-100',
-                  ]"
-                >
-                  {{ match.scoreA }}
-                </span>
-                <span class="text-gray-400">-</span>
-                <span
-                  :class="[
-                    'text-base md:text-lg font-semibold',
-                    (match.status !== 'cancelled' && match.winnerSide === 'B')
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-gray-800 dark:text-gray-100',
-                  ]"
-                >
-                  {{ match.scoreB }}
-                </span>
-              </div>
-
-              <!-- VS / - indicator for scheduled and cancelled matches -->
-              <div
-                v-else
-                class="flex items-center justify-center gap-2 flex-shrink-0 order-2 sm:order-2 px-2 sm:px-4"
-              >
-                <span class="text-base md:text-lg font-semibold text-gray-400">
+                <!-- Scores for non-scheduled, non-cancelled matches with scoreEnabled -->
+                <template v-if="match.status !== 'scheduled' && match.status !== 'cancelled' && match.tournament?.scoreEnabled !== false">
+                  <span
+                    :class="[
+                      'text-base md:text-lg font-semibold',
+                      match.winnerSide === 'A'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-gray-800 dark:text-gray-100',
+                    ]"
+                  >
+                    {{ match.scoreA }}
+                  </span>
+                  <span class="text-gray-400">-</span>
+                  <span
+                    :class="[
+                      'text-base md:text-lg font-semibold',
+                      match.winnerSide === 'B'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-gray-800 dark:text-gray-100',
+                    ]"
+                  >
+                    {{ match.scoreB }}
+                  </span>
+                </template>
+                <!-- VS / - for scheduled, cancelled, or score-disabled matches -->
+                <span v-else class="text-base md:text-lg font-semibold text-gray-400">
                   {{ match.status === 'cancelled' ? '-' : 'VS' }}
                 </span>
               </div>

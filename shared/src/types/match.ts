@@ -70,6 +70,7 @@ export interface MatchModel extends Match {
     status: string;
     teamMode: string;
     mode: string;
+    scoreEnabled?: boolean;
   };
   teamA?: {
     id: string;

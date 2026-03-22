@@ -74,6 +74,7 @@
           v-model:outcome-type-id="matchData.outcomeTypeId"
           v-model:outcome-reason-id="matchData.outcomeReasonId"
           :allow-draw="allowDraw"
+          :score-enabled="scoreEnabled"
           :min-score="minScore"
           :max-score="maxScore"
         />
@@ -139,6 +140,7 @@ interface Props {
   minDate?: Date
   maxDate?: Date
   allowDraw?: boolean
+  scoreEnabled?: boolean
   minScore?: number | null
   maxScore?: number | null
   initialData?: Partial<ClientCreateMatchRequest & ClientUpdateMatchRequest>
@@ -241,6 +243,7 @@ const isFutureDate = computed(() => {
 })
 
 const canSubmit = computed(() => {
+  if (props.scoreEnabled === false) return matchData.value.winner !== null
   return matchData.value.winner !== null || props.allowDraw
 })
 

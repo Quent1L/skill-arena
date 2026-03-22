@@ -22,6 +22,7 @@ export interface CreateTournamentData {
   pointPerDraw: number | null;
   pointPerLoss: number | null;
   allowDraw: boolean | null;
+  scoreEnabled?: boolean;
   startDate: string;
   endDate: string;
   disciplineId?: string;
@@ -48,6 +49,7 @@ export interface UpdateTournamentData {
   endDate?: string;
   status?: TournamentStatus;
   disciplineId?: string;
+  scoreEnabled?: boolean;
   rulesId?: string | null;
   minScore?: number | null;
   maxScore?: number | null;
@@ -89,6 +91,7 @@ export class TournamentRepository {
         data.pointPerLoss !== undefined && { pointPerLoss: data.pointPerLoss }),
       ...(data.allowDraw !== null &&
         data.allowDraw !== undefined && { allowDraw: data.allowDraw }),
+      ...(data.scoreEnabled !== undefined && { scoreEnabled: data.scoreEnabled }),
       ...(data.disciplineId !== undefined && { disciplineId: data.disciplineId }),
       ...(data.minScore !== undefined && { minScore: data.minScore }),
       ...(data.maxScore !== undefined && { maxScore: data.maxScore }),

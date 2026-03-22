@@ -27,6 +27,7 @@ export interface BaseTournament {
   pointPerDraw: number;
   pointPerLoss: number;
   allowDraw: boolean;
+  scoreEnabled: boolean;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
   status: TournamentStatus;
@@ -61,6 +62,7 @@ export interface CreateTournamentInput {
   pointPerDraw?: number;
   pointPerLoss?: number;
   allowDraw?: boolean;
+  scoreEnabled?: boolean;
   startDate: string; // ISO date string
   endDate: string; // ISO date string
   disciplineId?: string;
@@ -83,6 +85,7 @@ export interface UpdateTournamentInput {
   pointPerDraw?: number;
   pointPerLoss?: number;
   allowDraw?: boolean;
+  scoreEnabled?: boolean;
   startDate?: string;
   endDate?: string;
   status?: TournamentStatus;
@@ -151,6 +154,7 @@ export const baseTournamentFormSchema = z.object({
   pointPerDraw: z.number().int().min(0).default(1).optional(),
   pointPerLoss: z.number().int().min(0).default(0).optional(),
   allowDraw: z.boolean().default(true).optional(),
+  scoreEnabled: z.boolean().default(true).optional(),
   startDate: z.date({ message: "La date de début est requise" }),
   endDate: z.date({ message: "La date de fin est requise" }),
   disciplineId: z.string({ message: "La discipline est requise" }).uuid("ID de discipline invalide"),
@@ -180,6 +184,7 @@ export const baseTournamentUpdateFormSchema = z.object({
   pointPerDraw: z.number().int().min(0).optional(),
   pointPerLoss: z.number().int().min(0).optional(),
   allowDraw: z.boolean().optional(),
+  scoreEnabled: z.boolean().optional(),
   startDate: z.date().optional(),
   endDate: z.date().optional(),
   status: tournamentStatusSchema.optional(),
@@ -201,6 +206,7 @@ export const createTournamentFormSchema = baseTournamentFormSchema
   })
   .refine(
     (data) => {
+      if (data.scoreEnabled === false) return true;
       if (data.minScore != null && data.maxScore != null) {
         return data.minScore <= data.maxScore;
       }
@@ -251,6 +257,7 @@ const baseTournamentDataSchema = z.object({
   pointPerDraw: z.number().int().min(0).default(1).optional(),
   pointPerLoss: z.number().int().min(0).default(0).optional(),
   allowDraw: z.boolean().default(true).optional(),
+  scoreEnabled: z.boolean().default(true).optional(),
   startDate: z
     .string()
     .datetime()
@@ -334,6 +341,7 @@ export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
   )
   .refine(
     (data) => {
+      if (data.scoreEnabled === false) return true;
       if (data.minScore != null && data.maxScore != null) {
         return data.minScore <= data.maxScore;
       }
@@ -368,6 +376,7 @@ export const updateTournamentSchema = z
     pointPerDraw: z.number().int().min(0).optional(),
     pointPerLoss: z.number().int().min(0).optional(),
     allowDraw: z.boolean().optional(),
+    scoreEnabled: z.boolean().optional(),
     startDate: z
       .string()
       .datetime()
@@ -412,6 +421,7 @@ export const updateTournamentSchema = z
   )
   .refine(
     (data) => {
+      if (data.scoreEnabled === false) return true;
       if (data.minScore != null && data.maxScore != null) {
         return data.minScore <= data.maxScore;
       }

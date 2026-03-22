@@ -139,6 +139,7 @@ export class TournamentService {
       pointPerDraw: input.pointPerDraw ?? 1,
       pointPerLoss: input.pointPerLoss ?? 0,
       allowDraw: input.allowDraw ?? true,
+      scoreEnabled: input.scoreEnabled ?? true,
       startDate: input.startDate,
       endDate: input.endDate,
       disciplineId: input.disciplineId,
@@ -234,6 +235,7 @@ export class TournamentService {
       "endDate",
       "status",
       "rulesId",
+      "scoreEnabled",
     ]);
     const attemptedFields = Object.keys(input);
     const invalidFields = attemptedFields.filter(

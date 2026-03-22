@@ -29,7 +29,7 @@
             <span class="font-bold">{{ activeProposal.player?.displayName || 'un joueur' }}</span>
           </div>
 
-          <div class="flex items-center justify-center gap-6">
+          <div v-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-6">
             <div class="text-center">
               <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score original</p>
               <p class="text-2xl font-bold text-surface-400 dark:text-surface-500 line-through">
@@ -57,7 +57,7 @@
           </div>        </div>
 
         <!-- Score normal (aucune contestation active) -->
-        <div v-else class="flex items-center justify-center gap-4 py-2">
+        <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
           <div class="text-center">
             <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score</p>
             <p class="text-3xl font-bold text-primary">{{ match.scoreA }} - {{ match.scoreB }}</p>
@@ -113,7 +113,7 @@
                 v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof || player.hasProposal)"
                 class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
               >
-                <div v-if="player.hasProposal" class="text-sm">
+                <div v-if="player.hasProposal && match.tournament?.scoreEnabled !== false" class="text-sm">
                   <span class="font-semibold text-warn-600 dark:text-warn-400">Score proposé :</span>
                   <span class="ml-2 font-bold">{{ player.proposedScoreA }} - {{ player.proposedScoreB }}</span>
                 </div>

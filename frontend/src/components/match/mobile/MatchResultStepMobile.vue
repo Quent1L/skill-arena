@@ -83,7 +83,7 @@
     </div>
 
     <!-- Score -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+    <div v-if="props.scoreEnabled" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
       <label class="block text-sm font-medium mb-3">Score</label>
       <Message v-if="scoreInstructions" severity="info" :closable="false" class="mb-3">
         {{ scoreInstructions }}
@@ -140,6 +140,7 @@ interface Props {
   teamBPlayers: string[]
   date?: Date | null
   allowDraw?: boolean
+  scoreEnabled?: boolean
   tournamentId: string
   minScore?: number | null
   maxScore?: number | null
@@ -182,6 +183,7 @@ const showOutcomeReasonSelection = computed(() => {
 
 const canCreate = computed(() => {
   if (winner.value === null) return false
+  if (!props.scoreEnabled) return true
   const inRange = (v: number) =>
     (props.minScore == null || v >= props.minScore) &&
     (props.maxScore == null || v <= props.maxScore)
@@ -197,11 +199,13 @@ const validationMessages = computed<string[]>(() => {
         : 'Sélectionnez un vainqueur.',
     )
   }
-  if (props.minScore != null && (scoreA.value < props.minScore || scoreB.value < props.minScore)) {
-    messages.push(`Le score minimum autorisé est ${props.minScore}.`)
-  }
-  if (props.maxScore != null && (scoreA.value > props.maxScore || scoreB.value > props.maxScore)) {
-    messages.push(`Le score maximum autorisé est ${props.maxScore}.`)
+  if (props.scoreEnabled) {
+    if (props.minScore != null && (scoreA.value < props.minScore || scoreB.value < props.minScore)) {
+      messages.push(`Le score minimum autorisé est ${props.minScore}.`)
+    }
+    if (props.maxScore != null && (scoreA.value > props.maxScore || scoreB.value > props.maxScore)) {
+      messages.push(`Le score maximum autorisé est ${props.maxScore}.`)
+    }
   }
   return messages
 })

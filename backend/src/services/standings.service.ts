@@ -67,12 +67,12 @@ export class StandingsService {
       if (sides.length !== 2) continue; // Skip incomplete matches
 
       const winnerSide = (match.winnerSide === "A" || match.winnerSide === "B") ? match.winnerSide : null;
-      this.processMatch(sides, standingsMap, tournament, tournament.teamMode, winnerSide);
+      this.processMatch(sides, standingsMap, tournament, tournament.teamMode, winnerSide, tournament.scoreEnabled ?? true);
     }
 
     // 6. Convert map to array and sort
     const standings = Array.from(standingsMap.values());
-    this.sortStandings(standings);
+    this.sortStandings(standings, tournament.scoreEnabled ?? true);
 
     return { standings };
   }
@@ -174,7 +174,8 @@ export class StandingsService {
       allowDraw: boolean | null;
     },
     teamMode: "static" | "flex",
-    winnerSide: "A" | "B" | null
+    winnerSide: "A" | "B" | null,
+    scoreEnabled: boolean
   ) {
     if (sides.length !== 2) return;
 
@@ -192,8 +193,8 @@ export class StandingsService {
 
       if (!entryA || !entryB) return;
 
-      this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide);
-      this.updateStandingsForSide(entryB, sideB, sideA, tournament, winnerSide === "A" ? "B" : winnerSide === "B" ? "A" : null);
+      this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide, scoreEnabled);
+      this.updateStandingsForSide(entryB, sideB, sideA, tournament, winnerSide === "A" ? "B" : winnerSide === "B" ? "A" : null, scoreEnabled);
     } else {
       // Flex mode: update each player individually
       const playersA = sideA.entry?.players || [];
@@ -213,7 +214,8 @@ export class StandingsService {
           sideA.pointsAwarded,
           tournament,
           isWinner,
-          isDraw
+          isDraw,
+          scoreEnabled
         );
       }
 
@@ -231,7 +233,8 @@ export class StandingsService {
           sideB.pointsAwarded,
           tournament,
           isWinner,
-          isDraw
+          isDraw,
+          scoreEnabled
         );
       }
     }
@@ -251,12 +254,15 @@ export class StandingsService {
       pointPerLoss: number | null;
       allowDraw: boolean | null;
     },
-    winnerSide: "A" | "B" | null
+    winnerSide: "A" | "B" | null,
+    scoreEnabled: boolean
   ) {
-    // Update scores
-    entry.scored += side.score;
-    entry.conceded += opponentSide.score;
-    entry.scoreDiff = entry.scored - entry.conceded;
+    // Update scores only when scoring is enabled
+    if (scoreEnabled) {
+      entry.scored += side.score;
+      entry.conceded += opponentSide.score;
+      entry.scoreDiff = entry.scored - entry.conceded;
+    }
 
     // Determine result from persisted winnerSide
     // winnerSide here is already relative to THIS side:
@@ -294,12 +300,15 @@ export class StandingsService {
       allowDraw: boolean | null;
     },
     isWinner: boolean,
-    isDraw: boolean
+    isDraw: boolean,
+    scoreEnabled: boolean
   ) {
-    // Update scores
-    playerStanding.scored += ownScore;
-    playerStanding.conceded += opponentScore;
-    playerStanding.scoreDiff = playerStanding.scored - playerStanding.conceded;
+    // Update scores only when scoring is enabled
+    if (scoreEnabled) {
+      playerStanding.scored += ownScore;
+      playerStanding.conceded += opponentScore;
+      playerStanding.scoreDiff = playerStanding.scored - playerStanding.conceded;
+    }
 
     if (isDraw) {
       playerStanding.draws += 1;
@@ -385,30 +394,38 @@ export class StandingsService {
   }
 
   /**
-   * Sort standings according to tie-breakers:
-   * 1. points (desc)
-   * 2. scoreDiff (desc)
-   * 3. scored (desc)
-   * 4. id (asc, for stable sort)
+   * Sort standings according to tie-breakers.
+   * With scores: Points → ScoreDiff → Scored → ID
+   * Without scores: Points → Wins → matchesPlayed (asc) → ID
    */
-  private sortStandings(standings: StandingsEntry[]) {
+  private sortStandings(standings: StandingsEntry[], scoreEnabled: boolean) {
     standings.sort((a, b) => {
       // 1. Points
       if (b.points !== a.points) {
         return b.points - a.points;
       }
 
-      // 2. Score difference
-      if (b.scoreDiff !== a.scoreDiff) {
-        return b.scoreDiff - a.scoreDiff;
+      if (scoreEnabled) {
+        // 2a. Score difference
+        if (b.scoreDiff !== a.scoreDiff) {
+          return b.scoreDiff - a.scoreDiff;
+        }
+        // 3a. Scored
+        if (b.scored !== a.scored) {
+          return b.scored - a.scored;
+        }
+      } else {
+        // 2b. Wins (desc)
+        if (b.wins !== a.wins) {
+          return b.wins - a.wins;
+        }
+        // 3b. Matches played (asc — fewer matches = better ratio)
+        if (a.matchesPlayed !== b.matchesPlayed) {
+          return a.matchesPlayed - b.matchesPlayed;
+        }
       }
 
-      // 3. Scored
-      if (b.scored !== a.scored) {
-        return b.scored - a.scored;
-      }
-
-      // 4. Stable sort by id
+      // Last. Stable sort by id
       return a.id.localeCompare(b.id);
     });
   }

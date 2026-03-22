@@ -55,7 +55,11 @@ export class MatchService {
     await this.validateMatchInput(input, tournament);
     await this.validateMatchRules(input, tournament);
 
-    if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
+    if (tournament.scoreEnabled === false) {
+      matchInputValidator.validateWinnerRequired(input.winner);
+      input.scoreA = 0;
+      input.scoreB = 0;
+    } else if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
       matchInputValidator.validateScores(input.scoreA, input.scoreB);
       matchInputValidator.validateScoreRange(input.scoreA, input.scoreB, tournament.minScore, tournament.maxScore);
       await matchInputValidator.validateDrawAllowed(input.tournamentId, input.scoreA, input.scoreB, input.winner);

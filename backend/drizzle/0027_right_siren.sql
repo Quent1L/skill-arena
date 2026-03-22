@@ -1,0 +1,1 @@
+ALTER TABLE "tournaments" ADD COLUMN "score_enabled" boolean DEFAULT true NOT NULL;

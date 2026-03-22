@@ -310,7 +310,17 @@
           <!-- Contraintes de score -->
           <div class="mb-6">
             <h2 class="text-xl font-semibold mb-4">Contraintes de score</h2>
-            <div class="flex gap-4">
+            <div class="flex items-center gap-3 mb-4">
+              <ToggleSwitch
+                v-model="scoreEnabled"
+                :disabled="!isFieldEditable('scoreEnabled')"
+                input-id="scoreEnabled"
+              />
+              <label for="scoreEnabled" class="text-sm font-medium cursor-pointer">
+                Saisie des scores activée
+              </label>
+            </div>
+            <div v-if="scoreEnabled !== false" class="flex gap-4">
               <div class="flex-1">
                 <label for="minScore" class="block text-sm font-medium mb-2">Score minimum</label>
                 <InputNumber
@@ -456,6 +466,7 @@ const [endDate] = defineField('endDate')
 const [disciplineId] = defineField('disciplineId')
 const [minScore] = defineField('minScore')
 const [maxScore] = defineField('maxScore')
+const [scoreEnabled] = defineField('scoreEnabled')
 const rulesId = ref<string | null>(null)
 
 function isFieldEditable(fieldName: string): boolean {
@@ -488,7 +499,7 @@ const onSubmit = handleSubmit(async (values) => {
       const allowedFields =
         currentTournament.value?.status === 'draft'
           ? Object.keys(values)
-          : ['description', 'startDate', 'endDate', 'status', 'rulesId']
+          : ['description', 'startDate', 'endDate', 'status', 'rulesId', 'scoreEnabled']
 
       const updateData = Object.entries(values).reduce(
         (acc, [key, value]) => {
@@ -541,6 +552,7 @@ onMounted(async () => {
         disciplineId: currentTournament.value.disciplineId,
         minScore: currentTournament.value.minScore ?? null,
         maxScore: currentTournament.value.maxScore ?? null,
+        scoreEnabled: currentTournament.value.scoreEnabled ?? true,
       })
       rulesId.value = currentTournament.value.rulesId ?? null
     }
@@ -559,6 +571,7 @@ onMounted(async () => {
       pointPerDraw: 1,
       pointPerLoss: 0,
       allowDraw: true,
+      scoreEnabled: true,
     })
   }
 })

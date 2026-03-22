@@ -87,7 +87,7 @@ export function useTournamentService() {
       return ['all'] // All fields editable
     }
     // After draft, only these fields
-    return ['description', 'startDate', 'endDate', 'status']
+    return ['description', 'startDate', 'endDate', 'status', 'scoreEnabled']
   }
 
   /**
