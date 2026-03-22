@@ -50,6 +50,7 @@
     "MATCH_SAME_REPORTER_CONFIRMER": "Le même utilisateur ne peut pas reporter et confirmer le résultat",
     "MATCH_TEAM_SIZE_MISMATCH": "Le nombre de joueurs dans les équipes A ({{teamASize}}) et B ({{teamBSize}}) doit être le même",
     "MAX_MATCHES_EXCEEDED": "{{playerName}} a atteint le nombre maximum de matchs ({{max}})",
+    "ALL_PLAYERS_MAX_MATCHES_EXCEEDED": "Tous les joueurs ont atteint la limite de {{max}} matchs. Au moins un joueur doit être sous la limite pour saisir un match.",
     "MAX_PARTNER_MATCHES_EXCEEDED": "L'équipe {{teamName}} a déjà joué {{max}} fois ensemble",
     "MAX_OPPONENT_MATCHES_EXCEEDED": "L'équipe {{teamName}} a déjà joué {{max}} fois contre l'équipe {{opponentTeamName}}",
     "NOT_A_PARTICIPANT": "Seuls les participants peuvent effectuer cette action",

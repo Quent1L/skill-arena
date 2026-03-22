@@ -53,7 +53,11 @@ export class StandingsService {
     // 4. Initialize standings based on entries
     const standingsMap = await this.initializeEntryStandings(tournamentId, tournament.teamMode);
 
-    // 5. Process each match
+    // 5. Process each match — sort by playedAt ASC so per-player limits apply chronologically
+    const sortedMatches = [...matches].sort(
+      (a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime()
+    );
+
     const matchSidesMap = new Map<string, typeof matchSides>();
     for (const side of matchSides) {
       if (!matchSidesMap.has(side.matchId)) {
@@ -62,12 +66,25 @@ export class StandingsService {
       matchSidesMap.get(side.matchId)!.push(side);
     }
 
-    for (const match of matches) {
+    // Track how many ranking matches each player has accumulated (flex mode only)
+    const playerMatchCount = new Map<string, number>();
+    const maxMatchesPerPlayer = tournament.maxMatchesPerPlayer ?? Infinity;
+
+    for (const match of sortedMatches) {
       const sides = matchSidesMap.get(match.id) || [];
       if (sides.length !== 2) continue; // Skip incomplete matches
 
       const winnerSide = (match.winnerSide === "A" || match.winnerSide === "B") ? match.winnerSide : null;
-      this.processMatch(sides, standingsMap, tournament, tournament.teamMode, winnerSide, tournament.scoreEnabled ?? true);
+      this.processMatch(
+        sides,
+        standingsMap,
+        tournament,
+        tournament.teamMode,
+        winnerSide,
+        tournament.scoreEnabled ?? true,
+        playerMatchCount,
+        maxMatchesPerPlayer,
+      );
     }
 
     // 6. Convert map to array and sort
@@ -175,7 +192,9 @@ export class StandingsService {
     },
     teamMode: "static" | "flex",
     winnerSide: "A" | "B" | null,
-    scoreEnabled: boolean
+    scoreEnabled: boolean,
+    playerMatchCount: Map<string, number> = new Map(),
+    maxMatchesPerPlayer: number = Infinity,
   ) {
     if (sides.length !== 2) return;
 
@@ -196,7 +215,7 @@ export class StandingsService {
       this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide, scoreEnabled);
       this.updateStandingsForSide(entryB, sideB, sideA, tournament, winnerSide === "A" ? "B" : winnerSide === "B" ? "A" : null, scoreEnabled);
     } else {
-      // Flex mode: update each player individually
+      // Flex mode: update each player individually, respecting per-player match limit
       const playersA = sideA.entry?.players || [];
       const playersB = sideB.entry?.players || [];
 
@@ -205,18 +224,24 @@ export class StandingsService {
         const playerStanding = standingsMap.get(player.playerId);
         if (!playerStanding) continue;
 
-          const isWinner = winnerSide === "A";
-        const isDraw = winnerSide === null;
-        this.updateStandingsForPlayer(
-          playerStanding,
-          sideA.score,
-          sideB.score,
-          sideA.pointsAwarded,
-          tournament,
-          isWinner,
-          isDraw,
-          scoreEnabled
-        );
+        const priorCount = playerMatchCount.get(player.playerId) ?? 0;
+        const countsForRanking = priorCount < maxMatchesPerPlayer;
+        if (countsForRanking) {
+          this.updateStandingsForPlayer(
+            playerStanding,
+            sideA.score,
+            sideB.score,
+            sideA.pointsAwarded,
+            tournament,
+            winnerSide === "A",
+            winnerSide === null,
+            scoreEnabled,
+          );
+          playerMatchCount.set(player.playerId, priorCount + 1);
+        } else {
+          // Match exceeds limit: only count it as played, no points/W/D/L
+          playerStanding.matchesPlayed += 1;
+        }
       }
 
       // Update stats for each player on side B
@@ -224,18 +249,24 @@ export class StandingsService {
         const playerStanding = standingsMap.get(player.playerId);
         if (!playerStanding) continue;
 
-        const isWinner = winnerSide === "B";
-        const isDraw = winnerSide === null;
-        this.updateStandingsForPlayer(
-          playerStanding,
-          sideB.score,
-          sideA.score,
-          sideB.pointsAwarded,
-          tournament,
-          isWinner,
-          isDraw,
-          scoreEnabled
-        );
+        const priorCount = playerMatchCount.get(player.playerId) ?? 0;
+        const countsForRanking = priorCount < maxMatchesPerPlayer;
+        if (countsForRanking) {
+          this.updateStandingsForPlayer(
+            playerStanding,
+            sideB.score,
+            sideA.score,
+            sideB.pointsAwarded,
+            tournament,
+            winnerSide === "B",
+            winnerSide === null,
+            scoreEnabled,
+          );
+          playerMatchCount.set(player.playerId, priorCount + 1);
+        } else {
+          // Match exceeds limit: only count it as played, no points/W/D/L
+          playerStanding.matchesPlayed += 1;
+        }
       }
     }
   }

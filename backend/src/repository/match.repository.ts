@@ -1,4 +1,4 @@
-import { eq, and, ne, sql, count, inArray, or } from "drizzle-orm";
+import { eq, and, ne, sql, count, inArray, or, lt } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   matches,
@@ -237,6 +237,28 @@ export class MatchRepository {
           ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
           : null;
 
+    // For finalized matches, compute per-player effective points (considering match limit)
+    if (match.status === "finalized" && match.tournament) {
+      const maxMatches = match.tournament.maxMatchesPerPlayer;
+      const playedAt = match.playedAt;
+      await this.enrichParticipantsWithEffectivePoints(
+        teamA,
+        sides[0],
+        match.tournamentId,
+        maxMatches,
+        playedAt,
+        id,
+      );
+      await this.enrichParticipantsWithEffectivePoints(
+        teamB,
+        sides[1],
+        match.tournamentId,
+        maxMatches,
+        playedAt,
+        id,
+      );
+    }
+
     // Build response with backward-compatible format
     return {
       ...match,
@@ -257,6 +279,38 @@ export class MatchRepository {
       // Include sides for new API consumers
       sides: sides,
     };
+  }
+
+  /**
+   * Enrich a team's participants with effectivePointsAwarded and exceededMatchLimit.
+   * A participant exceeds the limit if they already had >= maxMatchesPerPlayer finalized
+   * matches with a playedAt strictly before this match's playedAt.
+   */
+  private async enrichParticipantsWithEffectivePoints(
+    team: SyntheticTeam | null,
+    side: any,
+    tournamentId: string,
+    maxMatchesPerPlayer: number,
+    playedAt: Date,
+    matchId: string,
+  ): Promise<void> {
+    if (!team || !side) return;
+    const standardPoints: number = side.pointsAwarded ?? 0;
+
+    for (const participant of team.participants) {
+      const userId = participant.user?.id;
+      if (!userId) continue;
+
+      const priorCount = await this.countFinalizedMatchesForUserBefore(
+        tournamentId,
+        userId,
+        playedAt,
+        matchId,
+      );
+      const exceeded = priorCount >= maxMatchesPerPlayer;
+      (participant as any).exceededMatchLimit = exceeded;
+      (participant as any).effectivePointsAwarded = exceeded ? 0 : standardPoints;
+    }
   }
 
   /**
@@ -1109,6 +1163,51 @@ export class MatchRepository {
     }
 
     return duplicateMatchIds;
+  }
+
+  /**
+   * Count finalized matches for a user in a tournament played before the given date.
+   * Used to determine whether a player has exceeded their ranking match limit.
+   */
+  async countFinalizedMatchesForUserBefore(
+    tournamentId: string,
+    userId: string,
+    beforeDate: Date,
+    excludeMatchId?: string,
+  ): Promise<number> {
+    const userEntries = await db
+      .select({ entryId: tournamentEntryPlayers.entryId })
+      .from(tournamentEntryPlayers)
+      .innerJoin(
+        tournamentEntries,
+        eq(tournamentEntryPlayers.entryId, tournamentEntries.id),
+      )
+      .where(
+        and(
+          eq(tournamentEntryPlayers.playerId, userId),
+          eq(tournamentEntries.tournamentId, tournamentId),
+        ),
+      );
+
+    if (userEntries.length === 0) return 0;
+
+    const entryIds = userEntries.map((e) => e.entryId);
+    const conditions = [
+      eq(matches.tournamentId, tournamentId),
+      eq(matches.status, "finalized"),
+      lt(matches.playedAt, beforeDate),
+    ];
+    if (excludeMatchId) {
+      conditions.push(ne(matches.id, excludeMatchId));
+    }
+
+    const result = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${matches.id})` })
+      .from(matches)
+      .innerJoin(sql`match_sides`, sql`${matches.id} = match_sides.match_id`)
+      .where(and(...conditions, sql`match_sides.entry_id IN ${entryIds}`));
+
+    return result[0]?.count ?? 0;
   }
 
   /**

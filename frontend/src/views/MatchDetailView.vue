@@ -77,7 +77,7 @@
                   {{ match.scoreA }}
                 </div>
                 <div v-if="match.teamA?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamA.participants" :key="p.user?.id">
+                  <div v-for="p in match.teamA.participants" :key="p.user?.id" class="flex items-center justify-center gap-1">
                     <RouterLink
                       v-if="p.user?.id"
                       :to="`/players/${p.user.id}`"
@@ -86,6 +86,17 @@
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
+                    <template v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined">
+                      <Tag
+                        v-if="p.exceededMatchLimit"
+                        value="hors limite"
+                        severity="secondary"
+                        class="text-xs"
+                      />
+                      <span v-else class="font-semibold text-green-600 dark:text-green-400">
+                        +{{ p.effectivePointsAwarded }} pt{{ p.effectivePointsAwarded !== 1 ? 's' : '' }}
+                      </span>
+                    </template>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -112,7 +123,7 @@
                   {{ match.scoreB }}
                 </div>
                 <div v-if="match.teamB?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamB.participants" :key="p.user?.id">
+                  <div v-for="p in match.teamB.participants" :key="p.user?.id" class="flex items-center justify-center gap-1">
                     <RouterLink
                       v-if="p.user?.id"
                       :to="`/players/${p.user.id}`"
@@ -121,6 +132,17 @@
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
+                    <template v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined">
+                      <Tag
+                        v-if="p.exceededMatchLimit"
+                        value="hors limite"
+                        severity="secondary"
+                        class="text-xs"
+                      />
+                      <span v-else class="font-semibold text-green-600 dark:text-green-400">
+                        +{{ p.effectivePointsAwarded }} pt{{ p.effectivePointsAwarded !== 1 ? 's' : '' }}
+                      </span>
+                    </template>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">

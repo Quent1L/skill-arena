@@ -80,6 +80,8 @@ export interface MatchModel extends Match {
         id: string;
         displayName: string;
       };
+      effectivePointsAwarded?: number | null;
+      exceededMatchLimit?: boolean;
     }>;
   };
   teamB?: {
@@ -90,6 +92,8 @@ export interface MatchModel extends Match {
         id: string;
         displayName: string;
       };
+      effectivePointsAwarded?: number | null;
+      exceededMatchLimit?: boolean;
     }>;
   };
   winner?: {

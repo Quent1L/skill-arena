@@ -10,7 +10,7 @@
     "test:unit": "vitest",
     "test:unit:cov": "vitest run --coverage",
     "build-only": "bun x --bun vite build --mode prod",
-    "type-check": "vue-tsc --noEmit --skipLibCheck",
+    "type-check": "vue-tsc --noEmit",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix --cache",
     "lint": "run-s lint:*",

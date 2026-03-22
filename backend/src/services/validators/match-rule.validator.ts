@@ -53,10 +53,8 @@ export class MatchRuleValidator {
         const allPlayerIds = [...input.playerIdsA, ...input.playerIdsB];
         const excludeMatchId = input.matchId;
 
-        // Per-player match limit (unchanged)
-        for (const playerId of allPlayerIds) {
-            await this.validatePlayerMatchLimit(tournament, playerId, excludeMatchId);
-        }
+        // Per-player match limit: block only if ALL players have reached the limit
+        await this.validateAtLeastOnePlayerUnderLimit(tournament, allPlayerIds, excludeMatchId);
 
         // Partner check: once per team as a complete unit
         await this.validateTeamPartnerConstraints(input, tournament, input.playerIdsA, excludeMatchId);
@@ -67,23 +65,25 @@ export class MatchRuleValidator {
     }
 
     /**
-     * Validate max matches per player
+     * Allow match creation if at least one player has not yet reached the match limit.
+     * Block only if every player across both teams has already reached or exceeded the limit.
      */
-    private async validatePlayerMatchLimit(
+    private async validateAtLeastOnePlayerUnderLimit(
         tournament: NonNullable<TournamentFromRepository>,
-        playerId: string,
+        allPlayerIds: string[],
         excludeMatchId?: string
     ): Promise<void> {
-        const playerMatchCount = await matchRepository.countMatchesForUser(
-            tournament.id,
-            playerId,
-            excludeMatchId
+        const counts = await Promise.all(
+            allPlayerIds.map((id) =>
+                matchRepository.countMatchesForUser(tournament.id, id, excludeMatchId)
+            )
         );
-        if (playerMatchCount >= tournament.maxMatchesPerPlayer) {
-            const playerName = await this.getPlayerName(playerId);
-            throw new ConflictError(ErrorCode.MAX_MATCHES_EXCEEDED, {
+        const atLeastOneUnderLimit = counts.some(
+            (count) => count < tournament.maxMatchesPerPlayer
+        );
+        if (!atLeastOneUnderLimit) {
+            throw new ConflictError(ErrorCode.ALL_PLAYERS_MAX_MATCHES_EXCEEDED, {
                 max: tournament.maxMatchesPerPlayer,
-                playerName,
             });
         }
     }

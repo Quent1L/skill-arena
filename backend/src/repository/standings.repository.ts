@@ -25,6 +25,7 @@ export class StandingsRepository {
         pointPerLoss: true,
         allowDraw: true,
         scoreEnabled: true,
+        maxMatchesPerPlayer: true,
       },
     });
   }
@@ -72,6 +73,7 @@ export class StandingsRepository {
         id: true,
         status: true,
         winnerSide: true,
+        playedAt: true,
       },
     });
   }
