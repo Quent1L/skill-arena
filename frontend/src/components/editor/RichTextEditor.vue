@@ -1,5 +1,5 @@
 <template>
-  <div class="rich-text-editor border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+  <div class="rich-text-editor border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden" :class="{ 'opacity-50 pointer-events-none': disabled }">
     <!-- Toolbar -->
     <div class="toolbar flex flex-wrap gap-1 p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600">
       <button
@@ -128,11 +128,39 @@
       <button
         type="button"
         class="toolbar-btn"
-        @click="showImageInput = !showImageInput"
+        @click="toggleLinkInput"
+        :class="{ active: editor?.isActive('link') || showLinkInput }"
+        title="Insérer un lien"
+      >
+        <i class="fa fa-link"></i>
+      </button>
+      <button
+        type="button"
+        class="toolbar-btn"
+        @click="showImageInput = !showImageInput; showLinkInput = false"
         :class="{ active: showImageInput }"
         title="Insérer une image"
       >
         <i class="fa fa-image"></i>
+      </button>
+    </div>
+
+    <!-- Link URL input bar -->
+    <div v-if="showLinkInput" class="image-input-bar">
+      <input
+        v-model="linkUrl"
+        type="url"
+        placeholder="https://exemple.com"
+        class="image-url-input"
+        @keydown.enter.prevent="insertLink"
+        @keydown.escape="showLinkInput = false"
+        ref="linkInputRef"
+      />
+      <button type="button" class="image-insert-btn" @click="insertLink" :disabled="!linkUrl">
+        Insérer
+      </button>
+      <button type="button" class="image-cancel-btn" @click="showLinkInput = false">
+        <i class="fa fa-times"></i>
       </button>
     </div>
 
@@ -168,11 +196,11 @@ import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
 import Image from '@tiptap/extension-image'
 
 const props = defineProps<{
   modelValue: string
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -183,12 +211,16 @@ const showImageInput = ref(false)
 const imageUrl = ref('')
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
+const showLinkInput = ref(false)
+const linkUrl = ref('')
+const linkInputRef = ref<HTMLInputElement | null>(null)
+
 const editor = useEditor({
   content: props.modelValue,
+  editable: !props.disabled,
   extensions: [
-    StarterKit,
+    StarterKit.configure({ link: { openOnClick: false } }),
     TextAlign.configure({ types: ['heading', 'paragraph'] }),
-    Underline,
     Image.configure({ inline: false, allowBase64: true }),
   ],
   onUpdate: ({ editor }) => {
@@ -205,6 +237,13 @@ watch(
   },
 )
 
+watch(
+  () => props.disabled,
+  (value) => {
+    editor.value?.setEditable(!value)
+  },
+)
+
 watch(showImageInput, async (val) => {
   if (val) {
     imageUrl.value = ''
@@ -212,6 +251,31 @@ watch(showImageInput, async (val) => {
     imageInputRef.value?.focus()
   }
 })
+
+watch(showLinkInput, async (val) => {
+  if (val) {
+    linkUrl.value = editor.value?.getAttributes('link').href ?? ''
+    await nextTick()
+    linkInputRef.value?.focus()
+  }
+})
+
+function toggleLinkInput() {
+  if (editor.value?.isActive('link')) {
+    editor.value.chain().focus().unsetLink().run()
+    showLinkInput.value = false
+  } else {
+    showImageInput.value = false
+    showLinkInput.value = !showLinkInput.value
+  }
+}
+
+function insertLink() {
+  if (!linkUrl.value || !editor.value) return
+  editor.value.chain().focus().setLink({ href: linkUrl.value, target: '_blank' }).run()
+  linkUrl.value = ''
+  showLinkInput.value = false
+}
 
 function insertImage() {
   if (!imageUrl.value || !editor.value) return
@@ -303,6 +367,12 @@ onBeforeUnmount(() => {
 
 :deep(.ProseMirror p) {
   margin: 0.25rem 0;
+}
+
+:deep(.ProseMirror a) {
+  color: rgb(96 165 250);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .image-input-bar {

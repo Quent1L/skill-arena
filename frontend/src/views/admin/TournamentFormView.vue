@@ -86,16 +86,13 @@
 
               <!-- Description -->
               <div class="lg:col-span-2">
-                <label for="description" class="block text-sm font-medium mb-2">
+                <label class="block text-sm font-medium mb-2">
                   Description
                 </label>
-                <Textarea
-                  id="description"
-                  v-model="description"
+                <RichTextEditor
+                  :model-value="description ?? ''"
+                  @update:model-value="description = $event"
                   :disabled="!isFieldEditable('description')"
-                  rows="3"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.description }"
                 />
                 <small class="p-error">{{ errors.description }}</small>
               </div>
@@ -387,6 +384,7 @@ import {
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
+import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 
 const router = useRouter()
 const route = useRoute()

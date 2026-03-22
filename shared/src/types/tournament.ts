@@ -121,10 +121,7 @@ export const baseTournamentFormSchema = z.object({
     .string({ message: "Le nom est requis" })
     .min(3, "Le nom doit contenir au moins 3 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
-  description: z
-    .string()
-    .max(500, "La description ne peut pas dépasser 500 caractères")
-    .optional(),
+  description: z.string().optional(),
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
   minTeamSize: z
@@ -169,10 +166,7 @@ export const baseTournamentUpdateFormSchema = z.object({
     .min(3, "Le nom doit contenir au moins 3 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .optional(),
-  description: z
-    .string()
-    .max(500, "La description ne peut pas dépasser 500 caractères")
-    .optional(),
+  description: z.string().optional(),
   mode: tournamentModeSchema.optional(),
   teamMode: teamModeSchema.optional(),
   minTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
@@ -224,10 +218,7 @@ const baseTournamentDataSchema = z.object({
     .string({ message: "Le nom est requis" })
     .min(3, "Le nom doit contenir au moins 3 caractères")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
-  description: z
-    .string()
-    .max(500, "La description ne peut pas dépasser 500 caractères")
-    .optional(),
+  description: z.string().optional(),
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
   minTeamSize: z
@@ -361,10 +352,7 @@ export const updateTournamentSchema = z
       .min(3, "Le nom doit contenir au moins 3 caractères")
       .max(100, "Le nom ne peut pas dépasser 100 caractères")
       .optional(),
-    description: z
-      .string()
-      .max(500, "La description ne peut pas dépasser 500 caractères")
-      .optional(),
+    description: z.string().optional(),
     mode: tournamentModeSchema.optional(),
     teamMode: teamModeSchema.optional(),
     minTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),

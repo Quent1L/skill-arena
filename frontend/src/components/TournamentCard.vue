@@ -20,12 +20,6 @@
           <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
             {{ tournament.name }}
           </h3>
-          <p
-            v-if="tournament.description"
-            class="text-gray-600 dark:text-gray-400 text-sm line-clamp-2"
-          >
-            {{ tournament.description }}
-          </p>
         </div>
 
         <!-- Informations principales -->
