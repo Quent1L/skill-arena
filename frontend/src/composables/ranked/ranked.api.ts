@@ -4,7 +4,7 @@ import type {
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
   ClientMmrHistoryEntry,
-  RankBoundaries,
+  ClientRankTier,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
@@ -19,6 +19,7 @@ export type RankedSeason = {
   endDate: string
   minTeamSize: number
   maxTeamSize: number
+  allowDraw?: boolean
   rulesId?: string | null
   rankedConfig?: {
     baseMmr: number
@@ -27,19 +28,19 @@ export type RankedSeason = {
     usePreviousMmr: boolean
     allowAsymmetricMatches: boolean
   } | null
-  rankBoundaries?: RankBoundaries | null
+  rankTiers?: ClientRankTier[]
   discipline?: { id: string; name: string } | null
   rules?: { id: string; title: string } | null
 }
 
 export type LeaderboardResponse = {
   players: ClientPlayerMmr[]
-  boundaries: RankBoundaries | null | undefined
+  tiers: ClientRankTier[]
 }
 
 export type PlayerMmrResponse = {
   mmr: ClientPlayerMmr
-  boundaries: RankBoundaries | null | undefined
+  tiers: ClientRankTier[]
 }
 
 /**
@@ -92,9 +93,17 @@ export const rankedApi = {
     return response.data
   },
 
-  async getPlayerHistory(seasonId: string, playerId: string): Promise<ClientMmrHistoryEntry[]> {
+  async getPlayerHistory(
+    seasonId: string,
+    playerId: string,
+    params?: { limit?: number; offset?: number },
+  ): Promise<ClientMmrHistoryEntry[]> {
+    const query = new URLSearchParams()
+    if (params?.limit !== undefined) query.set('limit', String(params.limit))
+    if (params?.offset !== undefined) query.set('offset', String(params.offset))
+    const qs = query.toString() ? `?${query.toString()}` : ''
     const response = await http.get<ClientMmrHistoryEntry[]>(
-      `${BASE_URL}/seasons/${seasonId}/players/${playerId}/history`,
+      `${BASE_URL}/seasons/${seasonId}/players/${playerId}/history${qs}`,
     )
     return response.data
   },

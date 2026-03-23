@@ -1,6 +1,6 @@
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
 import { db } from "../config/database";
-import { playerMmr, mmrHistory, matches } from "../db/schema";
+import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
 
 export interface UpsertPlayerMmrData {
   seasonId: string;
@@ -72,7 +72,7 @@ export class PlayerMmrRepository {
     return created;
   }
 
-  async getMmrHistory(seasonId: string, playerId: string) {
+  async getMmrHistory(seasonId: string, playerId: string, limit = 10, offset = 0) {
     return await db
       .select({
         id: mmrHistory.id,
@@ -90,6 +90,16 @@ export class PlayerMmrRepository {
           playedAt: matches.playedAt,
           status: matches.status,
         },
+        teamSizeA: sql<number>`(
+          SELECT COUNT(*) FROM tournament_entry_players tep
+          JOIN match_sides ms ON ms.entry_id = tep.entry_id
+          WHERE ms.match_id = ${matches.id} AND ms.position = 1
+        )`.mapWith(Number),
+        teamSizeB: sql<number>`(
+          SELECT COUNT(*) FROM tournament_entry_players tep
+          JOIN match_sides ms ON ms.entry_id = tep.entry_id
+          WHERE ms.match_id = ${matches.id} AND ms.position = 2
+        )`.mapWith(Number),
       })
       .from(mmrHistory)
       .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
@@ -99,7 +109,9 @@ export class PlayerMmrRepository {
           eq(mmrHistory.playerId, playerId),
         ),
       )
-      .orderBy(desc(matches.playedAt));
+      .orderBy(desc(matches.playedAt))
+      .limit(limit)
+      .offset(offset);
   }
 
   async getMmrHistoryOrdered(seasonId: string, playerId: string) {
@@ -138,6 +150,22 @@ export class PlayerMmrRepository {
       .values(data)
       .returning();
     return created;
+  }
+
+  async getMatchPlayersForHistory(matchIds: string[]) {
+    if (matchIds.length === 0) return [];
+    return await db.query.matchSides.findMany({
+      where: inArray(matchSides.matchId, matchIds),
+      with: {
+        entry: {
+          with: {
+            players: {
+              with: { player: true },
+            },
+          },
+        },
+      },
+    });
   }
 
   async deleteMmrHistoryForPlayer(seasonId: string, playerId: string) {

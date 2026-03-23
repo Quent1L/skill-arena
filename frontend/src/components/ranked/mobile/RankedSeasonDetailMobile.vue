@@ -25,9 +25,10 @@
       <div v-show="activeTab === 'leaderboard'" class="p-4">
         <RankedLeaderboard
           :players="leaderboard"
-          :boundaries="boundaries"
+          :tiers="tiers"
           :placement-matches="placementMatches"
           :loading="loading"
+          :current-user-id="appUser?.id"
         />
       </div>
 
@@ -36,8 +37,10 @@
         <div v-if="playerMmr">
           <PlayerMmrProfile
             :mmr="playerMmr"
-            :boundaries="boundaries"
+            :tiers="tiers"
             :placement-matches="placementMatches"
+            :leaderboard-rank="leaderboardRank"
+            :history="profileChartHistory"
           />
         </div>
         <div v-else class="text-center py-12 text-gray-500">
@@ -50,7 +53,14 @@
       <!-- Tab: Historique -->
       <div v-show="activeTab === 'history'" class="p-4">
         <div v-if="isAuthenticated && appUser">
-          <RankedMatchHistory :history="playerHistory" :loading="loading" />
+          <RankedMatchHistory
+            :history="playerHistory"
+            :loading="loading"
+            :has-more="playerHistoryHasMore"
+            :allow-draw="allowDraw"
+            :total-matches="totalMatches"
+            :on-load-more="onLoadMoreHistory"
+          />
         </div>
         <div v-else class="text-center py-12 text-gray-500">
           Connectez-vous pour voir votre historique MMR.
@@ -166,7 +176,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import type { ClientPlayerMmr, ClientMmrHistoryEntry, RankBoundaries } from '@skill-arena/shared/types/index'
+import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
 import type { RankedSeason } from '@/composables/ranked/ranked.api'
 import MatchList from '@/components/MatchList.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
@@ -177,15 +187,21 @@ const props = defineProps<{
   seasonId: string
   currentSeason: RankedSeason
   leaderboard: ClientPlayerMmr[]
-  boundaries: RankBoundaries | null
+  tiers: ClientRankTier[]
   playerMmr: ClientPlayerMmr | null
   playerHistory: ClientMmrHistoryEntry[]
+  playerHistoryHasMore: boolean
+  onLoadMoreHistory: () => Promise<void>
+  allowDraw: boolean
+  totalMatches: number
   loading: boolean
   isAuthenticated: boolean
   appUser: { id: string } | null
   canCreateMatch: boolean
   canManage: boolean
   placementMatches: number
+  leaderboardRank?: number
+  profileChartHistory?: ClientMmrHistoryEntry[]
 }>()
 
 const emit = defineEmits<{

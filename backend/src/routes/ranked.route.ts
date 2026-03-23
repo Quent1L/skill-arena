@@ -78,8 +78,8 @@ ranked.get("/seasons/:id/leaderboard", async (c) => {
     throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
   }
   const players = await playerMmrRepository.getBySeasonOrdered(id);
-  const boundaries = await rankedSeasonRepository.getRankBoundaries(id);
-  return c.json({ players, boundaries });
+  const tiers = await rankedSeasonRepository.getRankTiers(id);
+  return c.json({ players, tiers });
 });
 
 // GET /ranked/seasons/:id/players/:playerId - Player MMR profile
@@ -89,15 +89,36 @@ ranked.get("/seasons/:id/players/:playerId", async (c) => {
   if (!mmr) {
     throw new NotFoundError(ErrorCode.NOT_FOUND);
   }
-  const boundaries = await rankedSeasonRepository.getRankBoundaries(id);
-  return c.json({ mmr, boundaries });
+  const tiers = await rankedSeasonRepository.getRankTiers(id);
+  return c.json({ mmr, tiers });
 });
 
 // GET /ranked/seasons/:id/players/:playerId/history - MMR history
 ranked.get("/seasons/:id/players/:playerId/history", async (c) => {
   const { id, playerId } = c.req.param();
-  const history = await playerMmrRepository.getMmrHistory(id, playerId);
-  return c.json(history);
+  const limit = Number(c.req.query("limit") ?? 10);
+  const offset = Number(c.req.query("offset") ?? 0);
+
+  const history = await playerMmrRepository.getMmrHistory(id, playerId, limit, offset);
+  const matchIds = history.map((h) => h.matchId);
+  const sidesData = await playerMmrRepository.getMatchPlayersForHistory(matchIds);
+
+  const sidesMap = new Map<string, { position: number; players: { id: string; displayName: string; shortName: string }[] }[]>();
+  for (const side of sidesData) {
+    const list = sidesMap.get(side.matchId) ?? [];
+    list.push({
+      position: side.position,
+      players: (side.entry?.players ?? []).map((p) => ({
+        id: p.player.id,
+        displayName: p.player.displayName,
+        shortName: p.player.shortName ?? p.player.displayName,
+      })),
+    });
+    sidesMap.set(side.matchId, list);
+  }
+
+  const enriched = history.map((h) => ({ ...h, sides: sidesMap.get(h.matchId) ?? [] }));
+  return c.json(enriched);
 });
 
 export default ranked;

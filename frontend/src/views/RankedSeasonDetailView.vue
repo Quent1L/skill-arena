@@ -6,15 +6,21 @@
       :season-id="seasonId"
       :current-season="currentSeason"
       :leaderboard="leaderboard"
-      :boundaries="boundaries"
+      :tiers="tiers"
       :player-mmr="playerMmr"
       :player-history="playerHistory"
+      :player-history-has-more="playerHistoryHasMore"
+      :on-load-more-history="loadMoreHistory"
+      :allow-draw="currentSeason.allowDraw ?? false"
+      :total-matches="playerMmr?.matchesPlayed ?? 0"
       :loading="loading"
       :is-authenticated="isAuthenticated"
       :app-user="appUser"
       :can-create-match="currentSeason.status === 'ongoing' && isAuthenticated"
       :can-manage="isAdmin"
       :placement-matches="currentSeason.rankedConfig?.placementMatches ?? 5"
+      :leaderboard-rank="playerLeaderboardRank"
+      :profile-chart-history="profileChartHistory"
       @create-match="goToCreateMatch"
       @edit="goToEdit"
       @view-rules="goToRules"
@@ -45,31 +51,54 @@
         {{ error }}
       </Message>
 
-      <Tabs v-model:value="activeTab" class="mt-6">
-        <TabList>
-          <Tab value="leaderboard">Classement</Tab>
-          <Tab v-if="isAuthenticated && appUser" value="profile">Mon profil</Tab>
-          <Tab value="history">Historique</Tab>
-          <Tab value="matches">Matchs</Tab>
-        </TabList>
-        <TabPanels>
+      <!-- Sidebar + Content -->
+      <div class="flex gap-4 mt-6">
+        <!-- Sidebar -->
+        <nav class="w-48 shrink-0">
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              v-for="item in sidebarItems"
+              :key="item.value"
+              @click="activeTab = item.value"
+              class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors duration-150 relative"
+              :class="
+                activeTab === item.value
+                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700'
+              "
+            >
+              <div
+                class="absolute left-0 top-0 bottom-0 w-0.5 transition-colors duration-150"
+                :class="activeTab === item.value ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+              ></div>
+              <i :class="[item.icon, 'w-4 text-center']"></i>
+              {{ item.label }}
+            </button>
+          </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
           <!-- Classement -->
-          <TabPanel value="leaderboard">
+          <div v-show="activeTab === 'leaderboard'">
             <RankedLeaderboard
               :players="leaderboard"
-              :boundaries="boundaries"
+              :tiers="tiers"
               :placement-matches="currentSeason.rankedConfig?.placementMatches ?? 5"
               :loading="loading"
+              :current-user-id="appUser?.id"
             />
-          </TabPanel>
+          </div>
 
           <!-- Mon profil -->
-          <TabPanel v-if="isAuthenticated && appUser" value="profile">
+          <div v-if="isAuthenticated && appUser" v-show="activeTab === 'profile'">
             <div v-if="playerMmr">
               <PlayerMmrProfile
                 :mmr="playerMmr"
-                :boundaries="boundaries"
+                :tiers="tiers"
                 :placement-matches="currentSeason.rankedConfig?.placementMatches ?? 5"
+                :leaderboard-rank="playerLeaderboardRank"
+                :history="profileChartHistory"
               />
             </div>
             <div v-else class="text-center py-12 text-gray-500">
@@ -79,24 +108,31 @@
                 Déclarez votre premier match pour rejoindre le classement !
               </p>
             </div>
-          </TabPanel>
+          </div>
 
           <!-- Historique MMR -->
-          <TabPanel value="history">
+          <div v-show="activeTab === 'history'">
             <div v-if="isAuthenticated && appUser">
-              <RankedMatchHistory :history="playerHistory" :loading="loading" />
+              <RankedMatchHistory
+                :history="playerHistory"
+                :loading="loading"
+                :has-more="playerHistoryHasMore"
+                :allow-draw="currentSeason.allowDraw ?? false"
+                :total-matches="playerMmr?.matchesPlayed ?? 0"
+                :on-load-more="loadMoreHistory"
+              />
             </div>
             <div v-else class="text-center py-12 text-gray-500">
               Connectez-vous pour voir votre historique MMR.
             </div>
-          </TabPanel>
+          </div>
 
           <!-- Matchs -->
-          <TabPanel value="matches">
+          <div v-show="activeTab === 'matches'">
             <MatchList :tournament-id="seasonId" :bracket-mode="false" />
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -111,9 +147,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useRankedService } from '@/composables/ranked/ranked.service'
+import { rankedApi } from '@/composables/ranked/ranked.api'
 import { useAuth } from '@/composables/useAuth'
 import { useViewport } from '@/composables/useViewport'
 import type { TournamentStatus } from '@skill-arena/shared'
+import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import MatchList from '@/components/MatchList.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
@@ -129,19 +167,37 @@ const { isMobile } = useViewport()
 const {
   currentSeason,
   leaderboard,
-  boundaries,
+  tiers,
   playerMmr,
   playerHistory,
+  playerHistoryHasMore,
   loading,
   error,
   loadSeasonById,
   loadLeaderboard,
   loadPlayerMmr,
   loadPlayerHistory,
+  loadMoreHistory,
 } = useRankedService()
 
 const activeTab = ref('leaderboard')
 const seasonId = computed(() => route.params.id as string)
+const profileChartHistory = ref<ClientMmrHistoryEntry[]>([])
+
+const playerLeaderboardRank = computed(() => {
+  if (!appUser.value || leaderboard.value.length === 0) return undefined
+  const idx = leaderboard.value.findIndex((p) => p.player?.id === appUser.value?.id)
+  return idx >= 0 ? idx + 1 : undefined
+})
+
+const sidebarItems = computed(() => [
+  { value: 'leaderboard', label: 'Classement', icon: 'fas fa-trophy' },
+  ...(isAuthenticated.value && appUser.value
+    ? [{ value: 'profile', label: 'Mon profil', icon: 'fas fa-user' }]
+    : []),
+  { value: 'history', label: 'Historique', icon: 'fas fa-clock' },
+  { value: 'matches', label: 'Matchs', icon: 'fas fa-gamepad' },
+])
 
 function goToCreateMatch() {
   router.push(`/tournaments/${seasonId.value}/create-match`)
@@ -158,6 +214,7 @@ function goToRules() {
 async function onTabChange(tab: string) {
   if (tab === 'profile' && appUser.value) {
     await loadPlayerMmr(seasonId.value, appUser.value.id)
+    profileChartHistory.value = await rankedApi.getPlayerHistory(seasonId.value, appUser.value.id, { limit: 200 })
   }
   if (tab === 'history' && appUser.value) {
     await loadPlayerHistory(seasonId.value, appUser.value.id)

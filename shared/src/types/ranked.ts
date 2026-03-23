@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { RankTier } from "./enums";
 
 // ============================================
 // Types et interfaces pour le mode Ranked
@@ -40,13 +39,14 @@ export interface MmrHistoryEntry {
   isPlacement: boolean;
 }
 
-export interface RankBoundaries {
+export interface ClientRankTier {
   id: string;
   seasonId: string;
-  challengerMax: number;
-  strategistMax: number;
-  masterMax: number;
-  calculatedAt: string;
+  level: number;
+  name: string;
+  percentile: number;
+  minMmr: number;
+  calculatedAt: Date;
 }
 
 // ============================================
@@ -59,7 +59,17 @@ export interface ClientPlayerMmr extends PlayerMmr {
     displayName: string;
     shortName: string;
   };
-  rank?: RankTier | null;
+}
+
+export interface HistoryMatchSidePlayer {
+  id: string;
+  displayName: string;
+  shortName: string;
+}
+
+export interface HistoryMatchSide {
+  position: number;
+  players: HistoryMatchSidePlayer[];
 }
 
 export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
@@ -69,6 +79,9 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
     playedAt: Date;
     status: string;
   };
+  teamSizeA?: number | null;
+  teamSizeB?: number | null;
+  sides?: HistoryMatchSide[];
 }
 
 // ============================================

@@ -4,7 +4,7 @@ import {
   tournaments,
   tournamentAdmins,
   rankedSeasonConfigs,
-  rankBoundaries,
+  rankTiers,
 } from "../db/schema";
 import type { TournamentStatus } from "@skill-arena/shared/types/index";
 
@@ -104,34 +104,47 @@ export class RankedSeasonRepository {
     return updated;
   }
 
-  async getRankBoundaries(seasonId: string) {
-    return await db.query.rankBoundaries.findFirst({
-      where: eq(rankBoundaries.seasonId, seasonId),
+  static readonly DEFAULT_TIER_CONFIGS = [
+    { level: 1, name: "Challenger", percentile: 0 },
+    { level: 2, name: "Stratège", percentile: 0.4 },
+    { level: 3, name: "Maître", percentile: 0.7 },
+    { level: 4, name: "Légende", percentile: 0.9 },
+  ] as const;
+
+  async getRankTiers(seasonId: string) {
+    return await db.query.rankTiers.findMany({
+      where: eq(rankTiers.seasonId, seasonId),
+      orderBy: (t, { asc }) => [asc(t.level)],
     });
   }
 
-  async setRankBoundaries(
-    seasonId: string,
-    data: {
-      challengerMax: number;
-      strategistMax: number;
-      masterMax: number;
-    },
-  ) {
-    const existing = await this.getRankBoundaries(seasonId);
+  async upsertRankTier(seasonId: string, level: number, data: { minMmr: number }) {
+    const existing = await db.query.rankTiers.findFirst({
+      where: and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)),
+    });
     if (existing) {
       const [updated] = await db
-        .update(rankBoundaries)
-        .set({ ...data, calculatedAt: new Date() })
-        .where(eq(rankBoundaries.seasonId, seasonId))
+        .update(rankTiers)
+        .set({ minMmr: data.minMmr, calculatedAt: new Date() })
+        .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)))
         .returning();
       return updated;
     }
+    const config = RankedSeasonRepository.DEFAULT_TIER_CONFIGS.find((t) => t.level === level);
     const [created] = await db
-      .insert(rankBoundaries)
-      .values({ seasonId, ...data })
+      .insert(rankTiers)
+      .values({ seasonId, level, name: config?.name ?? `Tier ${level}`, percentile: config?.percentile ?? 0, minMmr: data.minMmr })
       .returning();
     return created;
+  }
+
+  async initDefaultTiers(seasonId: string, baseMmr: number) {
+    for (const tier of RankedSeasonRepository.DEFAULT_TIER_CONFIGS) {
+      await db
+        .insert(rankTiers)
+        .values({ seasonId, level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: baseMmr })
+        .onConflictDoNothing();
+    }
   }
 
   async getLastFinishedSeason(disciplineId: string) {
@@ -150,7 +163,7 @@ export class RankedSeasonRepository {
       where: and(eq(tournaments.id, id), eq(tournaments.mode, "ranked")),
       with: {
         rankedConfig: true,
-        rankBoundaries: true,
+        rankTiers: true,
         discipline: true,
         rules: true,
       },

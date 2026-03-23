@@ -2696,6 +2696,7 @@
           "primaryKey": false,
           "notNull": false,
           "default": true
+        },
         "score_enabled": {
           "name": "score_enabled",
           "type": "boolean",

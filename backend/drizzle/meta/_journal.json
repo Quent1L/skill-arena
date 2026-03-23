@@ -232,6 +232,13 @@
       "when": 1775720394819,
       "tag": "0028_chubby_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1774400000000,
+      "tag": "0029_rank_tiers",
+      "breakpoints": true
     }
   ]
 }

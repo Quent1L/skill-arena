@@ -165,6 +165,25 @@ export class MmrCalculationService {
       await this.ensurePlayerMmrExists(seasonId, match.tournament.rankedConfig?.baseMmr ?? 1000, playerId);
       await this.recalculatePlayerMmr(seasonId, playerId);
     }
+
+    await this.recalculateBoundaries(seasonId, match.tournament.rankedConfig?.baseMmr ?? 1000);
+  }
+
+  private async recalculateBoundaries(seasonId: string, baseMmr: number): Promise<void> {
+    const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
+    if (tiers.length === 0) return;
+
+    const allPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
+    const sorted = allPlayers.map((p) => p.currentMmr).sort((a, b) => a - b);
+    const n = sorted.length;
+
+    for (const tier of tiers) {
+      const minMmr =
+        tier.percentile === 0 || n === 0
+          ? baseMmr
+          : (sorted[Math.floor(n * tier.percentile)] ?? baseMmr);
+      await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, { minMmr });
+    }
   }
 
   /**

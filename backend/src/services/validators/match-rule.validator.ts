@@ -18,6 +18,8 @@ export class MatchRuleValidator {
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
+        if (tournament.mode === "ranked") return;
+
         if (
             tournament.teamMode === "flex" &&
             input.playerIdsA &&

@@ -1,19 +1,97 @@
+/* ── Layout tokens ── */
+:root {
+  --layout-background: #020617;
+  --layout-card: #0f172a;
+  --layout-card-hover: #1e293b;
+  --layout-border: #334155;
+
+  /* Rank colors */
+  --rank-challenger-bg: #334155;
+  --rank-challenger-text: #cbd5f5;
+  --rank-challenger-border: #475569;
+
+  --rank-strategist-bg: #1e3a8a;
+  --rank-strategist-text: #93c5fd;
+  --rank-strategist-border: #3b82f6;
+
+  --rank-master-bg: #78350f;
+  --rank-master-text: #fcd34d;
+  --rank-master-border: #f59e0b;
+
+  --rank-legend-bg: #7f1d1d;
+  --rank-legend-text: #fca5a5;
+  --rank-legend-border: #ef4444;
+
+  /* MMR delta */
+  --mmr-positive: #4ade80;
+  --mmr-negative: #f87171;
+  --mmr-neutral: #94a3b8;
+}
+
 .main-app {
   background: var(--p-surface-50);
 }
 
 header {
   background: var(--p-surface-200);
-  /* add shadow */
   box-shadow: 0px 2px 4px var(--p-surface-300);
 }
 
 .my-app-dark {
   .main-app {
-    background: var(--p-surface-800);
+    background: var(--layout-background);
   }
   header {
-    background: var(--p-surface-900);
-    box-shadow: 0px 2px 4px var(--p-surface-950);
+    background: var(--layout-card);
+    box-shadow: 0px 2px 4px var(--layout-background);
   }
+}
+
+/* ── Rank badges ── */
+.rank-challenger {
+  background: var(--rank-challenger-bg);
+  color: var(--rank-challenger-text);
+  border: 1px solid var(--rank-challenger-border);
+}
+
+.rank-strategist {
+  background: var(--rank-strategist-bg);
+  color: var(--rank-strategist-text);
+  border: 1px solid var(--rank-strategist-border);
+}
+
+.rank-master {
+  background: var(--rank-master-bg);
+  color: var(--rank-master-text);
+  border: 1px solid var(--rank-master-border);
+}
+
+.rank-legend {
+  background: var(--rank-legend-bg);
+  color: var(--rank-legend-text);
+  border: 1px solid var(--rank-legend-border);
+}
+
+/* ── MMR delta ── */
+.mmr-up {
+  color: var(--mmr-positive);
+}
+
+.mmr-down {
+  color: var(--mmr-negative);
+}
+
+.mmr-neutral {
+  color: var(--mmr-neutral);
+}
+
+/* ── Card hover ── */
+.card:hover {
+  background-color: var(--layout-card-hover);
+  transition: background-color 0.2s;
+}
+
+/* ── Focus ── */
+:focus-visible {
+  outline: 2px solid var(--p-primary-500);
 }

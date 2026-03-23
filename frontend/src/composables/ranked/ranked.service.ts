@@ -6,19 +6,24 @@ import type {
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
   ClientMmrHistoryEntry,
-  RankBoundaries,
-  RankTier,
+  ClientRankTier,
 } from '@skill-arena/shared/types/index'
 
 export function useRankedService() {
   const seasons = ref<RankedSeason[]>([])
   const currentSeason = ref<RankedSeason | null>(null)
   const leaderboard = ref<ClientPlayerMmr[]>([])
-  const boundaries = ref<RankBoundaries | null>(null)
+  const tiers = ref<ClientRankTier[]>([])
   const playerMmr = ref<ClientPlayerMmr | null>(null)
   const playerHistory = ref<ClientMmrHistoryEntry[]>([])
+  const playerHistoryHasMore = ref(false)
+  const playerHistoryOffset = ref(0)
+  const playerHistorySeasonId = ref('')
+  const playerHistoryPlayerId = ref('')
   const loading = ref(false)
   const error = ref<string | null>(null)
+
+  const HISTORY_PAGE_SIZE = 10
 
   async function loadSeasons(filters?: { disciplineId?: string; status?: string }) {
     loading.value = true
@@ -113,7 +118,7 @@ export function useRankedService() {
     try {
       const data = await rankedApi.getLeaderboard(seasonId)
       leaderboard.value = data.players
-      boundaries.value = data.boundaries ?? null
+      tiers.value = data.tiers ?? []
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du classement'
     } finally {
@@ -127,7 +132,7 @@ export function useRankedService() {
     try {
       const data = await rankedApi.getPlayerMmr(seasonId, playerId)
       playerMmr.value = data.mmr
-      boundaries.value = data.boundaries ?? null
+      tiers.value = data.tiers ?? []
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du MMR'
     } finally {
@@ -135,11 +140,28 @@ export function useRankedService() {
     }
   }
 
-  async function loadPlayerHistory(seasonId: string, playerId: string) {
+  async function loadPlayerHistory(seasonId: string, playerId: string, append = false) {
+    if (!append) {
+      playerHistory.value = []
+      playerHistoryOffset.value = 0
+      playerHistoryHasMore.value = false
+      playerHistorySeasonId.value = seasonId
+      playerHistoryPlayerId.value = playerId
+    }
     loading.value = true
     error.value = null
     try {
-      playerHistory.value = await rankedApi.getPlayerHistory(seasonId, playerId)
+      const results = await rankedApi.getPlayerHistory(seasonId, playerId, {
+        limit: HISTORY_PAGE_SIZE,
+        offset: playerHistoryOffset.value,
+      })
+      if (append) {
+        playerHistory.value = [...playerHistory.value, ...results]
+      } else {
+        playerHistory.value = results
+      }
+      playerHistoryOffset.value += results.length
+      playerHistoryHasMore.value = results.length === HISTORY_PAGE_SIZE
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Erreur lors du chargement de l'historique"
     } finally {
@@ -147,19 +169,21 @@ export function useRankedService() {
     }
   }
 
-  function getRank(mmr: number, bounds: RankBoundaries | null): RankTier {
-    if (!bounds) return 'legend'
-    if (mmr > bounds.challengerMax) return 'challenger'
-    if (mmr > bounds.masterMax) return 'master'
-    if (mmr > bounds.strategistMax) return 'strategist'
-    return 'legend'
+  async function loadMoreHistory() {
+    if (!playerHistoryHasMore.value || loading.value) return
+    await loadPlayerHistory(playerHistorySeasonId.value, playerHistoryPlayerId.value, true)
+  }
+
+  function getRank(mmr: number, tierList: ClientRankTier[]): ClientRankTier | null {
+    if (!tierList.length) return null
+    return [...tierList].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tierList[0]
   }
 
   return {
     seasons,
     currentSeason,
     leaderboard,
-    boundaries,
+    tiers,
     playerMmr,
     playerHistory,
     loading,
@@ -173,6 +197,8 @@ export function useRankedService() {
     loadLeaderboard,
     loadPlayerMmr,
     loadPlayerHistory,
+    loadMoreHistory,
+    playerHistoryHasMore,
     getRank,
   }
 }

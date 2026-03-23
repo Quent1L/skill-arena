@@ -62,8 +62,12 @@ export class RankedSeasonService {
       throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
     }
 
+    const config = await rankedSeasonRepository.getConfigByTournamentId(id);
+    const baseMmr = config?.baseMmr ?? 1000;
+
     await tournamentRepository.update(id, { status: "ongoing" });
-    await this.calculateRankBoundaries(id);
+    await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
+    await this.recalculateTierMinMmr(id, baseMmr);
 
     return await rankedSeasonRepository.getSeasonWithConfig(id);
   }
@@ -125,37 +129,24 @@ export class RankedSeasonService {
   }
 
   /**
-   * Calculate rank boundaries based on percentiles (40/70/90 of MMR distribution)
-   * challenger = top 10%, master = top 30%, strategist = top 60%, rest = legend
+   * Recalculate tier min_mmr based on percentiles of MMR distribution.
+   * legend = top 10%, master = top 30%, strategist = top 60%, challenger = rest
    */
-  private async calculateRankBoundaries(seasonId: string) {
-    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
-    const baseMmr = config?.baseMmr ?? 1000;
+  private async recalculateTierMinMmr(seasonId: string, baseMmr: number) {
+    const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
+    if (tiers.length === 0) return;
 
     const allPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
-
-    if (allPlayers.length === 0) {
-      // Default boundaries based on baseMmr
-      await rankedSeasonRepository.setRankBoundaries(seasonId, {
-        challengerMax: baseMmr + 400,
-        strategistMax: baseMmr + 200,
-        masterMax: baseMmr + 300,
-      });
-      return;
-    }
-
     const sorted = allPlayers.map((p) => p.currentMmr).sort((a, b) => a - b);
     const n = sorted.length;
 
-    const strategistMax = sorted[Math.floor(n * 0.4)] ?? baseMmr;
-    const masterMax = sorted[Math.floor(n * 0.7)] ?? baseMmr + 200;
-    const challengerMax = sorted[Math.floor(n * 0.9)] ?? baseMmr + 400;
-
-    await rankedSeasonRepository.setRankBoundaries(seasonId, {
-      challengerMax,
-      strategistMax,
-      masterMax,
-    });
+    for (const tier of tiers) {
+      const minMmr =
+        tier.percentile === 0 || n === 0
+          ? baseMmr
+          : (sorted[Math.floor(n * tier.percentile)] ?? baseMmr);
+      await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, { minMmr });
+    }
   }
 
   /**

@@ -15,9 +15,6 @@ export type UserRole = (typeof userRoleEnum)[number];
 export const tournamentModeEnum = ["championship", "bracket", "ranked"] as const;
 export type TournamentMode = (typeof tournamentModeEnum)[number];
 
-export const rankTierEnum = ["challenger", "strategist", "master", "legend"] as const;
-export type RankTier = (typeof rankTierEnum)[number];
-
 export const teamModeEnum = ["static", "flex"] as const;
 export type TeamMode = (typeof teamModeEnum)[number];
 

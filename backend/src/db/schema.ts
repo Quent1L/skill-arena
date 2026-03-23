@@ -623,17 +623,21 @@ export const mmrHistory = pgTable(
   (table) => [unique().on(table.seasonId, table.playerId, table.matchId)],
 );
 
-export const rankBoundaries = pgTable("rank_boundaries", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  seasonId: uuid("season_id")
-    .notNull()
-    .unique()
-    .references(() => tournaments.id, { onDelete: "cascade" }),
-  challengerMax: integer("challenger_max").notNull(),
-  strategistMax: integer("strategist_max").notNull(),
-  masterMax: integer("master_max").notNull(),
-  calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
-});
+export const rankTiers = pgTable(
+  "rank_tiers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    level: integer("level").notNull(),
+    name: text("name").notNull(),
+    percentile: real("percentile").notNull(),
+    minMmr: integer("min_mmr").notNull(),
+    calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.seasonId, table.level)],
+);
 
 // ********************************************************************
 // [End] Ranked season tables
@@ -779,10 +783,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
     fields: [tournaments.id],
     references: [rankedSeasonConfigs.tournamentId],
   }),
-  rankBoundaries: one(rankBoundaries, {
-    fields: [tournaments.id],
-    references: [rankBoundaries.seasonId],
-  }),
+  rankTiers: many(rankTiers),
   playerMmrs: many(playerMmr),
 }));
 
@@ -1070,11 +1071,11 @@ export const mmrHistoryRelations = relations(mmrHistory, ({ one }) => ({
   }),
 }));
 
-export const rankBoundariesRelations = relations(
-  rankBoundaries,
+export const rankTiersRelations = relations(
+  rankTiers,
   ({ one }) => ({
     season: one(tournaments, {
-      fields: [rankBoundaries.seasonId],
+      fields: [rankTiers.seasonId],
       references: [tournaments.id],
     }),
   }),

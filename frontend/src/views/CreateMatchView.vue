@@ -251,9 +251,9 @@ const tournamentMinDate = computed(() => {
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
     if (tournament.value.startDate) {
       const startDate = new Date(tournament.value.startDate)
-      return startDate > fortyEightHoursAgo ? tournament.value.startDate : fortyEightHoursAgo.toISOString()
+      return startDate > fortyEightHoursAgo ? tournament.value.startDate : fortyEightHoursAgo
     }
-    return fortyEightHoursAgo.toISOString()
+    return fortyEightHoursAgo
   }
   if (!tournament.value?.startDate) return undefined
   return tournament.value.startDate
