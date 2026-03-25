@@ -3,6 +3,7 @@ import { notificationService } from '../services/notification.service';
 import { CreateNotificationSchema, RegisterDeviceSchema } from '@skill-arena/shared';
 import { requireAuth } from '../middleware/auth';
 import { createAppHono } from '../types/hono';
+import { logger } from '../utils/logger';
 
 const app = createAppHono();
 
@@ -34,13 +35,13 @@ app.post('/me/pushDevices', requireAuth, zValidator('json', RegisterDeviceSchema
   const appUserId = c.get('appUserId');
   const data = c.req.valid('json');
   
-  console.log('[PushDevice] Registration request for user:', appUserId);
-  console.log('[PushDevice] Device type:', data.deviceType);
-  console.log('[PushDevice] Endpoint:', data.subscriptionEndpoint);
-  console.log('[PushDevice] Subscription keys:', Object.keys(data.subscriptionData || {}));
+  logger.debug('[PushDevice] Registration request for user:', appUserId);
+  logger.debug('[PushDevice] Device type:', data.deviceType);
+  logger.debug('[PushDevice] Endpoint:', data.subscriptionEndpoint);
+  logger.debug('[PushDevice] Subscription keys:', Object.keys(data.subscriptionData || {}));
   
   await notificationService.registerPushDevice(appUserId, data);
-  console.log('[PushDevice] Registration completed successfully');
+  logger.debug('[PushDevice] Registration completed successfully');
   return c.json({ success: true });
 });
 
@@ -68,7 +69,7 @@ app.post('/notifications/:id/resend', requireAuth, async (c) => {
         const notification = await notificationService.resend(id, body.messageKey);
         return c.json(notification);
     } catch (error) {
-        console.error(error);
+        logger.error(error);
         return c.json({ error: 'Failed to resend' }, 400);
     }
 });
@@ -81,7 +82,7 @@ app.delete('/me/notifications/:id', requireAuth, async (c) => {
     await notificationService.delete(id, appUserId);
     return c.json({ success: true });
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     const message = error instanceof Error ? error.message : 'Failed to delete notification';
     return c.json({ error: message }, 400);
   }

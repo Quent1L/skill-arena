@@ -1,4 +1,5 @@
 import { ConflictError, ErrorCode } from "../types/errors";
+import { logger } from "./logger";
 
 /**
  * Extract PostgreSQL error details from Drizzle error
@@ -52,7 +53,7 @@ export function extractPostgresError(error: unknown): {
   }
 
   // Log the error structure for debugging
-  console.error("Could not extract PostgreSQL error. Error structure:", {
+  logger.error("Could not extract PostgreSQL error. Error structure:", {
     keys: Object.keys(err),
     hasCode: "code" in err,
     hasCause: "cause" in err,
@@ -71,10 +72,10 @@ export function handleDatabaseError(
   context: { operation: string; name?: string }
 ): never {
   // Log full error structure for debugging
-  console.error(`Tournament ${context.operation} error:`, error);
+  logger.error(`Tournament ${context.operation} error:`, error);
   if (error && typeof error === "object") {
     const err = error as Record<string, unknown>;
-    console.error("Error structure:", {
+    logger.error("Error structure:", {
       constructor: err.constructor?.name,
       keys: Object.keys(err),
       code: err.code,
@@ -87,7 +88,7 @@ export function handleDatabaseError(
   const pgError = extractPostgresError(error);
 
   if (pgError) {
-    console.error("Extracted PostgreSQL error:", pgError);
+    logger.error("Extracted PostgreSQL error:", pgError);
 
     if (pgError.code === "23505") {
       // Unique constraint violation
@@ -95,7 +96,7 @@ export function handleDatabaseError(
       const detail = pgError.detail?.toLowerCase() || "";
       const message = pgError.message?.toLowerCase() || "";
 
-      console.error("Unique constraint violation details:", {
+      logger.error("Unique constraint violation details:", {
         constraint,
         detail,
         message,

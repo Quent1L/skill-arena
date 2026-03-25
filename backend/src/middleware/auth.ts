@@ -2,6 +2,7 @@ import type { Context, Next } from "hono";
 import { auth } from "../config/auth";
 import { userService } from "../services/user.service";
 import type { AppVariablesOptional } from "../types/hono";
+import { logger } from "../utils/logger";
 
 type AppContext = Context<{
   Variables: AppVariablesOptional;
@@ -25,7 +26,7 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
   } catch (error: any) {
     // Si l'erreur est liée au code d'invitation manquant
     if (error.code === "INVITATION_CODE_REQUIRED") {
-      console.warn(`[Auth Middleware] User ${betterAuthUser.id} is authenticated but has no invitation code`);
+      logger.warn(`[Auth Middleware] User ${betterAuthUser.id} is authenticated but has no invitation code`);
 
       // Retourner une erreur 403 Forbidden avec un message clair
       // L'utilisateur est authentifié (session valide) mais doit soumettre un code d'invitation

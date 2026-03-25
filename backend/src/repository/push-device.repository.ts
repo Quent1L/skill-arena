@@ -2,11 +2,12 @@ import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
 import { userPushDevices } from "../db/schema";
 import { RegisterDevice } from "@skill-arena/shared";
+import { logger } from "../utils/logger";
 
 export const pushDeviceRepository = {
   async register(userId: string, data: RegisterDevice) {
-    console.log('[PushDeviceRepo] Registering device for user:', userId);
-    console.log('[PushDeviceRepo] Endpoint:', data.subscriptionEndpoint);
+    logger.debug('[PushDeviceRepo] Registering device for user:', userId);
+    logger.debug('[PushDeviceRepo] Endpoint:', data.subscriptionEndpoint);
     
     // Check if device already exists with this endpoint
     const [existing] = await db
@@ -17,7 +18,7 @@ export const pushDeviceRepository = {
       );
 
     if (existing) {
-      console.log('[PushDeviceRepo] Device already exists, updating:', existing.id);
+      logger.debug('[PushDeviceRepo] Device already exists, updating:', existing.id);
       const result = await db
         .update(userPushDevices)
         .set({
@@ -28,11 +29,11 @@ export const pushDeviceRepository = {
         })
         .where(eq(userPushDevices.id, existing.id))
         .returning();
-      console.log('[PushDeviceRepo] Device updated successfully');
+      logger.debug('[PushDeviceRepo] Device updated successfully');
       return result;
     }
 
-    console.log('[PushDeviceRepo] Creating new device entry');
+    logger.debug('[PushDeviceRepo] Creating new device entry');
     const result = await db
       .insert(userPushDevices)
       .values({
@@ -43,7 +44,7 @@ export const pushDeviceRepository = {
         active: true,
       })
       .returning();
-    console.log('[PushDeviceRepo] Device created successfully:', result[0]?.id);
+    logger.debug('[PushDeviceRepo] Device created successfully:', result[0]?.id);
     return result;
   },
 

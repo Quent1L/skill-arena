@@ -1,6 +1,5 @@
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import { serveStatic,  upgradeWebSocket, websocket } from "hono/bun";
+import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "./config/auth";
 import tournaments from "./routes/tournaments.route";
@@ -23,14 +22,23 @@ import { webSocketService } from "./services/websocket.service";
 import { jobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
+import { logger } from "./utils/logger";
 
 await runMigrations();
 await initializeAdminIfNeeded();
 
 const app = createAppHonoOptional();
 
-// Logger middleware - only log API routes (static files are excluded)
-app.use("/api/*", logger());
+// HTTP request logger middleware - logs at debug level
+app.use("/api/*", async (c, next) => {
+  const method = c.req.method;
+  const path = c.req.path;
+  logger.debug(`<-- ${method} ${path}`);
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start;
+  logger.debug(`--> ${method} ${path} ${c.res.status} ${ms}ms`);
+});
 
 // Configuration CORS en mode développement
 app.use(
@@ -96,10 +104,10 @@ app.get(
     const user = c.get("user");
     const session = c.get("session");
     
-    console.log('[WS] Upgrade request - BetterAuth User:', user?.id, 'Session:', session?.id);
+    logger.debug(`[WS] Upgrade request - BetterAuth User: ${user?.id} Session: ${session?.id}`);
     
     if (!user) {
-      console.error('[WS] No user in context, rejecting connection');
+      logger.error('[WS] No user in context, rejecting connection');
       throw new HTTPException(401, { message: "Unauthorized" });
     }
     
@@ -110,11 +118,11 @@ app.get(
       user.name || user.email
     );
     
-    console.log(`[WS] BetterAuth user ${user.id} mapped to App user ${appUserId}`);
+    logger.debug(`[WS] BetterAuth user ${user.id} mapped to App user ${appUserId}`);
     
     return {
       onOpen(_event, ws) {
-        console.log(`[WS] App user ${appUserId} connected (BetterAuth: ${user.id})`);
+        logger.debug(`[WS] App user ${appUserId} connected (BetterAuth: ${user.id})`);
         webSocketService.handleConnection(ws, appUserId);
       },
       onMessage(event, _ws) {
@@ -128,12 +136,12 @@ app.get(
         } catch {}
       },
       onClose(_event, ws) {
-        console.log(`[WS] App user ${appUserId} disconnected`);
+        logger.debug(`[WS] App user ${appUserId} disconnected`);
         webSocketService.handleClose(ws, appUserId);
         webSocketService.unsubscribeUserFromAll(appUserId);
       },
       onError(event, _ws) {
-        console.error(`[WS] Error for app user ${appUserId}:`, event);
+        logger.error(`[WS] Error for app user ${appUserId}: %o`, event);
       }
     };
   })
@@ -169,7 +177,7 @@ if (frontendBuildPath) {
       const indexHtml = await indexFile.text();
       return c.html(indexHtml);
     } else {
-      console.error("index.html not found in:", frontendBuildPath);
+      logger.error("index.html not found in: %s", frontendBuildPath);
       return c.text("Frontend not found", 404);
     }
   });
@@ -183,42 +191,25 @@ app.onError(errorHandler);
 
 if (typeof process !== "undefined") {
   process.on("uncaughtException", (err: Error) => {
-    console.error("\n" + "=".repeat(80));
-    console.error("🚨 UNCAUGHT EXCEPTION");
-    console.error("=".repeat(80));
-    console.error("Error:", err.message);
-    console.error("Stack:", err.stack);
-    console.error("=".repeat(80) + "\n");
+    logger.fatal(err, "UNCAUGHT EXCEPTION");
   });
 
   process.on(
     "unhandledRejection",
     (reason: unknown, _promise: Promise<unknown>) => {
-      console.error("\n" + "=".repeat(80));
-      console.error("🚨 UNHANDLED PROMISE REJECTION");
-      console.error("=".repeat(80));
-      console.error("Reason:", reason);
-      if (reason instanceof Error) {
-        console.error("Error:", reason.message);
-        console.error("Stack:", reason.stack);
-      }
-      console.error("=".repeat(80) + "\n");
+      logger.fatal({ reason }, "UNHANDLED PROMISE REJECTION");
     }
   );
 }
 
-console.log("=".repeat(80));
-console.log("✅ Hono server initialized");
-console.log("✅ Logger middleware enabled");
-console.log("✅ Error handler configured");
+logger.info("Hono server initialized");
+logger.info("Log level: %s", logger.level);
+logger.info("Error handler configured");
 if (frontendBuildPath) {
-  console.log(`✅ Static files serving enabled from: ${frontendBuildPath}`);
+  logger.info(`Static files serving enabled from: ${frontendBuildPath}`);
 } else {
-  console.log(
-    "ℹ️  Static files serving disabled (FRONTEND_BUILD_PATH not set)"
-  );
+  logger.info("Static files serving disabled (FRONTEND_BUILD_PATH not set)");
 }
-console.log("=".repeat(80));
 
 // Start job scheduler for auto-finalization
 jobScheduler.start();

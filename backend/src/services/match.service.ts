@@ -23,6 +23,7 @@ import i18next from "../config/i18n";
 import type { UpdateMatchData } from "../repository/match.repository";
 import { notificationService } from "./notification.service";
 import { matchInputValidator } from "./validators/match-input.validator";
+import { logger } from "../utils/logger";
 import { matchRuleValidator } from "./validators/match-rule.validator";
 import { matchPermissionValidator } from "./validators/match-permission.validator";
 import { matchStatusValidator } from "./validators/match-status.validator";
@@ -729,7 +730,7 @@ export class MatchService {
     } catch (error) {
       // Don't fail the validation if duplicate check fails
       // Just log the error and continue
-      console.error("Error checking for duplicate matches:", error);
+      logger.error({ err: error }, "Error checking for duplicate matches");
     }
   }
 

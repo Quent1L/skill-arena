@@ -79,7 +79,6 @@ declare module 'vue' {
     TeamPreview: typeof import('./src/components/match/TeamPreview.vue')['default']
     TeamSelectionStep: typeof import('./src/components/match/TeamSelectionStep.vue')['default']
     TeamSelector: typeof import('./src/components/TeamSelector.vue')['default']
-    Textarea: typeof import('primevue/textarea')['default']
     Toast: typeof import('primevue/toast')['default']
     ToggleSwitch: typeof import('primevue/toggleswitch')['default']
     TournamentBracket: typeof import('./src/components/tournament/TournamentBracket.vue')['default']

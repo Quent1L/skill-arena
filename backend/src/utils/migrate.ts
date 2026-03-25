@@ -1,14 +1,14 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
+import { logger } from "./logger";
 
 /**
  * Run pending database migrations
  * Should be called before starting the server
  */
 export async function runMigrations(): Promise<void> {
-  console.log("=".repeat(80));
-  console.log("🔄 Checking database migrations...");
+  logger.info("Checking database migrations...");
 
   try {
     // Create a temporary connection pool for migrations
@@ -25,19 +25,12 @@ export async function runMigrations(): Promise<void> {
     // 4. Does everything in a transaction
     await migrate(db, { migrationsFolder: process.env.MIGRATIONS_FOLDER ?? "./drizzle" });
 
-    console.log("✅ Database migrations completed successfully");
-    console.log("=".repeat(80));
+    logger.info("Database migrations completed successfully");
 
     // Close the pool after migrations
     await pool.end();
   } catch (error) {
-    console.error("=".repeat(80));
-    console.error("❌ Database migration failed!");
-    console.error("Error:", error instanceof Error ? error.message : error);
-    if (error instanceof Error && error.stack) {
-      console.error("Stack:", error.stack);
-    }
-    console.error("=".repeat(80));
+    logger.fatal({ err: error }, "Database migration failed!");
 
     // Exit the process - we don't want to start the server with failed migrations
     process.exit(1);

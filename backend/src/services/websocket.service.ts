@@ -1,3 +1,5 @@
+import { logger } from "../utils/logger";
+
 export class WebSocketService {
   private static instance: WebSocketService;
   // Map userId -> Set of WebSockets (to support multiple tabs/devices)
@@ -19,7 +21,7 @@ export class WebSocketService {
       this.connections.set(userId, new Set());
     }
     this.connections.get(userId)!.add(ws);
-    console.log(`User ${userId} connected via WebSocket`);
+    logger.debug(`User ${userId} connected via WebSocket`);
   }
 
   public handleClose(ws: any, userId: string) {
@@ -30,7 +32,7 @@ export class WebSocketService {
         this.connections.delete(userId);
       }
     }
-    console.log(`User ${userId} disconnected`);
+    logger.debug(`User ${userId} disconnected`);
   }
 
   public subscribeToTournament(tournamentId: string, userId: string): void {
@@ -69,34 +71,34 @@ export class WebSocketService {
 
   public send(userId: string, data: any) {
     const userConns = this.connections.get(userId);
-    console.log(`[WS] Attempting to send to user ${userId}, connections: ${userConns?.size || 0}`);
+    logger.debug(`[WS] Attempting to send to user ${userId}, connections: ${userConns?.size || 0}`);
     
     if (userConns) {
       const message = JSON.stringify(data);
-      console.log(`[WS] Sending message to user ${userId}:`, message);
+      logger.debug(`[WS] Sending message to user ${userId}:`, message);
       
       for (const ws of userConns) {
         // Check for readyState if available (Bun/standard WS)
         if (ws.readyState === 1) {
           ws.send(message);
-          console.log(`[WS] Message sent successfully to user ${userId}`);
+          logger.debug(`[WS] Message sent successfully to user ${userId}`);
         } else if (typeof ws.readyState === "undefined") {
           // Hono WSContext might not have readyState directly exposed or it's different
           // Try sending anyway or check documentation.
           // For Hono WSContext, we just call send.
           try {
             ws.send(message);
-            console.log(`[WS] Message sent successfully to user ${userId} (no readyState)`);
+            logger.debug(`[WS] Message sent successfully to user ${userId} (no readyState)`);
           } catch (e) {
-            console.error(`[WS] Failed to send to user ${userId}`, e);
+            logger.error(`[WS] Failed to send to user ${userId}`, e);
           }
         } else {
-          console.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
+          logger.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
         }
       }
       return true;
     }
-    console.warn(`[WS] No connections found for user ${userId}`);
+    logger.warn(`[WS] No connections found for user ${userId}`);
     return false;
   }
 }

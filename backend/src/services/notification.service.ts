@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { logger } from "../utils/logger";
 import i18next from "../config/i18n";
 import { notificationRepository } from "../repository/notification.repository";
 import { pushDeviceRepository } from "../repository/push-device.repository";
@@ -35,7 +36,7 @@ function decodeHtmlEntities(text: string): string {
 
 export const notificationService = {
   async send(data: CreateNotification) {
-    console.log(
+    logger.debug(
       `[Notification] Creating notification for user ${data.userId}, type: ${data.type}`,
     );
     const notification = await notificationRepository.create(data);
@@ -55,18 +56,18 @@ export const notificationService = {
       message,
     };
 
-    console.log(
+    logger.debug(
       `[Notification] Sending WebSocket notification to user ${data.userId}`,
     );
     const sent = webSocketService.send(data.userId, {
       event: "new_notification",
       data: payload,
     });
-    console.log(`[Notification] WebSocket send result: ${sent}`);
+    logger.debug(`[Notification] WebSocket send result: ${sent}`);
 
-    console.log(`[Push] Fetching push devices for user ${data.userId}`);
+    logger.debug(`[Push] Fetching push devices for user ${data.userId}`);
     const devices = await pushDeviceRepository.getActiveForUser(data.userId);
-    console.log(
+    logger.debug(
       `[Push] Found ${devices.length} push device(s) for user ${data.userId}`,
     );
 
@@ -78,7 +79,7 @@ export const notificationService = {
     };
 
     for (const device of devices) {
-      console.log(
+      logger.debug(
         `[Push] Processing device ${device.id}, endpoint: ${device.subscriptionEndpoint.substring(0, 50)}...`,
       );
       try {
@@ -88,17 +89,17 @@ export const notificationService = {
             const parsed = JSON.parse(device.subscriptionData);
             // If subscriptionData IS the keys object or contains it
             keys = parsed.keys || parsed;
-            console.log(
+            logger.debug(
               `[Push] Parsed subscription keys for device ${device.id}`,
             );
           } catch (e) {
-            console.error(
+            logger.error(
               `[Push] Failed to parse subscription data for device ${device.id}`,
               e,
             );
           }
         } else {
-          console.warn(`[Push] No subscription data for device ${device.id}`);
+          logger.warn(`[Push] No subscription data for device ${device.id}`);
         }
 
         if (keys) {
@@ -107,21 +108,21 @@ export const notificationService = {
             keys: keys,
           };
 
-          console.log(
+          logger.debug(
             `[Push] Sending push notification to device ${device.id}`,
           );
           await webpush.sendNotification(
             pushSubscription,
             JSON.stringify(pushPayload),
           );
-          console.log(
+          logger.debug(
             `[Push] Successfully sent push notification to device ${device.id}`,
           );
         } else {
-          console.warn(`[Push] Skipping device ${device.id} - no valid keys`);
+          logger.warn(`[Push] Skipping device ${device.id} - no valid keys`);
         }
       } catch (error) {
-        console.error(
+        logger.error(
           `[Push] Error sending push notification to device ${device.id}:`,
           error,
         );
@@ -130,7 +131,7 @@ export const notificationService = {
           "statusCode" in error &&
           (error as any).statusCode === 410
         ) {
-          console.log(
+          logger.debug(
             `[Push] Removing inactive push device ${device.id} for user ${device.userId}`,
           );
           await pushDeviceRepository.remove(device.userId, device.id);
@@ -168,12 +169,12 @@ export const notificationService = {
   },
 
   async registerPushDevice(userId: string, data: RegisterDevice) {
-    console.log(
+    logger.debug(
       "[NotificationService] Registering push device for user:",
       userId,
     );
     const result = await pushDeviceRepository.register(userId, data);
-    console.log(
+    logger.debug(
       "[NotificationService] Push device registered, result:",
       result,
     );

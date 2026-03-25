@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { AppError } from "../types/errors";
 import { ZodError } from "zod";
 import i18next from "../config/i18n";
+import { logger } from "../utils/logger";
 
 export async function errorHandler(err: Error, c: Context) {
   // Extract request information for logging (do this first, before any other operations)
@@ -26,23 +27,9 @@ export async function errorHandler(err: Error, c: Context) {
 
   // Always log the error first, even if it fails later
   try {
-    console.error("\n" + "=".repeat(80));
-    console.error("🚨 ERROR HANDLER TRIGGERED");
-    console.error("=".repeat(80));
-    console.error("Error Type:", err?.constructor?.name || "Unknown");
-    console.error("Error Name:", err?.name || "Unknown");
-    console.error("Error Message:", err?.message || "No message");
-    console.error("Request:", `${requestInfo.method} ${requestInfo.path}`);
-    console.error("URL:", requestInfo.url);
-    console.error("IP:", requestInfo.ip);
-    if (err?.stack) {
-      console.error("Stack Trace:", err.stack);
-    }
-    console.error("=".repeat(80) + "\n");
+    logger.error({ err, request: requestInfo }, "ERROR HANDLER TRIGGERED");
   } catch (logError) {
-    // If logging fails, try basic console.error
-    console.error("CRITICAL: Failed to log error properly:", logError);
-    console.error("Original error:", err);
+    logger.error({ logError, err }, "CRITICAL: Failed to log error properly");
   }
 
   // Get i18n instance from context or use default
@@ -57,15 +44,7 @@ export async function errorHandler(err: Error, c: Context) {
   if (err instanceof AppError) {
     const message = i18n.t(`errors.${err.code}`, err.details || {});
     
-    // Log AppError with details
-    console.error("[AppError]", JSON.stringify({
-      code: err.code,
-      statusCode: err.statusCode,
-      message: err.message,
-      details: err.details,
-      request: requestInfo,
-      stack: err.stack,
-    }, null, 2));
+    logger.error({ err, request: requestInfo }, "[AppError] %s", err.code);
 
     return c.json(
       {
@@ -87,14 +66,7 @@ export async function errorHandler(err: Error, c: Context) {
       message: e.message,
     }));
 
-    // Log Zod validation error with details
-    console.error("[ValidationError]", JSON.stringify({
-      code: "VALIDATION_ERROR",
-      statusCode: 400,
-      issues: validationIssues,
-      request: requestInfo,
-      stack: err.stack,
-    }, null, 2));
+    logger.error({ err, issues: validationIssues, request: requestInfo }, "[ValidationError]");
 
     return c.json(
       {
@@ -114,35 +86,7 @@ export async function errorHandler(err: Error, c: Context) {
   // Use generic message for response, but log full details
   const genericMessage = i18n.t("errors.UNKNOWN");
   
-  // Log unknown error with full details (including actual error message and stack)
-  const errorDetails: Record<string, unknown> = {
-    code: "UNKNOWN",
-    statusCode: 500,
-    actualErrorMessage: err.message,
-    errorName: err.name,
-    request: requestInfo,
-    stack: err.stack,
-  };
-
-  // Try to extract additional error details if available
-  if (err && typeof err === "object") {
-    const errObj = err as unknown as Record<string, unknown>;
-    if (errObj.code) errorDetails.errorCode = errObj.code;
-    if (errObj.detail) errorDetails.errorDetail = errObj.detail;
-    if (errObj.hint) errorDetails.errorHint = errObj.hint;
-    if (errObj.position) errorDetails.errorPosition = errObj.position;
-    if (errObj.where) errorDetails.errorWhere = errObj.where;
-    if (errObj.query) errorDetails.errorQuery = errObj.query;
-    if (errObj.parameters) errorDetails.errorParameters = errObj.parameters;
-    if (errObj.cause) {
-      const cause = errObj.cause as Record<string, unknown>;
-      if (cause.message) errorDetails.causeMessage = cause.message;
-      if (cause.code) errorDetails.causeCode = cause.code;
-      if (cause.detail) errorDetails.causeDetail = cause.detail;
-    }
-  }
-
-  console.error("[UnknownError]", JSON.stringify(errorDetails, null, 2));
+  logger.error({ err, request: requestInfo }, "[UnknownError]");
 
   // Return only generic error message to client (no implementation details)
   return c.json(

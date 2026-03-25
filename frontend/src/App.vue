@@ -34,16 +34,16 @@ onMounted(async () => {
 
   try {
     await loadConfig()
-    console.log('✅ Configuration loaded successfully')
+    console.log('Configuration loaded successfully')
   } catch (error) {
-    console.error('❌ Erreur lors du chargement de la configuration:', error)
+    console.error('Erreur lors du chargement de la configuration:', error)
     errorService.showError(error as Error)
   }
 
   try {
     await initialize()
   } catch (error: unknown) {
-    console.error("❌ Erreur lors de l'initialisation de la session:", error)
+    console.error("Erreur lors de l'initialisation de la session:", error)
     toast.add({
       severity: 'error',
       summary: 'Erreur',

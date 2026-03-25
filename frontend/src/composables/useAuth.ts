@@ -17,10 +17,8 @@ const error = ref<string | null>(null)
  */
 async function fetchUserData() {
   try {
-    console.log('Récupération des données utilisateur...')
     const userData = await userApi.me()
     appUserData.value = userData
-    console.log('Données utilisateur récupérées:', userData)
   } catch (err) {
     console.error('Erreur lors de la récupération des données utilisateur:', err)
     appUserData.value = null
@@ -53,7 +51,6 @@ export function useAuth() {
 
     try {
       const result = await authClient.getSession()
-      console.log('Session check result:', result) // Debug
       if (result.error) {
         error.value = result.error.message || 'Erreur lors de la récupération de la session'
         sessionData.value = { data: { user: null, session: null } }
@@ -61,7 +58,6 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
       sessionData.value = result
-      console.log('Updated session data:', sessionData.value) // Debug
       return result
     } catch (err) {
       const message =
@@ -137,8 +133,7 @@ export function useAuth() {
 
       if (result.error) {
         // Better Auth peut retourner l'erreur dans différents formats
-        const errorMessage =
-          result.error?.message ?? "Erreur lors de l'inscription"
+        const errorMessage = result.error?.message ?? "Erreur lors de l'inscription"
 
         error.value = errorMessage
         throw new Error(errorMessage)
@@ -222,7 +217,7 @@ export function useAuth() {
       if (config.value?.auth?.keycloak?.enabled && config.value?.auth?.keycloak?.issuer) {
         const keycloakLogoutUrl = buildKeycloakLogoutUrl(
           config.value.auth.keycloak.issuer,
-          config.value.auth.keycloak.clientId || undefined
+          config.value.auth.keycloak.clientId || undefined,
         )
         window.location.href = keycloakLogoutUrl
       }

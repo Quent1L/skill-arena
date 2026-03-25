@@ -9,9 +9,7 @@ import { errorService } from '@/composables/useErrorService.ts'
 /**
  * Middleware pour vérifier l'authentification
  */
-export async function requireAuth(
-  to: RouteLocationNormalized,
-) {
+export async function requireAuth(to: RouteLocationNormalized) {
   const { isAuthenticated, isInitialized, initialize } = useAuth()
 
   try {
@@ -33,7 +31,7 @@ export async function requireAuth(
     if (error instanceof Error && error.cause === 'INVITATION_CODE_REQUIRED') {
       const hasCookieCode = document.cookie
         .split('; ')
-        .some(row => row.startsWith('invitation_code='))
+        .some((row) => row.startsWith('invitation_code='))
       if (!hasCookieCode) {
         errorService.showError(error)
       }
@@ -50,9 +48,7 @@ export async function requireAuth(
 /**
  * Middleware pour vérifier que l'utilisateur est administrateur
  */
-export async function requireAdmin(
-  to: RouteLocationNormalized,
-) {
+export async function requireAdmin(to: RouteLocationNormalized) {
   const { isAuthenticated, isSuperAdmin, isInitialized, initialize } = useAuth()
 
   try {
@@ -62,23 +58,23 @@ export async function requireAdmin(
     }
 
     if (!isAuthenticated.value) {
-      console.warn("❌ Pas d'utilisateur connecté")
+      console.warn("Pas d'utilisateur connecté")
       return {
         path: '/login',
         query: { redirect: to.fullPath },
       }
     } else if (isSuperAdmin.value) {
-      console.log('✅ Utilisateur est admin, accès autorisé')
+      console.log('Utilisateur est admin, accès autorisé')
       return
     } else {
-      console.warn('❌ Utilisateur connecté mais pas admin')
+      console.warn('Utilisateur connecté mais pas admin')
       return {
         path: '/',
         replace: true,
       }
     }
   } catch (error) {
-    console.error('❌ Error checking admin status:', error)
+    console.error('Error checking admin status:', error)
 
     // Si l'erreur est INVITATION_CODE_REQUIRED, rediriger vers /submit-invitation
     if (error instanceof Error && error.message === 'INVITATION_CODE_REQUIRED') {
@@ -96,8 +92,7 @@ export async function requireAdmin(
 /**
  * Middleware pour rediriger les utilisateurs déjà connectés
  */
-export async function redirectIfAuthenticated(
-) {
+export async function redirectIfAuthenticated() {
   const { isInitialized, initialize } = useAuth()
 
   try {
@@ -105,7 +100,7 @@ export async function redirectIfAuthenticated(
       await initialize()
     }
   } catch (error) {
-    console.error('❌ Error during redirect check:', error)
+    console.error('Error during redirect check:', error)
   }
 }
 

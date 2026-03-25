@@ -1,4 +1,5 @@
 import { matchService } from "../services/match.service";
+import { logger } from "../utils/logger";
 
 /**
  * Job to auto-finalize matches after 72h deadline
@@ -6,11 +7,11 @@ import { matchService } from "../services/match.service";
  */
 export async function autoFinalizeMatchesJob() {
   try {
-    console.log("[Auto-finalize] Starting auto-finalization job...");
+    logger.info("[Auto-finalize] Starting auto-finalization job...");
     
     const result = await matchService.autoFinalizeExpiredMatches();
     
-    console.log(`[Auto-finalize] Job completed:`, {
+    logger.info(`[Auto-finalize] Job completed:`, {
       total: result.total,
       finalized: result.finalized.length,
       disputed: result.disputed.length,
@@ -18,7 +19,7 @@ export async function autoFinalizeMatchesJob() {
     
     return result;
   } catch (error) {
-    console.error("[Auto-finalize] Error during auto-finalization:", error);
+    logger.error("[Auto-finalize] Error during auto-finalization:", error);
     throw error;
   }
 }
@@ -27,14 +28,14 @@ export async function autoFinalizeMatchesJob() {
  * Run the job immediately (for testing or manual trigger)
  */
 if (import.meta.main) {
-  console.log("Running auto-finalize matches job manually...");
+  logger.info("Running auto-finalize matches job manually...");
   autoFinalizeMatchesJob()
     .then((result) => {
-      console.log("Job completed successfully:", result);
+      logger.info("Job completed successfully:", result);
       process.exit(0);
     })
     .catch((error) => {
-      console.error("Job failed:", error);
+      logger.error("Job failed:", error);
       process.exit(1);
     });
 }

@@ -1,4 +1,5 @@
 import { autoFinalizeMatchesJob } from "./auto-finalize-matches.job";
+import { logger } from "../utils/logger";
 
 /**
  * CRON Scheduler for periodic tasks
@@ -13,12 +14,12 @@ export class JobScheduler {
    */
   start() {
     if (this.intervalId) {
-      console.log("[Scheduler] Already running");
+      logger.info("[Scheduler] Already running");
       return;
     }
 
-    console.log("[Scheduler] Starting job scheduler...");
-    console.log(`[Scheduler] Auto-finalize job will run every ${this.INTERVAL_MS / 1000 / 60} minutes`);
+    logger.info("[Scheduler] Starting job scheduler...");
+    logger.info(`[Scheduler] Auto-finalize job will run every ${this.INTERVAL_MS / 1000 / 60} minutes`);
 
     // Run immediately on start
     this.runAutoFinalizeJob();
@@ -28,7 +29,7 @@ export class JobScheduler {
       this.runAutoFinalizeJob();
     }, this.INTERVAL_MS);
 
-    console.log("[Scheduler] Job scheduler started successfully");
+    logger.info("[Scheduler] Job scheduler started successfully");
   }
 
   /**
@@ -38,7 +39,7 @@ export class JobScheduler {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log("[Scheduler] Job scheduler stopped");
+      logger.info("[Scheduler] Job scheduler stopped");
     }
   }
 
@@ -49,7 +50,7 @@ export class JobScheduler {
     try {
       await autoFinalizeMatchesJob();
     } catch (error) {
-      console.error("[Scheduler] Error running auto-finalize job:", error);
+      logger.error("[Scheduler] Error running auto-finalize job:", error);
     }
   }
 }

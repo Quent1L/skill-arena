@@ -2,12 +2,13 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { db } from "../config/database";
 import { user, account, appUsers } from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
+import { logger } from "./logger";
 
 
 export async function initializeAdminIfNeeded(): Promise<void> {
   const existingUsers = await db.select().from(appUsers).limit(1);
   if (existingUsers.length > 0) {
-    console.log("ℹ️  Utilisateurs existants, création de l'admin initiale ignorée.");
+    logger.info("Utilisateurs existants, creation de l'admin initiale ignoree.");
     return;
   }
 
@@ -40,15 +41,8 @@ export async function initializeAdminIfNeeded(): Promise<void> {
     role: "super_admin",
   });
 
-  console.log("\n" + "=".repeat(80));
-  console.log("🚀 PREMIER DÉMARRAGE — COMPTE ADMINISTRATEUR CRÉÉ AUTOMATIQUEMENT");
-  console.log("=".repeat(80));
-  console.log(`  Email    : ${adminEmail}`);
-  console.log(`  Mot de passe : ${password}`);
-  console.log("");
-  console.log("  ⚠️  Changez ce mot de passe après votre première connexion !");
-  console.log(
-    "  👉 Connectez-vous via : /login?native=true"
-  );
-  console.log("=".repeat(80) + "\n");
+  logger.info({
+    email: adminEmail,
+    password,
+  }, "PREMIER DEMARRAGE — COMPTE ADMINISTRATEUR CREE AUTOMATIQUEMENT. Changez ce mot de passe apres votre premiere connexion via /login?native=true");
 }

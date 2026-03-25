@@ -6,6 +6,7 @@ import * as schema from "../db/schema";
 import { emailService } from "../services/email.service";
 import { invitationService } from "../services/invitation.service";
 import i18next from "./i18n";
+import { logger } from "../utils/logger";
 
 function extractInvitationCode(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
@@ -22,19 +23,10 @@ const isKeycloakEnabled = !!(
 );
 
 if (!isEmailPasswordEnabled && !isKeycloakEnabled) {
-  console.error("\n" + "=".repeat(80));
-  console.error("❌ ERREUR DE CONFIGURATION CRITIQUE");
-  console.error("=".repeat(80));
-  console.error("Aucune méthode d'authentification n'est activée !");
-  console.error("");
-  console.error("Au moins une des configurations suivantes est requise :");
-  console.error("  1. Email/Password : ENABLE_EMAIL_PASSWORD=true");
-  console.error("  2. Keycloak SSO   : KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET, KEYCLOAK_ISSUER");
-  console.error("");
-  console.error("État actuel :");
-  console.error(`  - Email/Password : ${isEmailPasswordEnabled ? "✓ Activé" : "✗ Désactivé"}`);
-  console.error(`  - Keycloak SSO   : ${isKeycloakEnabled ? "✓ Activé" : "✗ Désactivé (variables manquantes)"}`);
-  console.error("=".repeat(80) + "\n");
+  logger.fatal({
+    emailPassword: isEmailPasswordEnabled,
+    keycloak: isKeycloakEnabled,
+  }, "ERREUR DE CONFIGURATION CRITIQUE: Aucune méthode d'authentification n'est activée");
 
   throw new Error(
     "AUTHENTICATION_CONFIG_ERROR: At least one authentication method must be enabled. " +
@@ -42,13 +34,10 @@ if (!isEmailPasswordEnabled && !isKeycloakEnabled) {
   );
 }
 
-// Logs de configuration
-console.log("\n" + "=".repeat(80));
-console.log("🔐 Configuration de l'authentification");
-console.log("=".repeat(80));
-console.log(`Email/Password : ${isEmailPasswordEnabled ? "✅ Activé" : "⚠️  Désactivé"}`);
-console.log(`Keycloak SSO   : ${isKeycloakEnabled ? "✅ Activé" : "⚠️  Désactivé"}`);
-console.log("=".repeat(80) + "\n");
+logger.info({
+  emailPassword: isEmailPasswordEnabled,
+  keycloak: isKeycloakEnabled,
+}, "Configuration de l'authentification");
 
 const plugins: any[] = [];
 
@@ -59,17 +48,17 @@ async function processInvitationCode(
   source: string
 ): Promise<void> {
   if (!user) {
-    console.error(`[${source}] No user in context`);
+    logger.error(`[${source}] No user in context`);
     return;
   }
 
-  console.log(`[${source}] Processing user: ${user.id}`);
+  logger.info(`[${source}] Processing user: ${user.id}`);
 
   const cookieHeader = request?.headers?.get("cookie");
   const invitationCode = extractInvitationCode(cookieHeader);
 
   if (!invitationCode) {
-    console.warn(
+    logger.warn(
       `[${source}] No invitation code for user ${user.id} - appUser creation will be blocked`
     );
     return;
@@ -88,9 +77,9 @@ async function processInvitationCode(
       ipAddress
     );
 
-    console.log(`[${source}] Code consumed successfully for user ${user.id}`);
+    logger.info(`[${source}] Code consumed successfully for user ${user.id}`);
   } catch (error: any) {
-    console.error(`[${source}] Code consumption failed:`, error);
+    logger.error(`[${source}] Code consumption failed:`, error);
     // Note: On ne supprime PAS l'utilisateur ici
     // La création du appUser sera bloquée dans userService.getOrCreateAppUser()
   }
