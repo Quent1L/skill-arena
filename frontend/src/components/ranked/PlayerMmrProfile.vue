@@ -14,9 +14,7 @@
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
           {{ tierLabel(rank) }}
         </div>
-        <div v-if="isInPlacement" class="text-xs text-white/40 mt-1">
-          Placement : {{ mmr.matchesPlayed }} / {{ placementMatches }}
-        </div>
+
       </div>
 
       <!-- MMR + position -->
@@ -105,10 +103,7 @@
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
 
-    <!-- Placement notice -->
-    <Message v-if="isInPlacement" severity="info">
-      Matchs de placement : {{ mmr.matchesPlayed }} / {{ placementMatches }} complétés
-    </Message>
+
   </div>
 </template>
 
@@ -131,7 +126,6 @@ const TIER_ICON = ['fa fa-gem', 'fa fa-shield', 'fa fa-star', 'fa fa-crown']
 const props = defineProps<{
   mmr: ClientPlayerMmr
   tiers: ClientRankTier[]
-  placementMatches: number
   initialMmr?: number
   leaderboardRank?: number
   history?: ClientMmrHistoryEntry[]
@@ -158,8 +152,6 @@ const winrate = computed(() => {
   if (total === 0) return 0
   return Math.round((props.mmr.wins / total) * 100)
 })
-
-const isInPlacement = computed(() => props.mmr.matchesPlayed < props.placementMatches)
 
 const progressData = computed(() => {
   if (!props.tiers.length || !rank.value) return null

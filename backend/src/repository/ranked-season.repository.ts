@@ -165,7 +165,11 @@ export class RankedSeasonRepository {
         rankedConfig: true,
         rankTiers: true,
         discipline: true,
-        rules: true,
+        rules: {
+          columns: {
+            id: true,
+          },
+        },
       },
     });
   }

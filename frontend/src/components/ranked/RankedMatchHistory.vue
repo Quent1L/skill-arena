@@ -19,14 +19,21 @@
     </div>
 
     <!-- Scrollable list -->
-    <div ref="container" class="overflow-y-auto space-y-3 pr-1" style="max-height: calc(100vh - 260px)">
+    <div
+      ref="container"
+      class="overflow-y-auto space-y-3 pr-1"
+      style="max-height: calc(100vh - 260px)"
+    >
       <!-- Initial loading -->
       <div v-if="loading && history.length === 0" class="flex justify-center py-12">
         <ProgressSpinner />
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="filteredHistoryWithIndex.length === 0 && !loading" class="text-center py-12 text-gray-500 dark:text-gray-400">
+      <div
+        v-else-if="filteredHistoryWithIndex.length === 0 && !loading"
+        class="text-center py-12 text-gray-500 dark:text-gray-400"
+      >
         <i class="fa fa-clock text-4xl mb-4 block"></i>
         <p>Aucun match dans l'historique</p>
       </div>
@@ -39,7 +46,9 @@
       >
         <div class="flex items-start gap-3">
           <!-- Match number (absolute, descending) -->
-          <span class="text-2xl font-bold text-gray-200 dark:text-gray-700 w-10 shrink-0 pt-0.5 tabular-nums">
+          <span
+            class="text-2xl font-bold text-gray-200 dark:text-gray-700 w-10 shrink-0 pt-0.5 tabular-nums"
+          >
             {{ totalMatches - originalIndex }}
           </span>
 
@@ -61,13 +70,13 @@
                 class="text-xs shrink-0"
               />
 
-              <!-- Placement badge -->
-              <Tag v-if="entry.isPlacement" severity="secondary" value="Placement" class="text-xs shrink-0" />
-
               <div class="flex-1"></div>
 
               <!-- Result label -->
-              <span :class="outcomeClass(entry)" class="text-sm font-bold uppercase tracking-wide shrink-0">
+              <span
+                :class="outcomeClass(entry)"
+                class="text-sm font-bold uppercase tracking-wide shrink-0"
+              >
                 {{ outcomeLabel(entry) }}
               </span>
 
@@ -80,7 +89,10 @@
             <!-- Row 2: players -->
             <div v-if="hasPlayers(entry)" class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
               <!-- Teammates (only if more than 1 player on my side) -->
-              <div v-if="getSides(entry).teammates.length > 0" class="flex items-center gap-1.5 min-w-0">
+              <div
+                v-if="getSides(entry).teammates.length > 0"
+                class="flex items-center gap-1.5 min-w-0"
+              >
                 <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">Avec :</span>
                 <div class="flex items-center gap-1 flex-wrap">
                   <span
@@ -101,7 +113,10 @@
               </div>
 
               <!-- Opponents -->
-              <div v-if="getSides(entry).opponents.length > 0" class="flex items-center gap-1.5 min-w-0">
+              <div
+                v-if="getSides(entry).opponents.length > 0"
+                class="flex items-center gap-1.5 min-w-0"
+              >
                 <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">Contre :</span>
                 <div class="flex items-center gap-1 flex-wrap">
                   <span
@@ -171,13 +186,15 @@ const availableFilters = computed(() => {
       value: 'WIN',
       label: 'Victoire',
       icon: 'fa fa-trophy',
-      activeClass: 'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-400',
+      activeClass:
+        'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-400',
     },
     {
       value: 'LOSS',
       label: 'Défaite',
       icon: 'fa fa-times',
-      activeClass: 'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-400',
+      activeClass:
+        'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-400',
     },
   ]
   if (props.allowDraw) {
@@ -185,7 +202,8 @@ const availableFilters = computed(() => {
       value: 'DRAW',
       label: 'Nul',
       icon: 'fa fa-minus',
-      activeClass: 'bg-gray-100 dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-300',
+      activeClass:
+        'bg-gray-100 dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-300',
     })
   }
   return filters
@@ -215,7 +233,9 @@ function outcome(entry: ClientMmrHistoryEntry): OutcomeFilter {
 const filteredHistoryWithIndex = computed(() =>
   props.history
     .map((entry, i) => ({ entry, originalIndex: i }))
-    .filter(({ entry }) => activeFilters.value.size === 0 || activeFilters.value.has(outcome(entry)))
+    .filter(
+      ({ entry }) => activeFilters.value.size === 0 || activeFilters.value.has(outcome(entry)),
+    ),
 )
 
 function outcomeLabel(entry: ClientMmrHistoryEntry) {
@@ -260,21 +280,31 @@ function hasPlayers(entry: ClientMmrHistoryEntry) {
 
 function statusSeverity(status?: string) {
   switch (status) {
-    case 'finished': return 'secondary'
-    case 'ongoing': return 'info'
-    case 'contested': return 'warn'
-    case 'cancelled': return 'danger'
-    default: return 'secondary'
+    case 'finished':
+      return 'secondary'
+    case 'ongoing':
+      return 'info'
+    case 'contested':
+      return 'warn'
+    case 'cancelled':
+      return 'danger'
+    default:
+      return 'secondary'
   }
 }
 
 function statusLabel(status?: string) {
   switch (status) {
-    case 'finished': return 'Terminé'
-    case 'ongoing': return 'En cours'
-    case 'contested': return 'Contesté'
-    case 'cancelled': return 'Annulé'
-    default: return status ?? '—'
+    case 'finalized':
+      return 'Finalisé'
+    case 'ongoing':
+      return 'En cours'
+    case 'contested':
+      return 'Contesté'
+    case 'cancelled':
+      return 'Annulé'
+    default:
+      return status ?? '—'
   }
 }
 

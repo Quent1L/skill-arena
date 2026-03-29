@@ -26,7 +26,6 @@
         <RankedLeaderboard
           :players="leaderboard"
           :tiers="tiers"
-          :placement-matches="placementMatches"
           :loading="loading"
           :current-user-id="appUser?.id"
         />
@@ -38,7 +37,6 @@
           <PlayerMmrProfile
             :mmr="playerMmr"
             :tiers="tiers"
-            :placement-matches="placementMatches"
             :leaderboard-rank="leaderboardRank"
             :history="profileChartHistory"
           />
@@ -199,7 +197,6 @@ const props = defineProps<{
   appUser: { id: string } | null
   canCreateMatch: boolean
   canManage: boolean
-  placementMatches: number
   leaderboardRank?: number
   profileChartHistory?: ClientMmrHistoryEntry[]
 }>()

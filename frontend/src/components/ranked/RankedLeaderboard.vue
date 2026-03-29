@@ -30,19 +30,19 @@
         <div class="flex items-end justify-center gap-3 mb-6">
           <!-- #2 -->
           <div v-if="players[1]" class="flex-1 max-w-[150px]">
-            <PodiumCard :player="players[1]" :rank="2" :tiers="tiers" :placement-matches="placementMatches" :current-user-id="currentUserId" />
+            <PodiumCard :player="players[1]" :rank="2" :tiers="tiers" :current-user-id="currentUserId" />
           </div>
           <!-- Spacer if only 1 player -->
           <div v-else-if="players.length >= 1" class="flex-1 max-w-[150px]" />
 
           <!-- #1 -->
           <div class="flex-1 max-w-[170px]">
-            <PodiumCard :player="players[0]" :rank="1" :tiers="tiers" :placement-matches="placementMatches" :featured="true" :current-user-id="currentUserId" />
+            <PodiumCard :player="players[0]" :rank="1" :tiers="tiers" :featured="true" :current-user-id="currentUserId" />
           </div>
 
           <!-- #3 -->
           <div v-if="players[2]" class="flex-1 max-w-[150px]">
-            <PodiumCard :player="players[2]" :rank="3" :tiers="tiers" :placement-matches="placementMatches" :current-user-id="currentUserId" />
+            <PodiumCard :player="players[2]" :rank="3" :tiers="tiers" :current-user-id="currentUserId" />
           </div>
           <!-- Spacer if fewer than 3 players -->
           <div v-else-if="players.length >= 1" class="flex-1 max-w-[150px]" />
@@ -77,9 +77,6 @@
               <div class="font-semibold text-sm truncate">{{ player.player?.displayName ?? 'Inconnu' }}</div>
               <div class="text-xs mt-0.5" :class="tierTextClass(getPlayerRank(player.currentMmr))">
                 {{ tierLabel(getPlayerRank(player.currentMmr)) }}
-                <span v-if="player.matchesPlayed < placementMatches" class="text-gray-500 ml-1">
-                  ({{ player.matchesPlayed }}/{{ placementMatches }})
-                </span>
               </div>
             </div>
 
@@ -109,7 +106,6 @@ const TIER_BG_CLASSES = ['bg-gray-700/60 text-gray-300', 'bg-blue-900/60 text-bl
 const props = defineProps<{
   players: ClientPlayerMmr[]
   tiers: ClientRankTier[]
-  placementMatches: number
   loading?: boolean
   currentUserId?: string
 }>()
@@ -165,7 +161,6 @@ const PodiumCard = defineComponent({
     player: { type: Object as () => ClientPlayerMmr, required: true },
     rank: { type: Number, required: true },
     tiers: { type: Array as () => ClientRankTier[], default: () => [] },
-    placementMatches: { type: Number, required: true },
     featured: { type: Boolean, default: false },
     currentUserId: { type: String as () => string | undefined, default: undefined },
   },
@@ -219,8 +214,6 @@ const PodiumCard = defineComponent({
       return '🥉'
     })
 
-    const isInPlacement = computed(() => p.player.matchesPlayed < p.placementMatches)
-
     return () =>
       h(
         RouterLink,
@@ -261,11 +254,9 @@ const PodiumCard = defineComponent({
               h('div', { class: 'font-bold text-xs text-white truncate w-full leading-tight mt-0.5' },
                 p.player.player?.displayName ?? 'Inconnu'),
 
-              // Tier or placement
+              // Tier
               h('div', { class: ['text-xs font-semibold uppercase tracking-wide', TIER_TEXT_CLASSES[podiumStyleIdx()]] },
-                isInPlacement.value
-                  ? `${p.player.matchesPlayed}/${p.placementMatches}`
-                  : (tier.value?.name ?? '—')),
+                tier.value?.name ?? '—'),
 
               // MMR
               h('div', {
