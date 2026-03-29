@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: skillarena
+      POSTGRES_PASSWORD: skillarena
+      POSTGRES_DB: skillarena_load
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U skillarena -d skillarena_load -c 'SELECT 1' > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    env_file: .env.load-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/tournaments > /dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 24
+      start_period: 10s
+
+  seed:
+    image: oven/bun:1-alpine
+    working_dir: /load-test
+    volumes:
+      - .:/load-test
+    command: sh -c "bun install --no-save && DATABASE_URL=postgres://skillarena:skillarena@postgres:5432/skillarena_load bun run seed/seed.ts"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  k6:
+    image: grafana/k6:latest
+    volumes:
+      - ./k6:/scripts
+    command: run --env BASE_URL=http://app:3000 /scripts/script.js
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy

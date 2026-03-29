@@ -1,0 +1,8 @@
+{
+  "name": "skill-arena-seed",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.13.3",
+    "@types/pg": "^8.11.11"
+  }
+}
