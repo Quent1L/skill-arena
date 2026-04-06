@@ -58,6 +58,7 @@ declare module 'vue' {
     RichTextEditor: typeof import('./src/components/editor/RichTextEditor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    RulesContent: typeof import('./src/components/rules/RulesContent.vue')['default']
     ScoreInput: typeof import('./src/components/match/ScoreInput.vue')['default']
     Select: typeof import('primevue/select')['default']
     SkolLogo: typeof import('./src/components/SkolLogo.vue')['default']

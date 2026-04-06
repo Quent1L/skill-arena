@@ -54,7 +54,20 @@
           <div v-if="activeProposal.proposedWinner !== undefined && activeProposal.proposedWinner !== null" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Vainqueur proposé :</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedWinner === 'teamA' ? 'Équipe A' : 'Équipe B' }}</span>
-          </div>        </div>
+          </div>
+
+          <!-- Proposed outcome type change -->
+          <div v-if="activeProposal.proposedOutcomeType" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+            <span class="font-semibold text-warn-600 dark:text-warn-400">Type de résultat proposé :</span>
+            <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeType.name }}</span>
+          </div>
+
+          <!-- Proposed outcome reason change -->
+          <div v-if="activeProposal.proposedOutcomeReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+            <span class="font-semibold text-warn-600 dark:text-warn-400">Raison proposée :</span>
+            <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeReason.name }}</span>
+          </div>
+        </div>
 
         <!-- Score normal (aucune contestation active) -->
         <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
@@ -329,9 +342,11 @@ const confirmedCount = computed(() => {
 
 const activeProposal = computed(() => {
   return confirmations.value.find(
-    c => c.isContested &&
-         c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
-         c.proposedScoreB !== null && c.proposedScoreB !== undefined
+    c => c.isContested && (
+      (c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
+       c.proposedScoreB !== null && c.proposedScoreB !== undefined) ||
+      (c.proposedOutcomeTypeId !== null && c.proposedOutcomeTypeId !== undefined)
+    )
   ) ?? null;
 });
 

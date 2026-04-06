@@ -853,6 +853,14 @@ export const matchConfirmationsRelations = relations(
       fields: [matchConfirmations.playerId],
       references: [appUsers.id],
     }),
+    proposedOutcomeType: one(outcomeTypes, {
+      fields: [matchConfirmations.proposedOutcomeTypeId],
+      references: [outcomeTypes.id],
+    }),
+    proposedOutcomeReason: one(outcomeReasons, {
+      fields: [matchConfirmations.proposedOutcomeReasonId],
+      references: [outcomeReasons.id],
+    }),
   }),
 );
 

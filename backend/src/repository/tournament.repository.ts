@@ -91,8 +91,12 @@ export class TournamentRepository {
         data.pointPerLoss !== undefined && { pointPerLoss: data.pointPerLoss }),
       ...(data.allowDraw !== null &&
         data.allowDraw !== undefined && { allowDraw: data.allowDraw }),
-      ...(data.scoreEnabled !== undefined && { scoreEnabled: data.scoreEnabled }),
-      ...(data.disciplineId !== undefined && { disciplineId: data.disciplineId }),
+      ...(data.scoreEnabled !== undefined && {
+        scoreEnabled: data.scoreEnabled,
+      }),
+      ...(data.disciplineId !== undefined && {
+        disciplineId: data.disciplineId,
+      }),
       ...(data.minScore !== undefined && { minScore: data.minScore }),
       ...(data.maxScore !== undefined && { maxScore: data.maxScore }),
     };
@@ -121,7 +125,11 @@ export class TournamentRepository {
       with: {
         creator: true,
         discipline: true,
-        rules: true,
+        rules: {
+          columns: {
+            id: true,
+          },
+        },
         admins: {
           with: {
             user: true,
@@ -208,7 +216,7 @@ export class TournamentRepository {
       .select({ count: count() })
       .from(tournaments)
       .where(
-        and(eq(tournaments.createdBy, userId), eq(tournaments.status, status))
+        and(eq(tournaments.createdBy, userId), eq(tournaments.status, status)),
       );
 
     return result[0]?.count ?? 0;
@@ -221,7 +229,7 @@ export class TournamentRepository {
     const adminRecord = await db.query.tournamentAdmins.findFirst({
       where: and(
         eq(tournamentAdmins.tournamentId, tournamentId),
-        eq(tournamentAdmins.userId, userId)
+        eq(tournamentAdmins.userId, userId),
       ),
     });
 
@@ -234,7 +242,7 @@ export class TournamentRepository {
   async addAdmin(
     tournamentId: string,
     userId: string,
-    role: "owner" | "co_admin"
+    role: "owner" | "co_admin",
   ) {
     await db.insert(tournamentAdmins).values({
       tournamentId,

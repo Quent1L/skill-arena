@@ -145,6 +145,8 @@ export interface MatchConfirmation {
   proposedWinner?: "teamA" | "teamB" | null;
   proposedOutcomeTypeId?: string | null;
   proposedOutcomeReasonId?: string | null;
+  proposedOutcomeType?: { id: string; name: string } | null;
+  proposedOutcomeReason?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   player?: {

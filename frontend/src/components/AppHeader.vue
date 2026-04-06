@@ -9,7 +9,7 @@
         <div class="flex items-center gap-3">
           <div v-if="!isAuthenticated" class="flex items-center gap-3">
             <Button label="Se connecter" text @click="router.push('/login')" />
-            <Button label="S'inscrire" @click="router.push('/register')" class="text-sm" />
+            <Button label="S'inscrire" @click="router.push('/signup')" class="text-sm" />
           </div>
 
           <div v-else class="flex items-center gap-3">
@@ -29,7 +29,9 @@
                 <i :class="item.icon"></i>
               </template>
               <template #end>
-                <div class="w-full flex justify-center text-xs text-gray-500 h-7 pt-2">Version {{ appVersion }}</div>
+                <div class="w-full flex justify-center text-xs text-gray-500 h-7 pt-2">
+                  Version {{ appVersion }}
+                </div>
               </template>
             </Menu>
 

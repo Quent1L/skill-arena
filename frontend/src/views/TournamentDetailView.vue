@@ -277,7 +277,7 @@ async function handleRecalculatePoints() {
 }
 
 function viewRules() {
-  router.push(`/tournaments/${tournamentId.value}/rules`)
+  router.push(`/rules/${tournament.value?.rulesId}`)
 }
 
 async function handleParticipantAdded() {

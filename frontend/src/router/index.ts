@@ -265,6 +265,14 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/rules/:id',
+    name: 'rules-detail',
+    component: () => import('@/views/RulesView.vue'),
+    meta: {
+      hideBreadcrumb: true,
+    },
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),

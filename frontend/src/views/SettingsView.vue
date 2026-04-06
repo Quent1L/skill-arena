@@ -61,11 +61,11 @@
                   :invalid="!!profileErrors.shortName"
                   :disabled="profileLoading"
                   class="w-full"
-                  maxlength="5"
+                  maxlength="8"
                   @input="shortName = (shortName ?? '').toUpperCase()"
                 />
                 <small class="opacity-60">
-                  Jusqu'à 5 caractères, affiché dans le classement à la place du nom complet.
+                  Jusqu'à 8 caractères, affiché dans le classement à la place du nom complet.
                 </small>
                 <small v-if="profileErrors.shortName" class="text-red-500">
                   {{ profileErrors.shortName }}
@@ -311,7 +311,7 @@ const profileSchema = z.object({
   shortName: z
     .string()
     .min(1, 'Le nom court est requis')
-    .max(5, 'Maximum 5 caractères')
+    .max(8, 'Maximum 8 caractères')
     .transform((v) => v.toUpperCase()),
 })
 

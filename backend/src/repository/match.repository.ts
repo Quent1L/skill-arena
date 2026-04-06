@@ -209,6 +209,8 @@ export class MatchRepository {
         confirmations: {
           with: {
             player: true,
+            proposedOutcomeType: true,
+            proposedOutcomeReason: true,
           },
         },
       },

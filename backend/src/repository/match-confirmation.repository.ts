@@ -51,6 +51,8 @@ export class MatchConfirmationRepository {
       ),
       with: {
         player: true,
+        proposedOutcomeType: true,
+        proposedOutcomeReason: true,
       },
     });
     return confirmation;
@@ -64,6 +66,8 @@ export class MatchConfirmationRepository {
       where: eq(matchConfirmations.matchId, matchId),
       with: {
         player: true,
+        proposedOutcomeType: true,
+        proposedOutcomeReason: true,
       },
     });
     return confirmations;
