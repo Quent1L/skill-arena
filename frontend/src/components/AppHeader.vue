@@ -8,7 +8,7 @@
 
         <div class="flex items-center gap-3">
           <div v-if="!isAuthenticated" class="flex items-center gap-3">
-            <Button label="Se connecter" text @click="router.push('/login')" />
+            <Button label="Se connecter" text @click="handleLoginTap" />
             <Button label="S'inscrire" @click="router.push('/signup')" class="text-sm" />
           </div>
 
@@ -105,6 +105,24 @@ const menuItems = computed<MenuItem[]>(() => [
     class: 'text-red-600',
   },
 ])
+
+let loginTapCount = 0
+let loginTapTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleLoginTap() {
+  loginTapCount++
+  if (loginTapTimer) clearTimeout(loginTapTimer)
+  loginTapTimer = setTimeout(() => { loginTapCount = 0 }, 3000)
+
+  if (loginTapCount >= 5) {
+    loginTapCount = 0
+    if (loginTapTimer) clearTimeout(loginTapTimer)
+    router.push('/login?native=true')
+    return
+  }
+
+  router.push('/login')
+}
 
 function toggleMenu(event: Event) {
   menu.value.toggle(event)
