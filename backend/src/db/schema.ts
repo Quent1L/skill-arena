@@ -374,8 +374,8 @@ export const matches = pgTable("matches", {
     .notNull()
     .references(() => tournaments.id, { onDelete: "cascade" }),
   status: matchStatusEnum("status").notNull().default("scheduled"),
-  playedAt: timestamp("played_at").notNull().defaultNow(),
-  confirmationDeadline: timestamp("confirmation_deadline"),
+  playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
+  confirmationDeadline: timestamp("confirmation_deadline", { withTimezone: true }),
   outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
     onDelete: "set null",
   }),
@@ -389,7 +389,7 @@ export const matches = pgTable("matches", {
   createdBy: uuid("created_by").references(() => appUsers.id, {
     onDelete: "set null",
   }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // ********************************************************************

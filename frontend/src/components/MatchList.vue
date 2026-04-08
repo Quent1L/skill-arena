@@ -19,7 +19,7 @@
           <!-- Mobile: Stack layout -->
           <div class="flex-1 w-full md:w-auto">
             <div class="flex items-center justify-between mb-2 md:mb-1">
-              <div class="text-xs md:text-sm text-gray-500">{{ formatDate(match.createdAt) }}</div>
+              <div class="text-xs md:text-sm text-gray-500">{{ formatDate(match.playedAt) }}</div>
               <Tag
                 :value="getStatusLabel(match.status)"
                 :severity="getStatusSeverity(match.status)"

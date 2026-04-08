@@ -204,6 +204,13 @@
       "when": 1774173700000,
       "tag": "0028_update_short_name_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1775677779324,
+      "tag": "0029_loving_george_stacy",
+      "breakpoints": true
     }
   ]
 }
