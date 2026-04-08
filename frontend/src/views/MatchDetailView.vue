@@ -6,7 +6,7 @@
 
     <div v-else-if="error" class="text-center text-red-500">
       <p>{{ error }}</p>
-      <Button label="Retour" @click="router.back()" />
+      <Button label="Retour" @click="goBack()" />
     </div>
 
     <div v-else-if="match" class="space-y-6">
@@ -16,7 +16,7 @@
           label="Retour"
           icon="fa fa-arrow-left"
           severity="secondary"
-          @click="router.back()"
+          @click="goBack()"
         />
 
         <div class="flex items-center gap-3">
@@ -274,6 +274,16 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+function goBack() {
+  if (window.history.state?.back) {
+    router.back()
+  } else if (match.value?.tournamentId) {
+    router.push(`/tournaments/${match.value.tournamentId}`)
+  } else {
+    router.push('/')
+  }
+}
 const { getMatch, confirmMatchResult, finalizeMatch, cancelMatch } = useMatchService()
 const { appUser } = useAuth()
 
