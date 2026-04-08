@@ -124,6 +124,7 @@ export const userRoleEnum = pgEnum("user_role", [
   "player",
   "tournament_admin",
   "super_admin",
+  "kiosk",
 ]);
 
 export const tournamentModeEnum = pgEnum("tournament_mode", [
@@ -385,6 +386,9 @@ export const matches = pgTable("matches", {
     },
   ),
   winnerSide: varchar("winner_side", { length: 1 }),
+  createdBy: uuid("created_by").references(() => appUsers.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

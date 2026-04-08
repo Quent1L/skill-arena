@@ -47,6 +47,7 @@ export interface CreateMatchData {
   playedAt?: Date;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
+  createdBy?: string;
 }
 
 export interface UpdateMatchData {
@@ -87,6 +88,7 @@ export class MatchRepository {
           confirmationDeadline: data.confirmationDeadline,
           outcomeTypeId: data.outcomeTypeId,
           outcomeReasonId: data.outcomeReasonId,
+          createdBy: data.createdBy,
         })
         .returning();
 

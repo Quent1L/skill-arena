@@ -289,8 +289,11 @@ export function useTournamentService() {
     tournament: TournamentResponse | null,
     isAuthenticated: boolean,
     isParticipant: boolean,
+    userRole?: string,
   ): boolean {
-    if (!isAuthenticated || !isParticipant || !tournament || tournament.mode === 'bracket') return false
+    if (!isAuthenticated || !tournament || tournament.mode === 'bracket') return false
+    if (userRole === 'kiosk') return ['open', 'ongoing'].includes(tournament.status)
+    if (!isParticipant) return false
     return ['open', 'ongoing'].includes(tournament.status)
   }
 

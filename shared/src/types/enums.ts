@@ -8,6 +8,7 @@ export const userRoleEnum = [
   "player",
   "tournament_admin",
   "super_admin",
+  "kiosk",
 ] as const;
 export type UserRole = (typeof userRoleEnum)[number];
 

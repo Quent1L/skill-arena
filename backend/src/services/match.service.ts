@@ -69,13 +69,17 @@ export class MatchService {
     const matchId = await this.createMatchRecord(input, createdBy);
 
     // If match is reported, create automatic confirmation for the creator
+    // Skip for kiosk users: they are not real participants, their confirmation wouldn't count
     if (input.status === "reported") {
-      await matchConfirmationRepository.upsert({
-        matchId,
-        playerId: createdBy,
-        isConfirmed: true,
-        isContested: false,
-      });
+      const creator = await userRepository.getById(createdBy);
+      if (creator?.role !== "kiosk") {
+        await matchConfirmationRepository.upsert({
+          matchId,
+          playerId: createdBy,
+          isConfirmed: true,
+          isContested: false,
+        });
+      }
 
       // Check if match can be validated immediately
       await this.checkAndFinalizeMatch(matchId);
@@ -149,6 +153,7 @@ export class MatchService {
       playerIdsA: input.playerIdsA,
       playerIdsB: input.playerIdsB,
       status: input.status ?? ("scheduled" as const),
+      createdBy,
     };
 
     // If match is being reported (not just scheduled), include score and report fields
@@ -436,6 +441,12 @@ export class MatchService {
   ) {
     const match = await this.getMatchById(id);
 
+    // Kiosk users cannot confirm match results
+    const confirmer = await userRepository.getById(confirmedBy);
+    if (confirmer?.role === "kiosk") {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
     // Check if user is participant in the match
     const isParticipant = await matchRepository.isUserInMatch(id, confirmedBy);
     if (!isParticipant) {
@@ -483,6 +494,12 @@ export class MatchService {
     contestedBy: string,
   ) {
     const match = await this.getMatchById(id);
+
+    // Kiosk users cannot contest match results
+    const contester = await userRepository.getById(contestedBy);
+    if (contester?.role === "kiosk") {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
 
     // Check if user is participant in the match
     const isParticipant = await matchRepository.isUserInMatch(id, contestedBy);
@@ -868,11 +885,18 @@ export class MatchService {
   async cancelMatch(id: string, cancelledBy: string) {
     const match = await this.getMatchById(id);
 
-    const isAdmin = await this.canManageMatches(match.tournamentId, cancelledBy);
-    const isParticipant = await matchRepository.isUserInMatch(id, cancelledBy);
-
-    if (!isAdmin && !isParticipant) {
-      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    const canceller = await userRepository.getById(cancelledBy);
+    if (canceller?.role === "kiosk") {
+      // Kiosk can only cancel matches they personally created
+      if (match.createdBy !== cancelledBy) {
+        throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+      }
+    } else {
+      const isAdmin = await this.canManageMatches(match.tournamentId, cancelledBy);
+      const isParticipant = await matchRepository.isUserInMatch(id, cancelledBy);
+      if (!isAdmin && !isParticipant) {
+        throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+      }
     }
 
     matchStatusValidator.validateCanCancel(match.status);

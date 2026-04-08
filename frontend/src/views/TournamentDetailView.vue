@@ -180,7 +180,7 @@ import { useViewport } from '@/composables/useViewport'
 
 const route = useRoute()
 const router = useRouter()
-const { isAuthenticated, appUser } = useAuth()
+const { isAuthenticated, appUser, userRole } = useAuth()
 const {
   currentTournament: tournament,
   loading,
@@ -212,7 +212,9 @@ const tournamentId = computed(() => route.params.id as string)
 
 const isParticipant = computed(() => isUserParticipant(appUser.value?.id))
 
-const canJoinTournament = computed(() => isTournamentOpenForJoin(tournament.value))
+const canJoinTournament = computed(
+  () => isTournamentOpenForJoin(tournament.value) && appUser.value?.role !== 'kiosk',
+)
 
 const canLeaveTournament = computed(() => canLeaveTournamentCheck(tournament.value))
 
@@ -222,7 +224,7 @@ const canManageTournament = computed(() => {
 })
 
 const canCreateMatch = computed(() =>
-  canCreateMatchInTournament(tournament.value, isAuthenticated.value, isParticipant.value),
+  canCreateMatchInTournament(tournament.value, isAuthenticated.value, isParticipant.value, userRole.value),
 )
 
 const tournamentDuration = computed(() => {

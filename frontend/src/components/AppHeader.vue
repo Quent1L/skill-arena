@@ -82,6 +82,7 @@ const menuItems = computed<MenuItem[]>(() => [
     command: () => {
       router.push(`/players/${appUser.value?.id}`)
     },
+    visible: appUser.value?.role !== 'kiosk'
   },
   {
     label: 'Paramètres',

@@ -7,7 +7,7 @@ export interface UserResponse {
   externalId: string
   displayName: string
   shortName: string
-  role: 'player' | 'tournament_admin' | 'super_admin'
+  role: 'player' | 'tournament_admin' | 'super_admin' | 'kiosk'
   createdAt: string
   updatedAt: string
   betterAuth: {

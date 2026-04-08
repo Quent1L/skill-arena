@@ -185,7 +185,11 @@ const onSubmit = handleSubmit(async (values) => {
 
     const redirectPath = route.query.redirect as string
     router.push(redirectPath ?? '/')
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.cause === 'INVITATION_CODE_REQUIRED') {
+      await router.push('/submit-invitation')
+      return
+    }
     console.error('Erreur de connexion:', err)
   }
 })
