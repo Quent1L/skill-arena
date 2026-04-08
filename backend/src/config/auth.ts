@@ -148,6 +148,10 @@ const authConfig: any = {
     provider: "pg",
     schema,
   }),
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 jours
+    updateAge: 60 * 60 * 24, // refresh si la session a plus d'1 jour
+  },
   account: {
     accountLinking: {
       enabled: true,
