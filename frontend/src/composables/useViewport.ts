@@ -2,12 +2,19 @@ import { ref, onMounted } from 'vue'
 
 // Shared reactive viewport state (singleton)
 const width = ref(typeof window !== 'undefined' ? window.innerWidth : 0)
-const isMobile = ref(width.value < 768)
+
+function computeIsMobile(): boolean {
+  if (typeof window === 'undefined') return false
+  const isTouchPrimary = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  return isTouchPrimary || window.innerWidth < 768
+}
+
+const isMobile = ref(computeIsMobile())
 
 function update() {
   if (typeof window === 'undefined') return
   width.value = window.innerWidth
-  isMobile.value = window.innerWidth < 768
+  isMobile.value = computeIsMobile()
 }
 
 let initialized = false

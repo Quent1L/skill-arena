@@ -2,7 +2,7 @@
   <div class="min-h-screen main-app">
     <NotificationsInit>
       <AppHeader v-if="route.name !== 'offline'" />
-      <BreadcrumbMenu v-if="route.name !== 'offline'" />
+      <BreadcrumbMenu v-if="route.name !== 'offline' && !isMobile" />
       <RouterView v-slot="{ Component, route }">
         <Transition name="fade" mode="out-in" appear>
           <component :is="Component" :key="route.path" />
@@ -22,7 +22,9 @@ import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
 import NotificationsInit from '@/components/NotificationsInit.vue'
 import PwaInstallBanner from '@/components/PwaInstallBanner.vue'
 import { usePageTransitions } from '@/utils/transitions'
+import { useViewport } from '@/composables/useViewport'
 
+const { isMobile } = useViewport()
 usePageTransitions()
 </script>
 
