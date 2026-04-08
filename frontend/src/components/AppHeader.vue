@@ -71,7 +71,7 @@ import SkolLogo from './SkolLogo.vue'
 const appVersion = __APP_VERSION__
 
 const router = useRouter()
-const { currentUser, appUser, isAuthenticated, logout } = useAuth()
+const { currentUser, appUser, isAuthenticated, logout, kioskSettingsLocked } = useAuth()
 const menu = ref()
 const notifDropdown = useTemplateRef('notifDropdown')
 
@@ -82,7 +82,7 @@ const menuItems = computed<MenuItem[]>(() => [
     command: () => {
       router.push(`/players/${appUser.value?.id}`)
     },
-    visible: appUser.value?.role !== 'kiosk'
+    visible: appUser.value?.role !== 'kiosk',
   },
   {
     label: 'Paramètres',
@@ -90,9 +90,11 @@ const menuItems = computed<MenuItem[]>(() => [
     command: () => {
       router.push('/settings')
     },
+    visible: !(appUser.value?.role === 'kiosk' && kioskSettingsLocked.value),
   },
   {
     separator: true,
+    visible: !(appUser.value?.role === 'kiosk' && kioskSettingsLocked.value),
   },
   {
     label: 'Se déconnecter',

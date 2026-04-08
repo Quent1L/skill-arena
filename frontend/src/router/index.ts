@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { requireAdmin, requireAuth, redirectIfAuthenticated } from './guards'
+import { requireAdmin, requireAuth, requireSettingsAccess, redirectIfAuthenticated } from './guards'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -276,7 +276,7 @@ const routes: RouteRecordRaw[] = [
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),
-    beforeEnter: requireAuth,
+    beforeEnter: requireSettingsAccess,
     meta: {
       hideBreadcrumb: true,
       requiresAuth: true,

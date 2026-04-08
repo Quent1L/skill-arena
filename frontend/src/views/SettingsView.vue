@@ -180,8 +180,61 @@
             />
           </template>
         </Card>
+
+        <!-- Mode kiosque -->
+        <Card v-if="userRole === 'kiosk'">
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-lock"></i>
+              <span>Mode kiosque</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="space-y-3">
+              <Message severity="warn" :closable="false">
+                En verrouillant les paramètres, vous ne pourrez plus y accéder tant que
+                l'utilisateur ne se sera pas reconnecté sur cet appareil.
+              </Message>
+              <Button
+                label="Verrouiller les paramètres"
+                icon="fas fa-lock"
+                severity="danger"
+                outlined
+                class="w-full"
+                @click="showKioskLockDialog = true"
+              />
+            </div>
+          </template>
+        </Card>
       </div>
     </div>
+
+    <!-- Dialog confirmation verrouillage kiosque -->
+    <Dialog
+      v-model:visible="showKioskLockDialog"
+      header="Verrouiller les paramètres ?"
+      modal
+      :style="{ width: '24rem' }"
+    >
+      <div class="space-y-4">
+        <Message severity="warn" :closable="false">
+          <strong>Attention :</strong> Cette action verrouillera l'accès aux paramètres. Pour y
+          accéder à nouveau, vous devrez vous déconnecter et vous reconnecter.
+        </Message>
+        <p class="text-sm opacity-70">
+          Cette fonctionnalité est conçue pour les appareils partagés en accès public.
+        </p>
+        <div class="flex justify-end gap-2 pt-2">
+          <Button
+            label="Annuler"
+            severity="secondary"
+            outlined
+            @click="showKioskLockDialog = false"
+          />
+          <Button label="Verrouiller" icon="fas fa-lock" severity="danger" @click="activateKioskLock" />
+        </div>
+      </div>
+    </Dialog>
 
     <!-- Dialog changement de mot de passe -->
     <Dialog
@@ -283,6 +336,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNotificationPush } from '@/composables/notification/notification.push'
 import { usePWAInstall } from '@/composables/pwa/pwa.install'
 import { useAuth } from '@/composables/useAuth'
@@ -302,8 +356,18 @@ const notificationSupported = computed(
   () => typeof window !== 'undefined' && 'Notification' in window,
 )
 
+const router = useRouter()
 const { enablePush, disablePush } = useNotificationPush()
-const { changePassword, loading: authLoading, error: authError } = useAuth()
+const { changePassword, loading: authLoading, error: authError, userRole, lockKioskSettings } = useAuth()
+
+// Kiosk lock
+const showKioskLockDialog = ref(false)
+
+function activateKioskLock() {
+  lockKioskSettings()
+  showKioskLockDialog.value = false
+  router.push('/')
+}
 
 // Profile form
 const profileSchema = z.object({

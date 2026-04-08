@@ -11,6 +11,7 @@ const sessionData = ref()
 const appUserData = ref<UserResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
+const kioskSettingsLocked = ref(localStorage.getItem('kiosk_settings_locked') === 'true')
 
 /**
  * Récupère les données de l'utilisateur depuis l'API /users/me
@@ -91,6 +92,8 @@ export function useAuth() {
         throw new Error(result.error.message)
       }
 
+      localStorage.removeItem('kiosk_settings_locked')
+      kioskSettingsLocked.value = false
       await checkSession(true)
 
       await fetchUserData()
@@ -343,6 +346,11 @@ export function useAuth() {
     }
   }
 
+  function lockKioskSettings() {
+    localStorage.setItem('kiosk_settings_locked', 'true')
+    kioskSettingsLocked.value = true
+  }
+
   return {
     currentUser,
     appUser,
@@ -364,5 +372,7 @@ export function useAuth() {
     requestPasswordReset,
     resetPassword,
     changePassword,
+    kioskSettingsLocked,
+    lockKioskSettings,
   }
 }

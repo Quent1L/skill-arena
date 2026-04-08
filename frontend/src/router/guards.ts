@@ -90,6 +90,38 @@ export async function requireAdmin(to: RouteLocationNormalized) {
 }
 
 /**
+ * Middleware pour protéger la page paramètres (bloque les kiosks verrouillés)
+ */
+export async function requireSettingsAccess(to: RouteLocationNormalized) {
+  const { isAuthenticated, userRole, isInitialized, initialize } = useAuth()
+
+  try {
+    if (!isInitialized.value) {
+      await initialize()
+    }
+
+    if (!isAuthenticated.value) {
+      return {
+        path: '/login',
+        query: { redirect: to.fullPath },
+      }
+    }
+
+    if (userRole.value === 'kiosk' && localStorage.getItem('kiosk_settings_locked') === 'true') {
+      return { path: '/', replace: true }
+    }
+
+    return
+  } catch (error) {
+    console.error('Error checking settings access:', error)
+    return {
+      path: '/login',
+      query: { redirect: to.fullPath },
+    }
+  }
+}
+
+/**
  * Middleware pour rediriger les utilisateurs déjà connectés
  */
 export async function redirectIfAuthenticated() {
