@@ -218,6 +218,13 @@
       "when": 1775679824820,
       "tag": "0030_thick_vapor",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1775720394818,
+      "tag": "0031_add_kiosk_role_and_match_created_by",
+      "breakpoints": true
     }
   ]
 }
