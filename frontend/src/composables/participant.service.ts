@@ -187,6 +187,87 @@ export function useParticipantService() {
     return false
   }
 
+  /**
+   * Admin removes a participant and reloads
+   */
+  async function adminRemoveParticipantAndReload(
+    tournamentId: string,
+    userId: string,
+  ): Promise<boolean> {
+    try {
+      loading.value = true
+      error.value = null
+
+      await participantApi.adminRemoveParticipant(tournamentId, userId)
+
+      toast.add({
+        severity: 'success',
+        summary: 'Participant retiré',
+        detail: 'Le participant a été retiré du tournoi',
+        life: 3000,
+      })
+
+      await getTournamentParticipants(tournamentId)
+      return true
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Erreur lors du retrait du participant'
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur de retrait',
+        detail: message,
+        life: 5000,
+      })
+
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * Admin adds multiple participants in parallel and reloads
+   */
+  async function adminAddParticipantsBatchAndReload(
+    tournamentId: string,
+    userIds: string[],
+  ): Promise<boolean> {
+    try {
+      loading.value = true
+      error.value = null
+
+      await Promise.all(
+        userIds.map((userId) => participantApi.adminAddParticipant(tournamentId, userId)),
+      )
+
+      toast.add({
+        severity: 'success',
+        summary: 'Participants ajoutés',
+        detail: `${userIds.length} participant${userIds.length > 1 ? 's' : ''} ajouté${userIds.length > 1 ? 's' : ''} avec succès`,
+        life: 3000,
+      })
+
+      await getTournamentParticipants(tournamentId)
+      return true
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout des participants"
+      error.value = message
+
+      toast.add({
+        severity: 'error',
+        summary: "Erreur d'ajout",
+        detail: message,
+        life: 5000,
+      })
+
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // State
     participants,
@@ -203,5 +284,7 @@ export function useParticipantService() {
     leaveTournamentAndReload,
     adminAddParticipant,
     adminAddParticipantAndReload,
+    adminAddParticipantsBatchAndReload,
+    adminRemoveParticipantAndReload,
   }
 }

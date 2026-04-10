@@ -500,6 +500,34 @@ export class TournamentService {
   async getTournamentParticipants(tournamentId: string) {
     return await participantRepository.findTournamentParticipants(tournamentId);
   }
+
+  /**
+   * Admin removes a participant from tournament
+   */
+  async adminRemoveParticipant(
+    adminUserId: string,
+    tournamentId: string,
+    targetUserId: string
+  ) {
+    const canManage = await this.canManageTournament(tournamentId, adminUserId);
+    if (!canManage) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    const participation =
+      await participantRepository.findParticipationByUserAndTournament(
+        targetUserId,
+        tournamentId
+      );
+
+    if (!participation) {
+      throw new NotFoundError(ErrorCode.NOT_REGISTERED);
+    }
+
+    await participantRepository.hardDeleteParticipation(participation.id);
+
+    return { success: true };
+  }
 }
 
 export const tournamentService = new TournamentService();

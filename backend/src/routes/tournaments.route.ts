@@ -154,6 +154,21 @@ tournaments.post(
   }
 );
 
+// DELETE /tournaments/:id/participants/:userId - Admin removes a participant
+tournaments.delete("/:id/participants/:userId", requireAuth, async (c) => {
+  const tournamentId = c.req.param("id")!;
+  const targetUserId = c.req.param("userId")!;
+  const appUserId = c.get("appUserId");
+
+  const result = await tournamentService.adminRemoveParticipant(
+    appUserId,
+    tournamentId,
+    targetUserId
+  );
+
+  return c.json(result);
+});
+
 // DELETE /tournaments/:id/participants - Leave tournament
 tournaments.delete("/:id/participants", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;

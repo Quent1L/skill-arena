@@ -6,6 +6,7 @@ export interface ParticipantAPI {
   leaveTournament: (tournamentId: string) => Promise<{ message: string }>
   getTournamentParticipants: (tournamentId: string) => Promise<ParticipantListItem[]>
   adminAddParticipant: (tournamentId: string, userId: string) => Promise<JoinTournamentResponse>
+  adminRemoveParticipant: (tournamentId: string, userId: string) => Promise<{ success: boolean }>
 }
 
 export const participantApi: ParticipantAPI = {
@@ -30,6 +31,13 @@ export const participantApi: ParticipantAPI = {
     const response = await http.post(`/api/tournaments/${tournamentId}/participants/add`, {
       userId,
     })
+    return response.data
+  },
+
+  async adminRemoveParticipant(tournamentId: string, userId: string) {
+    const response = await http.delete(
+      `/api/tournaments/${tournamentId}/participants/${userId}`,
+    )
     return response.data
   },
 }

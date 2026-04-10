@@ -17,26 +17,39 @@
       v-else-if="participants.length > 0"
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
     >
-      <RouterLink
+      <div
         v-for="participant in participants"
         :key="participant.id"
-        :to="`/players/${participant.userId}`"
-        class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors no-underline"
+        class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
       >
-        <Avatar :label="participant.user.displayName.charAt(0).toUpperCase()" class="bg-blue-500" />
-        <div class="flex-1">
-          <div class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-            {{ participant.user.displayName }}
+        <RouterLink
+          :to="`/players/${participant.userId}`"
+          class="flex items-center gap-3 flex-1 min-w-0 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors no-underline rounded-lg"
+        >
+          <Avatar :label="participant.user.displayName.charAt(0).toUpperCase()" class="bg-blue-500" />
+          <div class="flex-1 min-w-0">
+            <div class="font-medium text-blue-600 dark:text-blue-400 hover:underline truncate">
+              {{ participant.user.displayName }}
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+              Inscrit le {{ formatDate(participant.joinedAt) }}
+            </div>
           </div>
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            Inscrit le {{ formatDate(participant.joinedAt) }}
+          <div v-if="participant.matchesPlayed > 0" class="text-sm text-gray-500 shrink-0">
+            {{ participant.matchesPlayed }} matchs
           </div>
-        </div>
-        <div v-if="participant.matchesPlayed > 0" class="text-sm text-gray-500">
-          {{ participant.matchesPlayed }} matchs
-        </div>
-        <i class="fa fa-chevron-right text-gray-400 text-xs"></i>
-      </RouterLink>
+          <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0"></i>
+        </RouterLink>
+        <Button
+          v-if="canAddParticipants"
+          icon="fa fa-user-minus"
+          severity="danger"
+          text
+          rounded
+          size="small"
+          @click="handleRemoveParticipant(participant.userId)"
+        />
+      </div>
     </div>
 
     <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -54,29 +67,32 @@
           <ProgressSpinner />
         </div>
         <div v-else>
-          <label class="block text-sm font-medium mb-2">Sélectionner un utilisateur</label>
-          <Select
-            v-model="selectedUserId"
+          <label class="block text-sm font-medium mb-2">Sélectionner des utilisateurs</label>
+          <MultiSelect
+            v-model="selectedUserIds"
             :options="availableUsers"
             option-label="displayName"
             option-value="id"
-            placeholder="Choisir un utilisateur"
+            placeholder="Choisir un ou plusieurs utilisateurs"
             class="w-full"
             filter
+            display="chip"
           />
         </div>
+        <ProgressBar v-if="addingParticipant" mode="indeterminate" class="mt-4 h-1" />
       </div>
       <template #footer>
         <Button
           label="Annuler"
           severity="secondary"
           @click="showAddParticipantDialog = false"
+          :disabled="addingParticipant"
         />
         <Button
           label="Ajouter"
           icon="fa fa-check"
           @click="handleAddParticipant"
-          :disabled="!selectedUserId"
+          :disabled="selectedUserIds.length === 0 || addingParticipant"
           :loading="addingParticipant"
         />
       </template>
@@ -109,7 +125,7 @@ const { users, loading: loadingUsers, listUsers } = useUserService()
 const participantService = useParticipantService()
 
 const showAddParticipantDialog = ref(false)
-const selectedUserId = ref<string | null>(null)
+const selectedUserIds = ref<string[]>([])
 const addingParticipant = ref(false)
 
 const canAddParticipants = computed(() => isAdmin.value)
@@ -121,23 +137,32 @@ const availableUsers = computed(() => {
 })
 
 watch(showAddParticipantDialog, async (visible) => {
-  if (visible && users.value.length === 0) {
-    await listUsers()
+  if (visible) {
+    if (users.value.length === 0) {
+      await listUsers()
+    }
+  } else {
+    selectedUserIds.value = []
   }
 })
 
+async function handleRemoveParticipant(userId: string) {
+  await participantService.adminRemoveParticipantAndReload(props.tournamentId, userId)
+  emit('participantAdded')
+}
+
 async function handleAddParticipant() {
-  if (!selectedUserId.value) return
+  if (selectedUserIds.value.length === 0) return
 
   addingParticipant.value = true
   try {
-    const success = await participantService.adminAddParticipantAndReload(
+    const success = await participantService.adminAddParticipantsBatchAndReload(
       props.tournamentId,
-      selectedUserId.value,
+      selectedUserIds.value,
     )
     if (success) {
       showAddParticipantDialog.value = false
-      selectedUserId.value = null
+      selectedUserIds.value = []
       emit('participantAdded')
     }
   } finally {
