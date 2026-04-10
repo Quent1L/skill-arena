@@ -63,6 +63,7 @@ declare module 'vue' {
     RulesContent: typeof import('./src/components/rules/RulesContent.vue')['default']
     ScoreInput: typeof import('./src/components/match/ScoreInput.vue')['default']
     Select: typeof import('primevue/select')['default']
+    SelectButton: typeof import('primevue/selectbutton')['default']
     SkolLogo: typeof import('./src/components/SkolLogo.vue')['default']
     SpeedDial: typeof import('primevue/speeddial')['default']
     SplashLoader: typeof import('./src/components/SplashLoader.vue')['default']

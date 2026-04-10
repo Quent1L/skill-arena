@@ -731,18 +731,18 @@ describe("BracketService", () => {
 
     it("should generate championship seeding based on standings", async () => {
       const entries = [
-        { id: "entry-1", name: "Entry 1" },
-        { id: "entry-2", name: "Entry 2" },
-        { id: "entry-3", name: "Entry 3" },
-        { id: "entry-4", name: "Entry 4" },
+        { id: "entry-1", name: "Entry 1", players: [{ playerId: "player-1" }] },
+        { id: "entry-2", name: "Entry 2", players: [{ playerId: "player-2" }] },
+        { id: "entry-3", name: "Entry 3", players: [{ playerId: "player-3" }] },
+        { id: "entry-4", name: "Entry 4", players: [{ playerId: "player-4" }] },
       ];
 
       mockStandingsService.getOfficialStandings.mockResolvedValue({
         standings: [
-          { id: "entry-4", points: 100 },
-          { id: "entry-2", points: 80 },
-          { id: "entry-1", points: 60 },
-          { id: "entry-3", points: 40 },
+          { id: "player-4", points: 100 },
+          { id: "player-2", points: 80 },
+          { id: "player-1", points: 60 },
+          { id: "player-3", points: 40 },
         ],
       });
 
@@ -766,16 +766,16 @@ describe("BracketService", () => {
 
     it("should handle mixed seeded and unseeded entries in championship seeding", async () => {
       const entries = [
-        { id: "entry-1", name: "Entry 1" },
-        { id: "entry-2", name: "Entry 2" },
-        { id: "entry-3", name: "Entry 3" },
-        { id: "entry-4", name: "Entry 4" },
+        { id: "entry-1", name: "Entry 1", players: [{ playerId: "player-1" }] },
+        { id: "entry-2", name: "Entry 2", players: [{ playerId: "player-2" }] },
+        { id: "entry-3", name: "Entry 3", players: [{ playerId: "player-3" }] },
+        { id: "entry-4", name: "Entry 4", players: [{ playerId: "player-4" }] },
       ];
 
       mockStandingsService.getOfficialStandings.mockResolvedValue({
         standings: [
-          { id: "entry-1", points: 100 },
-          { id: "entry-2", points: 80 },
+          { id: "player-1", points: 100 },
+          { id: "player-2", points: 80 },
         ],
       });
 
@@ -863,14 +863,15 @@ describe("BracketService", () => {
       expect(byeMatches.length).toBeGreaterThan(0);
     });
 
-    it("should generate standard bracket pairings (1v8, 4v5, 3v6, 2v7)", () => {
+    it("should generate balanced bracket pairings (1v8, 4v5, 2v7, 3v6) in correct order", () => {
       const service = bracketService as any;
       const pairings = service.generateStandardBracketPairings(8, 8);
 
-      expect(pairings).toContainEqual([1, 8]);
-      expect(pairings).toContainEqual([4, 5]);
-      expect(pairings).toContainEqual([3, 6]);
-      expect(pairings).toContainEqual([2, 7]);
+      // Order matters: ensures #1 meets #4 in semis and #1 meets #2 only in final
+      expect(pairings[0]).toEqual([1, 8]);
+      expect(pairings[1]).toEqual([4, 5]);
+      expect(pairings[2]).toEqual([2, 7]);
+      expect(pairings[3]).toEqual([3, 6]);
     });
 
     it("should generate double elimination bracket with winners and losers rounds", () => {
@@ -1046,10 +1047,10 @@ describe("BracketService", () => {
     describe("Championship seeding edge cases", () => {
       it("should handle all entries unseeded", async () => {
         const entries = [
-          { id: "entry-1", name: "Entry 1" },
-          { id: "entry-2", name: "Entry 2" },
-          { id: "entry-3", name: "Entry 3" },
-          { id: "entry-4", name: "Entry 4" },
+          { id: "entry-1", name: "Entry 1", players: [{ playerId: "player-1" }] },
+          { id: "entry-2", name: "Entry 2", players: [{ playerId: "player-2" }] },
+          { id: "entry-3", name: "Entry 3", players: [{ playerId: "player-3" }] },
+          { id: "entry-4", name: "Entry 4", players: [{ playerId: "player-4" }] },
         ];
 
         mockStandingsService.getOfficialStandings.mockResolvedValue({
@@ -1070,14 +1071,14 @@ describe("BracketService", () => {
 
       it("should handle all entries seeded", async () => {
         const entries = [
-          { id: "entry-1", name: "Entry 1" },
-          { id: "entry-2", name: "Entry 2" },
+          { id: "entry-1", name: "Entry 1", players: [{ playerId: "player-1" }] },
+          { id: "entry-2", name: "Entry 2", players: [{ playerId: "player-2" }] },
         ];
 
         mockStandingsService.getOfficialStandings.mockResolvedValue({
           standings: [
-            { id: "entry-1", points: 100 },
-            { id: "entry-2", points: 80 },
+            { id: "player-1", points: 100 },
+            { id: "player-2", points: 80 },
           ],
         });
 
@@ -1095,16 +1096,17 @@ describe("BracketService", () => {
 
       it("should handle entries with identical points in championship seeding", async () => {
         const entries = [
-          { id: "entry-1", name: "Entry 1" },
-          { id: "entry-2", name: "Entry 2" },
-          { id: "entry-3", name: "Entry 3" },
+          { id: "entry-1", name: "Entry 1", players: [{ playerId: "player-1" }] },
+          { id: "entry-2", name: "Entry 2", players: [{ playerId: "player-2" }] },
+          { id: "entry-3", name: "Entry 3", players: [{ playerId: "player-3" }] },
         ];
 
+        // Standings already sorted by tiebreakers: player-1 ranks higher than player-2 despite equal points
         mockStandingsService.getOfficialStandings.mockResolvedValue({
           standings: [
-            { id: "entry-1", points: 100 },
-            { id: "entry-2", points: 100 },
-            { id: "entry-3", points: 50 },
+            { id: "player-1", points: 100 },
+            { id: "player-2", points: 100 },
+            { id: "player-3", points: 50 },
           ],
         });
 
@@ -1118,6 +1120,9 @@ describe("BracketService", () => {
         // Both entry-1 and entry-2 should have seedingScore of 100
         const topSeeds = seeds.filter((s: any) => s.seedingScore === 100);
         expect(topSeeds.length).toBe(2);
+        // entry-1 should be seed 1, entry-2 seed 2 (standings rank preserved)
+        expect(seeds.find((s: any) => s.seedNumber === 1)?.entryId).toBe("entry-1");
+        expect(seeds.find((s: any) => s.seedNumber === 2)?.entryId).toBe("entry-2");
       });
     });
 
@@ -1200,19 +1205,21 @@ describe("BracketService", () => {
     });
 
     describe("Bracket pairings", () => {
-      it("should generate correct pairings for 16 participants", () => {
+      it("should generate correct balanced pairings for 16 participants", () => {
         const service = bracketService as any;
         const pairings = service.generateStandardBracketPairings(16, 16);
 
+        // Balanced draw order: (1,16),(8,9),(4,13),(5,12),(2,15),(7,10),(3,14),(6,11)
+        // Ensures: #1 meets #8 in QF, #4 in SF, #2 only in final
         expect(pairings.length).toBe(8);
         expect(pairings[0]).toEqual([1, 16]);
-        expect(pairings[1]).toEqual([2, 15]);
-        expect(pairings[2]).toEqual([3, 14]);
-        expect(pairings[3]).toEqual([4, 13]);
-        expect(pairings[4]).toEqual([5, 12]);
-        expect(pairings[5]).toEqual([6, 11]);
-        expect(pairings[6]).toEqual([7, 10]);
-        expect(pairings[7]).toEqual([8, 9]);
+        expect(pairings[1]).toEqual([8, 9]);
+        expect(pairings[2]).toEqual([4, 13]);
+        expect(pairings[3]).toEqual([5, 12]);
+        expect(pairings[4]).toEqual([2, 15]);
+        expect(pairings[5]).toEqual([7, 10]);
+        expect(pairings[6]).toEqual([3, 14]);
+        expect(pairings[7]).toEqual([6, 11]);
       });
 
       it("should generate pairings with ghost opponents for non-power-of-2", () => {
@@ -1225,6 +1232,86 @@ describe("BracketService", () => {
         expect(pairings).toContainEqual([4, 5]);
         expect(pairings).toContainEqual([3, 6]);
         expect(pairings).toContainEqual([2, 7]);
+      });
+    });
+
+    describe("getBalancedSeedPositions", () => {
+      it("should return [1] for size 1", () => {
+        const service = bracketService as any;
+        expect(service.getBalancedSeedPositions(1)).toEqual([1]);
+      });
+
+      it("should return [1, 2] for size 2", () => {
+        const service = bracketService as any;
+        expect(service.getBalancedSeedPositions(2)).toEqual([1, 2]);
+      });
+
+      it("should return [1, 4, 2, 3] for size 4", () => {
+        const service = bracketService as any;
+        expect(service.getBalancedSeedPositions(4)).toEqual([1, 4, 2, 3]);
+      });
+
+      it("should return [1, 8, 4, 5, 2, 7, 3, 6] for size 8", () => {
+        const service = bracketService as any;
+        expect(service.getBalancedSeedPositions(8)).toEqual([
+          1, 8, 4, 5, 2, 7, 3, 6,
+        ]);
+      });
+
+      it("should always contain each number from 1 to size exactly once", () => {
+        const service = bracketService as any;
+        for (const size of [2, 4, 8, 16, 32]) {
+          const positions = service.getBalancedSeedPositions(size);
+          expect(positions.length).toBe(size);
+          expect(new Set(positions).size).toBe(size);
+          expect(Math.min(...positions)).toBe(1);
+          expect(Math.max(...positions)).toBe(size);
+        }
+      });
+    });
+
+    describe("Balanced draw property", () => {
+      it("should ensure #1 and #2 can only meet in the final (8 players)", () => {
+        const service = bracketService as any;
+        const seeds = Array.from({ length: 8 }, (_, i) => ({
+          entryId: `e${i + 1}`,
+          seedNumber: i + 1,
+        }));
+        const rounds = service.generateSingleEliminationBracket(seeds, false);
+
+        // Round 0 (QF): #1 vs #8, #4 vs #5, #2 vs #7, #3 vs #6
+        const qf = rounds[0];
+        expect(qf.matches[0].entryAId).toBe("e1");
+        expect(qf.matches[0].entryBId).toBe("e8");
+        expect(qf.matches[1].entryAId).toBe("e4");
+        expect(qf.matches[1].entryBId).toBe("e5");
+        expect(qf.matches[2].entryAId).toBe("e2");
+        expect(qf.matches[2].entryBId).toBe("e7");
+        expect(qf.matches[3].entryAId).toBe("e3");
+        expect(qf.matches[3].entryBId).toBe("e6");
+
+        // Match progression: QF 0 & 1 → SF 0, QF 2 & 3 → SF 1
+        // If favorites win: SF 0 = #1 vs #4, SF 1 = #2 vs #3
+        expect(qf.matches[0].winnerToMatchNumber).toBe(0);
+        expect(qf.matches[1].winnerToMatchNumber).toBe(0);
+        expect(qf.matches[2].winnerToMatchNumber).toBe(1);
+        expect(qf.matches[3].winnerToMatchNumber).toBe(1);
+      });
+
+      it("should ensure #1 and #2 can only meet in the final (4 players)", () => {
+        const service = bracketService as any;
+        const seeds = Array.from({ length: 4 }, (_, i) => ({
+          entryId: `e${i + 1}`,
+          seedNumber: i + 1,
+        }));
+        const rounds = service.generateSingleEliminationBracket(seeds, false);
+
+        // Semi-finals: #1 vs #4, #2 vs #3
+        const sf = rounds[0];
+        expect(sf.matches[0].entryAId).toBe("e1");
+        expect(sf.matches[0].entryBId).toBe("e4");
+        expect(sf.matches[1].entryAId).toBe("e2");
+        expect(sf.matches[1].entryBId).toBe("e3");
       });
     });
 

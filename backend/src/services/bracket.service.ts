@@ -461,7 +461,7 @@ export class BracketService {
       sourceTournamentId
     );
 
-    // Create map of entry ID to standings position
+    // Create map of player/team ID to standings rank and points
     const standingsMap = new Map<string, { rank: number; points: number }>();
     standings.forEach((standing, index) => {
       standingsMap.set(standing.id, {
@@ -471,15 +471,18 @@ export class BracketService {
     });
 
     // Assign seeds based on standings
+    // Flex mode entries: match by first player's user ID
+    // Static mode entries: match by team ID
     const seeded: BracketSeedData[] = [];
     const unseeded: typeof entries = [];
 
     for (const entry of entries) {
-      const standing = standingsMap.get(entry.id);
+      const lookupId = entry.players?.[0]?.playerId ?? entry.team?.id;
+      const standing = lookupId ? standingsMap.get(lookupId) : undefined;
       if (standing) {
         seeded.push({
           entryId: entry.id,
-          seedNumber: 0, // Will be assigned after sorting
+          seedNumber: standing.rank,
           seedingScore: standing.points,
         });
       } else {
@@ -487,13 +490,8 @@ export class BracketService {
       }
     }
 
-    // Sort seeded by points (descending)
-    seeded.sort((a, b) => (b.seedingScore || 0) - (a.seedingScore || 0));
-
-    // Assign seed numbers
-    seeded.forEach((seed, index) => {
-      seed.seedNumber = index + 1;
-    });
+    // Sort by standings rank (already accounts for all tiebreakers from sortStandings)
+    seeded.sort((a, b) => a.seedNumber - b.seedNumber);
 
     // Randomly assign unseeded entries to remaining slots
     const unseededSeeds = unseeded
@@ -715,21 +713,35 @@ export class BracketService {
   }
 
   /**
-   * Generate standard bracket pairings (1v16, 8v9, 5v12, 4v13, etc.)
+   * Generate balanced bracket pairings so that top seeds are kept apart as long as possible.
+   * E.g. for 8 players: (1,8), (4,5), (2,7), (3,6)
+   * → Semi 0: 1 vs 4  |  Semi 1: 2 vs 3  |  Final: 1 vs 2
    */
   private generateStandardBracketPairings(
-    actualParticipants: number,
+    _actualParticipants: number,
     nextPowerOf2: number
   ): [number, number][] {
+    const positions = this.getBalancedSeedPositions(nextPowerOf2);
     const pairings: [number, number][] = [];
-    const halfSize = nextPowerOf2 / 2;
-
-    for (let i = 1; i <= halfSize; i++) {
-      const opponent = nextPowerOf2 + 1 - i;
-      pairings.push([i, opponent]);
+    for (let i = 0; i < positions.length; i += 2) {
+      pairings.push([positions[i], positions[i + 1]]);
     }
-
     return pairings;
+  }
+
+  /**
+   * Recursively build the seed-position array for a balanced draw.
+   * getBalancedSeedPositions(8) → [1, 8, 4, 5, 2, 7, 3, 6]
+   */
+  private getBalancedSeedPositions(size: number): number[] {
+    if (size <= 1) return [1];
+    const half = this.getBalancedSeedPositions(size / 2);
+    const result: number[] = [];
+    for (const seed of half) {
+      result.push(seed);
+      result.push(size + 1 - seed);
+    }
+    return result;
   }
 
   /**
