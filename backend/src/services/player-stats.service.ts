@@ -8,6 +8,10 @@ import type {
   PlayerStatsFilters,
   PlayerTournamentOption,
   PlayerTournamentEntry,
+  PlayerMatchHistoryQuery,
+  ClientMatchHistoryEntry,
+  HistoryMatchSide,
+  HistoryMatchSidePlayer,
 } from "@skill-arena/shared";
 
 type MatchResult = {
@@ -246,6 +250,53 @@ export class PlayerStatsService {
     }
 
     return Array.from(seen.values());
+  }
+
+  async getPlayerMatchHistory(
+    playerId: string,
+    filters: PlayerMatchHistoryQuery,
+  ): Promise<ClientMatchHistoryEntry[]> {
+    const rows = await playerStatsRepository.getPlayerMatchHistory(playerId, filters);
+    if (rows.length === 0) return [];
+
+    const matchIds = rows.map((r) => r.matchId);
+    const sidesData = await playerStatsRepository.getMatchPlayersForSides(matchIds);
+
+    const sidesByMatch = new Map<string, typeof sidesData>();
+    for (const side of sidesData) {
+      if (!sidesByMatch.has(side.matchId)) sidesByMatch.set(side.matchId, []);
+      sidesByMatch.get(side.matchId)!.push(side);
+    }
+
+    return rows.map((row) => {
+      const sides: HistoryMatchSide[] = (sidesByMatch.get(row.matchId) ?? []).map((s) => ({
+        position: s.position,
+        players: s.entry.players.map((p): HistoryMatchSidePlayer => ({
+          id: p.player.id,
+          displayName: p.player.displayName,
+          shortName: p.player.shortName,
+        })),
+      }));
+
+      return {
+        id: `${playerId}-${row.matchId}`,
+        matchId: row.matchId,
+        playerId,
+        tournament: { id: row.tournamentId, name: row.tournamentName, mode: row.tournamentMode },
+        playedAt: row.playedAt ?? new Date(),
+        status: row.status ?? "finalized",
+        scoreA: row.scoreA,
+        scoreB: row.scoreB,
+        winnerSide: (row.winnerSide as "A" | "B" | null) ?? null,
+        teamSizeA: row.teamSizeA,
+        teamSizeB: row.teamSizeB,
+        sides,
+        mmrDelta: row.mmrDelta ?? null,
+        outcomeType: row.outcomeTypeId
+          ? { id: row.outcomeTypeId, name: row.outcomeTypeName ?? '' }
+          : null,
+      };
+    });
   }
 
   private buildEmptyResponse(player: PlayerProfile, filters: PlayerStatsFilters): PlayerStatsResponse {

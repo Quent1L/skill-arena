@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, max } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   appUsers,
@@ -8,6 +8,7 @@ import {
   matches,
   matchSides,
   disciplines,
+  mmrHistory,
 } from "../db/schema";
 
 export class PlayerStatsRepository {
@@ -83,6 +84,81 @@ export class PlayerStatsRepository {
       .from(tournamentEntryPlayers)
       .innerJoin(appUsers, eq(tournamentEntryPlayers.playerId, appUsers.id))
       .where(inArray(tournamentEntryPlayers.entryId, entryIds));
+  }
+
+  async getPlayerMatchHistory(
+    playerId: string,
+    filters: { limit?: number; offset?: number; tournamentId?: string },
+  ) {
+    const { limit = 10, offset = 0, tournamentId } = filters;
+
+    const conditions = [eq(tournamentEntryPlayers.playerId, playerId)];
+    if (tournamentId) {
+      conditions.push(eq(matches.tournamentId, tournamentId));
+    }
+
+    // Use GROUP BY to deduplicate matches (a player may appear multiple times
+    // via different entry_player rows). All non-aggregate fields are deterministic
+    // per match (same tournament, same playedAt, etc.) so MAX() is just a formality.
+    return db
+      .select({
+        matchId: matches.id,
+        tournamentId: tournaments.id,
+        tournamentName: tournaments.name,
+        tournamentMode: tournaments.mode,
+        playedAt: max(matches.playedAt),
+        status: max(matches.status),
+        winnerSide: max(matches.winnerSide),
+        scoreA: sql<number | null>`(SELECT score FROM match_sides WHERE match_id = ${matches.id} AND position = 1 LIMIT 1)`,
+        scoreB: sql<number | null>`(SELECT score FROM match_sides WHERE match_id = ${matches.id} AND position = 2 LIMIT 1)`,
+        teamSizeA: sql<number>`(
+          SELECT COUNT(*) FROM tournament_entry_players tep2
+          JOIN match_sides ms2 ON ms2.entry_id = tep2.entry_id
+          WHERE ms2.match_id = ${matches.id} AND ms2.position = 1
+        )`.mapWith(Number),
+        teamSizeB: sql<number>`(
+          SELECT COUNT(*) FROM tournament_entry_players tep2
+          JOIN match_sides ms2 ON ms2.entry_id = tep2.entry_id
+          WHERE ms2.match_id = ${matches.id} AND ms2.position = 2
+        )`.mapWith(Number),
+        mmrDelta: sql<number | null>`(
+          SELECT mmr_delta FROM mmr_history
+          WHERE match_id = ${matches.id} AND player_id = ${playerId}
+          LIMIT 1
+        )`,
+        outcomeTypeId: matches.outcomeTypeId,
+        outcomeTypeName: sql<string | null>`(
+          SELECT name FROM outcome_types
+          WHERE id = ${matches.outcomeTypeId}
+          LIMIT 1
+        )`,
+      })
+      .from(tournamentEntryPlayers)
+      .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .innerJoin(matchSides, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(matches, eq(matchSides.matchId, matches.id))
+      .innerJoin(tournaments, eq(matches.tournamentId, tournaments.id))
+      .where(and(...conditions))
+      .groupBy(matches.id, tournaments.id, tournaments.name, tournaments.mode)
+      .orderBy(desc(max(matches.playedAt)))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getMatchPlayersForSides(matchIds: string[]) {
+    if (matchIds.length === 0) return [];
+    return db.query.matchSides.findMany({
+      where: inArray(matchSides.matchId, matchIds),
+      with: {
+        entry: {
+          with: {
+            players: {
+              with: { player: true },
+            },
+          },
+        },
+      },
+    });
   }
 
   async getPlayerTournaments(playerId: string) {

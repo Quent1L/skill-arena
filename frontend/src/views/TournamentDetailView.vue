@@ -54,9 +54,9 @@
         :ranked-leaderboard="rankedLeaderboard"
         :ranked-tiers="rankedTiers"
         :player-mmr="playerMmr"
-        :player-history="rankedHistory"
-        :player-history-has-more="playerHistoryHasMore"
-        :ranked-loading="rankedLoading"
+        :player-history="matchHistory"
+        :player-history-has-more="matchHistoryHasMore"
+        :ranked-loading="matchHistoryLoading"
         :app-user-id="appUser?.id"
         :leaderboard-rank="playerLeaderboardRank"
         :profile-chart-history="profileChartHistory"
@@ -195,6 +195,7 @@
       <!-- Tab content -->
       <div class="max-w-5xl mx-auto px-6 py-6">
         <!-- Infos tab -->
+        <Transition name="tab-fade">
         <div v-show="activeTab === 'infos'" class="space-y-6">
           <div
             v-if="tournament.description"
@@ -236,8 +237,10 @@
             :tournament-status="tournament.status"
           />
         </div>
+        </Transition>
 
         <!-- Standings tab (championship) -->
+        <Transition name="tab-fade">
         <div v-if="tournament.mode === 'championship'" v-show="activeTab === 'standings'">
           <StandingsTable
             :tournament-id="tournamentId"
@@ -246,8 +249,10 @@
             :team-mode="tournament.teamMode"
           />
         </div>
+        </Transition>
 
         <!-- Standings tab (ranked) -->
+        <Transition name="tab-fade">
         <div v-if="tournament.mode === 'ranked'" v-show="activeTab === 'standings'">
           <RankedLeaderboard
             :players="rankedLeaderboard"
@@ -256,8 +261,10 @@
             :current-user-id="appUser?.id"
           />
         </div>
+        </Transition>
 
         <!-- Mon profil tab (ranked) -->
+        <Transition name="tab-fade">
         <div
           v-if="tournament.mode === 'ranked' && isAuthenticated && appUser"
           v-show="activeTab === 'profile'"
@@ -278,46 +285,39 @@
             <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
           </div>
         </div>
+        </Transition>
 
         <!-- Bracket tab -->
+        <Transition name="tab-fade">
         <div v-if="tournament.mode === 'bracket'" v-show="activeTab === 'bracket'">
           <BracketView :tournament-id="tournamentId" :tournament="tournament" />
         </div>
+        </Transition>
 
         <!-- Matches tab -->
+        <Transition name="tab-fade">
         <div v-show="activeTab === 'matches'">
           <MatchList
             :tournament-id="tournamentId"
             :bracket-mode="tournament.mode === 'bracket'"
           />
         </div>
+        </Transition>
 
-        <!-- Mon historique tab (championship / bracket) -->
+        <!-- Mon historique tab (tous modes) -->
+        <Transition name="tab-fade">
         <div
-          v-if="isParticipant && tournament.mode !== 'ranked'"
+          v-if="(isAuthenticated && appUser) || isParticipant"
           v-show="activeTab === 'my-history'"
         >
-          <MatchList
-            :tournament-id="tournamentId"
-            :player-id="appUser?.id"
-            :bracket-mode="tournament.mode === 'bracket'"
+          <PlayerMatchHistory
+            :history="matchHistory"
+            :loading="matchHistoryLoading"
+            :has-more="matchHistoryHasMore"
+            :on-load-more="loadMoreMatchHistory"
           />
         </div>
-
-        <!-- Mon historique tab (ranked) -->
-        <div
-          v-if="tournament.mode === 'ranked' && isAuthenticated && appUser"
-          v-show="activeTab === 'my-history'"
-        >
-          <RankedMatchHistory
-            :history="rankedHistory"
-            :loading="rankedLoading"
-            :has-more="playerHistoryHasMore"
-            :allow-draw="tournament.allowDraw"
-            :total-matches="rankedHistory.length"
-            :on-load-more="loadMoreHistory"
-          />
-        </div>
+        </Transition>
       </div>
     </div>
   </div>
@@ -360,9 +360,10 @@ import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDet
 import BracketView from '@/components/bracket/BracketView.vue'
 import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
-import RankedMatchHistory from '@/components/ranked/RankedMatchHistory.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import PlayerMatchHistory from '@/components/match/PlayerMatchHistory.vue'
 import { rankedApi } from '@/composables/ranked/ranked.api'
+import { useMatchHistoryService } from '@/composables/match/match-history.service'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
 import { calculateDuration } from '@/utils/DateUtils'
 import { useViewport } from '@/composables/useViewport'
@@ -401,8 +402,15 @@ const {
   loadLeaderboard,
   loadPlayerMmr,
   loadPlayerHistory,
-  loadMoreHistory,
 } = useRankedService()
+
+const {
+  history: matchHistory,
+  loading: matchHistoryLoading,
+  hasMore: matchHistoryHasMore,
+  loadHistory: loadMatchHistory,
+  loadMore: loadMoreMatchHistory,
+} = useMatchHistoryService()
 
 const isInitialLoading = ref(true)
 const joining = ref(false)
@@ -490,9 +498,9 @@ const visibleTabs = computed(() => {
   if (mode === 'ranked')       tabs.push({ value: 'standings', label: 'Classement' })
   tabs.push({ value: 'matches', label: 'Matchs' })
   if (mode === 'ranked' && isAuthenticated.value && appUser.value) {
-    tabs.push({ value: 'profile',    label: 'Mon profil' })
-    tabs.push({ value: 'my-history', label: 'Mon historique' })
-  } else if (mode !== 'ranked' && isParticipant.value) {
+    tabs.push({ value: 'profile', label: 'Mon profil' })
+  }
+  if (isAuthenticated.value && appUser.value && (isParticipant.value || mode === 'ranked')) {
     tabs.push({ value: 'my-history', label: 'Mon historique' })
   }
   return tabs
@@ -528,9 +536,10 @@ watch(activeTab, async (tab) => {
       await loadPlayerMmr(tournamentId.value, appUser.value.id)
       profileChartHistory.value = await rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
     }
-    if (tab === 'my-history' && appUser.value?.id && !rankedHistory.value.length)
-      await loadPlayerHistory(tournamentId.value, appUser.value.id)
   }
+
+  if (tab === 'my-history' && appUser.value?.id && !matchHistory.value.length)
+    await loadMatchHistory(appUser.value.id, tournamentId.value)
 })
 
 watch(visibleTabs, updateIndicator)
@@ -590,8 +599,8 @@ async function handleRankedMobileTabChange(tab: string) {
     await loadPlayerMmr(tournamentId.value, appUser.value.id)
     profileChartHistory.value = await rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
   }
-  if (tab === 'history' && appUser.value?.id && !rankedHistory.value.length)
-    await loadPlayerHistory(tournamentId.value, appUser.value.id)
+  if (tab === 'history' && appUser.value?.id && !matchHistory.value.length)
+    await loadMatchHistory(appUser.value.id, tournamentId.value)
 }
 
 onMounted(async () => {
@@ -670,6 +679,18 @@ onMounted(async () => {
 :deep(.tournament-description a) {
   color: rgb(59 130 246);
   text-decoration: underline;
+}
+
+/* Tab fade transition */
+.tab-fade-enter-active {
+  transition: opacity 0.2s ease;
+}
+.tab-fade-leave-active {
+  transition: none;
+}
+.tab-fade-enter-from,
+.tab-fade-leave-to {
+  opacity: 0;
 }
 
 /* Description fade transition */

@@ -7,6 +7,7 @@ import {
   matchFinalizationReasonSchema,
 } from "./enums";
 import type { MatchSideModel, MatchResultModel } from "./entry";
+import type { HistoryMatchSide } from "./ranked";
 
 // ============================================
 // Types et interfaces pour les matchs
@@ -346,6 +347,14 @@ export type ContestMatchRequestData = z.infer<typeof contestMatchSchema>;
 export type FinalizeMatchRequestData = z.infer<typeof finalizeMatchSchema>;
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
 
+export const playerMatchHistoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+  tournamentId: z.string().uuid().optional(),
+});
+
+export type PlayerMatchHistoryQuery = z.infer<typeof playerMatchHistoryQuerySchema>;
+
 // ============================================
 // Types pour le frontend (avec dates en Date au lieu de string)
 // ============================================
@@ -455,4 +464,26 @@ export interface ClientValidateMatchRequest extends Omit<
   "playedAt"
 > {
   playedAt?: Date | string;
+}
+
+/**
+ * Unified match history entry for all tournament modes (ranked, championship, bracket).
+ * For ranked matches, mmrDelta is populated. For other modes, it is null.
+ * Dates are automatically converted to Date objects by the xior interceptor.
+ */
+export interface ClientMatchHistoryEntry {
+  id: string;
+  matchId: string;
+  playerId: string;
+  tournament: { id: string; name: string; mode: string };
+  playedAt: Date;
+  status: string;
+  scoreA: number | null;
+  scoreB: number | null;
+  winnerSide: "A" | "B" | null;
+  teamSizeA: number;
+  teamSizeB: number;
+  sides: HistoryMatchSide[];
+  mmrDelta: number | null;
+  outcomeType?: { id: string; name: string } | null;
 }

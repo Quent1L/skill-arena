@@ -1,3 +1,14 @@
 @import 'tailwindcss';
 @import 'tailwindcss-primeui';
 @custom-variant dark (&:where(.my-app-dark, .my-app-dark *));
+
+@theme {
+  --font-headline: 'Space Grotesk', sans-serif;
+  --font-body: 'Manrope', sans-serif;
+  --font-label: 'Inter', sans-serif;
+
+  /* Match outcome semantic tokens — reference PrimeVue palette variables */
+  --color-match-win: var(--p-cyan-400);
+  --color-match-loss: var(--p-red-400);
+  --color-match-neutral: var(--p-surface-400);
+}

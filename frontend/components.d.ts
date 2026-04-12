@@ -52,6 +52,7 @@ declare module 'vue' {
     OverlayBadge: typeof import('primevue/overlaybadge')['default']
     Paginator: typeof import('primevue/paginator')['default']
     Password: typeof import('primevue/password')['default']
+    PlayerMatchHistory: typeof import('./src/components/match/PlayerMatchHistory.vue')['default']
     PlayerMmrProfile: typeof import('./src/components/ranked/PlayerMmrProfile.vue')['default']
     PlayerPickerDialog: typeof import('./src/components/match/mobile/PlayerPickerDialog.vue')['default']
     Popover: typeof import('primevue/popover')['default']

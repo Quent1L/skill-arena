@@ -136,14 +136,12 @@
         </div>
       </div>
 
-      <!-- Tab: Mon historique (ranked) -->
-      <div v-if="tournament.mode === 'ranked'" v-show="activeTab === 'history'" class="p-2">
-        <RankedMatchHistory
+      <!-- Tab: Mon historique (tous modes) -->
+      <div v-show="activeTab === 'history'" class="p-2">
+        <PlayerMatchHistory
           :history="playerHistory ?? []"
           :loading="rankedLoading"
           :has-more="playerHistoryHasMore ?? false"
-          :allow-draw="tournament.allowDraw ?? false"
-          :total-matches="playerMmr?.matchesPlayed ?? 0"
           :on-load-more="() => emit('tab-change', 'history')"
         />
       </div>
@@ -274,6 +272,17 @@
           <i class="fas fa-users text-xl mb-1 transition-transform duration-200" :class="activeTab === 'teams' ? 'scale-110' : 'group-hover:scale-105'"></i>
           <span class="text-xs font-medium">Équipes</span>
         </button>
+
+        <button
+          v-if="isAuthenticated && isParticipant"
+          @click="() => { activeTab = 'history'; emit('tab-change', 'history') }"
+          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
+          :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
+        >
+          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
+          <i class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200" :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <span class="text-xs font-medium">Historique</span>
+        </button>
       </template>
     </div>
   </div>
@@ -289,6 +298,7 @@ import type {
   ClientPlayerMmr,
   ClientRankTier,
   ClientMmrHistoryEntry,
+  ClientMatchHistoryEntry,
 } from '@skill-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
@@ -299,7 +309,7 @@ import BracketView from '@/components/bracket/BracketView.vue'
 import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
-import RankedMatchHistory from '@/components/ranked/RankedMatchHistory.vue'
+import PlayerMatchHistory from '@/components/match/PlayerMatchHistory.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -324,7 +334,7 @@ const props = defineProps<{
   rankedLeaderboard?: ClientPlayerMmr[]
   rankedTiers?: ClientRankTier[]
   playerMmr?: ClientPlayerMmr | null
-  playerHistory?: ClientMmrHistoryEntry[]
+  playerHistory?: ClientMatchHistoryEntry[]
   playerHistoryHasMore?: boolean
   rankedLoading?: boolean
   appUserId?: string
