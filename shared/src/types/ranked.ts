@@ -115,6 +115,10 @@ export const createRankedSeasonSchema = z.object({
     .int()
     .min(1, "La taille minimale est 1"),
   rulesId: z.string().uuid().nullable().optional(),
+  // Score configuration
+  scoreEnabled: z.boolean().default(true).optional(),
+  minScore: z.number().int().min(0).nullable().optional(),
+  maxScore: z.number().int().min(0).nullable().optional(),
   // Ranked-specific config
   baseMmr: z.number().int().min(100).max(5000).default(1000),
   kFactor: z.number().int().min(8).max(128).default(32),
@@ -136,6 +140,16 @@ export const createRankedSeasonSchema = z.object({
   {
     message: "La taille maximale doit être supérieure ou égale à la taille minimale",
     path: ["maxTeamSize"],
+  }
+).refine(
+  (data) => {
+    if (data.scoreEnabled === false) return true;
+    if (data.minScore != null && data.maxScore != null) return data.minScore <= data.maxScore;
+    return true;
+  },
+  {
+    message: "Le score minimum doit être inférieur ou égal au score maximum",
+    path: ["maxScore"],
   }
 );
 
@@ -160,6 +174,9 @@ export const updateRankedSeasonSchema = z.object({
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
     .optional(),
   rulesId: z.string().uuid().nullable().optional(),
+  scoreEnabled: z.boolean().optional(),
+  minScore: z.number().int().min(0).nullable().optional(),
+  maxScore: z.number().int().min(0).nullable().optional(),
   baseMmr: z.number().int().min(100).max(5000).optional(),
   kFactor: z.number().int().min(8).max(128).optional(),
   placementMatches: z.number().int().min(1).max(20).optional(),

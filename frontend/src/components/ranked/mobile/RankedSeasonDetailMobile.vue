@@ -5,18 +5,35 @@
   >
     <!-- Mobile Header -->
     <div
-      class="top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 shadow-sm"
+      class="top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 shadow-sm gap-2"
     >
       <Button
         icon="fa fa-arrow-left"
         text
         rounded
         @click="router.push('/')"
-        class="mr-2 !w-10 !h-10 text-gray-700 dark:text-gray-200"
+        class="mr-2 !w-10 !h-10 text-gray-700 dark:text-gray-200 shrink-0"
       />
-      <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
+      <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate flex-1">
         {{ tabTitles[activeTab] }}
       </h1>
+      <Button
+        v-if="canJoin"
+        label="Rejoindre"
+        icon="fa fa-user-plus"
+        size="small"
+        class="shrink-0"
+        @click="$emit('join')"
+      />
+      <Button
+        v-else-if="canLeave"
+        label="Quitter"
+        icon="fa fa-user-minus"
+        size="small"
+        severity="secondary"
+        class="shrink-0"
+        @click="$emit('leave')"
+      />
     </div>
 
     <!-- Content Area -->
@@ -197,12 +214,17 @@ const props = defineProps<{
   appUser: { id: string } | null
   canCreateMatch: boolean
   canManage: boolean
+  isParticipant: boolean
+  canJoin: boolean
+  canLeave: boolean
   leaderboardRank?: number
   profileChartHistory?: ClientMmrHistoryEntry[]
 }>()
 
 const emit = defineEmits<{
   'create-match': []
+  'join': []
+  'leave': []
   'edit': []
   'view-rules': []
   'tab-change': [tab: string]

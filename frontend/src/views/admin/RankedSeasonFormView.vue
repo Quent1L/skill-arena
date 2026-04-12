@@ -210,6 +210,41 @@
             </div>
           </div>
 
+          <!-- Contraintes de score -->
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-4">Contraintes de score</h2>
+
+            <div class="flex items-center gap-2 mb-4">
+              <ToggleSwitch id="scoreEnabled" v-model="form.scoreEnabled" />
+              <label for="scoreEnabled" class="text-sm">Saisie des scores activée</label>
+            </div>
+
+            <div v-if="form.scoreEnabled !== false" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="minScore" class="block text-sm font-medium mb-2">Score minimum</label>
+                <InputNumber
+                  id="minScore"
+                  v-model="form.minScore"
+                  :min="0"
+                  class="w-full"
+                  placeholder="Aucune limite"
+                  :show-buttons="false"
+                />
+              </div>
+              <div>
+                <label for="maxScore" class="block text-sm font-medium mb-2">Score maximum</label>
+                <InputNumber
+                  id="maxScore"
+                  v-model="form.maxScore"
+                  :min="0"
+                  class="w-full"
+                  placeholder="Aucune limite"
+                  :show-buttons="false"
+                />
+              </div>
+            </div>
+          </div>
+
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
@@ -274,6 +309,9 @@ const form = ref({
   placementMatches: 5,
   usePreviousMmr: false,
   allowAsymmetricMatches: false,
+  scoreEnabled: true,
+  minScore: null as number | null,
+  maxScore: null as number | null,
 })
 
 const formErrors = ref<Record<string, string>>({})
@@ -325,6 +363,9 @@ async function onSubmit() {
       startDate: form.value.startDate,
       endDate: form.value.endDate,
       rulesId: form.value.rulesId,
+      scoreEnabled: form.value.scoreEnabled,
+      minScore: form.value.scoreEnabled ? form.value.minScore : null,
+      maxScore: form.value.scoreEnabled ? form.value.maxScore : null,
       baseMmr: form.value.baseMmr,
       kFactor: form.value.kFactor,
       placementMatches: form.value.placementMatches,
@@ -342,6 +383,9 @@ async function onSubmit() {
       minTeamSize: form.value.minTeamSize,
       maxTeamSize: form.value.maxTeamSize,
       rulesId: form.value.rulesId,
+      scoreEnabled: form.value.scoreEnabled,
+      minScore: form.value.scoreEnabled ? form.value.minScore : null,
+      maxScore: form.value.scoreEnabled ? form.value.maxScore : null,
       baseMmr: form.value.baseMmr,
       kFactor: form.value.kFactor,
       placementMatches: form.value.placementMatches,
@@ -372,6 +416,9 @@ onMounted(async () => {
         endDateObj.value = new Date(s.endDate)
         form.value.endDate = s.endDate
       }
+      form.value.scoreEnabled = s.scoreEnabled ?? true
+      form.value.minScore = s.minScore ?? null
+      form.value.maxScore = s.maxScore ?? null
       if (s.rankedConfig) {
         form.value.baseMmr = s.rankedConfig.baseMmr
         form.value.kFactor = s.rankedConfig.kFactor

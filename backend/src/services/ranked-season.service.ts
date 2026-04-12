@@ -32,6 +32,9 @@ export class RankedSeasonService {
         minTeamSize: input.minTeamSize,
         maxTeamSize: input.maxTeamSize,
         rulesId: input.rulesId,
+        scoreEnabled: input.scoreEnabled ?? true,
+        minScore: input.minScore ?? null,
+        maxScore: input.maxScore ?? null,
         createdBy,
       },
       {
@@ -92,13 +95,16 @@ export class RankedSeasonService {
       throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN);
     }
 
-    if (input.name || input.description || input.startDate || input.endDate || input.rulesId !== undefined) {
+    if (input.name || input.description || input.startDate || input.endDate || input.rulesId !== undefined || input.scoreEnabled !== undefined || input.minScore !== undefined || input.maxScore !== undefined) {
       await tournamentRepository.update(id, {
         name: input.name,
         description: input.description,
         startDate: input.startDate,
         endDate: input.endDate,
         rulesId: input.rulesId,
+        ...(input.scoreEnabled !== undefined && { scoreEnabled: input.scoreEnabled }),
+        ...(input.minScore !== undefined && { minScore: input.minScore }),
+        ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
       });
     }
 

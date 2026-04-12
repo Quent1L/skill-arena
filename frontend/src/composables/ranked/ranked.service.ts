@@ -127,17 +127,9 @@ export function useRankedService() {
   }
 
   async function loadPlayerMmr(seasonId: string, playerId: string) {
-    loading.value = true
-    error.value = null
-    try {
       const data = await rankedApi.getPlayerMmr(seasonId, playerId)
       playerMmr.value = data.mmr
       tiers.value = data.tiers ?? []
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du MMR'
-    } finally {
-      loading.value = false
-    }
   }
 
   async function loadPlayerHistory(seasonId: string, playerId: string, append = false) {

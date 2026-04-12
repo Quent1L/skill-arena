@@ -16,11 +16,16 @@
       :loading="loading"
       :is-authenticated="isAuthenticated"
       :app-user="appUser"
-      :can-create-match="currentSeason.status === 'ongoing' && isAuthenticated"
+      :can-create-match="canCreateMatch"
       :can-manage="isAdmin"
+      :is-participant="isParticipant"
+      :can-join="canJoin"
+      :can-leave="canLeave"
       :leaderboard-rank="playerLeaderboardRank"
       :profile-chart-history="profileChartHistory"
       @create-match="goToCreateMatch"
+      @join="joinTournamentAndReload(seasonId)"
+      @leave="leaveTournamentAndReload(seasonId)"
       @edit="goToEdit"
       @view-rules="goToRules"
       @tab-change="onTabChange"
@@ -34,14 +39,16 @@
         :status="currentSeason.status as TournamentStatus"
         :mode="'ranked'"
         :is-authenticated="isAuthenticated"
-        :is-participant="false"
-        :can-join="false"
-        :can-leave="false"
-        :can-create-match="currentSeason.status === 'ongoing' && isAuthenticated"
+        :is-participant="isParticipant"
+        :can-join="canJoin"
+        :can-leave="canLeave"
+        :can-create-match="canCreateMatch"
         :can-manage="isAdmin"
         :rules-id="currentSeason.rulesId"
         :show-recalculate="false"
         @create-match="goToCreateMatch"
+        @join="joinTournamentAndReload(seasonId)"
+        @leave="leaveTournamentAndReload(seasonId)"
         @edit="goToEdit"
         @view-rules="goToRules"
       />
@@ -54,10 +61,18 @@
       <div class="flex gap-6 mt-6">
         <!-- Sidebar -->
         <nav class="w-64 shrink-0">
-          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+          <div
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
+          >
             <!-- Sidebar header -->
-            <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20 dark:to-transparent">
-              <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider">Navigation</p>
+            <div
+              class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20 dark:to-transparent"
+            >
+              <p
+                class="text-xs font-semibold text-primary-600 dark:text-primary-400 uppercase tracking-wider"
+              >
+                Navigation
+              </p>
             </div>
             <!-- Nav items -->
             <div class="py-1">
@@ -74,7 +89,11 @@
               >
                 <div
                   class="absolute left-0 top-2 bottom-2 w-0.5 rounded-r transition-all duration-150"
-                  :class="activeTab === item.value ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+                  :class="
+                    activeTab === item.value
+                      ? 'bg-primary-600 dark:bg-primary-400'
+                      : 'bg-transparent'
+                  "
                 ></div>
                 <!-- Icon wrapper -->
                 <div
@@ -91,9 +110,17 @@
                 <div class="min-w-0">
                   <p
                     class="text-sm font-semibold leading-tight"
-                    :class="activeTab === item.value ? 'text-primary-700 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'"
-                  >{{ item.label }}</p>
-                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight">{{ item.description }}</p>
+                    :class="
+                      activeTab === item.value
+                        ? 'text-primary-700 dark:text-primary-300'
+                        : 'text-gray-700 dark:text-gray-300'
+                    "
+                  >
+                    {{ item.label }}
+                  </p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight">
+                    {{ item.description }}
+                  </p>
                 </div>
               </button>
             </div>
@@ -151,7 +178,11 @@
             </template>
 
             <!-- Matchs -->
-            <MatchList v-else-if="activeTab === 'matches'" :tournament-id="seasonId" :bracket-mode="false" />
+            <MatchList
+              v-else-if="activeTab === 'matches'"
+              :tournament-id="seasonId"
+              :bracket-mode="false"
+            />
           </div>
         </Transition>
       </div>
@@ -172,6 +203,7 @@ import { useRankedService } from '@/composables/ranked/ranked.service'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import { useAuth } from '@/composables/useAuth'
 import { useViewport } from '@/composables/useViewport'
+import { useParticipantService } from '@/composables/participant.service'
 import type { TournamentStatus } from '@skill-arena/shared'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
@@ -185,6 +217,7 @@ const router = useRouter()
 const route = useRoute()
 const { isAuthenticated, appUser, isAdmin } = useAuth()
 const { isMobile } = useViewport()
+const { participants, getTournamentParticipants, joinTournamentAndReload, leaveTournamentAndReload } = useParticipantService()
 
 const {
   currentSeason,
@@ -205,6 +238,19 @@ const {
 const activeTab = ref('leaderboard')
 const seasonId = computed(() => route.params.id as string)
 const profileChartHistory = ref<ClientMmrHistoryEntry[]>([])
+
+const isParticipant = computed(() =>
+  participants.value.some((p) => p.userId === appUser.value?.id),
+)
+const canJoin = computed(() =>
+  isAuthenticated.value &&
+  !isParticipant.value &&
+  ['open', 'ongoing'].includes(currentSeason.value?.status ?? ''),
+)
+const canLeave = computed(() =>
+  isParticipant.value && ['open', 'ongoing'].includes(currentSeason.value?.status ?? ''),
+)
+const canCreateMatch = computed(() => currentSeason.value?.status === 'ongoing' && isParticipant.value)
 
 const playerLeaderboardRank = computed(() => {
   if (!appUser.value || leaderboard.value.length === 0) return undefined
@@ -235,8 +281,12 @@ function goToRules() {
 
 async function onTabChange(tab: string) {
   if (tab === 'profile' && appUser.value) {
-    await loadPlayerMmr(seasonId.value, appUser.value.id)
-    profileChartHistory.value = await rankedApi.getPlayerHistory(seasonId.value, appUser.value.id, { limit: 200 })
+    try {
+      await loadPlayerMmr(seasonId.value, appUser.value.id)
+      profileChartHistory.value = await rankedApi.getPlayerHistory(seasonId.value, appUser.value.id, { limit: 200 })
+    }
+    catch (e) {
+    }
   }
   if (tab === 'history' && appUser.value) {
     await loadPlayerHistory(seasonId.value, appUser.value.id)
@@ -247,7 +297,10 @@ watch(activeTab, onTabChange)
 
 onMounted(async () => {
   await loadSeasonById(seasonId.value)
-  await loadLeaderboard(seasonId.value)
+  await Promise.all([
+    loadLeaderboard(seasonId.value),
+    getTournamentParticipants(seasonId.value),
+  ])
 })
 </script>
 
@@ -258,10 +311,14 @@ onMounted(async () => {
 }
 
 .tab-fade-enter-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .tab-fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 .tab-fade-enter-from {
   opacity: 0;

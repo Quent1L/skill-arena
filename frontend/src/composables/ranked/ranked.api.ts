@@ -20,6 +20,9 @@ export type RankedSeason = {
   minTeamSize: number
   maxTeamSize: number
   allowDraw?: boolean
+  scoreEnabled?: boolean
+  minScore?: number | null
+  maxScore?: number | null
   rulesId?: string | null
   rankedConfig?: {
     baseMmr: number
