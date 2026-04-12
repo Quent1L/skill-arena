@@ -6,7 +6,7 @@ const width = ref(typeof window !== 'undefined' ? window.innerWidth : 0)
 function computeIsMobile(): boolean {
   if (typeof window === 'undefined') return false
   const isTouchPrimary = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-  return isTouchPrimary || window.innerWidth < 768
+  return isTouchPrimary || Math.min(window.screen.width, window.screen.height) < 768
 }
 
 const isMobile = ref(computeIsMobile())
