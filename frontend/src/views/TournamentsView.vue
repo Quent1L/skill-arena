@@ -138,7 +138,7 @@
           v-for="season in activeRankedSeasons"
           :key="season.id"
           class="cursor-pointer hover:shadow-md transition-shadow min-w-48"
-          @click="router.push(`/ranked/${season.id}`)"
+          @click="router.push(`/tournaments/${season.id}`)"
         >
           <template #content>
             <div class="flex items-center justify-between gap-4">

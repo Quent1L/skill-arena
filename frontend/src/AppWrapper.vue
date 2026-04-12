@@ -2,7 +2,7 @@
   <div class="min-h-screen main-app">
     <NotificationsInit>
       <AppHeader v-if="route.name !== 'offline'" />
-      <BreadcrumbMenu v-if="route.name !== 'offline' && !isMobile" />
+      <BreadcrumbMenu v-if="route.name !== 'offline' && !isMobile && !route.meta.hideBreadcrumb" />
       <RouterView v-slot="{ Component, route }">
         <Transition name="fade" mode="out-in" appear>
           <component :is="Component" :key="route.path" />

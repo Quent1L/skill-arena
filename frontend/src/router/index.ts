@@ -238,13 +238,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/ranked/:id',
-    name: 'ranked-season-detail',
-    component: () => import('@/views/RankedSeasonDetailView.vue'),
-    beforeEnter: requireAuth,
-    meta: {
-      hideBreadcrumb: true,
-      requiresAuth: true,
-    },
+    redirect: (to) => ({ path: `/tournaments/${to.params.id}` }),
   },
   {
     path: '/',
@@ -266,6 +260,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Détails du tournoi',
       requiresAuth: true,
       parent: 'tournaments',
+      hideBreadcrumb: true,
     },
   },
   {

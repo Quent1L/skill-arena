@@ -57,7 +57,7 @@
               size="small"
               text
               rounded
-              @click="router.push(`/ranked/${data.id}`)"
+              @click="router.push(`/tournaments/${data.id}`)"
               v-tooltip.top="'Voir'"
             />
             <Button
