@@ -8,7 +8,7 @@
   --font-label: 'Inter', sans-serif;
 
   /* Match outcome semantic tokens — reference PrimeVue palette variables */
-  --color-match-win: var(--p-cyan-400);
+  --color-match-win: var(--p-green-400);
   --color-match-loss: var(--p-red-400);
   --color-match-neutral: var(--p-surface-400);
 }

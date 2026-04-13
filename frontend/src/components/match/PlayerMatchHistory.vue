@@ -1,7 +1,8 @@
 <template>
   <div>
     <!-- Filter chips -->
-    <div class="flex gap-2 overflow-x-auto pb-3 mb-4 no-scrollbar">
+    <div class="flex items-center gap-2 overflow-x-auto py-2 mb-4 no-scrollbar">
+      <span class="font-label text-xs text-muted-color uppercase tracking-widest shrink-0">Filtrer par</span>
       <button
         v-for="f in availableFilters"
         :key="f.value"
@@ -9,7 +10,7 @@
         class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95"
         :class="
           activeFilters.has(f.value)
-            ? f.activeClass
+            ? 'bg-surface-600 border-surface-500 text-color'
             : 'bg-surface-800 border-surface-700/20 text-muted-color'
         "
       >
@@ -21,7 +22,7 @@
     <!-- Scrollable list -->
     <div
       ref="container"
-      class="overflow-y-auto space-y-3 pr-1"
+      class="overflow-y-auto pr-1"
       style="max-height: calc(100vh - 260px)"
     >
       <!-- Initial loading -->
@@ -38,157 +39,139 @@
         <p class="font-label text-sm">Aucun match dans l'historique</p>
       </div>
 
-      <!-- Match cards -->
-      <div
-        v-for="entry in filteredHistory"
-        :key="entry.id"
-        class="group relative overflow-hidden rounded-xl bg-surface-900 border border-surface-700/10 hover:bg-surface-800 transition-all duration-300 cursor-pointer"
+      <!-- Match cards grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          v-for="entry in filteredHistory"
+          :key="entry.id"
+          class="group relative overflow-hidden rounded-xl bg-surface-800 border border-surface-700/10 hover:bg-surface-700 transition-all duration-300 cursor-pointer"
         @click="navigateToMatch(entry.matchId)"
       >
-        <div class="p-4 relative z-10">
-          <!-- Top row: tournament info + result -->
-          <div class="flex justify-between items-start mb-5">
-            <!-- Left: tournament name + status -->
-            <div class="flex flex-col min-w-0 mr-3">
-              <span class="font-label text-[10px] text-muted-color uppercase tracking-widest truncate">
-                {{ entry.tournament.name }}
+        <div class="px-3 pt-2.5 pb-2 relative z-10">
+          <!-- Top row: status | result badge + MMR -->
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="flex h-1.5 w-1.5 rounded-full shrink-0" :class="statusDotClass(entry.status)"></span>
+              <span class="font-label text-xs uppercase font-bold tracking-tighter" :class="statusTextClass(entry.status)">
+                {{ statusLabel(entry.status) }}
               </span>
-              <div class="mt-1 flex items-center gap-1.5">
-                <span
-                  class="flex h-1.5 w-1.5 rounded-full shrink-0"
-                  :class="statusDotClass(entry.status)"
-                ></span>
-                <span class="font-label text-[9px] uppercase font-bold tracking-tighter" :class="statusTextClass(entry.status)">
-                  {{ statusLabel(entry.status) }}
-                </span>
-              </div>
+              <span class="font-label text-xs text-muted-color">· {{ badgeLabel(entry) }}</span>
+              <span v-if="entry.outcomeType" class="font-label text-xs text-muted-color">· {{ entry.outcomeType.name }}</span>
             </div>
-
-            <!-- Right: result badge + MMR pill + outcomeType -->
-            <div class="flex flex-col items-end shrink-0 gap-1">
-              <!-- Result badge row -->
-              <div class="flex items-center gap-2">
-                <span
-                  class="font-headline text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border"
-                  :class="resultBadgeClass(entry)"
-                >
-                  {{ outcomeLabel(entry) }}
-                </span>
-                <span class="font-label text-[8px] text-muted-color uppercase">
-                  {{ badgeLabel(entry) }}
-                </span>
-              </div>
-
-              <!-- MMR delta: prominent pill -->
-              <div
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
                 v-if="entry.mmrDelta !== null"
-                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border font-headline font-black tabular-nums text-sm"
+                class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border font-headline font-black tabular-nums text-sm"
                 :class="mmrPillClass(entry.mmrDelta)"
               >
-                <i class="fa fa-bolt text-[10px]"></i>
+                <i class="fa fa-bolt text-xs"></i>
                 {{ entry.mmrDelta > 0 ? '+' : '' }}{{ entry.mmrDelta }}
-                <span class="text-[10px] font-label font-bold opacity-70 ml-0.5">MMR</span>
-              </div>
-
-              <!-- outcomeType chip -->
+              </span>
               <span
-                v-if="entry.outcomeType"
-                class="font-label text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-800 border border-surface-700/20 text-muted-color"
+                class="font-headline text-xs font-black uppercase tracking-tighter px-1.5 py-0.5 rounded border"
+                :class="resultBadgeClass(entry)"
               >
-                {{ entry.outcomeType.name }}
+                {{ outcomeLabel(entry) }}
               </span>
             </div>
           </div>
 
-          <!-- Center: avatars + score -->
-          <div class="flex items-center justify-between gap-4">
+          <!-- Center: my side | score (if any) | opp side -->
+          <div class="flex items-center gap-2 pt-3">
             <!-- My side -->
-            <div class="flex-1 flex flex-col items-center">
-              <div v-if="getMySide(entry).length > 0" class="flex items-center mb-1" :class="getMySide(entry).length > 1 ? '-space-x-4' : ''">
+            <div class="flex-1 flex flex-col items-center gap-1 relative">
+              <div v-if="entry.status !== 'cancelled' && winnerSideIs(entry, 'A')" class="absolute -top-6 left-1/2 -translate-x-1/2">
+                <i class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs"></i>
+              </div>
+              <div class="flex items-center" :class="getMySide(entry).length > 1 ? '-space-x-2' : ''">
                 <div
                   v-for="(player, idx) in getMySide(entry).slice(0, 2)"
                   :key="player.id"
-                  class="w-10 h-10 rounded-lg border-2 border-surface-900 flex items-center justify-center text-xs font-bold uppercase"
+                  class="w-9 h-9 rounded-md border border-surface-900 flex items-center justify-center text-sm font-bold uppercase"
                   :class="idx === 0 ? outcomeRingClass(entry) : 'ring-1 ring-surface-700/20'"
                   :style="{ zIndex: 30 - idx * 10, background: getAvatarBg(player.shortName) }"
                 >
                   {{ getInitials(player.shortName) }}
                 </div>
-                <div
-                  v-if="getMySide(entry).length > 2"
-                  class="w-10 h-10 rounded-lg bg-surface-800 border-2 border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center font-headline text-xs font-bold"
-                  style="z-index: 10"
-                >
+                <span v-if="getMySide(entry).length > 2" class="ml-1 font-label text-xs text-muted-color self-center">
                   +{{ getMySide(entry).length - 2 }}
-                </div>
+                </span>
               </div>
-              <span class="font-headline text-[10px] font-bold uppercase tracking-tight text-color/80 mt-1 text-center">
-                {{ getMySideLabel(entry) }}
-              </span>
+              <div class="flex flex-col items-center gap-0.5">
+                <span
+                  v-for="player in getMySide(entry).slice(0, 2)"
+                  :key="player.id"
+                  class="font-label text-xs font-semibold uppercase tracking-tight truncate max-w-18 text-center"
+                  :class="player.id === entry.playerId ? 'text-color/80' : 'text-color/50'"
+                >
+                  {{ player.shortName }}
+                </span>
+              </div>
             </div>
 
-            <!-- Score / VS -->
-            <div class="flex flex-col items-center">
-              <div
-                v-if="hasScore(entry)"
-                class="font-headline text-2xl font-black tracking-tighter flex items-center gap-2"
-                :class="outcomeScoreClass(entry)"
-              >
-                <span>{{ myScore(entry) }}</span>
-                <span class="text-muted-color/50 text-lg">-</span>
-                <span>{{ oppScore(entry) }}</span>
-              </div>
-              <div v-else class="font-headline text-xl font-black tracking-tighter italic uppercase" :class="outcomeScoreClass(entry)">
-                VS
-              </div>
+            <!-- Score (only when recorded) -->
+            <div
+              v-if="hasScore(entry)"
+              class="font-headline text-2xl font-black tracking-tighter flex items-center gap-1.5 shrink-0"
+              :class="outcomeScoreClass(entry)"
+            >
+              <span>{{ myScore(entry) }}</span>
+              <span class="text-muted-color/40 text-base">-</span>
+              <span>{{ oppScore(entry) }}</span>
             </div>
 
             <!-- Opponent side -->
-            <div class="flex-1 flex flex-col items-center">
-              <div v-if="getOppSide(entry).length > 0" class="flex items-center mb-1" :class="getOppSide(entry).length > 1 ? '-space-x-4' : ''">
+            <div class="flex-1 flex flex-col items-center gap-1 relative">
+              <div v-if="entry.status !== 'cancelled' && winnerSideIs(entry, 'B')" class="absolute -top-6 left-1/2 -translate-x-1/2">
+                <i class="fa fa-trophy text-yellow-500 shrink-0 text-xs"></i>
+              </div>
+              <div class="flex items-center" :class="getOppSide(entry).length > 1 ? '-space-x-2' : ''">
                 <div
                   v-for="(player, idx) in getOppSide(entry).slice(0, 2)"
                   :key="player.id"
-                  class="w-10 h-10 rounded-lg border-2 border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center text-xs font-bold uppercase"
+                  class="w-8 h-8 rounded-md border border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center text-[11px] font-bold uppercase"
                   :style="{ zIndex: 30 - idx * 10, background: getAvatarBg(player.shortName) }"
                 >
                   {{ getInitials(player.shortName) }}
                 </div>
-                <div
-                  v-if="getOppSide(entry).length > 2"
-                  class="w-10 h-10 rounded-lg bg-surface-800 border-2 border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center font-headline text-xs font-bold"
-                  style="z-index: 10"
-                >
+                <span v-if="getOppSide(entry).length > 2" class="ml-1 font-label text-xs text-muted-color self-center">
                   +{{ getOppSide(entry).length - 2 }}
-                </div>
+                </span>
               </div>
-              <span class="font-headline text-[10px] font-bold uppercase tracking-tight text-color/60 mt-1 text-center">
-                {{ getOppSideLabel(entry) }}
-              </span>
+              <div class="flex flex-col items-center gap-0.5">
+                <span
+                  v-for="player in getOppSide(entry).slice(0, 2)"
+                  :key="player.id"
+                  class="font-label text-xs font-semibold uppercase tracking-tight truncate max-w-18 text-center text-color/50"
+                >
+                  {{ player.shortName }}
+                </span>
+              </div>
             </div>
           </div>
 
           <!-- Footer: date + link -->
-          <div class="flex justify-between items-center mt-4 pt-3 border-t border-surface-700/10">
-            <span class="font-label text-[10px] text-muted-color uppercase">
+          <div class="flex justify-between items-center mt-2 pt-2 border-t border-surface-700/10">
+            <span class="font-label text-xs text-muted-color uppercase">
               {{ formatDate(entry.playedAt) }}
             </span>
             <RouterLink
               v-if="entry.matchId"
               :to="`/matches/${entry.matchId}`"
               @click.stop
-              class="bg-surface-800 p-1.5 rounded-lg hover:bg-match-win hover:text-surface-900 transition-colors active:scale-90"
+              class="text-muted-color hover:text-color transition-colors active:scale-90"
             >
-              <i class="fa fa-chevron-right text-sm leading-none"></i>
+              <i class="fa fa-chevron-right text-xs leading-none"></i>
             </RouterLink>
           </div>
         </div>
 
         <!-- Bottom accent bar -->
         <div
-          class="absolute bottom-0 left-0 h-[2px] w-0 transition-all duration-500 group-hover:w-full"
+          class="absolute bottom-0 left-0 h-0.5 w-0 transition-all duration-500 group-hover:w-full"
           :class="accentBarClass(entry)"
         ></div>
+        </div>
       </div>
 
       <!-- Loading more -->
@@ -219,24 +202,9 @@ type OutcomeFilter = 'WIN' | 'LOSS' | 'DRAW'
 const activeFilters = ref(new Set<OutcomeFilter>())
 
 const availableFilters = [
-  {
-    value: 'WIN' as OutcomeFilter,
-    label: 'Victoire',
-    icon: 'fa fa-trophy',
-    activeClass: 'bg-match-win/10 border-match-win/40 text-match-win',
-  },
-  {
-    value: 'LOSS' as OutcomeFilter,
-    label: 'Défaite',
-    icon: 'fa fa-times',
-    activeClass: 'bg-match-loss/10 border-match-loss/40 text-match-loss',
-  },
-  {
-    value: 'DRAW' as OutcomeFilter,
-    label: 'Nul',
-    icon: 'fa fa-minus',
-    activeClass: 'bg-match-neutral/10 border-match-neutral/40 text-match-neutral',
-  },
+  { value: 'WIN' as OutcomeFilter, label: 'Victoire', icon: 'fa fa-trophy' },
+  { value: 'LOSS' as OutcomeFilter, label: 'Défaite', icon: 'fa fa-times' },
+  { value: 'DRAW' as OutcomeFilter, label: 'Nul', icon: 'fa fa-minus' },
 ]
 
 function toggleFilter(value: OutcomeFilter) {
@@ -279,23 +247,13 @@ function getOppSide(entry: ClientMatchHistoryEntry) {
   return entry.sides?.find((s) => !s.players.some((p) => p.id === entry.playerId))?.players ?? []
 }
 
-function getMySideLabel(entry: ClientMatchHistoryEntry) {
-  const players = getMySide(entry)
-  const me = players.find((p) => p.id === entry.playerId)
-  if (!me) return 'Moi'
-  const extra = players.length - 1
-  return extra > 0 ? `${me.shortName} +${extra}` : me.shortName
+function winnerSideIs(entry: ClientMatchHistoryEntry, side: 'A' | 'B') {
+  return entry.winnerSide === side
 }
 
-function getOppSideLabel(entry: ClientMatchHistoryEntry) {
-  const players = getOppSide(entry)
-  if (players.length === 0) return '—'
-  const extra = players.length - 1
-  return extra > 0 ? `${players[0].shortName} +${extra}` : players[0].shortName
-}
 
 function hasScore(entry: ClientMatchHistoryEntry) {
-  return entry.scoreA !== null && entry.scoreB !== null
+  return entry.tournament.scoreEnabled && entry.scoreA !== null && entry.scoreB !== null
 }
 
 function myScore(entry: ClientMatchHistoryEntry) {
@@ -319,9 +277,9 @@ function outcomeLabel(entry: ClientMatchHistoryEntry) {
 
 function resultBadgeClass(entry: ClientMatchHistoryEntry) {
   const o = outcome(entry)
-  if (o === 'WIN') return 'bg-match-win/10 border-match-win/20 text-match-win'
-  if (o === 'LOSS') return 'bg-match-loss/10 border-match-loss/20 text-match-loss'
-  return 'bg-surface-800 border-surface-700/20 text-muted-color'
+  if (o === 'WIN') return 'bg-match-win/10 border-match-win/30 text-match-win'
+  if (o === 'LOSS') return 'bg-match-loss/10 border-match-loss/30 text-match-loss'
+  return 'bg-surface-700/50 border-surface-600 text-muted-color'
 }
 
 function outcomeScoreClass(entry: ClientMatchHistoryEntry) {
@@ -362,8 +320,8 @@ function statusDotClass(status: string) {
     case 'finalized': return 'bg-match-win/80'
     case 'ongoing': return 'bg-yellow-400 animate-pulse'
     case 'contested': return 'bg-match-loss animate-pulse'
-    case 'cancelled': return 'bg-match-neutral'
-    default: return 'bg-match-neutral'
+    case 'reported': return 'bg-orange-400'
+    default: return 'bg-surface-500'
   }
 }
 
@@ -372,7 +330,7 @@ function statusTextClass(status: string) {
     case 'finalized': return 'text-match-win/80'
     case 'ongoing': return 'text-yellow-400'
     case 'contested': return 'text-match-loss'
-    case 'cancelled': return 'text-muted-color'
+    case 'reported': return 'text-orange-400'
     default: return 'text-muted-color'
   }
 }

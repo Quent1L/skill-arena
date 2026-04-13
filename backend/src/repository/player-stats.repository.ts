@@ -106,6 +106,7 @@ export class PlayerStatsRepository {
         tournamentId: tournaments.id,
         tournamentName: tournaments.name,
         tournamentMode: tournaments.mode,
+        tournamentScoreEnabled: tournaments.scoreEnabled,
         playedAt: max(matches.playedAt),
         status: max(matches.status),
         winnerSide: max(matches.winnerSide),
@@ -139,7 +140,7 @@ export class PlayerStatsRepository {
       .innerJoin(matches, eq(matchSides.matchId, matches.id))
       .innerJoin(tournaments, eq(matches.tournamentId, tournaments.id))
       .where(and(...conditions))
-      .groupBy(matches.id, tournaments.id, tournaments.name, tournaments.mode)
+      .groupBy(matches.id, tournaments.id, tournaments.name, tournaments.mode, tournaments.scoreEnabled)
       .orderBy(desc(max(matches.playedAt)))
       .limit(limit)
       .offset(offset);

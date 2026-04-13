@@ -24,110 +24,110 @@
       <!-- Tab: Detail & Participants -->
       <div v-show="activeTab === 'participants'" class="space-y-4 p-4">
         <TournamentHeader
-          :name="tournament.name"
-          :description="tournament.description"
-          :status="tournament.status"
-          :mode="tournament.mode"
-          :is-authenticated="isAuthenticated"
-          :is-participant="isParticipant"
-          :can-join="canJoin"
-          :can-leave="canLeave"
+          :name="store.tournament!.name"
+          :description="store.tournament!.description"
+          :status="store.tournament!.status"
+          :mode="store.tournament!.mode"
+          :is-authenticated="store.isAuthenticated"
+          :is-participant="store.isParticipant"
+          :can-join="store.canJoinTournament"
+          :can-leave="store.canLeaveTournament"
           :can-create-match="false"
-          :can-manage="canManage"
-          :joining="joining"
-          :leaving="leaving"
-          :rules-id="tournament.rulesId"
-          @join="$emit('join')"
-          @leave="$emit('leave')"
-          @create-match="$emit('create-match')"
-          @edit="$emit('edit')"
-          @view-rules="$emit('view-rules')"
+          :can-manage="store.canManageTournament"
+          :joining="store.joining"
+          :leaving="store.leaving"
+          :rules-id="store.tournament!.rulesId"
+          @join="store.joinTournament()"
+          @leave="store.leaveTournament()"
+          @create-match="router.push(`/tournaments/${store.tournamentId}/create-match`)"
+          @edit="router.push(`/admin/tournaments/${store.tournamentId}/edit`)"
+          @view-rules="router.push(`/rules/${store.tournament!.rulesId}`)"
         />
 
         <TournamentInfoGrid
-          :mode="tournament.mode"
-          :team-mode="tournament.teamMode"
-          :min-team-size="tournament.minTeamSize"
-          :max-team-size="tournament.maxTeamSize"
-          :participant-count="participantCount"
-          :start-date="tournament.startDate"
-          :end-date="tournament.endDate"
-          :duration="tournamentDuration"
-          :point-per-victory="tournament.pointPerVictory"
-          :point-per-draw="tournament.pointPerDraw"
-          :point-per-loss="tournament.pointPerLoss"
-          :allow-draw="tournament.allowDraw"
+          :mode="store.tournament!.mode"
+          :team-mode="store.tournament!.teamMode"
+          :min-team-size="store.tournament!.minTeamSize"
+          :max-team-size="store.tournament!.maxTeamSize"
+          :participant-count="store.participantCount"
+          :start-date="store.tournament!.startDate"
+          :end-date="store.tournament!.endDate"
+          :duration="store.tournamentDuration"
+          :point-per-victory="store.tournament!.pointPerVictory"
+          :point-per-draw="store.tournament!.pointPerDraw"
+          :point-per-loss="store.tournament!.pointPerLoss"
+          :allow-draw="store.tournament!.allowDraw"
         />
 
         <div class="mt-4">
           <div class="flex items-center text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Participants
-            <Badge class="ml-2" :value="participantCount" severity="info" size="small" />
+            <Badge class="ml-2" :value="store.participantCount" severity="info" size="small" />
           </div>
           <TournamentParticipantsList
-            :participants="participants"
-            :loading="loadingParticipants"
-            :tournament-id="tournamentId"
-            @participant-added="$emit('participant-added')"
+            :participants="store.participants"
+            :loading="store.loadingParticipants"
+            :tournament-id="store.tournamentId"
+            @participant-added="store.reloadParticipants()"
           />
         </div>
       </div>
 
       <!-- Tab: Standings (championship only) -->
       <div
-        v-if="tournament.mode === 'championship'"
+        v-if="store.tournament!.mode === 'championship'"
         v-show="activeTab === 'standings'"
         class="h-full p-2"
       >
         <StandingsTable
           class="h-full"
-          :tournament-id="tournamentId"
-          :allow-draw="tournament.allowDraw"
-          :score-enabled="tournament.scoreEnabled ?? true"
-          :team-mode="tournament.teamMode"
+          :tournament-id="store.tournamentId"
+          :allow-draw="store.tournament!.allowDraw"
+          :score-enabled="store.tournament!.scoreEnabled ?? true"
+          :team-mode="store.tournament!.teamMode"
           v-model:standings-type="standingsType"
         />
       </div>
 
       <!-- Tab: Bracket -->
-      <div v-if="tournament.mode === 'bracket'" v-show="activeTab === 'bracket'" class="h-full p-2">
-        <BracketView :tournament-id="tournamentId" :tournament="tournament" />
+      <div v-if="store.tournament!.mode === 'bracket'" v-show="activeTab === 'bracket'" class="h-full p-2">
+        <BracketView :tournament-id="store.tournamentId" :tournament="store.tournament!" />
       </div>
 
       <!-- Tab: Matches -->
       <div v-show="activeTab === 'matches'" class="h-full p-2">
-        <MatchList :tournament-id="tournamentId" :bracket-mode="tournament.mode === 'bracket'" />
+        <MatchList :tournament-id="store.tournamentId" :bracket-mode="store.tournament!.mode === 'bracket'" />
       </div>
 
       <!-- Tab: Teams (static mode only) -->
-      <div v-if="tournament.teamMode === 'static'" v-show="activeTab === 'teams'" class="h-full">
+      <div v-if="store.tournament!.teamMode === 'static'" v-show="activeTab === 'teams'" class="h-full">
         <TeamManagementPanel
-          :tournament-id="tournamentId"
-          :current-user-id="currentUserId"
-          :is-participant="isParticipant"
-          :can-manage="canManage"
-          :tournament-status="tournament.status"
+          :tournament-id="store.tournamentId"
+          :current-user-id="store.appUser?.id"
+          :is-participant="store.isParticipant"
+          :can-manage="store.canManageTournament"
+          :tournament-status="store.tournament!.status"
         />
       </div>
 
       <!-- Tab: Ranked leaderboard -->
-      <div v-if="tournament.mode === 'ranked'" v-show="activeTab === 'standings'" class="p-2">
+      <div v-if="store.tournament!.mode === 'ranked'" v-show="activeTab === 'standings'" class="p-2">
         <RankedLeaderboard
-          :players="rankedLeaderboard ?? []"
-          :tiers="rankedTiers ?? []"
-          :loading="rankedLoading"
-          :current-user-id="appUserId"
+          :players="store.rankedLeaderboard"
+          :tiers="store.rankedTiers"
+          :loading="store.rankedLoading"
+          :current-user-id="store.appUser?.id"
         />
       </div>
 
       <!-- Tab: Mon profil (ranked) -->
-      <div v-if="tournament.mode === 'ranked'" v-show="activeTab === 'profile'" class="p-2">
+      <div v-if="store.tournament!.mode === 'ranked'" v-show="activeTab === 'profile'" class="p-2">
         <PlayerMmrProfile
-          v-if="playerMmr"
-          :mmr="playerMmr"
-          :tiers="rankedTiers ?? []"
-          :leaderboard-rank="leaderboardRank"
-          :history="profileChartHistory ?? []"
+          v-if="store.playerMmr"
+          :mmr="store.playerMmr"
+          :tiers="store.rankedTiers"
+          :leaderboard-rank="store.playerLeaderboardRank"
+          :history="store.profileChartHistory"
         />
         <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
           <i class="fa fa-user-slash text-4xl mb-4 block"></i>
@@ -139,18 +139,18 @@
       <!-- Tab: Mon historique (tous modes) -->
       <div v-show="activeTab === 'history'" class="p-2">
         <PlayerMatchHistory
-          :history="playerHistory ?? []"
-          :loading="rankedLoading"
-          :has-more="playerHistoryHasMore ?? false"
-          :on-load-more="() => emit('tab-change', 'history')"
+          :history="store.matchHistory"
+          :loading="store.matchHistoryLoading"
+          :has-more="store.matchHistoryHasMore"
+          :on-load-more="store.loadMoreMatchHistory"
         />
       </div>
     </div>
 
     <!-- Speed Dial for Create Match -->
-    <div v-if="activeTab === 'matches' && canCreateMatch">
+    <div v-if="activeTab === 'matches' && store.canCreateMatch">
       <SpeedDial
-        @click="$emit('create-match')"
+        @click="router.push(`/tournaments/${store.tournamentId}/create-match`)"
         :radius="120"
         style="position: fixed; bottom: 5rem; right: 1rem"
         showIcon="fa fa-plus"
@@ -164,7 +164,7 @@
       class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
     >
       <!-- Ranked bottom nav -->
-      <template v-if="tournament.mode === 'ranked'">
+      <template v-if="store.tournament!.mode === 'ranked'">
         <button
           @click="activeTab = 'participants'"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
@@ -186,8 +186,8 @@
         </button>
 
         <button
-          v-if="isAuthenticated"
-          @click="activeTab = 'profile'"
+          v-if="store.isAuthenticated"
+          @click="switchTab('profile')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'profile' ? activeNavClass : inactiveNavClass"
         >
@@ -197,8 +197,8 @@
         </button>
 
         <button
-          v-if="isAuthenticated"
-          @click="activeTab = 'history'"
+          v-if="store.isAuthenticated"
+          @click="switchTab('history')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
         >
@@ -231,7 +231,7 @@
         </button>
 
         <button
-          v-if="tournament.mode !== 'bracket'"
+          v-if="store.tournament!.mode !== 'bracket'"
           @click="activeTab = 'standings'"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
@@ -242,7 +242,7 @@
         </button>
 
         <button
-          v-if="tournament.mode === 'bracket'"
+          v-if="store.tournament!.mode === 'bracket'"
           @click="activeTab = 'bracket'"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'bracket' ? activeNavClass : inactiveNavClass"
@@ -263,7 +263,7 @@
         </button>
 
         <button
-          v-if="tournament.teamMode === 'static'"
+          v-if="store.tournament!.teamMode === 'static'"
           @click="activeTab = 'teams'"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'teams' ? activeNavClass : inactiveNavClass"
@@ -274,8 +274,8 @@
         </button>
 
         <button
-          v-if="isAuthenticated && isParticipant"
-          @click="() => { activeTab = 'history'; emit('tab-change', 'history') }"
+          v-if="store.isAuthenticated && store.isParticipant"
+          @click="switchTab('history')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
         >
@@ -289,17 +289,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useSwipe } from '@vueuse/core'
-import type {
-  ClientBaseTournament,
-  ParticipantListItem,
-  ClientPlayerMmr,
-  ClientRankTier,
-  ClientMmrHistoryEntry,
-  ClientMatchHistoryEntry,
-} from '@skill-arena/shared/types/index'
+import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
@@ -311,47 +304,8 @@ import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import PlayerMatchHistory from '@/components/match/PlayerMatchHistory.vue'
 
-const route = useRoute()
 const router = useRouter()
-
-const props = defineProps<{
-  tournament: ClientBaseTournament
-  participants: ParticipantListItem[]
-  participantCount: number
-  loadingParticipants: boolean
-  isAuthenticated: boolean
-  isParticipant: boolean
-  canJoin: boolean
-  canLeave: boolean
-  canCreateMatch: boolean
-  canManage: boolean
-  joining: boolean
-  leaving: boolean
-  tournamentId: string
-  tournamentDuration: string
-  currentUserId?: string
-  // Ranked-specific (optional)
-  rankedLeaderboard?: ClientPlayerMmr[]
-  rankedTiers?: ClientRankTier[]
-  playerMmr?: ClientPlayerMmr | null
-  playerHistory?: ClientMatchHistoryEntry[]
-  playerHistoryHasMore?: boolean
-  rankedLoading?: boolean
-  appUserId?: string
-  leaderboardRank?: number
-  profileChartHistory?: ClientMmrHistoryEntry[]
-}>()
-
-const emit = defineEmits<{
-  (e: 'join'): void
-  (e: 'leave'): void
-  (e: 'create-match'): void
-  (e: 'edit'): void
-  (e: 'participant-added'): void
-  (e: 'view-rules'): void
-  (e: 'recalculate-points'): void
-  (e: 'tab-change', tab: string): void
-}>()
+const store = useTournamentDetailStore()
 
 const contentAreaRef = ref<HTMLElement | null>(null)
 const standingsType = ref<'official' | 'provisional'>('official')
@@ -383,26 +337,16 @@ const tabTitles: Record<string, string> = {
   history: 'Mon historique',
 }
 
+async function switchTab(tab: string) {
+  activeTab.value = tab
+  if (tab === 'profile') await store.ensurePlayerProfile()
+  if (tab === 'history') await store.ensureMatchHistory()
+}
+
 onMounted(() => {
-  const tab = route.query.tab as string | undefined
-  if (tab) {
-    const validTabs = ['participants', 'matches']
-    if (props.tournament.mode === 'ranked') {
-      validTabs.push('standings', 'profile', 'history')
-    } else {
-      if (props.tournament.mode !== 'bracket') validTabs.push('standings')
-      if (props.tournament.mode === 'bracket') validTabs.push('bracket')
-      if (props.tournament.teamMode === 'static') validTabs.push('teams')
-    }
-    if (validTabs.includes(tab)) activeTab.value = tab
-  } else if (props.tournament.mode === 'ranked') {
+  if (store.tournament?.mode === 'ranked') {
     activeTab.value = 'standings'
   }
-})
-
-watch(activeTab, (tab) => {
-  router.replace({ query: { ...route.query, tab } })
-  if (props.tournament.mode === 'ranked') emit('tab-change', tab)
 })
 </script>
 

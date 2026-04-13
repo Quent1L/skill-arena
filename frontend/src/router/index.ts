@@ -262,6 +262,21 @@ const routes: RouteRecordRaw[] = [
       parent: 'tournaments',
       hideBreadcrumb: true,
     },
+    children: [
+      {
+        path: '',
+        redirect: (to) => ({
+          name: 'tournament-tab',
+          params: { id: to.params.id, tab: 'standings' },
+        }),
+      },
+      {
+        path: ':tab',
+        name: 'tournament-tab',
+        component: () => import('@/views/tournament/tabs/TournamentTabView.vue'),
+        meta: { hideBreadcrumb: true },
+      },
+    ],
   },
   {
     path: '/tournaments/:tournamentId/create-match',

@@ -475,7 +475,7 @@ export interface ClientMatchHistoryEntry {
   id: string;
   matchId: string;
   playerId: string;
-  tournament: { id: string; name: string; mode: string };
+  tournament: { id: string; name: string; mode: string; scoreEnabled: boolean };
   playedAt: Date;
   status: string;
   scoreA: number | null;

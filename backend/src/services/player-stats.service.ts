@@ -282,7 +282,7 @@ export class PlayerStatsService {
         id: `${playerId}-${row.matchId}`,
         matchId: row.matchId,
         playerId,
-        tournament: { id: row.tournamentId, name: row.tournamentName, mode: row.tournamentMode },
+        tournament: { id: row.tournamentId, name: row.tournamentName, mode: row.tournamentMode, scoreEnabled: row.tournamentScoreEnabled },
         playedAt: row.playedAt ?? new Date(),
         status: row.status ?? "finalized",
         scoreA: row.scoreA,

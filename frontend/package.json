@@ -33,6 +33,7 @@
     "better-auth": "*",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
+    "pinia": "^3.0.4",
     "primevue": "^4.5.4",
     "tailwindcss-primeui": "^0.6.1",
     "vee-validate": "^4.15.1",

@@ -5,7 +5,7 @@
       <BreadcrumbMenu v-if="route.name !== 'offline' && !isMobile && !route.meta.hideBreadcrumb" />
       <RouterView v-slot="{ Component, route }">
         <Transition name="fade" mode="out-in" appear>
-          <component :is="Component" :key="route.path" />
+          <component :is="Component" :key="routeKey" />
         </Transition>
       </RouterView>
       <PwaInstallBanner />
@@ -14,9 +14,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 
 const route = useRoute()
+
+// Use the parent (first matched) route's resolved path as the component key.
+// This prevents remounting the parent component when only a child route (e.g. a tab) changes.
+// For leaf routes (no children), falls back to route.path for the usual per-page remount behaviour.
+const routeKey = computed(() => {
+  const { matched, params, path } = route
+  if (matched.length <= 1) return path
+  const parentPath = matched[0].path
+  return parentPath.replace(/:([^/]+)/g, (_, p) => (params[p] as string) ?? '')
+})
 import AppHeader from '@/components/AppHeader.vue'
 import BreadcrumbMenu from '@/components/BreadcrumbMenu.vue'
 import NotificationsInit from '@/components/NotificationsInit.vue'
