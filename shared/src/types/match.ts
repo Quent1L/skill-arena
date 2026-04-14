@@ -487,3 +487,46 @@ export interface ClientMatchHistoryEntry {
   mmrDelta: number | null;
   outcomeType?: { id: string; name: string } | null;
 }
+
+/**
+ * Lean match card type for the unified GET /matches endpoint.
+ * Scores and team sizes are derivable from sides (side.score, side.players.length).
+ * winnerSide is represented as side.isWinner to avoid redundancy.
+ */
+export interface MatchCardSide {
+  position: number;
+  score: number | null;
+  isWinner: boolean;
+  players: { id: string; displayName: string; shortName: string }[];
+}
+
+export interface ClientMatchCard {
+  id: string;
+  playedAt: Date;
+  status: string;
+  tournament: { id: string; name: string; mode: string; scoreEnabled: boolean };
+  sides: MatchCardSide[];
+  outcomeType: { id: string; name: string } | null;
+  playerId?: string;
+  mmrDelta?: number | null;
+}
+
+export interface PaginatedMatchCards {
+  data: ClientMatchCard[];
+  total: number;
+  hasMore: boolean;
+}
+
+export const listMatchCardsQuerySchema = z.object({
+  tournamentId: z.string().uuid().optional(),
+  playerId: z.string().uuid().optional(),
+  status: matchStatusSchema.optional(),
+  bracketMode: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type ListMatchCardsQuery = z.infer<typeof listMatchCardsQuerySchema>;

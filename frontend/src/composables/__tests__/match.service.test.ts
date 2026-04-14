@@ -10,7 +10,7 @@ import type {
   UpdateMatchRequestData,
   ReportMatchResultRequestData,
   ConfirmMatchResultRequestData,
-  ListMatchesQuery,
+  PaginatedMatchCards,
   ValidateMatchRequestData,
 } from '@skill-arena/shared/types/index'
 
@@ -93,30 +93,28 @@ describe('useMatchService', () => {
 
   describe('listMatches', () => {
     it('should call matchApi.list with filters', async () => {
-      const mockMatches: MatchModel[] = [
-        { id: 'match-1', tournamentId: 'tournament-1' } as MatchModel,
-      ]
+      const mockResult: PaginatedMatchCards = { data: [], total: 0, hasMore: false }
 
-      vi.mocked(matchApi.list).mockResolvedValue(mockMatches)
+      vi.mocked(matchApi.list).mockResolvedValue(mockResult)
 
       const { listMatches } = useMatchService()
-      const filters: ListMatchesQuery = { tournamentId: 'tournament-1' }
+      const filters = { tournamentId: 'tournament-1' }
       const result = await listMatches(filters)
 
       expect(matchApi.list).toHaveBeenCalledWith(filters)
-      expect(result).toEqual(mockMatches)
+      expect(result).toEqual(mockResult)
     })
 
     it('should call matchApi.list without filters', async () => {
-      const mockMatches: MatchModel[] = []
+      const mockResult: PaginatedMatchCards = { data: [], total: 0, hasMore: false }
 
-      vi.mocked(matchApi.list).mockResolvedValue(mockMatches)
+      vi.mocked(matchApi.list).mockResolvedValue(mockResult)
 
       const { listMatches } = useMatchService()
       const result = await listMatches()
 
       expect(matchApi.list).toHaveBeenCalledWith(undefined)
-      expect(result).toEqual(mockMatches)
+      expect(result).toEqual(mockResult)
     })
   })
 

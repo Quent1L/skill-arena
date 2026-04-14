@@ -1,4 +1,5 @@
 import { playerStatsRepository } from "../repository/player-stats.repository";
+import { matchSidesRepository } from "../repository/match-sides.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
 import type {
   PlayerProfile,
@@ -260,7 +261,7 @@ export class PlayerStatsService {
     if (rows.length === 0) return [];
 
     const matchIds = rows.map((r) => r.matchId);
-    const sidesData = await playerStatsRepository.getMatchPlayersForSides(matchIds);
+    const sidesData = await matchSidesRepository.getByMatchIds(matchIds);
 
     const sidesByMatch = new Map<string, typeof sidesData>();
     for (const side of sidesData) {

@@ -252,7 +252,6 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/tournaments/:id',
-    name: 'tournament-detail',
     component: () => import('@/views/TournamentDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
@@ -265,6 +264,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
+        name: 'tournament-detail',
         redirect: (to) => ({
           name: 'tournament-tab',
           params: { id: to.params.id, tab: 'standings' },

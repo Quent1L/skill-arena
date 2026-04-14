@@ -1,17 +1,16 @@
 import http from '@/config/ApiConfig'
-import type { ClientMatchHistoryEntry, PlayerMatchHistoryQuery } from '@skill-arena/shared/types/index'
+import type { PaginatedMatchCards } from '@skill-arena/shared/types/index'
 
-const BASE_URL = '/api/users'
+const BASE_URL = '/api/matches'
 
 export const matchHistoryApi = {
   async getPlayerHistory(
     playerId: string,
-    params?: PlayerMatchHistoryQuery,
-  ): Promise<ClientMatchHistoryEntry[]> {
-    const response = await http.get<ClientMatchHistoryEntry[]>(
-      `${BASE_URL}/${playerId}/match-history`,
-      { params },
-    )
+    params?: { limit?: number; offset?: number; tournamentId?: string },
+  ): Promise<PaginatedMatchCards> {
+    const response = await http.get<PaginatedMatchCards>(BASE_URL, {
+      params: { playerId, ...params },
+    })
     return response.data
   },
 }

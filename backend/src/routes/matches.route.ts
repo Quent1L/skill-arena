@@ -7,7 +7,7 @@ import {
   confirmMatchSchema,
   contestMatchSchema,
   finalizeMatchSchema,
-  listMatchesQuerySchema,
+  listMatchCardsQuerySchema,
   validateMatchSchema,
 } from "@skill-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
@@ -30,11 +30,11 @@ matches.post(
   }
 );
 
-// GET /matches - List matches (with filters)
-matches.get("/", zValidator("query", listMatchesQuerySchema), async (c) => {
+// GET /matches - Paginated lean match list (with filters)
+matches.get("/", zValidator("query", listMatchCardsQuerySchema), async (c) => {
   const filters = c.req.valid("query");
-  const matchesList = await matchService.listMatches(filters);
-  return c.json(matchesList);
+  const result = await matchService.listMatchCards(filters);
+  return c.json(result);
 });
 
 // GET /matches/:id - Get single match

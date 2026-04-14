@@ -1,4 +1,4 @@
-import { eq, and, ne, sql, count, inArray, or, lt } from "drizzle-orm";
+import { eq, and, ne, sql, count, inArray, or, lt, desc } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   matches,
@@ -13,6 +13,7 @@ import {
 import {
   type MatchStatus,
   type MatchFinalizationReason,
+  type ListMatchCardsQuery,
 } from "@skill-arena/shared";
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
@@ -452,6 +453,71 @@ export class MatchRepository {
     );
 
     return processed;
+  }
+
+  /**
+   * Lean match list for the unified GET /matches endpoint.
+   * Scores and team sizes are assembled from sides in the service layer.
+   */
+  async listMatchCards(filters: ListMatchCardsQuery) {
+    const conditions = [];
+    if (filters.tournamentId) {
+      conditions.push(eq(matches.tournamentId, filters.tournamentId));
+    }
+    if (filters.status) {
+      conditions.push(eq(matches.status, filters.status as MatchStatus));
+    }
+    if (filters.playerId) {
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM match_sides ms
+          JOIN tournament_entries te ON ms.entry_id = te.id
+          JOIN tournament_entry_players tep ON tep.entry_id = te.id
+          WHERE ms.match_id = ${matches.id} AND tep.player_id = ${filters.playerId}
+        )`,
+      );
+    }
+    if (filters.bracketMode) {
+      conditions.push(
+        sql`(SELECT COUNT(*) FROM match_sides WHERE match_id = ${matches.id}) >= 2`,
+      );
+    }
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const rows = await db
+      .select({
+        matchId: matches.id,
+        tournamentId: tournaments.id,
+        tournamentName: tournaments.name,
+        tournamentMode: tournaments.mode,
+        tournamentScoreEnabled: tournaments.scoreEnabled,
+        playedAt: matches.playedAt,
+        status: matches.status,
+        winnerSide: matches.winnerSide,
+        outcomeTypeId: matches.outcomeTypeId,
+        outcomeTypeName: sql<string | null>`(
+          SELECT name FROM outcome_types WHERE id = ${matches.outcomeTypeId} LIMIT 1
+        )`,
+        mmrDelta: filters.playerId
+          ? sql<number | null>`(
+              SELECT mmr_delta FROM mmr_history
+              WHERE match_id = ${matches.id} AND player_id = ${filters.playerId}
+              LIMIT 1
+            )`
+          : sql<null>`NULL`,
+        total: sql<number>`COUNT(*) OVER ()`.mapWith(Number),
+      })
+      .from(matches)
+      .innerJoin(tournaments, eq(matches.tournamentId, tournaments.id))
+      .where(where)
+      .orderBy(desc(matches.playedAt))
+      .limit(filters.limit)
+      .offset(filters.offset);
+
+    return {
+      data: rows,
+      total: rows[0]?.total ?? 0,
+    };
   }
 
   /**

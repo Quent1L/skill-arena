@@ -10,6 +10,9 @@ import {
   type ContestMatchRequestData as ContestMatchInput,
   type FinalizeMatchRequestData as FinalizeMatchInput,
   type MatchStatus,
+  type ListMatchCardsQuery,
+  type ClientMatchCard,
+  type PaginatedMatchCards,
 } from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
@@ -21,6 +24,7 @@ import {
 } from "../types/errors";
 import i18next from "../config/i18n";
 import type { UpdateMatchData } from "../repository/match.repository";
+import { matchSidesRepository } from "../repository/match-sides.repository";
 import { notificationService } from "./notification.service";
 import { matchInputValidator } from "./validators/match-input.validator";
 import { logger } from "../utils/logger";
@@ -256,6 +260,58 @@ export class MatchService {
     playerId?: string;
   }) {
     return await matchRepository.list(filters);
+  }
+
+  /**
+   * Lean paginated match list for the unified GET /matches endpoint.
+   */
+  async listMatchCards(filters: ListMatchCardsQuery): Promise<PaginatedMatchCards> {
+    const { data: rows, total } = await matchRepository.listMatchCards(filters);
+    if (rows.length === 0) return { data: [], total: 0, hasMore: false };
+
+    const matchIds = rows.map((r) => r.matchId);
+    const sidesData = await matchSidesRepository.getByMatchIds(matchIds);
+
+    const sidesByMatch = new Map<string, typeof sidesData>();
+    for (const side of sidesData) {
+      if (!sidesByMatch.has(side.matchId)) sidesByMatch.set(side.matchId, []);
+      sidesByMatch.get(side.matchId)!.push(side);
+    }
+
+    const data: ClientMatchCard[] = rows.map((row) => ({
+      id: row.matchId,
+      playedAt: row.playedAt ?? new Date(),
+      status: row.status,
+      tournament: {
+        id: row.tournamentId,
+        name: row.tournamentName,
+        mode: row.tournamentMode,
+        scoreEnabled: row.tournamentScoreEnabled,
+      },
+      sides: (sidesByMatch.get(row.matchId) ?? []).map((s) => ({
+        position: s.position,
+        score: s.score,
+        isWinner: row.winnerSide === (s.position === 1 ? "A" : "B"),
+        players: s.entry.players.map((p) => ({
+          id: p.player.id,
+          displayName: p.player.displayName,
+          shortName: p.player.shortName ?? p.player.displayName.slice(0, 8),
+        })),
+      })),
+      outcomeType: row.outcomeTypeId
+        ? { id: row.outcomeTypeId, name: row.outcomeTypeName ?? "" }
+        : null,
+      ...(filters.playerId && {
+        playerId: filters.playerId,
+        mmrDelta: row.mmrDelta ?? null,
+      }),
+    }));
+
+    return {
+      data,
+      total,
+      hasMore: filters.offset + filters.limit < total,
+    };
   }
 
   /**

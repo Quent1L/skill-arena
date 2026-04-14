@@ -1,11 +1,11 @@
 import { ref } from 'vue'
 import { matchHistoryApi } from './match-history.api'
-import type { ClientMatchHistoryEntry } from '@skill-arena/shared/types/index'
+import type { ClientMatchCard } from '@skill-arena/shared/types/index'
 
 const PAGE_SIZE = 10
 
 export function useMatchHistoryService() {
-  const history = ref<ClientMatchHistoryEntry[]>([])
+  const history = ref<ClientMatchCard[]>([])
   const loading = ref(false)
   const hasMore = ref(false)
   const error = ref<string | null>(null)
@@ -30,18 +30,18 @@ export function useMatchHistoryService() {
     loading.value = true
     error.value = null
     try {
-      const results = await matchHistoryApi.getPlayerHistory(playerId, {
+      const result = await matchHistoryApi.getPlayerHistory(playerId, {
         limit: PAGE_SIZE,
         offset,
         tournamentId,
       })
       if (append) {
-        history.value = [...history.value, ...results]
+        history.value = [...history.value, ...result.data]
       } else {
-        history.value = results
+        history.value = result.data
       }
-      offset += results.length
-      hasMore.value = results.length === PAGE_SIZE
+      offset += result.data.length
+      hasMore.value = result.hasMore
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Erreur lors du chargement de l'historique"
     } finally {

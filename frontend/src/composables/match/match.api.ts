@@ -8,7 +8,8 @@ import type {
   ContestMatchRequestData,
   FinalizeMatchRequestData,
   ClientValidateMatchRequest,
-  ListMatchesQuery,
+  ListMatchCardsQuery,
+  PaginatedMatchCards,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/matches'
@@ -28,11 +29,11 @@ export const matchApi = {
   },
 
   /**
-   * List matches with optional filters
-   * @returns Matches with Date objects (converted by interceptor)
+   * List matches with optional filters (paginated)
+   * @returns Paginated match cards with Date objects (converted by interceptor)
    */
-  async list(filters?: ListMatchesQuery): Promise<ClientMatchModel[]> {
-    const response = await http.get<ClientMatchModel[]>(BASE_URL, {
+  async list(filters?: Omit<Partial<ListMatchCardsQuery>, 'bracketMode'> & { bracketMode?: 'true' | 'false' }): Promise<PaginatedMatchCards> {
+    const response = await http.get<PaginatedMatchCards>(BASE_URL, {
       params: filters,
     })
     return response.data

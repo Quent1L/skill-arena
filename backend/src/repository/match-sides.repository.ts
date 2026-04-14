@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import { matchSides, matches } from "../db/schema";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -203,6 +203,23 @@ export class MatchSidesRepository {
    */
   async deleteByMatchId(matchId: string) {
     await db.delete(matchSides).where(eq(matchSides.matchId, matchId));
+  }
+
+  /**
+   * Get sides for multiple matches, with players. Used for batch match card assembly.
+   */
+  async getByMatchIds(matchIds: string[]) {
+    if (matchIds.length === 0) return [];
+    return db.query.matchSides.findMany({
+      where: inArray(matchSides.matchId, matchIds),
+      with: {
+        entry: {
+          with: {
+            players: { with: { player: true } },
+          },
+        },
+      },
+    });
   }
 
   /**

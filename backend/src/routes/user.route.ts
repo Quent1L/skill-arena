@@ -4,7 +4,7 @@ import { createAppHono } from "../types/hono";
 import { userRepository } from "../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../types/errors";
 import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema, playerStatsFiltersSchema, playerMatchHistoryQuerySchema } from "@skill-arena/shared";
+import { updateProfileSchema, playerStatsFiltersSchema } from "@skill-arena/shared";
 import { playerStatsService } from "../services/player-stats.service";
 
 const users = createAppHono();
@@ -110,14 +110,6 @@ users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c)
   const id = c.req.param("id")!;
   const filters = c.req.valid("query");
   const result = await playerStatsService.getPlayerStats(id, filters);
-  return c.json(result);
-});
-
-// GET /users/:id/match-history - Unified match history for all modes
-users.get("/:id/match-history", zValidator("query", playerMatchHistoryQuerySchema), async (c) => {
-  const id = c.req.param("id")!;
-  const filters = c.req.valid("query");
-  const result = await playerStatsService.getPlayerMatchHistory(id, filters);
   return c.json(result);
 });
 

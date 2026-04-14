@@ -11,7 +11,8 @@ import type {
   ConfirmMatchRequestData,
   ContestMatchRequestData,
   FinalizeMatchRequestData,
-  ListMatchesQuery,
+  ListMatchCardsQuery,
+  PaginatedMatchCards,
   ClientValidateMatchRequest,
   MatchStatus,
   ParticipantListItem,
@@ -225,7 +226,7 @@ export function useMatchService() {
     return await matchApi.getById(id)
   }
 
-  const listMatches = async (filters?: ListMatchesQuery): Promise<ClientMatchModel[]> => {
+  const listMatches = async (filters?: Omit<Partial<ListMatchCardsQuery>, 'bracketMode'> & { bracketMode?: 'true' | 'false' }): Promise<PaginatedMatchCards> => {
     return await matchApi.list(filters)
   }
 

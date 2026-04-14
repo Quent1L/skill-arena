@@ -39,7 +39,7 @@
       </div>
 
       <!-- Desktop version -->
-      <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div v-else class="bg-gray-50 dark:bg-gray-950">
         <!-- Hero header -->
         <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div class="max-w-5xl mx-auto px-6 pt-5" :class="isScrolled ? 'pb-3' : 'pb-5'">
@@ -153,7 +153,7 @@
         </div>
 
         <!-- Tab content -->
-        <div class="max-w-5xl mx-auto px-6 py-6">
+        <div class="max-w-6xl mx-auto px-6 py-6">
           <RouterView />
         </div>
       </div>
