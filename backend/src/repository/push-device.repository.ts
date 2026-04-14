@@ -6,8 +6,8 @@ import { logger } from "../utils/logger";
 
 export const pushDeviceRepository = {
   async register(userId: string, data: RegisterDevice) {
-    logger.debug('[PushDeviceRepo] Registering device for user:', userId);
-    logger.debug('[PushDeviceRepo] Endpoint:', data.subscriptionEndpoint);
+    logger.debug({ userId }, '[PushDeviceRepo] Registering device for user:');
+    logger.debug({ endpoint: data.subscriptionEndpoint }, '[PushDeviceRepo] Endpoint:');
     
     // Check if device already exists with this endpoint
     const [existing] = await db
@@ -18,7 +18,7 @@ export const pushDeviceRepository = {
       );
 
     if (existing) {
-      logger.debug('[PushDeviceRepo] Device already exists, updating:', existing.id);
+      logger.debug({ id: existing.id }, '[PushDeviceRepo] Device already exists, updating:');
       const result = await db
         .update(userPushDevices)
         .set({
@@ -44,7 +44,7 @@ export const pushDeviceRepository = {
         active: true,
       })
       .returning();
-    logger.debug('[PushDeviceRepo] Device created successfully:', result[0]?.id);
+    logger.debug({ id: result[0]?.id }, '[PushDeviceRepo] Device created successfully:');
     return result;
   },
 

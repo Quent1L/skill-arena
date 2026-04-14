@@ -11,15 +11,11 @@ export async function autoFinalizeMatchesJob() {
     
     const result = await matchService.autoFinalizeExpiredMatches();
     
-    logger.info(`[Auto-finalize] Job completed:`, {
-      total: result.total,
-      finalized: result.finalized.length,
-      disputed: result.disputed.length,
-    });
+    logger.info({ total: result.total, finalized: result.finalized.length, disputed: result.disputed.length }, "[Auto-finalize] Job completed:");
     
     return result;
   } catch (error) {
-    logger.error("[Auto-finalize] Error during auto-finalization:", error);
+    logger.error({ err: error }, "[Auto-finalize] Error during auto-finalization:");
     throw error;
   }
 }
@@ -31,11 +27,11 @@ if (import.meta.main) {
   logger.info("Running auto-finalize matches job manually...");
   autoFinalizeMatchesJob()
     .then((result) => {
-      logger.info("Job completed successfully:", result);
+      logger.info({ result }, "Job completed successfully:");
       process.exit(0);
     })
     .catch((error) => {
-      logger.error("Job failed:", error);
+      logger.error({ err: error }, "Job failed:");
       process.exit(1);
     });
 }

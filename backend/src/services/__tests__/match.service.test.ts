@@ -21,6 +21,7 @@ import {
 import { notificationService } from "../notification.service";
 import { bracketRepository } from "../../repository/bracket.repository";
 import { teamRepository } from "../../repository/team.repository";
+import { mmrCalculationService } from "../mmr-calculation.service";
 import {
   NotFoundError,
   BadRequestError,
@@ -96,6 +97,9 @@ beforeEach(() => {
 
   // Mock teamRepository to prevent real DB calls in static-mode validation
   (teamRepository as any).getMemberCount = async () => 2;
+
+  // Mock mmrCalculationService to prevent real DB calls in finalizeMatch
+  (mmrCalculationService as any).processMatchFinalization = async () => undefined;
 });
 
 afterEach(() => {
@@ -116,6 +120,7 @@ afterEach(() => {
   restore(notificationService);
   restore(bracketRepository);
   restore(teamRepository);
+  restore(mmrCalculationService);
 });
 
 describe("MatchService - basic flows", () => {

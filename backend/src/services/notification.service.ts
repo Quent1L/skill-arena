@@ -94,8 +94,8 @@ export const notificationService = {
             );
           } catch (e) {
             logger.error(
+              { err: e },
               `[Push] Failed to parse subscription data for device ${device.id}`,
-              e,
             );
           }
         } else {
@@ -123,8 +123,8 @@ export const notificationService = {
         }
       } catch (error) {
         logger.error(
+          { err: error },
           `[Push] Error sending push notification to device ${device.id}:`,
-          error,
         );
         if (
           error instanceof Error &&
@@ -170,13 +170,13 @@ export const notificationService = {
 
   async registerPushDevice(userId: string, data: RegisterDevice) {
     logger.debug(
+      { userId },
       "[NotificationService] Registering push device for user:",
-      userId,
     );
     const result = await pushDeviceRepository.register(userId, data);
     logger.debug(
+      { result },
       "[NotificationService] Push device registered, result:",
-      result,
     );
     return result;
   },

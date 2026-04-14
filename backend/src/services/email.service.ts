@@ -37,7 +37,7 @@ class EmailService {
       await this.transporter.sendMail(mailOptions);
       logger.info(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error) {
-      logger.error("Error sending email:", error);
+      logger.error({ err: error }, "Error sending email:");
       throw error;
     }
   }
@@ -48,7 +48,7 @@ class EmailService {
       logger.info("SMTP connection verified successfully");
       return true;
     } catch (error) {
-      logger.error("SMTP connection verification failed:", error);
+      logger.error({ err: error }, "SMTP connection verification failed:");
       return false;
     }
   }

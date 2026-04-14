@@ -50,7 +50,7 @@ export class JobScheduler {
     try {
       await autoFinalizeMatchesJob();
     } catch (error) {
-      logger.error("[Scheduler] Error running auto-finalize job:", error);
+      logger.error({ err: error }, "[Scheduler] Error running auto-finalize job:");
     }
   }
 }

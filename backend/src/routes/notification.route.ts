@@ -35,10 +35,10 @@ app.post('/me/pushDevices', requireAuth, zValidator('json', RegisterDeviceSchema
   const appUserId = c.get('appUserId');
   const data = c.req.valid('json');
   
-  logger.debug('[PushDevice] Registration request for user:', appUserId);
-  logger.debug('[PushDevice] Device type:', data.deviceType);
-  logger.debug('[PushDevice] Endpoint:', data.subscriptionEndpoint);
-  logger.debug('[PushDevice] Subscription keys:', Object.keys(data.subscriptionData || {}));
+  logger.debug({ userId: appUserId }, '[PushDevice] Registration request for user:');
+  logger.debug({ deviceType: data.deviceType }, '[PushDevice] Device type:');
+  logger.debug({ endpoint: data.subscriptionEndpoint }, '[PushDevice] Endpoint:');
+  logger.debug({ keys: Object.keys(data.subscriptionData || {}) }, '[PushDevice] Subscription keys:');
   
   await notificationService.registerPushDevice(appUserId, data);
   logger.debug('[PushDevice] Registration completed successfully');

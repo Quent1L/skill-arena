@@ -53,13 +53,13 @@ export function extractPostgresError(error: unknown): {
   }
 
   // Log the error structure for debugging
-  logger.error("Could not extract PostgreSQL error. Error structure:", {
+  logger.error({
     keys: Object.keys(err),
     hasCode: "code" in err,
     hasCause: "cause" in err,
     hasOriginalError: "originalError" in err,
     errorType: err.constructor?.name,
-  });
+  }, "Could not extract PostgreSQL error. Error structure:");
 
   return null;
 }
@@ -72,23 +72,23 @@ export function handleDatabaseError(
   context: { operation: string; name?: string }
 ): never {
   // Log full error structure for debugging
-  logger.error(`Tournament ${context.operation} error:`, error);
+  logger.error({ err: error }, `Tournament ${context.operation} error:`);
   if (error && typeof error === "object") {
     const err = error as Record<string, unknown>;
-    logger.error("Error structure:", {
+    logger.error({
       constructor: err.constructor?.name,
       keys: Object.keys(err),
       code: err.code,
       message: err.message,
       cause: err.cause,
       originalError: err.originalError,
-    });
+    }, "Error structure:");
   }
 
   const pgError = extractPostgresError(error);
 
   if (pgError) {
-    logger.error("Extracted PostgreSQL error:", pgError);
+    logger.error(pgError, "Extracted PostgreSQL error:");
 
     if (pgError.code === "23505") {
       // Unique constraint violation
@@ -96,11 +96,7 @@ export function handleDatabaseError(
       const detail = pgError.detail?.toLowerCase() || "";
       const message = pgError.message?.toLowerCase() || "";
 
-      logger.error("Unique constraint violation details:", {
-        constraint,
-        detail,
-        message,
-      });
+      logger.error({ constraint, detail, message }, "Unique constraint violation details:");
 
       // Check if it's the name constraint
       if (

@@ -75,7 +75,7 @@ export class WebSocketService {
     
     if (userConns) {
       const message = JSON.stringify(data);
-      logger.debug(`[WS] Sending message to user ${userId}:`, message);
+      logger.debug({ message }, `[WS] Sending message to user ${userId}:`);
       
       for (const ws of userConns) {
         // Check for readyState if available (Bun/standard WS)
@@ -90,7 +90,7 @@ export class WebSocketService {
             ws.send(message);
             logger.debug(`[WS] Message sent successfully to user ${userId} (no readyState)`);
           } catch (e) {
-            logger.error(`[WS] Failed to send to user ${userId}`, e);
+            logger.error({ err: e }, `[WS] Failed to send to user ${userId}`);
           }
         } else {
           logger.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
