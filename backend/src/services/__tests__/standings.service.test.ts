@@ -11,47 +11,93 @@ const DEFAULT_TOURNAMENT = {
   pointPerDraw: 1,
   pointPerLoss: 0,
   allowDraw: true,
+  scoreEnabled: true,
 };
 
 const TEAM_A = { id: "team-a", name: "Alpha", tournamentId: "tournament-1" };
 const TEAM_B = { id: "team-b", name: "Beta", tournamentId: "tournament-1" };
 const TEAM_C = { id: "team-c", name: "Gamma", tournamentId: "tournament-1" };
 
-function makeEntry(id: string, teamId: string, players: { playerId: string; displayName: string }[] = []) {
+function makeMatchWithSides(
+  id: string,
+  winnerSide: "A" | "B" | null,
+  sideA: { teamId: string; score: number; pointsAwarded?: number | null },
+  sideB: { teamId: string; score: number; pointsAwarded?: number | null },
+) {
   return {
     id,
-    entryType: "TEAM" as const,
-    teamId,
-    players: players.map((p) => ({
-      playerId: p.playerId,
-      player: { id: p.playerId, displayName: p.displayName },
-    })),
+    winnerSide,
+    sides: [
+      {
+        position: 1,
+        score: sideA.score,
+        pointsAwarded: sideA.pointsAwarded ?? null,
+        entry: {
+          teamId: sideA.teamId,
+          players: [],
+        },
+      },
+      {
+        position: 2,
+        score: sideB.score,
+        pointsAwarded: sideB.pointsAwarded ?? null,
+        entry: {
+          teamId: sideB.teamId,
+          players: [],
+        },
+      },
+    ],
   };
 }
 
-function makeSide(
-  matchId: string,
-  entryId: string,
-  position: 1 | 2,
-  score: number,
-  entry: ReturnType<typeof makeEntry>,
-  pointsAwarded: number | null = null,
+function makeFlexMatchWithPoints(
+  id: string,
+  winnerSide: "A" | "B" | null,
+  playersA: string[],
+  playersB: string[],
+  scoreA: number,
+  scoreB: number,
+  pointsA: number,
+  pointsB: number,
+  countsForRanking = true,
 ) {
-  return { matchId, entryId, position, score, pointsAwarded, entry };
-}
-
-function makeMatch(id: string, winnerSide: "A" | "B" | null, status = "finalized") {
-  return { id, status, winnerSide };
+  return {
+    id,
+    winnerSide,
+    playerPoints: [
+      ...playersA.map((pid) => ({ playerId: pid, pointsAwarded: countsForRanking ? pointsA : 0, countsForRanking })),
+      ...playersB.map((pid) => ({ playerId: pid, pointsAwarded: countsForRanking ? pointsB : 0, countsForRanking })),
+    ],
+    sides: [
+      {
+        position: 1,
+        score: scoreA,
+        entryId: "entry-a",
+        entry: { id: "entry-a", players: playersA.map((pid) => ({ playerId: pid })) },
+      },
+      {
+        position: 2,
+        score: scoreB,
+        entryId: "entry-b",
+        entry: { id: "entry-b", players: playersB.map((pid) => ({ playerId: pid })) },
+      },
+    ],
+  };
 }
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 const mockRepo = {
   getTournamentWithScoring: mock(() => Promise.resolve(DEFAULT_TOURNAMENT as any)),
-  getMatchesForStandings: mock((_id: string, _statuses: string[]) => Promise.resolve([] as any[])),
-  getMatchSides: mock((_ids: string[]) => Promise.resolve([] as any[])),
+  getMatchesWithSides: mock((_id: string, _statuses: string[]) => Promise.resolve([] as any[])),
+  getPlayerPointsForStandings: mock((_id: string, _statuses: string[]) => Promise.resolve([] as any[])),
   getTournamentTeams: mock(() => Promise.resolve([TEAM_A, TEAM_B] as any[])),
   getTournamentEntries: mock(() => Promise.resolve([] as any[])),
+  // Legacy — still used by recalculatePoints
+  getMatchesForStandings: mock(() => Promise.resolve([] as any[])),
+  getMatchSides: mock(() => Promise.resolve([] as any[])),
+  deletePlayerPointsForTournament: mock(() => Promise.resolve()),
+  insertPlayerPoints: mock(() => Promise.resolve()),
 };
 
 mock.module("../../repository/standings.repository", () => ({
@@ -64,10 +110,14 @@ import { standingsService } from "../standings.service";
 
 function resetMocks() {
   mockRepo.getTournamentWithScoring.mockImplementation(() => Promise.resolve(DEFAULT_TOURNAMENT));
-  mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([]));
-  mockRepo.getMatchSides.mockImplementation(() => Promise.resolve([]));
+  mockRepo.getMatchesWithSides.mockImplementation((_id: string, _statuses: string[]) => Promise.resolve([]));
+  mockRepo.getPlayerPointsForStandings.mockImplementation((_id: string, _statuses: string[]) => Promise.resolve([]));
   mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B]));
   mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve([]));
+  mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([]));
+  mockRepo.getMatchSides.mockImplementation(() => Promise.resolve([]));
+  mockRepo.deletePlayerPointsForTournament.mockImplementation(() => Promise.resolve());
+  mockRepo.insertPlayerPoints.mockImplementation(() => Promise.resolve());
 }
 
 function findEntry(standings: any[], id: string) {
@@ -97,17 +147,9 @@ describe("StandingsService", () => {
   // ── Mode static ───────────────────────────────────────────────────────────
 
   describe("mode static", () => {
-    const entryA = makeEntry("entry-a", "team-a");
-    const entryB = makeEntry("entry-b", "team-b");
-
     it("victoire side A : A gagne 3 pts, B gagne 0 pt", async () => {
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 3, entryA),
-          makeSide("m1", "entry-b", 2, 1, entryB),
-        ]),
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
@@ -132,52 +174,36 @@ describe("StandingsService", () => {
     });
 
     it("victoire side B : B gagne 3 pts, A gagne 0 pt", async () => {
-      const match = makeMatch("m1", "B");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 1, entryA),
-          makeSide("m1", "entry-b", 2, 3, entryB),
-        ]),
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", "B", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 3 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      const a = findEntry(standings, "team-a")!;
-      const b = findEntry(standings, "team-b")!;
-
-      expect(b.points).toBe(3);
-      expect(b.wins).toBe(1);
-      expect(a.points).toBe(0);
-      expect(a.losses).toBe(1);
+      expect(findEntry(standings, "team-b")?.points).toBe(3);
+      expect(findEntry(standings, "team-b")?.wins).toBe(1);
+      expect(findEntry(standings, "team-a")?.points).toBe(0);
+      expect(findEntry(standings, "team-a")?.losses).toBe(1);
     });
 
     it("match nul : chaque équipe gagne 1 pt", async () => {
-      const match = makeMatch("m1", null);
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 2, entryA),
-          makeSide("m1", "entry-b", 2, 2, entryB),
-        ]),
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 2 }, { teamId: "team-b", score: 2 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      const a = findEntry(standings, "team-a")!;
-      const b = findEntry(standings, "team-b")!;
-
-      expect(a.points).toBe(1);
-      expect(a.draws).toBe(1);
-      expect(b.points).toBe(1);
-      expect(b.draws).toBe(1);
+      expect(findEntry(standings, "team-a")?.points).toBe(1);
+      expect(findEntry(standings, "team-a")?.draws).toBe(1);
+      expect(findEntry(standings, "team-b")?.points).toBe(1);
+      expect(findEntry(standings, "team-b")?.draws).toBe(1);
     });
 
     it("pointsAwarded override les points du tournoi", async () => {
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
-          makeSide("m1", "entry-a", 1, 3, entryA, 5), // 5 pts custom
-          makeSide("m1", "entry-b", 2, 1, entryB, 2), // 2 pts custom pour la défaite
+          makeMatchWithSides("m1", "A",
+            { teamId: "team-a", score: 3, pointsAwarded: 5 },
+            { teamId: "team-b", score: 1, pointsAwarded: 2 },
+          ),
         ]),
       );
 
@@ -190,32 +216,21 @@ describe("StandingsService", () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, pointPerVictory: 2, pointPerDraw: 0, pointPerLoss: 1 }),
       );
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 2, entryA),
-          makeSide("m1", "entry-b", 2, 0, entryB),
-        ]),
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", "A", { teamId: "team-a", score: 2 }, { teamId: "team-b", score: 0 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      expect(findEntry(standings, "team-a")?.points).toBe(2); // victoire = 2 pts
-      expect(findEntry(standings, "team-b")?.points).toBe(1); // défaite = 1 pt
+      expect(findEntry(standings, "team-a")?.points).toBe(2);
+      expect(findEntry(standings, "team-b")?.points).toBe(1);
     });
 
     it("cumul de plusieurs matchs", async () => {
-      // m1: A gagne, m2: B gagne, m3: nul
-      const matches = [makeMatch("m1", "A"), makeMatch("m2", "B"), makeMatch("m3", null)];
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve(matches));
-      mockRepo.getMatchSides.mockImplementation(() =>
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
-          makeSide("m1", "entry-a", 1, 3, entryA),
-          makeSide("m1", "entry-b", 2, 1, entryB),
-          makeSide("m2", "entry-a", 1, 0, entryA),
-          makeSide("m2", "entry-b", 2, 2, entryB),
-          makeSide("m3", "entry-a", 1, 1, entryA),
-          makeSide("m3", "entry-b", 2, 1, entryB),
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 }),
+          makeMatchWithSides("m2", "B", { teamId: "team-a", score: 0 }, { teamId: "team-b", score: 2 }),
+          makeMatchWithSides("m3", null, { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 1 }),
         ]),
       );
 
@@ -236,11 +251,10 @@ describe("StandingsService", () => {
     });
 
     it("ignore les matchs avec moins de 2 sides", async () => {
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([makeSide("m1", "entry-a", 1, 3, entryA)]),
-      ); // seul 1 side
+      // Simulate a match with only 1 side
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([{ id: "m1", winnerSide: "A", sides: [{ position: 1, score: 3, pointsAwarded: null, entry: { teamId: "team-a", players: [] } }] }]),
+      );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
       expect(findEntry(standings, "team-a")?.points).toBe(0);
@@ -253,21 +267,11 @@ describe("StandingsService", () => {
     it("trie par points décroissants", async () => {
       mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
 
-      const entryA = makeEntry("entry-a", "team-a");
-      const entryB = makeEntry("entry-b", "team-b");
-      const entryC = makeEntry("entry-c", "team-c");
-
-      const matches = [makeMatch("m1", "A"), makeMatch("m2", "A"), makeMatch("m3", "A")];
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve(matches));
-      mockRepo.getMatchSides.mockImplementation(() =>
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
-          // A bat B et C, B bat C
-          makeSide("m1", "entry-a", 1, 3, entryA),
-          makeSide("m1", "entry-b", 2, 0, entryB),
-          makeSide("m2", "entry-a", 1, 3, entryA),
-          makeSide("m2", "entry-c", 2, 0, entryC),
-          makeSide("m3", "entry-b", 1, 2, entryB),
-          makeSide("m3", "entry-c", 2, 1, entryC),
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-a", score: 3 }, { teamId: "team-c", score: 0 }),
+          makeMatchWithSides("m3", "A", { teamId: "team-b", score: 2 }, { teamId: "team-c", score: 1 }),
         ]),
       );
 
@@ -278,57 +282,26 @@ describe("StandingsService", () => {
     });
 
     it("départage par scoreDiff si points égaux", async () => {
-      const entryA = makeEntry("entry-a", "team-a");
-      const entryB = makeEntry("entry-b", "team-b");
-
-      // A et B ont chacun 3 pts (1 victoire)
-      // A: scored=5, conceded=2, diff=+3 / B: scored=3, conceded=1, diff=+2
-      const matches = [makeMatch("m1", "A"), makeMatch("m2", "B")];
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve(matches));
-      mockRepo.getMatchSides.mockImplementation(() =>
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
-          makeSide("m1", "entry-a", 1, 5, entryA),
-          makeSide("m1", "entry-b", 2, 2, entryB),
-          makeSide("m2", "entry-a", 1, 1, entryA),  // A perd
-          makeSide("m2", "entry-b", 2, 3, entryB),
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 2 }),
+          makeMatchWithSides("m2", "B", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 3 }),
         ]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      // A: 3pts, diff= (5-2)+(1-3) = 3-2 = +1  → scored=6, conceded=5, diff=+1
-      // B: 3pts, diff= (2-5)+(3-1) = -3+2 = -1  → scored=5, conceded=6, diff=-1
-      expect(standings[0].id).toBe("team-a"); // meilleur diff
+      // A: 3pts, diff= (5-2)+(1-3) = 3-2 = +1
+      // B: 3pts, diff= (2-5)+(3-1) = -3+2 = -1
+      expect(standings[0].id).toBe("team-a");
     });
 
     it("départage par buts marqués si scoreDiff égal", async () => {
-      const entryA = makeEntry("entry-a", "team-a");
-      const entryB = makeEntry("entry-b", "team-b");
-
-      // Les deux ont 1 pt (nul) et scoreDiff=0
-      // A: scored=5, B: scored=3
-      const matches = [makeMatch("m1", null)];
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve(matches));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 5, entryA),
-          makeSide("m1", "entry-b", 2, 5, entryB),
-        ]),
-      );
-
-      // 2e match où les scores bruts sont différents: faisons 2 nuls
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          makeSide("m1", "entry-a", 1, 5, entryA),
-          makeSide("m1", "entry-b", 2, 3, entryB),
-        ]),
-      );
-      mockRepo.getMatchesForStandings.mockImplementation(() =>
-        Promise.resolve([makeMatch("m1", null)]),
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 3 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      // scoreDiff: A= 5-3=+2, B= 3-5=-2 → A premier par scoreDiff déjà
-      expect(standings[0].id).toBe("team-a");
+      expect(standings[0].id).toBe("team-a"); // scoreDiff A=+2, B=-2 → A premier
     });
   });
 
@@ -336,26 +309,6 @@ describe("StandingsService", () => {
 
   describe("mode flex", () => {
     const flexTournament = { ...DEFAULT_TOURNAMENT, teamMode: "flex" as const };
-
-    const entryAFlex = {
-      id: "entry-a",
-      entryType: "PLAYER" as const,
-      teamId: null,
-      players: [
-        { playerId: "p-a1", player: { id: "p-a1", displayName: "Player A1" } },
-        { playerId: "p-a2", player: { id: "p-a2", displayName: "Player A2" } },
-      ],
-    };
-
-    const entryBFlex = {
-      id: "entry-b",
-      entryType: "PLAYER" as const,
-      teamId: null,
-      players: [
-        { playerId: "p-b1", player: { id: "p-b1", displayName: "Player B1" } },
-        { playerId: "p-b2", player: { id: "p-b2", displayName: "Player B2" } },
-      ],
-    };
 
     const flexEntries = [
       {
@@ -382,13 +335,8 @@ describe("StandingsService", () => {
     });
 
     it("victoire side A : tous les joueurs de A gagnent 3 pts", async () => {
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          { matchId: "m1", entryId: "entry-a", position: 1, score: 3, pointsAwarded: null, entry: entryAFlex },
-          { matchId: "m1", entryId: "entry-b", position: 2, score: 1, pointsAwarded: null, entry: entryBFlex },
-        ]),
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a1", "p-a2"], ["p-b1", "p-b2"], 3, 1, 3, 0)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
@@ -408,13 +356,8 @@ describe("StandingsService", () => {
     });
 
     it("victoire side B : tous les joueurs de B gagnent 3 pts", async () => {
-      const match = makeMatch("m1", "B");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          { matchId: "m1", entryId: "entry-a", position: 1, score: 1, pointsAwarded: null, entry: entryAFlex },
-          { matchId: "m1", entryId: "entry-b", position: 2, score: 3, pointsAwarded: null, entry: entryBFlex },
-        ]),
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([makeFlexMatchWithPoints("m1", "B", ["p-a1", "p-a2"], ["p-b1", "p-b2"], 1, 3, 0, 3)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
@@ -430,13 +373,8 @@ describe("StandingsService", () => {
     });
 
     it("match nul : tous les joueurs ont 1 pt et 1 nul", async () => {
-      const match = makeMatch("m1", null);
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
-        Promise.resolve([
-          { matchId: "m1", entryId: "entry-a", position: 1, score: 2, pointsAwarded: null, entry: entryAFlex },
-          { matchId: "m1", entryId: "entry-b", position: 2, score: 2, pointsAwarded: null, entry: entryBFlex },
-        ]),
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([makeFlexMatchWithPoints("m1", null, ["p-a1", "p-a2"], ["p-b1", "p-b2"], 2, 2, 1, 1)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
@@ -447,49 +385,59 @@ describe("StandingsService", () => {
     });
 
     it("régression bug : les joueurs de side A sont mis à jour même si entry B n'a pas de joueurs", async () => {
-      const entryBEmpty = { ...entryBFlex, players: [] };
-      const match = makeMatch("m1", "A");
-      mockRepo.getMatchesForStandings.mockImplementation(() => Promise.resolve([match]));
-      mockRepo.getMatchSides.mockImplementation(() =>
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([
-          { matchId: "m1", entryId: "entry-a", position: 1, score: 3, pointsAwarded: null, entry: entryAFlex },
-          { matchId: "m1", entryId: "entry-b", position: 2, score: 0, pointsAwarded: null, entry: entryBEmpty },
+          {
+            id: "m1",
+            winnerSide: "A",
+            playerPoints: [
+              { playerId: "p-a1", pointsAwarded: 3, countsForRanking: true },
+              { playerId: "p-a2", pointsAwarded: 3, countsForRanking: true },
+            ],
+            sides: [
+              { position: 1, score: 3, entryId: "entry-a", entry: { id: "entry-a", players: [{ playerId: "p-a1" }, { playerId: "p-a2" }] } },
+              { position: 2, score: 0, entryId: "entry-b", entry: { id: "entry-b", players: [] } },
+            ],
+          },
         ]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-
-      // Sans le fix, p-a1 et p-a2 auraient 0 pts (skippés à cause du guard supprimé)
       expect(findEntry(standings, "p-a1")?.points).toBe(3);
       expect(findEntry(standings, "p-a2")?.points).toBe(3);
+    });
+
+    it("joueur hors limite : countsForRanking=false → 0 pts et matchesPlayed incrémenté", async () => {
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([
+          makeFlexMatchWithPoints("m1", "A", ["p-a1"], ["p-b1"], 3, 0, 3, 0, false /* countsForRanking = false */),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "p-a1")!;
+      expect(a.points).toBe(0);
+      expect(a.matchesPlayed).toBe(1);
+      // W/D/L not counted when !countsForRanking
+      expect(a.wins).toBe(0);
     });
   });
 
   // ── Classement provisoire vs officiel ─────────────────────────────────────
 
   describe("provisoire vs officiel", () => {
-    const entryA = makeEntry("entry-a", "team-a");
-    const entryB = makeEntry("entry-b", "team-b");
-
-    const finalizedMatch = makeMatch("m-final", "A", "finalized");
-    const reportedMatch = makeMatch("m-reported", "B", "reported");
-
-    const allMatchSides = [
-      makeSide("m-final", "entry-a", 1, 3, entryA),
-      makeSide("m-final", "entry-b", 2, 1, entryB),
-      makeSide("m-reported", "entry-a", 1, 0, entryA),
-      makeSide("m-reported", "entry-b", 2, 2, entryB),
-    ];
+    const finalizedMatch = makeMatchWithSides("m-final", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 });
+    const reportedMatch = makeMatchWithSides("m-reported", "B", { teamId: "team-a", score: 0 }, { teamId: "team-b", score: 2 });
 
     beforeEach(() => {
-      mockRepo.getMatchesForStandings.mockImplementation(
-        (_id: string, statuses: string[]) =>
+      mockRepo.getMatchesWithSides.mockImplementation(
+        (_id: any, statuses: any) =>
           Promise.resolve(
-            [finalizedMatch, reportedMatch].filter((m) => statuses.includes(m.status)),
+            [
+              { ...finalizedMatch, status: "finalized" },
+              { ...reportedMatch, status: "reported" },
+            ].filter((m: any) => statuses.includes(m.status)),
           ),
-      );
-      mockRepo.getMatchSides.mockImplementation((ids: string[]) =>
-        Promise.resolve(allMatchSides.filter((s) => ids.includes(s.matchId))),
       );
     });
 
@@ -498,7 +446,6 @@ describe("StandingsService", () => {
       const a = findEntry(standings, "team-a")!;
       const b = findEntry(standings, "team-b")!;
 
-      // Seul m-final est compté: A gagne 3 pts
       expect(a.points).toBe(3);
       expect(a.wins).toBe(1);
       expect(b.points).toBe(0);
@@ -510,7 +457,6 @@ describe("StandingsService", () => {
       const a = findEntry(standings, "team-a")!;
       const b = findEntry(standings, "team-b")!;
 
-      // m-final: A gagne (3 pts A) + m-reported: B gagne (3 pts B)
       expect(a.points).toBe(3);
       expect(a.wins).toBe(1);
       expect(a.losses).toBe(1);

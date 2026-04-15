@@ -7,6 +7,7 @@ import {
   tournamentEntryPlayers,
   matches,
   matchSides,
+  matchPlayerPoints,
   disciplines,
   mmrHistory,
 } from "../db/schema";
@@ -48,7 +49,7 @@ export class PlayerStatsRepository {
     });
   }
 
-  async getPlayerMatchResults(playerEntryIds: string[]) {
+  async getPlayerMatchResults(playerEntryIds: string[], playerId: string) {
     if (playerEntryIds.length === 0) return [];
 
     return db
@@ -61,13 +62,20 @@ export class PlayerStatsRepository {
         oppEntryId: sql<string>`ms2.entry_id`,
         oppScore: sql<number>`ms2.score`,
         allowDraw: tournaments.allowDraw,
-        pointsAwarded: matchSides.pointsAwarded,
+        pointsAwarded: sql<number | null>`COALESCE(${matchPlayerPoints.pointsAwarded}, ${matchSides.pointsAwarded})`,
       })
       .from(matchSides)
       .innerJoin(sql`match_sides ms2`, sql`${matchSides.matchId} = ms2.match_id AND ms2.entry_id != ${matchSides.entryId}`)
       .innerJoin(matches, eq(matchSides.matchId, matches.id))
       .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
       .innerJoin(tournaments, eq(tournamentEntries.tournamentId, tournaments.id))
+      .leftJoin(
+        matchPlayerPoints,
+        and(
+          eq(matchPlayerPoints.matchId, matchSides.matchId),
+          eq(matchPlayerPoints.playerId, sql`${playerId}::uuid`),
+        ),
+      )
       .where(and(inArray(matchSides.entryId, playerEntryIds), eq(matches.status, "finalized")));
   }
 

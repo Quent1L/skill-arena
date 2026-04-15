@@ -5,20 +5,6 @@
       class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 tournament-description text-gray-700 dark:text-gray-300"
       v-html="store.tournament!.description"
     />
-    <TournamentInfoGrid
-      :mode="store.tournament!.mode"
-      :team-mode="store.tournament!.teamMode"
-      :min-team-size="store.tournament!.minTeamSize"
-      :max-team-size="store.tournament!.maxTeamSize"
-      :participant-count="store.participantCount"
-      :start-date="store.tournament!.startDate"
-      :end-date="store.tournament!.endDate"
-      :duration="store.tournamentDuration"
-      :point-per-victory="store.tournament!.pointPerVictory"
-      :point-per-draw="store.tournament!.pointPerDraw"
-      :point-per-loss="store.tournament!.pointPerLoss"
-      :allow-draw="store.tournament!.allowDraw"
-    />
     <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
       <div class="flex items-center gap-2 mb-4 text-base font-semibold text-gray-900 dark:text-white">
         Participants
@@ -44,7 +30,6 @@
 
 <script setup lang="ts">
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
-import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 

@@ -33,6 +33,7 @@ import { matchPermissionValidator } from "./validators/match-permission.validato
 import { matchStatusValidator } from "./validators/match-status.validator";
 import { bracketService } from "./bracket.service";
 import { mmrCalculationService } from "./mmr-calculation.service";
+import { standingsService } from "./standings.service";
 import { participantRepository } from "../repository/participant.repository";
 
 type TournamentFromRepository = Awaited<
@@ -69,9 +70,9 @@ export class MatchService {
 
     if (tournament.scoreEnabled === false) {
       matchInputValidator.validateWinnerRequired(input.winner);
-      input.scoreA = 0;
-      input.scoreB = 0;
-    } else if (input.status === "reported" && input.scoreA !== undefined && input.scoreB !== undefined) {
+      input.scoreA = null;
+      input.scoreB = null;
+    } else if (input.status === "reported" && input.scoreA != null && input.scoreB != null) {
       matchInputValidator.validateScores(input.scoreA, input.scoreB);
       matchInputValidator.validateScoreRange(input.scoreA, input.scoreB, tournament.minScore, tournament.maxScore);
       await matchInputValidator.validateDrawAllowed(input.tournamentId, input.scoreA, input.scoreB, input.winner);
@@ -94,6 +95,8 @@ export class MatchService {
 
       // Check if match can be validated immediately
       await this.checkAndFinalizeMatch(matchId);
+      // Recalculate per-player standings points for flex championships (backdated match support)
+      await this.triggerStandingsRecalcIfNeeded(input.tournamentId);
 
       const refreshed = await matchRepository.getById(matchId);
       if (refreshed?.status === "reported") {
@@ -118,6 +121,17 @@ export class MatchService {
   /**
    * Auto-register ranked season players so they can participate in matches
    */
+  /**
+   * Trigger standings recalculation for flex championships with match limits.
+   * Called after match creation (reported) or finalization to keep matchPlayerPoints current.
+   */
+  private async triggerStandingsRecalcIfNeeded(tournamentId: string): Promise<void> {
+    const tournament = await matchRepository.getTournament(tournamentId);
+    if (tournament?.teamMode === "flex" && tournament.maxMatchesPerPlayer) {
+      await standingsService.recalculatePointsInternal(tournamentId);
+    }
+  }
+
   private async autoRegisterRankedPlayers(input: CreateMatchInput): Promise<void> {
     const allPlayerIds = [
       ...(input.playerIdsA ?? []),
@@ -214,7 +228,7 @@ export class MatchService {
         matchData.winner = null;
       }
       // Priority 3: Fall back to score-based calculation (if winner field was not provided)
-      else if (input.winner === undefined) {
+      else if (input.winner === undefined && input.scoreA != null && input.scoreB != null) {
         if (input.scoreA > input.scoreB) {
           matchData.winner = "teamA";
         } else if (input.scoreB > input.scoreA) {
@@ -1023,6 +1037,8 @@ export class MatchService {
     await bracketService.advanceLoserToNextRound(id);
     // Process MMR calculation for ranked seasons
     await mmrCalculationService.processMatchFinalization(id);
+    // Recalculate per-player standings points for flex championships
+    await this.triggerStandingsRecalcIfNeeded(match.tournamentId);
     return result;
   }
 

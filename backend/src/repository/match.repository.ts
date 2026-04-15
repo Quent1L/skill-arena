@@ -3,6 +3,7 @@ import { db } from "../config/database";
 import {
   matches,
   matchSides,
+  matchPlayerPoints,
   tournamentEntries,
   tournamentEntryPlayers,
   teams,
@@ -38,8 +39,8 @@ export interface CreateMatchData {
   teamBId?: string;
   playerIdsA?: string[];
   playerIdsB?: string[];
-  scoreA?: number;
-  scoreB?: number;
+  scoreA?: number | null;
+  scoreB?: number | null;
   winner?: "teamA" | "teamB" | null;
   status?: MatchStatus;
   reportedBy?: string;
@@ -52,8 +53,8 @@ export interface CreateMatchData {
 }
 
 export interface UpdateMatchData {
-  scoreA?: number;
-  scoreB?: number;
+  scoreA?: number | null;
+  scoreB?: number | null;
   winner?: "teamA" | "teamB" | null;
   status?: MatchStatus;
   reportedBy?: string;
@@ -120,13 +121,13 @@ export class MatchRepository {
       }
 
       // 4. Determine winner and calculate points
-      const scoreA = data.scoreA ?? 0;
-      const scoreB = data.scoreB ?? 0;
+      const calcScoreA = data.scoreA ?? 0;
+      const calcScoreB = data.scoreB ?? 0;
       const hasExplicitWinner = data.winner !== undefined;
-      const isDraw = hasExplicitWinner ? data.winner === null : scoreA === scoreB;
+      const isDraw = hasExplicitWinner ? data.winner === null : calcScoreA === calcScoreB;
       const isAWinner = hasExplicitWinner
         ? data.winner === "teamA"
-        : scoreA > scoreB;
+        : calcScoreA > calcScoreB;
 
       // Persist winnerSide on the match record
       const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";
@@ -146,20 +147,22 @@ export class MatchRepository {
           ? (tournament.pointPerLoss ?? 0)
           : (tournament.pointPerVictory ?? 3);
 
-      // 5. Create match_sides
+      // 5. Create match_sides — use explicit null for score when scoreEnabled=false
+      const storeScoreA = data.scoreA !== undefined ? data.scoreA : 0;
+      const storeScoreB = data.scoreB !== undefined ? data.scoreB : 0;
       await matchSidesRepository.createSides(
         match.id,
         [
           {
             entryId: entryA.id,
             position: 1,
-            score: scoreA,
+            score: storeScoreA,
             pointsAwarded: pointsA,
           },
           {
             entryId: entryB.id,
             position: 2,
-            score: scoreB,
+            score: storeScoreB,
             pointsAwarded: pointsB,
           },
         ],
@@ -242,26 +245,10 @@ export class MatchRepository {
           ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
           : null;
 
-    // For finalized matches, compute per-player effective points (considering match limit)
-    if (match.status === "finalized" && match.tournament) {
-      const maxMatches = match.tournament.maxMatchesPerPlayer;
-      const playedAt = match.playedAt;
-      await this.enrichParticipantsWithEffectivePoints(
-        teamA,
-        sides[0],
-        match.tournamentId,
-        maxMatches,
-        playedAt,
-        id,
-      );
-      await this.enrichParticipantsWithEffectivePoints(
-        teamB,
-        sides[1],
-        match.tournamentId,
-        maxMatches,
-        playedAt,
-        id,
-      );
+    // For finalized matches, enrich participants with effective points from matchPlayerPoints
+    if (match.status === "finalized") {
+      await this.enrichParticipantsWithEffectivePoints(teamA, sides[0], id);
+      await this.enrichParticipantsWithEffectivePoints(teamB, sides[1], id);
     }
 
     // Build response with backward-compatible format
@@ -288,33 +275,39 @@ export class MatchRepository {
 
   /**
    * Enrich a team's participants with effectivePointsAwarded and exceededMatchLimit.
-   * A participant exceeds the limit if they already had >= maxMatchesPerPlayer finalized
-   * matches with a playedAt strictly before this match's playedAt.
+   * Reads from matchPlayerPoints (pre-computed by recalculatePointsInternal) when available,
+   * falls back to side.pointsAwarded for non-flex or no-limit tournaments.
    */
   private async enrichParticipantsWithEffectivePoints(
     team: SyntheticTeam | null,
     side: any,
-    tournamentId: string,
-    maxMatchesPerPlayer: number,
-    playedAt: Date,
     matchId: string,
   ): Promise<void> {
     if (!team || !side) return;
+
+    // Fetch all matchPlayerPoints rows for this match in one query
+    const playerPointRows = await db
+      .select({ playerId: matchPlayerPoints.playerId, pointsAwarded: matchPlayerPoints.pointsAwarded, countsForRanking: matchPlayerPoints.countsForRanking })
+      .from(matchPlayerPoints)
+      .where(eq(matchPlayerPoints.matchId, matchId));
+
+    const playerPointMap = new Map(playerPointRows.map((r) => [r.playerId, r]));
+
     const standardPoints: number = side.pointsAwarded ?? 0;
 
     for (const participant of team.participants) {
       const userId = participant.user?.id;
       if (!userId) continue;
 
-      const priorCount = await this.countFinalizedMatchesForUserBefore(
-        tournamentId,
-        userId,
-        playedAt,
-        matchId,
-      );
-      const exceeded = priorCount >= maxMatchesPerPlayer;
-      (participant as any).exceededMatchLimit = exceeded;
-      (participant as any).effectivePointsAwarded = exceeded ? 0 : standardPoints;
+      const row = playerPointMap.get(userId);
+      if (row) {
+        (participant as any).exceededMatchLimit = !row.countsForRanking;
+        (participant as any).effectivePointsAwarded = row.pointsAwarded;
+      } else {
+        // No per-player data (static mode or flex without limit): use entry-level points
+        (participant as any).exceededMatchLimit = false;
+        (participant as any).effectivePointsAwarded = standardPoints;
+      }
     }
   }
 

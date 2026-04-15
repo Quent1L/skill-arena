@@ -272,8 +272,8 @@ export class MmrCalculationService {
 
     return {
       opponentPlayerIds,
-      scoreForPlayer: mySide.score,
-      scoreForOpponent: oppSide.score,
+      scoreForPlayer: mySide.score ?? 0,
+      scoreForOpponent: oppSide.score ?? 0,
       playerWon,
     };
   }

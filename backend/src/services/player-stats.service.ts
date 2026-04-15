@@ -18,11 +18,11 @@ import type {
 type MatchResult = {
   matchId: string;
   entryId: string;
-  ownScore: number;
+  ownScore: number | null;
   ownPosition: number;
   winnerSide: string | null;
   oppEntryId: string;
-  oppScore: number;
+  oppScore: number | null;
   allowDraw: boolean | null;
   pointsAwarded: number | null;
 };
@@ -57,7 +57,7 @@ export class PlayerStatsService {
     }
 
     const playerEntryIds = entries.map((e) => e.entryId);
-    const matchResults = await playerStatsRepository.getPlayerMatchResults(playerEntryIds);
+    const matchResults = await playerStatsRepository.getPlayerMatchResults(playerEntryIds, playerId);
 
     if (matchResults.length === 0) {
       return this.buildEmptyResponse(player, filters);
@@ -87,7 +87,7 @@ export class PlayerStatsService {
     for (const r of matchResults) {
       if (seen.has(r.matchId)) continue;
       seen.add(r.matchId);
-      totalScore += r.ownScore;
+      totalScore += r.ownScore ?? 0;
       const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
       const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
       if (isWin) wins++;

@@ -9,13 +9,13 @@ type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
 export type CreateSideData = {
   entryId: string;
   position: number;
-  score: number;
+  score: number | null;
   pointsAwarded?: number;
 };
 
 export type UpdateScoreData = {
   entryId: string;
-  score: number;
+  score: number | null;
 };
 
 export class MatchSidesRepository {
@@ -92,7 +92,7 @@ export class MatchSidesRepository {
   /**
    * Update score for a specific side
    */
-  async updateScore(matchId: string, entryId: string, score: number) {
+  async updateScore(matchId: string, entryId: string, score: number | null) {
     const [updated] = await db
       .update(matchSides)
       .set({ score })

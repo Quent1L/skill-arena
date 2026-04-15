@@ -44,21 +44,6 @@
           @view-rules="router.push(`/rules/${store.tournament!.rulesId}`)"
         />
 
-        <TournamentInfoGrid
-          :mode="store.tournament!.mode"
-          :team-mode="store.tournament!.teamMode"
-          :min-team-size="store.tournament!.minTeamSize"
-          :max-team-size="store.tournament!.maxTeamSize"
-          :participant-count="store.participantCount"
-          :start-date="store.tournament!.startDate"
-          :end-date="store.tournament!.endDate"
-          :duration="store.tournamentDuration"
-          :point-per-victory="store.tournament!.pointPerVictory"
-          :point-per-draw="store.tournament!.pointPerDraw"
-          :point-per-loss="store.tournament!.pointPerLoss"
-          :allow-draw="store.tournament!.allowDraw"
-        />
-
         <div class="mt-4">
           <div class="flex items-center text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
             Participants
@@ -295,7 +280,6 @@ import { useSwipe } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
-import TournamentInfoGrid from '@/components/tournament/TournamentInfoGrid.vue'
 import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'

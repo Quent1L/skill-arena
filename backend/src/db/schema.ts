@@ -8,6 +8,7 @@ import {
   pgEnum,
   date,
   unique,
+  primaryKey,
   jsonb,
   varchar,
   real,
@@ -409,7 +410,7 @@ export const matchSides = pgTable(
       .notNull()
       .references(() => tournamentEntries.id, { onDelete: "restrict" }),
     position: integer("position").notNull(),
-    score: integer("score").notNull().default(0),
+    score: integer("score"),
     pointsAwarded: integer("points_awarded").default(0),
   },
   (table) => [unique().on(table.matchId, table.entryId)],
@@ -430,6 +431,21 @@ export const matchResults = pgTable("match_results", {
   finalizedAt: timestamp("finalized_at", { withTimezone: true }),
   finalizationReason: matchFinalizationReasonEnum("finalization_reason"),
 });
+
+export const matchPlayerPoints = pgTable(
+  "match_player_points",
+  {
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    pointsAwarded: integer("points_awarded").notNull(),
+    countsForRanking: boolean("counts_for_ranking").notNull().default(true),
+  },
+  (t) => [primaryKey({ columns: [t.matchId, t.playerId] })],
+);
 
 // ********************************************************************
 // [End] New match sides and results tables
@@ -746,6 +762,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   createdInvitationCodes: many(invitationCodes),
   createdGameRules: many(gameRules),
   playerMmrs: many(playerMmr),
+  matchPlayerPoints: many(matchPlayerPoints),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
@@ -891,6 +908,7 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [outcomeReasons.id],
   }),
   sides: many(matchSides),
+  playerPoints: many(matchPlayerPoints),
   result: one(matchResults, {
     fields: [matches.id],
     references: [matchResults.matchId],
@@ -933,6 +951,20 @@ export const matchResultsRelations = relations(matchResults, ({ one }) => ({
     relationName: "finalizedBy",
   }),
 }));
+
+export const matchPlayerPointsRelations = relations(
+  matchPlayerPoints,
+  ({ one }) => ({
+    match: one(matches, {
+      fields: [matchPlayerPoints.matchId],
+      references: [matches.id],
+    }),
+    player: one(appUsers, {
+      fields: [matchPlayerPoints.playerId],
+      references: [appUsers.id],
+    }),
+  }),
+);
 
 // ********************************************************************
 // [End] New match-related relations

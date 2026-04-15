@@ -164,8 +164,8 @@ export interface CreateMatchInput {
   playerIdsA?: string[]; // For flex team mode
   playerIdsB?: string[]; // For flex team mode
   status?: MatchStatus;
-  scoreA?: number;
-  scoreB?: number;
+  scoreA?: number | null;
+  scoreB?: number | null;
   reportProof?: string;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
@@ -174,8 +174,8 @@ export interface CreateMatchInput {
 
 export interface UpdateMatchInput {
   round?: number;
-  scoreA?: number;
-  scoreB?: number;
+  scoreA?: number | null;
+  scoreB?: number | null;
   status?: MatchStatus;
   reportProof?: string;
   outcomeTypeId?: string;
@@ -222,8 +222,8 @@ export const createMatchSchema = z.object({
   playerIdsA: z.array(z.string().uuid()).optional(),
   playerIdsB: z.array(z.string().uuid()).optional(),
   status: matchStatusSchema.optional(),
-  scoreA: z.number().int().min(0).optional(),
-  scoreB: z.number().int().min(0).optional(),
+  scoreA: z.number().int().min(0).nullable().optional(),
+  scoreB: z.number().int().min(0).nullable().optional(),
   reportProof: z.string().optional(),
   outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
   outcomeReasonId: z
@@ -236,8 +236,8 @@ export const createMatchSchema = z.object({
 
 export const updateMatchSchema = z.object({
   round: z.number().int().min(1).optional(),
-  scoreA: z.number().int().min(0).optional(),
-  scoreB: z.number().int().min(0).optional(),
+  scoreA: z.number().int().min(0).nullable().optional(),
+  scoreB: z.number().int().min(0).nullable().optional(),
   status: matchStatusSchema.optional(),
   reportProof: z.string().optional(),
   playedAt: z.string().datetime(),

@@ -239,6 +239,13 @@
       "when": 1775720394829,
       "tag": "0033_rank_tiers",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1775720394830,
+      "tag": "0034_score_nullable_match_player_points",
+      "breakpoints": true
     }
   ]
 }

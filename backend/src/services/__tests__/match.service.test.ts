@@ -22,6 +22,7 @@ import { notificationService } from "../notification.service";
 import { bracketRepository } from "../../repository/bracket.repository";
 import { teamRepository } from "../../repository/team.repository";
 import { mmrCalculationService } from "../mmr-calculation.service";
+import { standingsService } from "../standings.service";
 import {
   NotFoundError,
   BadRequestError,
@@ -100,6 +101,9 @@ beforeEach(() => {
 
   // Mock mmrCalculationService to prevent real DB calls in finalizeMatch
   (mmrCalculationService as any).processMatchFinalization = async () => undefined;
+
+  // Mock standingsService to prevent real DB calls in flex championship recalculation
+  (standingsService as any).recalculatePointsInternal = async () => ({ updatedMatches: 0 });
 });
 
 afterEach(() => {
@@ -121,6 +125,7 @@ afterEach(() => {
   restore(bracketRepository);
   restore(teamRepository);
   restore(mmrCalculationService);
+  restore(standingsService);
 });
 
 describe("MatchService - basic flows", () => {
