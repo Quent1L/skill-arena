@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { tournamentService } from "../services/tournament.service";
 import { standingsService } from "../services/standings.service";
 import { bracketService } from "../services/bracket.service";
+import { tournamentStatsService } from "../services/tournament-stats.service";
 import {
   createTournamentRequestSchema,
   updateTournamentSchema,
@@ -235,6 +236,18 @@ tournaments.get("/:id/standings/provisional", async (c) => {
 
   const standings = await standingsService.getProvisionalStandings(tournamentId);
   return c.json(standings);
+});
+
+// GET /tournaments/:id/stats - Get tournament global stats (public)
+tournaments.get("/:id/stats", async (c) => {
+  const tournamentId = c.req.param("id")!;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(tournamentId)) {
+    return c.json({ error: "ID de tournoi invalide" }, 400);
+  }
+  const stats = await tournamentStatsService.getStats(tournamentId);
+  return c.json(stats);
 });
 
 // POST /tournaments/:id/recalculate-points - Admin: recalculate all match points

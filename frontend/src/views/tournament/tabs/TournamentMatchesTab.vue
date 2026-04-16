@@ -2,6 +2,7 @@
   <MatchList
     :tournament-id="store.tournamentId"
     :bracket-mode="store.tournament!.mode === 'bracket'"
+    :players="store.participants.map(p => ({ id: p.userId, displayName: p.user.displayName }))"
   />
 </template>
 

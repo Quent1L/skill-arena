@@ -460,15 +460,17 @@ export class MatchRepository {
     if (filters.status) {
       conditions.push(eq(matches.status, filters.status as MatchStatus));
     }
-    if (filters.playerId) {
-      conditions.push(
-        sql`EXISTS (
-          SELECT 1 FROM match_sides ms
-          JOIN tournament_entries te ON ms.entry_id = te.id
-          JOIN tournament_entry_players tep ON tep.entry_id = te.id
-          WHERE ms.match_id = ${matches.id} AND tep.player_id = ${filters.playerId}
-        )`,
-      );
+    if (filters.playerIds) {
+      for (const pid of filters.playerIds.split(',').filter(Boolean)) {
+        conditions.push(
+          sql`EXISTS (
+            SELECT 1 FROM match_sides ms
+            JOIN tournament_entries te ON ms.entry_id = te.id
+            JOIN tournament_entry_players tep ON tep.entry_id = te.id
+            WHERE ms.match_id = ${matches.id} AND tep.player_id = ${pid}
+          )`,
+        );
+      }
     }
     if (filters.bracketMode) {
       conditions.push(
@@ -491,10 +493,10 @@ export class MatchRepository {
         outcomeTypeName: sql<string | null>`(
           SELECT name FROM outcome_types WHERE id = ${matches.outcomeTypeId} LIMIT 1
         )`,
-        mmrDelta: filters.playerId
+        mmrDelta: filters.playerIds?.split(',').filter(Boolean)[0]
           ? sql<number | null>`(
               SELECT mmr_delta FROM mmr_history
-              WHERE match_id = ${matches.id} AND player_id = ${filters.playerId}
+              WHERE match_id = ${matches.id} AND player_id = ${filters.playerIds!.split(',')[0]}
               LIMIT 1
             )`
           : sql<null>`NULL`,

@@ -519,7 +519,7 @@ export interface PaginatedMatchCards {
 
 export const listMatchCardsQuerySchema = z.object({
   tournamentId: z.string().uuid().optional(),
-  playerId: z.string().uuid().optional(),
+  playerIds: z.string().optional(),
   status: matchStatusSchema.optional(),
   bracketMode: z
     .enum(["true", "false"])

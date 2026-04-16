@@ -315,8 +315,8 @@ export class MatchService {
       outcomeType: row.outcomeTypeId
         ? { id: row.outcomeTypeId, name: row.outcomeTypeName ?? "" }
         : null,
-      ...(filters.playerId && {
-        playerId: filters.playerId,
+      ...(filters.playerIds && {
+        playerId: filters.playerIds.split(',')[0],
         mmrDelta: row.mmrDelta ?? null,
       }),
     }));

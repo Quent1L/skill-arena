@@ -21,7 +21,7 @@
 
     <!-- Content Area -->
     <div ref="contentAreaRef" class="flex-1 overflow-y-auto pb-24">
-      <!-- Tab: Detail & Participants -->
+      <!-- Tab: Detail & Navigation cards -->
       <div v-show="activeTab === 'participants'" class="space-y-4 p-4">
         <TournamentHeader
           :name="store.tournament!.name"
@@ -44,17 +44,84 @@
           @view-rules="router.push(`/rules/${store.tournament!.rulesId}`)"
         />
 
-        <div class="mt-4">
-          <div class="flex items-center text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-            Participants
-            <Badge class="ml-2" :value="store.participantCount" severity="info" size="small" />
-          </div>
-          <TournamentParticipantsList
-            :participants="store.participants"
-            :loading="store.loadingParticipants"
-            :tournament-id="store.tournamentId"
-            @participant-added="store.reloadParticipants()"
-          />
+        <div class="space-y-3">
+          <!-- Participants -->
+          <button
+            @click="
+              router.push({
+                name: 'tournament-tab',
+                params: { id: store.tournamentId, tab: 'participants' },
+              })
+            "
+            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0"
+              >
+                <i class="fa fa-users text-blue-600 dark:text-blue-400 text-sm" />
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900 dark:text-white text-sm">Participants</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Voir les joueurs inscrits
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <Badge :value="store.participantCount" severity="info" size="small" />
+              <i class="fa fa-chevron-right text-gray-400 text-xs" />
+            </div>
+          </button>
+
+          <!-- Équipes (static uniquement) -->
+          <button
+            v-if="store.tournament!.teamMode === 'static'"
+            @click="
+              router.push({
+                name: 'tournament-tab',
+                params: { id: store.tournamentId, tab: 'teams' },
+              })
+            "
+            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0"
+              >
+                <i class="fa fa-shield-halved text-green-600 dark:text-green-400 text-sm" />
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900 dark:text-white text-sm">Équipes</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Gérer les équipes</div>
+              </div>
+            </div>
+            <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0" />
+          </button>
+
+          <!-- Stats globale -->
+          <button
+            @click="
+              router.push({
+                name: 'tournament-tab',
+                params: { id: store.tournamentId, tab: 'stats' },
+              })
+            "
+            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0"
+              >
+                <i class="fa fa-chart-pie text-indigo-600 dark:text-indigo-400 text-sm" />
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900 dark:text-white text-sm">Stats globale</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Statistiques du tournoi</div>
+              </div>
+            </div>
+            <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0" />
+          </button>
         </div>
       </div>
 
@@ -75,28 +142,31 @@
       </div>
 
       <!-- Tab: Bracket -->
-      <div v-if="store.tournament!.mode === 'bracket'" v-show="activeTab === 'bracket'" class="h-full p-2">
+      <div
+        v-if="store.tournament!.mode === 'bracket'"
+        v-show="activeTab === 'bracket'"
+        class="h-full p-2"
+      >
         <BracketView :tournament-id="store.tournamentId" :tournament="store.tournament!" />
       </div>
 
       <!-- Tab: Matches -->
       <div v-show="activeTab === 'matches'" class="h-full p-2">
-        <MatchList :tournament-id="store.tournamentId" :bracket-mode="store.tournament!.mode === 'bracket'" />
-      </div>
-
-      <!-- Tab: Teams (static mode only) -->
-      <div v-if="store.tournament!.teamMode === 'static'" v-show="activeTab === 'teams'" class="h-full">
-        <TeamManagementPanel
+        <MatchList
           :tournament-id="store.tournamentId"
-          :current-user-id="store.appUser?.id"
-          :is-participant="store.isParticipant"
-          :can-manage="store.canManageTournament"
-          :tournament-status="store.tournament!.status"
+          :bracket-mode="store.tournament!.mode === 'bracket'"
+          :players="
+            store.participants.map((p) => ({ id: p.userId, displayName: p.user.displayName }))
+          "
         />
       </div>
 
       <!-- Tab: Ranked leaderboard -->
-      <div v-if="store.tournament!.mode === 'ranked'" v-show="activeTab === 'standings'" class="p-2">
+      <div
+        v-if="store.tournament!.mode === 'ranked'"
+        v-show="activeTab === 'standings'"
+        class="p-2"
+      >
         <RankedLeaderboard
           :players="store.rankedLeaderboard"
           :tiers="store.rankedTiers"
@@ -155,8 +225,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'participants' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-info-circle text-xl mb-1 transition-transform duration-200" :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Détail</span>
         </button>
 
@@ -165,8 +243,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-trophy text-xl mb-1 transition-transform duration-200" :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-trophy text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Classement</span>
         </button>
 
@@ -176,8 +262,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'profile' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'profile' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-user text-xl mb-1 transition-transform duration-200" :class="activeTab === 'profile' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'profile' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-user text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'profile' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Profil</span>
         </button>
 
@@ -187,8 +281,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200" :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Historique</span>
         </button>
 
@@ -197,8 +299,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-gamepad text-xl mb-1 transition-transform duration-200" :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-gamepad text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Matchs</span>
         </button>
       </template>
@@ -210,8 +320,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'participants' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-info-circle text-xl mb-1 transition-transform duration-200" :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Détail</span>
         </button>
 
@@ -221,8 +339,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-trophy text-xl mb-1 transition-transform duration-200" :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-trophy text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Classement</span>
         </button>
 
@@ -232,8 +358,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'bracket' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'bracket' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-sitemap text-xl mb-1 transition-transform duration-200" :class="activeTab === 'bracket' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'bracket' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-sitemap text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'bracket' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Bracket</span>
         </button>
 
@@ -242,19 +376,34 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-gamepad text-xl mb-1 transition-transform duration-200" :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-gamepad text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Matchs</span>
         </button>
 
         <button
           v-if="store.tournament!.teamMode === 'static'"
-          @click="activeTab = 'teams'"
+          @click="
+            router.push({
+              name: 'tournament-tab',
+              params: { id: store.tournamentId, tab: 'teams' },
+            })
+          "
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'teams' ? activeNavClass : inactiveNavClass"
+          :class="inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'teams' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-users text-xl mb-1 transition-transform duration-200" :class="activeTab === 'teams' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div class="absolute top-0 left-0 right-0 h-0.5 bg-transparent"></div>
+          <i
+            class="fas fa-users text-xl mb-1 transition-transform duration-200 group-hover:scale-105"
+          ></i>
           <span class="text-xs font-medium">Équipes</span>
         </button>
 
@@ -264,8 +413,16 @@
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
         >
-          <div class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200" :class="activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"></div>
-          <i class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200" :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"></i>
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="
+              activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+            "
+          ></div>
+          <i
+            class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
           <span class="text-xs font-medium">Historique</span>
         </button>
       </template>
@@ -280,10 +437,8 @@ import { useSwipe } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
-import TournamentParticipantsList from '@/components/tournament/TournamentParticipantsList.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
-import TeamManagementPanel from '@/components/tournament/TeamManagementPanel.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import PlayerMatchHistory from '@/components/match/PlayerMatchHistory.vue'
@@ -295,8 +450,10 @@ const contentAreaRef = ref<HTMLElement | null>(null)
 const standingsType = ref<'official' | 'provisional'>('official')
 const standingsTypeValues = ['official', 'provisional'] as const
 
-const activeNavClass = 'text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
-const inactiveNavClass = 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+const activeNavClass =
+  'text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
+const inactiveNavClass =
+  'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
 
 useSwipe(contentAreaRef, {
   onSwipeEnd(_e, direction) {

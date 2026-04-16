@@ -5,6 +5,7 @@ import { useTournamentService } from '@/composables/tournament/tournament.servic
 import { useParticipantService } from '@/composables/participant.service'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useMatchHistoryService } from '@/composables/match/match-history.service'
+import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import { calculateDuration } from '@/utils/DateUtils'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
@@ -16,6 +17,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const participantSvc = useParticipantService()
   const rankedSvc = useRankedService()
   const matchHistorySvc = useMatchHistoryService()
+  const statsSvc = useTournamentStatsService()
 
   // Local state
   const tournamentId = ref('')
@@ -37,6 +39,8 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const matchHistory = matchHistorySvc.history
   const matchHistoryLoading = matchHistorySvc.loading
   const matchHistoryHasMore = matchHistorySvc.hasMore
+  const tournamentStats = statsSvc.stats
+  const tournamentStatsLoading = statsSvc.loading
 
   // Computed permissions
   const isParticipant = computed(() => participantSvc.isUserParticipant(appUser.value?.id))
@@ -146,6 +150,12 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     await matchHistorySvc.loadMore()
   }
 
+  async function ensureStats() {
+    if (!tournamentStats.value) {
+      await statsSvc.loadStats(tournamentId.value)
+    }
+  }
+
   return {
     // Identity
     tournamentId,
@@ -172,6 +182,9 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     matchHistory,
     matchHistoryLoading,
     matchHistoryHasMore,
+    // Tournament stats
+    tournamentStats,
+    tournamentStatsLoading,
     // Computed permissions
     isParticipant,
     canJoinTournament,
@@ -191,5 +204,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     ensurePlayerProfile,
     ensureMatchHistory,
     loadMoreMatchHistory,
+    ensureStats,
   }
 })

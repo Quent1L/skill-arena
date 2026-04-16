@@ -35,7 +35,25 @@
     <div v-else-if="store.tournament">
       <!-- Mobile version -->
       <div v-if="isMobile" class="h-full">
-        <TournamentDetailMobile />
+        <!-- Sub-tabs (participants, teams, stats): accessible via cards, pas dans la bottom nav -->
+        <div v-if="isMobileSubTab" class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
+          <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 shadow-sm">
+            <Button
+              icon="fa fa-arrow-left"
+              text
+              rounded
+              @click="router.back()"
+              class="mr-2 !w-10 !h-10 text-gray-700 dark:text-gray-200"
+            />
+            <h1 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+              {{ mobileSubTabTitles[activeTabName ?? ''] }}
+            </h1>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4">
+            <RouterView />
+          </div>
+        </div>
+        <TournamentDetailMobile v-else />
       </div>
 
       <!-- Desktop version -->
@@ -142,7 +160,6 @@
                 "
               >
                 {{ tab.label }}
-                <Badge v-if="tab.badge !== undefined" :value="tab.badge" severity="info" size="small" />
               </button>
               <div
                 class="absolute bottom-0 h-0.5 bg-primary-600 dark:bg-primary-400 transition-all duration-300 ease-out"
@@ -226,15 +243,27 @@ const modeLabels: Record<TournamentMode, string> = {
   ranked: 'Ranked',
 }
 
+const MOBILE_SUB_TABS = ['participants', 'teams', 'stats']
+const mobileSubTabTitles: Record<string, string> = {
+  participants: 'Participants',
+  teams: 'Équipes',
+  stats: 'Stats globale',
+}
+const isMobileSubTab = computed(() => MOBILE_SUB_TABS.includes(activeTabName.value ?? ''))
+
 const visibleTabs = computed(() => {
   const mode = store.tournament?.mode
+  const teamMode = store.tournament?.teamMode
   const tabs: { value: string; label: string; badge?: number }[] = [
     { value: 'infos', label: 'Infos' },
+    { value: 'participants', label: 'Participants', badge: store.participantCount },
   ]
+  if (teamMode === 'static') tabs.push({ value: 'teams', label: 'Équipes' })
   if (mode === 'championship') tabs.push({ value: 'standings', label: 'Classement' })
   if (mode === 'bracket') tabs.push({ value: 'bracket', label: 'Bracket' })
   if (mode === 'ranked') tabs.push({ value: 'standings', label: 'Classement' })
   tabs.push({ value: 'matches', label: 'Matchs' })
+  tabs.push({ value: 'stats', label: 'Stats globale' })
   if (mode === 'ranked' && store.isAuthenticated && store.appUser) {
     tabs.push({ value: 'profile', label: 'Mon profil' })
   }

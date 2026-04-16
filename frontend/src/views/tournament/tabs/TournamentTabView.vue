@@ -14,6 +14,9 @@ const route = useRoute()
 
 const tabComponents: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   infos: defineAsyncComponent(() => import('./TournamentInfosTab.vue')),
+  participants: defineAsyncComponent(() => import('./TournamentParticipantsTab.vue')),
+  teams: defineAsyncComponent(() => import('./TournamentTeamsTab.vue')),
+  stats: defineAsyncComponent(() => import('./TournamentStatsTab.vue')),
   standings: defineAsyncComponent(() => import('./TournamentStandingsTab.vue')),
   bracket: defineAsyncComponent(() => import('./TournamentBracketTab.vue')),
   matches: defineAsyncComponent(() => import('./TournamentMatchesTab.vue')),

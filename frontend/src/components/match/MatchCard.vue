@@ -126,22 +126,22 @@
       <!-- Footer: date + status + link -->
       <div class="flex justify-between items-center mt-auto pt-2 border-t border-surface-700/10">
         <div class="flex flex-wrap gap-3">
-        <div class="flex items-center gap-1.5">
-          <span
-            class="flex h-1.5 w-1.5 rounded-full shrink-0"
-            :class="statusDotClass(entry.status)"
-          ></span>
-          <span
-            class="font-label text-[10px] uppercase font-bold tracking-tighter"
-            :class="statusTextClass(entry.status)"
-          >
-            {{ statusLabel(entry.status) }}
+          <div class="flex items-center gap-1.5">
+            <span
+              class="flex h-1.5 w-1.5 rounded-full shrink-0"
+              :class="statusDotClass(entry.status)"
+            ></span>
+            <span
+              class="font-label text-[10px] uppercase font-bold tracking-tighter"
+              :class="statusTextClass(entry.status)"
+            >
+              {{ statusLabel(entry.status) }}
+            </span>
+          </div>
+          <span class="font-label text-xs text-muted-color uppercase">
+            {{ formatDate(entry.playedAt) }}
           </span>
         </div>
-        <span class="font-label text-xs text-muted-color uppercase">
-          {{ formatDate(entry.playedAt) }}
-        </span>
-      </div>
         <RouterLink
           :to="`/matches/${entry.id}`"
           @click.stop
@@ -260,6 +260,8 @@ function statusDotClass(status: string) {
       return 'bg-match-loss animate-pulse'
     case 'reported':
       return 'bg-orange-400'
+    case 'scheduled':
+      return 'bg-blue-200'
     default:
       return 'bg-surface-500'
   }
@@ -275,6 +277,8 @@ function statusTextClass(status: string) {
       return 'text-match-loss'
     case 'reported':
       return 'text-orange-400'
+    case 'scheduled':
+      return 'text-blue-200'
     default:
       return 'text-muted-color'
   }
@@ -292,6 +296,8 @@ function statusLabel(status: string) {
       return 'Annulé'
     case 'reported':
       return 'En attente'
+    case 'scheduled':
+      return 'Planifié'
     default:
       return status
   }

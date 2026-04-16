@@ -1,5 +1,48 @@
 <template>
   <div class="match-list">
+    <!-- Player filter -->
+    <div v-if="props.players && props.players.length > 0" class="mb-4">
+
+      <!-- Desktop: AutoComplete with chips -->
+      <div v-if="!isMobile" class="flex items-center gap-2">
+        <AutoComplete
+          v-model="selectedPlayers"
+          :suggestions="suggestions"
+          option-label="displayName"
+          multiple
+          placeholder="Filtrer par joueur..."
+          @complete="onSearch"
+        />
+      </div>
+
+      <!-- Mobile: filter button + PlayerPickerDialog -->
+      <div v-else>
+        <Button
+          text
+          severity="secondary"
+          size="small"
+          @click="showMobileDialog = true"
+        >
+          <i class="fa fa-filter mr-2" />
+          Filtres
+          <span
+            v-if="selectedPlayers.length > 0"
+            class="ml-2 bg-primary text-primary-contrast rounded-full text-xs w-5 h-5 flex items-center justify-center"
+          >
+            {{ selectedPlayers.length }}
+          </span>
+        </Button>
+        <PlayerPickerDialog
+          v-model:visible="showMobileDialog"
+          title="Filtrer par joueur"
+          :players="props.players"
+          :selected-ids="selectedPlayers.map(p => p.id)"
+          @update:selected-ids="onMobileSelection"
+        />
+      </div>
+
+    </div>
+
     <!-- Initial loading -->
     <div v-if="loading && matches.length === 0" class="flex justify-center py-6">
       <ProgressSpinner />
@@ -40,11 +83,19 @@ import { ref, watch } from 'vue'
 import { useInfiniteScroll } from '@vueuse/core'
 import { matchApi } from '@/composables/match/match.api'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
+import { useViewport } from '@/composables/useViewport'
 import MatchCard from './match/MatchCard.vue'
+import PlayerPickerDialog from './match/mobile/PlayerPickerDialog.vue'
+
+interface Player {
+  id: string
+  displayName: string
+}
 
 interface Props {
   tournamentId?: string
   playerId?: string
+  players?: Player[]
   pageSize?: number
   bracketMode?: boolean
 }
@@ -60,6 +111,28 @@ const loading = ref(false)
 const container = ref<HTMLElement | null>(null)
 let offset = 0
 
+const { isMobile } = useViewport()
+
+const selectedPlayers = ref<Player[]>([])
+const suggestions = ref<Player[]>([])
+const showMobileDialog = ref(false)
+
+function onSearch(event: { query: string }) {
+  const q = event.query.toLowerCase()
+  suggestions.value = (props.players ?? [])
+    .filter(p => p.displayName.toLowerCase().includes(q) && !selectedPlayers.value.find(s => s.id === p.id))
+    .slice(0, 8)
+}
+
+function onMobileSelection(ids: string[]) {
+  selectedPlayers.value = (props.players ?? []).filter(p => ids.includes(p.id))
+}
+
+function buildPlayerIds(): string | undefined {
+  const ids = [props.playerId, ...selectedPlayers.value.map(p => p.id)].filter(Boolean) as string[]
+  return ids.length > 0 ? ids.join(',') : undefined
+}
+
 async function loadMatches(append = false) {
   if (!append) {
     matches.value = []
@@ -72,7 +145,7 @@ async function loadMatches(append = false) {
   try {
     const result = await matchApi.list({
       tournamentId: props.tournamentId,
-      playerId: props.playerId,
+      playerIds: buildPlayerIds(),
       bracketMode: props.bracketMode ? 'true' : undefined,
       limit: props.pageSize,
       offset,
@@ -104,4 +177,5 @@ useInfiniteScroll(
 )
 
 watch(() => [props.tournamentId, props.playerId], () => loadMatches(), { immediate: true })
+watch(selectedPlayers, () => loadMatches())
 </script>
