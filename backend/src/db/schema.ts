@@ -763,6 +763,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   createdGameRules: many(gameRules),
   playerMmrs: many(playerMmr),
   matchPlayerPoints: many(matchPlayerPoints),
+  playerComputedData: many(playerComputedData),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
@@ -1227,5 +1228,25 @@ export const computedDataRelations = relations(computedData, ({ one }) => ({
   tournament: one(tournaments, {
     fields: [computedData.tournamentId],
     references: [tournaments.id],
+  }),
+}));
+
+export const playerComputedData = pgTable(
+  "player_computed_data",
+  {
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    data: jsonb("data").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.playerId, t.key] })],
+);
+
+export const playerComputedDataRelations = relations(playerComputedData, ({ one }) => ({
+  player: one(appUsers, {
+    fields: [playerComputedData.playerId],
+    references: [appUsers.id],
   }),
 }));

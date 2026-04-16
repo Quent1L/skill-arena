@@ -34,6 +34,7 @@ import { matchStatusValidator } from "./validators/match-status.validator";
 import { bracketService } from "./bracket.service";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { standingsService } from "./standings.service";
+import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { participantRepository } from "../repository/participant.repository";
 
 type TournamentFromRepository = Awaited<
@@ -96,7 +97,7 @@ export class MatchService {
       // Check if match can be validated immediately
       await this.checkAndFinalizeMatch(matchId);
       // Recalculate per-player standings points for flex championships (backdated match support)
-      await this.triggerStandingsRecalcIfNeeded(input.tournamentId);
+      await this.triggerStandingsRecalcIfNeeded(input.tournamentId, matchId);
 
       const refreshed = await matchRepository.getById(matchId);
       if (refreshed?.status === "reported") {
@@ -126,12 +127,18 @@ export class MatchService {
    * Called after match creation (reported) or finalization.
    * Always invalidates standings cache; also rebuilds player points for flex tournaments.
    */
-  private async triggerStandingsRecalcIfNeeded(tournamentId: string): Promise<void> {
+  private async triggerStandingsRecalcIfNeeded(tournamentId: string, matchId?: string): Promise<void> {
     const tournament = await matchRepository.getTournament(tournamentId);
     if (tournament?.teamMode === "flex" && tournament.maxMatchesPerPlayer) {
       await standingsService.recalculatePointsInternal(tournamentId);
     } else {
       await standingsService.invalidateCache(tournamentId);
+    }
+    if (matchId) {
+      const playerIds = await matchRepository.getPlayerIdsForMatch(matchId);
+      if (playerIds.length > 0) {
+        await playerComputedDataRepository.deleteMany(playerIds);
+      }
     }
   }
 
@@ -1041,7 +1048,7 @@ export class MatchService {
     // Process MMR calculation for ranked seasons
     await mmrCalculationService.processMatchFinalization(id);
     // Recalculate per-player standings points for flex championships
-    await this.triggerStandingsRecalcIfNeeded(match.tournamentId);
+    await this.triggerStandingsRecalcIfNeeded(match.tournamentId, id);
     return result;
   }
 

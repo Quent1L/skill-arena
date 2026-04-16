@@ -1,5 +1,6 @@
 import { playerStatsRepository } from "../repository/player-stats.repository";
 import { matchSidesRepository } from "../repository/match-sides.repository";
+import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
 import type {
   PlayerProfile,
@@ -49,6 +50,16 @@ export class PlayerStatsService {
   }
 
   async getPlayerStats(playerId: string, filters: PlayerStatsFilters): Promise<PlayerStatsResponse> {
+    const isFiltered = !!(filters.tournamentId || filters.disciplineId || filters.tournamentMode);
+
+    if (!isFiltered) {
+      const cached = await playerComputedDataRepository.get(playerId, "stats:global");
+      if (cached) {
+        const player = await this.getPlayerProfile(playerId);
+        return { player, stats: cached, filters };
+      }
+    }
+
     const player = await this.getPlayerProfile(playerId);
     const entries = await playerStatsRepository.getPlayerEntries(playerId, filters);
 
@@ -77,7 +88,15 @@ export class PlayerStatsService {
       tournamentHistory,
     };
 
+    if (!isFiltered) {
+      await playerComputedDataRepository.set(playerId, "stats:global", stats);
+    }
+
     return { player, stats, filters };
+  }
+
+  async invalidateCache(playerId: string): Promise<void> {
+    await playerComputedDataRepository.deleteMany([playerId]);
   }
 
   private aggregateBaseStats(matchResults: MatchResult[]) {

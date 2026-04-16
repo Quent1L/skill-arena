@@ -231,6 +231,15 @@ function fillMomentumDays(
 
 class TournamentStatsService {
   async getStats(tournamentId: string): Promise<TournamentStats> {
+    const cached = await tournamentStatsRepository.getComputedStats(tournamentId);
+    if (cached) return cached;
+
+    const result = await this.computeStats(tournamentId);
+    await tournamentStatsRepository.setComputedStats(tournamentId, result);
+    return result;
+  }
+
+  private async computeStats(tournamentId: string): Promise<TournamentStats> {
     const tournamentInfo = await tournamentStatsRepository.getTournamentMode(tournamentId);
     if (!tournamentInfo) {
       throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);

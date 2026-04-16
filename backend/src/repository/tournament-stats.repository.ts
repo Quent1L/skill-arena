@@ -1,6 +1,7 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../config/database";
-import { matches, tournaments, outcomeTypes } from "../db/schema";
+import { matches, tournaments, outcomeTypes, computedData } from "../db/schema";
+import type { TournamentStats } from "@skill-arena/shared";
 
 export class TournamentStatsRepository {
   async getTournamentMode(tournamentId: string) {
@@ -76,6 +77,24 @@ export class TournamentStatsRepository {
       )
       .groupBy(sql`DATE(${matches.playedAt})`)
       .orderBy(sql`DATE(${matches.playedAt})`);
+  }
+
+  async getComputedStats(tournamentId: string): Promise<TournamentStats | null> {
+    const row = await db.query.computedData.findFirst({
+      where: and(eq(computedData.tournamentId, tournamentId), eq(computedData.key, "stats")),
+    });
+    if (!row) return null;
+    return row.data as TournamentStats;
+  }
+
+  async setComputedStats(tournamentId: string, data: TournamentStats): Promise<void> {
+    await db
+      .insert(computedData)
+      .values({ tournamentId, key: "stats", data, computedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [computedData.tournamentId, computedData.key],
+        set: { data, computedAt: new Date() },
+      });
   }
 }
 

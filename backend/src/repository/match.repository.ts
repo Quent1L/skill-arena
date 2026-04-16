@@ -1285,6 +1285,26 @@ export class MatchRepository {
         or(eqOp(m.status, "reported"), eqOp(m.status, "pending_confirmation")),
     });
   }
+
+  async getPlayerIdsForMatch(matchId: string): Promise<string[]> {
+    const sides = await db.query.matchSides.findMany({
+      where: eq(matchSides.matchId, matchId),
+      with: {
+        entry: {
+          with: {
+            players: { columns: { playerId: true } },
+          },
+        },
+      },
+    });
+    const ids = new Set<string>();
+    for (const side of sides) {
+      for (const ep of side.entry.players) {
+        ids.add(ep.playerId);
+      }
+    }
+    return Array.from(ids);
+  }
 }
 
 export const matchRepository = new MatchRepository();
