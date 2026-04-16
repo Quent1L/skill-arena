@@ -802,6 +802,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   }),
   rankTiers: many(rankTiers),
   playerMmrs: many(playerMmr),
+  computedData: many(computedData),
 }));
 
 export const tournamentAdminsRelations = relations(
@@ -1208,3 +1209,23 @@ export const invitationUsagesRelations = relations(
     }),
   }),
 );
+
+export const computedData = pgTable(
+  "computed_data",
+  {
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    data: jsonb("data").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.tournamentId, t.key] })],
+);
+
+export const computedDataRelations = relations(computedData, ({ one }) => ({
+  tournament: one(tournaments, {
+    fields: [computedData.tournamentId],
+    references: [tournaments.id],
+  }),
+}));

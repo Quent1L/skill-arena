@@ -7,8 +7,9 @@ import {
   matches,
   matchSides,
   matchPlayerPoints,
+  computedData,
 } from "../db/schema";
-import { type MatchStatus } from "@skill-arena/shared";
+import { type MatchStatus, type StandingsResult } from "@skill-arena/shared";
 
 export type PlayerPointRow = {
   matchId: string;
@@ -18,9 +19,6 @@ export type PlayerPointRow = {
 };
 
 export class StandingsRepository {
-  /**
-   * Get tournament with scoring rules
-   */
   async getTournamentWithScoring(tournamentId: string) {
     return await db.query.tournaments.findFirst({
       where: eq(tournaments.id, tournamentId),
@@ -38,18 +36,12 @@ export class StandingsRepository {
     });
   }
 
-  /**
-   * Get all teams for a tournament (for static team mode)
-   */
   async getTournamentTeams(tournamentId: string) {
     return await db.query.teams.findMany({
       where: eq(teams.tournamentId, tournamentId),
     });
   }
 
-  /**
-   * Get all entries for a tournament
-   */
   async getTournamentEntries(tournamentId: string) {
     return await db.query.tournamentEntries.findMany({
       where: eq(tournamentEntries.tournamentId, tournamentId),
@@ -64,9 +56,6 @@ export class StandingsRepository {
     });
   }
 
-  /**
-   * Get matches with their sides in a single query (for static mode)
-   */
   async getMatchesWithSides(
     tournamentId: string,
     includeStatuses: MatchStatus[]
@@ -80,8 +69,10 @@ export class StandingsRepository {
         id: true,
         winnerSide: true,
         playedAt: true,
+        outcomeTypeId: true,
       },
       with: {
+        outcomeType: { columns: { isDefault: true } },
         sides: {
           with: {
             entry: {
@@ -99,21 +90,18 @@ export class StandingsRepository {
     });
   }
 
-  /**
-   * Get per-player point rows for flex standings
-   * Returns matchPlayerPoints joined with match winnerSide/playedAt and matchSide position/score
-   */
   async getPlayerPointsForStandings(
     tournamentId: string,
     includeStatuses: MatchStatus[]
   ) {
-    const matchRows = await db.query.matches.findMany({
+    return await db.query.matches.findMany({
       where: and(
         eq(matches.tournamentId, tournamentId),
         inArray(matches.status, includeStatuses)
       ),
-      columns: { id: true, winnerSide: true },
+      columns: { id: true, winnerSide: true, outcomeTypeId: true },
       with: {
+        outcomeType: { columns: { isDefault: true } },
         playerPoints: {
           columns: {
             playerId: true,
@@ -134,13 +122,8 @@ export class StandingsRepository {
         },
       },
     });
-
-    return matchRows;
   }
 
-  /**
-   * Delete all matchPlayerPoints rows for a tournament's matches
-   */
   async deletePlayerPointsForTournament(
     tournamentId: string,
     includeStatuses: MatchStatus[]
@@ -160,17 +143,11 @@ export class StandingsRepository {
       .where(inArray(matchPlayerPoints.matchId, matchIds.map((m) => m.id)));
   }
 
-  /**
-   * Batch insert matchPlayerPoints rows (replaces previous rows via delete+insert)
-   */
   async insertPlayerPoints(rows: PlayerPointRow[]) {
     if (rows.length === 0) return;
     await db.insert(matchPlayerPoints).values(rows);
   }
 
-  /**
-   * Get matches for standings calculation (legacy, kept for recalculatePoints)
-   */
   async getMatchesForStandings(
     tournamentId: string,
     includeStatuses: MatchStatus[]
@@ -189,13 +166,8 @@ export class StandingsRepository {
     });
   }
 
-  /**
-   * Get match sides for standings calculation (legacy, kept for recalculatePoints)
-   */
   async getMatchSides(matchIds: string[]) {
-    if (matchIds.length === 0) {
-      return [];
-    }
+    if (matchIds.length === 0) return [];
 
     return await db.query.matchSides.findMany({
       where: inArray(matchSides.matchId, matchIds),
@@ -216,6 +188,33 @@ export class StandingsRepository {
         asc(matchSides.position),
       ],
     });
+  }
+
+  // ── Computed data cache ──────────────────────────────────────────────
+
+  async getComputedData(tournamentId: string, key: string): Promise<StandingsResult | null> {
+    const row = await db.query.computedData.findFirst({
+      where: and(
+        eq(computedData.tournamentId, tournamentId),
+        eq(computedData.key, key)
+      ),
+    });
+    if (!row) return null;
+    return row.data as StandingsResult;
+  }
+
+  async setComputedData(tournamentId: string, key: string, data: StandingsResult): Promise<void> {
+    await db
+      .insert(computedData)
+      .values({ tournamentId, key, data, computedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [computedData.tournamentId, computedData.key],
+        set: { data, computedAt: new Date() },
+      });
+  }
+
+  async deleteComputedData(tournamentId: string): Promise<void> {
+    await db.delete(computedData).where(eq(computedData.tournamentId, tournamentId));
   }
 }
 

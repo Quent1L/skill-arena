@@ -6,6 +6,19 @@
       :allow-draw="store.tournament!.allowDraw"
       :score-enabled="store.tournament!.scoreEnabled ?? true"
       :team-mode="store.tournament!.teamMode"
+      :tournament-config="{
+        pointPerVictory: store.tournament!.pointPerVictory,
+        pointPerDraw: store.tournament!.pointPerDraw,
+        pointPerLoss: store.tournament!.pointPerLoss,
+        maxMatchesPerPlayer: store.tournament!.maxMatchesPerPlayer,
+        maxTimesWithSamePartner: store.tournament!.maxTimesWithSamePartner,
+        maxTimesWithSameOpponent: store.tournament!.maxTimesWithSameOpponent,
+        minTeamSize: store.tournament!.minTeamSize,
+        maxTeamSize: store.tournament!.maxTeamSize,
+        minScore: store.tournament!.minScore,
+        maxScore: store.tournament!.maxScore,
+        disciplineId: store.tournament!.disciplineId,
+      }"
     />
     <RankedLeaderboard
       v-else-if="store.tournament!.mode === 'ranked'"

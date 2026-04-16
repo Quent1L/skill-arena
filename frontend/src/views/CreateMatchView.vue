@@ -91,6 +91,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
+import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useTeamService } from '@/composables/team/team.service'
 import { useViewport } from '@/composables/useViewport'
 import type {
@@ -123,6 +124,7 @@ const {
 const { loadTournamentWithErrorHandling } = useTournamentService()
 const { teams, loadTeams } = useTeamService()
 const { isMobile } = useViewport()
+const detailStore = useTournamentDetailStore()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined
@@ -352,6 +354,11 @@ async function createMatch() {
     }
     await createMatchWithNavigation(createData, tournamentId)
   }
+
+  detailStore.reloadMatchHistory()
+  detailStore.reloadStats()
+  detailStore.reloadTournament()
+  if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()
 }
 
 watch(

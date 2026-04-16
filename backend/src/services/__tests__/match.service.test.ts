@@ -104,6 +104,7 @@ beforeEach(() => {
 
   // Mock standingsService to prevent real DB calls in flex championship recalculation
   (standingsService as any).recalculatePointsInternal = async () => ({ updatedMatches: 0 });
+  (standingsService as any).invalidateCache = async () => undefined;
 });
 
 afterEach(() => {

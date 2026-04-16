@@ -10,8 +10,222 @@
           class="w-full sm:w-auto"
           size="small"
         />
+
       </div>
+      <button
+        class="group flex items-center gap-2 rounded-full px-2 py-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all duration-300 cursor-pointer"
+        @click="infoVisible = true"
+      >
+        <i class="fa fa-circle-question text-sm" />
+        <span
+          class="overflow-hidden whitespace-nowrap text-xs font-medium max-w-0 group-hover:max-w-55 transition-all duration-500 ease-in-out"
+        >Comment est calculé le classement ?</span>
+      </button>
     </div>
+
+    <Dialog
+      v-model:visible="infoVisible"
+      modal
+      header="Comment est calculé le classement ?"
+      :style="{ width: '90vw', maxWidth: '560px' }"
+      :draggable="false"
+    >
+      <div class="space-y-5 text-sm text-gray-700 dark:text-gray-300">
+        <section>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Points attribués</h3>
+          <ul class="space-y-1">
+            <li class="flex justify-between">
+              <span>Victoire</span>
+              <span class="font-medium text-green-600 dark:text-green-400"
+                >{{ tournamentConfig?.pointPerVictory ?? 3 }} pts</span
+              >
+            </li>
+            <li v-if="allowDraw" class="flex justify-between">
+              <span>Match nul</span>
+              <span class="font-medium text-gray-600 dark:text-gray-400"
+                >{{ tournamentConfig?.pointPerDraw ?? 1 }} pts</span
+              >
+            </li>
+            <li class="flex justify-between">
+              <span>Défaite</span>
+              <span class="font-medium text-red-600 dark:text-red-400"
+                >{{ tournamentConfig?.pointPerLoss ?? 0 }} pts</span
+              >
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Critères de classement</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            Appliqués dans cet ordre en cas d'égalité :
+          </p>
+          <ol class="space-y-1.5 list-decimal list-inside">
+            <li>Points totaux</li>
+            <li>Nombre de victoires</li>
+            <li v-if="allowDraw">Ratio victoires / défaites</li>
+            <li>Score Buchholz — somme des points de tous les adversaires rencontrés</li>
+            <li>
+              Confrontations directes —
+              {{
+                teamMode === 'flex'
+                  ? 'résultats entre les joueurs à égalité'
+                  : 'résultats entre les équipes à égalité'
+              }}
+            </li>
+            <li>
+              <span>Qualité de victoire</span>
+              <div class="mt-1 ml-4 space-y-0.5">
+                <template v-if="outcomeTypes.length > 0">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Valeur attribuée par victoire selon le type de résultat de la discipline :
+                  </p>
+                  <ul class="text-xs space-y-0.5">
+                    <li v-for="ot in outcomeTypes" :key="ot.id" class="flex justify-between gap-4">
+                      <span class="text-gray-600 dark:text-gray-400">{{ ot.name }}</span>
+                      <span class="font-medium">{{ ot.isDefault ? '1' : '0,5' }} pt</span>
+                    </li>
+                  </ul>
+                </template>
+                <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+                  Victoire sur type de résultat par défaut → <span class="font-medium">1 pt</span> /
+                  type non standard (forfait, abandon…) → <span class="font-medium">0,5 pt</span>
+                </p>
+              </div>
+            </li>
+            <li>Taux de victoire</li>
+          </ol>
+        </section>
+
+        <section>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
+            Classement officiel vs provisoire
+          </h3>
+          <ul class="space-y-1">
+            <li>
+              <span class="font-medium">Officiel</span> — uniquement les matchs finalisés par un
+              arbitre
+            </li>
+            <li>
+              <span class="font-medium">Provisoire</span> — matchs finalisés + matchs déclarés par
+              les joueurs
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Contraintes du tournoi</h3>
+
+          <template v-if="isOneVsOne">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Format 1v1 — chaque participant joue individuellement.
+            </p>
+            <ul class="space-y-1">
+              <li class="flex justify-between">
+                <span>Max matchs par joueur</span>
+                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Max rencontres avec le même adversaire</span>
+                <span class="font-medium">{{
+                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
+                }}</span>
+              </li>
+              <li
+                v-if="
+                  scoreEnabled &&
+                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
+                "
+                class="flex justify-between"
+              >
+                <span>Score autorisé</span>
+                <span class="font-medium"
+                  >{{ tournamentConfig?.minScore ?? 0 }} –
+                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
+                >
+              </li>
+            </ul>
+          </template>
+
+          <template v-else-if="isFlexTeam">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Format équipes dynamiques — les équipes se forment librement à chaque match.
+            </p>
+            <ul class="space-y-1">
+              <li class="flex justify-between">
+                <span>Max matchs par joueur</span>
+                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Taille d'équipe</span>
+                <span class="font-medium"
+                  >{{ tournamentConfig?.minTeamSize ?? '—' }}–{{
+                    tournamentConfig?.maxTeamSize ?? '—'
+                  }}
+                  joueurs</span
+                >
+              </li>
+              <li class="flex justify-between">
+                <span>Max rencontres avec le même adversaire</span>
+                <span class="font-medium">{{
+                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
+                }}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Max rencontres avec le même partenaire</span>
+                <span class="font-medium">{{
+                  tournamentConfig?.maxTimesWithSamePartner ?? '—'
+                }}</span>
+              </li>
+              <li
+                v-if="
+                  scoreEnabled &&
+                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
+                "
+                class="flex justify-between"
+              >
+                <span>Score autorisé</span>
+                <span class="font-medium"
+                  >{{ tournamentConfig?.minScore ?? 0 }} –
+                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
+                >
+              </li>
+            </ul>
+          </template>
+
+          <template v-else>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Format équipes fixes — la composition de chaque équipe est définie en amont.
+            </p>
+            <ul class="space-y-1">
+              <li class="flex justify-between">
+                <span>Max matchs par équipe</span>
+                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Max rencontres avec la même équipe adverse</span>
+                <span class="font-medium">{{
+                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
+                }}</span>
+              </li>
+              <li
+                v-if="
+                  scoreEnabled &&
+                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
+                "
+                class="flex justify-between"
+              >
+                <span>Score autorisé</span>
+                <span class="font-medium"
+                  >{{ tournamentConfig?.minScore ?? 0 }} –
+                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
+                >
+              </li>
+            </ul>
+          </template>
+        </section>
+      </div>
+    </Dialog>
 
     <Message v-if="error" severity="error" class="mb-4">
       {{ error }}
@@ -27,12 +241,7 @@
     <div class="standings-container">
       <Transition name="standings-fade" mode="out-in">
         <div v-if="standings.length > 0" :key="`standings-${standingsType}`" class="relative">
-          <DataTable
-            :value="standings"
-            class="p-datatable-sm"
-            striped-rows
-            :loading="loading"
-          >
+          <DataTable :value="standings" class="p-datatable-sm" striped-rows :loading="loading">
             <Column field="rank" header="#" style="width: 4rem">
               <template #body="{ index }">
                 <div class="flex items-center justify-center">
@@ -139,10 +348,99 @@
                 </span>
               </template>
             </Column>
+
+            <Column
+              v-if="allowDraw"
+              field="winLossRatio"
+              header="V/D"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
+              <template #body="{ data }">
+                <span class="text-gray-600 dark:text-gray-400">{{ formatRatio(data.winLossRatio) }}</span>
+              </template>
+            </Column>
+
+            <Column
+              field="buchholzScore"
+              header="Buchholz"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
+              <template #body="{ data }">
+                <span class="text-gray-600 dark:text-gray-400">{{ data.buchholzScore }}</span>
+              </template>
+            </Column>
+
+            <Column
+              field="victoryQuality"
+              header="Qual. V"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
+              <template #body="{ data }">
+                <span class="text-gray-600 dark:text-gray-400">{{ data.victoryQuality.toFixed(1) }}</span>
+              </template>
+            </Column>
+
+            <Column
+              field="winRate"
+              header="Win%"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
+              <template #body="{ data }">
+                <span class="text-gray-600 dark:text-gray-400">{{ formatPercent(data.winRate) }}</span>
+              </template>
+            </Column>
+
+            <Column header="" style="width: 3rem" class="md:hidden" header-class="md:hidden">
+              <template #body="{ data }">
+                <Button
+                  icon="fa fa-circle-info"
+                  text
+                  rounded
+                  size="small"
+                  class="text-gray-400 hover:text-blue-500"
+                  :aria-label="`Détails départage ${data.name}`"
+                  @click="(e) => toggleTiebreakerPanel(e, data)"
+                />
+              </template>
+            </Column>
           </DataTable>
         </div>
       </Transition>
     </div>
+
+    <Popover ref="tiebreakerPanel">
+      <div v-if="selectedEntry" class="p-3 min-w-[220px]">
+        <p class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
+          {{ selectedEntry.name }} — Critères de départage
+        </p>
+        <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
+          <li class="flex justify-between gap-4">
+            <span>Victoires</span>
+            <span class="font-medium">{{ selectedEntry.wins }}</span>
+          </li>
+          <li v-if="allowDraw" class="flex justify-between gap-4">
+            <span>Ratio V/D</span>
+            <span class="font-medium">{{ formatRatio(selectedEntry.winLossRatio) }}</span>
+          </li>
+          <li class="flex justify-between gap-4">
+            <span>Buchholz</span>
+            <span class="font-medium">{{ selectedEntry.buchholzScore }} pts</span>
+          </li>
+          <li class="flex justify-between gap-4">
+            <span>Qualité victoire</span>
+            <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} pts</span>
+          </li>
+          <li class="flex justify-between gap-4">
+            <span>Win rate</span>
+            <span class="font-medium">{{ formatPercent(selectedEntry.winRate) }}</span>
+          </li>
+        </ul>
+      </div>
+    </Popover>
   </div>
 </template>
 
@@ -152,7 +450,26 @@ import SelectButton from 'primevue/selectbutton'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Button from 'primevue/button'
+import Popover from 'primevue/popover'
+import Dialog from 'primevue/dialog'
 import { useStandingsService } from '@/composables/standings.service'
+import { outcomeTypeApi } from '@/composables/outcome-type.api'
+import type { StandingsEntry, OutcomeType } from '@skill-arena/shared'
+
+interface TournamentConfig {
+  pointPerVictory: number
+  pointPerDraw: number
+  pointPerLoss: number
+  maxMatchesPerPlayer: number
+  maxTimesWithSamePartner: number
+  maxTimesWithSameOpponent: number
+  minTeamSize: number
+  maxTeamSize: number
+  minScore?: number | null
+  maxScore?: number | null
+  disciplineId?: string | null
+}
 
 interface Props {
   tournamentId: string
@@ -160,6 +477,7 @@ interface Props {
   scoreEnabled?: boolean
   teamMode?: 'static' | 'flex'
   standingsType?: 'official' | 'provisional'
+  tournamentConfig?: TournamentConfig
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -176,6 +494,24 @@ const { standings, loading, error, loadOfficialStandings, loadProvisionalStandin
   useStandingsService()
 
 const internalStandingsType = ref<'official' | 'provisional'>('official')
+const tiebreakerPanel = ref()
+const selectedEntry = ref<StandingsEntry | null>(null)
+const infoVisible = ref(false)
+const outcomeTypes = ref<OutcomeType[]>([])
+
+watch(infoVisible, async (visible) => {
+  if (visible && outcomeTypes.value.length === 0 && props.tournamentConfig?.disciplineId) {
+    outcomeTypes.value = await outcomeTypeApi.list(props.tournamentConfig.disciplineId)
+  }
+})
+
+const isOneVsOne = computed(
+  () =>
+    props.teamMode === 'flex' &&
+    props.tournamentConfig?.minTeamSize === 1 &&
+    props.tournamentConfig?.maxTeamSize === 1,
+)
+const isFlexTeam = computed(() => props.teamMode === 'flex' && !isOneVsOne.value)
 
 const standingsType = computed({
   get: () => props.standingsType ?? internalStandingsType.value,
@@ -189,6 +525,20 @@ const standingsTypeOptions = [
   { label: 'Officiel', value: 'official' },
   { label: 'Provisoire', value: 'provisional' },
 ]
+
+function toggleTiebreakerPanel(event: Event, entry: StandingsEntry) {
+  selectedEntry.value = entry
+  tiebreakerPanel.value?.toggle(event)
+}
+
+function formatRatio(ratio: number): string {
+  if (!isFinite(ratio)) return '∞'
+  return ratio.toFixed(2)
+}
+
+function formatPercent(rate: number): string {
+  return `${Math.round(rate * 100)}%`
+}
 
 watch(standingsType, async (newType) => {
   await loadStandings(newType)
@@ -217,7 +567,6 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-/* Transition pour le changement de classement */
 .standings-fade-enter-active {
   transition: opacity 0.25s ease-in;
 }

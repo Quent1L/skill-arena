@@ -123,12 +123,15 @@ export class MatchService {
    */
   /**
    * Trigger standings recalculation for flex championships with match limits.
-   * Called after match creation (reported) or finalization to keep matchPlayerPoints current.
+   * Called after match creation (reported) or finalization.
+   * Always invalidates standings cache; also rebuilds player points for flex tournaments.
    */
   private async triggerStandingsRecalcIfNeeded(tournamentId: string): Promise<void> {
     const tournament = await matchRepository.getTournament(tournamentId);
     if (tournament?.teamMode === "flex" && tournament.maxMatchesPerPlayer) {
       await standingsService.recalculatePointsInternal(tournamentId);
+    } else {
+      await standingsService.invalidateCache(tournamentId);
     }
   }
 

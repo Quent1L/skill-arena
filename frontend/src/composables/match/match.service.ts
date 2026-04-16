@@ -151,7 +151,7 @@ export function useMatchService() {
         life: 3000,
       })
 
-      await router.replace(`/tournaments/${tournamentId}?tab=1`)
+      await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la création du match'
@@ -191,7 +191,7 @@ export function useMatchService() {
         life: 3000,
       })
 
-      await router.replace(`/tournaments/${tournamentId}?tab=1`)
+      await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du match'

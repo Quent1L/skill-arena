@@ -156,6 +156,23 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
   }
 
+  async function reloadTournament() {
+    await tournamentSvc.loadTournamentWithErrorHandling(tournamentId.value)
+  }
+
+  async function reloadMatchHistory() {
+    if (!appUser.value?.id) return
+    await matchHistorySvc.loadHistory(appUser.value.id, tournamentId.value)
+  }
+
+  async function reloadStats() {
+    await statsSvc.loadStats(tournamentId.value)
+  }
+
+  async function reloadLeaderboard() {
+    await rankedSvc.loadLeaderboard(tournamentId.value)
+  }
+
   return {
     // Identity
     tournamentId,
@@ -205,5 +222,9 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     ensureMatchHistory,
     loadMoreMatchHistory,
     ensureStats,
+    reloadTournament,
+    reloadMatchHistory,
+    reloadStats,
+    reloadLeaderboard,
   }
 })

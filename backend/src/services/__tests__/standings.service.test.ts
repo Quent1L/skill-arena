@@ -27,6 +27,8 @@ function makeMatchWithSides(
   return {
     id,
     winnerSide,
+    outcomeTypeId: null,
+    outcomeType: null,
     sides: [
       {
         position: 1,
@@ -64,6 +66,8 @@ function makeFlexMatchWithPoints(
   return {
     id,
     winnerSide,
+    outcomeTypeId: null,
+    outcomeType: null,
     playerPoints: [
       ...playersA.map((pid) => ({ playerId: pid, pointsAwarded: countsForRanking ? pointsA : 0, countsForRanking })),
       ...playersB.map((pid) => ({ playerId: pid, pointsAwarded: countsForRanking ? pointsB : 0, countsForRanking })),
@@ -98,10 +102,22 @@ const mockRepo = {
   getMatchSides: mock(() => Promise.resolve([] as any[])),
   deletePlayerPointsForTournament: mock(() => Promise.resolve()),
   insertPlayerPoints: mock(() => Promise.resolve()),
+  // Computed data cache
+  getComputedData: mock(() => Promise.resolve(null)),
+  setComputedData: mock(() => Promise.resolve()),
+  deleteComputedData: mock(() => Promise.resolve()),
 };
 
 mock.module("../../repository/standings.repository", () => ({
   standingsRepository: mockRepo,
+}));
+
+const mockMatchSidesRepo = {
+  updatePointsAwarded: mock(() => Promise.resolve()),
+};
+
+mock.module("../../repository/match-sides.repository", () => ({
+  matchSidesRepository: mockMatchSidesRepo,
 }));
 
 import { standingsService } from "../standings.service";
@@ -118,6 +134,25 @@ function resetMocks() {
   mockRepo.getMatchSides.mockImplementation(() => Promise.resolve([]));
   mockRepo.deletePlayerPointsForTournament.mockImplementation(() => Promise.resolve());
   mockRepo.insertPlayerPoints.mockImplementation(() => Promise.resolve());
+  mockRepo.getComputedData.mockImplementation(() => Promise.resolve(null));
+  mockRepo.setComputedData.mockImplementation(() => Promise.resolve());
+  mockRepo.deleteComputedData.mockImplementation(() => Promise.resolve());
+  mockRepo.insertPlayerPoints.mockClear();
+  mockRepo.getMatchesWithSides.mockClear();
+  mockRepo.getTournamentWithScoring.mockClear();
+  mockRepo.deleteComputedData.mockClear();
+  mockMatchSidesRepo.updatePointsAwarded.mockImplementation(() => Promise.resolve());
+  mockMatchSidesRepo.updatePointsAwarded.mockClear();
+}
+
+function makeMatchWithOutcomeType(
+  id: string,
+  winnerSide: "A" | "B" | null,
+  sideA: { teamId: string; score: number; pointsAwarded?: number | null },
+  sideB: { teamId: string; score: number; pointsAwarded?: number | null },
+  isDefault: boolean,
+) {
+  return { ...makeMatchWithSides(id, winnerSide, sideA, sideB), outcomeType: { isDefault } };
 }
 
 function findEntry(standings: any[], id: string) {
@@ -281,7 +316,7 @@ describe("StandingsService", () => {
       expect(standings[2].id).toBe("team-c"); // 0 pts
     });
 
-    it("départage par scoreDiff si points égaux", async () => {
+    it("départage par id si tous les critères sont égaux", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A", { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 2 }),
@@ -290,18 +325,17 @@ describe("StandingsService", () => {
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      // A: 3pts, diff= (5-2)+(1-3) = 3-2 = +1
-      // B: 3pts, diff= (2-5)+(3-1) = -3+2 = -1
+      // A and B: same pts, wins, ratio, buchholz, h2h (1-1), quality, winRate → sort by id
       expect(standings[0].id).toBe("team-a");
     });
 
-    it("départage par buts marqués si scoreDiff égal", async () => {
+    it("départage par id si nul et tous critères égaux", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 3 })]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
-      expect(standings[0].id).toBe("team-a"); // scoreDiff A=+2, B=-2 → A premier
+      expect(standings[0].id).toBe("team-a"); // same stats after draw → sort by id
     });
   });
 
@@ -407,7 +441,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-a2")?.points).toBe(3);
     });
 
-    it("joueur hors limite : countsForRanking=false → 0 pts et matchesPlayed incrémenté", async () => {
+    it("joueur hors limite : countsForRanking=false → 0 pts, matchesPlayed non incrémenté", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([
           makeFlexMatchWithPoints("m1", "A", ["p-a1"], ["p-b1"], 3, 0, 3, 0, false /* countsForRanking = false */),
@@ -417,8 +451,7 @@ describe("StandingsService", () => {
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
       const a = findEntry(standings, "p-a1")!;
       expect(a.points).toBe(0);
-      expect(a.matchesPlayed).toBe(1);
-      // W/D/L not counted when !countsForRanking
+      expect(a.matchesPlayed).toBe(0); // not counted since !countsForRanking
       expect(a.wins).toBe(0);
     });
   });
@@ -476,6 +509,584 @@ describe("StandingsService", () => {
       const provisionalTotal = provisional.standings.reduce((s, e) => s + e.matchesPlayed, 0);
 
       expect(provisionalTotal).toBeGreaterThan(officialTotal);
+    });
+  });
+
+  // ── Configuration du tournoi ──────────────────────────────────────────────
+
+  describe("configuration du tournoi", () => {
+    it("scoreEnabled=false (static) : scored/conceded/scoreDiff restent à 0", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, scoreEnabled: false }),
+      );
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 })]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "team-a")!;
+      const b = findEntry(standings, "team-b")!;
+
+      expect(a.scored).toBe(0);
+      expect(a.conceded).toBe(0);
+      expect(a.scoreDiff).toBe(0);
+      expect(b.scored).toBe(0);
+      expect(b.conceded).toBe(0);
+      expect(b.scoreDiff).toBe(0);
+      expect(a.points).toBe(3);
+      expect(a.wins).toBe(1);
+    });
+
+    it("scoreEnabled=false (flex) : scored/conceded/scoreDiff restent à 0", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, scoreEnabled: false }),
+      );
+      mockRepo.getTournamentEntries.mockImplementation(() =>
+        Promise.resolve([
+          {
+            id: "entry-a", tournamentId: "tournament-1",
+            players: [{ playerId: "p-a", player: { id: "p-a", displayName: "A", shortName: "PA" } }],
+          },
+          {
+            id: "entry-b", tournamentId: "tournament-1",
+            players: [{ playerId: "p-b", player: { id: "p-b", displayName: "B", shortName: "PB" } }],
+          },
+        ]),
+      );
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 5, 1, 3, 0)]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "p-a")!;
+
+      expect(a.scored).toBe(0);
+      expect(a.conceded).toBe(0);
+      expect(a.scoreDiff).toBe(0);
+      expect(a.wins).toBe(1);
+      expect(a.points).toBe(3);
+    });
+
+    it("allowDraw=false : les nuls sont quand même comptabilisés comme nuls", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, allowDraw: false }),
+      );
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 1 })]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "team-a")?.draws).toBe(1);
+      expect(findEntry(standings, "team-b")?.draws).toBe(1);
+    });
+  });
+
+  // ── Tiebreakers calculés ──────────────────────────────────────────────────
+
+  describe("tiebreakers calculés", () => {
+    it("winLossRatio = wins / max(1, losses) — évite la division par zéro", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "team-a")!;
+
+      expect(a.wins).toBe(2);
+      expect(a.losses).toBe(0);
+      expect(a.winLossRatio).toBe(2); // 2 / max(1, 0) = 2
+    });
+
+    it("victoryQuality : outcomeType.isDefault=true → +1.0 par victoire", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true)]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(1.0);
+      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(0);
+    });
+
+    it("victoryQuality : outcomeType.isDefault=false → +0.5 par victoire", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false)]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(0.5);
+      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(0);
+    });
+
+    it("victoryQuality : cumul de plusieurs victoires (1.0 + 0.5)", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true),
+          makeMatchWithOutcomeType("m2", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(1.5);
+    });
+
+    it("buchholzScore : équipe ayant battu un adversaire fort se classe avant à égalité", async () => {
+      // A and B both have 3 pts / 1W, but A's beaten opponent X (0 pts) while B's beaten Y (3 pts)
+      const TEAM_X = { id: "team-x", name: "X", tournamentId: "tournament-1" };
+      const TEAM_Y = { id: "team-y", name: "Y", tournamentId: "tournament-1" };
+
+      mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_X, TEAM_Y]));
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-x", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-b", score: 1 }, { teamId: "team-y", score: 0 }),
+          // Y wins one match → Y gets 3 pts; X never wins → X stays at 0
+          makeMatchWithSides("m3", "A", { teamId: "team-y", score: 1 }, { teamId: "team-x", score: 0 }),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      const a = findEntry(standings, "team-a")!;
+      const b = findEntry(standings, "team-b")!;
+
+      // A's only opponent X has 0 pts; B's only opponent Y has 3 pts
+      expect(a.buchholzScore).toBe(0);
+      expect(b.buchholzScore).toBe(3);
+
+      // B ranks higher due to buchholz
+      expect(standings.indexOf(b)).toBeLessThan(standings.indexOf(a));
+    });
+  });
+
+  // ── Tiebreak head-to-head ─────────────────────────────────────────────────
+
+  describe("tiebreak head-to-head", () => {
+    it("H2H : enregistrements cumulatifs sur matchs multiples entre la même paire", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "team-a")!;
+      const b = findEntry(standings, "team-b")!;
+
+      expect(a.headToHead["team-b"]?.wins).toBe(2);
+      expect(a.headToHead["team-b"]?.losses).toBe(0);
+      expect(b.headToHead["team-a"]?.wins).toBe(0);
+      expect(b.headToHead["team-a"]?.losses).toBe(2);
+    });
+
+    it("H2H nul : comptabilisé dans les deux sens", async () => {
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 1 })]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "team-a")?.headToHead["team-b"]?.draws).toBe(1);
+      expect(findEntry(standings, "team-b")?.headToHead["team-a"]?.draws).toBe(1);
+    });
+
+    it("sous-groupe H2H circulaire (3 équipes) : fallback par ID si tout est égal", async () => {
+      mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
+      // Circular: A beats B, B beats C, C beats A → all tied 3pts/1W/1L/buchholz=6
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-b", score: 1 }, { teamId: "team-c", score: 0 }),
+          makeMatchWithSides("m3", "A", { teamId: "team-c", score: 1 }, { teamId: "team-a", score: 0 }),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      // All must have same base stats
+      for (const e of standings) {
+        expect(e.points).toBe(3);
+        expect(e.wins).toBe(1);
+        expect(e.losses).toBe(1);
+        expect(e.buchholzScore).toBe(6); // each opponent has 3 pts
+      }
+
+      // H2H is circular (1W each within subgroup) → victoryQuality/winRate equal → sort by ID
+      expect(standings[0].id).toBe("team-a");
+      expect(standings[1].id).toBe("team-b");
+      expect(standings[2].id).toBe("team-c");
+    });
+
+    it("H2H isolation : seuls les adversaires du sous-groupe sont comptabilisés", async () => {
+      // A and B are tied; each beat an external opponent (C); H2H subgroup should only count A vs B
+      mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
+      mockRepo.getMatchesWithSides.mockImplementation(() =>
+        Promise.resolve([
+          makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-c", score: 0 }),
+          makeMatchWithSides("m2", "A", { teamId: "team-b", score: 1 }, { teamId: "team-c", score: 0 }),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "team-a")!;
+      const b = findEntry(standings, "team-b")!;
+
+      // A has headToHead vs C (external), but no H2H vs B within subgroup
+      expect(a.headToHead["team-c"]?.wins).toBe(1);
+      expect(a.headToHead["team-b"]).toBeUndefined();
+
+      // A and B tied on everything → ID sort
+      expect(standings.indexOf(a)).toBeLessThan(standings.indexOf(b));
+    });
+  });
+
+  // ── Mode flex — tiebreakers ───────────────────────────────────────────────
+
+  describe("mode flex — tiebreakers", () => {
+    const flexEntries1v1 = [
+      {
+        id: "entry-a", tournamentId: "tournament-1",
+        players: [{ playerId: "p-a", player: { id: "p-a", displayName: "A", shortName: "PA" } }],
+      },
+      {
+        id: "entry-b", tournamentId: "tournament-1",
+        players: [{ playerId: "p-b", player: { id: "p-b", displayName: "B", shortName: "PB" } }],
+      },
+    ];
+
+    beforeEach(() => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
+      );
+      mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries1v1));
+    });
+
+    it("victoryQuality flex : outcomeType.isDefault=false → 0.5 par victoire", async () => {
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([{
+          ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0),
+          outcomeType: { isDefault: false },
+        }]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(0.5);
+      expect(findEntry(standings, "p-b")?.victoryQuality).toBe(0);
+    });
+
+    it("victoryQuality flex : outcomeType=null (par défaut) → 1.0 par victoire", async () => {
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0)]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(1.0);
+    });
+
+    it("buchholzScore flex : somme des points des adversaires vaincus", async () => {
+      // p-a beats p-b in m1; then p-b beats another player in m2 → p-b gets 3 pts
+      const flexEntries3 = [
+        ...flexEntries1v1,
+        {
+          id: "entry-c", tournamentId: "tournament-1",
+          players: [{ playerId: "p-c", player: { id: "p-c", displayName: "C", shortName: "PC" } }],
+        },
+      ];
+      mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries3));
+
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([
+          makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0),
+          makeFlexMatchWithPoints("m2", "A", ["p-b"], ["p-c"], 1, 0, 3, 0),
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      // p-a's opponent p-b ends up with 3 pts (from beating p-c) → p-a.buchholz = 3
+      expect(findEntry(standings, "p-a")?.buchholzScore).toBe(3);
+    });
+
+    it("countsForRanking=false : les scores ne sont pas comptabilisés", async () => {
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([{
+          id: "m1",
+          winnerSide: "A" as const,
+          outcomeTypeId: null,
+          outcomeType: null,
+          playerPoints: [{ playerId: "p-a", pointsAwarded: 0, countsForRanking: false }],
+          sides: [
+            { position: 1, score: 5, entryId: "entry-a", entry: { id: "entry-a", players: [{ playerId: "p-a" }] } },
+            { position: 2, score: 2, entryId: "entry-b", entry: { id: "entry-b", players: [] } },
+          ],
+        }]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "p-a")!;
+
+      expect(a.scored).toBe(0);
+      expect(a.conceded).toBe(0);
+      expect(a.scoreDiff).toBe(0);
+      expect(a.points).toBe(0);
+      expect(a.matchesPlayed).toBe(0);
+    });
+
+    it("countsForRanking=false : buchholz et victoryQuality non incrémentés", async () => {
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([{
+          ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0, false),
+        }]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "p-a")!;
+
+      expect(a.victoryQuality).toBe(0);
+      expect(a.buchholzScore).toBe(0);
+    });
+  });
+
+  // ── recalculatePointsInternal ─────────────────────────────────────────────
+
+  describe("recalculatePointsInternal", () => {
+    it("static : met à jour pointsAwarded sur chaque matchSide (victoire A)", async () => {
+      mockRepo.getMatchesForStandings.mockImplementation(() =>
+        Promise.resolve([{ id: "m1", winnerSide: "A", playedAt: new Date() }]),
+      );
+      mockRepo.getMatchSides.mockImplementation(() =>
+        Promise.resolve([
+          { matchId: "m1", entryId: "entry-a", pointsAwarded: null, entry: null },
+          { matchId: "m1", entryId: "entry-b", pointsAwarded: null, entry: null },
+        ]),
+      );
+
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-a", 3);
+      expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-b", 0);
+    });
+
+    it("static : met à jour pointsAwarded (nul)", async () => {
+      mockRepo.getMatchesForStandings.mockImplementation(() =>
+        Promise.resolve([{ id: "m1", winnerSide: null, playedAt: new Date() }]),
+      );
+      mockRepo.getMatchSides.mockImplementation(() =>
+        Promise.resolve([
+          { matchId: "m1", entryId: "entry-a", pointsAwarded: null, entry: null },
+          { matchId: "m1", entryId: "entry-b", pointsAwarded: null, entry: null },
+        ]),
+      );
+
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-a", 1);
+      expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-b", 1);
+    });
+
+    it("flex : seuls les N premiers matchs chronologiques comptent (maxMatchesPerPlayer)", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 2 }),
+      );
+
+      const t1 = new Date("2025-01-01");
+      const t2 = new Date("2025-01-02");
+      const t3 = new Date("2025-01-03");
+
+      mockRepo.getMatchesForStandings.mockImplementation(() =>
+        Promise.resolve([
+          { id: "m1", winnerSide: "A", playedAt: t1 },
+          { id: "m2", winnerSide: "A", playedAt: t2 },
+          { id: "m3", winnerSide: "A", playedAt: t3 },
+        ]),
+      );
+      mockRepo.getMatchSides.mockImplementation(() =>
+        Promise.resolve([
+          { matchId: "m1", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p-x" }] } },
+          { matchId: "m1", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+          { matchId: "m2", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p-x" }] } },
+          { matchId: "m2", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+          { matchId: "m3", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p-x" }] } },
+          { matchId: "m3", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+        ]),
+      );
+
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      const rows = (mockRepo.insertPlayerPoints.mock.calls as any)[0][0] as Array<{ matchId: string; playerId: string; countsForRanking: boolean; pointsAwarded: number }>;
+
+      const byMatch = (mid: string) => rows.find((r) => r.matchId === mid && r.playerId === "p-x")!;
+
+      expect(byMatch("m1").countsForRanking).toBe(true);
+      expect(byMatch("m1").pointsAwarded).toBe(3);
+      expect(byMatch("m2").countsForRanking).toBe(true);
+      expect(byMatch("m3").countsForRanking).toBe(false);
+      expect(byMatch("m3").pointsAwarded).toBe(0);
+    });
+
+    it("flex : la limite s'applique par joueur, pas par entry", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
+      );
+
+      const t1 = new Date("2025-01-01");
+      const t2 = new Date("2025-01-02");
+
+      mockRepo.getMatchesForStandings.mockImplementation(() =>
+        Promise.resolve([
+          { id: "m1", winnerSide: "A", playedAt: t1 },
+          { id: "m2", winnerSide: "A", playedAt: t2 },
+        ]),
+      );
+      // Same entry, 2 players: p1 and p2 — each has their own independent counter
+      mockRepo.getMatchSides.mockImplementation(() =>
+        Promise.resolve([
+          { matchId: "m1", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p1" }, { playerId: "p2" }] } },
+          { matchId: "m1", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+          { matchId: "m2", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p1" }, { playerId: "p2" }] } },
+          { matchId: "m2", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+        ]),
+      );
+
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      const rows = (mockRepo.insertPlayerPoints.mock.calls as any)[0][0] as Array<{ matchId: string; playerId: string; countsForRanking: boolean }>;
+
+      const get = (pid: string, mid: string) => rows.find((r) => r.playerId === pid && r.matchId === mid)!;
+
+      expect(get("p1", "m1").countsForRanking).toBe(true);
+      expect(get("p1", "m2").countsForRanking).toBe(false);
+      expect(get("p2", "m1").countsForRanking).toBe(true);
+      expect(get("p2", "m2").countsForRanking).toBe(false);
+    });
+
+    it("flex : matchs triés chronologiquement avant d'appliquer la limite", async () => {
+      // Provide matches in reverse order; m3 (oldest) should count, m1 (newest) should not
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
+      );
+
+      const t1 = new Date("2025-01-03");
+      const t2 = new Date("2025-01-01");
+
+      mockRepo.getMatchesForStandings.mockImplementation(() =>
+        Promise.resolve([
+          { id: "m1", winnerSide: "A", playedAt: t1 }, // newer, should NOT count
+          { id: "m2", winnerSide: "A", playedAt: t2 }, // older, should count
+        ]),
+      );
+      mockRepo.getMatchSides.mockImplementation(() =>
+        Promise.resolve([
+          { matchId: "m1", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p-x" }] } },
+          { matchId: "m1", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+          { matchId: "m2", entryId: "entry-a", pointsAwarded: null, entry: { players: [{ playerId: "p-x" }] } },
+          { matchId: "m2", entryId: "entry-b", pointsAwarded: null, entry: { players: [] } },
+        ]),
+      );
+
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      const rows = (mockRepo.insertPlayerPoints.mock.calls as any)[0][0] as Array<{ matchId: string; playerId: string; countsForRanking: boolean }>;
+
+      const get = (mid: string) => rows.find((r) => r.matchId === mid && r.playerId === "p-x")!;
+
+      expect(get("m2").countsForRanking).toBe(true);  // older match counted first
+      expect(get("m1").countsForRanking).toBe(false); // newer match excluded
+    });
+
+    it("invalidate le cache au début de la recalcul", async () => {
+      await standingsService.recalculatePointsInternal("tournament-1");
+
+      expect(mockRepo.deleteComputedData).toHaveBeenCalledWith("tournament-1");
+    });
+  });
+
+  // ── Cas limites supplémentaires ───────────────────────────────────────────
+
+  describe("cas limites supplémentaires", () => {
+    it("tournoi sans équipe (static) : retourne un classement vide", async () => {
+      mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([]));
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(standings).toHaveLength(0);
+    });
+
+    it("tournoi sans entry (flex) : retourne un classement vide", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
+      );
+      mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve([]));
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(standings).toHaveLength(0);
+    });
+
+    it("cache hit : retourne la valeur cachée sans recalculer les matchs", async () => {
+      const cachedResult = {
+        standings: [{ id: "team-a", name: "Alpha", shortName: "ALPHA", points: 99, wins: 10, draws: 0, losses: 0, scored: 0, conceded: 0, scoreDiff: 0, matchesPlayed: 10, winLossRatio: 10, buchholzScore: 0, victoryQuality: 10, winRate: 1, headToHead: {} }],
+      };
+      mockRepo.getComputedData.mockImplementation(() => Promise.resolve(cachedResult as any));
+
+      const result = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(result).toEqual(cachedResult);
+      expect(mockRepo.getMatchesWithSides).not.toHaveBeenCalled();
+      expect(mockRepo.getTournamentWithScoring).not.toHaveBeenCalled();
+    });
+
+    it("joueur présent dans plusieurs entries : apparaît une seule fois dans le classement", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
+      );
+      mockRepo.getTournamentEntries.mockImplementation(() =>
+        Promise.resolve([
+          {
+            id: "entry-a", tournamentId: "tournament-1",
+            players: [{ playerId: "p-shared", player: { id: "p-shared", displayName: "Shared", shortName: "SHR" } }],
+          },
+          {
+            id: "entry-b", tournamentId: "tournament-1",
+            players: [{ playerId: "p-shared", player: { id: "p-shared", displayName: "Shared", shortName: "SHR" } }],
+          },
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(standings.filter((e) => e.id === "p-shared")).toHaveLength(1);
+    });
+
+    it("winRate flex = wins / max(1, matchesPlayed) — évite la division par zéro", async () => {
+      mockRepo.getTournamentWithScoring.mockImplementation(() =>
+        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
+      );
+      mockRepo.getTournamentEntries.mockImplementation(() =>
+        Promise.resolve([
+          {
+            id: "entry-a", tournamentId: "tournament-1",
+            players: [{ playerId: "p-a", player: { id: "p-a", displayName: "A", shortName: "PA" } }],
+          },
+        ]),
+      );
+      // No matches → matchesPlayed = 0
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() => Promise.resolve([]));
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+      const a = findEntry(standings, "p-a")!;
+
+      expect(a.matchesPlayed).toBe(0);
+      expect(a.winRate).toBe(0); // 0 / max(1, 0) = 0
     });
   });
 });
