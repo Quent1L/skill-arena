@@ -328,6 +328,7 @@ export class MatchService {
       ...(filters.playerIds && {
         playerId: filters.playerIds.split(',')[0],
         mmrDelta: row.mmrDelta ?? null,
+        pointsDelta: row.pointsDelta ?? null,
       }),
     }));
 

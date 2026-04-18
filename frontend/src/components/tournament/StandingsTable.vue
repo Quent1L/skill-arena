@@ -373,7 +373,7 @@
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
                     v-tooltip.top="
-                      'Somme des points de tous les adversaires rencontrés (départage)'
+                      'somme des points des adversaires (moyenne en équipe)'
                     "
                   />
                 </span>
@@ -390,11 +390,11 @@
             >
               <template #header>
                 <span class="flex items-center gap-1">
-                  Qual. résultats
+                  Qualité des résultats
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
                     v-tooltip.top="
-                      'Victoire = +pts, Défaite = −pts selon le type de résultat (départage)'
+                      'Victoire = +pts\n Défaite = −pts \nselon le type de résultat'
                     "
                   />
                 </span>

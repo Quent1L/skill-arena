@@ -14,6 +14,14 @@
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span
+            v-if="entry.pointsDelta != null"
+            class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border font-headline font-black tabular-nums text-sm"
+            :class="mmrPillClass(entry.pointsDelta)"
+          >
+            <i class="fa fa-star text-xs"></i>
+            {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta }}
+          </span>
+          <span
             v-if="entry.mmrDelta != null"
             class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border font-headline font-black tabular-nums text-sm"
             :class="mmrPillClass(entry.mmrDelta)"
@@ -170,6 +178,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
+import { getInitials } from '@/utils/StringUtils'
 
 const props = defineProps<{
   entry: ClientMatchCard
@@ -348,8 +357,4 @@ function getAvatarBg(name: string) {
   return AVATAR_COLORS[idx]
 }
 
-function getInitials(name: string) {
-  if (!name) return '?'
-  return name.slice(0, 2).toUpperCase()
-}
 </script>

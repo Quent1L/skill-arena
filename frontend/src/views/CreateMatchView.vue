@@ -355,7 +355,6 @@ async function createMatch() {
     await createMatchWithNavigation(createData, tournamentId)
   }
 
-  detailStore.reloadMatchHistory()
   detailStore.reloadStats()
   detailStore.reloadTournament()
   if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()

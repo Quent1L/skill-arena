@@ -509,6 +509,7 @@ export interface ClientMatchCard {
   outcomeType: { id: string; name: string } | null;
   playerId?: string;
   mmrDelta?: number | null;
+  pointsDelta?: number | null;
 }
 
 export interface PaginatedMatchCards {

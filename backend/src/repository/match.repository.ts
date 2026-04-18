@@ -500,6 +500,13 @@ export class MatchRepository {
               LIMIT 1
             )`
           : sql<null>`NULL`,
+        pointsDelta: filters.playerIds?.split(',').filter(Boolean)[0]
+          ? sql<number | null>`(
+              SELECT points_awarded FROM match_player_points
+              WHERE match_id = ${matches.id} AND player_id = ${filters.playerIds!.split(',')[0]}
+              LIMIT 1
+            )`
+          : sql<null>`NULL`,
         total: sql<number>`COUNT(*) OVER ()`.mapWith(Number),
       })
       .from(matches)

@@ -12,12 +12,7 @@
     <div v-else-if="match" class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <Button
-          label="Retour"
-          icon="fa fa-arrow-left"
-          severity="secondary"
-          @click="goBack()"
-        />
+        <Button label="Retour" icon="fa fa-arrow-left" severity="secondary" @click="goBack()" />
 
         <div class="flex items-center gap-3">
           <Button
@@ -77,7 +72,11 @@
                   {{ match.scoreA }}
                 </div>
                 <div v-if="match.teamA?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamA.participants" :key="p.user?.id" class="flex items-center justify-center gap-1">
+                  <div
+                    v-for="p in match.teamA.participants"
+                    :key="p.user?.id"
+                    class="flex items-center justify-center gap-1"
+                  >
                     <RouterLink
                       v-if="p.user?.id"
                       :to="`/players/${p.user.id}`"
@@ -86,7 +85,9 @@
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
-                    <template v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined">
+                    <template
+                      v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined"
+                    >
                       <Tag
                         v-if="p.exceededMatchLimit"
                         value="hors limite"
@@ -94,7 +95,9 @@
                         class="text-xs"
                       />
                       <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                        +{{ p.effectivePointsAwarded }} pt{{ p.effectivePointsAwarded !== 1 ? 's' : '' }}
+                        +{{ p.effectivePointsAwarded }} pt{{
+                          p.effectivePointsAwarded !== 1 ? 's' : ''
+                        }}
                       </span>
                     </template>
                   </div>
@@ -109,7 +112,12 @@
                 </div>
               </div>
 
-              <div v-if="match.tournament?.scoreEnabled !== false" class="text-3xl font-bold text-surface-400 pt-8">-</div>
+              <div
+                v-if="match.tournament?.scoreEnabled !== false"
+                class="text-3xl font-bold text-surface-400 pt-8"
+              >
+                -
+              </div>
 
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -123,7 +131,11 @@
                   {{ match.scoreB }}
                 </div>
                 <div v-if="match.teamB?.participants" class="mt-2 text-sm">
-                  <div v-for="p in match.teamB.participants" :key="p.user?.id" class="flex items-center justify-center gap-1">
+                  <div
+                    v-for="p in match.teamB.participants"
+                    :key="p.user?.id"
+                    class="flex items-center justify-center gap-1"
+                  >
                     <RouterLink
                       v-if="p.user?.id"
                       :to="`/players/${p.user.id}`"
@@ -132,7 +144,9 @@
                       {{ p.user?.displayName }}
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
-                    <template v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined">
+                    <template
+                      v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined"
+                    >
                       <Tag
                         v-if="p.exceededMatchLimit"
                         value="hors limite"
@@ -140,7 +154,9 @@
                         class="text-xs"
                       />
                       <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                        +{{ p.effectivePointsAwarded }} pt{{ p.effectivePointsAwarded !== 1 ? 's' : '' }}
+                        +{{ p.effectivePointsAwarded }} pt{{
+                          p.effectivePointsAwarded !== 1 ? 's' : ''
+                        }}
                       </span>
                     </template>
                   </div>
@@ -271,6 +287,7 @@ import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
 import type { ClientMatchModel, MatchFinalizationReason } from '@skill-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
+import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -286,6 +303,7 @@ function goBack() {
 }
 const { getMatch, confirmMatchResult, finalizeMatch, cancelMatch } = useMatchService()
 const { appUser } = useAuth()
+const detailStore = useTournamentDetailStore()
 
 const match = ref<ClientMatchModel | null>(null)
 const loading = ref(true)
@@ -323,9 +341,8 @@ const canCancelMatch = computed(() => {
 })
 
 const canEditMatch = computed(() => {
-  if(!match.value) return false
-  return !!(match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value));
-
+  if (!match.value) return false
+  return !!(match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value))
 })
 
 async function loadMatch() {
@@ -354,6 +371,13 @@ async function handleConfirm() {
   } finally {
     confirming.value = false
   }
+  refreshTournament()
+}
+
+async function refreshTournament() {
+  detailStore.reloadStats()
+  detailStore.reloadTournament()
+  if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()
 }
 
 function handleContest(data: { reason?: string }) {
@@ -391,10 +415,11 @@ async function handleFinalize(reason: MatchFinalizationReason) {
     await finalizeMatch(match.value.id, {
       finalizationReason: reason,
     })
-    match.value = await getMatch(match.value.id);
+    match.value = await getMatch(match.value.id)
   } catch (err) {
     console.error('Error finalizing match:', err)
   }
+  refreshTournament();
 }
 
 function completeMatch() {

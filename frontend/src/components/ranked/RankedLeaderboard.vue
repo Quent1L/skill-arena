@@ -98,6 +98,7 @@
 import { computed, defineComponent, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
+import { getInitials } from '@/utils/StringUtils'
 
 const TIER_TEXT_CLASSES = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-red-400']
 const TIER_AVATAR_CLASSES = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-red-600']
@@ -144,16 +145,6 @@ const tierSummary = computed(() =>
       bgClass: TIER_BG_CLASSES[Math.min(t.level - 1, TIER_BG_CLASSES.length - 1)],
     })),
 )
-
-function getInitials(name?: string | null): string {
-  if (!name) return '?'
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2)
-}
 
 // Inline PodiumCard sub-component
 const PodiumCard = defineComponent({

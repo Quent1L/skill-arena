@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { getInitials } from '@/utils/StringUtils'
 
 interface Player {
   id: string
@@ -129,12 +130,5 @@ function close() {
   emit('close')
 }
 
-function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
+
 </script>
