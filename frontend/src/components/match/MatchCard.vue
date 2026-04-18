@@ -83,6 +83,12 @@
           <span class="text-muted-color/40 text-base">-</span>
           <span>{{ rightSide?.score ?? 0 }}</span>
         </div>
+        <div
+          v-else
+          class="font-headline text-xl text-muted-color/40 tracking-tighter flex items-center gap-1.5 shrink-0"
+        >
+          VS
+        </div>
 
         <!-- Right side (opponent when player mode, side B when neutral) -->
         <div class="flex-1 flex flex-col items-center gap-1 relative">

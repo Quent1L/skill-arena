@@ -141,10 +141,15 @@ export class StandingsService {
           entry.victoryQuality += isDefault ? 1.0 : 0.5;
         }
 
-        // Buchholz: sum opponents' base points
-        for (const oppId of opponentIds) {
-          const opp = standingsMap.get(oppId);
-          if (opp) entry.buchholzScore += opp.points;
+        // Buchholz: average opponents' points per match (normalizes 2v2, 3v3, etc.)
+        if (opponentIds.length > 0) {
+          let oppTotal = 0;
+          let counted = 0;
+          for (const oppId of opponentIds) {
+            const opp = standingsMap.get(oppId);
+            if (opp) { oppTotal += opp.points; counted++; }
+          }
+          if (counted > 0) entry.buchholzScore += oppTotal / counted;
         }
 
         // Head-to-head

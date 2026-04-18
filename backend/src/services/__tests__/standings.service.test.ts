@@ -816,6 +816,74 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-a")?.buchholzScore).toBe(3);
     });
 
+    it("buchholzScore flex 2v2 : moyenne des adversaires, pas la somme", async () => {
+      // p-a beats (p-b + p-c) in a 2v2; p-b ends up with 3 pts, p-c with 1 pt
+      // p-a.buchholz should be (3+1)/2 = 2, not 3+1 = 4
+      const flexEntries2v2 = [
+        {
+          id: "entry-a", tournamentId: "tournament-1",
+          players: [{ playerId: "p-a", player: { id: "p-a", displayName: "A", shortName: "PA" } }],
+        },
+        {
+          id: "entry-bc", tournamentId: "tournament-1",
+          players: [
+            { playerId: "p-b", player: { id: "p-b", displayName: "B", shortName: "PB" } },
+            { playerId: "p-c", player: { id: "p-c", displayName: "C", shortName: "PC" } },
+          ],
+        },
+        {
+          id: "entry-d", tournamentId: "tournament-1",
+          players: [{ playerId: "p-d", player: { id: "p-d", displayName: "D", shortName: "PD" } }],
+        },
+      ];
+      mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries2v2));
+
+      mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
+        Promise.resolve([
+          {
+            id: "m1", winnerSide: "A" as const, outcomeTypeId: null, outcomeType: null,
+            playerPoints: [
+              { playerId: "p-a", pointsAwarded: 3, countsForRanking: true },
+              { playerId: "p-b", pointsAwarded: 0, countsForRanking: true },
+              { playerId: "p-c", pointsAwarded: 0, countsForRanking: true },
+            ],
+            sides: [
+              { position: 1, score: 3, entryId: "entry-a", entry: { id: "entry-a", players: [{ playerId: "p-a" }] } },
+              { position: 2, score: 1, entryId: "entry-bc", entry: { id: "entry-bc", players: [{ playerId: "p-b" }, { playerId: "p-c" }] } },
+            ],
+          },
+          {
+            id: "m2", winnerSide: "A" as const, outcomeTypeId: null, outcomeType: null,
+            playerPoints: [
+              { playerId: "p-b", pointsAwarded: 3, countsForRanking: true },
+              { playerId: "p-d", pointsAwarded: 0, countsForRanking: true },
+            ],
+            sides: [
+              { position: 1, score: 2, entryId: "entry-bc", entry: { id: "entry-bc", players: [{ playerId: "p-b" }] } },
+              { position: 2, score: 0, entryId: "entry-d", entry: { id: "entry-d", players: [{ playerId: "p-d" }] } },
+            ],
+          },
+          {
+            id: "m3", winnerSide: null, outcomeTypeId: null, outcomeType: null,
+            playerPoints: [
+              { playerId: "p-c", pointsAwarded: 1, countsForRanking: true },
+              { playerId: "p-d", pointsAwarded: 1, countsForRanking: true },
+            ],
+            sides: [
+              { position: 1, score: 1, entryId: "entry-bc", entry: { id: "entry-bc", players: [{ playerId: "p-c" }] } },
+              { position: 2, score: 1, entryId: "entry-d", entry: { id: "entry-d", players: [{ playerId: "p-d" }] } },
+            ],
+          },
+        ]),
+      );
+
+      const { standings } = await standingsService.getOfficialStandings("tournament-1");
+
+      expect(findEntry(standings, "p-b")?.points).toBe(3);
+      expect(findEntry(standings, "p-c")?.points).toBe(1);
+      expect(findEntry(standings, "p-a")?.buchholzScore).toBe(2);
+    });
+
     it("countsForRanking=false : les scores ne sont pas comptabilisés", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{

@@ -61,7 +61,7 @@
         class="overflow-y-auto pr-1"
         style="max-height: calc(100vh - 260px)"
       >
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2  gap-4">
           <MatchCard
             v-for="match in matches"
             :key="match.id"
