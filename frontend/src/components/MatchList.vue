@@ -7,7 +7,7 @@
         <button
           v-if="props.currentPlayerId"
           @click="toggleMyMatches"
-          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0"
+          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
           :class="
             myMatchesActive
               ? 'bg-primary border-primary text-primary-contrast'
@@ -23,7 +23,7 @@
             v-for="f in outcomeFilters"
             :key="f.value"
             @click="toggleOutcome(f.value)"
-            class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0"
+            class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
             :class="
               activeOutcomes.has(f.value)
                 ? 'bg-surface-600 border-surface-500 text-color'

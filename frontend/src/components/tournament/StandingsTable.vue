@@ -1,21 +1,33 @@
 <template>
   <div class="standings-table">
-    <div class="mb-4 flex items-center">
-      <SelectButton
-        v-model="standingsType"
-        :options="standingsTypeOptions"
-        option-label="label"
-        option-value="value"
-        class="w-full sm:w-auto"
-        size="small"
-      />
+    <div class="mb-4 flex items-center justify-between w-full">
+      <div>
+        <SelectButton
+          v-model="standingsType"
+          :options="standingsTypeOptions"
+          option-label="label"
+          option-value="value"
+          class="w-full sm:w-auto"
+          size="small"
+        />
+      </div>
+      <div>
+        <button
+          v-show="!isTransitioning"
+          class="flex items-center gap-2  px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
+          @click="infoVisible = true"
+        >
+          <i class="fa fa-circle-question text-sm" />
+          <span class="font-medium">Comment est calculé le classement ?</span>
+        </button>
+      </div>
     </div>
 
     <Dialog
       v-model:visible="infoVisible"
       modal
       header="Comment est calculé le classement ?"
-      :style="{ width: '90vw', maxWidth: '560px' }"
+      :style="{ width: '90vw', maxWidth: '700px' }"
       :draggable="false"
     >
       <div class="space-y-5 text-sm text-gray-700 dark:text-gray-300">
@@ -98,12 +110,9 @@
           <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
             Classement officiel vs provisoire
           </h3>
-          <ul class="space-y-1">
-            <li><span class="font-medium">Officiel</span> — uniquement les matchs validés</li>
-            <li>
-              <span class="font-medium">Provisoire</span> — matchs validés + matchs en attente de
-              validation
-            </li>
+          <ul class="space-y-1 text-xs">
+            <li><span>Officiel</span> — uniquement les matchs validés</li>
+            <li><span>Provisoire</span> — matchs validés + matchs en attente de validation</li>
           </ul>
         </section>
 
@@ -233,7 +242,12 @@
     </div>
 
     <div class="standings-container">
-      <Transition name="standings-fade" mode="out-in">
+      <Transition
+        :name="`standings-slide-${slideDirection}`"
+        mode="out-in"
+        @before-leave="isTransitioning = true"
+        @after-enter="isTransitioning = false"
+      >
         <div v-if="standings.length > 0" :key="`standings-${standingsType}`" class="relative">
           <DataTable :value="standings" class="p-datatable-sm" striped-rows :loading="loading">
             <Column field="rank" header="#" style="width: 4rem">
@@ -430,14 +444,6 @@
         </div>
       </Transition>
     </div>
-
-    <button
-      class="flex items-center gap-2 mt-3 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
-      @click="infoVisible = true"
-    >
-      <i class="fa fa-circle-question text-sm" />
-      <span class="font-medium">Comment est calculé le classement ?</span>
-    </button>
 
     <Popover ref="tiebreakerPanel">
       <div v-if="selectedEntry" class="p-3 min-w-[220px]">
@@ -639,6 +645,8 @@ const { standings, loading, error, loadOfficialStandings, loadProvisionalStandin
   useStandingsService()
 
 const internalStandingsType = ref<'official' | 'provisional'>('official')
+const slideDirection = ref<'left' | 'right'>('left')
+const isTransitioning = ref(false)
 const tiebreakerPanel = ref()
 const qualityDetailPanel = ref()
 const selectedEntry = ref<StandingsEntry | null>(null)
@@ -694,7 +702,9 @@ function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`
 }
 
-watch(standingsType, async (newType) => {
+watch(standingsType, async (newType, oldType) => {
+  const order = ['official', 'provisional']
+  slideDirection.value = order.indexOf(newType) > order.indexOf(oldType) ? 'left' : 'right'
   await loadStandings(newType)
 })
 
@@ -721,12 +731,17 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-.standings-fade-enter-active {
-  transition: opacity 0.25s ease-in;
+.standings-slide-left-enter-active,
+.standings-slide-left-leave-active,
+.standings-slide-right-enter-active,
+.standings-slide-right-leave-active {
+  transition:
+    transform 0.28s ease-out,
+    opacity 0.28s ease-out;
 }
 
-.standings-fade-leave-active {
-  transition: opacity 0.2s ease-out;
+.standings-slide-left-leave-active,
+.standings-slide-right-leave-active {
   position: absolute;
   top: 0;
   left: 0;
@@ -734,16 +749,21 @@ onMounted(async () => {
   width: 100%;
 }
 
-.standings-fade-enter-from {
+.standings-slide-left-enter-from {
+  transform: translateX(40px);
+  opacity: 0;
+}
+.standings-slide-left-leave-to {
+  transform: translateX(-40px);
   opacity: 0;
 }
 
-.standings-fade-leave-to {
+.standings-slide-right-enter-from {
+  transform: translateX(-40px);
   opacity: 0;
 }
-
-.standings-fade-enter-to,
-.standings-fade-leave-from {
-  opacity: 1;
+.standings-slide-right-leave-to {
+  transform: translateX(40px);
+  opacity: 0;
 }
 </style>

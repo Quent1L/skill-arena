@@ -44,7 +44,7 @@
             >
               <Avatar
                 :label="currentUser ? getUserInitials(currentUser) : '?'"
-                shape="circle"
+                shape="square"
                 class="bg-blue-600 text-white"
               />
               <span class="hidden sm:block text-sm font-medium">

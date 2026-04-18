@@ -15,7 +15,7 @@
           <i class="fa fa-chart-pie mr-2 text-indigo-500" />
           Répartition des fins de match
         </h2>
-        <div v-if="outcomeChartData" class="flex flex-col sm:flex-row items-center gap-6">
+        <div v-if="isMounted && outcomeChartData" class="flex flex-col sm:flex-row items-center gap-6">
           <div class="w-full sm:w-64 h-64">
             <Chart type="doughnut" :data="outcomeChartData" :options="doughnutOptions" />
           </div>
@@ -51,7 +51,7 @@
           <i class="fa fa-chart-bar mr-2 text-blue-500" />
           Activité du tournoi
         </h2>
-        <div v-if="momentumChartData" class="h-48">
+        <div v-if="isMounted && momentumChartData" class="h-48">
           <Chart type="line" :data="momentumChartData" :options="lineOptions" class="h-full" />
         </div>
         <p v-else class="text-gray-500 dark:text-gray-400 text-sm">Aucune donnée disponible.</p>
@@ -236,14 +236,23 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
 
 const store = useTournamentDetailStore()
 
-onMounted(() => store.ensureStats())
+const isMounted = ref(false)
+
+onMounted(() => {
+  isMounted.value = true
+  store.ensureStats()
+})
+
+onBeforeUnmount(() => {
+  isMounted.value = false
+})
 
 const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316']
 

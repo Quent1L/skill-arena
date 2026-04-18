@@ -33,15 +33,6 @@
             class="bg-blue-600 hover:bg-blue-700 hidden md:flex"
           />
           <Button
-            v-if="rulesId"
-            icon="fa fa-scroll"
-            v-tooltip.top="'Règles'"
-            severity="secondary"
-            outlined
-            @click="emit('view-rules')"
-          ></Button>
-
-          <Button
             v-if="menuItems.length > 0"
             icon="fa fa-ellipsis-v"
             severity="secondary"
@@ -86,7 +77,6 @@ interface Props {
   canManage: boolean
   joining?: boolean
   leaving?: boolean
-  rulesId?: string | null
   showRecalculate?: boolean
 }
 
@@ -97,7 +87,6 @@ const emit = defineEmits<{
   leave: []
   'create-match': []
   edit: []
-  'view-rules': []
   'recalculate-points': []
 }>()
 

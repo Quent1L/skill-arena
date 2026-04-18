@@ -42,6 +42,7 @@ declare module 'vue' {
     MatchValidationPanel: typeof import('./src/components/match/mobile/MatchValidationPanel.vue')['default']
     Menu: typeof import('primevue/menu')['default']
     Message: typeof import('primevue/message')['default']
+    MobileBottomNav: typeof import('./src/components/tournament/mobile/MobileBottomNav.vue')['default']
     MultiSelect: typeof import('primevue/multiselect')['default']
     NotificationBell: typeof import('./src/components/NotificationBell.vue')['default']
     NotificationDropdown: typeof import('./src/components/NotificationDropdown.vue')['default']

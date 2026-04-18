@@ -73,7 +73,7 @@
             <span
               v-for="player in (leftSide?.players ?? []).slice(0, 2)"
               :key="player.id"
-              class="font-label text-xs font-semibold uppercase tracking-tight truncate max-w-18 text-center"
+              class="font-label font-semibold tracking-tight truncate  text-center"
               :class="player.id === currentPlayerId ? 'text-color/80' : 'text-color/50'"
             >
               {{ player.displayName }}
@@ -93,7 +93,7 @@
         </div>
         <div
           v-else
-          class="font-headline text-xl text-muted-color/40 tracking-tighter flex items-center gap-1.5 shrink-0"
+          class="font-headline text-2xl text-muted-color/40 tracking-tighter flex items-center gap-1.5 shrink-0"
         >
           VS
         </div>
@@ -129,7 +129,7 @@
             <span
               v-for="player in (rightSide?.players ?? []).slice(0, 2)"
               :key="player.id"
-              class="font-label text-xs font-semibold uppercase tracking-tight truncate max-w-18 text-center text-color/50"
+              class="font-label font-semibold  tracking-tight truncate  text-center text-color/50"
             >
               {{ player.displayName }}
             </span>

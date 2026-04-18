@@ -98,7 +98,7 @@
     </div>
 
     <!-- MMR Progression Chart -->
-    <div v-if="sortedHistory.length > 1" class="rounded-xl p-4 bg-gray-800">
+    <div v-if="isMounted && sortedHistory.length > 1" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Progression MMR</div>
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
@@ -108,9 +108,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
+
+const isMounted = ref(false)
+onMounted(() => { isMounted.value = true })
+onBeforeUnmount(() => { isMounted.value = false })
 
 const CARD_BG = [
   'bg-gradient-to-b from-gray-700/80 to-gray-900',

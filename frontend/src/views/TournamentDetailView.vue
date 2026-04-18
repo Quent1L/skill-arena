@@ -59,7 +59,7 @@
       <!-- Desktop version -->
       <div v-else class="bg-gray-50 dark:bg-gray-900">
         <!-- Hero header -->
-        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
+        <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div class="max-w-5xl mx-auto px-6 pt-5" :class="isScrolled ? 'pb-3' : 'pb-5'">
             <div class="flex items-start gap-3">
               <Button
@@ -121,14 +121,6 @@
                   class="bg-blue-600 hover:bg-blue-700"
                 />
                 <Button
-                  v-if="store.tournament.rulesId"
-                  icon="fa fa-scroll"
-                  v-tooltip.top="'Règles'"
-                  severity="secondary"
-                  outlined
-                  @click="router.push(`/rules/${store.tournament.rulesId}`)"
-                />
-                <Button
                   v-if="menuItems.length > 0"
                   icon="fa fa-ellipsis-v"
                   severity="secondary"
@@ -144,7 +136,7 @@
         </div>
 
         <!-- Sticky tab bar -->
-        <div class="sticky top-14 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div class="sticky top-14 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
           <div class="max-w-5xl mx-auto px-6">
             <div ref="tabBarRef" class="flex relative">
               <button
@@ -170,7 +162,7 @@
         </div>
 
         <!-- Tab content -->
-        <div class="max-w-6xl mx-auto px-6 py-6">
+        <div class="max-w-6xl mx-auto px-6 py-6 h-full">
           <RouterView />
         </div>
       </div>
