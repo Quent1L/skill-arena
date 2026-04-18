@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <div
       v-if="store.tournament!.description"
-      class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 tournament-description text-gray-700 dark:text-gray-300"
+      class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6 tournament-description text-gray-700 dark:text-gray-300"
       v-html="store.tournament!.description"
     />
 
@@ -10,7 +10,7 @@
       <!-- Participants -->
       <button
         @click="navigateTo('participants')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
@@ -31,7 +31,7 @@
       <button
         v-if="store.tournament!.teamMode === 'static'"
         @click="navigateTo('teams')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
@@ -48,7 +48,7 @@
       <!-- Stats globale -->
       <button
         @click="navigateTo('stats')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">

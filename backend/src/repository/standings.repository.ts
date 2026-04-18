@@ -72,7 +72,7 @@ export class StandingsRepository {
         outcomeTypeId: true,
       },
       with: {
-        outcomeType: { columns: { isDefault: true } },
+        outcomeType: { columns: { isDefault: true, id: true, name: true, points: true } },
         sides: {
           with: {
             entry: {
@@ -101,7 +101,7 @@ export class StandingsRepository {
       ),
       columns: { id: true, winnerSide: true, outcomeTypeId: true },
       with: {
-        outcomeType: { columns: { isDefault: true } },
+        outcomeType: { columns: { isDefault: true, id: true, name: true, points: true } },
         playerPoints: {
           columns: {
             playerId: true,

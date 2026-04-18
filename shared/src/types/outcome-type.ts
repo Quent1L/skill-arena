@@ -10,10 +10,19 @@ export interface OutcomeType {
   name: string;
   isDefault: boolean;
   scoreCountsForMmr: boolean;
+  points: number;
   discipline?: {
     id: string;
     name: string;
   };
+}
+
+export interface VictoryQualityDetail {
+  outcomeTypeName: string;
+  points: number;
+  wins: number;
+  losses: number;
+  contribution: number;
 }
 
 export interface CreateOutcomeTypeInput {
@@ -21,6 +30,7 @@ export interface CreateOutcomeTypeInput {
   name: string;
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
+  points?: number;
 }
 
 export interface UpdateOutcomeTypeInput {
@@ -28,6 +38,7 @@ export interface UpdateOutcomeTypeInput {
   name?: string;
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
+  points?: number;
 }
 
 // ============================================
@@ -42,6 +53,7 @@ export const createOutcomeTypeSchema = z.object({
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
   isDefault: z.boolean().optional(),
   scoreCountsForMmr: z.boolean().optional(),
+  points: z.number().int().min(0).default(3),
 });
 
 export const updateOutcomeTypeSchema = z.object({
@@ -53,6 +65,7 @@ export const updateOutcomeTypeSchema = z.object({
     .optional(),
   isDefault: z.boolean().optional(),
   scoreCountsForMmr: z.boolean().optional(),
+  points: z.number().int().min(0).optional(),
 });
 
 // ============================================

@@ -20,6 +20,7 @@ export class OutcomeTypeService {
       name: input.name,
       isDefault: input.isDefault ?? false,
       scoreCountsForMmr: input.scoreCountsForMmr,
+      points: input.points,
     });
   }
 
@@ -52,6 +53,7 @@ export class OutcomeTypeService {
       name: input.name,
       isDefault: input.isDefault,
       scoreCountsForMmr: input.scoreCountsForMmr,
+      points: input.points,
     });
   }
 

@@ -10,7 +10,6 @@
           class="w-full sm:w-auto"
           size="small"
         />
-
       </div>
       <button
         class="group flex items-center gap-2 rounded-full px-2 py-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all duration-300 cursor-pointer"
@@ -19,7 +18,8 @@
         <i class="fa fa-circle-question text-sm" />
         <span
           class="overflow-hidden whitespace-nowrap text-xs font-medium max-w-0 group-hover:max-w-55 transition-all duration-500 ease-in-out"
-        >Comment est calculé le classement ?</span>
+          >Comment est calculé le classement ?</span
+        >
       </button>
     </div>
 
@@ -74,22 +74,21 @@
               }}
             </li>
             <li>
-              <span>Qualité de victoire</span>
+              <span>Qualité des résultats</span>
               <div class="mt-1 ml-4 space-y-0.5">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                  Victoire = +pts, Défaite = −pts selon le type de résultat :
+                </p>
                 <template v-if="outcomeTypes.length > 0">
-                  <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Valeur attribuée par victoire selon le type de résultat de la discipline :
-                  </p>
                   <ul class="text-xs space-y-0.5">
                     <li v-for="ot in outcomeTypes" :key="ot.id" class="flex justify-between gap-4">
                       <span class="text-gray-600 dark:text-gray-400">{{ ot.name }}</span>
-                      <span class="font-medium">{{ ot.isDefault ? '1' : '0,5' }} pt</span>
+                      <span class="font-medium">{{ ot.points }} pt</span>
                     </li>
                   </ul>
                 </template>
                 <p v-else class="text-xs text-gray-500 dark:text-gray-400">
-                  Victoire sur type de résultat par défaut → <span class="font-medium">1 pt</span> /
-                  type non standard (forfait, abandon…) → <span class="font-medium">0,5 pt</span>
+                  3 pts par résultat par défaut
                 </p>
               </div>
             </li>
@@ -357,16 +356,28 @@
               header-class="hidden md:table-cell"
             >
               <template #body="{ data }">
-                <span class="text-gray-600 dark:text-gray-400">{{ formatRatio(data.winLossRatio) }}</span>
+                <span class="text-gray-600 dark:text-gray-400">{{
+                  formatRatio(data.winLossRatio)
+                }}</span>
               </template>
             </Column>
 
             <Column
               field="buchholzScore"
-              header="Buchholz"
               class="hidden md:table-cell"
               header-class="hidden md:table-cell"
             >
+              <template #header>
+                <span class="flex items-center gap-1">
+                  Buchholz
+                  <i
+                    class="fa fa-circle-question text-xs text-gray-400 cursor-help"
+                    v-tooltip.top="
+                      'Somme des points de tous les adversaires rencontrés (départage)'
+                    "
+                  />
+                </span>
+              </template>
               <template #body="{ data }">
                 <span class="text-gray-600 dark:text-gray-400">{{ data.buchholzScore }}</span>
               </template>
@@ -374,12 +385,27 @@
 
             <Column
               field="victoryQuality"
-              header="Qual. V"
               class="hidden md:table-cell"
               header-class="hidden md:table-cell"
             >
+              <template #header>
+                <span class="flex items-center gap-1">
+                  Qual. résultats
+                  <i
+                    class="fa fa-circle-question text-xs text-gray-400 cursor-help"
+                    v-tooltip.top="
+                      'Victoire = +pts, Défaite = −pts selon le type de résultat (départage)'
+                    "
+                  />
+                </span>
+              </template>
               <template #body="{ data }">
-                <span class="text-gray-600 dark:text-gray-400">{{ data.victoryQuality.toFixed(1) }}</span>
+                <span
+                  class="text-gray-600 dark:text-gray-400 cursor-help"
+                  @mouseenter="(e) => openQualityPanel(e, data)"
+                  @mouseleave="qualityDetailPanel?.hide()"
+                  >{{ Math.round(data.victoryQuality) }}</span
+                >
               </template>
             </Column>
 
@@ -390,7 +416,9 @@
               header-class="hidden md:table-cell"
             >
               <template #body="{ data }">
-                <span class="text-gray-600 dark:text-gray-400">{{ formatPercent(data.winRate) }}</span>
+                <span class="text-gray-600 dark:text-gray-400">{{
+                  formatPercent(data.winRate)
+                }}</span>
               </template>
             </Column>
 
@@ -418,27 +446,139 @@
           {{ selectedEntry.name }} — Critères de départage
         </p>
         <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-          <li class="flex justify-between gap-4">
-            <span>Victoires</span>
-            <span class="font-medium">{{ selectedEntry.wins }}</span>
-          </li>
-          <li v-if="allowDraw" class="flex justify-between gap-4">
-            <span>Ratio V/D</span>
+          <li v-if="allowDraw" class="flex items-center gap-4">
+            <span class="flex-1">Ratio V/D</span>
             <span class="font-medium">{{ formatRatio(selectedEntry.winLossRatio) }}</span>
+            <span class="w-4 shrink-0" />
           </li>
-          <li class="flex justify-between gap-4">
-            <span>Buchholz</span>
+          <li class="flex items-center gap-4">
+            <span class="flex-1">Buchholz</span>
             <span class="font-medium">{{ selectedEntry.buchholzScore }} pts</span>
+            <span class="w-4 shrink-0" />
           </li>
-          <li class="flex justify-between gap-4">
-            <span>Qualité victoire</span>
-            <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} pts</span>
+          <li>
+            <button
+              class="flex items-center gap-4 w-full text-left"
+              @click="qualityExpanded = !qualityExpanded"
+            >
+              <span class="flex-1">Qual. résultats</span>
+              <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} pts</span>
+              <span class="w-4 shrink-0 text-center">
+                <i class="fa text-xs text-gray-400" :class="{'fa-chevron-right': !qualityExpanded, 'fa-chevron-down': qualityExpanded }" />
+              </span>
+            </button>
+            <ul
+              v-if="qualityExpanded && selectedEntry.victoryQualityBreakdown.length > 0"
+              class="mt-1 ml-2 space-y-0.5 text-xs text-gray-600 dark:text-gray-400"
+            >
+              <li
+                v-for="detail in selectedEntry.victoryQualityBreakdown"
+                :key="detail.outcomeTypeName"
+                class="flex justify-between gap-3"
+              >
+                <span
+                  >{{ detail.outcomeTypeName }}
+                  <span class="text-gray-400">({{ detail.points }} pt/rés.)</span></span
+                >
+                <span class="flex gap-1 items-center">
+                  <span v-if="detail.wins > 0" class="text-green-600 dark:text-green-400"
+                    >{{ detail.wins }}V</span
+                  >
+                  <span v-if="detail.losses > 0" class="text-red-600 dark:text-red-400"
+                    >{{ detail.losses }}D</span
+                  >
+                  <span
+                    class="font-medium"
+                    :class="
+                      detail.contribution >= 0
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    "
+                  >
+                    {{ detail.contribution >= 0 ? '+' : '' }}{{ detail.contribution }}
+                  </span>
+                </span>
+              </li>
+              <li
+                class="flex justify-between gap-3 border-t border-gray-200 dark:border-gray-600 pt-1 font-semibold"
+              >
+                <span>Total</span>
+                <span
+                  :class="
+                    selectedEntry.victoryQuality >= 0
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
+                  "
+                >
+                  {{ selectedEntry.victoryQuality >= 0 ? '+' : ''
+                  }}{{ selectedEntry.victoryQuality.toFixed(1) }}
+                </span>
+              </li>
+            </ul>
           </li>
-          <li class="flex justify-between gap-4">
-            <span>Win rate</span>
+          <li class="flex items-center gap-4">
+            <span class="flex-1">Win rate</span>
             <span class="font-medium">{{ formatPercent(selectedEntry.winRate) }}</span>
+            <span class="w-4 shrink-0" />
           </li>
         </ul>
+      </div>
+    </Popover>
+
+    <Popover ref="qualityDetailPanel">
+      <div v-if="selectedQualityEntry" class="p-3 min-w-[260px]">
+        <p class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
+          {{ selectedQualityEntry.name }} — Qualité des résultats
+        </p>
+        <div
+          v-if="selectedQualityEntry.victoryQualityBreakdown.length > 0"
+          class="text-sm text-gray-700 dark:text-gray-300"
+        >
+          <div
+            v-for="detail in selectedQualityEntry.victoryQualityBreakdown"
+            :key="detail.outcomeTypeName"
+            class="flex items-center justify-between gap-4 py-0.5"
+          >
+            <span class="text-gray-600 dark:text-gray-400">
+              {{ detail.outcomeTypeName }}
+              <span class="text-xs text-gray-400">({{ detail.points }} pt/rés.)</span>
+            </span>
+            <span class="flex gap-2 items-center">
+              <span v-if="detail.wins > 0" class="text-green-600 dark:text-green-400"
+                >{{ detail.wins }}V</span
+              >
+              <span v-if="detail.losses > 0" class="text-red-600 dark:text-red-400"
+                >{{ detail.losses }}D</span
+              >
+              <span
+                class="font-medium"
+                :class="
+                  detail.contribution >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
+                "
+              >
+                {{ detail.contribution >= 0 ? '+' : '' }}{{ detail.contribution }}
+              </span>
+            </span>
+          </div>
+          <div
+            class="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2 flex justify-between font-semibold text-sm"
+          >
+            <span>Total</span>
+            <span
+              :class="
+                selectedQualityEntry.victoryQuality >= 0
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              "
+            >
+              {{ selectedQualityEntry.victoryQuality >= 0 ? '+' : ''
+              }}{{ selectedQualityEntry.victoryQuality.toFixed(1) }}
+            </span>
+          </div>
+        </div>
+        <p v-else class="text-sm text-gray-500 dark:text-gray-400">Aucun match joué</p>
       </div>
     </Popover>
   </div>
@@ -495,7 +635,10 @@ const { standings, loading, error, loadOfficialStandings, loadProvisionalStandin
 
 const internalStandingsType = ref<'official' | 'provisional'>('official')
 const tiebreakerPanel = ref()
+const qualityDetailPanel = ref()
 const selectedEntry = ref<StandingsEntry | null>(null)
+const qualityExpanded = ref(false)
+const selectedQualityEntry = ref<StandingsEntry | null>(null)
 const infoVisible = ref(false)
 const outcomeTypes = ref<OutcomeType[]>([])
 
@@ -528,7 +671,13 @@ const standingsTypeOptions = [
 
 function toggleTiebreakerPanel(event: Event, entry: StandingsEntry) {
   selectedEntry.value = entry
+  qualityExpanded.value = false
   tiebreakerPanel.value?.toggle(event)
+}
+
+function openQualityPanel(event: MouseEvent, entry: StandingsEntry) {
+  selectedQualityEntry.value = entry
+  qualityDetailPanel.value?.show(event)
 }
 
 function formatRatio(ratio: number): string {

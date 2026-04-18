@@ -6,6 +6,7 @@ import {
   type MatchStatus,
   type StandingsEntry,
   type StandingsResult,
+  type VictoryQualityDetail,
 } from "@skill-arena/shared";
 
 export class StandingsService {
@@ -115,9 +116,14 @@ export class StandingsService {
       entry.winRate = entry.wins / Math.max(1, entry.matchesPlayed);
     }
 
+    // outcomeTypeId → breakdown detail per player
+    const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
+
     for (const match of matchRows) {
       const { winnerSide, sides } = match;
-      const isDefault = match.outcomeType?.isDefault ?? true;
+      const outcomePoints = match.outcomeType?.points ?? 3;
+      const outcomeTypeName = match.outcomeType?.name ?? "Défaut";
+      const outcomeKey = match.outcomeTypeId ?? "default";
 
       // Build side → player ids map
       const sideAPlayerIds: string[] = [];
@@ -128,6 +134,25 @@ export class StandingsService {
         else sideBPlayerIds.push(...playerIds);
       }
 
+      const applyQuality = (playerId: string, isWin: boolean, isLoss: boolean) => {
+        if (!breakdownMap.has(playerId)) breakdownMap.set(playerId, new Map());
+        const playerBreakdown = breakdownMap.get(playerId)!;
+        if (!playerBreakdown.has(outcomeKey)) {
+          playerBreakdown.set(outcomeKey, { outcomeTypeName, points: outcomePoints, wins: 0, losses: 0, contribution: 0 });
+        }
+        const detail = playerBreakdown.get(outcomeKey)!;
+        const entry = standingsMap.get(playerId);
+        if (!entry) return;
+        if (isWin) {
+          detail.wins++;
+          entry.victoryQuality += outcomePoints;
+        } else if (isLoss) {
+          detail.losses++;
+          entry.victoryQuality -= outcomePoints;
+        }
+        detail.contribution = (detail.wins - detail.losses) * detail.points;
+      };
+
       // Determine player-level outcome
       const processPlayer = (playerId: string, isWin: boolean, isDraw: boolean, opponentIds: string[]) => {
         const entry = standingsMap.get(playerId);
@@ -136,10 +161,7 @@ export class StandingsService {
         const pp = match.playerPoints.find((p) => p.playerId === playerId);
         if (!pp?.countsForRanking) return;
 
-        // Victory quality
-        if (isWin) {
-          entry.victoryQuality += isDefault ? 1.0 : 0.5;
-        }
+        applyQuality(playerId, isWin, !isDraw && !isWin);
 
         // Buchholz: average opponents' points per match (normalizes 2v2, 3v3, etc.)
         if (opponentIds.length > 0) {
@@ -173,6 +195,11 @@ export class StandingsService {
         const isWin = winnerSide === "B";
         processPlayer(pid, isWin, isDraw, sideAPlayerIds);
       }
+    }
+
+    for (const [playerId, playerBreakdown] of breakdownMap) {
+      const entry = standingsMap.get(playerId);
+      if (entry) entry.victoryQualityBreakdown = Array.from(playerBreakdown.values());
     }
   }
 
@@ -238,6 +265,9 @@ export class StandingsService {
       entry.winRate = entry.wins / Math.max(1, entry.matchesPlayed);
     }
 
+    // teamId → outcomeKey → breakdown detail
+    const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
+
     for (const match of matchRows) {
       if (match.sides.length !== 2) continue;
       const [sideA, sideB] = match.sides;
@@ -250,12 +280,29 @@ export class StandingsService {
       if (!entryA || !entryB) continue;
 
       const isDraw = match.winnerSide === null;
-      const isDefault = match.outcomeType?.isDefault ?? true;
+      const outcomePoints = match.outcomeType?.points ?? 3;
+      const outcomeTypeName = match.outcomeType?.name ?? "Défaut";
+      const outcomeKey = match.outcomeTypeId ?? "default";
 
-      const processTeam = (entry: StandingsEntry, oppEntry: StandingsEntry, isWin: boolean) => {
-        if (isWin) {
-          entry.victoryQuality += isDefault ? 1.0 : 0.5;
+      const applyQuality = (teamId: string, entry: StandingsEntry, isWin: boolean, isLoss: boolean) => {
+        if (!breakdownMap.has(teamId)) breakdownMap.set(teamId, new Map());
+        const teamBreakdown = breakdownMap.get(teamId)!;
+        if (!teamBreakdown.has(outcomeKey)) {
+          teamBreakdown.set(outcomeKey, { outcomeTypeName, points: outcomePoints, wins: 0, losses: 0, contribution: 0 });
         }
+        const detail = teamBreakdown.get(outcomeKey)!;
+        if (isWin) {
+          detail.wins++;
+          entry.victoryQuality += outcomePoints;
+        } else if (isLoss) {
+          detail.losses++;
+          entry.victoryQuality -= outcomePoints;
+        }
+        detail.contribution = (detail.wins - detail.losses) * detail.points;
+      };
+
+      const processTeam = (teamId: string, entry: StandingsEntry, oppEntry: StandingsEntry, isWin: boolean) => {
+        applyQuality(teamId, entry, isWin, !isDraw && !isWin);
         entry.buchholzScore += oppEntry.points;
 
         if (!entry.headToHead[oppEntry.id]) {
@@ -267,8 +314,13 @@ export class StandingsService {
         else h2h.losses += 1;
       };
 
-      processTeam(entryA, entryB, match.winnerSide === "A");
-      processTeam(entryB, entryA, match.winnerSide === "B");
+      processTeam(teamAId, entryA, entryB, match.winnerSide === "A");
+      processTeam(teamBId, entryB, entryA, match.winnerSide === "B");
+    }
+
+    for (const [teamId, teamBreakdown] of breakdownMap) {
+      const entry = standingsMap.get(teamId);
+      if (entry) entry.victoryQualityBreakdown = Array.from(teamBreakdown.values());
     }
   }
 
@@ -318,7 +370,7 @@ export class StandingsService {
       id, name, shortName,
       points: 0, wins: 0, draws: 0, losses: 0,
       scored: 0, conceded: 0, scoreDiff: 0, matchesPlayed: 0,
-      winLossRatio: 0, buchholzScore: 0, victoryQuality: 0, winRate: 0,
+      winLossRatio: 0, buchholzScore: 0, victoryQuality: 0, victoryQualityBreakdown: [], winRate: 0,
       headToHead: {},
     };
   }

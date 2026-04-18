@@ -39,7 +39,7 @@ header {
 
 .my-app-dark {
   .main-app {
-    background: var(--color-gray-950);
+    background: var(--color-gray-800);
   }
   header {
     background: var(--layout-card);

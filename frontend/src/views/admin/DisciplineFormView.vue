@@ -161,7 +161,7 @@ function showOutcomeTypeDialog(outcomeType?: OutcomeType) {
   outcomeTypeDialogVisible.value = true
 }
 
-async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean }) {
+async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean; points: number }) {
   if (!currentDiscipline.value) return
 
   try {
@@ -169,12 +169,14 @@ async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolea
       await updateOutcomeType(editingOutcomeType.value.id, {
         name: values.name,
         isDefault: values.isDefault,
+        points: values.points,
       })
     } else {
       await createOutcomeType({
         disciplineId: currentDiscipline.value.id,
         name: values.name,
         isDefault: values.isDefault,
+        points: values.points,
       })
     }
 

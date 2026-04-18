@@ -151,8 +151,9 @@ function makeMatchWithOutcomeType(
   sideA: { teamId: string; score: number; pointsAwarded?: number | null },
   sideB: { teamId: string; score: number; pointsAwarded?: number | null },
   isDefault: boolean,
+  points = 3,
 ) {
-  return { ...makeMatchWithSides(id, winnerSide, sideA, sideB), outcomeType: { isDefault } };
+  return { ...makeMatchWithSides(id, winnerSide, sideA, sideB), outcomeType: { isDefault, points } };
 }
 
 function findEntry(standings: any[], id: string) {
@@ -601,39 +602,39 @@ describe("StandingsService", () => {
       expect(a.winLossRatio).toBe(2); // 2 / max(1, 0) = 2
     });
 
-    it("victoryQuality : outcomeType.isDefault=true → +1.0 par victoire", async () => {
+    it("victoryQuality : victoire → +points, défaite → −points", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
-        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true)]),
+        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true, 2)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
 
-      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(1.0);
-      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(0);
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(2);
+      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(-2);
     });
 
-    it("victoryQuality : outcomeType.isDefault=false → +0.5 par victoire", async () => {
+    it("victoryQuality : type non-défaut avec points=1 → +1 victoire, −1 défaite", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
-        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false)]),
+        Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false, 1)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
 
-      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(0.5);
-      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(0);
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(1);
+      expect(findEntry(standings, "team-b")?.victoryQuality).toBe(-1);
     });
 
-    it("victoryQuality : cumul de plusieurs victoires (1.0 + 0.5)", async () => {
+    it("victoryQuality : cumul de plusieurs résultats", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
-          makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true),
-          makeMatchWithOutcomeType("m2", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false),
+          makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true, 3),
+          makeMatchWithOutcomeType("m2", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false, 1),
         ]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
 
-      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(1.5);
+      expect(findEntry(standings, "team-a")?.victoryQuality).toBe(4); // 3 + 1
     });
 
     it("buchholzScore : équipe ayant battu un adversaire fort se classe avant à égalité", async () => {
@@ -768,28 +769,29 @@ describe("StandingsService", () => {
       mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries1v1));
     });
 
-    it("victoryQuality flex : outcomeType.isDefault=false → 0.5 par victoire", async () => {
+    it("victoryQuality flex : outcomeType.points=2 → +2 victoire, −2 défaite", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{
           ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0),
-          outcomeType: { isDefault: false },
+          outcomeType: { isDefault: false, points: 2 },
         }]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
 
-      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(0.5);
-      expect(findEntry(standings, "p-b")?.victoryQuality).toBe(0);
+      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(2);
+      expect(findEntry(standings, "p-b")?.victoryQuality).toBe(-2);
     });
 
-    it("victoryQuality flex : outcomeType=null (par défaut) → 1.0 par victoire", async () => {
+    it("victoryQuality flex : outcomeType=null → défaut 3 pts par victoire", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0)]),
       );
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
 
-      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(1.0);
+      expect(findEntry(standings, "p-a")?.victoryQuality).toBe(3);
+      expect(findEntry(standings, "p-b")?.victoryQuality).toBe(-3);
     });
 
     it("buchholzScore flex : somme des points des adversaires vaincus", async () => {
@@ -1102,7 +1104,7 @@ describe("StandingsService", () => {
 
     it("cache hit : retourne la valeur cachée sans recalculer les matchs", async () => {
       const cachedResult = {
-        standings: [{ id: "team-a", name: "Alpha", shortName: "ALPHA", points: 99, wins: 10, draws: 0, losses: 0, scored: 0, conceded: 0, scoreDiff: 0, matchesPlayed: 10, winLossRatio: 10, buchholzScore: 0, victoryQuality: 10, winRate: 1, headToHead: {} }],
+        standings: [{ id: "team-a", name: "Alpha", shortName: "ALPHA", points: 99, wins: 10, draws: 0, losses: 0, scored: 0, conceded: 0, scoreDiff: 0, matchesPlayed: 10, winLossRatio: 10, buchholzScore: 0, victoryQuality: 10, victoryQualityBreakdown: [], winRate: 1, headToHead: {} }],
       };
       mockRepo.getComputedData.mockImplementation(() => Promise.resolve(cachedResult as any));
 

@@ -29,6 +29,12 @@
         </template>
       </Column>
 
+      <Column field="points" header="Pts / résultat" style="width: 10rem">
+        <template #body="{ data }">
+          <span class="text-gray-700 dark:text-gray-300">{{ data.points }}</span>
+        </template>
+      </Column>
+
       <Column header="Actions" style="width: 12rem">
         <template #body="{ data }">
           <div class="flex gap-2">

@@ -5,7 +5,7 @@
       <div v-if="isMobile" class="flex justify-center py-12">
         <ProgressSpinner />
       </div>
-      <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-6">
           <div class="max-w-5xl mx-auto">
             <div class="flex items-center gap-3 mb-4">
@@ -36,7 +36,7 @@
       <!-- Mobile version -->
       <div v-if="isMobile" class="h-full">
         <!-- Sub-tabs (participants, teams, stats): accessible via cards, pas dans la bottom nav -->
-        <div v-if="isMobileSubTab" class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div v-if="isMobileSubTab" class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
           <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 shadow-sm">
             <Button
               icon="fa fa-arrow-left"
@@ -57,9 +57,9 @@
       </div>
 
       <!-- Desktop version -->
-      <div v-else class="bg-gray-50 dark:bg-gray-950">
+      <div v-else class="bg-gray-50 dark:bg-gray-900">
         <!-- Hero header -->
-        <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
           <div class="max-w-5xl mx-auto px-6 pt-5" :class="isScrolled ? 'pb-3' : 'pb-5'">
             <div class="flex items-start gap-3">
               <Button
@@ -144,7 +144,7 @@
         </div>
 
         <!-- Sticky tab bar -->
-        <div class="sticky top-14 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div class="sticky top-14 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800 shadow-sm">
           <div class="max-w-5xl mx-auto px-6">
             <div ref="tabBarRef" class="flex relative">
               <button

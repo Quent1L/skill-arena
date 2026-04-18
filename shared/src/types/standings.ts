@@ -1,3 +1,5 @@
+import type { VictoryQualityDetail } from "./outcome-type";
+
 // ============================================
 // Types et interfaces pour les classements
 // ============================================
@@ -24,6 +26,7 @@ export interface StandingsEntry {
   winLossRatio: number;
   buchholzScore: number;
   victoryQuality: number;
+  victoryQualityBreakdown: VictoryQualityDetail[];
   winRate: number;
   headToHead: Record<string, HeadToHeadRecord>;
 }
