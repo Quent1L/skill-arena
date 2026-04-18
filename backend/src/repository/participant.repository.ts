@@ -84,7 +84,7 @@ export class ParticipantRepository {
    * Get all active participants for a tournament
    */
   async findTournamentParticipants(tournamentId: string) {
-    return await db.query.tournamentParticipants.findMany({
+    const participants = await db.query.tournamentParticipants.findMany({
       where: and(
         eq(tournamentParticipants.tournamentId, tournamentId),
         eq(tournamentParticipants.status, "active")
@@ -92,10 +92,10 @@ export class ParticipantRepository {
       with: {
         user: true,
       },
-      orderBy: (tournamentParticipants, { asc }) => [
-        asc(tournamentParticipants.joinedAt),
-      ],
     });
+    return participants.sort((a, b) =>
+      a.user.displayName.localeCompare(b.user.displayName)
+    );
   }
 
   /**

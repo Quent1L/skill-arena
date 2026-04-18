@@ -20,6 +20,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PublicHomeView.vue'),
     meta: {
       breadcrumb: 'Accueil',
+      title: 'Accueil',
       hideBreadcrumb: true,
     },
   },
@@ -31,6 +32,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Connexion',
+      title: 'Connexion',
       hideBreadcrumb: true,
     },
   },
@@ -41,6 +43,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Inscription',
+      title: 'Inscription',
       hideBreadcrumb: true,
     },
   },
@@ -51,6 +54,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Inscription',
+      title: 'Inscription',
       hideBreadcrumb: true,
     },
   },
@@ -60,6 +64,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SubmitInvitationView.vue'),
     meta: {
       breadcrumb: "Code d'invitation",
+      title: "Code d'invitation",
       hideBreadcrumb: true,
     },
   },
@@ -70,6 +75,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Mot de passe oublié',
+      title: 'Mot de passe oublié',
       hideBreadcrumb: true,
     },
   },
@@ -80,6 +86,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: redirectIfAuthenticated,
     meta: {
       breadcrumb: 'Réinitialiser le mot de passe',
+      title: 'Réinitialiser le mot de passe',
       hideBreadcrumb: true,
     },
   },
@@ -90,6 +97,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      title: 'Administration',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -222,6 +230,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      title: 'Nouvelle saison ranked',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -232,6 +241,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      title: 'Modifier la saison ranked',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -246,6 +256,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TournamentsView.vue'),
     beforeEnter: requireAuth,
     meta: {
+      title: 'Tournois',
       requiresAuth: true,
       hideBreadcrumb: true,
     },
@@ -284,6 +295,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/CreateMatchView.vue'),
     beforeEnter: requireAuth,
     meta: {
+      title: 'Créer un match',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -294,6 +306,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/MatchDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
+      title: 'Détails du match',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -304,6 +317,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PlayerDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
+      title: 'Profil du joueur',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -313,6 +327,7 @@ const routes: RouteRecordRaw[] = [
     name: 'tournament-rules',
     component: () => import('@/views/TournamentRulesView.vue'),
     meta: {
+      title: 'Règlement',
       hideBreadcrumb: true,
     },
   },
@@ -321,6 +336,7 @@ const routes: RouteRecordRaw[] = [
     name: 'rules-detail',
     component: () => import('@/views/RulesView.vue'),
     meta: {
+      title: 'Règlement',
       hideBreadcrumb: true,
     },
   },
@@ -330,6 +346,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SettingsView.vue'),
     beforeEnter: requireSettingsAccess,
     meta: {
+      title: 'Paramètres',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -340,6 +357,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/NotificationsView.vue'),
     beforeEnter: requireAuth,
     meta: {
+      title: 'Notifications',
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -356,6 +374,7 @@ const routes: RouteRecordRaw[] = [
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
     meta: {
+      title: 'Page introuvable',
       hideBreadcrumb: true,
     },
   },

@@ -243,11 +243,9 @@ const modeLabels: Record<TournamentMode, string> = {
   ranked: 'Ranked',
 }
 
-const MOBILE_SUB_TABS = ['participants', 'teams', 'stats']
+const MOBILE_SUB_TABS = ['teams']
 const mobileSubTabTitles: Record<string, string> = {
-  participants: 'Participants',
   teams: 'Équipes',
-  stats: 'Stats globale',
 }
 const isMobileSubTab = computed(() => MOBILE_SUB_TABS.includes(activeTabName.value ?? ''))
 
@@ -255,9 +253,7 @@ const visibleTabs = computed(() => {
   const mode = store.tournament?.mode
   const teamMode = store.tournament?.teamMode
   const tabs: { value: string; label: string; badge?: number }[] = [
-    { value: 'infos', label: 'Infos' },
-    { value: 'participants', label: 'Participants', badge: store.participantCount },
-  ]
+    { value: 'infos', label: 'Infos' }]
   if (teamMode === 'static') tabs.push({ value: 'teams', label: 'Équipes' })
   if (mode === 'championship') tabs.push({ value: 'standings', label: 'Classement' })
   if (mode === 'bracket') tabs.push({ value: 'bracket', label: 'Bracket' })

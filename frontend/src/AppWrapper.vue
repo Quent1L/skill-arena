@@ -16,8 +16,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import { useTitle } from '@vueuse/core'
 
 const route = useRoute()
+
+const pageTitle = computed(() => (route.meta.title ? `Skol - ${route.meta.title}` : 'Skol'))
+useTitle(pageTitle)
 
 // Use the parent (first matched) route's resolved path as the component key.
 // This prevents remounting the parent component when only a child route (e.g. a tab) changes.

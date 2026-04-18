@@ -1,26 +1,14 @@
 <template>
   <div class="standings-table">
-    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div class="flex items-center gap-2">
-        <SelectButton
-          v-model="standingsType"
-          :options="standingsTypeOptions"
-          option-label="label"
-          option-value="value"
-          class="w-full sm:w-auto"
-          size="small"
-        />
-      </div>
-      <button
-        class="group flex items-center gap-2 rounded-full px-2 py-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all duration-300 cursor-pointer"
-        @click="infoVisible = true"
-      >
-        <i class="fa fa-circle-question text-sm" />
-        <span
-          class="overflow-hidden whitespace-nowrap text-xs font-medium max-w-0 group-hover:max-w-55 transition-all duration-500 ease-in-out"
-          >Comment est calculé le classement ?</span
-        >
-      </button>
+    <div class="mb-4 flex items-center">
+      <SelectButton
+        v-model="standingsType"
+        :options="standingsTypeOptions"
+        option-label="label"
+        option-value="value"
+        class="w-full sm:w-auto"
+        size="small"
+      />
     </div>
 
     <Dialog
@@ -64,7 +52,16 @@
             <li>Points totaux</li>
             <li>Nombre de victoires</li>
             <li v-if="allowDraw">Ratio victoires / défaites</li>
-            <li>Score Buchholz — somme des points de tous les adversaires rencontrés</li>
+            <li>
+              Score Buchholz — indicateur de difficulté du parcours.
+              <div class="text-xs text-gray-500 dark:text-gray-400 ml-4">
+                Il correspond à la somme des points des adversaires affrontés.<br />
+                Pour les matchs en équipe (2v2, 3v3, etc.), on prend la moyenne des points des
+                joueurs adverses pour chaque match. Un Buchholz élevé signifie que vous avez
+                affronté des joueurs mieux classés.somme des points de tous les adversaires
+                rencontrés
+              </div>
+            </li>
             <li>
               Confrontations directes —
               {{
@@ -77,7 +74,8 @@
               <span>Qualité des résultats</span>
               <div class="mt-1 ml-4 space-y-0.5">
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  Victoire = +pts, Défaite = −pts selon le type de résultat :
+                  Mesure la manière dont les matchs sont gagnés ou perdus. Une victoire rapporte des
+                  points, une défaite en retire, avec un poids selon le type de fin de partie
                 </p>
                 <template v-if="outcomeTypes.length > 0">
                   <ul class="text-xs space-y-0.5">
@@ -101,13 +99,10 @@
             Classement officiel vs provisoire
           </h3>
           <ul class="space-y-1">
+            <li><span class="font-medium">Officiel</span> — uniquement les matchs validés</li>
             <li>
-              <span class="font-medium">Officiel</span> — uniquement les matchs finalisés par un
-              arbitre
-            </li>
-            <li>
-              <span class="font-medium">Provisoire</span> — matchs finalisés + matchs déclarés par
-              les joueurs
+              <span class="font-medium">Provisoire</span> — matchs validés + matchs en attente de
+              validation
             </li>
           </ul>
         </section>
@@ -372,9 +367,7 @@
                   Buchholz
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="
-                      'somme des points des adversaires (moyenne en équipe)'
-                    "
+                    v-tooltip.top="'Score basé sur les adversaires rencontrés'"
                   />
                 </span>
               </template>
@@ -393,9 +386,7 @@
                   Qualité des résultats
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="
-                      'Victoire = +pts\n Défaite = −pts \nselon le type de résultat'
-                    "
+                    v-tooltip.top="'Score basé sur le type de victoire/défaite'"
                   />
                 </span>
               </template>
@@ -440,6 +431,14 @@
       </Transition>
     </div>
 
+    <button
+      class="flex items-center gap-2 mt-3 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
+      @click="infoVisible = true"
+    >
+      <i class="fa fa-circle-question text-sm" />
+      <span class="font-medium">Comment est calculé le classement ?</span>
+    </button>
+
     <Popover ref="tiebreakerPanel">
       <div v-if="selectedEntry" class="p-3 min-w-[220px]">
         <p class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
@@ -464,7 +463,13 @@
               <span class="flex-1">Qual. résultats</span>
               <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} pts</span>
               <span class="w-4 shrink-0 text-center">
-                <i class="fa text-xs text-gray-400" :class="{'fa-chevron-right': !qualityExpanded, 'fa-chevron-down': qualityExpanded }" />
+                <i
+                  class="fa text-xs text-gray-400"
+                  :class="{
+                    'fa-chevron-right': !qualityExpanded,
+                    'fa-chevron-down': qualityExpanded,
+                  }"
+                />
               </span>
             </button>
             <ul

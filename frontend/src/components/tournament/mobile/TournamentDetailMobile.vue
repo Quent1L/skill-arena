@@ -22,7 +22,7 @@
     <!-- Content Area -->
     <div ref="contentAreaRef" class="flex-1 overflow-y-auto pb-24">
       <!-- Tab: Detail & Navigation cards -->
-      <div v-show="activeTab === 'participants'" class="space-y-4 p-4">
+      <div v-show="activeTab === 'infos'" class="space-y-4 p-4">
         <TournamentHeader
           :name="store.tournament!.name"
           :description="store.tournament!.description"
@@ -99,30 +99,17 @@
             <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0" />
           </button>
 
-          <!-- Stats globale -->
-          <button
-            @click="
-              router.push({
-                name: 'tournament-tab',
-                params: { id: store.tournamentId, tab: 'stats' },
-              })
-            "
-            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0"
-              >
-                <i class="fa fa-chart-pie text-indigo-600 dark:text-indigo-400 text-sm" />
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900 dark:text-white text-sm">Stats globale</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Statistiques du tournoi</div>
-              </div>
-            </div>
-            <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0" />
-          </button>
         </div>
+      </div>
+
+      <!-- Tab: Participants -->
+      <div v-show="activeTab === 'participants'" class="h-full p-4">
+        <TournamentParticipantsTab />
+      </div>
+
+      <!-- Tab: Stats globale -->
+      <div v-show="activeTab === 'stats'" class="h-full p-2">
+        <TournamentStatsTab />
       </div>
 
       <!-- Tab: Standings (championship only) -->
@@ -137,6 +124,19 @@
           :allow-draw="store.tournament!.allowDraw"
           :score-enabled="store.tournament!.scoreEnabled ?? true"
           :team-mode="store.tournament!.teamMode"
+          :tournament-config="{
+            pointPerVictory: store.tournament!.pointPerVictory,
+            pointPerDraw: store.tournament!.pointPerDraw,
+            pointPerLoss: store.tournament!.pointPerLoss,
+            maxMatchesPerPlayer: store.tournament!.maxMatchesPerPlayer,
+            maxTimesWithSamePartner: store.tournament!.maxTimesWithSamePartner,
+            maxTimesWithSameOpponent: store.tournament!.maxTimesWithSameOpponent,
+            minTeamSize: store.tournament!.minTeamSize,
+            maxTeamSize: store.tournament!.maxTeamSize,
+            minScore: store.tournament!.minScore,
+            maxScore: store.tournament!.maxScore,
+            disciplineId: store.tournament!.disciplineId,
+          }"
           v-model:standings-type="standingsType"
         />
       </div>
@@ -214,25 +214,25 @@
       <!-- Ranked bottom nav -->
       <template v-if="store.tournament!.mode === 'ranked'">
         <button
-          @click="activeTab = 'participants'"
+          @click="navigate('infos')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'participants' ? activeNavClass : inactiveNavClass"
+          :class="activeTab === 'infos' ? activeNavClass : inactiveNavClass"
         >
           <div
             class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
             :class="
-              activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+              activeTab === 'infos' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
             "
           ></div>
           <i
             class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
+            :class="activeTab === 'infos' ? 'scale-110' : 'group-hover:scale-105'"
           ></i>
           <span class="text-xs font-medium">Détail</span>
         </button>
 
         <button
-          @click="activeTab = 'standings'"
+          @click="navigate('standings')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
         >
@@ -269,7 +269,7 @@
         </button>
 
         <button
-          @click="activeTab = 'matches'"
+          @click="navigate('matches')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
         >
@@ -285,31 +285,47 @@
           ></i>
           <span class="text-xs font-medium">Matchs</span>
         </button>
+
+        <button
+          @click="navigate('stats')"
+          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
+          :class="activeTab === 'stats' ? activeNavClass : inactiveNavClass"
+        >
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="activeTab === 'stats' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+          ></div>
+          <i
+            class="fas fa-chart-pie text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'stats' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
+          <span class="text-xs font-medium">Stats</span>
+        </button>
       </template>
 
       <!-- Championship / Bracket bottom nav -->
       <template v-else>
         <button
-          @click="activeTab = 'participants'"
+          @click="navigate('infos')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'participants' ? activeNavClass : inactiveNavClass"
+          :class="activeTab === 'infos' ? activeNavClass : inactiveNavClass"
         >
           <div
             class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
             :class="
-              activeTab === 'participants' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
+              activeTab === 'infos' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
             "
           ></div>
           <i
             class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
+            :class="activeTab === 'infos' ? 'scale-110' : 'group-hover:scale-105'"
           ></i>
           <span class="text-xs font-medium">Info</span>
         </button>
 
         <button
           v-if="store.tournament!.mode !== 'bracket'"
-          @click="activeTab = 'standings'"
+          @click="navigate('standings')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
         >
@@ -328,7 +344,7 @@
 
         <button
           v-if="store.tournament!.mode === 'bracket'"
-          @click="activeTab = 'bracket'"
+          @click="navigate('bracket')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'bracket' ? activeNavClass : inactiveNavClass"
         >
@@ -346,7 +362,7 @@
         </button>
 
         <button
-          @click="activeTab = 'matches'"
+          @click="navigate('matches')"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
         >
@@ -361,6 +377,22 @@
             :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"
           ></i>
           <span class="text-xs font-medium">Matchs</span>
+        </button>
+
+        <button
+          @click="navigate('stats')"
+          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
+          :class="activeTab === 'stats' ? activeNavClass : inactiveNavClass"
+        >
+          <div
+            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
+            :class="activeTab === 'stats' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
+          ></div>
+          <i
+            class="fas fa-chart-pie text-xl mb-1 transition-transform duration-200"
+            :class="activeTab === 'stats' ? 'scale-110' : 'group-hover:scale-105'"
+          ></i>
+          <span class="text-xs font-medium">Stats</span>
         </button>
 
         <button
@@ -387,8 +419,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSwipe } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MatchList from '@/components/MatchList.vue'
@@ -397,7 +429,10 @@ import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentParticipantsTab.vue'
+import TournamentStatsTab from '@/views/tournament/tabs/TournamentStatsTab.vue'
 
+const route = useRoute()
 const router = useRouter()
 const store = useTournamentDetailStore()
 
@@ -421,28 +456,27 @@ useSwipe(contentAreaRef, {
   },
 })
 
-const activeTab = ref('participants')
+const activeTab = computed(() => (route.params.tab as string) || 'infos')
 
 const tabTitles: Record<string, string> = {
-  participants: 'Détail du tournoi',
+  infos: 'Détail du tournoi',
+  participants: 'Participants',
   standings: 'Classement',
   bracket: 'Bracket',
   matches: 'Matchs',
+  stats: 'Stats globale',
   teams: 'Équipes',
   profile: 'Mon profil',
-  history: 'Mon historique',
+}
+
+function navigate(tab: string) {
+  router.push({ name: 'tournament-tab', params: { id: store.tournamentId, tab } })
 }
 
 async function switchTab(tab: string) {
-  activeTab.value = tab
+  navigate(tab)
   if (tab === 'profile') await store.ensurePlayerProfile()
 }
-
-onMounted(() => {
-  if (store.tournament?.mode === 'ranked') {
-    activeTab.value = 'standings'
-  }
-})
 </script>
 
 <style scoped>

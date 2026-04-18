@@ -45,22 +45,7 @@
         <i class="fa fa-chevron-right text-gray-400 group-hover:text-primary-500 transition-colors shrink-0" />
       </button>
 
-      <!-- Stats globale -->
-      <button
-        @click="navigateTo('stats')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
-      >
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-            <i class="fa fa-chart-pie text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div>
-            <div class="font-semibold text-gray-900 dark:text-white">Stats globale</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Statistiques du tournoi</div>
-          </div>
-        </div>
-        <i class="fa fa-chevron-right text-gray-400 group-hover:text-primary-500 transition-colors shrink-0" />
-      </button>
+
     </div>
   </div>
 </template>
