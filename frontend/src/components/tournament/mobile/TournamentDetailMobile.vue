@@ -158,6 +158,8 @@
           :players="
             store.participants.map((p) => ({ id: p.userId, displayName: p.user.displayName }))
           "
+          :current-player-id="store.appUser?.id"
+          :allow-draw="store.tournament!.allowDraw"
         />
       </div>
 
@@ -191,15 +193,6 @@
         </div>
       </div>
 
-      <!-- Tab: Mon historique (tous modes) -->
-      <div v-show="activeTab === 'history'" class="p-2">
-        <PlayerMatchHistory
-          :history="store.matchHistory"
-          :loading="store.matchHistoryLoading"
-          :has-more="store.matchHistoryHasMore"
-          :on-load-more="store.loadMoreMatchHistory"
-        />
-      </div>
     </div>
 
     <!-- Speed Dial for Create Match -->
@@ -276,25 +269,6 @@
         </button>
 
         <button
-          v-if="store.isAuthenticated"
-          @click="switchTab('history')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Historique</span>
-        </button>
-
-        <button
           @click="activeTab = 'matches'"
           class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
           :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
@@ -330,7 +304,7 @@
             class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
             :class="activeTab === 'participants' ? 'scale-110' : 'group-hover:scale-105'"
           ></i>
-          <span class="text-xs font-medium">Détail</span>
+          <span class="text-xs font-medium">Info</span>
         </button>
 
         <button
@@ -407,24 +381,6 @@
           <span class="text-xs font-medium">Équipes</span>
         </button>
 
-        <button
-          v-if="store.isAuthenticated && store.isParticipant"
-          @click="switchTab('history')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'history' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'history' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-clock-rotate-left text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'history' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Historique</span>
-        </button>
       </template>
     </div>
   </div>
@@ -441,7 +397,6 @@ import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import BracketView from '@/components/bracket/BracketView.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
-import PlayerMatchHistory from '@/components/match/PlayerMatchHistory.vue'
 
 const router = useRouter()
 const store = useTournamentDetailStore()
@@ -481,7 +436,6 @@ const tabTitles: Record<string, string> = {
 async function switchTab(tab: string) {
   activeTab.value = tab
   if (tab === 'profile') await store.ensurePlayerProfile()
-  if (tab === 'history') await store.ensureMatchHistory()
 }
 
 onMounted(() => {

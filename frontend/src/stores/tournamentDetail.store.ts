@@ -4,7 +4,6 @@ import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
 import { useRankedService } from '@/composables/ranked/ranked.service'
-import { useMatchHistoryService } from '@/composables/match/match-history.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import { calculateDuration } from '@/utils/DateUtils'
@@ -16,7 +15,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const tournamentSvc = useTournamentService()
   const participantSvc = useParticipantService()
   const rankedSvc = useRankedService()
-  const matchHistorySvc = useMatchHistoryService()
   const statsSvc = useTournamentStatsService()
 
   // Local state
@@ -36,9 +34,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const rankedTiers = rankedSvc.tiers
   const playerMmr = rankedSvc.playerMmr
   const rankedLoading = rankedSvc.loading
-  const matchHistory = matchHistorySvc.history
-  const matchHistoryLoading = matchHistorySvc.loading
-  const matchHistoryHasMore = matchHistorySvc.hasMore
   const tournamentStats = statsSvc.stats
   const tournamentStatsLoading = statsSvc.loading
 
@@ -139,17 +134,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
   }
 
-  async function ensureMatchHistory() {
-    if (!appUser.value?.id) return
-    if (!matchHistory.value.length) {
-      await matchHistorySvc.loadHistory(appUser.value.id, tournamentId.value)
-    }
-  }
-
-  async function loadMoreMatchHistory() {
-    await matchHistorySvc.loadMore()
-  }
-
   async function ensureStats() {
     if (!tournamentStats.value) {
       await statsSvc.loadStats(tournamentId.value)
@@ -158,11 +142,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
 
   async function reloadTournament() {
     await tournamentSvc.loadTournamentWithErrorHandling(tournamentId.value)
-  }
-
-  async function reloadMatchHistory() {
-    if (!appUser.value?.id) return
-    await matchHistorySvc.loadHistory(appUser.value.id, tournamentId.value)
   }
 
   async function reloadStats() {
@@ -195,10 +174,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     rankedLoading,
     profileChartHistory,
     playerLeaderboardRank,
-    // Match history
-    matchHistory,
-    matchHistoryLoading,
-    matchHistoryHasMore,
     // Tournament stats
     tournamentStats,
     tournamentStatsLoading,
@@ -219,11 +194,8 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     recalculatePoints,
     ensureLeaderboard,
     ensurePlayerProfile,
-    ensureMatchHistory,
-    loadMoreMatchHistory,
     ensureStats,
     reloadTournament,
-    reloadMatchHistory,
     reloadStats,
     reloadLeaderboard,
   }

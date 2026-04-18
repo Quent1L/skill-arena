@@ -320,9 +320,7 @@ const disciplineOptions = computed(() =>
   disciplines.value.map((d) => ({ label: d.name, value: d.id })),
 )
 
-const rulesOptions = computed(() => [
-  ...gameRulesList.value.map((r) => ({ label: r.title, value: r.id })),
-])
+const rulesOptions = computed(() => gameRulesList.value.map((r) => ({ label: r.title, value: r.id })))
 
 watch(startDateObj, (val) => {
   form.value.startDate = val ? val.toISOString().split('T')[0] : ''

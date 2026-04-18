@@ -267,9 +267,6 @@ const visibleTabs = computed(() => {
   if (mode === 'ranked' && store.isAuthenticated && store.appUser) {
     tabs.push({ value: 'profile', label: 'Mon profil' })
   }
-  if (store.isAuthenticated && store.appUser && (store.isParticipant || mode === 'ranked')) {
-    tabs.push({ value: 'my-history', label: 'Mon historique' })
-  }
   return tabs
 })
 

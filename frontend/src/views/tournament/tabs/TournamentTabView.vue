@@ -21,7 +21,6 @@ const tabComponents: Record<string, ReturnType<typeof defineAsyncComponent>> = {
   bracket: defineAsyncComponent(() => import('./TournamentBracketTab.vue')),
   matches: defineAsyncComponent(() => import('./TournamentMatchesTab.vue')),
   profile: defineAsyncComponent(() => import('./TournamentProfileTab.vue')),
-  'my-history': defineAsyncComponent(() => import('./TournamentMyHistoryTab.vue')),
 }
 
 const resolvedTab = computed(() => {
