@@ -37,28 +37,26 @@
       </div>
 
       <!-- Match Info Card -->
-      <Card>
-        <template #header>
-          <div class="p-4">
-            <div class="flex justify-between">
-              <div class="text-2xl font-bold">Match</div>
-              <Tag
-                :value="getStatusLabel(match.status)"
-                :severity="getStatusSeverity(match.status)"
-              />
-            </div>
-
-            <p v-if="match.tournament" class="text-surface-500 dark:text-surface-400">
-              {{ match.tournament.name }}
-            </p>
+      <div class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 overflow-hidden">
+        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
+          <div class="flex justify-between">
+            <div class="text-2xl font-bold">Match</div>
+            <Tag
+              :value="getStatusLabel(match.status)"
+              :severity="getStatusSeverity(match.status)"
+            />
           </div>
-        </template>
 
-        <template #content>
+          <p v-if="match.tournament" class="text-surface-500 dark:text-surface-400">
+            {{ match.tournament.name }}
+          </p>
+        </div>
+
+        <div class="p-4">
           <div class="space-y-6">
             <!-- Scores et Vainqueur -->
             <div
-              class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-800 rounded-lg"
+              class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
             >
               <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'B' }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -178,10 +176,6 @@
                 <span class="text-surface-500 dark:text-surface-400">Date du match :</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
               </div>
-              <div v-if="match.reportedAt">
-                <span class="text-surface-500 dark:text-surface-400">Résultat saisi le :</span>
-                <span class="ml-2 font-semibold">{{ formatDate(match.reportedAt) }}</span>
-              </div>
               <div v-if="match.outcomeType">
                 <span class="text-surface-500 dark:text-surface-400">Type de résultat :</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeType.name }}</span>
@@ -190,20 +184,18 @@
                 <span class="text-surface-500 dark:text-surface-400">Raison du résultat :</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
               </div>
-              <div v-if="match.confirmationDeadline">
-                <span class="text-surface-500 dark:text-surface-400"
-                  >Date limite de confirmation :</span
-                >
-                <span class="ml-2 font-semibold">{{ formatDate(match.confirmationDeadline) }}</span>
-              </div>
               <div v-if="match.finalizedAt">
                 <span class="text-surface-500 dark:text-surface-400">Finalisé le :</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.finalizedAt) }}</span>
               </div>
+              <div v-if="match.finalizationReason">
+                <span class="text-surface-500 dark:text-surface-400">Finalisation :</span>
+                <span class="ml-2 font-semibold">{{ getFinalizationReasonLabel(match.finalizationReason) }}</span>
+              </div>
             </div>
           </div>
-        </template>
-      </Card>
+        </div>
+      </div>
 
       <!-- Match Confirmation Component -->
       <MatchConfirmation
@@ -244,38 +236,34 @@
       </Dialog>
 
       <!-- Admin Actions -->
-      <Card v-if="canManageMatch" class="bg-warn-50 dark:bg-warn-900/20">
-        <template #header>
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-warn-700 dark:text-warn-300">
-              <i class="fa fa-shield-alt mr-2"></i>
-              Actions administrateur
-            </h3>
+      <div
+        v-if="canManageMatch && match.status !== 'finalized'"
+        class="rounded-xl border border-warn-300 dark:border-warn-700 bg-warn-50 dark:bg-warn-900/20 overflow-hidden"
+      >
+        <div class="p-4 border-b border-warn-300 dark:border-warn-700">
+          <h3 class="text-lg font-semibold text-warn-700 dark:text-warn-300">
+            <i class="fa fa-shield-alt mr-2"></i>
+            Actions administrateur
+          </h3>
+        </div>
+        <div class="p-4 space-y-3">
+          <p class="text-sm text-surface-600 dark:text-surface-400">
+            En tant qu'administrateur, vous pouvez finaliser manuellement ce match.
+          </p>
+          <div class="flex gap-3">
+            <Button
+              label="Finaliser (Consensus)"
+              severity="success"
+              @click="() => handleFinalize('consensus')"
+            />
+            <Button
+              label="Finaliser (Override admin)"
+              severity="warn"
+              @click="() => handleFinalize('admin_override')"
+            />
           </div>
-        </template>
-
-        <template #content>
-          <div class="space-y-3">
-            <p class="text-sm text-surface-600 dark:text-surface-400">
-              En tant qu'administrateur, vous pouvez finaliser manuellement ce match.
-            </p>
-            <div class="flex gap-3">
-              <Button
-                label="Finaliser (Consensus)"
-                severity="success"
-                @click="() => handleFinalize('consensus')"
-                :disabled="match.status === 'finalized'"
-              />
-              <Button
-                label="Finaliser (Override admin)"
-                severity="warn"
-                @click="() => handleFinalize('admin_override')"
-                :disabled="match.status === 'finalized'"
-              />
-            </div>
-          </div>
-        </template>
-      </Card>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -425,6 +413,15 @@ async function handleFinalize(reason: MatchFinalizationReason) {
 function completeMatch() {
   if (!match.value || !match.value.tournamentId) return
   router.push(`/tournaments/${match.value.tournamentId}/create-match?matchId=${match.value.id}`)
+}
+
+function getFinalizationReasonLabel(reason: string): string {
+  const labels: Record<string, string> = {
+    consensus: 'Consensus',
+    auto_validation: 'Validation automatique',
+    admin_override: 'Décision administrative',
+  }
+  return labels[reason] || reason
 }
 
 function getStatusLabel(status: string): string {
