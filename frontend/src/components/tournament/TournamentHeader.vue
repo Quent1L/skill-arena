@@ -48,12 +48,6 @@
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
         {{ name }}
       </h1>
-
-      <div
-        v-if="description"
-        class="tournament-description text-gray-600 dark:text-gray-400"
-        v-html="description"
-      />
     </div>
   </div>
 </template>
@@ -66,7 +60,6 @@ import type { TournamentStatus, TournamentMode } from '@skill-arena/shared'
 
 interface Props {
   name: string
-  description?: string
   status: TournamentStatus
   mode: TournamentMode
   isAuthenticated: boolean
@@ -134,43 +127,3 @@ const modeLabels: Record<TournamentMode, string> = {
 }
 </script>
 
-<style scoped>
-:deep(.tournament-description h2) {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-:deep(.tournament-description h3) {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-}
-:deep(.tournament-description ul) {
-  list-style-type: disc;
-  padding-left: 1.5rem;
-  margin: 0.5rem 0;
-}
-:deep(.tournament-description ol) {
-  list-style-type: decimal;
-  padding-left: 1.5rem;
-  margin: 0.5rem 0;
-}
-:deep(.tournament-description p) {
-  margin: 0.5rem 0;
-}
-:deep(.tournament-description strong) {
-  font-weight: 700;
-}
-:deep(.tournament-description em) {
-  font-style: italic;
-}
-:deep(.tournament-description u) {
-  text-decoration: underline;
-}
-:deep(.tournament-description a) {
-  color: rgb(59 130 246);
-  text-decoration: underline;
-}
-</style>

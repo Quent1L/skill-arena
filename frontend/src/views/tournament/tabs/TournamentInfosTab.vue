@@ -1,29 +1,23 @@
 <template>
-  <div class="space-y-6">
-    <div
-      v-if="store.tournament!.description"
-      class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6 tournament-description text-gray-700 dark:text-gray-300"
-      v-html="store.tournament!.description"
-    />
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" :class="store.tournament!.teamMode === 'static' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'">
+  <div class="space-y-4 sm:space-y-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4" :class="store.tournament!.teamMode === 'static' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'">
       <!-- Participants -->
       <button
         @click="navigateTo('participants')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-            <i class="fa fa-users text-blue-600 dark:text-blue-400" />
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+            <i class="fa fa-users text-blue-600 dark:text-blue-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white">Participants</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Voir les joueurs inscrits</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Participants</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Voir les joueurs inscrits</div>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <Badge :value="store.participantCount" severity="info" size="small" />
-          <i class="fa fa-chevron-right text-gray-400 group-hover:text-primary-500 transition-colors" />
+          <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors" />
         </div>
       </button>
 
@@ -31,39 +25,44 @@
       <button
         v-if="store.tournament!.teamMode === 'static'"
         @click="navigateTo('teams')"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
-            <i class="fa fa-shield-halved text-green-600 dark:text-green-400" />
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
+            <i class="fa fa-shield-halved text-green-600 dark:text-green-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white">Équipes</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Gérer les équipes</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Équipes</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Gérer les équipes</div>
           </div>
         </div>
-        <i class="fa fa-chevron-right text-gray-400 group-hover:text-primary-500 transition-colors shrink-0" />
+        <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
       </button>
 
       <!-- Règles -->
       <button
         v-if="store.tournament!.rulesId"
         @click="router.push(`/rules/${store.tournament!.rulesId}`)"
-        class="group flex items-center justify-between p-5 bg-white dark:bg-surface-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md transition-all text-left cursor-pointer"
+        class="group flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
       >
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
-            <i class="fa fa-scroll text-amber-600 dark:text-amber-400" />
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+            <i class="fa fa-scroll text-amber-600 dark:text-amber-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white">Règles</div>
-            <div class="text-sm text-gray-500 dark:text-gray-400">Consulter les règles du tournoi</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Règles</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Consulter les règles du tournoi</div>
           </div>
         </div>
-        <i class="fa fa-chevron-right text-gray-400 group-hover:text-primary-500 transition-colors shrink-0" />
+        <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
       </button>
-
     </div>
+
+    <div
+      v-if="store.tournament!.description"
+      class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 tournament-description text-gray-700 dark:text-gray-300"
+      v-html="store.tournament!.description"
+    />
   </div>
 </template>
 

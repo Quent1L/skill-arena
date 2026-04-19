@@ -25,7 +25,6 @@
       <div v-show="activeTab === 'infos'" class="space-y-4 p-4">
         <TournamentHeader
           :name="store.tournament!.name"
-          :description="store.tournament!.description"
           :status="store.tournament!.status"
           :mode="store.tournament!.mode"
           :is-authenticated="store.isAuthenticated"
@@ -36,70 +35,13 @@
           :can-manage="store.canManageTournament"
           :joining="store.joining"
           :leaving="store.leaving"
-          :rules-id="store.tournament!.rulesId"
           @join="store.joinTournament()"
           @leave="store.leaveTournament()"
           @create-match="router.push(`/tournaments/${store.tournamentId}/create-match`)"
           @edit="router.push(`/admin/tournaments/${store.tournamentId}/edit`)"
-          @view-rules="router.push(`/rules/${store.tournament!.rulesId}`)"
         />
 
-        <div class="space-y-3">
-          <!-- Participants -->
-          <button
-            @click="
-              router.push({
-                name: 'tournament-tab',
-                params: { id: store.tournamentId, tab: 'participants' },
-              })
-            "
-            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0"
-              >
-                <i class="fa fa-users text-blue-600 dark:text-blue-400 text-sm" />
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900 dark:text-white text-sm">Participants</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                  Voir les joueurs inscrits
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 shrink-0">
-              <Badge :value="store.participantCount" severity="info" size="small" />
-              <i class="fa fa-chevron-right text-gray-400 text-xs" />
-            </div>
-          </button>
-
-          <!-- Équipes (static uniquement) -->
-          <button
-            v-if="store.tournament!.teamMode === 'static'"
-            @click="
-              router.push({
-                name: 'tournament-tab',
-                params: { id: store.tournamentId, tab: 'teams' },
-              })
-            "
-            class="group w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 active:scale-[0.98] transition-transform text-left"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0"
-              >
-                <i class="fa fa-shield-halved text-green-600 dark:text-green-400 text-sm" />
-              </div>
-              <div>
-                <div class="font-semibold text-gray-900 dark:text-white text-sm">Équipes</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">Gérer les équipes</div>
-              </div>
-            </div>
-            <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0" />
-          </button>
-
-        </div>
+        <TournamentInfosTab />
       </div>
 
       <!-- Tab: Participants -->
@@ -231,6 +173,7 @@ import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentParticipantsTab.vue'
 import TournamentStatsTab from '@/views/tournament/tabs/TournamentStatsTab.vue'
+import TournamentInfosTab from '@/views/tournament/tabs/TournamentInfosTab.vue'
 import MobileBottomNav from '@/components/tournament/mobile/MobileBottomNav.vue'
 
 const route = useRoute()
@@ -255,7 +198,7 @@ useSwipe(contentAreaRef, {
 const activeTab = computed(() => (route.params.tab as string) || 'infos')
 
 const tabTitles: Record<string, string> = {
-  infos: 'Détail du tournoi',
+  infos: 'Info du tournoi',
   participants: 'Participants',
   standings: 'Classement',
   bracket: 'Bracket',
