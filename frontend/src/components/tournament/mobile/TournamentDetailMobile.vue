@@ -199,8 +199,8 @@
     <div v-if="activeTab === 'matches' && store.canCreateMatch">
       <SpeedDial
         @click="router.push(`/tournaments/${store.tournamentId}/create-match`)"
-        :radius="120"
-        style="position: fixed; bottom: 5rem; right: 1rem"
+        :radius="150"
+        style="position: fixed; bottom: 5rem; right: 1rem; z-index: 250"
         showIcon="fa fa-plus"
         hide-icon="fa fa-plus"
         buttonClass="p-button-rounded p-button-primary shadow-lg !w-14 !h-14"
