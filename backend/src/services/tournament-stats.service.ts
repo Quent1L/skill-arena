@@ -26,7 +26,7 @@ function isLoser(side: MatchData["sides"][number], winnerSide: string | null): b
 function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
   const entryStats = new Map<
     string,
-    { displayName: string; wins: number; losses: number; draws: number }
+    { displayName: string; wins: number; losses: number; draws: number; playerCount: number }
   >();
 
   for (const match of matchesData) {
@@ -36,7 +36,7 @@ function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
       const displayName = playerNames.join(" / ");
 
       if (!entryStats.has(entryId)) {
-        entryStats.set(entryId, { displayName, wins: 0, losses: 0, draws: 0 });
+        entryStats.set(entryId, { displayName, wins: 0, losses: 0, draws: 0, playerCount: side.entry.players.length });
       }
       const stats = entryStats.get(entryId)!;
 
@@ -51,6 +51,7 @@ function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
   }
 
   return Array.from(entryStats.entries())
+    .filter(([, s]) => s.playerCount > 1)
     .map(([entryId, s]) => {
       const matchesPlayed = s.wins + s.losses + s.draws;
       return {
@@ -150,6 +151,40 @@ function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
     .slice(0, 5);
 }
 
+function computeBestInvincibleStreak(matchesData: MatchData[]): WinStreakEntry[] {
+  const playerMatches = new Map<
+    string,
+    { displayName: string; shortName: string; results: { playedAt: Date; notLost: boolean }[] }
+  >();
+
+  for (const match of matchesData) {
+    for (const side of match.sides) {
+      for (const ep of side.entry.players) {
+        if (!ep.player) continue;
+        const { id, displayName, shortName } = ep.player;
+        if (!playerMatches.has(id)) playerMatches.set(id, { displayName, shortName, results: [] });
+        playerMatches.get(id)!.results.push({
+          playedAt: new Date(match.playedAt),
+          notLost: !isLoser(side, match.winnerSide),
+        });
+      }
+    }
+  }
+
+  const streaks: WinStreakEntry[] = [];
+  for (const [playerId, data] of playerMatches) {
+    const sorted = [...data.results].sort((a, b) => a.playedAt.getTime() - b.playedAt.getTime());
+    let best = 0, current = 0;
+    for (const r of sorted) {
+      if (r.notLost) { current++; best = Math.max(best, current); }
+      else current = 0;
+    }
+    if (best >= 3) streaks.push({ playerId, displayName: data.displayName, shortName: data.shortName, currentStreak: best });
+  }
+
+  return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
+}
+
 function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
   const typeMap = new Map<
     string,
@@ -161,7 +196,7 @@ function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunSta
   >();
 
   for (const match of matchesData) {
-    if (!match.outcomeType || match.outcomeType.isDefault || !match.outcomeTypeId) continue;
+    if (!match.outcomeType || !match.outcomeTypeId) continue;
 
     const typeId = match.outcomeTypeId;
     if (!typeMap.has(typeId)) {
@@ -267,6 +302,7 @@ class TournamentStatsService {
       tournamentInfo.teamMode === "flex" ? computeBestTeams(matchesData) : [];
 
     const winStreaks: WinStreakEntry[] = computeWinStreaks(matchesData);
+    const invincibleStreaks: WinStreakEntry[] = computeBestInvincibleStreak(matchesData);
 
     const bestDuoPlayers: BestDuoEntry[] =
       tournamentInfo.teamMode === "flex" ? computeBestDuoPlayers(matchesData) : [];
@@ -280,6 +316,7 @@ class TournamentStatsService {
       bestTeams,
       momentum,
       winStreaks,
+      invincibleStreaks,
       bestDuoPlayers,
       outcomeTypeFunStats,
     };

@@ -13,7 +13,7 @@
       </div>
       <div>
         <button
-          class="flex items-center gap-2  px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
+          class="flex items-center gap-2 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
           @click="infoVisible = true"
         >
           <i class="fa fa-circle-question text-sm" />
@@ -241,10 +241,7 @@
     </div>
 
     <div class="standings-container">
-      <Transition
-        :name="`standings-slide-${slideDirection}`"
-        mode="out-in"
-      >
+      <Transition :name="`standings-slide-${slideDirection}`" mode="out-in">
         <div v-if="standings.length > 0" :key="`standings-${standingsType}`" class="relative">
           <DataTable :value="standings" class="p-datatable-sm" striped-rows :loading="loading">
             <Column field="rank" header="#" style="width: 4rem">
@@ -354,13 +351,7 @@
               </template>
             </Column>
 
-            <Column
-              v-if="allowDraw"
-              field="winLossRatio"
-              header="V/D"
-              class="hidden md:table-cell"
-              header-class="hidden md:table-cell"
-            >
+            <Column v-if="allowDraw && !isMobile" field="winLossRatio" header="V/D">
               <template #body="{ data }">
                 <span class="text-gray-600 dark:text-gray-400">{{
                   formatRatio(data.winLossRatio)
@@ -368,11 +359,7 @@
               </template>
             </Column>
 
-            <Column
-              field="buchholzScore"
-              class="hidden md:table-cell"
-              header-class="hidden md:table-cell"
-            >
+            <Column v-if="!isMobile" field="buchholzScore">
               <template #header>
                 <span class="flex items-center gap-1">
                   Buchholz
@@ -387,11 +374,7 @@
               </template>
             </Column>
 
-            <Column
-              field="victoryQuality"
-              class="hidden md:table-cell"
-              header-class="hidden md:table-cell"
-            >
+            <Column v-if="!isMobile" field="victoryQuality">
               <template #header>
                 <span class="flex items-center gap-1">
                   Qualité des résultats
@@ -604,6 +587,7 @@ import Dialog from 'primevue/dialog'
 import { useStandingsService } from '@/composables/standings.service'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import type { StandingsEntry, OutcomeType } from '@skill-arena/shared'
+import { useViewport } from '@/composables/useViewport.ts'
 
 interface TournamentConfig {
   pointPerVictory: number
@@ -640,6 +624,7 @@ const emit = defineEmits<{
 
 const { standings, loading, error, loadOfficialStandings, loadProvisionalStandings } =
   useStandingsService()
+const { isMobile } = useViewport()
 
 const internalStandingsType = ref<'official' | 'provisional'>('official')
 const slideDirection = ref<'left' | 'right'>('left')

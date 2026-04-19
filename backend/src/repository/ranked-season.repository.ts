@@ -193,9 +193,18 @@ export class RankedSeasonRepository {
     }
     return await db.query.tournaments.findMany({
       where: and(...conditions),
+      columns: {
+        id: true,
+        name: true,
+        mode: true,
+        teamMode: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        disciplineId: true,
+      },
       with: {
-        rankedConfig: true,
-        discipline: true,
+        discipline: { columns: { id: true, name: true } },
       },
       orderBy: (t, { desc }) => [desc(t.startDate)],
     });

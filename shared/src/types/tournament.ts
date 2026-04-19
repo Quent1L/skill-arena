@@ -512,6 +512,25 @@ export interface ClientBaseTournament extends Omit<BaseTournament, 'startDate' |
 }
 
 /**
+ * Type allégé pour les listes de tournois (réponse API de listing)
+ */
+export interface TournamentSummary {
+  id: string;
+  name: string;
+  mode: TournamentMode;
+  teamMode: TeamMode;
+  status: TournamentStatus;
+  startDate: string;
+  endDate: string;
+  discipline?: { id: string; name: string } | null;
+}
+
+export interface ClientTournamentSummary extends Omit<TournamentSummary, 'startDate' | 'endDate'> {
+  startDate: Date;
+  endDate: Date;
+}
+
+/**
  * Type pour TournamentWithStats côté frontend
  */
 export interface ClientTournamentWithStats extends Omit<TournamentWithStats, 'startDate' | 'endDate' | 'createdAt' | 'updatedAt'> {

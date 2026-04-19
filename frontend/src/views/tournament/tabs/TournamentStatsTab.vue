@@ -16,7 +16,7 @@
           Répartition des fins de match
         </h2>
         <div v-if="isMounted && outcomeChartData" class="flex flex-col sm:flex-row items-center gap-6">
-          <div class="w-full sm:w-64 h-64">
+          <div>
             <Chart type="doughnut" :data="outcomeChartData" :options="doughnutOptions" />
           </div>
           <ul class="space-y-2 text-sm">
@@ -118,6 +118,29 @@
               entry.currentStreak
             }}</span>
             <span class="text-xs text-gray-500 dark:text-gray-400">victoires consécutives</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meilleures séries d'invincibilité -->
+      <div
+        v-if="store.tournamentStats.invincibleStreaks.length"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+      >
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
+          <i class="fa fa-shield mr-2 text-blue-500" />
+          Meilleures séries d'invincibilité
+        </h2>
+        <div class="space-y-2">
+          <div
+            v-for="entry in store.tournamentStats.invincibleStreaks"
+            :key="entry.playerId"
+            class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+          >
+            <i class="fa fa-shield text-blue-500 text-lg" />
+            <span class="flex-1 font-medium text-gray-900 dark:text-white">{{ entry.displayName }}</span>
+            <span class="font-bold text-blue-600 dark:text-blue-400 text-lg">{{ entry.currentStreak }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">matchs sans défaite</span>
           </div>
         </div>
       </div>

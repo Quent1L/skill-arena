@@ -7,10 +7,11 @@ import type {
   ClientPlayerMmr,
   ClientMmrHistoryEntry,
   ClientRankTier,
+  ClientTournamentSummary,
 } from '@skill-arena/shared/types/index'
 
 export function useRankedService() {
-  const seasons = ref<RankedSeason[]>([])
+  const seasons = ref<ClientTournamentSummary[]>([])
   const currentSeason = ref<RankedSeason | null>(null)
   const leaderboard = ref<ClientPlayerMmr[]>([])
   const tiers = ref<ClientRankTier[]>([])

@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import {
   tournamentApi,
   type TournamentResponse,
+  type TournamentListResponse,
   type CreateTournamentPayload,
 } from './tournament.api'
 import type {
@@ -18,7 +19,7 @@ import { useAuth } from '../useAuth'
 export function useTournamentService() {
   const { currentUser, isSuperAdmin } = useAuth()
 
-  const tournaments = ref<TournamentResponse[]>([])
+  const tournaments = ref<TournamentListResponse[]>([])
   const currentTournament = ref<TournamentResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -35,7 +36,7 @@ export function useTournamentService() {
   /**
    * Check if current user can manage a specific tournament
    */
-  function canManageTournament(_tournament: TournamentResponse): boolean {
+  function canManageTournament(_tournament: TournamentResponse | TournamentListResponse): boolean {
     if (!currentUser.value) return false
 
     if (isSuperAdmin.value) return true
@@ -51,7 +52,7 @@ export function useTournamentService() {
   /**
    * Check if user can delete tournament
    */
-  function canDeleteTournament(tournament: TournamentResponse): boolean {
+  function canDeleteTournament(tournament: TournamentResponse | TournamentListResponse): boolean {
     if (!currentUser.value) return false
 
     if (isSuperAdmin.value) return true
@@ -72,7 +73,7 @@ export function useTournamentService() {
   /**
    * Check if tournament can be edited
    */
-  function canEditTournament(tournament: TournamentResponse): boolean {
+  function canEditTournament(tournament: TournamentResponse | TournamentListResponse): boolean {
     if (!canManageTournament(tournament)) return false
 
     // After draft, only certain fields can be edited
@@ -82,7 +83,7 @@ export function useTournamentService() {
   /**
    * Check what fields can be edited based on status
    */
-  function getEditableFields(tournament: TournamentResponse): string[] {
+  function getEditableFields(tournament: TournamentResponse | TournamentListResponse): string[] {
     if (tournament.status === 'draft') {
       return ['all'] // All fields editable
     }
@@ -144,10 +145,7 @@ export function useTournamentService() {
       const payload = formDataToApiPayload(formData) as CreateTournamentPayload
       const tournament = await tournamentApi.create(payload)
 
-      // Add to list if already loaded
-      if (tournaments.value.length > 0) {
-        tournaments.value.unshift(tournament)
-      }
+      // Reload list rather than inserting full detail item into summary list
 
       return tournament
     } catch (err: unknown) {
@@ -169,10 +167,10 @@ export function useTournamentService() {
       const payload = formDataToApiPayload(formData)
       const tournament = await tournamentApi.update(id, payload)
 
-      // Update in list
-      const index = tournaments.value.findIndex((t: TournamentResponse) => t.id === id)
+      // Update status in list summary
+      const index = tournaments.value.findIndex((t) => t.id === id)
       if (index !== -1) {
-        tournaments.value[index] = tournament
+        tournaments.value[index] = { ...tournaments.value[index], ...tournament }
       }
 
       // Update current
@@ -199,10 +197,10 @@ export function useTournamentService() {
     try {
       const tournament = await tournamentApi.changeStatus(id, status)
 
-      // Update in list
-      const index = tournaments.value.findIndex((t: TournamentResponse) => t.id === id)
-      if (index !== -1) {
-        tournaments.value[index] = tournament
+      // Update status in list summary
+      const listIndex = tournaments.value.findIndex((t) => t.id === id)
+      if (listIndex !== -1) {
+        tournaments.value[listIndex] = { ...tournaments.value[listIndex], status: tournament.status }
       }
 
       // Update current

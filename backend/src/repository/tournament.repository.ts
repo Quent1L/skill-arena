@@ -175,9 +175,18 @@ export class TournamentRepository {
 
     const result = await db.query.tournaments.findMany({
       where: conditions.length > 0 ? and(...conditions) : undefined,
+      columns: {
+        id: true,
+        name: true,
+        mode: true,
+        teamMode: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        disciplineId: true,
+      },
       with: {
-        creator: true,
-        discipline: true,
+        discipline: { columns: { id: true, name: true } },
       },
       orderBy: (tournaments, { desc }) => [desc(tournaments.createdAt)],
     });

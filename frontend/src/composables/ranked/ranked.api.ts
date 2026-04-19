@@ -5,6 +5,7 @@ import type {
   ClientPlayerMmr,
   ClientMmrHistoryEntry,
   ClientRankTier,
+  ClientTournamentSummary,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
@@ -55,12 +56,12 @@ export const rankedApi = {
     return response.data
   },
 
-  async listSeasons(filters?: { disciplineId?: string; status?: string }): Promise<RankedSeason[]> {
+  async listSeasons(filters?: { disciplineId?: string; status?: string }): Promise<ClientTournamentSummary[]> {
     const params = new URLSearchParams()
     if (filters?.disciplineId) params.set('disciplineId', filters.disciplineId)
     if (filters?.status) params.set('status', filters.status)
     const query = params.toString() ? `?${params.toString()}` : ''
-    const response = await http.get<RankedSeason[]>(`${BASE_URL}/seasons${query}`)
+    const response = await http.get<ClientTournamentSummary[]>(`${BASE_URL}/seasons${query}`)
     return response.data
   },
 

@@ -1,213 +1,231 @@
 <template>
-  <Card
-    class="tournament-card cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 h-full"
+  <div
+    class="tournament-card cursor-pointer transition-all duration-200 hover:shadow-xl hover:-translate-y-1 rounded-lg p-4 overflow-hidden"
+    :class="modeAccentClass"
     @click="$emit('click', tournament)"
   >
-    <template #header>
-      <div class="relative">
-        <div class="h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-t-lg">
-          <div class="absolute top-3 right-3">
-            <Badge :value="statusLabel" :severity="statusSeverity" />
-          </div>
-        </div>
+    <div class="space-y-3">
+      <!-- Top row: status pill -->
+      <div class="flex items-center justify-between gap-2">
+        <span class="status-pill text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full" :class="statusPillClass">
+          {{ statusLabel }}
+        </span>
       </div>
-    </template>
 
-    <template #content>
-      <div class="space-y-4">
-        <!-- Titre et description -->
-        <div>
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+      <!-- Body: icon + name + tags -->
+      <div class="flex items-start gap-3">
+        <div class="mode-icon-circle shrink-0 w-10 h-10 rounded-full flex items-center justify-center" :class="modeIconBgClass">
+          <i :class="[modeIcon, modeIconColorClass, 'text-base']"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h3 class="text-base font-bold text-white leading-tight truncate mb-1.5">
             {{ tournament.name }}
           </h3>
-        </div>
-
-        <!-- Informations principales -->
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="text-gray-500 dark:text-gray-400 font-medium">Mode:</span>
-            <div class="flex items-center gap-2">
-              <i :class="modeIcon" class="text-blue-600"></i>
-              <span class="font-semibold">{{ modeLabel }}</span>
-            </div>
-          </div>
-
-          <div>
-            <span class="text-gray-500 dark:text-gray-400 font-medium">Équipe:</span>
-            <div class="font-semibold">
-              {{
-                tournament.minTeamSize === tournament.maxTeamSize
-                  ? `${tournament.minTeamSize} joueurs`
-                  : `${tournament.minTeamSize}-${tournament.maxTeamSize} joueurs`
-              }}
-            </div>
+          <div class="flex flex-wrap gap-1.5">
+            <span v-if="tournament.discipline" class="tag text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300">
+              <i class="fa fa-gamepad mr-1 text-gray-400"></i>{{ tournament.discipline.name }}
+            </span>
+            <span class="tag text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300">
+              {{ modeLabel }}
+            </span>
           </div>
         </div>
+      </div>
 
-        <!-- Dates -->
-        <div class="border-t pt-3">
-          <div class="flex justify-between items-center text-sm">
-            <div>
-              <span class="text-gray-500 dark:text-gray-400">Début:</span>
-              <span class="font-medium ml-1">{{ formatDate(tournament.startDate) }}</span>
-            </div>
-            <div>
-              <span class="text-gray-500 dark:text-gray-400">Fin:</span>
-              <span class="font-medium ml-1">{{ formatDate(tournament.endDate) }}</span>
-            </div>
-          </div>
+      <!-- Progress bar section -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-gray-400 uppercase tracking-wider font-semibold">Période</span>
+          <span class="font-semibold" :class="periodLabelClass">{{ periodLabel }}</span>
         </div>
-
-        <!-- Statistiques (si disponible) -->
-        <div
-          v-if="showStats && hasTournamentStats"
-          class="flex justify-between items-center text-xs bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2"
-        >
-          <div class="flex items-center gap-1">
-            <i class="pi pi-users text-gray-500"></i>
-            <span>{{ (tournament as any).participants_count || 0 }} participants</span>
-          </div>
+        <div class="progress-track h-1.5 rounded-full bg-white/10 overflow-hidden">
           <div
-            v-if="(tournament as any).matches_played !== undefined"
-            class="flex items-center gap-1"
-          >
-            <i class="pi pi-play text-gray-500"></i>
-            <span
-              >{{ (tournament as any).matches_played }}/{{
-                (tournament as any).matches_total || '?'
-              }}
-              matchs</span
-            >
-          </div>
+            class="progress-bar h-full rounded-full transition-all duration-500"
+            :class="[modeProgressClass, { 'animate-pulse': isProgressPulsing }]"
+            :style="{ width: `${timeProgress}%` }"
+          ></div>
         </div>
       </div>
-    </template>
 
-    <template #footer>
-      <div v-if="tournament.status !== 'finished'" class="flex justify-between items-center">
-        <div class="flex items-center gap-2 text-xs text-gray-500">
-          <i class="pi pi-calendar"></i>
-          <span>{{ timeFromNow }}</span>
-        </div>
+      <!-- Bottom: date range -->
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 pt-1 border-t border-white/10">
+        <i class="fa fa-calendar-days text-gray-600"></i>
+        <span>{{ formatDate(tournament.startDate) }}</span>
+        <span class="text-gray-600">→</span>
+        <span>{{ formatDate(tournament.endDate) }}</span>
       </div>
-    </template>
-  </Card>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ClientBaseTournament } from '@skill-arena/shared/types/index'
+import type { ClientTournamentSummary } from '@skill-arena/shared/types/index'
 
 interface Props {
-  tournament: ClientBaseTournament
-  showStats?: boolean
+  tournament: ClientTournamentSummary
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  showStats: true,
-})
+const props = defineProps<Props>()
 
 defineEmits<{
-  click: [tournament: ClientBaseTournament]
+  click: [tournament: ClientTournamentSummary]
 }>()
 
-// Status mapping
-const statusConfig = {
-  draft: { label: 'Brouillon', severity: 'secondary' as const },
-  open: { label: 'Ouvert', severity: 'success' as const },
-  ongoing: { label: 'En cours', severity: 'warning' as const },
-  finished: { label: 'Terminé', severity: 'info' as const },
+// Status pill
+const statusConfig: Record<string, { label: string; pillClass: string }> = {
+  draft: { label: 'Brouillon', pillClass: 'bg-gray-500/20 text-gray-400 border border-gray-500/30' },
+  open: { label: 'Ouvert', pillClass: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
+  ongoing: { label: 'En cours', pillClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30' },
+  finished: { label: 'Terminé', pillClass: 'bg-gray-500/20 text-gray-500 border border-gray-500/30' },
 }
 
 const statusLabel = computed(
-  () => statusConfig[props.tournament.status]?.label || props.tournament.status,
+  () => statusConfig[props.tournament.status]?.label ?? props.tournament.status,
 )
-const statusSeverity = computed(
-  () => statusConfig[props.tournament.status]?.severity || 'secondary',
+const statusPillClass = computed(
+  () => statusConfig[props.tournament.status]?.pillClass ?? statusConfig.draft.pillClass,
 )
 
-// Mode mapping
-const modeConfig = {
-  championship: { label: 'Championnat', icon: 'pi pi-trophy' },
-  bracket: { label: 'Élimination', icon: 'pi pi-sitemap' },
+// Mode config
+const modeConfig: Record<
+  string,
+  {
+    label: string
+    icon: string
+    accentClass: string
+    iconColorClass: string
+    iconBgClass: string
+    progressClass: string
+  }
+> = {
+  championship: {
+    label: 'Championnat',
+    icon: 'fa fa-trophy',
+    accentClass: 'mode-championship',
+    iconColorClass: 'text-blue-400',
+    iconBgClass: 'bg-blue-500/20',
+    progressClass: 'bg-blue-500',
+  },
+  bracket: {
+    label: 'Bracket',
+    icon: 'fa fa-sitemap',
+    accentClass: 'mode-bracket',
+    iconColorClass: 'text-gray-400',
+    iconBgClass: 'bg-gray-500/20',
+    progressClass: 'bg-gray-400',
+  },
+  ranked: {
+    label: 'Ranked',
+    icon: 'fa fa-ranking-star',
+    accentClass: 'mode-ranked',
+    iconColorClass: 'text-amber-400',
+    iconBgClass: 'bg-amber-500/20',
+    progressClass: 'bg-amber-500',
+  },
 }
 
-const modeLabel = computed(() => modeConfig[props.tournament.mode]?.label || props.tournament.mode)
-const modeIcon = computed(() => modeConfig[props.tournament.mode]?.icon || 'pi pi-trophy')
+const modeLabel = computed(() => modeConfig[props.tournament.mode]?.label ?? props.tournament.mode)
+const modeIcon = computed(() => modeConfig[props.tournament.mode]?.icon ?? 'fa fa-trophy')
+const modeAccentClass = computed(() => modeConfig[props.tournament.mode]?.accentClass ?? '')
+const modeIconColorClass = computed(
+  () => modeConfig[props.tournament.mode]?.iconColorClass ?? 'text-gray-400',
+)
+const modeIconBgClass = computed(
+  () => modeConfig[props.tournament.mode]?.iconBgClass ?? 'bg-gray-500/20',
+)
+const modeProgressClass = computed(
+  () => modeConfig[props.tournament.mode]?.progressClass ?? 'bg-gray-400',
+)
 
-// Check if tournament has stats properties
-const hasTournamentStats = computed(() => {
-  const t = props.tournament as ClientBaseTournament & {
-    participants_count?: number
-    matches_played?: number
-    matches_total?: number
+// Time progress bar
+const timeProgress = computed(() => {
+  const { status, startDate, endDate } = props.tournament
+  if (status === 'finished') return 100
+  const now = Date.now()
+  const start = new Date(startDate).getTime()
+  const end = new Date(endDate).getTime()
+  if (status === 'open') {
+    if (end <= start) return 25
+    const progress = ((now - start) / (end - start)) * 100
+    return Math.min(50, Math.max(5, progress))
   }
-  return t.participants_count !== undefined || t.matches_played !== undefined
+  if (status !== 'ongoing') return 0
+  if (end <= start) return 100
+  return Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100))
 })
 
-// Date formatting
-function formatDate(dateString: string | Date): string {
-  if (dateString instanceof Date) {
-    return dateString.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    })
+const isProgressPulsing = computed(() => props.tournament.status === 'open')
+
+const periodLabel = computed(() => {
+  const { status, startDate, endDate } = props.tournament
+  const now = Date.now()
+  if (status === 'finished') return 'Terminé'
+  if (status === 'draft') {
+    const daysUntil = Math.ceil((new Date(startDate).getTime() - now) / 86_400_000)
+    if (daysUntil <= 0) return 'Bientôt'
+    return `Commence dans ${daysUntil} j`
   }
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-  })
+  if (status === 'open') {
+    const daysUntil = Math.ceil((new Date(startDate).getTime() - now) / 86_400_000)
+    if (daysUntil <= 0) return 'Inscriptions ouvertes'
+    return `Commence dans ${daysUntil} j`
+  }
+  if (status === 'ongoing') {
+    const daysLeft = Math.ceil((new Date(endDate).getTime() - now) / 86_400_000)
+    if (daysLeft <= 0) return 'Fin imminente'
+    return `${daysLeft} j restants`
+  }
+  return '–'
+})
+
+const periodLabelClass = computed(() => {
+  const { status } = props.tournament
+  if (status === 'finished') return 'text-gray-500'
+  if (status === 'ongoing') return modeIconColorClass.value
+  return 'text-blue-400'
+})
+
+function formatDate(date: Date | string): string {
+  const d = date instanceof Date ? date : new Date(date)
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
-
-// Time from now (simple implementation)
-// startDate and endDate are already Date objects (converted by interceptor)
-const timeFromNow = computed(() => {
-  const now = new Date()
-  const start = props.tournament.startDate
-  const end = props.tournament.endDate
-
-  if (start > now) {
-    const days = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return `Commence dans ${days} jour${days > 1 ? 's' : ''}`
-  } else if (end > now) {
-    const days = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return `Se termine dans ${days} jour${days > 1 ? 's' : ''}`
-  } else {
-    return 'Terminé'
-  }
-})
 </script>
 
 <style scoped>
 .tournament-card {
-  border: 1px solid rgb(229, 231, 235);
-  border-color: rgb(229, 231, 235);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left-width: 3px;
+  background-color: var(--color-surface-800)
 }
 
-.dark .tournament-card {
-  border-color: rgb(55, 65, 81);
+/* Championship — blue */
+.tournament-card.mode-championship {
+  border-left-color: rgb(59, 130, 246);
+}
+.tournament-card.mode-championship:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+  border-left-color: rgb(59, 130, 246);
+  box-shadow: 0 10px 25px -5px rgb(59 130 246 / 0.2);
 }
 
-.tournament-card:hover {
-  border-color: rgb(147, 197, 253);
-  box-shadow:
-    0 10px 25px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transform: translateY(-0.25rem);
+/* Bracket — gray */
+.tournament-card.mode-bracket {
+  border-left-color: rgb(107, 114, 128);
+}
+.tournament-card.mode-bracket:hover {
+  border-color: rgba(107, 114, 128, 0.3);
+  border-left-color: rgb(156, 163, 175);
+  box-shadow: 0 10px 25px -5px rgb(107 114 128 / 0.2);
 }
 
-.dark .tournament-card:hover {
-  border-color: rgb(37, 99, 235);
+/* Ranked — amber */
+.tournament-card.mode-ranked {
+  border-left-color: rgb(245, 158, 11);
 }
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.tournament-card.mode-ranked:hover {
+  border-color: rgba(245, 158, 11, 0.3);
+  border-left-color: rgb(245, 158, 11);
+  box-shadow: 0 10px 25px -5px rgb(245 158 11 / 0.25);
 }
 </style>

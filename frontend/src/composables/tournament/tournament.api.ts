@@ -1,6 +1,7 @@
 import http from '@/config/ApiConfig'
 import type {
   ClientBaseTournament,
+  ClientTournamentSummary,
   ClientCreateTournamentRequest,
   ClientUpdateTournamentRequest,
   TournamentStatus,
@@ -11,6 +12,7 @@ const BASE_URL = '/api/tournaments'
 
 // Type alias pour l'API response (ClientBaseTournament - dates converties en Date par l'intercepteur)
 export type TournamentResponse = ClientBaseTournament
+export type TournamentListResponse = ClientTournamentSummary
 
 // Interface pour les filtres de liste (basée sur ListTournamentsQuery du shared)
 export interface ListTournamentsFilters {
@@ -32,8 +34,8 @@ export const tournamentApi = {
   /**
    * List all tournaments with optional filters
    */
-  async list(filters?: ListTournamentsFilters): Promise<TournamentResponse[]> {
-    const response = await http.get<TournamentResponse[]>(BASE_URL, {
+  async list(filters?: ListTournamentsFilters): Promise<TournamentListResponse[]> {
+    const response = await http.get<TournamentListResponse[]>(BASE_URL, {
       params: filters,
     })
     return response.data
