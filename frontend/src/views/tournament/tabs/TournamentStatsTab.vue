@@ -16,8 +16,8 @@
           Répartition des fins de match
         </h2>
         <div v-if="isMounted && outcomeChartData" class="flex flex-col sm:flex-row items-center gap-6">
-          <div>
-            <Chart type="doughnut" :data="outcomeChartData" :options="doughnutOptions" />
+          <div class="w-48 h-48 shrink-0">
+            <Chart type="doughnut" :data="outcomeChartData" :options="doughnutOptions" class="h-full" />
           </div>
           <ul class="space-y-2 text-sm">
             <li
@@ -82,7 +82,7 @@
               :class="podiumClass(i)"
               >{{ i + 1 }}</span
             >
-            <span class="flex-1 font-medium text-gray-900 dark:text-white truncate">{{
+            <span class="flex-1 font-medium text-gray-900 dark:text-white wrap-break-word min-w-0">{{
               team.displayName
             }}</span>
             <span class="text-sm text-gray-500 dark:text-gray-400"
@@ -170,7 +170,7 @@
               :class="podiumClass(i)"
               >{{ i + 1 }}</span
             >
-            <span class="flex-1 font-medium text-gray-900 dark:text-white truncate">{{
+            <span class="flex-1 font-medium text-gray-900 dark:text-white wrap-break-word min-w-0">{{
               player.displayName
             }}</span>
             <span class="text-sm text-gray-500 dark:text-gray-400"
@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import Chart from 'primevue/chart'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
@@ -268,9 +268,10 @@ const store = useTournamentDetailStore()
 
 const isMounted = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
+  await store.ensureStats()
+  await nextTick()
   isMounted.value = true
-  store.ensureStats()
 })
 
 onBeforeUnmount(() => {

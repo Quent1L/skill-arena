@@ -2,8 +2,12 @@
   <div class="tournaments-view">
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Évènements compétitifs</h1>
-        <p class="text-gray-600 dark:text-gray-400">Découvrez et participez aux évènements en cours</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Évènements compétitifs
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+          Découvrez et participez aux évènements en cours
+        </p>
       </div>
       <Button
         v-if="canManageTournaments"
@@ -30,7 +34,7 @@
 
       <div v-if="hasFinishedEvents" class="flex items-center gap-2 ml-auto">
         <label class="text-sm text-gray-600 dark:text-gray-400">Terminés</label>
-        <InputSwitch v-model="showFinished" />
+        <ToggleSwitch v-model="showFinished" />
       </div>
     </div>
 
@@ -54,12 +58,23 @@
       <template #content>
         <div class="space-y-4">
           <i class="pi pi-trophy text-4xl text-gray-400"></i>
-          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300">Aucun évènement trouvé</h3>
+          <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300">
+            Aucun évènement trouvé
+          </h3>
           <p class="text-gray-500 dark:text-gray-400">
-            {{ selectedTags.length > 0 ? 'Aucun évènement ne correspond à vos filtres.' : "Il n'y a actuellement aucun évènement disponible." }}
+            {{
+              selectedTags.length > 0
+                ? 'Aucun évènement ne correspond à vos filtres.'
+                : "Il n'y a actuellement aucun évènement disponible."
+            }}
           </p>
           <div v-if="selectedTags.length > 0">
-            <Button label="Effacer les filtres" text @click="selectedTags = []" class="text-blue-600" />
+            <Button
+              label="Effacer les filtres"
+              text
+              @click="selectedTags = []"
+              class="text-blue-600"
+            />
           </div>
         </div>
       </template>
@@ -86,10 +101,14 @@ const canManageTournaments = computed(() => isAuthenticated.value && isSuperAdmi
 const selectedTags = ref<string[]>([])
 const showFinished = ref(false)
 
+const statusPriority = (status: string) => (['open', 'ongoing'].includes(status) ? 0 : 1)
+
 const allEvents = computed<ClientTournamentSummary[]>(() =>
-  [...tournaments.value, ...seasons.value].sort(
-    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-  ),
+  [...tournaments.value, ...seasons.value].sort((a, b) => {
+    const byStatus = statusPriority(a.status) - statusPriority(b.status)
+    if (byStatus !== 0) return byStatus
+    return new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+  }),
 )
 
 const activeEvents = computed(() =>

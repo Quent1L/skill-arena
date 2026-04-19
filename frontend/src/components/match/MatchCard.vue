@@ -56,8 +56,7 @@
             <div
               v-for="(player, idx) in (leftSide?.players ?? []).slice(0, 2)"
               :key="player.id"
-              class="w-9 h-9 rounded-md border border-surface-900 flex items-center justify-center text-sm font-bold uppercase"
-              :class="idx === 0 ? leftAvatarRingClass : 'ring-1 ring-surface-700/20'"
+              class="w-9 h-9 rounded-md border border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center text-sm font-bold uppercase"
               :style="{ zIndex: 30 - idx * 10, background: getAvatarBg(player.shortName) }"
             >
               {{ getInitials(player.displayName) }}
@@ -228,12 +227,6 @@ const resultBadgeClass = computed(() => {
   return 'bg-surface-700/50 border-surface-600 text-muted-color'
 })
 
-const leftAvatarRingClass = computed(() => {
-  if (!props.currentPlayerId) return 'ring-1 ring-surface-700/20'
-  if (outcome.value === 'WIN') return 'ring-1 ring-match-win/40 text-match-win'
-  if (outcome.value === 'LOSS') return 'ring-1 ring-match-loss/40 text-color'
-  return 'ring-1 ring-surface-700/30 text-color'
-})
 
 const accentBarClass = computed(() => {
   if (props.currentPlayerId) {
@@ -340,16 +333,16 @@ function navigateToMatch(matchId: string) {
 }
 
 const AVATAR_COLORS = [
-  '#1e3a5f',
-  '#2d1b69',
-  '#1a3a2a',
-  '#3d1f1f',
-  '#1f3d3d',
-  '#3d2d1f',
-  '#2d1f3d',
-  '#1f2d3d',
-  '#3d3d1f',
-  '#1f3d1f',
+  '#1d4ed8',
+  '#4338ca',
+  '#7e22ce',
+  '#be185d',
+  '#b91c1c',
+  '#c2410c',
+  '#b45309',
+  '#15803d',
+  '#0f766e',
+  '#0369a1',
 ]
 
 function getAvatarBg(name: string) {
