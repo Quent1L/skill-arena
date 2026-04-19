@@ -247,6 +247,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/ranked/:id/tiers',
+    name: 'admin-ranked-tiers',
+    component: () => import('@/views/admin/RankedTiersView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Rangs',
+      title: 'Gestion des rangs',
+      requiresAuth: true,
+      parent: 'admin-ranked',
+    },
+  },
+  {
     path: '/ranked/:id',
     redirect: (to) => ({ path: `/tournaments/${to.params.id}` }),
   },

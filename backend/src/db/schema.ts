@@ -594,6 +594,9 @@ export const rankedSeasonConfigs = pgTable("ranked_season_configs", {
   allowAsymmetricMatches: boolean("allow_asymmetric_matches")
     .notNull()
     .default(false),
+  sourceTierSeasonId: uuid("source_tier_season_id").references(() => tournaments.id, {
+    onDelete: "set null",
+  }),
 });
 
 export const playerMmr = pgTable(
@@ -650,6 +653,7 @@ export const rankTiers = pgTable(
     name: text("name").notNull(),
     percentile: real("percentile").notNull(),
     minMmr: integer("min_mmr").notNull(),
+    subRanks: integer("sub_ranks").notNull().default(1),
     calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
   },
   (table) => [unique().on(table.seasonId, table.level)],

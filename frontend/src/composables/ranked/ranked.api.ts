@@ -2,6 +2,8 @@ import http from '@/config/ApiConfig'
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
+  CreateRankTierInput,
+  UpdateRankTierInput,
   ClientPlayerMmr,
   ClientMmrHistoryEntry,
   ClientRankTier,
@@ -9,6 +11,14 @@ import type {
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
+
+export type FinishedSeasonSummary = {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  discipline?: { id: string; name: string } | null
+}
 
 export type RankedSeason = {
   id: string
@@ -31,6 +41,7 @@ export type RankedSeason = {
     placementMatches: number
     usePreviousMmr: boolean
     allowAsymmetricMatches: boolean
+    sourceTierSeasonId?: string | null
   } | null
   rankTiers?: ClientRankTier[]
   discipline?: { id: string; name: string } | null
@@ -94,6 +105,35 @@ export const rankedApi = {
     const response = await http.get<PlayerMmrResponse>(
       `${BASE_URL}/seasons/${seasonId}/players/${playerId}`,
     )
+    return response.data
+  },
+
+  async getTiers(seasonId: string): Promise<ClientRankTier[]> {
+    const response = await http.get<ClientRankTier[]>(`${BASE_URL}/seasons/${seasonId}/tiers`)
+    return response.data
+  },
+
+  async createTier(seasonId: string, data: CreateRankTierInput): Promise<ClientRankTier> {
+    const response = await http.post<ClientRankTier>(`${BASE_URL}/seasons/${seasonId}/tiers`, data)
+    return response.data
+  },
+
+  async updateTier(seasonId: string, level: number, data: UpdateRankTierInput): Promise<ClientRankTier> {
+    const response = await http.patch<ClientRankTier>(`${BASE_URL}/seasons/${seasonId}/tiers/${level}`, data)
+    return response.data
+  },
+
+  async deleteTier(seasonId: string, level: number): Promise<void> {
+    await http.delete(`${BASE_URL}/seasons/${seasonId}/tiers/${level}`)
+  },
+
+  async recalculateTiers(seasonId: string): Promise<ClientRankTier[]> {
+    const response = await http.post<ClientRankTier[]>(`${BASE_URL}/seasons/${seasonId}/tiers/recalculate`)
+    return response.data
+  },
+
+  async getFinishedSeasons(): Promise<FinishedSeasonSummary[]> {
+    const response = await http.get<FinishedSeasonSummary[]>(`${BASE_URL}/seasons/finished`)
     return response.data
   },
 

@@ -61,6 +61,15 @@
               v-tooltip.top="'Voir'"
             />
             <Button
+              v-if="data.status !== 'draft'"
+              icon="fa fa-trophy"
+              size="small"
+              text
+              rounded
+              @click="router.push(`/admin/ranked/${data.id}/tiers`)"
+              v-tooltip.top="'Gérer les rangs'"
+            />
+            <Button
               v-if="data.status === 'draft'"
               icon="fa fa-edit"
               size="small"

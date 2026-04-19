@@ -76,7 +76,7 @@
             <div class="flex-1 min-w-0">
               <div class="font-semibold text-sm truncate">{{ player.player?.displayName ?? 'Inconnu' }}</div>
               <div class="text-xs mt-0.5" :class="tierTextClass(getPlayerRank(player.currentMmr))">
-                {{ tierLabel(getPlayerRank(player.currentMmr)) }}
+                {{ tierLabel(getPlayerRank(player.currentMmr), player.currentMmr) }}
               </div>
             </div>
 
@@ -99,6 +99,7 @@ import { computed, defineComponent, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
 import { getInitials } from '@/utils/StringUtils'
+import { getSubRank, getTierLabel } from '@/composables/ranked/ranked.service'
 
 const TIER_TEXT_CLASSES = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-red-400']
 const TIER_AVATAR_CLASSES = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-red-600']
@@ -131,8 +132,10 @@ function tierAvatarClass(tier: ClientRankTier | null): string {
   return TIER_AVATAR_CLASSES[styleIdx(tier)]
 }
 
-function tierLabel(tier: ClientRankTier | null): string {
-  return tier?.name ?? '—'
+function tierLabel(tier: ClientRankTier | null, mmr: number): string {
+  if (!tier) return '—'
+  const sr = getSubRank(mmr, tier, props.tiers)
+  return getTierLabel(tier, sr)
 }
 
 const tierSummary = computed(() =>
@@ -247,7 +250,9 @@ const PodiumCard = defineComponent({
 
               // Tier
               h('div', { class: ['text-xs font-semibold uppercase tracking-wide', TIER_TEXT_CLASSES[podiumStyleIdx()]] },
-                tier.value?.name ?? '—'),
+                tier.value
+                  ? getTierLabel(tier.value, getSubRank(p.player.currentMmr, tier.value, p.tiers))
+                  : '—'),
 
               // MMR
               h('div', {

@@ -1,4 +1,5 @@
 import { eq, and, inArray } from "drizzle-orm";
+import type { CreateRankTierInput, UpdateRankTierInput } from "@skill-arena/shared/types/index";
 import { db } from "../config/database";
 import {
   tournaments,
@@ -29,6 +30,7 @@ export interface CreateRankedConfigData {
   placementMatches: number;
   usePreviousMmr: boolean;
   allowAsymmetricMatches: boolean;
+  sourceTierSeasonId?: string | null;
 }
 
 export interface UpdateRankedConfigData {
@@ -37,6 +39,7 @@ export interface UpdateRankedConfigData {
   placementMatches?: number;
   usePreviousMmr?: boolean;
   allowAsymmetricMatches?: boolean;
+  sourceTierSeasonId?: string | null;
 }
 
 export class RankedSeasonRepository {
@@ -148,9 +151,58 @@ export class RankedSeasonRepository {
     for (const tier of RankedSeasonRepository.DEFAULT_TIER_CONFIGS) {
       await db
         .insert(rankTiers)
-        .values({ seasonId, level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: baseMmr })
+        .values({ seasonId, level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: baseMmr, subRanks: 1 })
         .onConflictDoNothing();
     }
+  }
+
+  async copyTiersFromSeason(sourceSeasonId: string, targetSeasonId: string, baseMmr: number) {
+    const sourceTiers = await this.getRankTiers(sourceSeasonId);
+    for (const tier of sourceTiers) {
+      await db
+        .insert(rankTiers)
+        .values({
+          seasonId: targetSeasonId,
+          level: tier.level,
+          name: tier.name,
+          percentile: tier.percentile,
+          subRanks: tier.subRanks,
+          minMmr: baseMmr,
+        })
+        .onConflictDoNothing();
+    }
+  }
+
+  async getFinishedSeasons() {
+    return await db.query.tournaments.findMany({
+      where: and(eq(tournaments.mode, "ranked"), eq(tournaments.status, "finished")),
+      columns: { id: true, name: true, startDate: true, endDate: true },
+      with: { discipline: { columns: { id: true, name: true } } },
+      orderBy: (t, { desc }) => [desc(t.endDate)],
+    });
+  }
+
+  async insertTier(seasonId: string, data: CreateRankTierInput) {
+    const [created] = await db
+      .insert(rankTiers)
+      .values({ seasonId, ...data })
+      .returning();
+    return created;
+  }
+
+  async updateTier(seasonId: string, level: number, data: UpdateRankTierInput) {
+    const [updated] = await db
+      .update(rankTiers)
+      .set(data)
+      .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)))
+      .returning();
+    return updated;
+  }
+
+  async deleteTier(seasonId: string, level: number) {
+    await db
+      .delete(rankTiers)
+      .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)));
   }
 
   async getLastFinishedSeason(disciplineId: string) {

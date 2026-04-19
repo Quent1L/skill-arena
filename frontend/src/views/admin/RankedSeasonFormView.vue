@@ -208,6 +208,25 @@
                 </label>
               </div>
             </div>
+
+            <div class="mt-4">
+              <label for="sourceTierSeasonId" class="block text-sm font-medium mb-2">
+                Copier les rangs depuis une saison terminée (optionnel)
+              </label>
+              <Select
+                id="sourceTierSeasonId"
+                v-model="form.sourceTierSeasonId"
+                :options="sourceTierOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="Utiliser les rangs par défaut"
+                class="w-full"
+                show-clear
+              />
+              <small class="text-surface-400">
+                La structure des rangs sera copiée au démarrage de la saison. Les seuils MMR seront recalculés.
+              </small>
+            </div>
           </div>
 
           <!-- Contraintes de score -->
@@ -280,11 +299,13 @@ const route = useRoute()
 
 const {
   currentSeason,
+  finishedSeasons,
   loading,
   error,
   loadSeasonById,
   createSeason,
   updateSeason,
+  loadFinishedSeasons,
 } = useRankedService()
 
 const { disciplines, listDisciplines } = useDisciplineService()
@@ -309,6 +330,7 @@ const form = ref({
   placementMatches: 5,
   usePreviousMmr: false,
   allowAsymmetricMatches: false,
+  sourceTierSeasonId: null as string | null,
   scoreEnabled: true,
   minScore: null as number | null,
   maxScore: null as number | null,
@@ -321,6 +343,16 @@ const disciplineOptions = computed(() =>
 )
 
 const rulesOptions = computed(() => gameRulesList.value.map((r) => ({ label: r.title, value: r.id })))
+
+const currentSeasonId = computed(() => (isEditMode.value ? (route.params.id as string) : null))
+const sourceTierOptions = computed(() =>
+  finishedSeasons.value
+    .filter((s) => s.id !== currentSeasonId.value)
+    .map((s) => ({
+      label: `${s.name}${s.discipline ? ` — ${s.discipline.name}` : ''}`,
+      value: s.id,
+    })),
+)
 
 watch(startDateObj, (val) => {
   form.value.startDate = val ? val.toISOString().split('T')[0] : ''
@@ -369,6 +401,7 @@ async function onSubmit() {
       placementMatches: form.value.placementMatches,
       usePreviousMmr: form.value.usePreviousMmr,
       allowAsymmetricMatches: form.value.allowAsymmetricMatches,
+      sourceTierSeasonId: form.value.sourceTierSeasonId,
     })
     if (success) router.push('/admin/ranked')
   } else {
@@ -389,13 +422,14 @@ async function onSubmit() {
       placementMatches: form.value.placementMatches,
       usePreviousMmr: form.value.usePreviousMmr,
       allowAsymmetricMatches: form.value.allowAsymmetricMatches,
+      sourceTierSeasonId: form.value.sourceTierSeasonId,
     })
     if (season) router.push('/admin/ranked')
   }
 }
 
 onMounted(async () => {
-  await Promise.all([listDisciplines(), loadRules()])
+  await Promise.all([listDisciplines(), loadRules(), loadFinishedSeasons()])
   if (isEditMode.value) {
     const id = route.params.id as string
     await loadSeasonById(id)
@@ -423,6 +457,7 @@ onMounted(async () => {
         form.value.placementMatches = s.rankedConfig.placementMatches
         form.value.usePreviousMmr = s.rankedConfig.usePreviousMmr
         form.value.allowAsymmetricMatches = s.rankedConfig.allowAsymmetricMatches
+        form.value.sourceTierSeasonId = s.rankedConfig.sourceTierSeasonId ?? null
       }
     }
   }

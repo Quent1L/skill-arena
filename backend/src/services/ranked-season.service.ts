@@ -43,6 +43,7 @@ export class RankedSeasonService {
         placementMatches: input.placementMatches ?? 5,
         usePreviousMmr: input.usePreviousMmr ?? false,
         allowAsymmetricMatches: input.allowAsymmetricMatches ?? false,
+        sourceTierSeasonId: input.sourceTierSeasonId ?? null,
       },
     );
 
@@ -69,7 +70,11 @@ export class RankedSeasonService {
     const baseMmr = config?.baseMmr ?? 1000;
 
     await tournamentRepository.update(id, { status: "ongoing" });
-    await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
+    if (config?.sourceTierSeasonId) {
+      await rankedSeasonRepository.copyTiersFromSeason(config.sourceTierSeasonId, id, baseMmr);
+    } else {
+      await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
+    }
     await this.recalculateTierMinMmr(id, baseMmr);
 
     return await rankedSeasonRepository.getSeasonWithConfig(id);
@@ -114,6 +119,7 @@ export class RankedSeasonService {
     if (input.placementMatches !== undefined) configUpdate.placementMatches = input.placementMatches;
     if (input.usePreviousMmr !== undefined) configUpdate.usePreviousMmr = input.usePreviousMmr;
     if (input.allowAsymmetricMatches !== undefined) configUpdate.allowAsymmetricMatches = input.allowAsymmetricMatches;
+    if (input.sourceTierSeasonId !== undefined) configUpdate.sourceTierSeasonId = input.sourceTierSeasonId;
 
     if (Object.keys(configUpdate).length > 0) {
       await rankedSeasonRepository.updateConfig(id, configUpdate);
@@ -138,7 +144,7 @@ export class RankedSeasonService {
    * Recalculate tier min_mmr based on percentiles of MMR distribution.
    * legend = top 10%, master = top 30%, strategist = top 60%, challenger = rest
    */
-  private async recalculateTierMinMmr(seasonId: string, baseMmr: number) {
+  async recalculateTierMinMmr(seasonId: string, baseMmr: number) {
     const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
     if (tiers.length === 0) return;
 

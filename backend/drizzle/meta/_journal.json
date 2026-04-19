@@ -267,6 +267,13 @@
       "when": 1776000000002,
       "tag": "0037_outcome_type_points",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1776000000003,
+      "tag": "0038_ranked_subranks_source",
+      "breakpoints": true
     }
   ]
 }

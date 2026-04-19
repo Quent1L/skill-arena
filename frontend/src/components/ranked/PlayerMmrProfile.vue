@@ -12,7 +12,7 @@
         </div>
         <div class="text-xs font-bold tracking-widest uppercase text-white/50 mb-1">Rang actuel</div>
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
-          {{ tierLabel(rank) }}
+          {{ getTierLabel(rank, subRank) }}
         </div>
 
       </div>
@@ -44,9 +44,9 @@
       <!-- Progress bar toward next tier -->
       <div v-if="progressData" class="px-6 pb-6">
         <div class="flex justify-between text-xs text-white/40 mb-1.5">
-          <span class="font-semibold" :class="tierTextClass">{{ tierLabel(rank) }}</span>
+          <span class="font-semibold" :class="tierTextClass">{{ getTierLabel(rank, subRank) }}</span>
           <span>{{ progressData.mmrToNext }} MMR manquants</span>
-          <span class="font-semibold" :class="nextTierTextClass">{{ tierLabel(progressData.nextTier) }}</span>
+          <span class="font-semibold" :class="nextTierTextClass">{{ progressData.nextLabel }}</span>
         </div>
         <div class="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
@@ -111,6 +111,7 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
+import { getSubRank, getTierLabel } from '@/composables/ranked/ranked.service'
 
 const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })
@@ -146,6 +147,10 @@ const rank = computed((): ClientRankTier | null => {
   return [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? props.tiers[0]
 })
 
+const subRank = computed(() =>
+  rank.value ? getSubRank(props.mmr.currentMmr, rank.value, props.tiers) : null
+)
+
 const mmrDelta = computed(() => {
   if (props.initialMmr === undefined) return null
   return props.mmr.currentMmr - props.initialMmr
@@ -161,35 +166,64 @@ const progressData = computed(() => {
   if (!props.tiers.length || !rank.value) return null
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
   const maxLevel = sorted[sorted.length - 1].level
-  if (rank.value.level === maxLevel) return null
+  const playerMmr = props.mmr.currentMmr
 
-  const nextTier = sorted.find((t) => t.level === rank.value!.level + 1)
+  const currentTier = rank.value
+  const nextTier = sorted.find((t) => t.level === currentTier.level + 1)
+  const prevTier = [...sorted].reverse().find((t) => t.level < currentTier.level)
+
+  if (currentTier.subRanks > 1) {
+    const rangeTop = nextTier?.minMmr ?? (currentTier.minMmr + (prevTier ? currentTier.minMmr - prevTier.minMmr : 1000))
+    const tierRange = rangeTop - currentTier.minMmr
+    const subRankRange = tierRange / currentTier.subRanks
+    const sr = subRank.value ?? 1
+
+    // Sub-rank lower bound: sr=5 → bottom of tier, sr=1 → top
+    const currentSubRankMin = currentTier.minMmr + (currentTier.subRanks - sr) * subRankRange
+    const isTopSubRank = sr === 1
+
+    if (isTopSubRank && currentTier.level === maxLevel) return null
+
+    if (isTopSubRank && nextTier) {
+      // Progress toward next tier (sub-rank max of next tier)
+      const nextSr = nextTier.subRanks
+      const nextLabel = getTierLabel(nextTier, nextSr > 1 ? nextSr : null)
+      const range = nextTier.minMmr - currentSubRankMin
+      const percent = range > 0 ? Math.min(100, Math.round(((playerMmr - currentSubRankMin) / range) * 100)) : 0
+      return { nextTier, nextLabel, nextTierForStyle: nextTier, percent, mmrToNext: nextTier.minMmr - playerMmr }
+    }
+
+    // Progress within current tier toward next sub-rank
+    const nextSubRankMin = currentSubRankMin + subRankRange
+    const nextSrNumber = sr - 1
+    const nextLabel = getTierLabel(currentTier, nextSrNumber)
+    const range = nextSubRankMin - currentSubRankMin
+    const percent = range > 0 ? Math.min(100, Math.round(((playerMmr - currentSubRankMin) / range) * 100)) : 0
+    return { nextTier: currentTier, nextLabel, nextTierForStyle: currentTier, percent, mmrToNext: Math.ceil(nextSubRankMin) - playerMmr }
+  }
+
+  if (currentTier.level === maxLevel) return null
   if (!nextTier) return null
 
-  const currentThreshold = rank.value.minMmr
+  const currentThreshold = currentTier.minMmr
   const nextThreshold = nextTier.minMmr
-  const mmrInTier = props.mmr.currentMmr - currentThreshold
+  const mmrInTier = playerMmr - currentThreshold
   const tierRange = nextThreshold - currentThreshold
   const percent = tierRange > 0 ? Math.min(100, Math.round((mmrInTier / tierRange) * 100)) : 0
-  const mmrToNext = nextThreshold - props.mmr.currentMmr
-
-  return { nextTier, percent, mmrToNext }
+  const nextLabel = getTierLabel(nextTier, nextTier.subRanks > 1 ? nextTier.subRanks : null)
+  return { nextTier, nextLabel, nextTierForStyle: nextTier, percent, mmrToNext: nextThreshold - playerMmr }
 })
 
 const cardBgClass = computed(() => CARD_BG[styleIdx(rank.value)])
 const iconBgClass = computed(() => ICON_BG[styleIdx(rank.value)])
 const tierTextClass = computed(() => TIER_TEXT[styleIdx(rank.value)])
 const nextTierTextClass = computed(() =>
-  progressData.value ? TIER_TEXT[styleIdx(progressData.value.nextTier)] : ''
+  progressData.value ? TIER_TEXT[styleIdx(progressData.value.nextTierForStyle)] : ''
 )
 const progressBarClass = computed(() =>
-  progressData.value ? PROGRESS_BAR[styleIdx(progressData.value.nextTier)] : ''
+  progressData.value ? PROGRESS_BAR[styleIdx(progressData.value.nextTierForStyle)] : ''
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
-
-function tierLabel(tier: ClientRankTier | null): string {
-  return tier?.name ?? '—'
-}
 
 const sortedHistory = computed(() =>
   [...(props.history ?? [])]

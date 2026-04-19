@@ -12,6 +12,7 @@ export interface RankedSeasonConfig {
   placementMatches: number;
   usePreviousMmr: boolean;
   allowAsymmetricMatches: boolean;
+  sourceTierSeasonId?: string | null;
 }
 
 export interface PlayerMmr {
@@ -46,6 +47,7 @@ export interface ClientRankTier {
   name: string;
   percentile: number;
   minMmr: number;
+  subRanks: number;
   calculatedAt: Date;
 }
 
@@ -125,6 +127,7 @@ export const createRankedSeasonSchema = z.object({
   placementMatches: z.number().int().min(1).max(20).default(5),
   usePreviousMmr: z.boolean().default(false),
   allowAsymmetricMatches: z.boolean().default(false),
+  sourceTierSeasonId: z.string().uuid().nullable().optional(),
 }).refine(
   (data) => {
     const start = new Date(data.startDate);
@@ -182,6 +185,7 @@ export const updateRankedSeasonSchema = z.object({
   placementMatches: z.number().int().min(1).max(20).optional(),
   usePreviousMmr: z.boolean().optional(),
   allowAsymmetricMatches: z.boolean().optional(),
+  sourceTierSeasonId: z.string().uuid().nullable().optional(),
 });
 
 // ============================================
@@ -190,3 +194,21 @@ export const updateRankedSeasonSchema = z.object({
 
 export type CreateRankedSeasonInput = z.infer<typeof createRankedSeasonSchema>;
 export type UpdateRankedSeasonInput = z.infer<typeof updateRankedSeasonSchema>;
+
+export const createRankTierSchema = z.object({
+  level: z.number().int().min(1),
+  name: z.string().min(1).max(50),
+  percentile: z.number().min(0).max(1),
+  minMmr: z.number().int().min(0),
+  subRanks: z.number().int().min(1).max(10).default(1),
+});
+
+export const updateRankTierSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  percentile: z.number().min(0).max(1).optional(),
+  minMmr: z.number().int().min(0).optional(),
+  subRanks: z.number().int().min(1).max(10).optional(),
+});
+
+export type CreateRankTierInput = z.infer<typeof createRankTierSchema>;
+export type UpdateRankTierInput = z.infer<typeof updateRankTierSchema>;

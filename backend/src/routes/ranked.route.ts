@@ -5,6 +5,8 @@ import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import {
   createRankedSeasonSchema,
   updateRankedSeasonSchema,
+  createRankTierSchema,
+  updateRankTierSchema,
 } from "@skill-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
@@ -30,6 +32,12 @@ ranked.get("/seasons", async (c) => {
   const disciplineId = c.req.query("disciplineId");
   const status = c.req.query("status");
   const seasons = await rankedSeasonService.listSeasons({ disciplineId, status });
+  return c.json(seasons);
+});
+
+// GET /ranked/seasons/finished - List finished seasons (for tier source dropdown)
+ranked.get("/seasons/finished", async (c) => {
+  const seasons = await rankedSeasonRepository.getFinishedSeasons();
   return c.json(seasons);
 });
 
@@ -68,6 +76,60 @@ ranked.post("/seasons/:id/end", requireAuth, async (c) => {
   const appUserId = c.get("appUserId");
   const season = await rankedSeasonService.endSeason(id, appUserId);
   return c.json(season);
+});
+
+// GET /ranked/seasons/:id/tiers - List rank tiers
+ranked.get("/seasons/:id/tiers", requireAuth, async (c) => {
+  const id = c.req.param("id")!;
+  const tiers = await rankedSeasonRepository.getRankTiers(id);
+  return c.json(tiers);
+});
+
+// POST /ranked/seasons/:id/tiers - Create a rank tier
+ranked.post(
+  "/seasons/:id/tiers",
+  requireAuth,
+  zValidator("json", createRankTierSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const data = c.req.valid("json");
+    const tier = await rankedSeasonRepository.insertTier(id, data);
+    return c.json(tier, 201);
+  },
+);
+
+// PATCH /ranked/seasons/:id/tiers/:level - Update a rank tier
+ranked.patch(
+  "/seasons/:id/tiers/:level",
+  requireAuth,
+  zValidator("json", updateRankTierSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const level = Number(c.req.param("level")!);
+    const data = c.req.valid("json");
+    const tier = await rankedSeasonRepository.updateTier(id, level, data);
+    return c.json(tier);
+  },
+);
+
+// DELETE /ranked/seasons/:id/tiers/:level - Delete a rank tier
+ranked.delete("/seasons/:id/tiers/:level", requireAuth, async (c) => {
+  const id = c.req.param("id")!;
+  const level = Number(c.req.param("level")!);
+  await rankedSeasonRepository.deleteTier(id, level);
+  return c.json({ success: true });
+});
+
+// POST /ranked/seasons/:id/tiers/recalculate - Recalculate tier MMR boundaries
+ranked.post("/seasons/:id/tiers/recalculate", requireAuth, async (c) => {
+  const id = c.req.param("id")!;
+  const config = await rankedSeasonRepository.getConfigByTournamentId(id);
+  if (!config) {
+    throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
+  }
+  await rankedSeasonService.recalculateTierMinMmr(id, config.baseMmr);
+  const tiers = await rankedSeasonRepository.getRankTiers(id);
+  return c.json(tiers);
 });
 
 // GET /ranked/seasons/:id/leaderboard - Get season leaderboard
