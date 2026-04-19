@@ -208,213 +208,13 @@
     </div>
 
     <!-- Bottom Navigation -->
-    <div
-      class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around items-center z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
-    >
-      <!-- Ranked bottom nav -->
-      <template v-if="store.tournament!.mode === 'ranked'">
-        <button
-          @click="navigate('infos')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'infos' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'infos' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'infos' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Détail</span>
-        </button>
-
-        <button
-          @click="navigate('standings')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-trophy text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Classement</span>
-        </button>
-
-        <button
-          v-if="store.isAuthenticated"
-          @click="switchTab('profile')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'profile' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'profile' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-user text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'profile' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Profil</span>
-        </button>
-
-        <button
-          @click="navigate('matches')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-gamepad text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Matchs</span>
-        </button>
-
-        <button
-          @click="navigate('stats')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'stats' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="activeTab === 'stats' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
-          ></div>
-          <i
-            class="fas fa-chart-pie text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'stats' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Stats</span>
-        </button>
-      </template>
-
-      <!-- Championship / Bracket bottom nav -->
-      <template v-else>
-        <button
-          @click="navigate('infos')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'infos' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'infos' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-info-circle text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'infos' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Info</span>
-        </button>
-
-        <button
-          v-if="store.tournament!.mode !== 'bracket'"
-          @click="navigate('standings')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'standings' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'standings' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-trophy text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'standings' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Classement</span>
-        </button>
-
-        <button
-          v-if="store.tournament!.mode === 'bracket'"
-          @click="navigate('bracket')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'bracket' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'bracket' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-sitemap text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'bracket' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Bracket</span>
-        </button>
-
-        <button
-          @click="navigate('matches')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'matches' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="
-              activeTab === 'matches' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'
-            "
-          ></div>
-          <i
-            class="fas fa-gamepad text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'matches' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Matchs</span>
-        </button>
-
-        <button
-          @click="navigate('stats')"
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="activeTab === 'stats' ? activeNavClass : inactiveNavClass"
-        >
-          <div
-            class="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
-            :class="activeTab === 'stats' ? 'bg-primary-600 dark:bg-primary-400' : 'bg-transparent'"
-          ></div>
-          <i
-            class="fas fa-chart-pie text-xl mb-1 transition-transform duration-200"
-            :class="activeTab === 'stats' ? 'scale-110' : 'group-hover:scale-105'"
-          ></i>
-          <span class="text-xs font-medium">Stats</span>
-        </button>
-
-        <button
-          v-if="store.tournament!.teamMode === 'static'"
-          @click="
-            router.push({
-              name: 'tournament-tab',
-              params: { id: store.tournamentId, tab: 'teams' },
-            })
-          "
-          class="flex flex-col items-center justify-center w-full h-full transition-all duration-200 relative group"
-          :class="inactiveNavClass"
-        >
-          <div class="absolute top-0 left-0 right-0 h-0.5 bg-transparent"></div>
-          <i
-            class="fas fa-users text-xl mb-1 transition-transform duration-200 group-hover:scale-105"
-          ></i>
-          <span class="text-xs font-medium">Équipes</span>
-        </button>
-
-      </template>
-    </div>
+    <MobileBottomNav
+      :active-tab="activeTab"
+      :tournament-mode="store.tournament!.mode"
+      :team-mode="store.tournament!.teamMode"
+      :is-authenticated="store.isAuthenticated"
+      @navigate="handleNavigate"
+    />
   </div>
 </template>
 
@@ -431,6 +231,7 @@ import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentParticipantsTab.vue'
 import TournamentStatsTab from '@/views/tournament/tabs/TournamentStatsTab.vue'
+import MobileBottomNav from '@/components/tournament/mobile/MobileBottomNav.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -439,11 +240,6 @@ const store = useTournamentDetailStore()
 const contentAreaRef = ref<HTMLElement | null>(null)
 const standingsType = ref<'official' | 'provisional'>('official')
 const standingsTypeValues = ['official', 'provisional'] as const
-
-const activeNavClass =
-  'text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
-const inactiveNavClass =
-  'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
 
 useSwipe(contentAreaRef, {
   onSwipeEnd(_e, direction) {
@@ -473,15 +269,11 @@ function navigate(tab: string) {
   router.push({ name: 'tournament-tab', params: { id: store.tournamentId, tab } })
 }
 
-async function switchTab(tab: string) {
+async function handleNavigate(tab: string) {
   navigate(tab)
   if (tab === 'profile') await store.ensurePlayerProfile()
 }
 </script>
 
 <style scoped>
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-  height: calc(4rem + env(safe-area-inset-bottom));
-}
 </style>
