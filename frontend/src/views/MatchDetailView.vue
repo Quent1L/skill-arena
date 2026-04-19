@@ -84,7 +84,7 @@
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
                     <template
-                      v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined"
+                      v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
                     >
                       <Tag
                         v-if="p.exceededMatchLimit"
@@ -143,7 +143,7 @@
                     </RouterLink>
                     <span v-else>{{ p.user?.displayName }}</span>
                     <template
-                      v-if="match.status === 'finalized' && p.effectivePointsAwarded !== undefined"
+                      v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
                     >
                       <Tag
                         v-if="p.exceededMatchLimit"
