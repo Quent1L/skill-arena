@@ -14,10 +14,10 @@
       <div>
         <button
           class="flex items-center gap-2 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
+          v-tooltip.left="'Comment est calculé le classement ?'"
           @click="infoVisible = true"
         >
           <i class="fa fa-circle-question text-sm" />
-          <span class="font-medium">Comment est calculé le classement ?</span>
         </button>
       </div>
     </div>
