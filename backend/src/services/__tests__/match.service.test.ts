@@ -1630,6 +1630,7 @@ describe("MatchService - Edge Cases", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
+        scoreEnabled: true,
         maxMatchesPerPlayer: 10,
         maxTimesWithSamePartner: 5,
         maxTimesWithSameOpponent: 5,

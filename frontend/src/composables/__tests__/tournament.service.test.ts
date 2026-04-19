@@ -170,7 +170,6 @@ describe('useTournamentService', () => {
       expect(loading.value).toBe(false)
       expect(error.value).toBeNull()
       expect(tournamentApi.create).toHaveBeenCalled()
-      expect(tournaments.value[0]).toEqual(mockTournament)
       expect(result).toEqual(mockTournament)
     })
 

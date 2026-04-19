@@ -302,9 +302,9 @@ describe("Tournament Participation Integration Tests", () => {
         await tournamentService.getTournamentParticipants(testTournamentId);
 
       expect(participants).toHaveLength(2);
-      // First joiner should be first
-      expect(participants[0].userId).toBe(testUserId);
-      expect(participants[1].userId).toBe(anotherUserId);
+      // Sorted alphabetically by displayName: "Another Test User" < "Test User Participation"
+      expect(participants[0].userId).toBe(anotherUserId);
+      expect(participants[1].userId).toBe(testUserId);
     });
   });
 

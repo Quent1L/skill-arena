@@ -69,7 +69,7 @@ export class MatchService {
       await this.autoRegisterRankedPlayers(input);
     }
 
-    if (!tournament.scoreEnabled && input.status !== "scheduled") {
+    if (!tournament.scoreEnabled && input.status === "reported") {
       matchInputValidator.validateWinnerRequired(input.winner);
       input.scoreA = null;
       input.scoreB = null;

@@ -114,118 +114,6 @@
             <li><span>Provisoire</span> — matchs validés + matchs en attente de validation</li>
           </ul>
         </section>
-
-        <section>
-          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Contraintes du tournoi</h3>
-
-          <template v-if="isOneVsOne">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Format 1v1 — chaque participant joue individuellement.
-            </p>
-            <ul class="space-y-1">
-              <li class="flex justify-between">
-                <span>Max matchs par joueur</span>
-                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Max rencontres avec le même adversaire</span>
-                <span class="font-medium">{{
-                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
-                }}</span>
-              </li>
-              <li
-                v-if="
-                  scoreEnabled &&
-                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
-                "
-                class="flex justify-between"
-              >
-                <span>Score autorisé</span>
-                <span class="font-medium"
-                  >{{ tournamentConfig?.minScore ?? 0 }} –
-                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
-                >
-              </li>
-            </ul>
-          </template>
-
-          <template v-else-if="isFlexTeam">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Format équipes dynamiques — les équipes se forment librement à chaque match.
-            </p>
-            <ul class="space-y-1">
-              <li class="flex justify-between">
-                <span>Max matchs par joueur</span>
-                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Taille d'équipe</span>
-                <span class="font-medium"
-                  >{{ tournamentConfig?.minTeamSize ?? '—' }}–{{
-                    tournamentConfig?.maxTeamSize ?? '—'
-                  }}
-                  joueurs</span
-                >
-              </li>
-              <li class="flex justify-between">
-                <span>Max rencontres avec le même adversaire</span>
-                <span class="font-medium">{{
-                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
-                }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Max rencontres avec le même partenaire</span>
-                <span class="font-medium">{{
-                  tournamentConfig?.maxTimesWithSamePartner ?? '—'
-                }}</span>
-              </li>
-              <li
-                v-if="
-                  scoreEnabled &&
-                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
-                "
-                class="flex justify-between"
-              >
-                <span>Score autorisé</span>
-                <span class="font-medium"
-                  >{{ tournamentConfig?.minScore ?? 0 }} –
-                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
-                >
-              </li>
-            </ul>
-          </template>
-
-          <template v-else>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Format équipes fixes — la composition de chaque équipe est définie en amont.
-            </p>
-            <ul class="space-y-1">
-              <li class="flex justify-between">
-                <span>Max matchs par équipe</span>
-                <span class="font-medium">{{ tournamentConfig?.maxMatchesPerPlayer ?? '—' }}</span>
-              </li>
-              <li class="flex justify-between">
-                <span>Max rencontres avec la même équipe adverse</span>
-                <span class="font-medium">{{
-                  tournamentConfig?.maxTimesWithSameOpponent ?? '—'
-                }}</span>
-              </li>
-              <li
-                v-if="
-                  scoreEnabled &&
-                  (tournamentConfig?.minScore != null || tournamentConfig?.maxScore != null)
-                "
-                class="flex justify-between"
-              >
-                <span>Score autorisé</span>
-                <span class="font-medium"
-                  >{{ tournamentConfig?.minScore ?? 0 }} –
-                  {{ tournamentConfig?.maxScore ?? '∞' }}</span
-                >
-              </li>
-            </ul>
-          </template>
-        </section>
       </div>
     </Dialog>
 
@@ -362,10 +250,10 @@
             <Column v-if="!isMobile" field="buchholzScore">
               <template #header>
                 <span class="flex items-center gap-1">
-                  Buchholz
+                  Buch.
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="'Score basé sur les adversaires rencontrés'"
+                    v-tooltip.top="'Buchholz - Score basé sur les adversaires rencontrés'"
                   />
                 </span>
               </template>
@@ -377,10 +265,10 @@
             <Column v-if="!isMobile" field="victoryQuality">
               <template #header>
                 <span class="flex items-center gap-1">
-                  Qualité des résultats
+                  Qual.
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="'Score basé sur le type de victoire/défaite'"
+                    v-tooltip.top="'Qualité des résultats - Score basé sur le type de victoire/défaite'"
                   />
                 </span>
               </template>
