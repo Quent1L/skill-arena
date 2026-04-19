@@ -23,7 +23,7 @@
         class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
       >
         <RouterLink
-          :to="`/players/${participant.userId}`"
+          :to="{ path: `/players/${participant.userId}`, query: { tournamentId: props.tournamentId } }"
           class="flex items-center gap-3 flex-1 min-w-0 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors no-underline rounded-lg"
         >
           <Avatar :label="participant.user.displayName.charAt(0).toUpperCase()" class="bg-blue-500" />

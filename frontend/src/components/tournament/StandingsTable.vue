@@ -13,7 +13,6 @@
       </div>
       <div>
         <button
-          v-show="!isTransitioning"
           class="flex items-center gap-2  px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
           @click="infoVisible = true"
         >
@@ -245,8 +244,6 @@
       <Transition
         :name="`standings-slide-${slideDirection}`"
         mode="out-in"
-        @before-leave="isTransitioning = true"
-        @after-enter="isTransitioning = false"
       >
         <div v-if="standings.length > 0" :key="`standings-${standingsType}`" class="relative">
           <DataTable :value="standings" class="p-datatable-sm" striped-rows :loading="loading">
@@ -276,7 +273,7 @@
               <template #body="{ data }">
                 <RouterLink
                   v-if="teamMode === 'flex'"
-                  :to="`/players/${data.id}`"
+                  :to="{ path: `/players/${data.id}`, query: { tournamentId: props.tournamentId } }"
                   class="font-medium text-blue-600 dark:text-blue-400 hover:underline"
                   :title="data.name"
                 >
@@ -646,7 +643,6 @@ const { standings, loading, error, loadOfficialStandings, loadProvisionalStandin
 
 const internalStandingsType = ref<'official' | 'provisional'>('official')
 const slideDirection = ref<'left' | 'right'>('left')
-const isTransitioning = ref(false)
 const tiebreakerPanel = ref()
 const qualityDetailPanel = ref()
 const selectedEntry = ref<StandingsEntry | null>(null)

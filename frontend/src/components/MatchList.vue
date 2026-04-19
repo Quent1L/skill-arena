@@ -34,6 +34,15 @@
             <span class="font-label text-xs font-bold uppercase tracking-wider">{{ f.label }}</span>
           </button>
         </template>
+
+        <button
+          v-if="isAnyFilterActive"
+          @click="resetFilters"
+          class="flex items-center justify-center w-8 h-8 rounded-full border bg-surface-800 border-surface-700/20 text-muted-color hover:text-red-400 transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
+          title="Réinitialiser les filtres"
+        >
+          <i class="fa fa-filter-circle-xmark text-xs"></i>
+        </button>
       </div>
 
       <!-- Player filter -->
@@ -111,10 +120,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useInfiniteScroll } from '@vueuse/core'
 import { matchApi } from '@/composables/match/match.api'
 import type { ClientMatchCard, MatchCardSide } from '@skill-arena/shared/types/index'
 import { useViewport } from '@/composables/useViewport'
+import { useMatchListFiltersStore } from '@/stores/matchListFilters.store'
 import MatchCard from './match/MatchCard.vue'
 import PlayerPickerDialog from './match/mobile/PlayerPickerDialog.vue'
 
@@ -146,14 +157,13 @@ let offset = 0
 
 const { isMobile } = useViewport()
 
-const selectedPlayers = ref<Player[]>([])
-const suggestions = ref<Player[]>([])
-const showMobileDialog = ref(false)
-
-const myMatchesActive = ref(false)
+const filtersStore = useMatchListFiltersStore()
+const { myMatchesActive, selectedPlayers, activeOutcomes } = storeToRefs(filtersStore)
 
 type OutcomeFilter = 'WIN' | 'LOSS' | 'DRAW'
-const activeOutcomes = ref(new Set<OutcomeFilter>())
+
+const suggestions = ref<Player[]>([])
+const showMobileDialog = ref(false)
 
 const outcomeFilters = computed(() => {
   const filters = [
@@ -166,8 +176,18 @@ const outcomeFilters = computed(() => {
   return filters
 })
 
+const contextKey = computed(() => {
+  if (props.tournamentId) return `tournament:${props.tournamentId}`
+  if (props.playerId) return `player:${props.playerId}`
+  return 'global'
+})
+
 const showFilters = computed(
   () => props.currentPlayerId || (props.players && props.players.length > 0),
+)
+
+const isAnyFilterActive = computed(
+  () => myMatchesActive.value || selectedPlayers.value.length > 0 || activeOutcomes.value.size > 0,
 )
 
 function toggleMyMatches() {
@@ -273,9 +293,17 @@ useInfiniteScroll(
   },
 )
 
+function resetFilters() {
+  filtersStore.reset()
+  loadMatches()
+}
+
 watch(
-  () => [props.tournamentId, props.playerId],
-  () => loadMatches(),
+  contextKey,
+  (key) => {
+    filtersStore.initContext(key)
+    loadMatches()
+  },
   { immediate: true },
 )
 watch(selectedPlayers, () => loadMatches())

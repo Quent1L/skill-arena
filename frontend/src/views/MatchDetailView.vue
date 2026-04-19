@@ -79,7 +79,7 @@
                   >
                     <RouterLink
                       v-if="p.user?.id"
-                      :to="`/players/${p.user.id}`"
+                      :to="{ path: `/players/${p.user.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
                       class="hover:underline text-blue-600 dark:text-blue-400"
                     >
                       {{ p.user?.displayName }}
@@ -138,7 +138,7 @@
                   >
                     <RouterLink
                       v-if="p.user?.id"
-                      :to="`/players/${p.user.id}`"
+                      :to="{ path: `/players/${p.user.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
                       class="hover:underline text-blue-600 dark:text-blue-400"
                     >
                       {{ p.user?.displayName }}

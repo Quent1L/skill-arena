@@ -14,7 +14,7 @@
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span
-            v-if="entry.pointsDelta != null"
+            v-if="currentPlayerId && entry.pointsDelta != null"
             class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border font-headline font-black tabular-nums text-sm"
             :class="mmrPillClass(entry.pointsDelta)"
           >
@@ -22,7 +22,7 @@
             {{ entry.pointsDelta > 0 ? '+' : '' }}{{ entry.pointsDelta }}
           </span>
           <span
-            v-if="entry.mmrDelta != null"
+            v-if="currentPlayerId && entry.mmrDelta != null"
             class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border font-headline font-black tabular-nums text-sm"
             :class="mmrPillClass(entry.mmrDelta)"
           >

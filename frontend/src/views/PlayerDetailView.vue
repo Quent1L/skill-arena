@@ -316,12 +316,14 @@ const {
 
 const playerId = computed(() => route.params.id as string)
 
+const initialTournamentId = route.query.tournamentId as string | undefined
+
 // Filtres actifs
-const selectedTournamentId = ref<string | undefined>(undefined)
+const selectedTournamentId = ref<string | undefined>(initialTournamentId)
 const selectedMode = ref<string | undefined>(undefined)
 
 // Filtres brouillons pour le drawer mobile
-const draftTournamentId = ref<string | undefined>(undefined)
+const draftTournamentId = ref<string | undefined>(initialTournamentId)
 const draftMode = ref<string | undefined>(undefined)
 
 const showFilterDrawer = ref(false)
@@ -375,6 +377,6 @@ function applyMobileFilters() {
 onMounted(() => {
   loadPlayer(playerId.value)
   loadTournaments(playerId.value)
-  loadStats(playerId.value)
+  applyFilters(selectedTournamentId.value, selectedMode.value)
 })
 </script>

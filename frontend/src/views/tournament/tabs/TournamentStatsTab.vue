@@ -9,7 +9,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Répartition des fins de match -->
       <div
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-chart-pie mr-2 text-indigo-500" />
@@ -45,7 +45,7 @@
 
       <!-- Momentum -->
       <div
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-chart-bar mr-2 text-blue-500" />
@@ -60,7 +60,7 @@
       <!-- Meilleure équipe (flex uniquement) -->
       <div
         v-if="store.tournament!.teamMode === 'flex' && store.tournamentStats.bestTeams.length"
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-trophy mr-2 text-yellow-500" />
@@ -98,7 +98,7 @@
       <!-- Séries de victoires -->
       <div
         v-if="store.tournamentStats.winStreaks.length"
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-fire mr-2 text-orange-500" />
@@ -125,7 +125,7 @@
       <!-- Meilleur joueur 2v2 (flex uniquement) -->
       <div
         v-if="store.tournament!.teamMode === 'flex' && store.tournamentStats.bestDuoPlayers.length"
-        class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-user-group mr-2 text-purple-500" />
@@ -163,7 +163,7 @@
       <!-- Fun stats par type de résultat -->
       <div
         v-if="store.tournamentStats.outcomeTypeFunStats.length"
-        class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
       >
         <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
           <i class="fa fa-star mr-2 text-amber-500" />
@@ -223,7 +223,7 @@
       <!-- Empty state -->
       <div
         v-if="!store.tournamentStats.totalFinalized"
-        class="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center"
+        class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-12 text-center"
       >
         <i class="fa fa-chart-bar text-4xl text-gray-300 dark:text-gray-700 mb-4 block" />
         <p class="text-gray-500 dark:text-gray-400">
