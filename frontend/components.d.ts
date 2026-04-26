@@ -30,7 +30,6 @@ declare module 'vue' {
     Dropdown: typeof import('primevue/dropdown')['default']
     GenerateBracketDialog: typeof import('./src/components/bracket/GenerateBracketDialog.vue')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']
-    InputSwitch: typeof import('primevue/inputswitch')['default']
     InputText: typeof import('primevue/inputtext')['default']
     MatchBasicInfo: typeof import('./src/components/match/mobile/MatchBasicInfo.vue')['default']
     MatchCard: typeof import('./src/components/match/MatchCard.vue')['default']

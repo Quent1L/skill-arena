@@ -14,7 +14,7 @@
       <div>
         <button
           class="flex items-center gap-2 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
-          v-tooltip.top="'Comment est calculé le classement ?'"
+          v-tooltip.top="isMobile ? null : 'Comment est calculé le classement ?'"
           @click="infoVisible = true"
         >
           <i class="fa fa-circle-question text-sm" />
@@ -69,8 +69,7 @@
                 Il correspond à la somme des points des adversaires affrontés.<br />
                 Pour les matchs en équipe (2v2, 3v3, etc.), on prend la moyenne des points des
                 joueurs adverses pour chaque match. Un Buchholz élevé signifie que vous avez
-                affronté des joueurs mieux classés.somme des points de tous les adversaires
-                rencontrés
+                affronté des joueurs mieux classés.
               </div>
             </li>
             <li>
@@ -268,7 +267,9 @@
                   Qual.
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="'Qualité des résultats - Score basé sur le type de victoire/défaite'"
+                    v-tooltip.top="
+                      'Qualité des résultats - Score basé sur le type de victoire/défaite'
+                    "
                   />
                 </span>
               </template>
@@ -529,14 +530,6 @@ watch(infoVisible, async (visible) => {
     outcomeTypes.value = await outcomeTypeApi.list(props.tournamentConfig.disciplineId)
   }
 })
-
-const isOneVsOne = computed(
-  () =>
-    props.teamMode === 'flex' &&
-    props.tournamentConfig?.minTeamSize === 1 &&
-    props.tournamentConfig?.maxTeamSize === 1,
-)
-const isFlexTeam = computed(() => props.teamMode === 'flex' && !isOneVsOne.value)
 
 const standingsType = computed({
   get: () => props.standingsType ?? internalStandingsType.value,
