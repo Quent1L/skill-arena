@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { tournamentService } from "../services/tournament.service";
+import { organizationService } from "../services/organization.service";
 import { standingsService } from "../services/standings.service";
 import { bracketService } from "../services/bracket.service";
 import { tournamentStatsService } from "../services/tournament-stats.service";
@@ -15,8 +16,34 @@ import { generateBracketSchema } from "@skill-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";
+import { ErrorCode, ForbiddenError } from "../types/errors";
 
 const tournaments = createAppHono();
+
+async function assertTournamentAccess(
+  betterAuthUserId: string | null | undefined,
+  tournamentId: string,
+): Promise<void> {
+  const tournament = await tournamentService.getTournamentById(tournamentId);
+  if (!tournament.organizationId) return;
+
+  if (!betterAuthUserId) {
+    throw new ForbiddenError(ErrorCode.ORGANIZATION_ACCESS_DENIED);
+  }
+  const appUser = await userRepository.getByExternalId(betterAuthUserId);
+  if (!appUser) {
+    throw new ForbiddenError(ErrorCode.ORGANIZATION_ACCESS_DENIED);
+  }
+  if (appUser.role === "super_admin") return;
+
+  const authorized = await organizationService.isUserAuthorizedForTournament(
+    tournament.organizationId,
+    appUser.id,
+  );
+  if (!authorized) {
+    throw new ForbiddenError(ErrorCode.ORGANIZATION_ACCESS_DENIED);
+  }
+}
 
 // POST /tournaments - Create new tournament
 tournaments.post(
@@ -44,13 +71,12 @@ tournaments.get(
     const filters = c.req.valid("query");
     const betterAuthUser = c.get("user");
 
-    let isAdmin = false;
+    let appUser = null;
     if (betterAuthUser) {
-      const appUser = await userRepository.getByExternalId(betterAuthUser.id);
-      isAdmin = appUser?.role === "super_admin";
+      appUser = await userRepository.getByExternalId(betterAuthUser.id);
     }
 
-    const tournamentsList = await tournamentService.listTournaments(filters, isAdmin);
+    const tournamentsList = await tournamentService.listTournaments(filters, appUser);
     return c.json(tournamentsList);
   }
 );
@@ -58,6 +84,7 @@ tournaments.get(
 // GET /tournaments/:id - Get single tournament
 tournaments.get("/:id", async (c) => {
   const id = c.req.param("id")!;
+  await assertTournamentAccess(c.get("user")?.id, id);
   const tournament = await tournamentService.getTournamentById(id);
   return c.json(tournament);
 });
@@ -120,7 +147,6 @@ tournaments.post(
     const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
 
-    // Validation de l'UUID du tournoi
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tournamentId)) {
@@ -175,7 +201,6 @@ tournaments.delete("/:id/participants", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
 
-  // Validation de l'UUID du tournoi
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tournamentId)) {
@@ -194,51 +219,48 @@ tournaments.delete("/:id/participants", requireAuth, async (c) => {
 tournaments.get("/:id/participants", async (c) => {
   const tournamentId = c.req.param("id")!;
 
-  // Validation de l'UUID du tournoi
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tournamentId)) {
     return c.json({ error: "ID de tournoi invalide" }, 400);
   }
 
-  const participants = await tournamentService.getTournamentParticipants(
-    tournamentId
-  );
-
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
+  const participants = await tournamentService.getTournamentParticipants(tournamentId);
   return c.json(participants);
 });
 
-// GET /tournaments/:id/standings/official - Get official standings (finalized matches only)
+// GET /tournaments/:id/standings/official
 tournaments.get("/:id/standings/official", async (c) => {
   const tournamentId = c.req.param("id")!;
 
-  // Validation de l'UUID du tournoi
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tournamentId)) {
     return c.json({ error: "ID de tournoi invalide" }, 400);
   }
 
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
   const standings = await standingsService.getOfficialStandings(tournamentId);
   return c.json(standings);
 });
 
-// GET /tournaments/:id/standings/provisional - Get provisional standings (reported + finalized matches)
+// GET /tournaments/:id/standings/provisional
 tournaments.get("/:id/standings/provisional", async (c) => {
   const tournamentId = c.req.param("id")!;
 
-  // Validation de l'UUID du tournoi
   const uuidRegex =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(tournamentId)) {
     return c.json({ error: "ID de tournoi invalide" }, 400);
   }
 
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
   const standings = await standingsService.getProvisionalStandings(tournamentId);
   return c.json(standings);
 });
 
-// GET /tournaments/:id/stats - Get tournament global stats (public)
+// GET /tournaments/:id/stats
 tournaments.get("/:id/stats", async (c) => {
   const tournamentId = c.req.param("id")!;
   const uuidRegex =
@@ -246,11 +268,12 @@ tournaments.get("/:id/stats", async (c) => {
   if (!uuidRegex.test(tournamentId)) {
     return c.json({ error: "ID de tournoi invalide" }, 400);
   }
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
   const stats = await tournamentStatsService.getStats(tournamentId);
   return c.json(stats);
 });
 
-// POST /tournaments/:id/recalculate-points - Admin: recalculate all match points
+// POST /tournaments/:id/recalculate-points
 tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
@@ -262,7 +285,7 @@ tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
 // Bracket Routes
 // ============================================
 
-// POST /tournaments/:id/bracket - Generate or regenerate bracket
+// POST /tournaments/:id/bracket
 tournaments.post(
   "/:id/bracket",
   requireAuth,
@@ -282,9 +305,10 @@ tournaments.post(
   }
 );
 
-// GET /tournaments/:id/bracket - Get bracket data
+// GET /tournaments/:id/bracket
 tournaments.get("/:id/bracket", async (c) => {
   const tournamentId = c.req.param("id")!;
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
   const bracket = await bracketService.getBracketData(tournamentId);
 
   if (!bracket) {
@@ -294,14 +318,15 @@ tournaments.get("/:id/bracket", async (c) => {
   return c.json(bracket);
 });
 
-// GET /tournaments/:id/bracket/can-generate - Check if bracket can be generated
+// GET /tournaments/:id/bracket/can-generate
 tournaments.get("/:id/bracket/can-generate", async (c) => {
   const tournamentId = c.req.param("id")!;
+  await assertTournamentAccess(c.get("user")?.id, tournamentId);
   const result = await bracketService.canGenerateBracket(tournamentId);
   return c.json(result);
 });
 
-// DELETE /tournaments/:id/bracket - Delete bracket and all matches
+// DELETE /tournaments/:id/bracket
 tournaments.delete("/:id/bracket", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");

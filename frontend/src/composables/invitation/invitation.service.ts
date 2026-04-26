@@ -75,6 +75,20 @@ export function useInvitationService() {
     }
   }
 
+  async function joinOrganization(code: string) {
+    loading.value = true;
+    error.value = null;
+    try {
+      const result = await invitationApi.joinOrganization(code);
+      return result;
+    } catch (err: unknown) {
+      error.value = err instanceof Error ? err.message : "Erreur lors de l'adhésion";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     loading,
     error,
@@ -83,5 +97,6 @@ export function useInvitationService() {
     generateCode,
     getAllCodes,
     deactivateCode,
+    joinOrganization,
   };
 }

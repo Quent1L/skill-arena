@@ -84,11 +84,26 @@
                 />
               </div>
 
+              <!-- Organisation (super admin) -->
+              <div v-if="isSuperAdmin">
+                <label for="organizationId" class="block text-sm font-medium mb-2">
+                  Organisation (optionnel)
+                </label>
+                <Select
+                  id="organizationId"
+                  v-model="organizationId"
+                  :options="organizations"
+                  option-label="name"
+                  option-value="id"
+                  placeholder="Accès général (aucun groupe)"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
+
               <!-- Description -->
               <div class="lg:col-span-2">
-                <label class="block text-sm font-medium mb-2">
-                  Description
-                </label>
+                <label class="block text-sm font-medium mb-2"> Description </label>
                 <RichTextEditor
                   :model-value="description ?? ''"
                   @update:model-value="description = $event"
@@ -203,17 +218,15 @@
               </div>
             </div>
 
-
-              <div class="flex items-center py-4">
-                <Checkbox
-                  id="allowDraw"
-                  v-model="allowDraw"
-                  :binary="true"
-                  :disabled="!isFieldEditable('allowDraw')"
-                />
-                <label for="allowDraw" class="ml-2"> Autoriser les matchs nuls </label>
-              </div>
-
+            <div class="flex items-center py-4">
+              <Checkbox
+                id="allowDraw"
+                v-model="allowDraw"
+                :binary="true"
+                :disabled="!isFieldEditable('allowDraw')"
+              />
+              <label for="allowDraw" class="ml-2"> Autoriser les matchs nuls </label>
+            </div>
           </div>
 
           <!-- Règles du championnat -->
@@ -384,7 +397,10 @@ import {
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
+import { useOrganizationService } from '@/composables/organization/organization.service'
+import { useAuth } from '@/composables/useAuth'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
+import type { OrganizationWithMemberCount } from '@skill-arena/shared'
 
 const router = useRouter()
 const route = useRoute()
@@ -400,6 +416,10 @@ const {
 
 const { disciplines, listDisciplines } = useDisciplineService()
 const { rules: gameRulesList, loadRules } = useGameRulesService()
+const { listOrganizations } = useOrganizationService()
+const { isSuperAdmin } = useAuth()
+
+const organizations = ref<OrganizationWithMemberCount[]>([])
 
 const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id)
 const editableFields = ref<string[]>(['all'])
@@ -465,7 +485,8 @@ const [disciplineId] = defineField('disciplineId')
 const [minScore] = defineField('minScore')
 const [maxScore] = defineField('maxScore')
 const [scoreEnabled] = defineField('scoreEnabled')
-const rulesId = ref<string | null>(null)
+const [organizationId] = defineField('organizationId')
+const [rulesId] = defineField('rulesId')
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
@@ -491,13 +512,22 @@ const onSubmit = handleSubmit(async (values) => {
     ) {
       throw new Error('La taille maximale doit être supérieure ou égale à la taille minimale')
     }
+    console.log(values)
 
     if (isEditMode.value && route.params.id) {
       // Filter to include only editable fields based on original tournament status
       const allowedFields =
         currentTournament.value?.status === 'draft'
           ? Object.keys(values)
-          : ['description', 'startDate', 'endDate', 'status', 'rulesId', 'scoreEnabled']
+          : [
+              'description',
+              'startDate',
+              'endDate',
+              'status',
+              'rulesId',
+              'scoreEnabled',
+              'organizationId',
+            ]
 
       const updateData = Object.entries(values).reduce(
         (acc, [key, value]) => {
@@ -508,12 +538,13 @@ const onSubmit = handleSubmit(async (values) => {
         },
         {} as Record<string, unknown>,
       )
-      // rulesId is always editable
-      updateData.rulesId = rulesId.value ?? null
+      console.log(updateData)
       await updateTournament(route.params.id as string, updateData as UpdateTournamentFormData)
     } else {
-      // For create, cast to CreateTournamentFormData
-      await createTournament(values as CreateTournamentFormData)
+      await createTournament({
+        ...(values as CreateTournamentFormData),
+        organizationId: organizationId.value ?? undefined,
+      })
     }
     router.push('/admin/tournaments')
   } catch (err) {
@@ -523,8 +554,12 @@ const onSubmit = handleSubmit(async (values) => {
 })
 
 onMounted(async () => {
-  // Charger les disciplines et les règles pour les selects
-  await Promise.all([listDisciplines(), loadRules()])
+  const loadOrgs = listOrganizations()
+    .then((orgs) => {
+      organizations.value = orgs
+    })
+    .catch(() => {})
+  await Promise.all([listDisciplines(), loadRules(), loadOrgs])
 
   if (isEditMode.value && route.params.id) {
     await getTournament(route.params.id as string)
@@ -551,8 +586,9 @@ onMounted(async () => {
         minScore: currentTournament.value.minScore ?? null,
         maxScore: currentTournament.value.maxScore ?? null,
         scoreEnabled: currentTournament.value.scoreEnabled ?? true,
+        rulesId: currentTournament.value.rulesId ?? null,
+        organizationId: currentTournament.value.organizationId ?? null,
       })
-      rulesId.value = currentTournament.value.rulesId ?? null
     }
   } else {
     // Set defaults for new tournament

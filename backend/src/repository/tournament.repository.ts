@@ -184,6 +184,7 @@ export class TournamentRepository {
         startDate: true,
         endDate: true,
         disciplineId: true,
+        organizationId: true,
       },
       with: {
         discipline: { columns: { id: true, name: true } },

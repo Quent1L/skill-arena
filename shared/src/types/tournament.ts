@@ -43,6 +43,7 @@ export interface BaseTournament {
   } | null;
   minScore?: number | null;
   maxScore?: number | null;
+  organizationId?: string | null;
   createdBy: string; // uuid
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
@@ -154,9 +155,13 @@ export const baseTournamentFormSchema = z.object({
   scoreEnabled: z.boolean().default(true).optional(),
   startDate: z.date({ message: "La date de début est requise" }),
   endDate: z.date({ message: "La date de fin est requise" }),
-  disciplineId: z.string({ message: "La discipline est requise" }).uuid("ID de discipline invalide"),
+  disciplineId: z
+    .string({ message: "La discipline est requise" })
+    .uuid("ID de discipline invalide"),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
+  organizationId: z.string().uuid().optional().nullable(),
+  rulesId: z.string().uuid().optional().nullable(),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
@@ -185,6 +190,8 @@ export const baseTournamentUpdateFormSchema = z.object({
   disciplineId: z.string().uuid("ID de discipline invalide").optional(),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
+  organizationId: z.string().uuid().optional().nullable(),
+  rulesId: z.string().uuid().optional().nullable(),
 });
 
 // Schéma pour la création de tournoi (utilisé par le frontend avec Date objects)
@@ -209,7 +216,7 @@ export const createTournamentFormSchema = baseTournamentFormSchema
     {
       message: "Le score minimum doit être inférieur ou égal au score maximum",
       path: ["maxScore"],
-    }
+    },
   );
 
 // Schéma de base pour les données de tournoi
@@ -260,6 +267,7 @@ const baseTournamentDataSchema = z.object({
   disciplineId: z.string().uuid("ID de discipline invalide").optional(),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
+  organizationId: z.string().uuid().optional().nullable(),
 });
 
 // Schéma pour l'API (validation des données d'entrée - SANS createdBy)
@@ -273,7 +281,7 @@ export const createTournamentRequestSchema = baseTournamentDataSchema
     {
       message: "La date de début doit être antérieure à la date de fin",
       path: ["endDate"],
-    }
+    },
   )
   .refine((data) => data.maxTeamSize >= data.minTeamSize, {
     message:
@@ -295,7 +303,7 @@ export const createTournamentSchema = baseTournamentDataSchema
     {
       message: "La date de début doit être antérieure à la date de fin",
       path: ["endDate"],
-    }
+    },
   )
   .refine((data) => data.maxTeamSize >= data.minTeamSize, {
     message:
@@ -315,7 +323,7 @@ export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
     {
       message: "La date de début doit être antérieure à la date de fin",
       path: ["endDate"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -328,7 +336,7 @@ export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
       message:
         "La taille maximale doit être supérieure ou égale à la taille minimale",
       path: ["maxTeamSize"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -341,7 +349,7 @@ export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
     {
       message: "Le score minimum doit être inférieur ou égal au score maximum",
       path: ["maxScore"],
-    }
+    },
   );
 
 // Schéma pour la mise à jour (API avec strings ISO)
@@ -379,6 +387,7 @@ export const updateTournamentSchema = z
     rulesId: z.string().uuid().nullable().optional(),
     minScore: z.number().int().min(0).nullable().optional(),
     maxScore: z.number().int().min(0).nullable().optional(),
+    organizationId: z.string().uuid().optional().nullable(),
   })
   .refine(
     (data) => {
@@ -392,7 +401,7 @@ export const updateTournamentSchema = z
     {
       message: "La date de début doit être antérieure à la date de fin",
       path: ["endDate"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -405,7 +414,7 @@ export const updateTournamentSchema = z
       message:
         "La taille maximale doit être supérieure ou égale à la taille minimale",
       path: ["maxTeamSize"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -418,7 +427,7 @@ export const updateTournamentSchema = z
     {
       message: "Le score minimum doit être inférieur ou égal au score maximum",
       path: ["maxScore"],
-    }
+    },
   );
 
 export const changeTournamentStatusSchema = z.object({
@@ -462,9 +471,9 @@ export type UpdateTournamentApiData = z.infer<typeof updateTournamentSchema>;
  * Convertit des données de formulaire (avec Date objects) en payload API (avec ISO strings)
  */
 export function formDataToApiPayload<
-  T extends { startDate?: Date; endDate?: Date }
+  T extends { startDate?: Date; endDate?: Date },
 >(
-  formData: T
+  formData: T,
 ): Omit<T, "startDate" | "endDate"> & {
   startDate?: string;
   endDate?: string;
@@ -481,9 +490,9 @@ export function formDataToApiPayload<
  * Convertit des données API (avec ISO strings) en données de formulaire (avec Date objects)
  */
 export function apiDataToFormData<
-  T extends { startDate?: string; endDate?: string }
+  T extends { startDate?: string; endDate?: string },
 >(
-  apiData: T
+  apiData: T,
 ): Omit<T, "startDate" | "endDate"> & {
   startDate?: Date;
   endDate?: Date;
@@ -504,7 +513,10 @@ export function apiDataToFormData<
  * Type pour BaseTournament côté frontend - les dates string sont automatiquement
  * converties en objets Date par l'intercepteur xior
  */
-export interface ClientBaseTournament extends Omit<BaseTournament, 'startDate' | 'endDate' | 'createdAt' | 'updatedAt'> {
+export interface ClientBaseTournament extends Omit<
+  BaseTournament,
+  "startDate" | "endDate" | "createdAt" | "updatedAt"
+> {
   startDate: Date;
   endDate: Date;
   createdAt: Date;
@@ -525,7 +537,10 @@ export interface TournamentSummary {
   discipline?: { id: string; name: string } | null;
 }
 
-export interface ClientTournamentSummary extends Omit<TournamentSummary, 'startDate' | 'endDate'> {
+export interface ClientTournamentSummary extends Omit<
+  TournamentSummary,
+  "startDate" | "endDate"
+> {
   startDate: Date;
   endDate: Date;
 }
@@ -533,7 +548,10 @@ export interface ClientTournamentSummary extends Omit<TournamentSummary, 'startD
 /**
  * Type pour TournamentWithStats côté frontend
  */
-export interface ClientTournamentWithStats extends Omit<TournamentWithStats, 'startDate' | 'endDate' | 'createdAt' | 'updatedAt'> {
+export interface ClientTournamentWithStats extends Omit<
+  TournamentWithStats,
+  "startDate" | "endDate" | "createdAt" | "updatedAt"
+> {
   startDate: Date;
   endDate: Date;
   createdAt: Date;
@@ -544,7 +562,10 @@ export interface ClientTournamentWithStats extends Omit<TournamentWithStats, 'st
  * Type pour CreateTournamentRequestData côté frontend
  * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
  */
-export interface ClientCreateTournamentRequest extends Omit<CreateTournamentRequestData, 'startDate' | 'endDate'> {
+export interface ClientCreateTournamentRequest extends Omit<
+  CreateTournamentRequestData,
+  "startDate" | "endDate"
+> {
   startDate: Date | string;
   endDate: Date | string;
 }
@@ -553,7 +574,10 @@ export interface ClientCreateTournamentRequest extends Omit<CreateTournamentRequ
  * Type pour UpdateTournamentApiData côté frontend
  * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
  */
-export interface ClientUpdateTournamentRequest extends Omit<UpdateTournamentApiData, 'startDate' | 'endDate'> {
+export interface ClientUpdateTournamentRequest extends Omit<
+  UpdateTournamentApiData,
+  "startDate" | "endDate"
+> {
   startDate?: Date | string;
   endDate?: Date | string;
 }

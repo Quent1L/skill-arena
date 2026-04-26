@@ -31,9 +31,7 @@ cd frontend && bun run test:unit path/to/file.test.ts
 cd frontend && bun run lint
 
 # Database
-bun run setup:db                 # Push schema to database
-cd backend && bun run db:generate # Generate migration
-cd backend && bun run db:push    # Push schema directly (dev shortcut)
+# Create migration files in backend/drizzle and reference this migration in backend/drizzle/meta/_journal.json
 # Migrations are applied automatically at server startup (no manual migrate command)
 
 # Build

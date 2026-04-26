@@ -131,6 +131,23 @@
                   class="w-full"
                 />
               </div>
+
+              <!-- Organisation (super admin) -->
+              <div v-if="isSuperAdmin">
+                <label for="organizationId" class="block text-sm font-medium mb-2">
+                  Organisation (optionnel)
+                </label>
+                <Select
+                  id="organizationId"
+                  v-model="form.organizationId"
+                  :options="organizations"
+                  option-label="name"
+                  option-value="id"
+                  placeholder="Accès général (aucun groupe)"
+                  class="w-full"
+                  show-clear
+                />
+              </div>
             </div>
 
             <!-- Description -->
@@ -224,7 +241,8 @@
                 show-clear
               />
               <small class="text-surface-400">
-                La structure des rangs sera copiée au démarrage de la saison. Les seuils MMR seront recalculés.
+                La structure des rangs sera copiée au démarrage de la saison. Les seuils MMR seront
+                recalculés.
               </small>
             </div>
           </div>
@@ -293,6 +311,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
+import { useAuth } from '@/composables/useAuth'
+import type { OrganizationWithMemberCount } from '@skill-arena/shared'
+import { useOrganizationService } from '@/composables/organization/organization.service'
 
 const router = useRouter()
 const route = useRoute()
@@ -310,6 +331,8 @@ const {
 
 const { disciplines, listDisciplines } = useDisciplineService()
 const { rules: gameRulesList, loadRules } = useGameRulesService()
+const { isSuperAdmin } = useAuth()
+const { listOrganizations } = useOrganizationService()
 
 const isEditMode = computed(() => !!route.params.id && route.params.id !== 'new')
 
@@ -334,15 +357,19 @@ const form = ref({
   scoreEnabled: true,
   minScore: null as number | null,
   maxScore: null as number | null,
+  organizationId: null as string | null,
 })
 
 const formErrors = ref<Record<string, string>>({})
+const organizations = ref<OrganizationWithMemberCount[]>([])
 
 const disciplineOptions = computed(() =>
   disciplines.value.map((d) => ({ label: d.name, value: d.id })),
 )
 
-const rulesOptions = computed(() => gameRulesList.value.map((r) => ({ label: r.title, value: r.id })))
+const rulesOptions = computed(() =>
+  gameRulesList.value.map((r) => ({ label: r.title, value: r.id })),
+)
 
 const currentSeasonId = computed(() => (isEditMode.value ? (route.params.id as string) : null))
 const sourceTierOptions = computed(() =>
@@ -429,7 +456,12 @@ async function onSubmit() {
 }
 
 onMounted(async () => {
-  await Promise.all([listDisciplines(), loadRules(), loadFinishedSeasons()])
+  const loadOrgs = listOrganizations()
+    .then((orgs) => {
+      organizations.value = orgs
+    })
+    .catch(() => {})
+  await Promise.all([listDisciplines(), loadRules(), loadFinishedSeasons(), loadOrgs])
   if (isEditMode.value) {
     const id = route.params.id as string
     await loadSeasonById(id)

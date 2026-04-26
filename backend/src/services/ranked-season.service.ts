@@ -2,7 +2,10 @@ import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
-import type { CreateRankedSeasonInput, UpdateRankedSeasonInput } from "@skill-arena/shared/types/index";
+import type {
+  CreateRankedSeasonInput,
+  UpdateRankedSeasonInput,
+} from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
   NotFoundError,
@@ -32,6 +35,7 @@ export class RankedSeasonService {
         minTeamSize: input.minTeamSize,
         maxTeamSize: input.maxTeamSize,
         rulesId: input.rulesId,
+        organizationId: input.organizationId,
         scoreEnabled: input.scoreEnabled ?? true,
         minScore: input.minScore ?? null,
         maxScore: input.maxScore ?? null,
@@ -71,7 +75,11 @@ export class RankedSeasonService {
 
     await tournamentRepository.update(id, { status: "ongoing" });
     if (config?.sourceTierSeasonId) {
-      await rankedSeasonRepository.copyTiersFromSeason(config.sourceTierSeasonId, id, baseMmr);
+      await rankedSeasonRepository.copyTiersFromSeason(
+        config.sourceTierSeasonId,
+        id,
+        baseMmr,
+      );
     } else {
       await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
     }
@@ -92,7 +100,11 @@ export class RankedSeasonService {
     return await rankedSeasonRepository.getSeasonWithConfig(id);
   }
 
-  async updateSeason(id: string, input: UpdateRankedSeasonInput, userId: string) {
+  async updateSeason(
+    id: string,
+    input: UpdateRankedSeasonInput,
+    userId: string,
+  ) {
     await this.assertCanManage(userId);
     const season = await this.getSeasonOrThrow(id);
 
@@ -100,14 +112,25 @@ export class RankedSeasonService {
       throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN);
     }
 
-    if (input.name || input.description || input.startDate || input.endDate || input.rulesId !== undefined || input.scoreEnabled !== undefined || input.minScore !== undefined || input.maxScore !== undefined) {
+    if (
+      input.name ||
+      input.description ||
+      input.startDate ||
+      input.endDate ||
+      input.rulesId !== undefined ||
+      input.scoreEnabled !== undefined ||
+      input.minScore !== undefined ||
+      input.maxScore !== undefined
+    ) {
       await tournamentRepository.update(id, {
         name: input.name,
         description: input.description,
         startDate: input.startDate,
         endDate: input.endDate,
         rulesId: input.rulesId,
-        ...(input.scoreEnabled !== undefined && { scoreEnabled: input.scoreEnabled }),
+        ...(input.scoreEnabled !== undefined && {
+          scoreEnabled: input.scoreEnabled,
+        }),
         ...(input.minScore !== undefined && { minScore: input.minScore }),
         ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
       });
@@ -116,10 +139,14 @@ export class RankedSeasonService {
     const configUpdate: Record<string, unknown> = {};
     if (input.baseMmr !== undefined) configUpdate.baseMmr = input.baseMmr;
     if (input.kFactor !== undefined) configUpdate.kFactor = input.kFactor;
-    if (input.placementMatches !== undefined) configUpdate.placementMatches = input.placementMatches;
-    if (input.usePreviousMmr !== undefined) configUpdate.usePreviousMmr = input.usePreviousMmr;
-    if (input.allowAsymmetricMatches !== undefined) configUpdate.allowAsymmetricMatches = input.allowAsymmetricMatches;
-    if (input.sourceTierSeasonId !== undefined) configUpdate.sourceTierSeasonId = input.sourceTierSeasonId;
+    if (input.placementMatches !== undefined)
+      configUpdate.placementMatches = input.placementMatches;
+    if (input.usePreviousMmr !== undefined)
+      configUpdate.usePreviousMmr = input.usePreviousMmr;
+    if (input.allowAsymmetricMatches !== undefined)
+      configUpdate.allowAsymmetricMatches = input.allowAsymmetricMatches;
+    if (input.sourceTierSeasonId !== undefined)
+      configUpdate.sourceTierSeasonId = input.sourceTierSeasonId;
 
     if (Object.keys(configUpdate).length > 0) {
       await rankedSeasonRepository.updateConfig(id, configUpdate);
@@ -148,7 +175,8 @@ export class RankedSeasonService {
     const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
     if (tiers.length === 0) return;
 
-    const allPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
+    const allPlayers =
+      await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
     const sorted = allPlayers.map((p) => p.currentMmr).sort((a, b) => a - b);
     const n = sorted.length;
 
@@ -157,7 +185,9 @@ export class RankedSeasonService {
         tier.percentile === 0 || n === 0
           ? baseMmr
           : (sorted[Math.floor(n * tier.percentile)] ?? baseMmr);
-      await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, { minMmr });
+      await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, {
+        minMmr,
+      });
     }
   }
 
@@ -169,10 +199,13 @@ export class RankedSeasonService {
     disciplineId: string,
     baseMmr: number,
   ) {
-    const lastSeason = await rankedSeasonRepository.getLastFinishedSeason(disciplineId);
+    const lastSeason =
+      await rankedSeasonRepository.getLastFinishedSeason(disciplineId);
     if (!lastSeason) return;
 
-    const prevPlayers = await playerMmrRepository.getAllPlayersBySeasonId(lastSeason.id);
+    const prevPlayers = await playerMmrRepository.getAllPlayersBySeasonId(
+      lastSeason.id,
+    );
 
     for (const prev of prevPlayers) {
       const newMmr = Math.round(baseMmr + (prev.currentMmr - baseMmr) * 0.5);

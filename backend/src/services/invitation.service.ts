@@ -1,4 +1,5 @@
 import { invitationRepository } from "../repository/invitation.repository";
+import { organizationRepository } from "../repository/organization.repository";
 import { generatePassphrase } from "../utils/passphrase";
 import {
   BadRequestError,
@@ -13,6 +14,7 @@ export class InvitationService {
     maxUses?: number;
     expiresInDays?: number;
     notes?: string;
+    organizationId?: string;
   }) {
     let code: string;
     do {
@@ -28,6 +30,7 @@ export class InvitationService {
       maxUses: data.maxUses ?? 1,
       expiresAt,
       notes: data.notes ?? null,
+      organizationId: data.organizationId ?? null,
     });
   }
 
@@ -50,9 +53,17 @@ export class InvitationService {
       throw new BadRequestError(ErrorCode.INVITATION_CODE_EXHAUSTED);
     }
 
+    let organizationName: string | undefined;
+    if (invitation.organizationId) {
+      const org = await organizationRepository.findById(invitation.organizationId);
+      organizationName = org?.name;
+    }
+
     return {
       valid: true,
       remainingUses: invitation.maxUses - invitation.usedCount,
+      organizationId: invitation.organizationId ?? undefined,
+      organizationName,
     };
   }
 
@@ -84,7 +95,7 @@ export class InvitationService {
       ipAddress: ipAddress ?? null,
     });
 
-    return true;
+    return invitation;
   }
 
   async consumeCodeAndCreateAppUser(
@@ -94,7 +105,7 @@ export class InvitationService {
     displayName: string,
     ipAddress?: string
   ) {
-    await this.consumeCode(code, betterAuthUserId, email, ipAddress);
+    const invitation = await this.consumeCode(code, betterAuthUserId, email, ipAddress);
 
     const { userRepository } = await import("../repository/user.repository");
     const appUser = await userRepository.createAppUser({
@@ -103,6 +114,10 @@ export class InvitationService {
       shortName: displayName.substring(0, 5).toUpperCase(),
       role: "player",
     });
+
+    if (invitation.organizationId) {
+      await organizationRepository.addMember(invitation.organizationId, appUser.id, "member");
+    }
 
     return appUser;
   }

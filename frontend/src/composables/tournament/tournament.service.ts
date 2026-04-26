@@ -302,6 +302,7 @@ export function useTournamentService() {
     try {
       return await getTournament(id)
     } catch (err) {
+      if (err instanceof Error && err.cause === 'ORGANIZATION_ACCESS_DENIED') throw err
       console.error('Erreur lors du chargement du tournoi:', err)
       return null
     }

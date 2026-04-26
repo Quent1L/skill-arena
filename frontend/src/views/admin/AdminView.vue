@@ -101,6 +101,29 @@
         </template>
       </Card>
 
+      <!-- Card Organisations -->
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToOrganizations">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-users text-5xl text-indigo-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Organisations
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              Créez et gérez les groupes d'utilisateurs pour restreindre l'accès aux tournois
+            </p>
+            <Button
+              label="Accéder"
+              icon="fa fa-arrow-right"
+              class="bg-indigo-600 hover:bg-indigo-700"
+              @click.stop="navigateToOrganizations"
+            />
+          </div>
+        </template>
+      </Card>
+
       <!-- Card Règles du jeu -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRules">
         <template #content>
@@ -142,6 +165,10 @@ function navigateToDisciplines() {
 
 function navigateToInvitaionCode() {
   router.push('/admin/invitations')
+}
+
+function navigateToOrganizations() {
+  router.push('/admin/organizations')
 }
 
 function navigateToRules() {

@@ -27,6 +27,7 @@ declare module 'vue' {
     DataTable: typeof import('primevue/datatable')['default']
     DatePicker: typeof import('primevue/datepicker')['default']
     Dialog: typeof import('primevue/dialog')['default']
+    Divider: typeof import('primevue/divider')['default']
     Dropdown: typeof import('primevue/dropdown')['default']
     GenerateBracketDialog: typeof import('./src/components/bracket/GenerateBracketDialog.vue')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']

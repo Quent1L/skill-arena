@@ -21,6 +21,7 @@ export * from "./player";
 export * from "./game-rules";
 export * from "./ranked";
 export * from "./tournament-stats";
+export * from "./organization";
 
 // ============================================
 // Types utilitaires

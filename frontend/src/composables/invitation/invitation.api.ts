@@ -3,6 +3,8 @@ import http from '@/config/ApiConfig.ts'
 export interface ValidateCodeResponse {
   valid: boolean;
   remainingUses: number;
+  organizationId?: string;
+  organizationName?: string;
 }
 
 export interface InvitationCode {
@@ -30,6 +32,7 @@ export interface GenerateCodeInput {
   maxUses?: number;
   expiresInDays?: number;
   notes?: string;
+  organizationId?: string;
 }
 
 export interface ConsumeCodeResponse {
@@ -60,6 +63,11 @@ export const invitationApi = {
 
   async deactivate(id: string): Promise<InvitationCode> {
     const { data } = await http.patch(`/api/admin/invitations/${id}/deactivate`)
+    return data;
+  },
+
+  async joinOrganization(code: string): Promise<{ organizationName: string }> {
+    const { data } = await http.post('/api/invitations/join-organization', { code });
     return data;
   },
 };

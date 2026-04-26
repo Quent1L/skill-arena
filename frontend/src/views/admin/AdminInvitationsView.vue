@@ -51,6 +51,20 @@
             />
           </div>
 
+          <div class="flex flex-col gap-2">
+            <label for="organizationId" class="font-medium">Organisation (optionnel)</label>
+            <Select
+              id="organizationId"
+              v-model="formData.organizationId"
+              :options="organizations"
+              option-label="name"
+              option-value="id"
+              placeholder="Accès général (aucun groupe)"
+              class="w-full"
+              show-clear
+            />
+          </div>
+
           <div class="md:col-span-3">
             <Button
               type="submit"
@@ -181,12 +195,16 @@
 import { ref, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
+import { useOrganizationService } from '@/composables/organization/organization.service'
 import type { InvitationCode } from '@/composables/invitation/invitation.api'
+import type { OrganizationWithMemberCount } from '@skill-arena/shared'
 
 const toast = useToast()
 const { generateCode, getAllCodes, deactivateCode } = useInvitationService()
+const { listOrganizations } = useOrganizationService()
 
 const codes = ref<InvitationCode[]>([])
+const organizations = ref<OrganizationWithMemberCount[]>([])
 const isLoading = ref(false)
 const isGenerating = ref(false)
 
@@ -194,11 +212,20 @@ const formData = ref({
   maxUses: 1,
   expiresInDays: undefined as number | undefined,
   notes: '',
+  organizationId: undefined as string | undefined,
 })
 
 onMounted(async () => {
-  await loadCodes()
+  await Promise.all([loadCodes(), loadOrganizations()])
 })
+
+async function loadOrganizations() {
+  try {
+    organizations.value = await listOrganizations()
+  } catch {
+    // non-critical, ignore
+  }
+}
 
 async function loadCodes() {
   isLoading.value = true
@@ -223,6 +250,7 @@ async function handleGenerateCode() {
       maxUses: formData.value.maxUses,
       expiresInDays: formData.value.expiresInDays,
       notes: formData.value.notes || undefined,
+      organizationId: formData.value.organizationId,
     })
 
     toast.add({
@@ -236,6 +264,7 @@ async function handleGenerateCode() {
       maxUses: 1,
       expiresInDays: undefined,
       notes: '',
+      organizationId: undefined,
     }
 
     await loadCodes()

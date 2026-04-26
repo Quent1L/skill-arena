@@ -12,6 +12,7 @@ import notifications from "./routes/notification.route";
 import config from "./routes/config.route";
 import invitations from "./routes/invitations.route";
 import adminInvitations from "./routes/admin/invitations.route";
+import adminOrganizations from "./routes/admin/organizations.route";
 import gameRulesRouter from "./routes/game-rules.route";
 import teamsRouter from "./routes/teams.route";
 import rankedRouter from "./routes/ranked.route";
@@ -94,6 +95,8 @@ app.route("/api/config", config);
 app.route("/api/invitations", invitations);
 
 app.route("/api/admin/invitations", adminInvitations);
+
+app.route("/api/admin/organizations", adminOrganizations);
 
 app.route("/api/game-rules", gameRulesRouter);
 

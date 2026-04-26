@@ -181,6 +181,31 @@
           </template>
         </Card>
 
+        <!-- Groupes -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-users"></i>
+              <span>Groupes</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="font-medium">Rejoindre un groupe</p>
+                <p class="text-sm opacity-70">Accéder aux tournois privés d'un groupe</p>
+              </div>
+              <Button
+                icon="fas fa-user-plus"
+                label="Rejoindre"
+                outlined
+                severity="secondary"
+                @click="openJoinOrgDialog"
+              />
+            </div>
+          </template>
+        </Card>
+
         <!-- Mode kiosque -->
         <Card v-if="userRole === 'kiosk'">
           <template #title>
@@ -208,6 +233,78 @@
         </Card>
       </div>
     </div>
+
+    <!-- Dialog rejoindre un groupe -->
+    <Dialog
+      v-model:visible="showJoinOrgDialog"
+      header="Rejoindre un groupe"
+      modal
+      :style="{ width: '28rem' }"
+      @hide="resetJoinOrgDialog"
+    >
+      <div class="space-y-4">
+        <Message v-if="joinOrgSuccess" severity="success" :closable="false">
+          <i class="fa fa-check mr-2"></i>
+          Vous avez rejoint <strong>{{ joinOrgSuccessName }}</strong>.
+        </Message>
+
+        <template v-if="!joinOrgSuccess">
+          <div class="flex flex-col gap-2">
+            <label for="org-code" class="font-medium">Code d'invitation</label>
+            <InputText
+              id="org-code"
+              v-model="joinOrgCode"
+              placeholder="ex: tigre-riviere-soleil-lune"
+              :disabled="joinOrgIsValidating || joinOrgLoading"
+              class="w-full"
+              @input="debouncedValidateOrgCode"
+            />
+
+            <div v-if="joinOrgIsValidating" class="flex items-center gap-2 text-blue-600">
+              <i class="fa fa-spinner fa-spin"></i>
+              <span class="text-sm">Validation en cours...</span>
+            </div>
+
+            <Message v-else-if="joinOrgCodeError" severity="error" :closable="false">
+              <i class="fa fa-times-circle mr-2"></i>
+              {{ joinOrgCodeError }}
+            </Message>
+
+            <Message v-else-if="joinOrgCodeValid && joinOrgOrganizationName" severity="success" :closable="false">
+              <i class="fa fa-check-circle mr-2"></i>
+              Code valide — groupe : <strong>{{ joinOrgOrganizationName }}</strong>
+            </Message>
+          </div>
+
+          <Message v-if="joinOrgError" severity="error" :closable="false">
+            <i class="fa fa-times-circle mr-2"></i>
+            {{ joinOrgError }}
+          </Message>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <Button
+              label="Annuler"
+              severity="secondary"
+              outlined
+              type="button"
+              :disabled="joinOrgLoading"
+              @click="showJoinOrgDialog = false"
+            />
+            <Button
+              label="Rejoindre"
+              icon="fas fa-user-plus"
+              :loading="joinOrgLoading"
+              :disabled="!joinOrgCodeValid || !joinOrgOrganizationName || joinOrgLoading"
+              @click="submitJoinOrg"
+            />
+          </div>
+        </template>
+
+        <div v-else class="flex justify-end pt-2">
+          <Button label="Fermer" type="button" @click="showJoinOrgDialog = false" />
+        </div>
+      </div>
+    </Dialog>
 
     <!-- Dialog confirmation verrouillage kiosque -->
     <Dialog
@@ -345,6 +442,8 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { changePasswordSchema } from '@/schemas/auth.schema'
 import { userApi } from '@/composables/user/user.api'
+import { useInvitationService } from '@/composables/invitation/invitation.service'
+import { useDebounceFn } from '@vueuse/core'
 
 const { isInstalled, isIOS, canInstall, showIOSInstructions, triggerInstall } = usePWAInstall()
 
@@ -437,6 +536,77 @@ const onChangePassword = handleSubmit(async (values) => {
     // error displayed via authError
   }
 })
+
+// Join organization dialog
+const { joinOrganization, validateCode: validateInvitationCode } = useInvitationService()
+
+const showJoinOrgDialog = ref(false)
+const joinOrgCode = ref('')
+const joinOrgIsValidating = ref(false)
+const joinOrgCodeValid = ref(false)
+const joinOrgCodeError = ref<string | null>(null)
+const joinOrgOrganizationName = ref<string | null>(null)
+const joinOrgLoading = ref(false)
+const joinOrgSuccess = ref(false)
+const joinOrgSuccessName = ref('')
+const joinOrgError = ref<string | null>(null)
+
+function openJoinOrgDialog() {
+  resetJoinOrgDialog()
+  showJoinOrgDialog.value = true
+}
+
+function resetJoinOrgDialog() {
+  joinOrgCode.value = ''
+  joinOrgIsValidating.value = false
+  joinOrgCodeValid.value = false
+  joinOrgCodeError.value = null
+  joinOrgOrganizationName.value = null
+  joinOrgSuccess.value = false
+  joinOrgSuccessName.value = ''
+  joinOrgError.value = null
+}
+
+const debouncedValidateOrgCode = useDebounceFn(async () => {
+  if (!/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/.test(joinOrgCode.value)) {
+    joinOrgCodeValid.value = false
+    joinOrgCodeError.value = null
+    joinOrgOrganizationName.value = null
+    return
+  }
+  joinOrgIsValidating.value = true
+  joinOrgCodeError.value = null
+  joinOrgCodeValid.value = false
+  joinOrgOrganizationName.value = null
+  try {
+    const result = await validateInvitationCode(joinOrgCode.value)
+    if (!result.organizationId) {
+      joinOrgCodeError.value = "Ce code n'est pas un code de groupe."
+      return
+    }
+    joinOrgCodeValid.value = true
+    joinOrgOrganizationName.value = result.organizationName ?? null
+  } catch (err: unknown) {
+    joinOrgCodeError.value = err instanceof Error ? err.message : 'Code invalide'
+  } finally {
+    joinOrgIsValidating.value = false
+  }
+}, 500)
+
+async function submitJoinOrg() {
+  if (!joinOrgCodeValid.value || joinOrgLoading.value) return
+  joinOrgLoading.value = true
+  joinOrgError.value = null
+  try {
+    const result = await joinOrganization(joinOrgCode.value)
+    joinOrgSuccessName.value = result.organizationName
+    joinOrgSuccess.value = true
+  } catch (err: unknown) {
+    joinOrgError.value = err instanceof Error ? err.message : "Erreur lors de l'adhésion au groupe."
+  } finally {
+    joinOrgLoading.value = false
+  }
+}
 
 onMounted(async () => {
   const theme = localStorage.getItem('theme')

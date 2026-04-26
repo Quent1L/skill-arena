@@ -177,6 +177,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/organizations',
+    name: 'admin-organizations',
+    component: () => import('@/views/admin/OrganizationsView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Organisations',
+      title: 'Gestion des organisations',
+      requiresAuth: true,
+      parent: 'admin',
+    },
+  },
+  {
     path: '/admin/rules',
     name: 'admin-rules',
     component: () => import('@/views/admin/GameRulesList.vue'),

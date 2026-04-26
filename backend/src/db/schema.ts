@@ -98,6 +98,9 @@ export const invitationCodes = pgTable("invitation_codes", {
   usedCount: integer("used_count").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   notes: text("notes"),
+  organizationId: uuid("organization_id").references(() => organizations.id, {
+    onDelete: "set null",
+  }),
 });
 
 export const invitationUsages = pgTable("invitation_usages", {
@@ -203,6 +206,31 @@ export const bracketRoundTypeEnum = pgEnum("bracket_round_type", [
   "bronze",
 ]);
 
+export const organizations = pgTable("organizations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const organizationMembers = pgTable(
+  "organization_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.organizationId, t.userId)],
+);
+
 export const appUsers = pgTable("app_users", {
   id: uuid("id").primaryKey().defaultRandom(),
   externalId: text("external_id")
@@ -268,6 +296,9 @@ export const tournaments = pgTable("tournaments", {
     .notNull()
     .references(() => appUsers.id, { onDelete: "restrict" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  organizationId: uuid("organization_id").references(() => organizations.id, {
+    onDelete: "set null",
+  }),
 });
 
 export const tournamentAdmins = pgTable(
@@ -769,6 +800,8 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   playerMmrs: many(playerMmr),
   matchPlayerPoints: many(matchPlayerPoints),
   playerComputedData: many(playerComputedData),
+  organizationMemberships: many(organizationMembers),
+  createdOrganizations: many(organizations),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
@@ -809,6 +842,10 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   rankTiers: many(rankTiers),
   playerMmrs: many(playerMmr),
   computedData: many(computedData),
+  organization: one(organizations, {
+    fields: [tournaments.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const tournamentAdminsRelations = relations(
@@ -1199,8 +1236,33 @@ export const invitationCodesRelations = relations(
       references: [appUsers.id],
     }),
     usages: many(invitationUsages),
+    organization: one(organizations, {
+      fields: [invitationCodes.organizationId],
+      references: [organizations.id],
+    }),
   }),
 );
+
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
+  creator: one(appUsers, {
+    fields: [organizations.createdBy],
+    references: [appUsers.id],
+  }),
+  members: many(organizationMembers),
+  tournaments: many(tournaments),
+  invitationCodes: many(invitationCodes),
+}));
+
+export const organizationMembersRelations = relations(organizationMembers, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [organizationMembers.organizationId],
+    references: [organizations.id],
+  }),
+  user: one(appUsers, {
+    fields: [organizationMembers.userId],
+    references: [appUsers.id],
+  }),
+}));
 
 export const invitationUsagesRelations = relations(
   invitationUsages,

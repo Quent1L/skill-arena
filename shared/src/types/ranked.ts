@@ -90,71 +90,77 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
 // Schémas Zod pour la validation
 // ============================================
 
-export const createRankedSeasonSchema = z.object({
-  name: z
-    .string({ message: "Le nom est requis" })
-    .min(3, "Le nom doit contenir au moins 3 caractères")
-    .max(100, "Le nom ne peut pas dépasser 100 caractères"),
-  description: z
-    .string()
-    .max(500, "La description ne peut pas dépasser 500 caractères")
-    .optional(),
-  disciplineId: z.string({ message: "La discipline est requise" }).uuid("ID de discipline invalide"),
-  startDate: z
-    .string()
-    .datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  endDate: z
-    .string()
-    .datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-  minTeamSize: z
-    .number({ message: "La taille minimale de l'équipe est requise" })
-    .int()
-    .min(1, "La taille minimale est 1"),
-  maxTeamSize: z
-    .number({ message: "La taille maximale de l'équipe est requise" })
-    .int()
-    .min(1, "La taille minimale est 1"),
-  rulesId: z.string().uuid().nullable().optional(),
-  // Score configuration
-  scoreEnabled: z.boolean().default(true).optional(),
-  minScore: z.number().int().min(0).nullable().optional(),
-  maxScore: z.number().int().min(0).nullable().optional(),
-  // Ranked-specific config
-  baseMmr: z.number().int().min(100).max(5000).default(1000),
-  kFactor: z.number().int().min(8).max(128).default(32),
-  placementMatches: z.number().int().min(1).max(20).default(5),
-  usePreviousMmr: z.boolean().default(false),
-  allowAsymmetricMatches: z.boolean().default(false),
-  sourceTierSeasonId: z.string().uuid().nullable().optional(),
-}).refine(
-  (data) => {
-    const start = new Date(data.startDate);
-    const end = new Date(data.endDate);
-    return start < end;
-  },
-  {
-    message: "La date de début doit être antérieure à la date de fin",
-    path: ["endDate"],
-  }
-).refine(
-  (data) => data.maxTeamSize >= data.minTeamSize,
-  {
-    message: "La taille maximale doit être supérieure ou égale à la taille minimale",
+export const createRankedSeasonSchema = z
+  .object({
+    name: z
+      .string({ message: "Le nom est requis" })
+      .min(3, "Le nom doit contenir au moins 3 caractères")
+      .max(100, "Le nom ne peut pas dépasser 100 caractères"),
+    description: z
+      .string()
+      .max(500, "La description ne peut pas dépasser 500 caractères")
+      .optional(),
+    disciplineId: z
+      .string({ message: "La discipline est requise" })
+      .uuid("ID de discipline invalide"),
+    startDate: z
+      .string()
+      .datetime()
+      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+    endDate: z
+      .string()
+      .datetime()
+      .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+    minTeamSize: z
+      .number({ message: "La taille minimale de l'équipe est requise" })
+      .int()
+      .min(1, "La taille minimale est 1"),
+    maxTeamSize: z
+      .number({ message: "La taille maximale de l'équipe est requise" })
+      .int()
+      .min(1, "La taille minimale est 1"),
+    rulesId: z.string().uuid().nullable().optional(),
+    organizationId: z.string().uuid().nullable().optional(),
+    // Score configuration
+    scoreEnabled: z.boolean().default(true).optional(),
+    minScore: z.number().int().min(0).nullable().optional(),
+    maxScore: z.number().int().min(0).nullable().optional(),
+    // Ranked-specific config
+    baseMmr: z.number().int().min(100).max(5000).default(1000),
+    kFactor: z.number().int().min(8).max(128).default(32),
+    placementMatches: z.number().int().min(1).max(20).default(5),
+    usePreviousMmr: z.boolean().default(false),
+    allowAsymmetricMatches: z.boolean().default(false),
+    sourceTierSeasonId: z.string().uuid().nullable().optional(),
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      return start < end;
+    },
+    {
+      message: "La date de début doit être antérieure à la date de fin",
+      path: ["endDate"],
+    },
+  )
+  .refine((data) => data.maxTeamSize >= data.minTeamSize, {
+    message:
+      "La taille maximale doit être supérieure ou égale à la taille minimale",
     path: ["maxTeamSize"],
-  }
-).refine(
-  (data) => {
-    if (data.scoreEnabled === false) return true;
-    if (data.minScore != null && data.maxScore != null) return data.minScore <= data.maxScore;
-    return true;
-  },
-  {
-    message: "Le score minimum doit être inférieur ou égal au score maximum",
-    path: ["maxScore"],
-  }
-);
+  })
+  .refine(
+    (data) => {
+      if (data.scoreEnabled === false) return true;
+      if (data.minScore != null && data.maxScore != null)
+        return data.minScore <= data.maxScore;
+      return true;
+    },
+    {
+      message: "Le score minimum doit être inférieur ou égal au score maximum",
+      path: ["maxScore"],
+    },
+  );
 
 export const updateRankedSeasonSchema = z.object({
   name: z
@@ -177,6 +183,7 @@ export const updateRankedSeasonSchema = z.object({
     .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
     .optional(),
   rulesId: z.string().uuid().nullable().optional(),
+  organizationId: z.string().uuid().nullable().optional(),
   scoreEnabled: z.boolean().optional(),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),

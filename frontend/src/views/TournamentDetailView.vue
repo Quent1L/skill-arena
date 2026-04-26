@@ -193,6 +193,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
@@ -202,6 +203,7 @@ import type { TournamentMode } from '@skill-arena/shared'
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const { isMobile } = useViewport()
 const { y: scrollY } = useWindowScroll()
 const store = useTournamentDetailStore()
@@ -300,7 +302,21 @@ watch(activeTabName, updateIndicator)
 watch(visibleTabs, updateIndicator)
 
 onMounted(async () => {
-  await store.initialize(tournamentId.value)
+  try {
+    await store.initialize(tournamentId.value)
+  } catch (err) {
+    if (err instanceof Error && err.cause === 'ORGANIZATION_ACCESS_DENIED') {
+      toast.add({
+        severity: 'error',
+        summary: 'Accès refusé',
+        detail: "Vous n'avez pas accès à ce tournoi.",
+        life: 4000,
+      })
+      router.replace('/')
+      return
+    }
+    throw err
+  }
 
   // Handle legacy ?tab= redirect
   const legacyTab = route.query.tab as string | undefined
