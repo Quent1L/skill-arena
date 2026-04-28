@@ -209,18 +209,6 @@
               </template>
             </Column>
 
-            <Column v-if="scoreEnabled" field="scored" header="BP">
-              <template #body="{ data }">
-                {{ data.scored }}
-              </template>
-            </Column>
-
-            <Column v-if="scoreEnabled" field="conceded" header="BC">
-              <template #body="{ data }">
-                {{ data.conceded }}
-              </template>
-            </Column>
-
             <Column v-if="scoreEnabled" field="scoreDiff" header="Diff">
               <template #body="{ data }">
                 <span
@@ -246,7 +234,11 @@
               </template>
             </Column>
 
-            <Column v-if="!isMobile" field="buchholzScore">
+            <Column
+              field="buchholzScore"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
               <template #header>
                 <span class="flex items-center gap-1">
                   Buch.
@@ -261,7 +253,11 @@
               </template>
             </Column>
 
-            <Column v-if="!isMobile" field="victoryQuality">
+            <Column
+              field="victoryQuality"
+              class="hidden md:table-cell"
+              header-class="hidden md:table-cell"
+            >
               <template #header>
                 <span class="flex items-center gap-1">
                   Qual.
