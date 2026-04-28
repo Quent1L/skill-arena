@@ -32,16 +32,7 @@
             @click="emit('create-match')"
             class="bg-blue-600 hover:bg-blue-700 hidden md:flex"
           />
-          <Button
-            v-if="menuItems.length > 0"
-            icon="fa fa-ellipsis-v"
-            severity="secondary"
-            outlined
-            @click="menu!.toggle($event)"
-            aria-haspopup="true"
-            aria-controls="header-menu"
-          />
-          <Menu id="header-menu" ref="menu" :model="menuItems" popup />
+          <OverflowMenuButton :items="items" menu-id="header-menu" />
         </div>
       </div>
 
@@ -53,10 +44,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useBreakpoints, breakpointsTailwind } from '@vueuse/core'
-import type Menu from 'primevue/menu'
 import type { TournamentStatus, TournamentMode } from '@skill-arena/shared'
+import type { MenuItem } from 'primevue/menuitem'
+import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 
 interface Props {
   name: string
@@ -67,42 +57,18 @@ interface Props {
   canJoin: boolean
   canLeave: boolean
   canCreateMatch: boolean
-  canManage: boolean
+  items?: MenuItem[]
   joining?: boolean
   leaving?: boolean
-  showRecalculate?: boolean
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   join: []
   leave: []
   'create-match': []
-  edit: []
-  'recalculate-points': []
 }>()
-
-const menu = ref<InstanceType<typeof Menu> | null>(null)
-
-const breakpoints = useBreakpoints(breakpointsTailwind)
-const isDesktop = breakpoints.greaterOrEqual('sm')
-
-const menuItems = computed(() => {
-  const items = []
-
-  if (props.canManage) {
-    items.push({ label: 'Modifier', icon: 'fa fa-pencil', command: () => emit('edit') })
-    if (props.showRecalculate !== false) {
-      items.push({ label: 'Recalculer les points', icon: 'fa fa-calculator', command: () => emit('recalculate-points') })
-    }
-  }
-  if (props.isAuthenticated && props.isParticipant && props.canLeave) {
-    items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => emit('leave') })
-  }
-
-  return items
-})
 
 const statusLabels: Record<string, string> = {
   draft: 'Brouillon',
@@ -126,4 +92,3 @@ const modeLabels: Record<TournamentMode, string> = {
   ranked: 'Ranked',
 }
 </script>
-

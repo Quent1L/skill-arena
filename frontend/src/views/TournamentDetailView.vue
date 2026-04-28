@@ -120,16 +120,7 @@
                   @click="router.push(`/tournaments/${store.tournamentId}/create-match`)"
                   class="bg-blue-600 hover:bg-blue-700"
                 />
-                <Button
-                  v-if="menuItems.length > 0"
-                  icon="fa fa-ellipsis-v"
-                  severity="secondary"
-                  outlined
-                  @click="menu!.toggle($event)"
-                  aria-haspopup="true"
-                  aria-controls="desktop-header-menu"
-                />
-                <Menu id="desktop-header-menu" ref="menu" :model="menuItems" popup />
+                <OverflowMenuButton :items="store.menuItems" menu-id="desktop-header-menu" />
               </div>
             </div>
           </div>
@@ -198,8 +189,8 @@ import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
-import type Menu from 'primevue/menu'
 import type { TournamentMode } from '@skill-arena/shared'
+import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -208,7 +199,6 @@ const { isMobile } = useViewport()
 const { y: scrollY } = useWindowScroll()
 const store = useTournamentDetailStore()
 
-const menu = ref<InstanceType<typeof Menu> | null>(null)
 const tabBarRef = ref<HTMLElement | null>(null)
 const tabEls = ref<Record<string, HTMLElement | null>>({})
 const indicatorStyle = ref({ left: '0px', width: '0px' })
@@ -260,27 +250,6 @@ const visibleTabs = computed(() => {
   return tabs
 })
 
-const menuItems = computed(() => {
-  const items: { label: string; icon: string; command: () => void }[] = []
-  if (store.canManageTournament) {
-    items.push({
-      label: 'Modifier',
-      icon: 'fa fa-pencil',
-      command: () => router.push(`/admin/tournaments/${tournamentId.value}/edit`),
-    })
-    if (store.tournament?.mode !== 'ranked') {
-      items.push({
-        label: 'Recalculer les points',
-        icon: 'fa fa-calculator',
-        command: () => store.recalculatePoints(),
-      })
-    }
-  }
-  if (store.isAuthenticated && store.isParticipant && store.canLeaveTournament) {
-    items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => store.leaveTournament() })
-  }
-  return items
-})
 
 function setTabRef(value: string, el: unknown) {
   tabEls.value[value] = el as HTMLElement | null

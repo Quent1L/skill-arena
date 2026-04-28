@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
@@ -10,6 +11,7 @@ import { calculateDuration } from '@/utils/DateUtils'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
+  const router = useRouter()
   const { isAuthenticated, appUser, userRole } = useAuth()
 
   const tournamentSvc = useTournamentService()
@@ -71,6 +73,28 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     if (!appUser.value || !rankedLeaderboard.value.length) return undefined
     const idx = rankedLeaderboard.value.findIndex((p) => p.player?.id === appUser.value?.id)
     return idx >= 0 ? idx + 1 : undefined
+  })
+
+  const menuItems = computed(() => {
+    const items: { label: string; icon: string; command: () => void }[] = []
+    if (canManageTournament.value) {
+      items.push({
+        label: 'Modifier',
+        icon: 'fa fa-pencil',
+        command: () => router.push(`/admin/tournaments/${tournamentId.value}/edit`),
+      })
+      if (tournament.value?.mode !== 'ranked') {
+        items.push({
+          label: 'Recalculer les points',
+          icon: 'fa fa-calculator',
+          command: () => recalculatePoints(),
+        })
+      }
+    }
+    if (isAuthenticated.value && isParticipant.value && canLeaveTournament.value) {
+      items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => leaveTournament() })
+    }
+    return items
   })
 
   // Actions
@@ -183,6 +207,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     canLeaveTournament,
     canManageTournament,
     canCreateMatch,
+    menuItems,
     // Auth pass-through
     isAuthenticated,
     appUser,

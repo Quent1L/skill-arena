@@ -32,13 +32,11 @@
           :can-join="store.canJoinTournament"
           :can-leave="store.canLeaveTournament"
           :can-create-match="false"
-          :can-manage="store.canManageTournament"
+          :items="store.menuItems"
           :joining="store.joining"
           :leaving="store.leaving"
           @join="store.joinTournament()"
           @leave="store.leaveTournament()"
-          @create-match="router.push(`/tournaments/${store.tournamentId}/create-match`)"
-          @edit="router.push(`/admin/tournaments/${store.tournamentId}/edit`)"
         />
 
         <TournamentInfosTab />
