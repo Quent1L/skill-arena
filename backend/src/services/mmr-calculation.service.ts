@@ -21,6 +21,7 @@ export class MmrCalculationService {
     scoreB: number,
     isPlacement: boolean,
     scoreCountsForMmr: boolean,
+    outcomePoints: number | null,
   ): number {
     let k = kBase;
     if (isPlacement) k *= 2;
@@ -32,6 +33,11 @@ export class MmrCalculationService {
         const loser = Math.min(scoreA, scoreB);
         k = k * (1 + (winner - loser) / total);
       }
+    }
+
+    if (outcomePoints !== null) {
+      const DEFAULT_OUTCOME_POINTS = 3;
+      k = k * (outcomePoints / DEFAULT_OUTCOME_POINTS);
     }
 
     return k;
@@ -101,6 +107,7 @@ export class MmrCalculationService {
         scoreForOpponent,
         isPlacement,
         scoreCountsForMmr,
+        match.outcomeType?.points ?? null,
       );
 
       const delta = this.calculateMmrDelta(currentMmr, opponentAvgMmr, result, kEffective);
