@@ -518,6 +518,76 @@ export interface PaginatedMatchCards {
   hasMore: boolean;
 }
 
+export interface MatchDetailPlayer {
+  id: string;
+  displayName: string;
+  shortName: string;
+  effectivePointsAwarded?: number;
+  exceededMatchLimit?: boolean;
+}
+
+export interface MatchDetailSide {
+  position: number;
+  score: number | null;
+  pointsAwarded: number;
+  isWinner: boolean;
+  entryId: string;
+  entryName: string | null;
+  players: MatchDetailPlayer[];
+}
+
+export interface MatchDetailConfirmation {
+  id: string;
+  matchId: string;
+  playerId: string;
+  isConfirmed: boolean;
+  isContested: boolean;
+  contestationReason: string | null;
+  contestationProof: string | null;
+  proposedScoreA: number | null;
+  proposedScoreB: number | null;
+  proposedWinner: string | null;
+  proposedOutcomeTypeId: string | null;
+  proposedOutcomeReasonId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  player: { id: string; displayName: string } | null;
+  proposedOutcomeType: { id: string; name: string } | null;
+  proposedOutcomeReason: { id: string; name: string } | null;
+}
+
+export interface ClientMatchDetail {
+  id: string;
+  tournamentId: string;
+  status: MatchStatus;
+  playedAt: Date;
+  confirmationDeadline?: Date;
+  createdAt: Date;
+  createdBy?: string;
+  outcomeTypeId?: string;
+  outcomeReasonId?: string | null;
+  tournament?: {
+    id: string;
+    name: string;
+    mode: string;
+    teamMode: string;
+    scoreEnabled: boolean;
+  };
+  outcomeType?: { id: string; name: string } | null;
+  outcomeReason?: { id: string; name: string } | null;
+  confirmations?: MatchDetailConfirmation[];
+  sides: MatchDetailSide[];
+  result?: {
+    reportedBy?: string;
+    reportedAt?: Date;
+    reportProof?: string;
+    finalizedBy?: string;
+    finalizedAt?: Date;
+    finalizationReason?: MatchFinalizationReason;
+    reporter?: { id: string; displayName: string };
+  };
+}
+
 export const listMatchCardsQuerySchema = z.object({
   tournamentId: z.string().uuid().optional(),
   playerIds: z.string().optional(),

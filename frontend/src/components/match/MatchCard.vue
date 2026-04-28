@@ -177,7 +177,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
-import { getInitials } from '@/utils/StringUtils'
+import { getInitials, getAvatarBg } from '@/utils/StringUtils'
 
 const props = defineProps<{
   entry: ClientMatchCard
@@ -332,22 +332,5 @@ function navigateToMatch(matchId: string) {
   router.push(`/matches/${matchId}`)
 }
 
-const AVATAR_COLORS = [
-  '#1d4ed8',
-  '#4338ca',
-  '#7e22ce',
-  '#be185d',
-  '#b91c1c',
-  '#c2410c',
-  '#b45309',
-  '#15803d',
-  '#0f766e',
-  '#0369a1',
-]
-
-function getAvatarBg(name: string) {
-  const idx = name.charCodeAt(0) % AVATAR_COLORS.length
-  return AVATAR_COLORS[idx]
-}
 
 </script>

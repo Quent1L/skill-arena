@@ -52,6 +52,7 @@ declare module 'vue' {
     NotificationsInit: typeof import('./src/components/NotificationsInit.vue')['default']
     OutcomeSelector: typeof import('./src/components/match/OutcomeSelector.vue')['default']
     OutcomeTypeStep: typeof import('./src/components/match/OutcomeTypeStep.vue')['default']
+    OverflowMenuButton: typeof import('./src/components/OverflowMenuButton.vue')['default']
     OverlayBadge: typeof import('primevue/overlaybadge')['default']
     Password: typeof import('primevue/password')['default']
     PlayerMmrProfile: typeof import('./src/components/ranked/PlayerMmrProfile.vue')['default']

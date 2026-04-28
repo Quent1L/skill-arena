@@ -13,8 +13,8 @@
         <div class="bg-surface-50 dark:bg-surface-800 p-3 rounded-lg text-center text-sm text-surface-500 dark:text-surface-400">
           <p>
             Résultat saisi par
-            <span class="font-semibold">{{ match.reporter?.displayName || 'Inconnu' }}</span>
-            le {{ formatDate(match.reportedAt) }}
+            <span class="font-semibold">{{ match.result?.reporter?.displayName || 'Inconnu' }}</span>
+            le {{ formatDate(match.result?.reportedAt) }}
           </p>
         </div>
 
@@ -25,7 +25,7 @@
         >
           <div class="flex items-center gap-2 text-warn-700 dark:text-warn-300 text-sm font-semibold">
             <i class="fa fa-exclamation-triangle"></i>
-            Score contesté — correction proposée par
+            Score contesté — correction proposée par
             <span class="font-bold">{{ activeProposal.player?.displayName || 'un joueur' }}</span>
           </div>
 
@@ -33,7 +33,7 @@
             <div class="text-center">
               <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score original</p>
               <p class="text-2xl font-bold text-surface-400 dark:text-surface-500 line-through">
-                {{ match.scoreA }} - {{ match.scoreB }}
+                {{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}
               </p>
             </div>
 
@@ -48,7 +48,7 @@
           </div>
 
           <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
+            <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
           </div>
           <!-- Proposed winner change -->
           <div v-if="activeProposal.proposedWinner !== undefined && activeProposal.proposedWinner !== null" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
@@ -73,7 +73,7 @@
         <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
           <div class="text-center">
             <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score</p>
-            <p class="text-3xl font-bold text-primary">{{ match.scoreA }} - {{ match.scoreB }}</p>
+            <p class="text-3xl font-bold text-primary">{{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}</p>
           </div>
         </div>
 
@@ -267,7 +267,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { type ClientMatchModel } from '@skill-arena/shared';
+import { type ClientMatchDetail } from '@skill-arena/shared';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -278,7 +278,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface Props {
-  match: ClientMatchModel;
+  match: ClientMatchDetail;
   currentUserId?: string;
   confirming?: boolean;
   contesting?: boolean;
@@ -295,50 +295,24 @@ const emit = defineEmits<Emits>();
 const contestDialogVisible = ref(false);
 const contestReason = ref('');
 
+const sideA = computed(() => props.match.sides.find((s) => s.position === 1));
+const sideB = computed(() => props.match.sides.find((s) => s.position === 2));
+
 const shouldShowConfirmation = computed(() => {
   return ['reported', 'pending_confirmation', 'disputed'].includes(props.match.status);
 });
 
-const confirmations = computed(() => props.match.confirmations || []);
+const confirmations = computed(() => props.match.confirmations ?? []);
 
-// Extract participants from teamA and teamB
 const participants = computed(() => {
-  const result: Array<{ playerId: string; displayName: string }> = [];
-
-  // Extract from teamA
-  if (props.match.teamA?.participants) {
-    for (const participant of props.match.teamA.participants) {
-      if (participant.user) {
-        result.push({
-          playerId: participant.user.id,
-          displayName: participant.user.displayName,
-        });
-      }
-    }
-  }
-
-  // Extract from teamB
-  if (props.match.teamB?.participants) {
-    for (const participant of props.match.teamB.participants) {
-      if (participant.user) {
-        result.push({
-          playerId: participant.user.id,
-          displayName: participant.user.displayName,
-        });
-      }
-    }
-  }
-
-  return result;
+  return props.match.sides.flatMap((side) =>
+    side.players.map((p) => ({ playerId: p.id, displayName: p.displayName }))
+  );
 });
 
-const totalPlayers = computed(() => {
-  return participants.value.length;
-});
+const totalPlayers = computed(() => participants.value.length);
 
-const confirmedCount = computed(() => {
-  return confirmations.value.filter(c => c.isConfirmed).length;
-});
+const confirmedCount = computed(() => confirmations.value.filter((c) => c.isConfirmed).length);
 
 const activeProposal = computed(() => {
   return confirmations.value.find(
@@ -351,9 +325,7 @@ const activeProposal = computed(() => {
 });
 
 const playersWithStatus = computed(() => {
-  const confirmationsMap = new Map(
-    confirmations.value.map(c => [c.playerId, c])
-  );
+  const confirmationsMap = new Map(confirmations.value.map((c) => [c.playerId, c]));
 
   return participants.value.map(participant => {
     const confirmation = confirmationsMap.get(participant.playerId);
@@ -383,7 +355,6 @@ const playersWithStatus = computed(() => {
 const userConfirmation = computed(() => {
   if (!props.currentUserId) return null;
   const confirmation = confirmations.value.find(c => c.playerId === props.currentUserId);
-  // A "reset" confirmation (both flags false) means they haven't voted yet
   if (!confirmation || (!confirmation.isConfirmed && !confirmation.isContested)) return null;
   return confirmation;
 });
@@ -391,7 +362,6 @@ const userConfirmation = computed(() => {
 const canUserConfirm = computed(() => {
   if (!props.currentUserId) return false;
   if (props.match.status === 'finalized') return false;
-
   return participants.value.some(p => p.playerId === props.currentUserId);
 });
 
@@ -449,4 +419,3 @@ function isUrl(str: string): boolean {
   background: var(--surface-card);
 }
 </style>
-

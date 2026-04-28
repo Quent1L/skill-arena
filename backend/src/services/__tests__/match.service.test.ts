@@ -55,7 +55,7 @@ beforeEach(() => {
   repo = matchRepository as unknown as Partial<MatchRepository>;
   repo.getTournament = async (_id: string) => undefined;
   repo.create = async (_data: any) => "match-1"; // Now returns match ID
-  repo.getById = async (_id: string) => undefined;
+  repo.getById = async (_id: string) => null;
   repo.isUserInMatch = async (_matchId: string, _userId: string) => false;
   repo.validateEntriesForTournament = async () => undefined; // Replaces validateTeams/PlayersForTournament
   repo.countMatchesForUser = async () => 0;
@@ -365,7 +365,7 @@ describe("MatchService - basic flows", () => {
   });
 
   it("getMatchById should throw NotFoundError when missing", async () => {
-    repo.getById = async (_id: string) => undefined;
+    repo.getById = async (_id: string) => null;
     try {
       await matchService.getMatchById("m-not-exist");
       throw new Error("Expected NotFoundError");

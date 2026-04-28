@@ -1,6 +1,7 @@
 import http from '@/config/ApiConfig'
 import type {
   ClientMatchModel,
+  ClientMatchDetail,
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
@@ -43,8 +44,8 @@ export const matchApi = {
    * Get match by ID
    * @returns Match with Date objects (converted by interceptor)
    */
-  async getById(id: string): Promise<ClientMatchModel> {
-    const response = await http.get<ClientMatchModel>(`${BASE_URL}/${id}`)
+  async getById(id: string): Promise<ClientMatchDetail> {
+    const response = await http.get<ClientMatchDetail>(`${BASE_URL}/${id}`)
     return response.data
   },
 

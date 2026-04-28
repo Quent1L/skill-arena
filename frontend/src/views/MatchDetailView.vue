@@ -58,31 +58,31 @@
             <div
               class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
             >
-              <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'B' }">
+              <div class="text-center flex-1" :class="{ 'opacity-50': sideB?.isWinner }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ match.teamA?.name ?? 'Équipe A' }}
+                  {{ sideA?.entryName ?? 'Équipe A' }}
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
                   class="text-5xl font-bold"
-                  :class="match.winnerSide === 'A' ? 'text-green-600' : 'text-primary'"
+                  :class="sideA?.isWinner ? 'text-green-600' : 'text-primary'"
                 >
-                  {{ match.scoreA }}
+                  {{ sideA?.score }}
                 </div>
-                <div v-if="match.teamA?.participants" class="mt-2 text-sm">
+                <div v-if="sideA?.players" class="mt-2 text-sm">
                   <div
-                    v-for="p in match.teamA.participants"
-                    :key="p.user?.id"
+                    v-for="p in sideA.players"
+                    :key="p.id"
                     class="flex items-center justify-center gap-1"
                   >
                     <RouterLink
-                      v-if="p.user?.id"
-                      :to="{ path: `/players/${p.user.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
+                      v-if="p.id"
+                      :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
                       class="hover:underline text-blue-600 dark:text-blue-400"
                     >
-                      {{ p.user?.displayName }}
+                      {{ p.displayName }}
                     </RouterLink>
-                    <span v-else>{{ p.user?.displayName }}</span>
+                    <span v-else>{{ p.displayName }}</span>
                     <template
                       v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
                     >
@@ -102,7 +102,7 @@
                 </div>
                 <div class="mt-3 min-h-[32px]">
                   <Tag
-                    v-if="match.winnerSide === 'A'"
+                    v-if="sideA?.isWinner"
                     value="Vainqueur"
                     severity="success"
                     icon="fa fa-trophy"
@@ -117,31 +117,31 @@
                 -
               </div>
 
-              <div class="text-center flex-1" :class="{ 'opacity-50': match.winnerSide === 'A' }">
+              <div class="text-center flex-1" :class="{ 'opacity-50': sideA?.isWinner }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ match.teamB?.name ?? 'Équipe B' }}
+                  {{ sideB?.entryName ?? 'Équipe B' }}
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
                   class="text-5xl font-bold"
-                  :class="match.winnerSide === 'B' ? 'text-green-600' : 'text-primary'"
+                  :class="sideB?.isWinner ? 'text-green-600' : 'text-primary'"
                 >
-                  {{ match.scoreB }}
+                  {{ sideB?.score }}
                 </div>
-                <div v-if="match.teamB?.participants" class="mt-2 text-sm">
+                <div v-if="sideB?.players" class="mt-2 text-sm">
                   <div
-                    v-for="p in match.teamB.participants"
-                    :key="p.user?.id"
+                    v-for="p in sideB.players"
+                    :key="p.id"
                     class="flex items-center justify-center gap-1"
                   >
                     <RouterLink
-                      v-if="p.user?.id"
-                      :to="{ path: `/players/${p.user.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
+                      v-if="p.id"
+                      :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
                       class="hover:underline text-blue-600 dark:text-blue-400"
                     >
-                      {{ p.user?.displayName }}
+                      {{ p.displayName }}
                     </RouterLink>
-                    <span v-else>{{ p.user?.displayName }}</span>
+                    <span v-else>{{ p.displayName }}</span>
                     <template
                       v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
                     >
@@ -161,7 +161,7 @@
                 </div>
                 <div class="mt-3 min-h-[32px]">
                   <Tag
-                    v-if="match.winnerSide === 'B'"
+                    v-if="sideB?.isWinner"
                     value="Vainqueur"
                     severity="success"
                     icon="fa fa-trophy"
@@ -184,13 +184,13 @@
                 <span class="text-surface-500 dark:text-surface-400">Raison du résultat :</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
               </div>
-              <div v-if="match.finalizedAt">
+              <div v-if="match.result?.finalizedAt">
                 <span class="text-surface-500 dark:text-surface-400">Finalisé le :</span>
-                <span class="ml-2 font-semibold">{{ formatDate(match.finalizedAt) }}</span>
+                <span class="ml-2 font-semibold">{{ formatDate(match.result.finalizedAt) }}</span>
               </div>
-              <div v-if="match.finalizationReason">
+              <div v-if="match.result?.finalizationReason">
                 <span class="text-surface-500 dark:text-surface-400">Finalisation :</span>
-                <span class="ml-2 font-semibold">{{ getFinalizationReasonLabel(match.finalizationReason) }}</span>
+                <span class="ml-2 font-semibold">{{ getFinalizationReasonLabel(match.result.finalizationReason) }}</span>
               </div>
             </div>
           </div>
@@ -273,7 +273,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
-import type { ClientMatchModel, MatchFinalizationReason } from '@skill-arena/shared/types/index'
+import type { ClientMatchDetail, MatchFinalizationReason } from '@skill-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 
@@ -293,7 +293,7 @@ const { getMatch, confirmMatchResult, finalizeMatch, cancelMatch } = useMatchSer
 const { appUser } = useAuth()
 const detailStore = useTournamentDetailStore()
 
-const match = ref<ClientMatchModel | null>(null)
+const match = ref<ClientMatchDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const confirming = ref(false)
@@ -302,6 +302,9 @@ const showCancelDialog = ref(false)
 
 const currentUser = computed(() => appUser.value)
 
+const sideA = computed(() => match.value?.sides.find((s) => s.position === 1))
+const sideB = computed(() => match.value?.sides.find((s) => s.position === 2))
+
 const canManageMatch = computed(() => {
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
 })
@@ -309,11 +312,7 @@ const canManageMatch = computed(() => {
 const isParticipant = computed(() => {
   if (!match.value || !appUser.value) return false
   const uid = appUser.value.id
-  return (
-    (match.value.teamA?.participants?.some((p) => p.user?.id === uid) ||
-      match.value.teamB?.participants?.some((p) => p.user?.id === uid)) ??
-    false
-  )
+  return match.value.sides.some((s) => s.players.some((p) => p.id === uid))
 })
 
 const canCancelMatch = computed(() => {
@@ -330,7 +329,7 @@ const canCancelMatch = computed(() => {
 
 const canEditMatch = computed(() => {
   if (!match.value) return false
-  return !!(match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value))
+  return match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value)
 })
 
 async function loadMatch() {
@@ -353,7 +352,8 @@ async function handleConfirm() {
   try {
     confirming.value = true
     const updatedMatch = await confirmMatchResult(match.value.id)
-    match.value = updatedMatch
+    match.value = await getMatch(match.value.id)
+    void updatedMatch
   } catch (err) {
     console.error('Error confirming match:', err)
   } finally {
@@ -387,7 +387,8 @@ async function handleCancel() {
   try {
     cancelling.value = true
 
-    match.value = await cancelMatch(match.value.id)
+    await cancelMatch(match.value.id)
+    match.value = await getMatch(match.value.id)
     showCancelDialog.value = false
   } catch (err) {
     console.error('Error cancelling match:', err)

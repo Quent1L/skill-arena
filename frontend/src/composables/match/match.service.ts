@@ -5,6 +5,7 @@ import { matchApi } from './match.api'
 import { useParticipantService } from '../participant.service'
 import type {
   ClientMatchModel,
+  ClientMatchDetail,
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
   ReportMatchResultRequestData,
@@ -222,7 +223,7 @@ export function useMatchService() {
     return await matchApi.create(data)
   }
 
-  const getMatch = async (id: string): Promise<ClientMatchModel> => {
+  const getMatch = async (id: string): Promise<ClientMatchDetail> => {
     return await matchApi.getById(id)
   }
 

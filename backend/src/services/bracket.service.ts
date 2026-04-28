@@ -910,14 +910,7 @@ export class BracketService {
     if (!metadata?.winnerToMatchId) return;
 
     const match = await matchRepository.getById(matchId);
-    if (!match?.winnerSide) return;
-
-    const winnerPosition = match.winnerSide === "A" ? 0 : 1;
-    const sides = await db.query.matchSides.findMany({
-      where: eq(matchSides.matchId, matchId),
-    });
-
-    const winnerSide = sides.find((s) => s.position === winnerPosition);
+    const winnerSide = match?.sides.find((s) => s.isWinner);
     if (!winnerSide) return;
 
     const nextMatchSides = await db.query.matchSides.findMany({
@@ -944,14 +937,7 @@ export class BracketService {
     if (!metadata?.loserToMatchId) return;
 
     const match = await matchRepository.getById(matchId);
-    if (!match?.winnerSide) return;
-
-    const loserPosition = match.winnerSide === "A" ? 1 : 0;
-    const sides = await db.query.matchSides.findMany({
-      where: eq(matchSides.matchId, matchId),
-    });
-
-    const loserSide = sides.find((s) => s.position === loserPosition);
+    const loserSide = match?.sides.find((s) => !s.isWinner);
     if (!loserSide) return;
 
     const nextMatchSides = await db.query.matchSides.findMany({

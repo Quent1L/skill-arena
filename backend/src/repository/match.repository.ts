@@ -15,6 +15,9 @@ import {
   type MatchStatus,
   type MatchFinalizationReason,
   type ListMatchCardsQuery,
+  type ClientMatchDetail,
+  type MatchDetailSide,
+  type MatchDetailPlayer,
 } from "@skill-arena/shared";
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
@@ -189,29 +192,13 @@ export class MatchRepository {
     });
   }
 
-  /**
-   * Get match by ID with relations
-   * Builds synthetic teamA/teamB from match_sides for backward compatibility
-   */
-  async getById(id: string) {
+  async getById(id: string): Promise<ClientMatchDetail | null> {
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, id),
       with: {
         tournament: true,
-        outcomeType: {
-          with: {
-            discipline: true,
-          },
-        },
-        outcomeReason: {
-          with: {
-            outcomeType: {
-              with: {
-                discipline: true,
-              },
-            },
-          },
-        },
+        outcomeType: true,
+        outcomeReason: true,
         confirmations: {
           with: {
             player: true,
@@ -222,133 +209,125 @@ export class MatchRepository {
       },
     });
 
-    if (!match) return match;
+    if (!match) return null;
 
-    // Get match_sides
     const sides = await matchSidesRepository.getByMatchId(id);
-
-    // Get match_results
     const result = await matchResultRepository.getByMatchId(id);
 
-    // Build synthetic teamA/teamB objects
-    const teamA = sides[0] ? this.buildTeamObject(sides[0]) : null;
-    const teamB = sides[1] ? this.buildTeamObject(sides[1]) : null;
-
-    // Determine winner info
-    const scoreA = sides[0]?.score ?? 0;
-    const scoreB = sides[1]?.score ?? 0;
-    const winnerSide = this.determineWinnerSide(match);
-    const winnerId =
-      winnerSide === "A"
-        ? sides[0]?.entry?.teamId || sides[0]?.entry?.id
-        : winnerSide === "B"
-          ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
-          : null;
-
-    // For finalized matches, enrich participants with effective points from matchPlayerPoints
+    let playerPointMap = new Map<string, { pointsAwarded: number; countsForRanking: boolean }>();
     if (match.status === "finalized") {
-      await this.enrichParticipantsWithEffectivePoints(teamA, sides[0], id);
-      await this.enrichParticipantsWithEffectivePoints(teamB, sides[1], id);
+      const rows = await db
+        .select({
+          playerId: matchPlayerPoints.playerId,
+          pointsAwarded: matchPlayerPoints.pointsAwarded,
+          countsForRanking: matchPlayerPoints.countsForRanking,
+        })
+        .from(matchPlayerPoints)
+        .where(eq(matchPlayerPoints.matchId, id));
+      playerPointMap = new Map(rows.map((r) => [r.playerId, r]));
     }
 
-    // Build response with backward-compatible format
+    const builtSides: MatchDetailSide[] = sides.map((side) => {
+      const isWinner =
+        (match.winnerSide === "A" && side.position === 1) ||
+        (match.winnerSide === "B" && side.position === 2);
+      const entry = side.entry;
+      const entryName = entry?.team?.name ?? null;
+      const standardPoints = side.pointsAwarded ?? 0;
+
+      const players: MatchDetailPlayer[] = (entry?.players ?? []).map((ep: any) => {
+        const player: MatchDetailPlayer = {
+          id: ep.player.id,
+          displayName: ep.player.displayName,
+          shortName: ep.player.shortName ?? ep.player.displayName.slice(0, 8),
+        };
+        if (match.status === "finalized") {
+          const row = playerPointMap.get(ep.player.id);
+          if (row) {
+            player.exceededMatchLimit = !row.countsForRanking;
+            player.effectivePointsAwarded = row.pointsAwarded;
+          } else {
+            player.exceededMatchLimit = false;
+            player.effectivePointsAwarded = standardPoints;
+          }
+        }
+        return player;
+      });
+
+      return {
+        position: side.position,
+        score: side.score,
+        pointsAwarded: standardPoints,
+        isWinner,
+        entryId: entry?.id ?? "",
+        entryName,
+        players,
+      };
+    });
+
     return {
-      ...match,
-      teamA: teamA as any,
-      teamB: teamB as any,
-      scoreA,
-      scoreB,
-      winnerId,
-      winnerSide,
-      winner: winnerId ? (winnerSide === "A" ? teamA : teamB) : null,
-      reportedBy: result?.reportedBy,
-      reportedAt: result?.reportedAt,
-      reportProof: result?.reportProof,
-      finalizedBy: result?.finalizedBy,
-      finalizedAt: result?.finalizedAt,
-      finalizationReason: result?.finalizationReason,
-      reporter: result?.reporter,
-      // Include sides for new API consumers
-      sides: sides,
+      id: match.id,
+      tournamentId: match.tournamentId,
+      status: match.status,
+      playedAt: match.playedAt as unknown as Date,
+      confirmationDeadline: match.confirmationDeadline as unknown as Date | undefined,
+      createdAt: match.createdAt as unknown as Date,
+      createdBy: match.createdBy ?? undefined,
+      outcomeTypeId: match.outcomeTypeId ?? undefined,
+      outcomeReasonId: match.outcomeReasonId,
+      tournament: match.tournament
+        ? {
+            id: match.tournament.id,
+            name: match.tournament.name,
+            mode: match.tournament.mode,
+            teamMode: match.tournament.teamMode,
+            scoreEnabled: match.tournament.scoreEnabled ?? true,
+          }
+        : undefined,
+      outcomeType: match.outcomeType
+        ? { id: match.outcomeType.id, name: match.outcomeType.name }
+        : null,
+      outcomeReason: match.outcomeReason
+        ? { id: match.outcomeReason.id, name: match.outcomeReason.name }
+        : null,
+      confirmations: match.confirmations.map((c) => ({
+        id: c.id,
+        matchId: c.matchId,
+        playerId: c.playerId,
+        isConfirmed: c.isConfirmed,
+        isContested: c.isContested,
+        contestationReason: c.contestationReason,
+        contestationProof: c.contestationProof,
+        proposedScoreA: c.proposedScoreA,
+        proposedScoreB: c.proposedScoreB,
+        proposedWinner: c.proposedWinner,
+        proposedOutcomeTypeId: c.proposedOutcomeTypeId,
+        proposedOutcomeReasonId: c.proposedOutcomeReasonId,
+        createdAt: c.createdAt as unknown as Date,
+        updatedAt: c.updatedAt as unknown as Date,
+        player: c.player ? { id: c.player.id, displayName: c.player.displayName } : null,
+        proposedOutcomeType: c.proposedOutcomeType
+          ? { id: c.proposedOutcomeType.id, name: c.proposedOutcomeType.name }
+          : null,
+        proposedOutcomeReason: c.proposedOutcomeReason
+          ? { id: c.proposedOutcomeReason.id, name: c.proposedOutcomeReason.name }
+          : null,
+      })),
+      sides: builtSides,
+      result: result
+        ? {
+            reportedBy: result.reportedBy ?? undefined,
+            reportedAt: result.reportedAt as unknown as Date | undefined,
+            reportProof: result.reportProof ?? undefined,
+            finalizedBy: result.finalizedBy ?? undefined,
+            finalizedAt: result.finalizedAt as unknown as Date | undefined,
+            finalizationReason: result.finalizationReason ?? undefined,
+            reporter: result.reporter
+              ? { id: result.reporter.id, displayName: result.reporter.displayName }
+              : undefined,
+          }
+        : undefined,
     };
-  }
-
-  /**
-   * Enrich a team's participants with effectivePointsAwarded and exceededMatchLimit.
-   * Reads from matchPlayerPoints (pre-computed by recalculatePointsInternal) when available,
-   * falls back to side.pointsAwarded for non-flex or no-limit tournaments.
-   */
-  private async enrichParticipantsWithEffectivePoints(
-    team: SyntheticTeam | null,
-    side: any,
-    matchId: string,
-  ): Promise<void> {
-    if (!team || !side) return;
-
-    // Fetch all matchPlayerPoints rows for this match in one query
-    const playerPointRows = await db
-      .select({ playerId: matchPlayerPoints.playerId, pointsAwarded: matchPlayerPoints.pointsAwarded, countsForRanking: matchPlayerPoints.countsForRanking })
-      .from(matchPlayerPoints)
-      .where(eq(matchPlayerPoints.matchId, matchId));
-
-    const playerPointMap = new Map(playerPointRows.map((r) => [r.playerId, r]));
-
-    const standardPoints: number = side.pointsAwarded ?? 0;
-
-    for (const participant of team.participants) {
-      const userId = participant.user?.id;
-      if (!userId) continue;
-
-      const row = playerPointMap.get(userId);
-      if (row) {
-        (participant as any).exceededMatchLimit = !row.countsForRanking;
-        (participant as any).effectivePointsAwarded = row.pointsAwarded;
-      } else {
-        // No per-player data (static mode or flex without limit): use entry-level points
-        (participant as any).exceededMatchLimit = false;
-        (participant as any).effectivePointsAwarded = standardPoints;
-      }
-    }
-  }
-
-  /**
-   * Build team object from match side
-   */
-  private buildTeamObject(side: any): SyntheticTeam {
-    const entry = side.entry;
-    if (!entry) {
-      return { participants: [] };
-    }
-
-    if (entry.entryType === "TEAM" && entry.team) {
-      return {
-        id: entry.team.id,
-        name: entry.team.name,
-        participants: entry.players.map((ep: any) => ({
-          user: ep.player,
-        })),
-      };
-    } else {
-      // PLAYER entry - synthetic team
-      return {
-        id: entry.id, // Use entryId as synthetic teamId
-        name: null,
-        participants: entry.players.map((ep: any) => ({
-          user: ep.player,
-        })),
-      };
-    }
-  }
-
-  /**
-   * Determine winner side from the persisted winnerSide column on the match record
-   */
-  private determineWinnerSide(match: {
-    winnerSide: string | null;
-  }): "A" | "B" | null {
-    if (match.winnerSide === "A" || match.winnerSide === "B")
-      return match.winnerSide;
-    return null;
   }
 
   /**
@@ -358,6 +337,28 @@ export class MatchRepository {
     return await db.query.matches.findFirst({
       where: eq(matches.id, id),
     });
+  }
+
+  private buildTeamObject(side: any): SyntheticTeam {
+    const entry = side.entry;
+    if (!entry) return { participants: [] };
+    if (entry.entryType === "TEAM" && entry.team) {
+      return {
+        id: entry.team.id,
+        name: entry.team.name,
+        participants: entry.players.map((ep: any) => ({ user: ep.player })),
+      };
+    }
+    return {
+      id: entry.id,
+      name: null,
+      participants: entry.players.map((ep: any) => ({ user: ep.player })),
+    };
+  }
+
+  private determineWinnerSide(match: { winnerSide: string | null }): "A" | "B" | null {
+    if (match.winnerSide === "A" || match.winnerSide === "B") return match.winnerSide;
+    return null;
   }
 
   /**
