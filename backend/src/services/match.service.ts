@@ -129,10 +129,12 @@ export class MatchService {
    */
   private async triggerStandingsRecalcIfNeeded(tournamentId: string, matchId?: string): Promise<void> {
     const tournament = await matchRepository.getTournament(tournamentId);
-    if (tournament?.teamMode === "flex" && tournament.maxMatchesPerPlayer) {
-      await standingsService.recalculatePointsInternal(tournamentId);
-    } else {
-      await standingsService.invalidateCache(tournamentId);
+    if (tournament?.mode === "championship") {
+      if (tournament.teamMode === "flex" && tournament.maxMatchesPerPlayer) {
+        await standingsService.recalculatePointsInternal(tournamentId);
+      } else {
+        await standingsService.invalidateCache(tournamentId);
+      }
     }
     if (matchId) {
       const playerIds = await matchRepository.getPlayerIdsForMatch(matchId);

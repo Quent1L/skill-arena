@@ -4,6 +4,7 @@ import {
   matches,
   matchSides,
   matchPlayerPoints,
+  mmrHistory,
   tournamentEntries,
   tournamentEntryPlayers,
   teams,
@@ -227,6 +228,15 @@ export class MatchRepository {
       playerPointMap = new Map(rows.map((r) => [r.playerId, r]));
     }
 
+    let playerMmrMap = new Map<string, number>();
+    if (match.status === "finalized" && match.tournament?.mode === "ranked") {
+      const rows = await db
+        .select({ playerId: mmrHistory.playerId, mmrDelta: mmrHistory.mmrDelta })
+        .from(mmrHistory)
+        .where(eq(mmrHistory.matchId, id));
+      playerMmrMap = new Map(rows.map((r) => [r.playerId, r.mmrDelta]));
+    }
+
     const builtSides: MatchDetailSide[] = sides.map((side) => {
       const isWinner =
         (match.winnerSide === "A" && side.position === 1) ||
@@ -249,6 +259,9 @@ export class MatchRepository {
           } else {
             player.exceededMatchLimit = false;
             player.effectivePointsAwarded = standardPoints;
+          }
+          if (match.tournament?.mode === "ranked") {
+            player.mmrDelta = playerMmrMap.get(ep.player.id) ?? null;
           }
         }
         return player;

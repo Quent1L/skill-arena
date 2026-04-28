@@ -524,6 +524,7 @@ export interface MatchDetailPlayer {
   shortName: string;
   effectivePointsAwarded?: number;
   exceededMatchLimit?: boolean;
+  mmrDelta?: number | null;
 }
 
 export interface MatchDetailSide {

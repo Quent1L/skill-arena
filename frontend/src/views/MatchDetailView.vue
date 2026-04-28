@@ -84,7 +84,7 @@
                     </RouterLink>
                     <span v-else>{{ p.displayName }}</span>
                     <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
+                      v-if="match.status === 'finalized' && match.tournament?.mode === 'championship' && p.effectivePointsAwarded !== undefined"
                     >
                       <Tag
                         v-if="p.exceededMatchLimit"
@@ -96,6 +96,16 @@
                         +{{ p.effectivePointsAwarded }} pt{{
                           p.effectivePointsAwarded !== 1 ? 's' : ''
                         }}
+                      </span>
+                    </template>
+                    <template
+                      v-if="match.status === 'finalized' && match.tournament?.mode === 'ranked' && p.mmrDelta !== undefined"
+                    >
+                      <span
+                        class="font-semibold"
+                        :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                      >
+                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }} MMR
                       </span>
                     </template>
                   </div>
@@ -143,7 +153,7 @@
                     </RouterLink>
                     <span v-else>{{ p.displayName }}</span>
                     <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode !== 'ranked' && p.effectivePointsAwarded !== undefined"
+                      v-if="match.status === 'finalized' && match.tournament?.mode === 'championship' && p.effectivePointsAwarded !== undefined"
                     >
                       <Tag
                         v-if="p.exceededMatchLimit"
@@ -155,6 +165,16 @@
                         +{{ p.effectivePointsAwarded }} pt{{
                           p.effectivePointsAwarded !== 1 ? 's' : ''
                         }}
+                      </span>
+                    </template>
+                    <template
+                      v-if="match.status === 'finalized' && match.tournament?.mode === 'ranked' && p.mmrDelta !== undefined"
+                    >
+                      <span
+                        class="font-semibold"
+                        :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                      >
+                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }} MMR
                       </span>
                     </template>
                   </div>
