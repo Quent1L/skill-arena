@@ -119,10 +119,11 @@ export class RankedSeasonRepository {
   }
 
   static readonly DEFAULT_TIER_CONFIGS = [
-    { level: 1, name: "Challenger", percentile: 0 },
-    { level: 2, name: "Stratège", percentile: 0.4 },
-    { level: 3, name: "Maître", percentile: 0.7 },
-    { level: 4, name: "Légende", percentile: 0.9 },
+    { level: 1, name: "Rookie",     percentile: 0,    minMmr: 700  },
+    { level: 2, name: "Challenger", percentile: 0.4,  minMmr: 900  },
+    { level: 3, name: "Confirmé",   percentile: 0.7,  minMmr: 1100 },
+    { level: 4, name: "Expert",     percentile: 0.9,  minMmr: 1300 },
+    { level: 5, name: "Légende",    percentile: 0.95, minMmr: 1500 },
   ] as const;
 
   async getRankTiers(seasonId: string) {
@@ -166,7 +167,7 @@ export class RankedSeasonRepository {
     return created;
   }
 
-  async initDefaultTiers(seasonId: string, baseMmr: number) {
+  async initDefaultTiers(seasonId: string, _baseMmr: number) {
     for (const tier of RankedSeasonRepository.DEFAULT_TIER_CONFIGS) {
       await db
         .insert(rankTiers)
@@ -175,7 +176,7 @@ export class RankedSeasonRepository {
           level: tier.level,
           name: tier.name,
           percentile: tier.percentile,
-          minMmr: baseMmr,
+          minMmr: tier.minMmr,
           subRanks: 1,
         })
         .onConflictDoNothing();

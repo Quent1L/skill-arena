@@ -49,6 +49,7 @@ mock.module("../../repository/ranked-season.repository", () => ({
 const mockPlayerMmrRepo = {
   deleteMmrHistoryForPlayer: mock(() => Promise.resolve()),
   getMmrHistoryOrdered: mock(() => Promise.resolve([])),
+  getMmrHistoryForPlayerAndMatch: mock(() => Promise.resolve(null)),
   getBySeasonAndPlayer: mock(() => Promise.resolve(null)),
   createMmrHistory: mock(() => Promise.resolve()),
   upsert: mock(() => Promise.resolve()),
@@ -104,6 +105,7 @@ function resetMocks() {
   mockRankedRepo.upsertRankTier.mockImplementation(() => Promise.resolve());
   mockPlayerMmrRepo.deleteMmrHistoryForPlayer.mockImplementation(() => Promise.resolve());
   mockPlayerMmrRepo.getMmrHistoryOrdered.mockImplementation(() => Promise.resolve([]));
+  mockPlayerMmrRepo.getMmrHistoryForPlayerAndMatch.mockImplementation(() => Promise.resolve(null));
   mockPlayerMmrRepo.getBySeasonAndPlayer.mockImplementation(() => Promise.resolve(null));
   mockPlayerMmrRepo.createMmrHistory.mockImplementation(() => Promise.resolve());
   mockPlayerMmrRepo.upsert.mockImplementation(() => Promise.resolve());
@@ -517,6 +519,48 @@ describe("MmrCalculationService", () => {
       expect(historyArgs[0].mmrDelta).toBe(0);
     });
 
+    it("symétrie vainqueur/perdant : utilise mmrBefore adversaire depuis history si disponible", async () => {
+      const winnerHistory: any[] = [];
+      const loserHistory: any[] = [];
+
+      // Simulate: winner processed first, saves history with mmrBefore=1000
+      // When loser is processed, getMmrHistoryForPlayerAndMatch returns winner's mmrBefore=1000
+      mockPlayerMmrRepo.getMmrHistoryForPlayerAndMatch.mockImplementation(
+        (_seasonId: string, oppId: string, _matchId: string) => {
+          if (oppId === "winner-1") return Promise.resolve({ mmrBefore: 1000 });
+          return Promise.resolve(null);
+        },
+      );
+
+      // Process winner
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        winnerHistory.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], { m1: makeSideResult({ playerWon: true, opponentPlayerIds: ["opp-1"] }) });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      resetMocks();
+      service = new MmrCalculationService();
+
+      // Process loser: opponent is "winner-1", whose history shows mmrBefore=1000
+      mockPlayerMmrRepo.getMmrHistoryForPlayerAndMatch.mockImplementation(
+        (_seasonId: string, oppId: string, _matchId: string) => {
+          if (oppId === "winner-1") return Promise.resolve({ mmrBefore: 1000 });
+          return Promise.resolve(null);
+        },
+      );
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        loserHistory.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], { m1: makeSideResult({ playerWon: false, opponentPlayerIds: ["winner-1"] }) });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      // Both opponents had mmrBefore=1000, so |winDelta| and |lossDelta| should be equal
+      expect(Math.abs(winnerHistory[0].mmrDelta)).toBe(Math.abs(loserHistory[0].mmrDelta));
+    });
+
     it("retourne immédiatement si pas de config ranked", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(null));
       await service.recalculatePlayerMmr(SEASON, PLAYER);
@@ -751,7 +795,6 @@ describe("MmrCalculationService", () => {
       (svc as any).getMatchPlayerIds = mock(async () => playerIds);
       (svc as any).ensurePlayerMmrExists = mock(async () => {});
       (svc as any).recalculatePlayerMmr = mock(async () => {});
-      (svc as any).recalculateBoundaries = mock(async () => {});
     }
 
     it("match introuvable → retour immédiat, aucun appel downstream", async () => {
@@ -773,7 +816,7 @@ describe("MmrCalculationService", () => {
       expect((service as any).getMatchPlayerIds.mock.calls).toHaveLength(0);
     });
 
-    it("match ranked, 2 joueurs → recalculate appelé pour chacun + boundaries", async () => {
+    it("match ranked, 2 joueurs → recalculate appelé pour chacun", async () => {
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({
           id: "m1",
@@ -785,7 +828,6 @@ describe("MmrCalculationService", () => {
       await service.processMatchFinalization("m1");
       expect((service as any).ensurePlayerMmrExists.mock.calls).toHaveLength(2);
       expect((service as any).recalculatePlayerMmr.mock.calls).toHaveLength(2);
-      expect((service as any).recalculateBoundaries.mock.calls).toHaveLength(1);
     });
 
     it("rankedConfig null → baseMmr fallback à 1000 pour ensurePlayerMmrExists", async () => {
@@ -801,19 +843,5 @@ describe("MmrCalculationService", () => {
       expect((service as any).ensurePlayerMmrExists.mock.calls[0][1]).toBe(1000);
     });
 
-    it("seasonId et baseMmr corrects transmis à recalculateBoundaries", async () => {
-      mockDb.query.matches.findFirst.mockImplementation(() =>
-        Promise.resolve({
-          id: "m1",
-          tournamentId: "s1",
-          tournament: { mode: "ranked", rankedConfig: { baseMmr: 1000 } },
-        }),
-      );
-      stubPrivates(service, ["p1"]);
-      await service.processMatchFinalization("m1");
-      const call = (service as any).recalculateBoundaries.mock.calls[0];
-      expect(call[0]).toBe("s1");
-      expect(call[1]).toBe(1000);
-    });
   });
 });

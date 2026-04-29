@@ -84,6 +84,14 @@
               <span :class="deltaClass(entry.mmrDelta)" class="font-bold tabular-nums shrink-0">
                 {{ entry.mmrDelta > 0 ? '+' : '' }}{{ entry.mmrDelta }}
               </span>
+
+              <!-- Match context label -->
+              <span
+                v-if="matchLabel(entry)"
+                class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium shrink-0"
+              >
+                {{ matchLabel(entry) }}
+              </span>
             </div>
 
             <!-- Row 2: players -->
@@ -166,6 +174,7 @@
 import { ref, computed } from 'vue'
 import { useInfiniteScroll } from '@vueuse/core'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
+import { getMatchLabel } from '@/composables/ranked/ranked.service'
 
 const props = defineProps<{
   history: ClientMmrHistoryEntry[]
@@ -306,6 +315,10 @@ function statusLabel(status?: string) {
     default:
       return status ?? '—'
   }
+}
+
+function matchLabel(entry: ClientMmrHistoryEntry): string | null {
+  return getMatchLabel(entry.mmrBefore, entry.opponentAvgMmr, entry.mmrDelta)
 }
 
 function formatDate(date: Date | string | undefined) {

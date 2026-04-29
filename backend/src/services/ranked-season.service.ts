@@ -83,7 +83,6 @@ export class RankedSeasonService {
     } else {
       await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
     }
-    await this.recalculateTierMinMmr(id, baseMmr);
 
     return await rankedSeasonRepository.getSeasonWithConfig(id);
   }

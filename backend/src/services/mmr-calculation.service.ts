@@ -89,6 +89,8 @@ export class MmrCalculationService {
 
       const oppMmrs = await Promise.all(
         opponentPlayerIds.map(async (oppId) => {
+          const oppHistory = await playerMmrRepository.getMmrHistoryForPlayerAndMatch(seasonId, oppId, match.id);
+          if (oppHistory) return oppHistory.mmrBefore;
           const oppMmr = await playerMmrRepository.getBySeasonAndPlayer(seasonId, oppId);
           return oppMmr?.currentMmr ?? config.baseMmr;
         }),
@@ -172,8 +174,6 @@ export class MmrCalculationService {
       await this.ensurePlayerMmrExists(seasonId, match.tournament.rankedConfig?.baseMmr ?? 1000, playerId);
       await this.recalculatePlayerMmr(seasonId, playerId);
     }
-
-    await this.recalculateBoundaries(seasonId, match.tournament.rankedConfig?.baseMmr ?? 1000);
   }
 
   private async recalculateBoundaries(seasonId: string, baseMmr: number): Promise<void> {

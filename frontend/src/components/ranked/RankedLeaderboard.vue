@@ -80,9 +80,9 @@
               </div>
             </div>
 
-            <!-- MMR + streak -->
+            <!-- LP + streak -->
             <div class="text-right shrink-0">
-              <div class="font-black text-base">{{ player.currentMmr }}</div>
+              <div class="font-black text-base">{{ lpDisplay(player.currentMmr) }}</div>
               <div v-if="player.winStreak > 1" class="text-xs text-orange-400">
                 🔥 {{ player.winStreak }}
               </div>
@@ -99,11 +99,11 @@ import { computed, defineComponent, h } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
 import { getInitials } from '@/utils/StringUtils'
-import { getSubRank, getTierLabel } from '@/composables/ranked/ranked.service'
+import { getSubRank, getTierLabel, getLp, isTopTier } from '@/composables/ranked/ranked.service'
 
-const TIER_TEXT_CLASSES = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-red-400']
-const TIER_AVATAR_CLASSES = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-red-600']
-const TIER_BG_CLASSES = ['bg-gray-700/60 text-gray-300', 'bg-blue-900/60 text-blue-300', 'bg-amber-900/60 text-amber-300', 'bg-red-900/60 text-red-300']
+const TIER_TEXT_CLASSES = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-orange-400', 'text-purple-400']
+const TIER_AVATAR_CLASSES = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-orange-600', 'bg-purple-600']
+const TIER_BG_CLASSES = ['bg-gray-700/60 text-gray-300', 'bg-blue-900/60 text-blue-300', 'bg-amber-900/60 text-amber-300', 'bg-orange-900/60 text-orange-300', 'bg-purple-900/60 text-purple-300']
 
 const props = defineProps<{
   players: ClientPlayerMmr[]
@@ -136,6 +136,13 @@ function tierLabel(tier: ClientRankTier | null, mmr: number): string {
   if (!tier) return '—'
   const sr = getSubRank(mmr, tier, props.tiers)
   return getTierLabel(tier, sr)
+}
+
+function lpDisplay(mmr: number, tiers = props.tiers): string {
+  const tier = [...tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tiers[0]
+  if (!tier) return String(mmr)
+  if (isTopTier(tier, tiers)) return `${mmr} MMR`
+  return `${getLp(mmr, tier)} LP`
 }
 
 const tierSummary = computed(() =>
@@ -254,10 +261,10 @@ const PodiumCard = defineComponent({
                   ? getTierLabel(tier.value, getSubRank(p.player.currentMmr, tier.value, p.tiers))
                   : '—'),
 
-              // MMR
+              // LP / MMR
               h('div', {
                 class: ['font-black tabular-nums', p.featured ? 'text-xl text-white' : 'text-lg text-gray-200'],
-              }, String(p.player.currentMmr)),
+              }, lpDisplay(p.player.currentMmr, p.tiers)),
             ]),
 
             // Podium step

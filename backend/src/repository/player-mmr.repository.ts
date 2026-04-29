@@ -168,6 +168,16 @@ export class PlayerMmrRepository {
     });
   }
 
+  async getMmrHistoryForPlayerAndMatch(seasonId: string, playerId: string, matchId: string) {
+    return await db.query.mmrHistory.findFirst({
+      where: and(
+        eq(mmrHistory.seasonId, seasonId),
+        eq(mmrHistory.playerId, playerId),
+        eq(mmrHistory.matchId, matchId),
+      ),
+    });
+  }
+
   async deleteMmrHistoryForPlayer(seasonId: string, playerId: string) {
     await db
       .delete(mmrHistory)

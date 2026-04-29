@@ -12,7 +12,7 @@
         </div>
         <div class="text-xs font-bold tracking-widest uppercase text-white/50 mb-1">Rang actuel</div>
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
-          {{ getTierLabel(rank, subRank) }}
+          {{ rank?.name ?? '—' }}
         </div>
 
       </div>
@@ -41,18 +41,18 @@
         </div>
       </div>
 
-      <!-- Progress bar toward next tier -->
-      <div v-if="progressData" class="px-6 pb-6">
+      <!-- LP progress bar toward next tier -->
+      <div v-if="lpProgress" class="px-6 pb-6">
         <div class="flex justify-between text-xs text-white/40 mb-1.5">
-          <span class="font-semibold" :class="tierTextClass">{{ getTierLabel(rank, subRank) }}</span>
-          <span>{{ progressData.mmrToNext }} MMR manquants</span>
-          <span class="font-semibold" :class="nextTierTextClass">{{ progressData.nextLabel }}</span>
+          <span class="font-semibold" :class="tierTextClass">{{ rank?.name }}</span>
+          <span>{{ lpProgress.lp }} / 200 LP</span>
+          <span class="font-semibold" :class="nextTierTextClass">{{ lpProgress.nextLabel }}</span>
         </div>
         <div class="h-2 bg-white/10 rounded-full overflow-hidden">
           <div
             class="h-full rounded-full transition-all duration-500"
             :class="progressBarClass"
-            :style="{ width: `${progressData.percent}%` }"
+            :style="{ width: `${lpProgress.percent}%` }"
           />
         </div>
       </div>
@@ -111,7 +111,7 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
-import { getSubRank, getTierLabel } from '@/composables/ranked/ranked.service'
+import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 
 const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })
@@ -121,12 +121,13 @@ const CARD_BG = [
   'bg-gradient-to-b from-gray-700/80 to-gray-900',
   'bg-gradient-to-b from-blue-900/80 to-gray-900',
   'bg-gradient-to-b from-amber-900/80 to-gray-900',
-  'bg-gradient-to-b from-red-900/80 to-gray-900',
+  'bg-gradient-to-b from-orange-900/80 to-gray-900',
+  'bg-gradient-to-b from-purple-900/80 to-gray-900',
 ]
-const ICON_BG = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-red-600']
-const TIER_TEXT = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-red-400']
-const PROGRESS_BAR = ['bg-gray-500', 'bg-blue-500', 'bg-amber-400', 'bg-red-500']
-const TIER_ICON = ['fa fa-gem', 'fa fa-shield', 'fa fa-star', 'fa fa-crown']
+const ICON_BG = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-orange-600', 'bg-purple-600']
+const TIER_TEXT = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-orange-400', 'text-purple-400']
+const PROGRESS_BAR = ['bg-gray-500', 'bg-blue-500', 'bg-amber-400', 'bg-orange-500', 'bg-purple-500']
+const TIER_ICON = ['fa fa-seedling', 'fa fa-shield', 'fa fa-star', 'fa fa-gem', 'fa fa-crown']
 
 const props = defineProps<{
   mmr: ClientPlayerMmr
@@ -147,10 +148,6 @@ const rank = computed((): ClientRankTier | null => {
   return [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? props.tiers[0]
 })
 
-const subRank = computed(() =>
-  rank.value ? getSubRank(props.mmr.currentMmr, rank.value, props.tiers) : null
-)
-
 const mmrDelta = computed(() => {
   if (props.initialMmr === undefined) return null
   return props.mmr.currentMmr - props.initialMmr
@@ -162,66 +159,30 @@ const winrate = computed(() => {
   return Math.round((props.mmr.wins / total) * 100)
 })
 
-const progressData = computed(() => {
+const lpProgress = computed(() => {
   if (!props.tiers.length || !rank.value) return null
+  if (isTopTier(rank.value, props.tiers)) return null
+  const mmrVal = props.mmr.currentMmr
+  const lp = getLp(mmrVal, rank.value)
+  const percent = Math.min(100, Math.round((lp / TIER_SIZE) * 100))
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const maxLevel = sorted[sorted.length - 1].level
-  const playerMmr = props.mmr.currentMmr
-
-  const currentTier = rank.value
-  const nextTier = sorted.find((t) => t.level === currentTier.level + 1)
-  const prevTier = [...sorted].reverse().find((t) => t.level < currentTier.level)
-
-  if (currentTier.subRanks > 1) {
-    const rangeTop = nextTier?.minMmr ?? (currentTier.minMmr + (prevTier ? currentTier.minMmr - prevTier.minMmr : 1000))
-    const tierRange = rangeTop - currentTier.minMmr
-    const subRankRange = tierRange / currentTier.subRanks
-    const sr = subRank.value ?? 1
-
-    // Sub-rank lower bound: sr=5 → bottom of tier, sr=1 → top
-    const currentSubRankMin = currentTier.minMmr + (currentTier.subRanks - sr) * subRankRange
-    const isTopSubRank = sr === 1
-
-    if (isTopSubRank && currentTier.level === maxLevel) return null
-
-    if (isTopSubRank && nextTier) {
-      // Progress toward next tier (sub-rank max of next tier)
-      const nextSr = nextTier.subRanks
-      const nextLabel = getTierLabel(nextTier, nextSr > 1 ? nextSr : null)
-      const range = nextTier.minMmr - currentSubRankMin
-      const percent = range > 0 ? Math.min(100, Math.round(((playerMmr - currentSubRankMin) / range) * 100)) : 0
-      return { nextTier, nextLabel, nextTierForStyle: nextTier, percent, mmrToNext: nextTier.minMmr - playerMmr }
-    }
-
-    // Progress within current tier toward next sub-rank
-    const nextSubRankMin = currentSubRankMin + subRankRange
-    const nextSrNumber = sr - 1
-    const nextLabel = getTierLabel(currentTier, nextSrNumber)
-    const range = nextSubRankMin - currentSubRankMin
-    const percent = range > 0 ? Math.min(100, Math.round(((playerMmr - currentSubRankMin) / range) * 100)) : 0
-    return { nextTier: currentTier, nextLabel, nextTierForStyle: currentTier, percent, mmrToNext: Math.ceil(nextSubRankMin) - playerMmr }
+  const nextTier = sorted.find((t) => t.level > rank.value!.level) ?? null
+  return {
+    lp,
+    percent,
+    nextLabel: nextTier?.name ?? '',
+    nextTierForStyle: nextTier ?? rank.value,
   }
-
-  if (currentTier.level === maxLevel) return null
-  if (!nextTier) return null
-
-  const currentThreshold = currentTier.minMmr
-  const nextThreshold = nextTier.minMmr
-  const mmrInTier = playerMmr - currentThreshold
-  const tierRange = nextThreshold - currentThreshold
-  const percent = tierRange > 0 ? Math.min(100, Math.round((mmrInTier / tierRange) * 100)) : 0
-  const nextLabel = getTierLabel(nextTier, nextTier.subRanks > 1 ? nextTier.subRanks : null)
-  return { nextTier, nextLabel, nextTierForStyle: nextTier, percent, mmrToNext: nextThreshold - playerMmr }
 })
 
 const cardBgClass = computed(() => CARD_BG[styleIdx(rank.value)])
 const iconBgClass = computed(() => ICON_BG[styleIdx(rank.value)])
 const tierTextClass = computed(() => TIER_TEXT[styleIdx(rank.value)])
 const nextTierTextClass = computed(() =>
-  progressData.value ? TIER_TEXT[styleIdx(progressData.value.nextTierForStyle)] : ''
+  lpProgress.value ? TIER_TEXT[styleIdx(lpProgress.value.nextTierForStyle)] : ''
 )
 const progressBarClass = computed(() =>
-  progressData.value ? PROGRESS_BAR[styleIdx(progressData.value.nextTierForStyle)] : ''
+  lpProgress.value ? PROGRESS_BAR[styleIdx(lpProgress.value.nextTierForStyle)] : ''
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
 

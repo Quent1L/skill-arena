@@ -32,6 +32,30 @@ export function getTierLabel(tier: ClientRankTier | null, subRank: number | null
   return tier.name
 }
 
+export const TIER_SIZE = 200
+export const MMR_FLOOR = 700
+
+export function getLp(mmr: number, tier: ClientRankTier): number {
+  if (mmr < MMR_FLOOR) return 0
+  return Math.max(0, mmr - tier.minMmr)
+}
+
+export function isTopTier(tier: ClientRankTier, allTiers: ClientRankTier[]): boolean {
+  return !allTiers.some((t) => t.level > tier.level)
+}
+
+export function getMatchLabel(
+  mmrBefore: number,
+  opponentAvgMmr: number,
+  mmrDelta: number,
+): string | null {
+  const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgMmr - mmrBefore) / 400))
+  if (mmrBefore < 900 && opponentAvgMmr > mmrBefore + 100) return 'Protection Rookie 🛡️'
+  if (expectedScore < 0.35 && mmrDelta > 0) return 'Exploit 🚀'
+  if (expectedScore > 0.65) return 'Statut Favori ⚖️'
+  return null
+}
+
 export function useRankedService() {
   const seasons = ref<ClientTournamentSummary[]>([])
   const currentSeason = ref<RankedSeason | null>(null)
@@ -151,9 +175,13 @@ export function useRankedService() {
   }
 
   async function loadPlayerMmr(seasonId: string, playerId: string) {
+    try {
       const data = await rankedApi.getPlayerMmr(seasonId, playerId)
       playerMmr.value = data.mmr
       tiers.value = data.tiers ?? []
+    } catch {
+      playerMmr.value = null
+    }
   }
 
   async function loadPlayerHistory(seasonId: string, playerId: string, append = false) {
