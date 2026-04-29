@@ -96,6 +96,12 @@ export class TournamentStatsRepository {
         set: { data, computedAt: new Date() },
       });
   }
+
+  async deleteComputedStats(tournamentId: string): Promise<void> {
+    await db
+      .delete(computedData)
+      .where(and(eq(computedData.tournamentId, tournamentId), eq(computedData.key, "stats")));
+  }
 }
 
 export const tournamentStatsRepository = new TournamentStatsRepository();

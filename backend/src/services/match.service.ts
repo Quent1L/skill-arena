@@ -36,6 +36,7 @@ import { mmrCalculationService } from "./mmr-calculation.service";
 import { standingsService } from "./standings.service";
 import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { participantRepository } from "../repository/participant.repository";
+import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -1052,6 +1053,8 @@ export class MatchService {
     await mmrCalculationService.processMatchFinalization(id);
     // Recalculate per-player standings points for flex championships
     await this.triggerStandingsRecalcIfNeeded(match.tournamentId, id);
+    // Invalidate stats cache so next fetch recomputes with the new finalized match
+    await tournamentStatsRepository.deleteComputedStats(match.tournamentId);
     return result;
   }
 

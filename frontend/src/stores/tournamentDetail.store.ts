@@ -38,6 +38,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const rankedLoading = rankedSvc.loading
   const tournamentStats = statsSvc.stats
   const tournamentStatsLoading = statsSvc.loading
+  const statsError = statsSvc.error
 
   // Computed permissions
   const isParticipant = computed(() => participantSvc.isUserParticipant(appUser.value?.id))
@@ -201,6 +202,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     // Tournament stats
     tournamentStats,
     tournamentStatsLoading,
+    statsError,
     // Computed permissions
     isParticipant,
     canJoinTournament,

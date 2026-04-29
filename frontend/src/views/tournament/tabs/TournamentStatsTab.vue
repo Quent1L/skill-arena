@@ -5,6 +5,11 @@
       <ProgressSpinner />
     </div>
 
+    <div v-else-if="store.statsError" class="flex flex-col items-center py-16 text-red-500 dark:text-red-400 gap-3">
+      <i class="fa fa-triangle-exclamation text-3xl" />
+      <p>{{ store.statsError }}</p>
+    </div>
+
     <template v-else-if="store.tournamentStats">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Répartition des fins de match -->
