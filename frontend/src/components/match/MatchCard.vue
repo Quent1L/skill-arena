@@ -53,14 +53,14 @@
             class="flex items-center"
             :class="(leftSide?.players.length ?? 0) > 1 ? '-space-x-2' : ''"
           >
-            <div
+            <PlayerAvatar
               v-for="(player, idx) in (leftSide?.players ?? []).slice(0, 2)"
               :key="player.id"
-              class="w-9 h-9 rounded-md border border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center text-sm font-bold uppercase"
-              :style="{ zIndex: 30 - idx * 10, background: getAvatarBg(player.shortName) }"
-            >
-              {{ getInitials(player.displayName) }}
-            </div>
+              :name="player.displayName"
+              :color-key="player.shortName"
+              size="md"
+              :style="{ zIndex: 30 - idx * 10 }"
+            />
             <span
               v-if="(leftSide?.players.length ?? 0) > 2"
               class="ml-1 font-label text-xs text-muted-color self-center"
@@ -109,14 +109,14 @@
             class="flex items-center"
             :class="(rightSide?.players.length ?? 0) > 1 ? '-space-x-2' : ''"
           >
-            <div
+            <PlayerAvatar
               v-for="(player, idx) in (rightSide?.players ?? []).slice(0, 2)"
               :key="player.id"
-              class="w-9 h-9 rounded-md border border-surface-900 ring-1 ring-surface-700/20 flex items-center justify-center text-sm font-bold uppercase"
-              :style="{ zIndex: 30 - idx * 10, background: getAvatarBg(player.shortName) }"
-            >
-              {{ getInitials(player.displayName) }}
-            </div>
+              :name="player.displayName"
+              :color-key="player.shortName"
+              size="md"
+              :style="{ zIndex: 30 - idx * 10 }"
+            />
             <span
               v-if="(rightSide?.players.length ?? 0) > 2"
               class="ml-1 font-label text-xs text-muted-color self-center"
@@ -177,7 +177,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
-import { getInitials, getAvatarBg } from '@/utils/StringUtils'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
 const props = defineProps<{
   entry: ClientMatchCard

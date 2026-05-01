@@ -42,10 +42,10 @@
               class="flex items-center gap-2"
               aria-label="Menu utilisateur"
             >
-              <Avatar
-                :label="currentUser ? getUserInitials(currentUser) : '?'"
-                shape="square"
-                class="bg-blue-600 text-white"
+              <PlayerAvatar
+                v-if="currentUser"
+                :name="currentUser.name ?? currentUser.email ?? '?'"
+                size="sm"
               />
               <span class="hidden sm:block text-sm font-medium">
                 {{ currentUser?.name || currentUser?.username }}
@@ -62,11 +62,11 @@
 import { computed, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import type { User } from '@/types'
 import type { MenuItem } from 'primevue/menuitem'
 import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
 import SkolLogo from './SkolLogo.vue'
+import PlayerAvatar from './PlayerAvatar.vue'
 
 const appVersion = __APP_VERSION__
 
@@ -137,15 +137,4 @@ function toggleNotifications(event: Event) {
   notifDropdown.value?.toggle(event)
 }
 
-function getUserInitials(user: User): string {
-  if (user.name) {
-    return user.name
-      .split(' ')
-      .map((n: string) => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2)
-  }
-  return user.email ? user.email.substring(0, 2).toUpperCase() : '??'
-}
 </script>

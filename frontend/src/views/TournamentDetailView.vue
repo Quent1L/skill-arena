@@ -6,7 +6,9 @@
         <ProgressSpinner />
       </div>
       <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-6">
+        <div
+          class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-6"
+        >
           <div class="max-w-5xl mx-auto">
             <div class="flex items-center gap-3 mb-4">
               <Skeleton shape="circle" size="2.5rem" />
@@ -37,7 +39,9 @@
       <div v-if="isMobile" class="h-full">
         <!-- Sub-tabs (participants, teams, stats): accessible via cards, pas dans la bottom nav -->
         <div v-if="isMobileSubTab" class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
-          <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 shadow-sm">
+          <div
+            class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 shadow-sm"
+          >
             <Button
               icon="fa fa-arrow-left"
               text
@@ -80,7 +84,9 @@
                     class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-semibold"
                   >
                     <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"
+                      ></span>
                       <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
                     En cours
@@ -92,7 +98,9 @@
                   >
                     {{ statusLabels[store.tournament.status] }}
                   </span>
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold">
+                  <span
+                    class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold"
+                  >
                     {{ modeLabels[store.tournament.mode] }}
                   </span>
                 </div>
@@ -127,7 +135,9 @@
         </div>
 
         <!-- Sticky tab bar -->
-        <div class="sticky top-14 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div
+          class="sticky top-14 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm"
+        >
           <div class="max-w-5xl mx-auto px-6">
             <div ref="tabBarRef" class="flex relative">
               <button
@@ -237,7 +247,8 @@ const visibleTabs = computed(() => {
   const mode = store.tournament?.mode
   const teamMode = store.tournament?.teamMode
   const tabs: { value: string; label: string; badge?: number }[] = [
-    { value: 'infos', label: 'Infos' }]
+    { value: 'infos', label: 'Infos' },
+  ]
   if (teamMode === 'static') tabs.push({ value: 'teams', label: 'Équipes' })
   if (mode === 'championship') tabs.push({ value: 'standings', label: 'Classement' })
   if (mode === 'bracket') tabs.push({ value: 'bracket', label: 'Bracket' })
@@ -249,7 +260,6 @@ const visibleTabs = computed(() => {
   }
   return tabs
 })
-
 
 function setTabRef(value: string, el: unknown) {
   tabEls.value[value] = el as HTMLElement | null

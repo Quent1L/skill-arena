@@ -381,64 +381,24 @@ async function loadExistingMatch() {
   try {
     const match = await getMatch(matchId)
 
-    // Extract playerIds from participations
-    const playerIdsA: string[] = []
-    const playerIdsB: string[] = []
+    const sideA = match.sides.find((s) => s.position === 1)
+    const sideB = match.sides.find((s) => s.position === 2)
 
-    if (match.participations) {
-      match.participations.forEach((p: { playerId: string; teamSide: 'A' | 'B' }) => {
-        if (p.teamSide === 'A') {
-          playerIdsA.push(p.playerId)
-        } else if (p.teamSide === 'B') {
-          playerIdsB.push(p.playerId)
-        }
-      })
-    }
-
-    // Extract playerIds from team participants (for static teams)
-    if (match.teamA?.participants) {
-      match.teamA.participants.forEach((p: { user?: { id?: string } }) => {
-        if (p.user?.id && !playerIdsA.includes(p.user.id)) {
-          playerIdsA.push(p.user.id)
-        }
-      })
-    }
-    if (match.teamB?.participants) {
-      match.teamB.participants.forEach((p: { user?: { id?: string } }) => {
-        if (p.user?.id && !playerIdsB.includes(p.user.id)) {
-          playerIdsB.push(p.user.id)
-        }
-      })
-    }
-
-    // Populate match data
-    matchData.value.playerIdsA = playerIdsA
-    matchData.value.playerIdsB = playerIdsB
-    matchData.value.scoreA = match.scoreA
-    matchData.value.scoreB = match.scoreB
+    matchData.value.playerIdsA = sideA?.players.map((p) => p.id) ?? []
+    matchData.value.playerIdsB = sideB?.players.map((p) => p.id) ?? []
+    matchData.value.scoreA = sideA?.score ?? 0
+    matchData.value.scoreB = sideB?.score ?? 0
     matchData.value.status = match.status
     matchData.value.outcomeTypeId = match.outcomeTypeId || undefined
     matchData.value.outcomeReasonId = match.outcomeReasonId || undefined
-    matchData.value.reportProof = match.reportProof || ''
+    matchData.value.reportProof = match.result?.reportProof ?? ''
 
-    // Determine winner (use winnerSide if available, otherwise fallback to winnerId)
-    if (match.winnerSide) {
-      matchData.value.winner = match.winnerSide === 'A' ? 'teamA' : 'teamB'
-    } else if (match.winnerId) {
-      // Fallback for old matches without winnerSide
-      if (match.teamAId && match.winnerId === match.teamAId) {
-        matchData.value.winner = 'teamA'
-      } else if (match.teamBId && match.winnerId === match.teamBId) {
-        matchData.value.winner = 'teamB'
-      }
-    }
+    if (sideA?.isWinner) matchData.value.winner = 'teamA'
+    else if (sideB?.isWinner) matchData.value.winner = 'teamB'
+    else matchData.value.winner = null
 
-    // playedAt is already a Date object (converted by interceptor)
-    if (match.playedAt) {
-      matchData.value.playedAt = match.playedAt
-    }
+    if (match.playedAt) matchData.value.playedAt = match.playedAt
 
-    // If match is already reported or pending_confirmation, go to step 2
     if (
       (match.status === 'reported' || match.status === 'pending_confirmation') &&
       matchData.value.playedAt &&
@@ -447,10 +407,7 @@ async function loadExistingMatch() {
       activeStep.value = '2'
     }
 
-    // In contest mode, jump directly to step 2 (score entry)
-    if (isContestMode.value) {
-      activeStep.value = '2'
-    }
+    if (isContestMode.value) activeStep.value = '2'
   } catch (err) {
     console.error('Erreur lors du chargement du match:', err)
     toast.add({

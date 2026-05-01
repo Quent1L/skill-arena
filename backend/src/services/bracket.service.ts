@@ -823,7 +823,7 @@ export class BracketService {
           await tx.insert(matchSides).values({
             matchId: matchRecord.id,
             entryId: matchData.entryAId,
-            position: 0,
+            position: 1,
             score: 0,
             pointsAwarded: 0,
           });
@@ -833,7 +833,7 @@ export class BracketService {
           await tx.insert(matchSides).values({
             matchId: matchRecord.id,
             entryId: matchData.entryBId,
-            position: 1,
+            position: 2,
             score: 0,
             pointsAwarded: 0,
           });
@@ -923,7 +923,7 @@ export class BracketService {
     await db.insert(matchSides).values({
       matchId: metadata.winnerToMatchId,
       entryId: winnerSide.entryId,
-      position: nextMatchSides.length,
+      position: nextMatchSides.length + 1,
       score: 0,
       pointsAwarded: 0,
     });
@@ -950,7 +950,7 @@ export class BracketService {
     await db.insert(matchSides).values({
       matchId: metadata.loserToMatchId,
       entryId: loserSide.entryId,
-      position: nextMatchSides.length,
+      position: nextMatchSides.length + 1,
       score: 0,
       pointsAwarded: 0,
     });

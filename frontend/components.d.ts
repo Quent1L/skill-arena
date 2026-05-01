@@ -55,6 +55,7 @@ declare module 'vue' {
     OverflowMenuButton: typeof import('./src/components/OverflowMenuButton.vue')['default']
     OverlayBadge: typeof import('primevue/overlaybadge')['default']
     Password: typeof import('primevue/password')['default']
+    PlayerAvatar: typeof import('./src/components/PlayerAvatar.vue')['default']
     PlayerMmrProfile: typeof import('./src/components/ranked/PlayerMmrProfile.vue')['default']
     PlayerPickerDialog: typeof import('./src/components/match/mobile/PlayerPickerDialog.vue')['default']
     Popover: typeof import('primevue/popover')['default']
