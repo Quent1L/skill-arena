@@ -134,9 +134,8 @@
           </div>
         </div>
 
-        <!-- Sticky tab bar -->
         <div
-          class="sticky top-14 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm"
+          class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm"
         >
           <div class="max-w-5xl mx-auto px-6">
             <div ref="tabBarRef" class="flex relative">
@@ -163,7 +162,13 @@
         </div>
 
         <!-- Tab content -->
-        <div class="max-w-6xl mx-auto px-6 py-6 h-full">
+        <div
+          :class="
+            activeTabName === 'bracket'
+              ? 'max-w-[100rem] mx-auto px-6 py-6 h-full'
+              : 'max-w-6xl mx-auto px-6 py-6 h-full'
+          "
+        >
           <RouterView />
         </div>
       </div>

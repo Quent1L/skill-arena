@@ -661,7 +661,7 @@ export class BracketService {
 
       rounds.push({
         roundNumber: rounds.length,
-        roundName: `Tableau des perdants - Tour ${i + 1}`,
+        roundName: `2e chance - Tour ${i + 1}`,
         bracketType: "losers",
         matchesCount,
         matches: Array.from({ length: matchesCount }, (_, j) => ({

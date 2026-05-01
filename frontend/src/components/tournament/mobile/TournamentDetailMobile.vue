@@ -20,7 +20,7 @@
     </div>
 
     <!-- Content Area -->
-    <div ref="contentAreaRef" class="flex-1 overflow-y-auto pb-24">
+    <div ref="contentAreaRef" class="flex-1 pb-24">
       <!-- Tab: Detail & Navigation cards -->
       <div v-show="activeTab === 'infos'" class="space-y-4 p-4">
         <TournamentHeader
@@ -85,9 +85,13 @@
       <div
         v-if="store.tournament!.mode === 'bracket'"
         v-show="activeTab === 'bracket'"
-        class="h-full p-2"
+        class="p-2"
       >
-        <BracketView :tournament-id="store.tournamentId" :tournament="store.tournament!" />
+        <BracketView
+          :tournament-id="store.tournamentId"
+          :tournament="store.tournament!"
+          style="--bracket-sticky-top: 0rem"
+        />
       </div>
 
       <!-- Tab: Matches -->
@@ -132,7 +136,6 @@
           <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
         </div>
       </div>
-
     </div>
 
     <!-- Speed Dial for Create Match -->
@@ -216,5 +219,4 @@ async function handleNavigate(tab: string) {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

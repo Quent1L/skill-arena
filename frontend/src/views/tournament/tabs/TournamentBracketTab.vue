@@ -1,5 +1,11 @@
 <template>
-  <BracketView :tournament-id="store.tournamentId" :tournament="store.tournament!" />
+  <div>
+    <BracketView
+      :tournament-id="store.tournamentId"
+      :tournament="store.tournament!"
+      style="--bracket-sticky-top: 0rem"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">

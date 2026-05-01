@@ -199,7 +199,7 @@ usePageTransitions()
 /* Container pour éviter les problèmes de positionnement */
 #app {
   position: relative;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip (not hidden) avoids creating a scroll container, which would break position:sticky */
 }
 
 /* Amélioration des performances */
