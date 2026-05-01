@@ -204,7 +204,7 @@ const tabTitles: Record<string, string> = {
   standings: 'Classement',
   bracket: 'Bracket',
   matches: 'Matchs',
-  stats: 'Stats globale',
+  stats: 'Stats',
   teams: 'Équipes',
   profile: 'Mon profil',
 }

@@ -45,11 +45,11 @@
           }"
           @click="togglePlayer(player.id)"
         >
-          <Avatar
-            :label="getInitials(player.displayName)"
-            shape="circle"
+          <PlayerAvatar
+            :name="player.displayName"
+            shape="square"
             class="mr-3"
-            :class="{ 'bg-blue-500 text-white': isSelected(player.id) }"
+            :class="{ 'ring-2 ring-blue-500': isSelected(player.id) }"
           />
           <div class="flex-1">
             <div class="font-medium">{{ player.displayName }}</div>
@@ -73,7 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { getInitials } from '@/utils/StringUtils'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
 interface Player {
   id: string

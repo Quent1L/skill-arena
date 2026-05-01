@@ -300,10 +300,6 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'tournament-detail',
-        redirect: (to) => ({
-          name: 'tournament-tab',
-          params: { id: to.params.id, tab: 'standings' },
-        }),
       },
       {
         path: ':tab',
