@@ -64,7 +64,13 @@ const themePreset = definePreset(Aura, {
       },
     },
   },
-  components: {},
+  components: {
+    card: {
+      root: {
+        background: '{slate.800}',
+      },
+    },
+  },
 })
 
 export default themePreset

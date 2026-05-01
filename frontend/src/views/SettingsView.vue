@@ -39,7 +39,7 @@
               </Message>
 
               <div class="flex flex-col gap-2">
-                <label for="display-name" class="font-medium">Nom</label>
+                <label for="display-name" class="font-medium">Nom complet</label>
                 <InputText
                   id="display-name"
                   v-model="displayName"
@@ -54,7 +54,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label for="short-name" class="font-medium">Nom court (affichage mobile)</label>
+                <label for="short-name" class="font-medium">Nom court (affichage réduit)</label>
                 <InputText
                   id="short-name"
                   v-model="shortName"
@@ -65,7 +65,7 @@
                   @input="shortName = (shortName ?? '').toUpperCase()"
                 />
                 <small class="opacity-60">
-                  Jusqu'à 8 caractères, affiché dans le classement à la place du nom complet.
+                  Jusqu'à 8 caractères, affiché lorsque la place disponible est réduite.
                 </small>
                 <small v-if="profileErrors.shortName" class="text-red-500">
                   {{ profileErrors.shortName }}
@@ -441,6 +441,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import { changePasswordSchema } from '@/schemas/auth.schema'
+import { displayNameRegex } from '@skill-arena/shared'
 import { userApi } from '@/composables/user/user.api'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useDebounceFn } from '@vueuse/core'
@@ -470,11 +471,18 @@ function activateKioskLock() {
 
 // Profile form
 const profileSchema = z.object({
-  displayName: z.string().min(1, 'Le nom est requis').max(50),
+  displayName: z
+    .string()
+    .trim()
+    .min(3, 'Minimum 3 caractères')
+    .max(50, 'Maximum 50 caractères')
+    .regex(displayNameRegex, 'Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots'),
   shortName: z
     .string()
-    .min(1, 'Le nom court est requis')
+    .trim()
+    .min(3, 'Minimum 3 caractères')
     .max(8, 'Maximum 8 caractères')
+    .regex(displayNameRegex, 'Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots')
     .transform((v) => v.toUpperCase()),
 })
 
