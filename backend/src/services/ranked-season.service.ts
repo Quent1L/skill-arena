@@ -1,10 +1,16 @@
+import { eq, and, inArray } from "drizzle-orm";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
+import { rankedCacheRepository } from "../repository/ranked-cache.repository";
+import { mmrCalculationService } from "./mmr-calculation.service";
+import { db } from "../config/database";
+import { matches, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
+  ClientPlayerMmr,
 } from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
@@ -219,6 +225,133 @@ export class RankedSeasonService {
         maxWinStreak: 0,
       });
     }
+  }
+
+  async computeAndCacheOfficial(seasonId: string): Promise<void> {
+    const [players, tiers] = await Promise.all([
+      playerMmrRepository.getBySeasonOrdered(seasonId),
+      rankedSeasonRepository.getRankTiers(seasonId),
+    ]);
+    await rankedCacheRepository.upsertOfficial(seasonId, { players: players as ClientPlayerMmr[], tiers });
+  }
+
+  async computeAndCacheProvisional(seasonId: string): Promise<void> {
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    if (!config) return;
+
+    const [players, tiers] = await Promise.all([
+      playerMmrRepository.getBySeasonOrdered(seasonId),
+      rankedSeasonRepository.getRankTiers(seasonId),
+    ]);
+
+    const baseMmr = config.baseMmr;
+    const kFactor = config.kFactor;
+
+    const provisionalMmr = new Map<string, number>(players.map((p) => [p.playerId, p.currentMmr]));
+    const provisionalResults = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>(
+      players.map((p) => [p.playerId, (p as ClientPlayerMmr).recentResults ?? []])
+    );
+
+    const unfinalizedMatches = await db.query.matches.findMany({
+      where: and(
+        eq(matches.tournamentId, seasonId),
+        inArray(matches.status, ['reported', 'pending_confirmation', 'disputed']),
+      ),
+      with: {
+        outcomeType: { columns: { scoreCountsForMmr: true, points: true } },
+        sides: {
+          orderBy: (s, { asc }) => [asc(s.position)],
+          columns: { position: true, score: true },
+          with: {
+            entry: {
+              columns: { id: true },
+              with: { players: { columns: { playerId: true } } },
+            },
+          },
+        },
+      },
+      orderBy: (m, { asc }) => [asc(m.playedAt)],
+    });
+
+    for (const match of unfinalizedMatches) {
+      const sideA = match.sides[0];
+      const sideB = match.sides[1];
+      if (!sideA || !sideB) continue;
+
+      const idsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
+      const idsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
+      if (!idsA.length || !idsB.length) continue;
+
+      const avgMmrA = idsA.reduce((s, id) => s + (provisionalMmr.get(id) ?? baseMmr), 0) / idsA.length;
+      const avgMmrB = idsB.reduce((s, id) => s + (provisionalMmr.get(id) ?? baseMmr), 0) / idsB.length;
+      const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
+      const outcomePoints = match.outcomeType?.points ?? null;
+      const scoreA = sideA.score ?? 0;
+      const scoreB = sideB.score ?? 0;
+
+      for (const playerId of idsA) {
+        const mmr = provisionalMmr.get(playerId) ?? baseMmr;
+        const result: 1 | 0 | 0.5 = match.winnerSide === 'A' ? 1 : match.winnerSide === 'B' ? 0 : 0.5;
+        const kEff = mmrCalculationService.calculateEffectiveK(kFactor, scoreA, scoreB, false, scoreCountsForMmr, outcomePoints);
+        const delta = mmrCalculationService.calculateMmrDelta(mmr, avgMmrB, result, kEff);
+        provisionalMmr.set(playerId, Math.max(1, mmr + delta));
+        const outcome: 'win' | 'loss' | 'draw' = result === 1 ? 'win' : result === 0 ? 'loss' : 'draw';
+        const prev = provisionalResults.get(playerId) ?? [];
+        provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
+      }
+
+      for (const playerId of idsB) {
+        const mmr = provisionalMmr.get(playerId) ?? baseMmr;
+        const result: 1 | 0 | 0.5 = match.winnerSide === 'B' ? 1 : match.winnerSide === 'A' ? 0 : 0.5;
+        const kEff = mmrCalculationService.calculateEffectiveK(kFactor, scoreB, scoreA, false, scoreCountsForMmr, outcomePoints);
+        const delta = mmrCalculationService.calculateMmrDelta(mmr, avgMmrA, result, kEff);
+        provisionalMmr.set(playerId, Math.max(1, mmr + delta));
+        const outcome: 'win' | 'loss' | 'draw' = result === 1 ? 'win' : result === 0 ? 'loss' : 'draw';
+        const prev = provisionalResults.get(playerId) ?? [];
+        provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
+      }
+    }
+
+    // Include players who only appear in unfinalized matches (no player_mmr entry yet)
+    const allUnfinalizedPlayerIds = new Set<string>();
+    for (const match of unfinalizedMatches) {
+      match.sides[0]?.entry?.players.forEach(p => allUnfinalizedPlayerIds.add(p.playerId));
+      match.sides[1]?.entry?.players.forEach(p => allUnfinalizedPlayerIds.add(p.playerId));
+    }
+    const officialPlayerIds = new Set(players.map(p => p.playerId));
+    const newPlayerIds = [...allUnfinalizedPlayerIds].filter(id => !officialPlayerIds.has(id));
+
+    let provisionalOnlyPlayers: ClientPlayerMmr[] = [];
+    if (newPlayerIds.length > 0) {
+      const users = await db.query.appUsers.findMany({
+        where: inArray(appUsers.id, newPlayerIds),
+        columns: { id: true, displayName: true, shortName: true },
+      });
+      provisionalOnlyPlayers = users.map(user => ({
+        id: `provisional-${user.id}`,
+        seasonId,
+        playerId: user.id,
+        currentMmr: provisionalMmr.get(user.id) ?? baseMmr,
+        matchesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        winStreak: 0,
+        maxWinStreak: 0,
+        player: { id: user.id, displayName: user.displayName, shortName: user.shortName },
+        recentResults: provisionalResults.get(user.id) ?? [],
+      }));
+    }
+
+    const provisionalPlayers: ClientPlayerMmr[] = [
+      ...players.map((p) => ({
+        ...(p as ClientPlayerMmr),
+        currentMmr: provisionalMmr.get(p.playerId) ?? p.currentMmr,
+        recentResults: provisionalResults.get(p.playerId) ?? [],
+      })),
+      ...provisionalOnlyPlayers,
+    ].sort((a, b) => b.currentMmr - a.currentMmr);
+
+    await rankedCacheRepository.upsertProvisional(seasonId, { players: provisionalPlayers, tiers });
   }
 
   private async getSeasonOrThrow(id: string) {

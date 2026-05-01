@@ -17,6 +17,8 @@ import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";
 import { ErrorCode, ForbiddenError } from "../types/errors";
+import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { rankedSeasonService } from "../services/ranked-season.service";
 
 const tournaments = createAppHono();
 
@@ -278,6 +280,11 @@ tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
   const result = await standingsService.recalculatePoints(tournamentId, appUserId);
+  const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
+  if (rankedConfig) {
+    rankedSeasonService.computeAndCacheOfficial(tournamentId).catch(() => {});
+    rankedSeasonService.computeAndCacheProvisional(tournamentId).catch(() => {});
+  }
   return c.json(result);
 });
 

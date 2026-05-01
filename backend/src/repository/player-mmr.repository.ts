@@ -36,13 +36,38 @@ export class PlayerMmrRepository {
   }
 
   async getBySeasonOrdered(seasonId: string) {
-    return await db.query.playerMmr.findMany({
+    const players = await db.query.playerMmr.findMany({
       where: eq(playerMmr.seasonId, seasonId),
-      with: {
-        player: true,
-      },
+      with: { player: true },
       orderBy: (p, { desc }) => [desc(p.currentMmr)],
     });
+
+    if (players.length === 0) return players;
+
+    const recentRows = await db.execute(sql`
+      SELECT player_id, mmr_delta
+      FROM (
+        SELECT mh.player_id, mh.mmr_delta,
+          ROW_NUMBER() OVER (PARTITION BY mh.player_id ORDER BY m.played_at DESC) AS rn
+        FROM mmr_history mh
+        INNER JOIN matches m ON m.id = mh.match_id
+        WHERE mh.season_id = ${seasonId}
+      ) sub
+      WHERE rn <= 5
+    `);
+
+    const resultsByPlayer = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>();
+    for (const row of recentRows.rows as { player_id: string; mmr_delta: number }[]) {
+      const list = resultsByPlayer.get(row.player_id) ?? [];
+      const delta = Number(row.mmr_delta);
+      list.push({ outcome: delta > 0 ? 'win' : delta < 0 ? 'loss' : 'draw' });
+      resultsByPlayer.set(row.player_id, list);
+    }
+
+    return players.map((p) => ({
+      ...p,
+      recentResults: resultsByPlayer.get(p.playerId) ?? [],
+    }));
   }
 
   async upsert(data: UpsertPlayerMmrData) {

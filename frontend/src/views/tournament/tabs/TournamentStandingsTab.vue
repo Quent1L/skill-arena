@@ -23,9 +23,12 @@
     <RankedLeaderboard
       v-else-if="store.tournament!.mode === 'ranked'"
       :players="store.rankedLeaderboard"
+      :provisional-players="store.rankedProvisionalLeaderboard"
       :tiers="store.rankedTiers"
       :loading="store.rankedLoading"
+      :provisional-loading="store.rankedProvisionalLoading"
       :current-user-id="store.appUser?.id"
+      @load-provisional="store.loadProvisionalLeaderboard()"
     />
   </div>
 </template>

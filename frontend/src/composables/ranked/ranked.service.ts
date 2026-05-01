@@ -60,6 +60,7 @@ export function useRankedService() {
   const seasons = ref<ClientTournamentSummary[]>([])
   const currentSeason = ref<RankedSeason | null>(null)
   const leaderboard = ref<ClientPlayerMmr[]>([])
+  const provisionalLeaderboard = ref<ClientPlayerMmr[]>([])
   const tiers = ref<ClientRankTier[]>([])
   const playerMmr = ref<ClientPlayerMmr | null>(null)
   const playerHistory = ref<ClientMmrHistoryEntry[]>([])
@@ -69,6 +70,7 @@ export function useRankedService() {
   const playerHistorySeasonId = ref('')
   const playerHistoryPlayerId = ref('')
   const loading = ref(false)
+  const provisionalLoading = ref(false)
   const error = ref<string | null>(null)
 
   const HISTORY_PAGE_SIZE = 10
@@ -164,13 +166,29 @@ export function useRankedService() {
     loading.value = true
     error.value = null
     try {
-      const data = await rankedApi.getLeaderboard(seasonId)
+      const [data, tiersData] = await Promise.all([
+        rankedApi.getLeaderboard(seasonId),
+        rankedApi.getTiers(seasonId),
+      ])
       leaderboard.value = data.players
-      tiers.value = data.tiers ?? []
+      tiers.value = tiersData
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du classement'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function loadProvisionalLeaderboard(seasonId: string) {
+    provisionalLoading.value = true
+    error.value = null
+    try {
+      const data = await rankedApi.getProvisionalLeaderboard(seasonId)
+      provisionalLeaderboard.value = data.players
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du classement provisoire'
+    } finally {
+      provisionalLoading.value = false
     }
   }
 
@@ -310,11 +328,13 @@ export function useRankedService() {
     seasons,
     currentSeason,
     leaderboard,
+    provisionalLeaderboard,
     tiers,
     playerMmr,
     playerHistory,
     finishedSeasons,
     loading,
+    provisionalLoading,
     error,
     loadSeasons,
     loadSeasonById,
@@ -323,6 +343,7 @@ export function useRankedService() {
     startSeason,
     endSeason,
     loadLeaderboard,
+    loadProvisionalLeaderboard,
     loadPlayerMmr,
     loadPlayerHistory,
     loadMoreHistory,

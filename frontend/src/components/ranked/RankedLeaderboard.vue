@@ -1,285 +1,244 @@
 <template>
-  <div class="leaderboard  rounded-2xl p-4 text-white">
+  <div class="leaderboard text-white">
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center items-center h-40">
+    <div v-if="activeLoading" class="flex justify-center items-center h-40">
       <ProgressSpinner />
     </div>
 
     <template v-else>
-      <!-- Tier summary bar -->
-      <div class="grid grid-cols-4 gap-2 mb-6">
-        <div
-          v-for="tier in tierSummary"
-          :key="tier.key"
-          class="rounded-xl p-3 text-center"
-          :class="tier.bgClass"
-        >
-          <div class="text-xs font-bold uppercase tracking-wider opacity-80">{{ tier.label }}</div>
-          <div class="text-lg font-black mt-0.5">{{ tier.threshold }}</div>
-        </div>
+      <!-- Toggle -->
+      <div class="flex justify-center mb-4">
+        <SelectButton
+          v-model="leaderboardMode"
+          :options="modeOptions"
+          option-label="label"
+          option-value="value"
+          size="small"
+        />
       </div>
 
-      <!-- Empty state -->
-      <div v-if="players.length === 0" class="text-center py-12 text-gray-500">
+      <!-- No tiers configured -->
+      <div v-if="!props.tiers.length" class="text-center py-12 text-gray-500">
         <i class="fa fa-trophy text-4xl mb-4 block opacity-30"></i>
-        Aucun joueur classé pour cette saison
+        Aucun rang configuré pour cette saison
       </div>
 
-      <template v-else>
-        <!-- Podium top 3 -->
-        <div class="flex items-end justify-center gap-3 mb-6">
-          <!-- #2 -->
-          <div v-if="players[1]" class="flex-1 max-w-[150px]">
-            <PodiumCard :player="players[1]" :rank="2" :tiers="tiers" :current-user-id="currentUserId" />
+      <!-- Tier sections -->
+      <div v-else ref="contentRef" class="space-y-3">
+        <div
+          v-for="group in tierGroups"
+          :key="group.tier.id"
+          class="rounded-2xl overflow-hidden"
+          :class="tierCardClass(group.tier)"
+        >
+          <!-- Tier header -->
+          <div class="flex items-center gap-3 px-4 py-3">
+            <div class="w-1 h-5 rounded-full shrink-0" :class="tierBarClass(group.tier)" />
+            <i :class="tierIconClass(group.tier)" class="text-sm w-4 text-center shrink-0" :style="{ color: tierTextColor(group.tier) }" />
+            <span class="font-bold text-sm" :style="{ color: tierTextColor(group.tier) }">{{ group.tier.name }}</span>
+            <span class="text-xs text-gray-500 ml-auto shrink-0">{{ tierThreshold(group.tier) }}</span>
           </div>
-          <!-- Spacer if only 1 player -->
-          <div v-else-if="players.length >= 1" class="flex-1 max-w-[150px]" />
 
-          <!-- #1 -->
-          <div class="flex-1 max-w-[170px]">
-            <PodiumCard :player="players[0]" :rank="1" :tiers="tiers" :featured="true" :current-user-id="currentUserId" />
-          </div>
-
-          <!-- #3 -->
-          <div v-if="players[2]" class="flex-1 max-w-[150px]">
-            <PodiumCard :player="players[2]" :rank="3" :tiers="tiers" :current-user-id="currentUserId" />
-          </div>
-          <!-- Spacer if fewer than 3 players -->
-          <div v-else-if="players.length >= 1" class="flex-1 max-w-[150px]" />
-        </div>
-
-        <!-- Rest of leaderboard (rank 4+) -->
-        <div v-if="restPlayers.length > 0" class="space-y-2">
-          <RouterLink
-            v-for="(player, index) in restPlayers"
-            :key="player.player?.id ?? index"
-            :to="player.player ? `/players/${player.player.id}` : '#'"
-            class="flex items-center gap-3 transition-colors rounded-xl px-4 py-3"
-            :class="player.player?.id === currentUserId
-              ? 'bg-primary-900/30 hover:bg-primary-800/40 ring-1 ring-primary-500/40'
-              : 'bg-gray-800 hover:bg-gray-700'"
-          >
-            <!-- Rank number -->
-            <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">
-              {{ index + 4 }}
-            </div>
-
-            <!-- Avatar -->
-            <Avatar
-              :label="getInitials(player.player?.displayName)"
-              shape="circle"
-              class="shrink-0 text-white"
-              :class="tierAvatarClass(getPlayerRank(player.currentMmr))"
-            />
-
-            <!-- Name + tier -->
-            <div class="flex-1 min-w-0">
-              <div class="font-semibold text-sm truncate">{{ player.player?.displayName ?? 'Inconnu' }}</div>
-              <div class="text-xs mt-0.5" :class="tierTextClass(getPlayerRank(player.currentMmr))">
-                {{ tierLabel(getPlayerRank(player.currentMmr), player.currentMmr) }}
+          <!-- Player rows -->
+          <template v-if="group.players.length">
+            <RouterLink
+              v-for="(player, idx) in group.players"
+              :key="player.player?.id ?? idx"
+              :to="player.player ? `/players/${player.player.id}` : '#'"
+              class="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 transition-colors"
+              :class="player.player?.id === currentUserId
+                ? 'bg-primary-900/30 hover:bg-primary-800/40'
+                : 'hover:bg-white/5'"
+            >
+              <!-- Global rank -->
+              <div class="w-5 text-center text-xs font-bold text-gray-500 shrink-0">
+                {{ rankOf(player) }}
               </div>
-            </div>
 
-            <!-- LP + streak -->
-            <div class="text-right shrink-0">
-              <div class="font-black text-base">{{ lpDisplay(player.currentMmr) }}</div>
-              <div v-if="player.winStreak > 1" class="text-xs text-orange-400">
-                🔥 {{ player.winStreak }}
+              <!-- Avatar -->
+              <PlayerAvatar
+                :name="player.player?.displayName ?? '?'"
+                shape="square"
+                size="sm"
+                class="shrink-0"
+              />
+
+              <!-- Name + recent matches + progress bar -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="font-semibold text-sm truncate">{{ player.player?.displayName ?? 'Inconnu' }}</span>
+                  <span v-if="player.player?.id === currentUserId" class="text-[9px] font-bold text-primary-400 uppercase tracking-wide shrink-0">Vous</span>
+                </div>
+                <div class="flex items-center gap-0.5 mt-1">
+                  <span
+                    v-for="(r, i) in (player.recentResults ?? [])"
+                    :key="i"
+                    class="w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0"
+                    :class="r.outcome === 'win' ? 'bg-green-600' : r.outcome === 'loss' ? 'bg-red-600' : 'bg-gray-600'"
+                  >{{ r.outcome === 'win' ? 'V' : r.outcome === 'loss' ? 'D' : 'N' }}</span>
+                </div>
+                <div v-if="!isTopTier(group.tier, props.tiers)" class="mt-1.5 h-1 rounded-full bg-gray-700/50 overflow-hidden">
+                  <div
+                    class="h-full rounded-full"
+                    :class="tierBarClass(group.tier)"
+                    :style="{ width: `${tierProgress(player.currentMmr, group.tier)}%` }"
+                  />
+                </div>
               </div>
-            </div>
-          </RouterLink>
+
+              <!-- LP / MMR + streak -->
+              <div class="text-right shrink-0">
+                <div class="font-black text-sm tabular-nums">{{ lpDisplay(player.currentMmr) }}</div>
+                <div v-if="player.winStreak > 1" class="text-[10px] text-orange-400">🔥 {{ player.winStreak }}</div>
+              </div>
+            </RouterLink>
+          </template>
+
+          <!-- Empty state -->
+          <div v-else class="text-center text-sm text-gray-500 italic py-4 px-4 border-t border-white/5">
+            Aucun joueurs dans ce rang...
+          </div>
         </div>
-      </template>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, defineComponent, h } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useSwipe } from '@vueuse/core'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
-import { getInitials } from '@/utils/StringUtils'
-import { getSubRank, getTierLabel, getLp, isTopTier } from '@/composables/ranked/ranked.service'
+import { getLp, isTopTier } from '@/composables/ranked/ranked.service'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
-const TIER_TEXT_CLASSES = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-orange-400', 'text-purple-400']
-const TIER_AVATAR_CLASSES = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-orange-600', 'bg-purple-600']
-const TIER_BG_CLASSES = ['bg-gray-700/60 text-gray-300', 'bg-blue-900/60 text-blue-300', 'bg-amber-900/60 text-amber-300', 'bg-orange-900/60 text-orange-300', 'bg-purple-900/60 text-purple-300']
+const TIER_BAR        = ['bg-gray-400', 'bg-blue-400', 'bg-amber-400', 'bg-orange-400', 'bg-purple-500']
+const TIER_ICON       = ['fa fa-seedling', 'fa fa-shield', 'fa fa-star', 'fa fa-gem', 'fa fa-crown']
+const TIER_CARD       = ['bg-gray-800/70', 'bg-blue-950/60', 'bg-amber-950/60', 'bg-orange-950/60', 'bg-purple-950/60']
+const TIER_TEXT_HEX   = ['#9ca3af', '#60a5fa', '#fbbf24', '#fb923c', '#a855f7']
 
 const props = defineProps<{
   players: ClientPlayerMmr[]
+  provisionalPlayers?: ClientPlayerMmr[]
   tiers: ClientRankTier[]
   loading?: boolean
+  provisionalLoading?: boolean
   currentUserId?: string
 }>()
 
-const restPlayers = computed(() => props.players.slice(3))
+const emit = defineEmits<{
+  'load-provisional': []
+}>()
 
-function getPlayerRank(mmr: number): ClientRankTier | null {
+const leaderboardMode = ref<'official' | 'provisional'>('official')
+const contentRef = ref<HTMLElement | null>(null)
+const provisionalLoaded = ref(false)
+
+const modeOptions = [
+  { label: 'Officiel', value: 'official' },
+  { label: 'Provisoire (Live)', value: 'provisional' },
+]
+
+watch(leaderboardMode, (val) => {
+  if (val === 'provisional' && !provisionalLoaded.value) {
+    provisionalLoaded.value = true
+    emit('load-provisional')
+  }
+})
+
+useSwipe(contentRef, {
+  onSwipeEnd(_e, direction) {
+    if (direction === 'left' && leaderboardMode.value === 'official') {
+      leaderboardMode.value = 'provisional'
+    } else if (direction === 'right' && leaderboardMode.value === 'provisional') {
+      leaderboardMode.value = 'official'
+    }
+  },
+})
+
+const activeLoading = computed(() =>
+  leaderboardMode.value === 'provisional' ? props.provisionalLoading : props.loading
+)
+
+const activePlayers = computed(() =>
+  leaderboardMode.value === 'provisional' ? (props.provisionalPlayers ?? []) : props.players
+)
+
+const rankMap = computed(() => {
+  const map = new Map<string, number>()
+  activePlayers.value.forEach((p, i) => {
+    if (p.player?.id) map.set(p.player.id, i + 1)
+  })
+  return map
+})
+
+const sortedTiers = computed(() => [...props.tiers].sort((a, b) => b.level - a.level))
+
+const lowestLevel = computed(() =>
+  sortedTiers.value.length ? sortedTiers.value[sortedTiers.value.length - 1].level : 1
+)
+
+const tierGroups = computed(() =>
+  sortedTiers.value.map((tier) => ({
+    tier,
+    players: activePlayers.value.filter((p) => getPlayerTier(p.currentMmr)?.id === tier.id),
+  }))
+)
+
+function getPlayerTier(mmr: number): ClientRankTier | null {
   if (!props.tiers.length) return null
   return [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? props.tiers[0]
 }
 
-function styleIdx(tier: ClientRankTier | null): number {
-  if (!tier) return 0
-  return Math.min(tier.level - 1, TIER_TEXT_CLASSES.length - 1)
+function styleIdx(tier: ClientRankTier): number {
+  return Math.min(tier.level - 1, TIER_BAR.length - 1)
 }
 
-function tierTextClass(tier: ClientRankTier | null): string {
-  return TIER_TEXT_CLASSES[styleIdx(tier)]
+function tierTextColor(tier: ClientRankTier): string {
+  return TIER_TEXT_HEX[styleIdx(tier)] ?? '#9ca3af'
 }
 
-function tierAvatarClass(tier: ClientRankTier | null): string {
-  return TIER_AVATAR_CLASSES[styleIdx(tier)]
+function tierIconClass(tier: ClientRankTier): string {
+  return TIER_ICON[styleIdx(tier)] ?? 'fa fa-circle'
 }
 
-function tierLabel(tier: ClientRankTier | null, mmr: number): string {
-  if (!tier) return '—'
-  const sr = getSubRank(mmr, tier, props.tiers)
-  return getTierLabel(tier, sr)
+function tierCardClass(tier: ClientRankTier): string {
+  return TIER_CARD[styleIdx(tier)] ?? 'bg-gray-800/70'
 }
 
-function lpDisplay(mmr: number, tiers = props.tiers): string {
-  const tier = [...tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tiers[0]
+function tierBarClass(tier: ClientRankTier): string {
+  return TIER_BAR[styleIdx(tier)] ?? 'bg-gray-400'
+}
+
+function tierThreshold(tier: ClientRankTier): string {
+  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
+  if (tier.level === sorted[0]?.level) {
+    const above = sorted.find((t) => t.level === tier.level + 1)
+    return above ? `< ${above.minMmr} MMR` : `${tier.minMmr}+ MMR`
+  }
+  return `${tier.minMmr}+ MMR`
+}
+
+function tierProgress(mmr: number, tier: ClientRankTier): number {
+  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
+  const next = sorted.find((t) => t.level === tier.level + 1)
+  if (!next) return 100
+  const range = next.minMmr - tier.minMmr
+  if (range <= 0) return 100
+  return Math.min(100, Math.max(0, ((mmr - tier.minMmr) / range) * 100))
+}
+
+function lpDisplay(mmr: number): string {
+  const tier = getPlayerTier(mmr)
   if (!tier) return String(mmr)
-  if (isTopTier(tier, tiers)) return `${mmr} MMR`
+  if (isTopTier(tier, props.tiers)) return `${mmr.toLocaleString()} MMR`
   return `${getLp(mmr, tier)} LP`
 }
 
-const tierSummary = computed(() =>
-  [...props.tiers]
-    .sort((a, b) => b.level - a.level)
-    .map((t) => ({
-      key: t.name,
-      label: t.name,
-      threshold: `${t.minMmr}+`,
-      bgClass: TIER_BG_CLASSES[Math.min(t.level - 1, TIER_BG_CLASSES.length - 1)],
-    })),
-)
-
-// Inline PodiumCard sub-component
-const PodiumCard = defineComponent({
-  props: {
-    player: { type: Object as () => ClientPlayerMmr, required: true },
-    rank: { type: Number, required: true },
-    tiers: { type: Array as () => ClientRankTier[], default: () => [] },
-    featured: { type: Boolean, default: false },
-    currentUserId: { type: String as () => string | undefined, default: undefined },
-  },
-  setup(p) {
-    const tier = computed((): ClientRankTier | null => {
-      if (!p.tiers.length) return null
-      const mmr = p.player.currentMmr
-      return [...p.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? p.tiers[0]
-    })
-
-    const isMe = computed(() => !!p.currentUserId && p.player.player?.id === p.currentUserId)
-
-    function podiumStyleIdx(): number {
-      return tier.value ? Math.min(tier.value.level - 1, TIER_AVATAR_CLASSES.length - 1) : 0
-    }
-
-    const rankRing: Record<number, string> = {
-      1: 'ring-2 ring-amber-400/70',
-      2: 'ring-2 ring-slate-400/60',
-      3: 'ring-2 ring-amber-700/60',
-    }
-
-    const cardBg: Record<number, string> = { 1: 'bg-gray-700', 2: 'bg-gray-800', 3: 'bg-gray-800' }
-    const cardGroupHover: Record<number, string> = {
-      1: 'group-hover:bg-gray-600',
-      2: 'group-hover:bg-gray-700',
-      3: 'group-hover:bg-gray-700',
-    }
-
-    const stepBg: Record<number, string> = {
-      1: 'bg-amber-600',
-      2: 'bg-slate-500',
-      3: 'bg-amber-800',
-    }
-    const stepGroupHover: Record<number, string> = {
-      1: 'group-hover:bg-amber-500',
-      2: 'group-hover:bg-slate-400',
-      3: 'group-hover:bg-amber-700',
-    }
-    const stepHeight: Record<number, string> = { 1: 'h-14', 2: 'h-8', 3: 'h-4' }
-
-    const initials = computed(() => {
-      const name = p.player.player?.displayName
-      if (!name) return '?'
-      return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)
-    })
-
-    const rankMedal = computed(() => {
-      if (p.rank === 1) return '🥇'
-      if (p.rank === 2) return '🥈'
-      return '🥉'
-    })
-
-    return () =>
-      h(
-        RouterLink,
-        { to: p.player.player ? `/players/${p.player.player.id}` : '#', class: 'block group' },
-        () =>
-          h('div', {
-            class: [
-              'rounded-2xl overflow-hidden transition-colors',
-              isMe.value ? 'ring-2 ring-primary-400' : rankRing[p.rank],
-            ],
-          }, [
-            // Card content
-            h('div', {
-              class: [
-                'p-3 text-center flex flex-col items-center gap-1 transition-colors',
-                cardBg[p.rank],
-                cardGroupHover[p.rank],
-              ],
-            }, [
-              // Medal
-              h('div', { class: 'text-2xl leading-none' }, rankMedal.value),
-
-              // "Vous" badge
-              isMe.value
-                ? h('div', { class: 'text-[10px] font-bold text-primary-400 uppercase tracking-widest' }, 'Vous')
-                : null,
-
-              // Avatar circle
-              h('div', {
-                class: [
-                  'rounded-full flex items-center justify-center font-black text-white',
-                  TIER_AVATAR_CLASSES[podiumStyleIdx()],
-                  p.featured ? 'w-14 h-14 text-lg' : 'w-11 h-11 text-sm',
-                ],
-              }, initials.value),
-
-              // Name
-              h('div', { class: 'font-bold text-xs text-white truncate w-full leading-tight mt-0.5' },
-                p.player.player?.displayName ?? 'Inconnu'),
-
-              // Tier
-              h('div', { class: ['text-xs font-semibold uppercase tracking-wide', TIER_TEXT_CLASSES[podiumStyleIdx()]] },
-                tier.value
-                  ? getTierLabel(tier.value, getSubRank(p.player.currentMmr, tier.value, p.tiers))
-                  : '—'),
-
-              // LP / MMR
-              h('div', {
-                class: ['font-black tabular-nums', p.featured ? 'text-xl text-white' : 'text-lg text-gray-200'],
-              }, lpDisplay(p.player.currentMmr, p.tiers)),
-            ]),
-
-            // Podium step
-            h('div', {
-              class: [
-                'flex items-center justify-center font-black text-white/70 text-sm transition-colors',
-                stepBg[p.rank],
-                stepGroupHover[p.rank],
-                stepHeight[p.rank],
-              ],
-            }, `#${p.rank}`),
-          ]),
-      )
-  },
-})
+function rankOf(player: ClientPlayerMmr): number | string {
+  if (!player.player?.id) return '?'
+  return rankMap.value.get(player.player.id) ?? '?'
+}
 </script>
 
 <style scoped>

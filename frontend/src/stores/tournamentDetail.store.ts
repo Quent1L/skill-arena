@@ -33,9 +33,11 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const participantCount = participantSvc.participantCount
   const loadingParticipants = participantSvc.loading
   const rankedLeaderboard = rankedSvc.leaderboard
+  const rankedProvisionalLeaderboard = rankedSvc.provisionalLeaderboard
   const rankedTiers = rankedSvc.tiers
   const playerMmr = rankedSvc.playerMmr
   const rankedLoading = rankedSvc.loading
+  const rankedProvisionalLoading = rankedSvc.provisionalLoading
   const tournamentStats = statsSvc.stats
   const tournamentStatsLoading = statsSvc.loading
   const statsError = statsSvc.error
@@ -84,7 +86,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
         icon: 'fa fa-pencil',
         command: () => router.push(`/admin/tournaments/${tournamentId.value}/edit`),
       })
-      if (tournament.value?.mode !== 'ranked') {
+      if (tournament.value?.mode) {
         items.push({
           label: 'Recalculer les points',
           icon: 'fa fa-calculator',
@@ -177,6 +179,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     await rankedSvc.loadLeaderboard(tournamentId.value)
   }
 
+  async function loadProvisionalLeaderboard() {
+    await rankedSvc.loadProvisionalLeaderboard(tournamentId.value)
+  }
+
   return {
     // Identity
     tournamentId,
@@ -194,9 +200,11 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     loadingParticipants,
     // Ranked
     rankedLeaderboard,
+    rankedProvisionalLeaderboard,
     rankedTiers,
     playerMmr,
     rankedLoading,
+    rankedProvisionalLoading,
     profileChartHistory,
     playerLeaderboardRank,
     // Tournament stats
@@ -225,5 +233,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     reloadTournament,
     reloadStats,
     reloadLeaderboard,
+    loadProvisionalLeaderboard,
   }
 })

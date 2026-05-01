@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { rankedSeasonService } from "../services/ranked-season.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { rankedCacheRepository } from "../repository/ranked-cache.repository";
 import {
   createRankedSeasonSchema,
   updateRankedSeasonSchema,
@@ -79,7 +80,7 @@ ranked.post("/seasons/:id/end", requireAuth, async (c) => {
 });
 
 // GET /ranked/seasons/:id/tiers - List rank tiers
-ranked.get("/seasons/:id/tiers", requireAuth, async (c) => {
+ranked.get("/seasons/:id/tiers", async (c) => {
   const id = c.req.param("id")!;
   const tiers = await rankedSeasonRepository.getRankTiers(id);
   return c.json(tiers);
@@ -132,16 +133,32 @@ ranked.post("/seasons/:id/tiers/recalculate", requireAuth, async (c) => {
   return c.json(tiers);
 });
 
-// GET /ranked/seasons/:id/leaderboard - Get season leaderboard
+// GET /ranked/seasons/:id/leaderboard - Get season leaderboard (cached)
 ranked.get("/seasons/:id/leaderboard", async (c) => {
   const id = c.req.param("id")!;
   const season = await rankedSeasonRepository.getSeasonWithConfig(id);
   if (!season) {
     throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
   }
-  const players = await playerMmrRepository.getBySeasonOrdered(id);
-  const tiers = await rankedSeasonRepository.getRankTiers(id);
-  return c.json({ players, tiers });
+  const cached = await rankedCacheRepository.getOfficial(id);
+  if (cached) return c.json({ players: cached.players });
+  await rankedSeasonService.computeAndCacheOfficial(id);
+  const fresh = await rankedCacheRepository.getOfficial(id);
+  return c.json({ players: fresh?.players ?? [] });
+});
+
+// GET /ranked/seasons/:id/leaderboard/provisional - Provisional leaderboard (cached)
+ranked.get("/seasons/:id/leaderboard/provisional", async (c) => {
+  const id = c.req.param("id")!;
+  const season = await rankedSeasonRepository.getSeasonWithConfig(id);
+  if (!season) {
+    throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
+  }
+  const cached = await rankedCacheRepository.getProvisional(id);
+  if (cached) return c.json({ players: cached.players });
+  await rankedSeasonService.computeAndCacheProvisional(id);
+  const fresh = await rankedCacheRepository.getProvisional(id);
+  return c.json({ players: fresh?.players ?? [] });
 });
 
 // GET /ranked/seasons/:id/players/:playerId - Player MMR profile

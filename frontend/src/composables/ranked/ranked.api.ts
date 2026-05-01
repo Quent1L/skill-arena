@@ -50,7 +50,6 @@ export type RankedSeason = {
 
 export type LeaderboardResponse = {
   players: ClientPlayerMmr[]
-  tiers: ClientRankTier[]
 }
 
 export type PlayerMmrResponse = {
@@ -98,6 +97,11 @@ export const rankedApi = {
 
   async getLeaderboard(id: string): Promise<LeaderboardResponse> {
     const response = await http.get<LeaderboardResponse>(`${BASE_URL}/seasons/${id}/leaderboard`)
+    return response.data
+  },
+
+  async getProvisionalLeaderboard(id: string): Promise<LeaderboardResponse> {
+    const response = await http.get<LeaderboardResponse>(`${BASE_URL}/seasons/${id}/leaderboard/provisional`)
     return response.data
   },
 

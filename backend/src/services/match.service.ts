@@ -37,6 +37,8 @@ import { standingsService } from "./standings.service";
 import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { participantRepository } from "../repository/participant.repository";
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
+import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { rankedSeasonService } from "./ranked-season.service";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -104,6 +106,7 @@ export class MatchService {
       if (refreshed?.status === "reported") {
         // Single rich action notification — replaces the informational MATCH_CREATED
         await this.notifyMatchValidationRequired(matchId, createdBy);
+        this.recomputeProvisionalIfRanked(input.tournamentId).catch(() => {});
       } else {
         // Immediately finalized (e.g. solo match) — just inform participants
         await this.notifyMatchCreated(matchId, createdBy, tournament.name);
@@ -470,6 +473,10 @@ export class MatchService {
       await this.notifyMatchValidationRequired(id, reportedBy);
     }
 
+    if (refreshed?.status === "reported" || refreshed?.status === "pending_confirmation") {
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch(() => {});
+    }
+
     return updatedMatch;
   }
 
@@ -669,6 +676,8 @@ export class MatchService {
         confirmationDeadline,
       });
 
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch(() => {});
+
       // Notify all other participants about the score proposal
       await this.notifyScoreProposal(
         id,
@@ -681,6 +690,8 @@ export class MatchService {
       await matchRepository.update(id, {
         status: "disputed",
       });
+
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch(() => {});
     }
 
     return await matchRepository.getById(id);
@@ -1011,8 +1022,12 @@ export class MatchService {
 
     matchStatusValidator.validateCanCancel(match.status);
 
+    const wasUnfinalized = ['reported', 'pending_confirmation', 'disputed'].includes(match.status);
     await matchRepository.update(id, { status: "cancelled" });
     await notificationService.deleteActionsByMatchId(id);
+    if (wasUnfinalized) {
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch(() => {});
+    }
 
     return await matchRepository.getById(id);
   }
@@ -1051,6 +1066,12 @@ export class MatchService {
     await bracketService.advanceLoserToNextRound(id);
     // Process MMR calculation for ranked seasons
     await mmrCalculationService.processMatchFinalization(id);
+    // Recompute official + provisional leaderboard cache for ranked
+    const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(match.tournamentId);
+    if (rankedConfig) {
+      rankedSeasonService.computeAndCacheOfficial(match.tournamentId).catch(() => {});
+      rankedSeasonService.computeAndCacheProvisional(match.tournamentId).catch(() => {});
+    }
     // Recalculate per-player standings points for flex championships
     await this.triggerStandingsRecalcIfNeeded(match.tournamentId, id);
     // Invalidate stats cache so next fetch recomputes with the new finalized match
@@ -1353,6 +1374,13 @@ export class MatchService {
         requiresAction: true,
         matchId,
       });
+    }
+  }
+
+  private async recomputeProvisionalIfRanked(tournamentId: string): Promise<void> {
+    const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
+    if (rankedConfig) {
+      rankedSeasonService.computeAndCacheProvisional(tournamentId).catch(() => {});
     }
   }
 }

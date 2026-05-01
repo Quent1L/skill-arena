@@ -61,6 +61,7 @@ export interface ClientPlayerMmr extends PlayerMmr {
     displayName: string;
     shortName: string;
   };
+  recentResults?: { outcome: 'win' | 'loss' | 'draw' }[];
 }
 
 export interface HistoryMatchSidePlayer {

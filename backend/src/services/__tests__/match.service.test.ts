@@ -24,6 +24,9 @@ import { teamRepository } from "../../repository/team.repository";
 import { mmrCalculationService } from "../mmr-calculation.service";
 import { standingsService } from "../standings.service";
 import { playerComputedDataRepository } from "../../repository/player-computed-data.repository";
+import { rankedSeasonRepository } from "../../repository/ranked-season.repository";
+import { rankedSeasonService } from "../ranked-season.service";
+import { tournamentStatsRepository } from "../../repository/tournament-stats.repository";
 import {
   NotFoundError,
   BadRequestError,
@@ -103,6 +106,14 @@ beforeEach(() => {
   // Mock mmrCalculationService to prevent real DB calls in finalizeMatch
   (mmrCalculationService as any).processMatchFinalization = async () => undefined;
 
+  // Mock rankedSeasonRepository + service to prevent real DB calls (non-ranked by default)
+  (rankedSeasonRepository as any).getConfigByTournamentId = async () => null;
+  (rankedSeasonService as any).computeAndCacheOfficial = async () => undefined;
+  (rankedSeasonService as any).computeAndCacheProvisional = async () => undefined;
+
+  // Mock tournamentStatsRepository to prevent real DB calls in finalizeMatch
+  (tournamentStatsRepository as any).deleteComputedStats = async () => undefined;
+
   // Mock standingsService to prevent real DB calls in flex championship recalculation
   (standingsService as any).recalculatePointsInternal = async () => ({ updatedMatches: 0 });
   (standingsService as any).invalidateCache = async () => undefined;
@@ -133,6 +144,9 @@ afterEach(() => {
   restore(mmrCalculationService);
   restore(standingsService);
   restore(playerComputedDataRepository);
+  restore(rankedSeasonRepository);
+  restore(rankedSeasonService);
+  restore(tournamentStatsRepository);
 });
 
 describe("MatchService - basic flows", () => {
