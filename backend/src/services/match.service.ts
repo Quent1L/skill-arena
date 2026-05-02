@@ -215,6 +215,7 @@ export class MatchService {
       playerIdsB: input.playerIdsB,
       status: input.status ?? ("scheduled" as const),
       createdBy,
+      playedAt: input.playedAt ? new Date(input.playedAt) : undefined,
     };
 
     // If match is being reported (not just scheduled), include score and report fields
@@ -386,6 +387,7 @@ export class MatchService {
     if (input.outcomeReasonId !== undefined)
       updateData.outcomeReasonId = input.outcomeReasonId;
     if (input.winner !== undefined) updateData.winner = input.winner;
+    if (input.playedAt !== undefined) updateData.playedAt = new Date(input.playedAt);
 
     if (input.status === "reported") {
       const scoreA = input.scoreA ?? 0;
