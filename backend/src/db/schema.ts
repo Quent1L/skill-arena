@@ -690,6 +690,41 @@ export const rankTiers = pgTable(
   (table) => [unique().on(table.seasonId, table.level)],
 );
 
+export const mmrAnimationEventTypeEnum = pgEnum("mmr_animation_event_type", [
+  "provisional",
+  "official",
+]);
+
+export const mmrAnimationEvents = pgTable(
+  "mmr_animation_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    eventType: mmrAnimationEventTypeEnum("event_type").notNull(),
+    mmrBefore: integer("mmr_before").notNull(),
+    mmrAfter: integer("mmr_after").notNull(),
+    mmrDelta: integer("mmr_delta").notNull(),
+    tierBeforeLevel: integer("tier_before_level"),
+    tierAfterLevel: integer("tier_after_level"),
+    tierBeforeName: text("tier_before_name"),
+    tierAfterName: text("tier_after_name"),
+    rankChanged: boolean("rank_changed").notNull().default(false),
+    viewedAt: timestamp("viewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique().on(table.playerId, table.seasonId, table.matchId, table.eventType),
+  ],
+);
+
 // ********************************************************************
 // [End] Ranked season tables
 // ***************************************************************
@@ -802,6 +837,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   playerComputedData: many(playerComputedData),
   organizationMemberships: many(organizationMembers),
   createdOrganizations: many(organizations),
+  mmrAnimationEvents: many(mmrAnimationEvents),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({
@@ -1310,6 +1346,21 @@ export const playerComputedData = pgTable(
   },
   (t) => [primaryKey({ columns: [t.playerId, t.key] })],
 );
+
+export const mmrAnimationEventsRelations = relations(mmrAnimationEvents, ({ one }) => ({
+  player: one(appUsers, {
+    fields: [mmrAnimationEvents.playerId],
+    references: [appUsers.id],
+  }),
+  season: one(tournaments, {
+    fields: [mmrAnimationEvents.seasonId],
+    references: [tournaments.id],
+  }),
+  match: one(matches, {
+    fields: [mmrAnimationEvents.matchId],
+    references: [matches.id],
+  }),
+}));
 
 export const playerComputedDataRelations = relations(playerComputedData, ({ one }) => ({
   player: one(appUsers, {

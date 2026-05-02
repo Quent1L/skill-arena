@@ -95,9 +95,7 @@
           </template>
 
           <!-- Empty state -->
-          <div v-else class="text-center text-sm text-gray-500 italic py-4 px-4 border-t border-white/5">
-            Aucun joueurs dans ce rang...
-          </div>
+
         </div>
       </div>
     </template>

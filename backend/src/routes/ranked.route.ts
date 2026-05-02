@@ -1,5 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { rankedSeasonService } from "../services/ranked-season.service";
+import { mmrAnimationEventService } from "../services/mmr-animation-event.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
@@ -199,5 +201,25 @@ ranked.get("/seasons/:id/players/:playerId/history", async (c) => {
   const enriched = history.map((h) => ({ ...h, sides: sidesMap.get(h.matchId) ?? [] }));
   return c.json(enriched);
 });
+
+// GET /ranked/seasons/:id/animation-events/pending - Get pending MMR animation events
+ranked.get("/seasons/:id/animation-events/pending", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  const playerId = c.get("appUserId");
+  const events = await mmrAnimationEventService.getPendingForPlayer(playerId, seasonId);
+  return c.json({ events });
+});
+
+// POST /ranked/seasons/:id/animation-events/mark-viewed - Mark events as viewed
+ranked.post(
+  "/seasons/:id/animation-events/mark-viewed",
+  requireAuth,
+  zValidator("json", z.object({ ids: z.array(z.string().uuid()) })),
+  async (c) => {
+    const { ids } = c.req.valid("json");
+    await mmrAnimationEventService.markViewed(ids);
+    return c.json({ success: true, markedCount: ids.length });
+  },
+);
 
 export default ranked;

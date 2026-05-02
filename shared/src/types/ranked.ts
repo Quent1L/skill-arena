@@ -220,3 +220,29 @@ export const updateRankTierSchema = z.object({
 
 export type CreateRankTierInput = z.infer<typeof createRankTierSchema>;
 export type UpdateRankTierInput = z.infer<typeof updateRankTierSchema>;
+
+// ============================================
+// MMR Animation Events
+// ============================================
+
+export type MmrAnimationEventType = "provisional" | "official";
+
+export interface MmrAnimationEventResponse {
+  id: string;
+  matchId: string;
+  seasonId: string;
+  eventType: MmrAnimationEventType;
+  mmrBefore: number;
+  mmrAfter: number;
+  mmrDelta: number;
+  tierBeforeLevel: number | null;
+  tierAfterLevel: number | null;
+  tierBeforeName: string | null;
+  tierAfterName: string | null;
+  rankChanged: boolean;
+  createdAt: string;
+}
+
+export interface MmrAnimationWsPayload extends MmrAnimationEventResponse {
+  tournamentId: string;
+}

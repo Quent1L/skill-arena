@@ -39,6 +39,7 @@ import { participantRepository } from "../repository/participant.repository";
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedSeasonService } from "./ranked-season.service";
+import { mmrAnimationEventService } from "./mmr-animation-event.service";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -1066,6 +1067,10 @@ export class MatchService {
     await bracketService.advanceLoserToNextRound(id);
     // Process MMR calculation for ranked seasons
     await mmrCalculationService.processMatchFinalization(id);
+    // Create official MMR animation events and broadcast to players
+    mmrAnimationEventService
+      .createOfficialEventsAndBroadcast(id, match.tournamentId)
+      .catch((err) => logger.error({ err }, "[MmrAnimation] official event failed"));
     // Recompute official + provisional leaderboard cache for ranked
     const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(match.tournamentId);
     if (rankedConfig) {

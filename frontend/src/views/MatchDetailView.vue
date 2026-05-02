@@ -255,6 +255,19 @@
         </template>
       </Dialog>
 
+      <!-- MMR Reveal Animation (ranked matches only) -->
+      <MmrRevealAnimation
+        v-if="match.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
+        :event="animationQueue.currentEvent.value"
+        :tiers="detailStore.rankedTiers"
+        @close="animationQueue.acknowledgeCurrentEvent()"
+      />
+      <MmrRecapCard
+        v-else-if="match.tournament?.mode === 'ranked' && animationQueue.showRecap.value"
+        :events="animationQueue.queue.value"
+        @close="animationQueue.dismissAll()"
+      />
+
       <!-- Admin Actions -->
       <div
         v-if="canManageMatch && match.status !== 'finalized'"
@@ -289,13 +302,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
-import type { ClientMatchDetail, MatchFinalizationReason } from '@skill-arena/shared/types/index'
+import type { ClientMatchDetail, MatchFinalizationReason, MmrAnimationWsPayload } from '@skill-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
+import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
+import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
+import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
+import { onWsEvent } from '@/composables/notification/notification.socket'
 
 const route = useRoute()
 const router = useRouter()
@@ -319,6 +336,21 @@ const error = ref<string | null>(null)
 const confirming = ref(false)
 const cancelling = ref(false)
 const showCancelDialog = ref(false)
+
+const animationQueue = useMMrAnimationQueue()
+let offWs: (() => void) | null = null
+
+function initAnimationIfRanked() {
+  if (!match.value || match.value.tournament?.mode !== 'ranked' || !appUser.value) return
+  animationQueue.loadPending(match.value.tournamentId!)
+  offWs = onWsEvent('mmr_animation', (data: MmrAnimationWsPayload) => {
+    animationQueue.enqueue(data)
+  })
+}
+
+onUnmounted(() => {
+  if (offWs) offWs()
+})
 
 const currentUser = computed(() => appUser.value)
 
@@ -358,6 +390,7 @@ async function loadMatch() {
     error.value = null
     const matchId = route.params.id as string
     match.value = await getMatch(matchId)
+    initAnimationIfRanked()
   } catch (err) {
     console.error('Error loading match:', err)
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du match'

@@ -193,6 +193,19 @@
         </template>
       </Card>
     </div>
+
+    <!-- MMR Animation System -->
+    <MmrRecapCard
+      v-if="store.tournament?.mode === 'ranked' && animationQueue.showRecap.value"
+      :events="animationQueue.queue.value"
+      @close="animationQueue.dismissAll()"
+    />
+    <MmrRevealAnimation
+      v-else-if="store.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
+      :event="animationQueue.currentEvent.value"
+      :tiers="store.rankedTiers"
+      @close="animationQueue.acknowledgeCurrentEvent()"
+    />
   </div>
 </template>
 
@@ -204,8 +217,12 @@ import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
-import type { TournamentMode } from '@skill-arena/shared'
+import type { TournamentMode, MmrAnimationWsPayload } from '@skill-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
+import { onWsEvent } from '@/composables/notification/notification.socket'
+import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
+import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
+import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -217,6 +234,7 @@ const store = useTournamentDetailStore()
 const tabBarRef = ref<HTMLElement | null>(null)
 const tabEls = ref<Record<string, HTMLElement | null>>({})
 const indicatorStyle = ref({ left: '0px', width: '0px' })
+const animationQueue = useMMrAnimationQueue()
 
 const tournamentId = computed(() => route.params.id as string)
 const activeTabName = computed(() => route.params.tab as string | undefined)
@@ -285,6 +303,8 @@ function navigateToTab(tab: string) {
 watch(activeTabName, updateIndicator)
 watch(visibleTabs, updateIndicator)
 
+let offWs: (() => void) | null = null
+
 onMounted(async () => {
   try {
     await store.initialize(tournamentId.value)
@@ -321,10 +341,20 @@ onMounted(async () => {
   }
 
   await updateIndicator()
+
+  if (store.tournament?.mode === 'ranked' && store.isAuthenticated) {
+    await animationQueue.loadPending(tournamentId.value)
+    offWs = onWsEvent('mmr_animation', (data) => {
+      const payload = data as MmrAnimationWsPayload
+      if (payload.tournamentId !== tournamentId.value) return
+      animationQueue.enqueue(payload)
+    })
+  }
 })
 
 onUnmounted(() => {
   store.$dispose()
+  if (offWs) offWs()
 })
 </script>
 
