@@ -2,9 +2,9 @@
   <header class="shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <div class="flex items-center cursor-pointer" @click="router.push('/')">
+        <RouterLink to="/" class="flex items-center cursor-pointer">
           <SkolLogo height="50" width="150"></SkolLogo>
-        </div>
+        </RouterLink>
 
         <div class="flex items-center gap-3">
           <div v-if="!isAuthenticated" class="flex items-center gap-3">

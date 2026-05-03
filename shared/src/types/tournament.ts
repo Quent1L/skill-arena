@@ -467,6 +467,10 @@ export type UpdateTournamentApiData = z.infer<typeof updateTournamentSchema>;
 // Utilitaires de conversion
 // ============================================
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /**
  * Convertit des données de formulaire (avec Date objects) en payload API (avec ISO strings)
  */
@@ -481,8 +485,8 @@ export function formDataToApiPayload<
   const { startDate, endDate, ...rest } = formData;
   return {
     ...rest,
-    ...(startDate && { startDate: startDate.toISOString().split("T")[0] }),
-    ...(endDate && { endDate: endDate.toISOString().split("T")[0] }),
+    ...(startDate && { startDate: toLocalDateStr(startDate) }),
+    ...(endDate && { endDate: toLocalDateStr(endDate) }),
   };
 }
 

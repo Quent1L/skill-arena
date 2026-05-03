@@ -21,7 +21,12 @@ export function convertStringDatesToJS<T>(data: T): T {
       for (const key in data) {
         if (Object.hasOwn(data, key)) {
           if (typeof data[key] === 'string' && isDateString(data[key])) {
-            data[key] = new Date(data[key])
+            const localMatch = (data[key] as string).match(/^(\d{4})-(\d{2})-(\d{2})$/)
+            if (localMatch) {
+              data[key] = new Date(+localMatch[1], +localMatch[2] - 1, +localMatch[3])
+            } else {
+              data[key] = new Date(data[key])
+            }
           } else if (typeof data[key] === 'object') {
             data[key] = convertStringDatesToJS(data[key])
           }
