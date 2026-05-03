@@ -7,7 +7,9 @@
     "db:generate": "bun run drizzle-kit generate",
     "db:push": "bun run drizzle-kit push",
     "job:auto-finalize": "bun run src/jobs/auto-finalize-matches.job.ts",
-    "test:integration": "bun test src/services/__tests__/match-partner-validation.integration.test.ts src/services/__tests__/match-duplicate-detection.test.ts src/services/__tests__/tournament-participation.test.ts"
+    "test:integration": "bun test src/services/__tests__/match-partner-validation.integration.test.ts src/services/__tests__/match-duplicate-detection.test.ts src/services/__tests__/tournament-participation.test.ts",
+    "lint": "eslint . --fix",
+    "format": "prettier --write src/"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",
@@ -31,7 +33,10 @@
     "@types/pg": "^8.20.0",
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.10",
+    "eslint": "^9.0.0",
+    "prettier": "^3.8.0",
     "tsx": "^4.21.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.0.0"
   }
 }
