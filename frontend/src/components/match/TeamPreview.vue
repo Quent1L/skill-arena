@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col md:flex-row items-center md:items-stretch md:justify-between gap-4">
-    <div class="w-full md:w-1/2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm animate-fade-in">
+    <div class="w-full md:w-1/2 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm animate-fade-in">
       <h4 class="text-sm font-semibold mb-2">Équipe A</h4>
       <h4 v-if="teamAName" class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">
         {{ teamAName }}
@@ -11,7 +11,7 @@
       </ul>
     </div>
 
-    <div class="w-full md:w-1/2 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm animate-fade-in">
+    <div class="w-full md:w-1/2 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm animate-fade-in">
       <h4 class="text-sm font-semibold mb-2">Équipe B</h4>
       <h4 v-if="teamBName" class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">
         {{ teamBName }}

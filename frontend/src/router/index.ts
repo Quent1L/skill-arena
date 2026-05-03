@@ -280,7 +280,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TournamentsView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Tournois',
+      title: 'Évènements compétitifs',
       requiresAuth: true,
       hideBreadcrumb: true,
     },

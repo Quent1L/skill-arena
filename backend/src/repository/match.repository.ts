@@ -1326,6 +1326,38 @@ export class MatchRepository {
     }
     return Array.from(ids);
   }
+
+  async findPlayerConflictAtTime(
+    playerIds: string[],
+    playedAt: Date,
+    tournamentId: string,
+    excludeMatchId?: string,
+  ): Promise<{ playerId: string; playerName: string } | null> {
+    if (playerIds.length === 0) return null;
+
+    const conditions = [
+      sql`DATE_TRUNC('minute', ${matches.playedAt}) = DATE_TRUNC('minute', ${playedAt}::timestamptz)`,
+      eq(matches.tournamentId, tournamentId),
+      ne(matches.status, "cancelled"),
+      inArray(tournamentEntryPlayers.playerId, playerIds),
+    ];
+    if (excludeMatchId) conditions.push(ne(matches.id, excludeMatchId));
+
+    const rows = await db
+      .select({
+        playerId: tournamentEntryPlayers.playerId,
+        playerName: appUsers.displayName,
+      })
+      .from(matches)
+      .innerJoin(matchSides, eq(matchSides.matchId, matches.id))
+      .innerJoin(tournamentEntries, eq(tournamentEntries.id, matchSides.entryId))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .innerJoin(appUsers, eq(appUsers.id, tournamentEntryPlayers.playerId))
+      .where(and(...conditions))
+      .limit(1);
+
+    return rows[0] ?? null;
+  }
 }
 
 export const matchRepository = new MatchRepository();

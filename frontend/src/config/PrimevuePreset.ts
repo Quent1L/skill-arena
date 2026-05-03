@@ -70,6 +70,11 @@ const themePreset = definePreset(Aura, {
         background: '{slate.800}',
       },
     },
+    stepper: {
+      steppanel: {
+        background: '{slate.800}',
+      },
+    },
   },
 })
 

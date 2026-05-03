@@ -82,6 +82,7 @@
     "PLAYER_ALREADY_IN_TEAM": "You are already a member of a team in this tournament",
     "PLAYER_NOT_IN_TEAM": "You are not a member of this team",
     "TEAM_SIZE_INVALID": "Team size does not meet the tournament limits",
-    "TEAM_HAS_MATCH": "This team already has a match and cannot be modified"
+    "TEAM_HAS_MATCH": "This team already has a match and cannot be modified",
+    "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} is already in another match at this exact time — bilocation isn't on the feature list yet!"
   }
 }

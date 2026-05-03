@@ -40,6 +40,7 @@ import { tournamentStatsRepository } from "../repository/tournament-stats.reposi
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedSeasonService } from "./ranked-season.service";
 import { mmrAnimationEventService } from "./mmr-animation-event.service";
+import { teamRepository } from "../repository/team.repository";
 
 type TournamentFromRepository = Awaited<
   ReturnType<typeof matchRepository.getTournament>
@@ -81,6 +82,11 @@ export class MatchService {
       matchInputValidator.validateScores(input.scoreA, input.scoreB);
       matchInputValidator.validateScoreRange(input.scoreA, input.scoreB, tournament.minScore, tournament.maxScore);
       await matchInputValidator.validateDrawAllowed(input.tournamentId, input.scoreA, input.scoreB, input.winner);
+    }
+
+    if (input.playedAt) {
+      const playerIds = await this.resolvePlayerIds(input, tournament);
+      await this.validateNoPlayerConflict(playerIds, input.playedAt, input.tournamentId);
     }
 
     const matchId = await this.createMatchRecord(input, createdBy);
@@ -387,7 +393,11 @@ export class MatchService {
     if (input.outcomeReasonId !== undefined)
       updateData.outcomeReasonId = input.outcomeReasonId;
     if (input.winner !== undefined) updateData.winner = input.winner;
-    if (input.playedAt !== undefined) updateData.playedAt = new Date(input.playedAt);
+    if (input.playedAt !== undefined) {
+      updateData.playedAt = new Date(input.playedAt);
+      const playerIds = await matchRepository.getPlayerIdsForMatch(id);
+      await this.validateNoPlayerConflict(playerIds, input.playedAt, match.tournamentId, id);
+    }
 
     if (input.status === "reported") {
       const scoreA = input.scoreA ?? 0;
@@ -727,6 +737,20 @@ export class MatchService {
         tournament,
         errors,
       );
+      if (input.playedAt) {
+        const playerIds = await this.resolvePlayerIds(input, tournament);
+        const conflict = await matchRepository.findPlayerConflictAtTime(
+          playerIds,
+          new Date(input.playedAt),
+          input.tournamentId,
+          input.matchId,
+        );
+        if (conflict) {
+          errors.push(
+            `${conflict.playerName} a déjà un match à cette date et heure`,
+          );
+        }
+      }
       await this.checkSimilarMatch(input, warnings, input.matchId);
 
       return {
@@ -1388,6 +1412,45 @@ export class MatchService {
     const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
     if (rankedConfig) {
       rankedSeasonService.computeAndCacheProvisional(tournamentId).catch(() => {});
+    }
+  }
+
+  private async resolvePlayerIds(
+    input: CreateMatchInput,
+    tournament: NonNullable<TournamentFromRepository>,
+  ): Promise<string[]> {
+    if (tournament.teamMode === "flex") {
+      return [...(input.playerIdsA ?? []), ...(input.playerIdsB ?? [])];
+    }
+    const ids: string[] = [];
+    if (input.teamAId) {
+      const teamA = await teamRepository.getById(input.teamAId);
+      if (teamA) ids.push(...teamA.members.map((m) => m.userId));
+    }
+    if (input.teamBId) {
+      const teamB = await teamRepository.getById(input.teamBId);
+      if (teamB) ids.push(...teamB.members.map((m) => m.userId));
+    }
+    return ids;
+  }
+
+  private async validateNoPlayerConflict(
+    playerIds: string[],
+    playedAt: Date | string,
+    tournamentId: string,
+    excludeMatchId?: string,
+  ): Promise<void> {
+    if (playerIds.length === 0) return;
+    const conflict = await matchRepository.findPlayerConflictAtTime(
+      playerIds,
+      new Date(playedAt),
+      tournamentId,
+      excludeMatchId,
+    );
+    if (conflict) {
+      throw new ConflictError(ErrorCode.PLAYER_SCHEDULE_CONFLICT, {
+        playerName: conflict.playerName,
+      });
     }
   }
 }

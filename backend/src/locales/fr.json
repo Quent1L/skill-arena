@@ -82,6 +82,7 @@
     "PLAYER_ALREADY_IN_TEAM": "Vous êtes déjà membre d'une équipe dans ce tournoi",
     "PLAYER_NOT_IN_TEAM": "Vous n'êtes pas membre de cette équipe",
     "TEAM_SIZE_INVALID": "La taille de l'équipe ne respecte pas les limites du tournoi",
-    "TEAM_HAS_MATCH": "Cette équipe a déjà un match et ne peut plus être modifiée"
+    "TEAM_HAS_MATCH": "Cette équipe a déjà un match et ne peut plus être modifiée",
+    "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} est déjà engagé dans un autre match à cette heure-ci — la téléportation est prévue pour la prochaine version"
   }
 }

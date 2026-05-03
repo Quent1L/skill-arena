@@ -64,6 +64,7 @@ export function useMatchService() {
     matchId?: string,
     teamAId?: string,
     teamBId?: string,
+    playedAt?: Date
   ): Promise<ValidationResult> {
     try {
       const dataToValidate: ClientValidateMatchRequest = {
@@ -73,6 +74,7 @@ export function useMatchService() {
         ...(matchId && { matchId }),
         ...(teamAId && { teamAId }),
         ...(teamBId && { teamBId }),
+        playedAt,
       }
 
       const result = await matchApi.validate(dataToValidate)

@@ -37,7 +37,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       <!-- Équipe A -->
       <div>
-        <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe A</h4>
           <template v-if="props.bracketLocked">
             <div class="space-y-1">
@@ -84,7 +84,7 @@
 
       <!-- Équipe B -->
       <div>
-        <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm">
           <h4 class="text-sm font-semibold mb-2">Équipe B</h4>
           <template v-if="props.bracketLocked">
             <div class="space-y-1">

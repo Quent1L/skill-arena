@@ -20,7 +20,13 @@
   <div v-else class="create-match-view">
     <div class="max-w-4xl mx-auto p-6">
       <h1 class="text-2xl font-semibold p-4">
-        {{ isContestMode ? 'Proposer une correction de score' : isEditMode ? 'Compléter le match' : 'Créer un match' }}
+        {{
+          isContestMode
+            ? 'Proposer une correction de score'
+            : isEditMode
+              ? 'Compléter le match'
+              : 'Créer un match'
+        }}
       </h1>
       <Card class="mb-6">
         <template #content>
@@ -181,7 +187,11 @@ const canProceedToNext = computed(() => {
       matchData.value.teamAId !== matchData.value.teamBId
     )
   }
-  return canProceedToNextStep(activeStep.value, matchData.value.playerIdsA, matchData.value.playerIdsB)
+  return canProceedToNextStep(
+    activeStep.value,
+    matchData.value.playerIdsA,
+    matchData.value.playerIdsB,
+  )
 })
 
 const canCreateMatch = computed(() => {
@@ -280,6 +290,7 @@ async function validateCurrentStep(step?: string) {
     matchId,
     isStaticMode.value ? matchData.value.teamAId : undefined,
     isStaticMode.value ? matchData.value.teamBId : undefined,
+    matchData.value.playedAt,
   )
 }
 
@@ -362,17 +373,23 @@ async function createMatch() {
 
 watch(
   () => matchData.value.playerIdsA,
-  () => { if (!isStaticMode.value) validateCurrentStep('1') },
+  () => {
+    if (!isStaticMode.value) validateCurrentStep('1')
+  },
   { deep: true },
 )
 watch(
   () => matchData.value.playerIdsB,
-  () => { if (!isStaticMode.value) validateCurrentStep('1') },
+  () => {
+    if (!isStaticMode.value) validateCurrentStep('1')
+  },
   { deep: true },
 )
 watch(
   () => [matchData.value.teamAId, matchData.value.teamBId],
-  () => { if (isStaticMode.value) validateCurrentStep('1') },
+  () => {
+    if (isStaticMode.value) validateCurrentStep('1')
+  },
 )
 
 async function loadExistingMatch() {

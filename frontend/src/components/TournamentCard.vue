@@ -7,14 +7,20 @@
     <div class="space-y-3">
       <!-- Top row: status pill -->
       <div class="flex items-center justify-between gap-2">
-        <span class="status-pill text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full" :class="statusPillClass">
+        <span
+          class="status-pill text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full"
+          :class="statusPillClass"
+        >
           {{ statusLabel }}
         </span>
       </div>
 
       <!-- Body: icon + name + tags -->
       <div class="flex items-start gap-3">
-        <div class="mode-icon-circle shrink-0 w-10 h-10 rounded-full flex items-center justify-center" :class="modeIconBgClass">
+        <div
+          class="mode-icon-circle shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+          :class="modeIconBgClass"
+        >
           <i :class="[modeIcon, modeIconColorClass, 'text-base']"></i>
         </div>
         <div class="min-w-0 flex-1">
@@ -22,7 +28,10 @@
             {{ tournament.name }}
           </h3>
           <div class="flex flex-wrap gap-1.5">
-            <span v-if="tournament.discipline" class="tag text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300">
+            <span
+              v-if="tournament.discipline"
+              class="tag text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300"
+            >
               <i class="fa fa-gamepad mr-1 text-gray-400"></i>{{ tournament.discipline.name }}
             </span>
             <span class="tag text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300">
@@ -74,10 +83,19 @@ defineEmits<{
 
 // Status pill
 const statusConfig: Record<string, { label: string; pillClass: string }> = {
-  draft: { label: 'Brouillon', pillClass: 'bg-gray-500/20 text-gray-400 border border-gray-500/30' },
+  draft: {
+    label: 'Brouillon',
+    pillClass: 'bg-gray-500/20 text-gray-400 border border-gray-500/30',
+  },
   open: { label: 'Ouvert', pillClass: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
-  ongoing: { label: 'En cours', pillClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30' },
-  finished: { label: 'Terminé', pillClass: 'bg-gray-500/20 text-gray-500 border border-gray-500/30' },
+  ongoing: {
+    label: 'En cours',
+    pillClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
+  },
+  finished: {
+    label: 'Terminé',
+    pillClass: 'bg-gray-500/20 text-gray-500 border border-gray-500/30',
+  },
 }
 
 const statusLabel = computed(
@@ -145,12 +163,7 @@ const timeProgress = computed(() => {
   const now = Date.now()
   const start = new Date(startDate).getTime()
   const end = new Date(endDate).getTime()
-  if (status === 'open') {
-    if (end <= start) return 25
-    const progress = ((now - start) / (end - start)) * 100
-    return Math.min(50, Math.max(5, progress))
-  }
-  if (status !== 'ongoing') return 0
+  if (status !== 'ongoing' && status !== 'open') return 0
   if (end <= start) return 100
   return Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100))
 })
@@ -168,6 +181,8 @@ const periodLabel = computed(() => {
   }
   if (status === 'open') {
     const daysUntil = Math.ceil((new Date(startDate).getTime() - now) / 86_400_000)
+    const daysLeft = Math.ceil((new Date(endDate).getTime() - now) / 86_400_000)
+    if (daysLeft <= 0) return 'Fin imminente'
     if (daysUntil <= 0) return 'Inscriptions ouvertes'
     return `Commence dans ${daysUntil} j`
   }
@@ -196,7 +211,7 @@ function formatDate(date: Date | string): string {
 .tournament-card {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left-width: 3px;
-  background-color: var(--color-surface-800)
+  background-color: var(--color-surface-800);
 }
 
 /* Championship — blue */
