@@ -107,7 +107,7 @@ export enum ErrorCode {
 
 // Base error class
 export abstract class AppError extends Error {
-  constructor(public code: ErrorCode, public details?: Record<string, any>) {
+  constructor(public code: ErrorCode, public details?: Record<string, unknown>) {
     super(code);
     this.name = this.constructor.name;
     Object.setPrototypeOf(this, new.target.prototype);

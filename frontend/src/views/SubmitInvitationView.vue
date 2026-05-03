@@ -131,8 +131,8 @@ onMounted(async () => {
       remainingUses.value = result.remainingUses
       await submitCode()
     }
-  } catch (err: any) {
-    codeError.value = err.message || 'Code invalide'
+  } catch (err: unknown) {
+    codeError.value = (err as Error).message || 'Code invalide'
   } finally {
     isValidating.value = false
   }
@@ -155,8 +155,8 @@ const debouncedValidate = useDebounceFn(async () => {
       codeValid.value = true
       remainingUses.value = result.remainingUses
     }
-  } catch (err: any) {
-    codeError.value = err.message || 'Code invalide'
+  } catch (err: unknown) {
+    codeError.value = (err as Error).message || 'Code invalide'
   } finally {
     isValidating.value = false
   }
@@ -177,8 +177,8 @@ async function submitCode() {
 
     // Rediriger vers la page d'accueil
     router.push('/')
-  } catch (err: any) {
-    submitError.value = err.message || 'Erreur lors de la soumission du code'
+  } catch (err: unknown) {
+    submitError.value = (err as Error).message || 'Erreur lors de la soumission du code'
   } finally {
     isSubmitting.value = false
   }

@@ -185,8 +185,8 @@ const onSubmit = handleSubmit(async (values) => {
 
     const redirectPath = route.query.redirect as string
     router.push(redirectPath ?? '/')
-  } catch (err: any) {
-    if (err?.cause === 'INVITATION_CODE_REQUIRED') {
+  } catch (err: unknown) {
+    if ((err as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
       await router.push('/submit-invitation')
       return
     }

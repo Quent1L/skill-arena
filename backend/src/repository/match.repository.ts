@@ -245,7 +245,7 @@ export class MatchRepository {
       const entryName = entry?.team?.name ?? null;
       const standardPoints = side.pointsAwarded ?? 0;
 
-      const players: MatchDetailPlayer[] = (entry?.players ?? []).map((ep: any) => {
+      const players: MatchDetailPlayer[] = (entry?.players ?? []).map((ep) => {
         const player: MatchDetailPlayer = {
           id: ep.player.id,
           displayName: ep.player.displayName,
@@ -352,6 +352,7 @@ export class MatchRepository {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private buildTeamObject(side: any): SyntheticTeam {
     const entry = side.entry;
     if (!entry) return { participants: [] };
@@ -359,12 +360,14 @@ export class MatchRepository {
       return {
         id: entry.team.id,
         name: entry.team.name,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         participants: entry.players.map((ep: any) => ({ user: ep.player })),
       };
     }
     return {
       id: entry.id,
       name: null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       participants: entry.players.map((ep: any) => ({ user: ep.player })),
     };
   }
@@ -440,7 +443,9 @@ export class MatchRepository {
 
         return {
           ...m,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           teamA: teamA as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           teamB: teamB as any,
           scoreA,
           scoreB,
@@ -980,7 +985,7 @@ export class MatchRepository {
     for (const { entryId } of candidateRows) {
       const entry = await entryRepository.getById(entryId);
       if (!entry) continue;
-      const entryPlayerIds = entry.players.map((ep: any) => ep.player.id as string);
+      const entryPlayerIds = entry.players.map((ep) => ep.player.id as string);
       if (
         entryPlayerIds.length === playerIds.length &&
         playerIds.every((id) => entryPlayerIds.includes(id))
@@ -1040,7 +1045,7 @@ export class MatchRepository {
       for (const { entryId } of candidateRows) {
         const entry = await entryRepository.getById(entryId);
         if (!entry) continue;
-        const entryPlayerIds = entry.players.map((ep: any) => ep.player.id as string);
+        const entryPlayerIds = entry.players.map((ep) => ep.player.id as string);
         if (
           entryPlayerIds.length === playerIds.length &&
           playerIds.every((id) => entryPlayerIds.includes(id))

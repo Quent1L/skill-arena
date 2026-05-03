@@ -5,8 +5,6 @@ import {
   bracketRounds,
   bracketSeeds,
   bracketMatchMetadata,
-  tournaments,
-  tournamentEntries,
   matches,
 } from "../db/schema";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -276,34 +274,6 @@ export class BracketRepository {
   private async getMatchesWithMetadataByConfigId(configId: string) {
     // Get all rounds for this config
     const rounds = await this.getRoundsByConfigId(configId);
-    const roundIds = rounds.map((r) => r.id);
-
-    // Get all metadata for these rounds
-    const allMetadata = await db.query.bracketMatchMetadata.findMany({
-      where: eq(bracketMatchMetadata.bracketRoundId, roundIds[0]), // We'll filter in code
-      with: {
-        match: {
-          with: {
-            sides: {
-              with: {
-                entry: {
-                  with: {
-                    team: true,
-                    players: {
-                      with: {
-                        player: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            result: true,
-          },
-        },
-        bracketRound: true,
-      },
-    });
 
     // Since Drizzle doesn't support IN clause easily, get all metadata
     const allRoundMetadata = [];

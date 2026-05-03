@@ -12,12 +12,13 @@ import {
   matches,
   matchSides,
   tournamentEntries,
-  tournamentEntryPlayers,
 } from "../db/schema";
 import { eq } from "drizzle-orm";
 import type { GenerateBracketInput } from "@skill-arena/shared";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type * as schema from "../db/schema";
+
+type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
 import {
   ErrorCode,
   NotFoundError,
@@ -428,7 +429,7 @@ export class BracketService {
     tournamentId: string,
     entries: Awaited<ReturnType<typeof entryRepository.getByTournament>>,
     input: GenerateBracketInput,
-    tx: any
+    _tx: DbTransaction
   ): Promise<BracketSeedData[]> {
     if (input.seedingType === "random") {
       return this.generateRandomSeeding(entries);
@@ -526,7 +527,6 @@ export class BracketService {
   ): RoundData[] {
     const participantCount = seeds.length;
     const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(participantCount)));
-    const byeCount = nextPowerOf2 - participantCount;
 
     const rounds: RoundData[] = [];
     const totalRounds = Math.ceil(Math.log2(participantCount));
@@ -773,7 +773,7 @@ export class BracketService {
     bracketConfigId: string,
     tournamentId: string,
     rounds: RoundData[],
-    tx: any
+    tx: DbTransaction
   ) {
     const createdRounds = await bracketRepository.createRounds(
       rounds.map((r) => ({

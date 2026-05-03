@@ -1,3 +1,4 @@
+ 
 import {
   createTestDatabase,
   closeTestDatabase,
@@ -172,7 +173,7 @@ console.log("   Starting transaction...");
 
 // Let's test individual steps
 const { db } = await import("./src/config/database");
-const { matches, matchSides, tournamentEntries, tournamentEntryPlayers } =
+const { matches, matchSides: _matchSides, tournamentEntries: _tournamentEntries, tournamentEntryPlayers: _tournamentEntryPlayers } =
   await import("./src/db/schema");
 const { eq } = await import("drizzle-orm");
 

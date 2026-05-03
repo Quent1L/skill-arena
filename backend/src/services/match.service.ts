@@ -1,4 +1,4 @@
-import { matchRepository } from "../repository/match.repository";
+import { matchRepository, type CreateMatchData } from "../repository/match.repository";
 import { matchConfirmationRepository } from "../repository/match-confirmation.repository";
 import { userRepository } from "../repository/user.repository";
 import { entryRepository } from "../repository/entry.repository";
@@ -213,7 +213,7 @@ export class MatchService {
    * Create match record in database
    */
   private async createMatchRecord(input: CreateMatchInput, createdBy: string) {
-    const matchData: any = {
+    const matchData: CreateMatchData = {
       tournamentId: input.tournamentId,
       teamAId: input.teamAId,
       teamBId: input.teamBId,
@@ -535,8 +535,8 @@ export class MatchService {
    */
   private buildReportUpdateData(
     input: ReportMatchResultInput,
-    match: Awaited<ReturnType<typeof matchRepository.getById>>,
-    reportedBy: string,
+    _match: Awaited<ReturnType<typeof matchRepository.getById>>,
+    _reportedBy: string,
   ): UpdateMatchData {
     const updateData: UpdateMatchData = {
       scoreA: input.scoreA,

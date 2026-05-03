@@ -1,9 +1,12 @@
+import type { WSContext } from "hono/ws";
 import { logger } from "../utils/logger";
+
+type WS = WSContext;
 
 export class WebSocketService {
   private static instance: WebSocketService;
   // Map userId -> Set of WebSockets (to support multiple tabs/devices)
-  private connections: Map<string, Set<any>> = new Map();
+  private connections: Map<string, Set<WS>> = new Map();
   // Map tournamentId -> Set<userId>
   private tournamentSubscriptions: Map<string, Set<string>> = new Map();
 
@@ -16,7 +19,7 @@ export class WebSocketService {
     return WebSocketService.instance;
   }
 
-  public handleConnection(ws: any, userId: string) {
+  public handleConnection(ws: WS, userId: string) {
     if (!this.connections.has(userId)) {
       this.connections.set(userId, new Set());
     }
@@ -24,7 +27,7 @@ export class WebSocketService {
     logger.debug(`User ${userId} connected via WebSocket`);
   }
 
-  public handleClose(ws: any, userId: string) {
+  public handleClose(ws: WS, userId: string) {
     const userConns = this.connections.get(userId);
     if (userConns) {
       userConns.delete(ws);
@@ -69,7 +72,7 @@ export class WebSocketService {
     }
   }
 
-  public send(userId: string, data: any) {
+  public send(userId: string, data: unknown) {
     const userConns = this.connections.get(userId);
     logger.debug(`[WS] Attempting to send to user ${userId}, connections: ${userConns?.size || 0}`);
     

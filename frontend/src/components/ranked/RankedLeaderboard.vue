@@ -172,10 +172,6 @@ const rankMap = computed(() => {
 
 const sortedTiers = computed(() => [...props.tiers].sort((a, b) => b.level - a.level))
 
-const lowestLevel = computed(() =>
-  sortedTiers.value.length ? sortedTiers.value[sortedTiers.value.length - 1].level : 1
-)
-
 const tierGroups = computed(() =>
   sortedTiers.value.map((tier) => ({
     tier,

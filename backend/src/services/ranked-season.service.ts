@@ -6,11 +6,12 @@ import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { db } from "../config/database";
-import { matches, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
+import { matches, appUsers } from "../db/schema";
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
+  TournamentStatus,
 } from "@skill-arena/shared/types/index";
 import {
   ErrorCode,
@@ -168,8 +169,8 @@ export class RankedSeasonService {
     return season;
   }
 
-  async listSeasons(filters?: { disciplineId?: string; status?: string }) {
-    return await rankedSeasonRepository.listSeasons(filters as any);
+  async listSeasons(filters?: { disciplineId?: string; status?: TournamentStatus }) {
+    return await rankedSeasonRepository.listSeasons(filters);
   }
 
   /**

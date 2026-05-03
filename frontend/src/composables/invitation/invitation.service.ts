@@ -11,8 +11,8 @@ export function useInvitationService() {
     try {
       const result = await invitationApi.validate(code);
       return result;
-    } catch (err: any) {
-      error.value = err.message || "Error validating code";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error validating code";
       throw err;
     } finally {
       loading.value = false;
@@ -25,8 +25,8 @@ export function useInvitationService() {
     try {
       const result = await invitationApi.consume(code);
       return result;
-    } catch (err: any) {
-      error.value = err.message || "Error consuming code";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error consuming code";
       throw err;
     } finally {
       loading.value = false;
@@ -39,8 +39,8 @@ export function useInvitationService() {
     try {
       const code = await invitationApi.generate(input);
       return code;
-    } catch (err: any) {
-      error.value = err.message || "Error generating code";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error generating code";
       throw err;
     } finally {
       loading.value = false;
@@ -53,8 +53,8 @@ export function useInvitationService() {
     try {
       const codes = await invitationApi.getAll();
       return codes;
-    } catch (err: any) {
-      error.value = err.message || "Error fetching codes";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error fetching codes";
       throw err;
     } finally {
       loading.value = false;
@@ -67,8 +67,8 @@ export function useInvitationService() {
     try {
       const code = await invitationApi.deactivate(id);
       return code;
-    } catch (err: any) {
-      error.value = err.message || "Error deactivating code";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error deactivating code";
       throw err;
     } finally {
       loading.value = false;

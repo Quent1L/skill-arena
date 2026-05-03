@@ -13,8 +13,8 @@ export function useConfigService() {
     try {
       config.value = await configApi.getConfig();
       return config.value;
-    } catch (err: any) {
-      error.value = err.message || "Error loading configuration";
+    } catch (err: unknown) {
+      error.value = (err as Error).message || "Error loading configuration";
       throw err;
     } finally {
       loading.value = false;

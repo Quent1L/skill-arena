@@ -231,11 +231,11 @@ async function loadCodes() {
   isLoading.value = true
   try {
     codes.value = await getAllCodes()
-  } catch (error: any) {
+  } catch (error: unknown) {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
-      detail: error.message || 'Erreur lors du chargement des codes',
+      detail: (error as Error).message || 'Erreur lors du chargement des codes',
       life: 3000,
     })
   } finally {
@@ -268,11 +268,11 @@ async function handleGenerateCode() {
     }
 
     await loadCodes()
-  } catch (error: any) {
+  } catch (error: unknown) {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
-      detail: error.message || 'Erreur lors de la génération du code',
+      detail: (error as Error).message || 'Erreur lors de la génération du code',
       life: 3000,
     })
   } finally {
@@ -290,11 +290,11 @@ async function handleDeactivate(code: InvitationCode) {
       life: 3000,
     })
     await loadCodes()
-  } catch (error: any) {
+  } catch (error: unknown) {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
-      detail: error.message || 'Erreur lors de la désactivation du code',
+      detail: (error as Error).message || 'Erreur lors de la désactivation du code',
       life: 3000,
     })
   }

@@ -145,16 +145,16 @@ export function useAuth() {
       await initialize()
 
       return result
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Gérer les erreurs spécifiques du code d'invitation
       let message = "Une erreur est survenue lors de l'inscription"
 
       if (err instanceof Error) {
         message = err.message
-      } else if (err?.error?.message) {
-        message = err.error.message
-      } else if (err?.message) {
-        message = err.message
+      } else if ((err as { error?: { message?: string } })?.error?.message) {
+        message = (err as { error: { message: string } }).error.message
+      } else if ((err as { message?: string })?.message) {
+        message = (err as { message: string }).message
       }
 
       error.value = message
@@ -180,9 +180,9 @@ export function useAuth() {
       if (sessionData.value?.data?.user) {
         try {
           await fetchUserData()
-        } catch (fetchError: any) {
+        } catch (fetchError: unknown) {
           // Si l'erreur est INVITATION_CODE_REQUIRED, la propager pour que le guard la gère
-          if (fetchError?.cause === 'INVITATION_CODE_REQUIRED') {
+          if ((fetchError as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
             throw fetchError
           }
           // Pour les autres erreurs (401, etc.), réinitialiser silencieusement
@@ -191,9 +191,9 @@ export function useAuth() {
           appUserData.value = null
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Si c'est INVITATION_CODE_REQUIRED, propager l'erreur
-      if (err?.cause === 'INVITATION_CODE_REQUIRED') {
+      if ((err as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
         throw err
       }
       // Ignore les autres erreurs d'initialisation

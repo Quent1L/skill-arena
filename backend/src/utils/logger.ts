@@ -25,7 +25,7 @@ function buildDestination(): pino.DestinationStream | undefined {
   return {
     write(msg: string) {
       const obj = JSON.parse(msg);
-      const { level, time, pid, hostname, msg: message, ...rest } = obj;
+      const { level, time, pid: _pid, hostname: _hostname, msg: message, ...rest } = obj;
       const levelLabel = pino.levels.labels[level] || level;
       const formatted = toLogfmt({ level: levelLabel, time: new Date(time).toISOString(), msg: message, ...rest });
       process.stdout.write(formatted + "\n");

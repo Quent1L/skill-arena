@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach } from "bun:test";
 
 // Import the CLASS (not the singleton) to avoid test pollution from other test files' mock.module

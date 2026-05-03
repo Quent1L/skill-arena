@@ -1,6 +1,6 @@
 import { db } from "../config/database";
-import { eq, and, asc } from "drizzle-orm";
-import { matches, matchSides, tournaments, rankedSeasonConfigs, outcomeTypes, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
+import { eq, and } from "drizzle-orm";
+import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 
@@ -65,9 +65,6 @@ export class MmrCalculationService {
 
     // Delete existing history and reset MMR
     await playerMmrRepository.deleteMmrHistoryForPlayer(seasonId, playerId);
-
-    const history = await playerMmrRepository.getMmrHistoryOrdered(seasonId, playerId);
-    // history is now empty, we'll rebuild from matches
 
     // Get all finalized matches for this player in this season, ordered by playedAt
     const playerMatches = await this.getPlayerMatchesForSeason(seasonId, playerId);
@@ -261,8 +258,8 @@ export class MmrCalculationService {
     const sideA = sides[0];
     const sideB = sides[1];
 
-    const playerIdsA = sideA.entry?.players.map((p: any) => p.playerId) ?? [];
-    const playerIdsB = sideB.entry?.players.map((p: any) => p.playerId) ?? [];
+    const playerIdsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
+    const playerIdsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
 
     const playerInSideA = playerIdsA.includes(playerId);
     const mySide = playerInSideA ? sideA : sideB;

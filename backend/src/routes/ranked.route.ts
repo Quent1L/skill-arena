@@ -14,6 +14,7 @@ import {
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 import { NotFoundError, ErrorCode } from "../types/errors";
+import type { TournamentStatus } from "@skill-arena/shared/types/index";
 
 const ranked = createAppHono();
 
@@ -33,7 +34,7 @@ ranked.post(
 // GET /ranked/seasons - List ranked seasons
 ranked.get("/seasons", async (c) => {
   const disciplineId = c.req.query("disciplineId");
-  const status = c.req.query("status");
+  const status = c.req.query("status") as TournamentStatus | undefined;
   const seasons = await rankedSeasonService.listSeasons({ disciplineId, status });
   return c.json(seasons);
 });

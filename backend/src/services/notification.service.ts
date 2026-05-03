@@ -129,7 +129,7 @@ export const notificationService = {
         if (
           error instanceof Error &&
           "statusCode" in error &&
-          (error as any).statusCode === 410
+          (error as { statusCode?: number }).statusCode === 410
         ) {
           logger.debug(
             `[Push] Removing inactive push device ${device.id} for user ${device.userId}`,
@@ -148,11 +148,11 @@ export const notificationService = {
       ...n,
       title: i18next.t(n.titleKey, {
         lng,
-        ...(n.translationParams as Record<string, any>),
+        ...(n.translationParams as Record<string, unknown>),
       }),
       message: i18next.t(n.messageKey, {
         lng,
-        ...(n.translationParams as Record<string, any>),
+        ...(n.translationParams as Record<string, unknown>),
       }),
     }));
   },

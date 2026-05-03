@@ -184,9 +184,9 @@ async function validateCode() {
       codeValid.value = false
       codeError.value = 'Code invalide'
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     codeValid.value = false
-    codeError.value = error.message || 'Erreur lors de la validation'
+    codeError.value = (error as Error).message || 'Erreur lors de la validation'
   } finally {
     isValidating.value = false
   }
@@ -217,9 +217,9 @@ async function proceedToKeycloakRegistration() {
       callbackURL,
       requestSignUp: true, // Force le sign-up (avec code d'invitation)
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     isSigningIn.value = false
-    codeError.value = error.message || 'Erreur lors de la connexion Keycloak'
+    codeError.value = (error as Error).message || 'Erreur lors de la connexion Keycloak'
     console.error('Keycloak sign-in error:', error)
   }
 }

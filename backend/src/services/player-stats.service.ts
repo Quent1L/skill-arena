@@ -176,8 +176,8 @@ export class PlayerStatsService {
 
   private async computeNemesisStats(
     matchResults: MatchResult[],
-    playerEntryIds: string[],
-    playerId: string
+    _playerEntryIds: string[],
+    _playerId: string
   ): Promise<PlayerRelationStat[]> {
     const oppEntryIds = [...new Set(matchResults.map((r) => r.oppEntryId))];
     const playersInOppEntries = await playerStatsRepository.getPlayersInEntries(oppEntryIds);

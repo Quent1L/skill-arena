@@ -9,7 +9,6 @@ import {
   matchSides,
   matchPlayerPoints,
   disciplines,
-  mmrHistory,
 } from "../db/schema";
 
 export class PlayerStatsRepository {

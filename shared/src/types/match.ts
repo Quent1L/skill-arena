@@ -192,6 +192,7 @@ export interface ReportMatchResultInput {
   outcomeReasonId?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ConfirmMatchInput {
   // Empty - just confirms the match result
 }

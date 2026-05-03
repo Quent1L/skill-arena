@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BracketService } from "../bracket.service";
 import {
-  ErrorCode,
   NotFoundError,
   BadRequestError,
   ForbiddenError,
@@ -461,7 +461,7 @@ describe("BracketService", () => {
         { id: "entry-4", name: "Entry 4" },
       ] as any);
 
-      const result = await bracketService.generateBracket(
+      await bracketService.generateBracket(
         "tournament-1",
         defaultInput,
         "user-1",

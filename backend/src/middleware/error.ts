@@ -1,6 +1,8 @@
 import { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AppError } from "../types/errors";
 import { ZodError } from "zod";
+import type { ZodIssue } from "zod";
 import i18next from "../config/i18n";
 import { logger } from "../utils/logger";
 
@@ -15,7 +17,7 @@ export async function errorHandler(err: Error, c: Context) {
       userAgent: c.req.header("user-agent") || "unknown",
       ip: c.req.header("cf-connecting-ip") || c.req.header("x-forwarded-for") || "unknown",
     };
-  } catch (e) {
+  } catch (_e) {
     requestInfo = {
       method: "UNKNOWN",
       url: "UNKNOWN",
@@ -36,7 +38,7 @@ export async function errorHandler(err: Error, c: Context) {
   let i18n;
   try {
     i18n = c.get("i18n") || i18next;
-  } catch (e) {
+  } catch (_e) {
     i18n = i18next;
   }
 
@@ -54,14 +56,14 @@ export async function errorHandler(err: Error, c: Context) {
           details: err.details,
         },
       },
-      err.statusCode as any
+      err.statusCode as ContentfulStatusCode
     );
   }
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
     const message = i18n.t("errors.VALIDATION_ERROR");
-    const validationIssues = err.issues.map((e: any) => ({
+    const validationIssues = err.issues.map((e: ZodIssue) => ({
       path: e.path.join("."),
       message: e.message,
     }));

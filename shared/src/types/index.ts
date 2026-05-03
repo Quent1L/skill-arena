@@ -27,14 +27,14 @@ export * from "./organization";
 // Types utilitaires
 // ============================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
   errors?: string[];
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   items: T[];
   page: number;
   limit: number;
@@ -45,7 +45,7 @@ export interface PaginatedResponse<T = any> {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Types pour les dates

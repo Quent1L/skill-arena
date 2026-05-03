@@ -23,9 +23,9 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
 
     c.set("appUserId", appUserId);
     await next();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Si l'erreur est liée au code d'invitation manquant
-    if (error.code === "INVITATION_CODE_REQUIRED") {
+    if ((error as { code?: string }).code === "INVITATION_CODE_REQUIRED") {
       logger.warn(`[Auth Middleware] User ${betterAuthUser.id} is authenticated but has no invitation code`);
 
       // Retourner une erreur 403 Forbidden avec un message clair

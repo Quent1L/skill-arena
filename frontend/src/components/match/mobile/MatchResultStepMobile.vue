@@ -181,15 +181,6 @@ const showOutcomeReasonSelection = computed(() => {
   return !isNormalOutcomeType.value
 })
 
-const canCreate = computed(() => {
-  if (winner.value === null) return false
-  if (!props.scoreEnabled) return true
-  const inRange = (v: number) =>
-    (props.minScore == null || v >= props.minScore) &&
-    (props.maxScore == null || v <= props.maxScore)
-  return inRange(scoreA.value) && inRange(scoreB.value)
-})
-
 const validationMessages = computed<string[]>(() => {
   const messages: string[] = []
   if (winner.value === null) {

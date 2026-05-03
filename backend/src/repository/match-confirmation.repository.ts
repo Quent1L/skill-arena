@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
-import { matchConfirmations, appUsers } from "../db/schema";
+import { matchConfirmations } from "../db/schema";
 
 export interface CreateMatchConfirmationData {
   matchId: string;

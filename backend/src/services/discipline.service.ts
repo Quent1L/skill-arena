@@ -6,7 +6,6 @@ import {
 import {
   ErrorCode,
   NotFoundError,
-  BadRequestError,
 } from "../types/errors";
 
 export class DisciplineService {

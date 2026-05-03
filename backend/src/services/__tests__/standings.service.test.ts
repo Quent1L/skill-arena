@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { NotFoundError } from "../../types/errors";
 

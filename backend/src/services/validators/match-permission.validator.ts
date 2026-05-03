@@ -36,7 +36,7 @@ export class MatchPermissionValidator {
     async checkCreatePermissions(
         input: CreateMatchInput,
         createdBy: string,
-        tournament: NonNullable<TournamentFromRepository>
+        _tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
         if (this.isPlayerInMatch(input, createdBy)) {
             return;

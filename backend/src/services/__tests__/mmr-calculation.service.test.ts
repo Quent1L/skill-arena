@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MmrCalculationService } from "../mmr-calculation.service";
 
@@ -37,9 +38,9 @@ const mockDb = {
 mock.module("../../config/database", () => ({ db: mockDb }));
 
 const mockRankedRepo = {
-  getConfigByTournamentId: mock(() => Promise.resolve(null)),
-  getRankTiers: mock(() => Promise.resolve([])),
-  upsertRankTier: mock(() => Promise.resolve()),
+  getConfigByTournamentId: mock(() => Promise.resolve(null as any)),
+  getRankTiers: mock(() => Promise.resolve([] as any[])),
+  upsertRankTier: mock((..._args: any[]) => Promise.resolve()),
 };
 
 mock.module("../../repository/ranked-season.repository", () => ({
@@ -48,12 +49,12 @@ mock.module("../../repository/ranked-season.repository", () => ({
 
 const mockPlayerMmrRepo = {
   deleteMmrHistoryForPlayer: mock(() => Promise.resolve()),
-  getMmrHistoryOrdered: mock(() => Promise.resolve([])),
-  getMmrHistoryForPlayerAndMatch: mock(() => Promise.resolve(null)),
-  getBySeasonAndPlayer: mock(() => Promise.resolve(null)),
-  createMmrHistory: mock(() => Promise.resolve()),
-  upsert: mock(() => Promise.resolve()),
-  getAllPlayersBySeasonId: mock(() => Promise.resolve([])),
+  getMmrHistoryOrdered: mock(() => Promise.resolve([] as any[])),
+  getMmrHistoryForPlayerAndMatch: mock((_seasonId: any, _oppId: any, _matchId: any) => Promise.resolve(null as any)),
+  getBySeasonAndPlayer: mock(() => Promise.resolve(null as any)),
+  createMmrHistory: mock((_args: any) => Promise.resolve()),
+  upsert: mock((_args: any) => Promise.resolve()),
+  getAllPlayersBySeasonId: mock(() => Promise.resolve([] as any[])),
 };
 
 mock.module("../../repository/player-mmr.repository", () => ({

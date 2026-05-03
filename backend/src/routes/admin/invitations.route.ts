@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { Context, Next } from "hono";
 import { createAppHono } from "../../types/hono";
 import { requireAuth } from "../../middleware/auth";
 import { invitationService } from "../../services/invitation.service";
@@ -8,7 +9,7 @@ import { generateInvitationCodeSchema } from "@skill-arena/shared/schemas/invita
 
 const adminInvitations = createAppHono();
 
-const requireSuperAdmin = async (c: any, next: any) => {
+const requireSuperAdmin = async (c: Context, next: Next) => {
   const appUserId = c.get("appUserId");
   const currentUser = await userRepository.getById(appUserId);
 
