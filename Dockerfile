@@ -1,5 +1,5 @@
 # --- Base ------------------------------------------------------
-FROM oven/bun:1-alpine AS base
+FROM oven/bun:1.3-alpine AS base
 WORKDIR /app
 
 
@@ -44,7 +44,7 @@ RUN bun build ./backend/src/index.ts \
 
 
 # --- Production ------------------------------------------------
-FROM oven/bun:1-alpine AS production
+FROM oven/bun:1.3-alpine AS production
 WORKDIR /app
 
 # Créer un utilisateur non-root pour la sécurité

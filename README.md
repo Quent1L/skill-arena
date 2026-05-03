@@ -7,7 +7,6 @@ Une application de gestion de tournois avec un backend Hono/Bun et un frontend V
 ### Prérequis
 
 - [Bun](https://bun.sh) (v1.0+)
-- Node.js 20+ (pour certaines dépendances)
 
 ### Installation
 
