@@ -280,8 +280,8 @@ function onCreate() {
   emit('create')
 }
 
-onMounted(() => {
-  loadOutcomeTypes()
+onMounted(async () => {
+  await loadOutcomeTypes()
   if (outcomeTypeIdModel.value) {
     loadOutcomeReasons(outcomeTypeIdModel.value)
   }

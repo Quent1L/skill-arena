@@ -416,7 +416,24 @@ export class MatchService {
     // Admin update may resolve a pending score dispute — delete blocking action notifications
     await notificationService.deleteActionsByMatchId(id);
     if (input.status === "reported") {
-      await this.notifyMatchValidationRequired(id, updatedBy);
+      // Auto-confirm if updater is a participant (mirrors createMatch / reportMatchResult)
+      const isParticipant = await matchRepository.isUserInMatch(id, updatedBy);
+      if (isParticipant) {
+        const updater = await userRepository.getById(updatedBy);
+        if (updater?.role !== "kiosk") {
+          await matchConfirmationRepository.upsert({
+            matchId: id,
+            playerId: updatedBy,
+            isConfirmed: true,
+            isContested: false,
+          });
+        }
+      }
+      await this.checkAndFinalizeMatch(id);
+      const refreshed = await matchRepository.getById(id);
+      if (refreshed?.status === "reported") {
+        await this.notifyMatchValidationRequired(id, updatedBy);
+      }
     }
     return result;
   }

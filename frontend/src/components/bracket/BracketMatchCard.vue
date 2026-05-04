@@ -6,7 +6,7 @@
     @click="isClickable && emit('click', match.id)"
   >
     <!-- Status caption -->
-    <div class="bracket-caption">
+    <div class="bracket-caption mt-auto mb-1">
       <span class="bracket-status">
         <span class="bracket-status-dot" :class="statusDotClass(match.status)"></span>
         <span class="bracket-status-label" :class="statusTextClass(match.status)">
@@ -14,9 +14,8 @@
         </span>
       </span>
     </div>
-
     <!-- Body: side A | score/VS | side B -->
-    <div class="flex items-center gap-2 pt-4">
+    <div class="flex items-center gap-2 flex-1">
       <!-- Side A -->
       <div class="flex-1 flex flex-col items-center gap-1 relative">
         <i
@@ -32,21 +31,6 @@
           >
             {{ getEntryCode(sideA.entryId) }}
           </abbr>
-          <span
-            v-if="bracketType === 'winners' && isFinal && isWinner(match, sideA)"
-            class="bracket-medal bracket-medal--gold fa fa-trophy text-[10px]"
-            aria-label="Médaille d'or"
-          ></span>
-          <span
-            v-else-if="bracketType === 'winners' && isFinal && isWinner(match, sideA) === false"
-            class="bracket-medal bracket-medal--silver fa fa-trophy text-[10px]"
-            aria-label="Médaille d'argent"
-          ></span>
-          <span
-            v-else-if="bracketType === 'bronze' && isWinner(match, sideA)"
-            class="bracket-medal bracket-medal--bronze fa fa-trophy text-[10px]"
-            aria-label="Médaille de bronze"
-          ></span>
         </template>
         <template v-else>
           <i class="fas fa-user-clock text-muted-color text-sm"></i>
@@ -60,24 +44,31 @@
       >
         <span
           class="px-1 py-0.5 rounded text-xs"
-          :class="isWinner(match, sideA) ? 'bg-match-win/20 text-match-win' : isWinner(match, sideA) === false ? 'bg-match-loss/20 text-match-loss' : 'text-color'"
+          :class="
+            isWinner(match, sideA)
+              ? 'bg-match-win/20 text-match-win'
+              : isWinner(match, sideA) === false
+                ? 'bg-match-loss/20 text-match-loss'
+                : 'text-color'
+          "
         >
           {{ match.status === 'scheduled' ? '-' : (sideA?.score ?? '-') }}
         </span>
         <span class="text-muted-color/40 text-[10px]">-</span>
         <span
           class="px-1 py-0.5 rounded text-xs"
-          :class="isWinner(match, sideB) ? 'bg-match-win/20 text-match-win' : isWinner(match, sideB) === false ? 'bg-match-loss/20 text-match-loss' : 'text-color'"
+          :class="
+            isWinner(match, sideB)
+              ? 'bg-match-win/20 text-match-win'
+              : isWinner(match, sideB) === false
+                ? 'bg-match-loss/20 text-match-loss'
+                : 'text-color'
+          "
         >
           {{ match.status === 'scheduled' ? '-' : (sideB?.score ?? '-') }}
         </span>
       </div>
-      <div
-        v-else
-        class="font-headline font-black text-muted-color/40 text-xs shrink-0"
-      >
-        VS
-      </div>
+      <div v-else class="font-headline font-black text-muted-color/40 text-xs shrink-0">VS</div>
 
       <!-- Side B -->
       <div class="flex-1 flex flex-col items-center gap-1 relative">
@@ -94,21 +85,6 @@
           >
             {{ getEntryCode(sideB.entryId) }}
           </abbr>
-          <span
-            v-if="bracketType === 'winners' && isFinal && isWinner(match, sideB)"
-            class="bracket-medal bracket-medal--gold fa fa-trophy text-[10px]"
-            aria-label="Médaille d'or"
-          ></span>
-          <span
-            v-else-if="bracketType === 'winners' && isFinal && isWinner(match, sideB) === false"
-            class="bracket-medal bracket-medal--silver fa fa-trophy text-[10px]"
-            aria-label="Médaille d'argent"
-          ></span>
-          <span
-            v-else-if="bracketType === 'bronze' && isWinner(match, sideB)"
-            class="bracket-medal bracket-medal--bronze fa fa-trophy text-[10px]"
-            aria-label="Médaille de bronze"
-          ></span>
         </template>
         <template v-else>
           <i class="fas fa-user-clock text-muted-color text-sm"></i>
@@ -160,7 +136,8 @@ function getEntryCode(entryId: string): string {
 
 function isWinner(match: ClientMatchModel, side: MatchSideModel | null): boolean | null {
   if (!side) return null
-  if (match.status !== 'confirmed' && match.status !== 'finalized') return null
+  if (match.status !== 'confirmed' && match.status !== 'finalized' && match.status !== 'reported')
+    return null
   if (match.winnerSide != null) {
     return match.winnerSide === (side.position === 1 ? 'A' : 'B')
   }
@@ -169,35 +146,54 @@ function isWinner(match: ClientMatchModel, side: MatchSideModel | null): boolean
 
 function statusDotClass(status: string): string {
   switch (status) {
-    case 'finalized': return 'bg-match-win/80'
-    case 'ongoing': return 'bg-yellow-400'
-    case 'contested': return 'bg-match-loss'
-    case 'reported': return 'bg-orange-400'
-    case 'scheduled': return 'bg-blue-200'
-    default: return 'bg-surface-500'
+    case 'finalized':
+      return 'bg-match-win/80'
+    case 'ongoing':
+      return 'bg-yellow-400'
+    case 'contested':
+      return 'bg-match-loss'
+    case 'reported':
+      return 'bg-orange-400'
+    case 'scheduled':
+      return 'bg-blue-200'
+    default:
+      return 'bg-surface-500'
   }
 }
 
 function statusTextClass(status: string): string {
   switch (status) {
-    case 'finalized': return 'text-match-win/80'
-    case 'ongoing': return 'text-yellow-400'
-    case 'contested': return 'text-match-loss'
-    case 'reported': return 'text-orange-400'
-    case 'scheduled': return 'text-blue-200'
-    default: return 'text-muted-color'
+    case 'finalized':
+      return 'text-match-win/80'
+    case 'ongoing':
+      return 'text-yellow-400'
+    case 'contested':
+      return 'text-match-loss'
+    case 'reported':
+      return 'text-orange-400'
+    case 'scheduled':
+      return 'text-blue-200'
+    default:
+      return 'text-muted-color'
   }
 }
 
 function statusLabel(status: string): string {
   switch (status) {
-    case 'finalized': return 'Validé'
-    case 'ongoing': return 'En cours'
-    case 'contested': return 'Contesté'
-    case 'cancelled': return 'Annulé'
-    case 'reported': return 'En attente'
-    case 'scheduled': return 'Planifié'
-    default: return status
+    case 'finalized':
+      return 'Validé'
+    case 'ongoing':
+      return 'En cours'
+    case 'contested':
+      return 'Contesté'
+    case 'cancelled':
+      return 'Annulé'
+    case 'reported':
+      return 'En attente'
+    case 'scheduled':
+      return 'Planifié'
+    default:
+      return status
   }
 }
 </script>
@@ -207,6 +203,8 @@ function statusLabel(status: string): string {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
   background-color: var(--p-surface-800);
   padding: 0.6em 0.75em 0.75em;
   border: 1px solid transparent;

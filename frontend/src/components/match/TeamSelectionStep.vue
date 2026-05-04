@@ -15,7 +15,27 @@
         showButtonBar
         :min-date="minDate ?? undefined"
         :max-date="maxDate ?? undefined"
-      />
+        manualInput
+      >
+        <template #buttonbar="{ clearCallback }">
+          <div class="flex justify-between w-full">
+            <Button
+              size="small"
+              severity="secondary"
+              label="Aujourd'hui"
+              @click="scheduledDate = new Date()"
+              variant="text"
+            />
+            <Button
+              size="small"
+              label="Effacer"
+              severity="secondary"
+              variant="text"
+              @click="clearCallback"
+            />
+          </div>
+        </template>
+      </DatePicker>
     </div>
 
     <!-- Bracket lock notice -->
@@ -31,7 +51,8 @@
       class="mb-4 px-4 py-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300"
     >
       <i class="fa fa-hourglass-half mr-2" />
-      Les adversaires ne sont pas encore déterminés. Ce match ne peut pas être complété tant que les deux équipes ne sont pas connues.
+      Les adversaires ne sont pas encore déterminés. Ce match ne peut pas être complété tant que les
+      deux équipes ne sont pas connues.
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -48,7 +69,9 @@
               >
                 {{ name }}
               </p>
-              <p v-if="!props.teamANames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+              <p v-if="!props.teamANames?.length" class="text-sm text-gray-400 italic">
+                Aucun joueur
+              </p>
             </div>
           </template>
           <template v-else-if="props.teamMode === 'static'">
@@ -62,7 +85,9 @@
               @change="onValidate"
             />
             <div v-if="teamAIdModel" class="mt-2 space-y-1">
-              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">{{ selectedTeamA?.name }}</p>
+              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">
+                {{ selectedTeamA?.name }}
+              </p>
               <p
                 v-for="member in selectedTeamAMembers"
                 :key="member.id"
@@ -95,7 +120,9 @@
               >
                 {{ name }}
               </p>
-              <p v-if="!props.teamBNames?.length" class="text-sm text-gray-400 italic">Aucun joueur</p>
+              <p v-if="!props.teamBNames?.length" class="text-sm text-gray-400 italic">
+                Aucun joueur
+              </p>
             </div>
           </template>
           <template v-else-if="props.teamMode === 'static'">
@@ -109,7 +136,9 @@
               @change="onValidate"
             />
             <div v-if="teamBIdModel" class="mt-2 space-y-1">
-              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">{{ selectedTeamB?.name }}</p>
+              <p class="text-xs font-bold text-gray-900 dark:text-gray-100">
+                {{ selectedTeamB?.name }}
+              </p>
               <p
                 v-for="member in selectedTeamBMembers"
                 :key="member.id"
@@ -202,26 +231,20 @@ const playerIdsBModel = defineModel<string[]>('playerIdsB', { required: true })
 const scheduledDate = defineModel<Date | null>('scheduledDate', { default: null })
 const teamAIdModel = defineModel<string | undefined>('teamAId')
 const teamBIdModel = defineModel<string | undefined>('teamBId')
-const now = new Date()
-
 const bracketTeamsReady = computed(
   () => (props.teamANames?.length ?? 0) > 0 && (props.teamBNames?.length ?? 0) > 0,
 )
 
-const teamsForA = computed(() =>
-  (props.teams ?? []).filter((t) => t.id !== teamBIdModel.value),
+const teamsForA = computed(() => (props.teams ?? []).filter((t) => t.id !== teamBIdModel.value))
+
+const teamsForB = computed(() => (props.teams ?? []).filter((t) => t.id !== teamAIdModel.value))
+
+const selectedTeamA = computed(
+  () => (props.teams ?? []).find((t) => t.id === teamAIdModel.value) ?? null,
 )
 
-const teamsForB = computed(() =>
-  (props.teams ?? []).filter((t) => t.id !== teamAIdModel.value),
-)
-
-const selectedTeamA = computed(() =>
-  (props.teams ?? []).find((t) => t.id === teamAIdModel.value) ?? null,
-)
-
-const selectedTeamB = computed(() =>
-  (props.teams ?? []).find((t) => t.id === teamBIdModel.value) ?? null,
+const selectedTeamB = computed(
+  () => (props.teams ?? []).find((t) => t.id === teamBIdModel.value) ?? null,
 )
 
 const selectedTeamAMembers = computed(() => selectedTeamA.value?.members ?? [])
@@ -240,7 +263,7 @@ const isNextDisabled = computed(() => {
 // Check if selected date is in the future
 const isFutureDate = computed(() => {
   if (!scheduledDate.value) return false
-  return scheduledDate.value > now
+  return scheduledDate.value > new Date()
 })
 
 function onValidate() {

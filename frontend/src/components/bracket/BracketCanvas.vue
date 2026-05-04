@@ -104,10 +104,10 @@ import type {
 } from '@skill-arena/shared'
 import BracketMatchCard from '@/components/bracket/BracketMatchCard.vue'
 
-const CARD_HEIGHT = 72
+const CARD_HEIGHT = 110
 const CARD_WIDTH = 220
 const COLUMN_WIDTH = 300
-const BASE_UNIT = 112 // CARD_HEIGHT + 40px gap
+const BASE_UNIT = 150 // CARD_HEIGHT + 40px gap
 
 interface Props {
   title: string

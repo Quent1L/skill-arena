@@ -173,7 +173,6 @@ const matchData = ref<MatchFormData>({
   teamAId: undefined,
   teamBId: undefined,
 })
-const now = new Date()
 
 const tournament = ref<ClientBaseTournament | null>(null)
 
@@ -196,7 +195,7 @@ const canProceedToNext = computed(() => {
 
 const canCreateMatch = computed(() => {
   // For scheduled matches (future date), just check if date is set
-  if (matchData.value.playedAt && matchData.value.playedAt > now) {
+  if (matchData.value.playedAt && matchData.value.playedAt > new Date()) {
     return !!matchData.value.playedAt
   }
   // For reported matches (past/present date), check all required fields
@@ -254,7 +253,7 @@ const scoreB = computed({
 // Step 2 (Vainqueur) is only accessible if scheduled date is in the past or present
 const canAccessResultStep = computed(() => {
   if (!matchData.value.playedAt) return false
-  return matchData.value.playedAt <= now
+  return matchData.value.playedAt <= new Date()
 })
 
 const tournamentMinDate = computed(() => {
@@ -406,7 +405,9 @@ async function loadExistingMatch() {
     matchData.value.scoreA = sideA?.score ?? 0
     matchData.value.scoreB = sideB?.score ?? 0
     matchData.value.status = match.status
-    matchData.value.outcomeTypeId = match.outcomeTypeId || undefined
+    if (match.outcomeTypeId) {
+      matchData.value.outcomeTypeId = match.outcomeTypeId
+    }
     matchData.value.outcomeReasonId = match.outcomeReasonId || undefined
     matchData.value.reportProof = match.result?.reportProof ?? ''
 

@@ -16,7 +16,22 @@
         placeholder="Sélectionner la date"
         :min-date="minDate"
         :max-date="maxDate"
-      />
+        showButtonBar
+        manualInput
+      >
+        <template #buttonbar="{ clearCallback }">
+          <div class="flex justify-between w-full">
+            <Button size="small" severity="secondary" label="Aujourd'hui" @click="modelValue = new Date()" variant="text" />
+            <Button
+              size="small"
+              label="Effacer"
+              severity="secondary"
+              variant="text"
+              @click="clearCallback"
+            />
+          </div>
+        </template>
+      </DatePicker>
     </div>
   </div>
 </template>
