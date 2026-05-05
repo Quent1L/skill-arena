@@ -358,6 +358,7 @@ export class MatchService {
    */
   async updateMatch(id: string, input: UpdateMatchInput, updatedBy: string) {
     const match = await this.getMatchById(id);
+    const tournament = await matchRepository.getTournament(match.tournamentId);
 
     // Check permissions
     const canManage = await this.canManageMatches(
@@ -365,7 +366,10 @@ export class MatchService {
       updatedBy,
     );
     if (!canManage) {
-      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+      const isParticipant = await matchRepository.isUserInMatch(id, updatedBy);
+      if (match.status !== "scheduled" || !isParticipant) {
+        throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+      }
     }
 
     // Can only update certain fields based on status
@@ -374,7 +378,6 @@ export class MatchService {
     }
 
     // Bracket matches require both teams to be assigned before any update
-    const tournament = await matchRepository.getTournament(match.tournamentId);
     if (tournament?.mode === "bracket") {
       const sides = (match as { sides?: { entryId: string }[] }).sides ?? [];
       if (sides.length < 2) {
