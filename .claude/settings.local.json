@@ -19,7 +19,8 @@
       "Bash(bun test src/services/__tests__/match.service.test.ts src/services/__tests__/match-duplicate-detection.test.ts)",
       "Bash(grep:*)",
       "Bash(bun test:*)",
-      "Bash(find frontend/src -type f -name \"*.vue\" -exec grep -l \"tournament-rules\\\\|/tournaments.*rules\" {} \\\\;)"
+      "Bash(find frontend/src -type f -name \"*.vue\" -exec grep -l \"tournament-rules\\\\|/tournaments.*rules\" {} \\\\;)",
+      "Bash(xargs cat)"
     ]
   }
 }

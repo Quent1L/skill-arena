@@ -21,6 +21,7 @@ import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
+import { userService } from "./services/user.service";
 import { jobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
@@ -117,8 +118,6 @@ app.get(
       throw new HTTPException(401, { message: "Unauthorized" });
     }
     
-    // Convert BetterAuth user ID to App user ID
-    const { userService } = await import('./services/user.service');
     const appUserId = await userService.getOrCreateAppUser(
       user.id,
       user.name || user.email
@@ -156,36 +155,22 @@ app.get(
 // Serve static files from frontend build directory
 // Only serve if FRONTEND_BUILD_PATH is configured
 const frontendBuildPath = process.env.FRONTEND_BUILD_PATH;
+let _indexHtmlCache: string | null = null;
 if (frontendBuildPath) {
-  // Serve static files (JS, CSS, images, etc.)
-  app.use("/*", async (c, next) => {
-    const path = c.req.path;
-    // Skip API routes - let them pass through
-    if (path.startsWith("/api/")) {
-      return next();
-    }
+  // Serve static assets (JS, CSS, images…) — serveStatic calls next() when file not found
+  app.use("/*", serveStatic({ root: frontendBuildPath }));
 
-    // Check if file exists (for assets like JS, CSS, images)
-    const filePath = `${frontendBuildPath}${path}`;
-    const file = Bun.file(filePath);
-
-    if (await file.exists()) {
-      // File exists, serve it
-      const staticMiddleware = serveStatic({
-        root: frontendBuildPath,
-      });
-      return staticMiddleware(c, next);
+  // SPA fallback: all unmatched routes serve index.html (cached in memory)
+  app.use("/*", async (c) => {
+    if (_indexHtmlCache === null) {
+      const indexFile = Bun.file(`${frontendBuildPath}/index.html`);
+      if (!(await indexFile.exists())) {
+        logger.error("index.html not found in: %s", frontendBuildPath);
+        return c.text("Frontend not found", 404);
+      }
+      _indexHtmlCache = await indexFile.text();
     }
-
-    // File doesn't exist, fallback to index.html for SPA routing
-    const indexFile = Bun.file(`${frontendBuildPath}/index.html`);
-    if (await indexFile.exists()) {
-      const indexHtml = await indexFile.text();
-      return c.html(indexHtml);
-    } else {
-      logger.error("index.html not found in: %s", frontendBuildPath);
-      return c.text("Frontend not found", 404);
-    }
+    return c.html(_indexHtmlCache);
   });
 } else {
   app.get("/", (c) => {
@@ -206,6 +191,12 @@ if (typeof process !== "undefined") {
       logger.fatal({ reason }, "UNHANDLED PROMISE REJECTION");
     }
   );
+
+  process.on("SIGTERM", () => {
+    logger.info("SIGTERM received, shutting down gracefully");
+    jobScheduler.stop();
+    process.exit(0);
+  });
 }
 
 logger.info("Hono server initialized");

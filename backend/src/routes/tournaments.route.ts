@@ -19,6 +19,7 @@ import { createAppHono } from "../types/hono";
 import { ErrorCode, ForbiddenError } from "../types/errors";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedSeasonService } from "../services/ranked-season.service";
+import { logger } from "../utils/logger";
 
 const tournaments = createAppHono();
 
@@ -282,8 +283,8 @@ tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
   const result = await standingsService.recalculatePoints(tournamentId, appUserId);
   const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
   if (rankedConfig) {
-    rankedSeasonService.computeAndCacheOfficial(tournamentId).catch(() => {});
-    rankedSeasonService.computeAndCacheProvisional(tournamentId).catch(() => {});
+    rankedSeasonService.computeAndCacheOfficial(tournamentId).catch((err) => logger.error({ err }, "[Ranked] background cache update failed"));
+    rankedSeasonService.computeAndCacheProvisional(tournamentId).catch((err) => logger.error({ err }, "[Ranked] background cache update failed"));
   }
   return c.json(result);
 });

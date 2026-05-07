@@ -81,22 +81,22 @@ export class WebSocketService {
       logger.debug({ message }, `[WS] Sending message to user ${userId}:`);
       
       for (const ws of userConns) {
-        // Check for readyState if available (Bun/standard WS)
         if (ws.readyState === 1) {
           ws.send(message);
           logger.debug(`[WS] Message sent successfully to user ${userId}`);
         } else if (typeof ws.readyState === "undefined") {
-          // Hono WSContext might not have readyState directly exposed or it's different
-          // Try sending anyway or check documentation.
-          // For Hono WSContext, we just call send.
           try {
             ws.send(message);
             logger.debug(`[WS] Message sent successfully to user ${userId} (no readyState)`);
           } catch (e) {
             logger.error({ err: e }, `[WS] Failed to send to user ${userId}`);
+            userConns.delete(ws);
+            if (userConns.size === 0) this.connections.delete(userId);
           }
         } else {
           logger.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
+          userConns.delete(ws);
+          if (userConns.size === 0) this.connections.delete(userId);
         }
       }
       return true;
