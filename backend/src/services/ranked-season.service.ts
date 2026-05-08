@@ -46,6 +46,7 @@ export class RankedSeasonService {
         scoreEnabled: input.scoreEnabled ?? true,
         minScore: input.minScore ?? null,
         maxScore: input.maxScore ?? null,
+        allowDraw: input.allowDraw ?? true,
         createdBy,
       },
       {
@@ -126,7 +127,8 @@ export class RankedSeasonService {
       input.rulesId !== undefined ||
       input.scoreEnabled !== undefined ||
       input.minScore !== undefined ||
-      input.maxScore !== undefined
+      input.maxScore !== undefined ||
+      input.allowDraw !== undefined
     ) {
       await tournamentRepository.update(id, {
         name: input.name,
@@ -139,6 +141,7 @@ export class RankedSeasonService {
         }),
         ...(input.minScore !== undefined && { minScore: input.minScore }),
         ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
+        ...(input.allowDraw !== undefined && { allowDraw: input.allowDraw }),
       });
     }
 

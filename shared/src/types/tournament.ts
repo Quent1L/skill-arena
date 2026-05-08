@@ -7,6 +7,16 @@ import {
   teamModeSchema,
   tournamentStatusSchema,
 } from "./enums";
+import {
+  baseSeasonFormSchema,
+  baseSeasonUpdateFormSchema,
+  dateRangePredicate,
+  dateRangeError,
+  teamSizePredicate,
+  teamSizeError,
+  scoreRangePredicate,
+  scoreRangeError,
+} from "./season-form";
 
 // ============================================
 // Types et interfaces pour les tournois
@@ -117,22 +127,11 @@ export interface TournamentWithStats extends BaseTournament {
 // ============================================
 
 // Schéma de base sans validations cross-field pour les formulaires
-export const baseTournamentFormSchema = z.object({
-  name: z
-    .string({ message: "Le nom est requis" })
-    .min(3, "Le nom doit contenir au moins 3 caractères")
-    .max(100, "Le nom ne peut pas dépasser 100 caractères"),
-  description: z.string().optional(),
+// Étend baseSeasonFormSchema (champs communs avec les saisons ranked) en ajoutant
+// les champs spécifiques aux tournois.
+export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
-  minTeamSize: z
-    .number({ message: "La taille minimale de l'équipe est requise" })
-    .int()
-    .min(1, "La taille minimale est 1"),
-  maxTeamSize: z
-    .number({ message: "La taille maximale de l'équipe est requise" })
-    .int()
-    .min(1, "La taille minimale est 1"),
   maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),
   maxTimesWithSamePartner: z
     .number()
@@ -151,73 +150,28 @@ export const baseTournamentFormSchema = z.object({
   pointPerVictory: z.number().int().min(0).default(3).optional(),
   pointPerDraw: z.number().int().min(0).default(1).optional(),
   pointPerLoss: z.number().int().min(0).default(0).optional(),
-  allowDraw: z.boolean().default(true).optional(),
-  scoreEnabled: z.boolean().default(true).optional(),
-  startDate: z.date({ message: "La date de début est requise" }),
-  endDate: z.date({ message: "La date de fin est requise" }),
-  disciplineId: z
-    .string({ message: "La discipline est requise" })
-    .uuid("ID de discipline invalide"),
-  minScore: z.number().int().min(0).nullable().optional(),
-  maxScore: z.number().int().min(0).nullable().optional(),
-  organizationId: z.string().uuid().optional().nullable(),
-  rulesId: z.string().uuid().optional().nullable(),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
-export const baseTournamentUpdateFormSchema = z.object({
-  name: z
-    .string()
-    .min(3, "Le nom doit contenir au moins 3 caractères")
-    .max(100, "Le nom ne peut pas dépasser 100 caractères")
-    .optional(),
-  description: z.string().optional(),
-  mode: tournamentModeSchema.optional(),
-  teamMode: teamModeSchema.optional(),
-  minTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
-  maxTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
-  maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
-  maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
-  maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
-  pointPerVictory: z.number().int().min(0).optional(),
-  pointPerDraw: z.number().int().min(0).optional(),
-  pointPerLoss: z.number().int().min(0).optional(),
-  allowDraw: z.boolean().optional(),
-  scoreEnabled: z.boolean().optional(),
-  startDate: z.date().optional(),
-  endDate: z.date().optional(),
-  status: tournamentStatusSchema.optional(),
-  disciplineId: z.string().uuid("ID de discipline invalide").optional(),
-  minScore: z.number().int().min(0).nullable().optional(),
-  maxScore: z.number().int().min(0).nullable().optional(),
-  organizationId: z.string().uuid().optional().nullable(),
-  rulesId: z.string().uuid().optional().nullable(),
-});
+export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
+  {
+    mode: tournamentModeSchema.optional(),
+    teamMode: teamModeSchema.optional(),
+    maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
+    maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
+    maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
+    pointPerVictory: z.number().int().min(0).optional(),
+    pointPerDraw: z.number().int().min(0).optional(),
+    pointPerLoss: z.number().int().min(0).optional(),
+    status: tournamentStatusSchema.optional(),
+  },
+);
 
 // Schéma pour la création de tournoi (utilisé par le frontend avec Date objects)
 export const createTournamentFormSchema = baseTournamentFormSchema
-  .refine((data) => data.startDate < data.endDate, {
-    message: "La date de début doit être antérieure à la date de fin",
-    path: ["endDate"],
-  })
-  .refine((data) => data.maxTeamSize >= data.minTeamSize, {
-    message:
-      "La taille maximale doit être supérieure ou égale à la taille minimale",
-    path: ["maxTeamSize"],
-  })
-  .refine(
-    (data) => {
-      if (data.scoreEnabled === false) return true;
-      if (data.minScore != null && data.maxScore != null) {
-        return data.minScore <= data.maxScore;
-      }
-      return true;
-    },
-    {
-      message: "Le score minimum doit être inférieur ou égal au score maximum",
-      path: ["maxScore"],
-    },
-  );
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
 
 // Schéma de base pour les données de tournoi
 const baseTournamentDataSchema = z.object({
@@ -272,85 +226,22 @@ const baseTournamentDataSchema = z.object({
 
 // Schéma pour l'API (validation des données d'entrée - SANS createdBy)
 export const createTournamentRequestSchema = baseTournamentDataSchema
-  .refine(
-    (data) => {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      return start < end;
-    },
-    {
-      message: "La date de début doit être antérieure à la date de fin",
-      path: ["endDate"],
-    },
-  )
-  .refine((data) => data.maxTeamSize >= data.minTeamSize, {
-    message:
-      "La taille maximale doit être supérieure ou égale à la taille minimale",
-    path: ["maxTeamSize"],
-  });
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError);
 
 // Schéma pour l'API complet (AVEC createdBy - pour les types uniquement)
 export const createTournamentSchema = baseTournamentDataSchema
   .extend({
     createdBy: z.string().uuid(),
   })
-  .refine(
-    (data) => {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      return start < end;
-    },
-    {
-      message: "La date de début doit être antérieure à la date de fin",
-      path: ["endDate"],
-    },
-  )
-  .refine((data) => data.maxTeamSize >= data.minTeamSize, {
-    message:
-      "La taille maximale doit être supérieure ou égale à la taille minimale",
-    path: ["maxTeamSize"],
-  });
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError);
 
 // Schéma pour la mise à jour (frontend avec Date objects)
 export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
-  .refine(
-    (data) => {
-      if (data.startDate && data.endDate) {
-        return data.startDate < data.endDate;
-      }
-      return true;
-    },
-    {
-      message: "La date de début doit être antérieure à la date de fin",
-      path: ["endDate"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.minTeamSize && data.maxTeamSize) {
-        return data.maxTeamSize >= data.minTeamSize;
-      }
-      return true;
-    },
-    {
-      message:
-        "La taille maximale doit être supérieure ou égale à la taille minimale",
-      path: ["maxTeamSize"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.scoreEnabled === false) return true;
-      if (data.minScore != null && data.maxScore != null) {
-        return data.minScore <= data.maxScore;
-      }
-      return true;
-    },
-    {
-      message: "Le score minimum doit être inférieur ou égal au score maximum",
-      path: ["maxScore"],
-    },
-  );
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
 
 // Schéma pour la mise à jour (API avec strings ISO)
 export const updateTournamentSchema = z
@@ -389,46 +280,9 @@ export const updateTournamentSchema = z
     maxScore: z.number().int().min(0).nullable().optional(),
     organizationId: z.string().uuid().optional().nullable(),
   })
-  .refine(
-    (data) => {
-      if (data.startDate && data.endDate) {
-        const start = new Date(data.startDate);
-        const end = new Date(data.endDate);
-        return start < end;
-      }
-      return true;
-    },
-    {
-      message: "La date de début doit être antérieure à la date de fin",
-      path: ["endDate"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.minTeamSize && data.maxTeamSize) {
-        return data.maxTeamSize >= data.minTeamSize;
-      }
-      return true;
-    },
-    {
-      message:
-        "La taille maximale doit être supérieure ou égale à la taille minimale",
-      path: ["maxTeamSize"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.scoreEnabled === false) return true;
-      if (data.minScore != null && data.maxScore != null) {
-        return data.minScore <= data.maxScore;
-      }
-      return true;
-    },
-    {
-      message: "Le score minimum doit être inférieur ou égal au score maximum",
-      path: ["maxScore"],
-    },
-  );
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
 
 export const changeTournamentStatusSchema = z.object({
   status: tournamentStatusSchema,

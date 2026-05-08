@@ -9,224 +9,71 @@
         <template #content>
           <!-- Informations générales -->
           <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">Informations générales</h2>
+            <GeneralInfoSection
+              :discipline-options="disciplineOptions"
+              :rules-options="rulesOptions"
+              :organizations="organizations"
+              :is-super-admin="isSuperAdmin"
+              :discipline-locked="isEditMode"
+              :locked-discipline-name="currentDisciplineName"
+              :editable-fields="editableFields"
+            >
+              <template #after-discipline>
+                <!-- Status (mode édition uniquement) -->
+                <div v-if="isEditMode">
+                  <label for="status" class="block text-sm font-medium mb-2">Statut</label>
+                  <Select
+                    id="status"
+                    v-model="status"
+                    :options="statusOptions"
+                    option-label="label"
+                    option-value="value"
+                    :disabled="!isFieldEditable('status')"
+                    class="w-full"
+                    :class="{ 'p-invalid': errors.status }"
+                  />
+                  <small class="p-error">{{ errors.status }}</small>
+                </div>
+              </template>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <!-- Nom -->
-              <div>
-                <label for="name" class="block text-sm font-medium mb-2">
-                  Nom du tournoi <span class="text-red-500">*</span>
-                </label>
-                <InputText
-                  id="name"
-                  v-model="name"
-                  :disabled="!isFieldEditable('name')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.name }"
-                />
-                <small class="p-error">{{ errors.name }}</small>
-              </div>
+              <template #before-team-size>
+                <!-- Mode -->
+                <div>
+                  <label for="mode" class="block text-sm font-medium mb-2">
+                    Mode <span class="text-red-500">*</span>
+                  </label>
+                  <Select
+                    id="mode"
+                    v-model="mode"
+                    :options="modeOptions"
+                    option-label="label"
+                    option-value="value"
+                    :disabled="!isFieldEditable('mode')"
+                    class="w-full"
+                    :class="{ 'p-invalid': errors.mode }"
+                  />
+                  <small class="p-error">{{ errors.mode }}</small>
+                </div>
 
-              <!-- Status -->
-              <div v-if="isEditMode">
-                <label for="status" class="block text-sm font-medium mb-2"> Statut </label>
-                <Select
-                  id="status"
-                  v-model="status"
-                  :options="statusOptions"
-                  option-label="label"
-                  option-value="value"
-                  :disabled="!isFieldEditable('status')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.status }"
-                />
-                <small class="p-error">{{ errors.status }}</small>
-              </div>
-
-              <!-- Discipline -->
-              <div>
-                <label for="disciplineId" class="block text-sm font-medium mb-2">
-                  Discipline <span class="text-red-500">*</span>
-                </label>
-                <Select
-                  v-if="!isEditMode"
-                  id="disciplineId"
-                  v-model="disciplineId"
-                  :options="disciplineOptions"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Sélectionner une discipline"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.disciplineId }"
-                />
-                <InputText
-                  v-else
-                  id="disciplineId"
-                  :value="currentDisciplineName"
-                  disabled
-                  class="w-full"
-                />
-                <small class="p-error">{{ errors.disciplineId }}</small>
-              </div>
-
-              <!-- Règles du jeu -->
-              <div>
-                <label for="rulesId" class="block text-sm font-medium mb-2"> Règles du jeu </label>
-                <Select
-                  id="rulesId"
-                  v-model="rulesId"
-                  :options="rulesOptions"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Aucun règlement"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-
-              <!-- Organisation (super admin) -->
-              <div v-if="isSuperAdmin">
-                <label for="organizationId" class="block text-sm font-medium mb-2">
-                  Organisation (optionnel)
-                </label>
-                <Select
-                  id="organizationId"
-                  v-model="organizationId"
-                  :options="organizations"
-                  option-label="name"
-                  option-value="id"
-                  placeholder="Accès général (aucun groupe)"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-
-              <!-- Description -->
-              <div class="lg:col-span-2">
-                <label class="block text-sm font-medium mb-2"> Description </label>
-                <RichTextEditor
-                  :model-value="description ?? ''"
-                  @update:model-value="description = $event"
-                  :disabled="!isFieldEditable('description')"
-                />
-                <small class="p-error">{{ errors.description }}</small>
-              </div>
-
-              <!-- Mode -->
-              <div>
-                <label for="mode" class="block text-sm font-medium mb-2">
-                  Mode <span class="text-red-500">*</span>
-                </label>
-                <Select
-                  id="mode"
-                  v-model="mode"
-                  :options="modeOptions"
-                  option-label="label"
-                  option-value="value"
-                  :disabled="!isFieldEditable('mode')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.mode }"
-                />
-                <small class="p-error">{{ errors.mode }}</small>
-              </div>
-
-              <!-- Team Mode -->
-              <div>
-                <label for="teamMode" class="block text-sm font-medium mb-2">
-                  Formation d'équipe <span class="text-red-500">*</span>
-                </label>
-                <Select
-                  id="teamMode"
-                  v-model="teamMode"
-                  :options="teamModeOptions"
-                  option-label="label"
-                  option-value="value"
-                  :disabled="!isFieldEditable('teamMode')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.teamMode }"
-                />
-                <small class="p-error">{{ errors.teamMode }}</small>
-              </div>
-
-              <!-- Min Team Size -->
-              <div>
-                <label for="minTeamSize" class="block text-sm font-medium mb-2">
-                  Taille min d'équipe <span class="text-red-500">*</span>
-                </label>
-                <InputNumber
-                  id="minTeamSize"
-                  v-model="minTeamSize"
-                  :min="1"
-                  :disabled="!isFieldEditable('minTeamSize')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.minTeamSize }"
-                />
-                <small class="p-error">{{ errors.minTeamSize }}</small>
-                <small v-if="!errors.minTeamSize" class="text-gray-600 text-xs mt-1 block">
-                  Exemple : 1 pour joueurs solo, 2 pour duos
-                </small>
-              </div>
-              <!-- Max Team Size -->
-              <div>
-                <label for="teamSize" class="block text-sm font-medium mb-2">
-                  Taille max d'équipe <span class="text-red-500">*</span>
-                </label>
-                <InputNumber
-                  id="maxTeamSize"
-                  v-model="maxTeamSize"
-                  :min="1"
-                  :max="10"
-                  :disabled="!isFieldEditable('maxTeamSize')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.maxTeamSize }"
-                />
-                <small class="p-error">{{ errors.maxTeamSize }}</small>
-                <small v-if="!errors.maxTeamSize" class="text-gray-600 text-xs mt-1 block">
-                  Même valeur que min pour tailles fixes (ex: 1v1, 2v2 strict)
-                </small>
-              </div>
-
-              <!-- Dates -->
-              <div>
-                <label for="startDate" class="block text-sm font-medium mb-2">
-                  Date de début <span class="text-red-500">*</span>
-                </label>
-                <DatePicker
-                  id="startDate"
-                  v-model="startDate"
-                  date-format="dd/mm/yy"
-                  :disabled="!isFieldEditable('startDate')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.startDate }"
-                />
-                <small class="p-error">{{ errors.startDate }}</small>
-              </div>
-
-              <div>
-                <label for="endDate" class="block text-sm font-medium mb-2">
-                  Date de fin <span class="text-red-500">*</span>
-                </label>
-                <DatePicker
-                  id="endDate"
-                  v-model="endDate"
-                  date-format="dd/mm/yy"
-                  :disabled="!isFieldEditable('endDate')"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.endDate }"
-                />
-                <small class="p-error">{{ errors.endDate }}</small>
-              </div>
-            </div>
-
-            <div class="flex items-center py-4">
-              <Checkbox
-                id="allowDraw"
-                v-model="allowDraw"
-                :binary="true"
-                :disabled="!isFieldEditable('allowDraw')"
-              />
-              <label for="allowDraw" class="ml-2"> Autoriser les matchs nuls </label>
-            </div>
+                <!-- Team Mode -->
+                <div>
+                  <label for="teamMode" class="block text-sm font-medium mb-2">
+                    Formation d'équipe <span class="text-red-500">*</span>
+                  </label>
+                  <Select
+                    id="teamMode"
+                    v-model="teamMode"
+                    :options="teamModeOptions"
+                    option-label="label"
+                    option-value="value"
+                    :disabled="!isFieldEditable('teamMode')"
+                    class="w-full"
+                    :class="{ 'p-invalid': errors.teamMode }"
+                  />
+                  <small class="p-error">{{ errors.teamMode }}</small>
+                </div>
+              </template>
+            </GeneralInfoSection>
           </div>
 
           <!-- Règles du championnat -->
@@ -319,45 +166,7 @@
 
           <!-- Contraintes de score -->
           <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">Contraintes de score</h2>
-            <div class="flex items-center gap-3 mb-4">
-              <ToggleSwitch
-                v-model="scoreEnabled"
-                :disabled="!isFieldEditable('scoreEnabled')"
-                input-id="scoreEnabled"
-              />
-              <label for="scoreEnabled" class="text-sm font-medium cursor-pointer">
-                Saisie des scores activée
-              </label>
-            </div>
-            <div v-if="scoreEnabled !== false" class="flex gap-4">
-              <div class="flex-1">
-                <label for="minScore" class="block text-sm font-medium mb-2">Score minimum</label>
-                <InputNumber
-                  id="minScore"
-                  v-model="minScore"
-                  :min="0"
-                  :disabled="!isFieldEditable('minScore')"
-                  placeholder="Aucune limite"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.minScore }"
-                />
-                <small class="p-error">{{ errors.minScore }}</small>
-              </div>
-              <div class="flex-1">
-                <label for="maxScore" class="block text-sm font-medium mb-2">Score maximum</label>
-                <InputNumber
-                  id="maxScore"
-                  v-model="maxScore"
-                  :min="0"
-                  :disabled="!isFieldEditable('maxScore')"
-                  placeholder="Aucune limite"
-                  class="w-full"
-                  :class="{ 'p-invalid': errors.maxScore }"
-                />
-                <small class="p-error">{{ errors.maxScore }}</small>
-              </div>
-            </div>
+            <ScoreConstraintsSection :editable-fields="editableFields" />
           </div>
 
           <!-- Actions -->
@@ -395,12 +204,10 @@ import {
   baseTournamentUpdateFormSchema,
 } from '@skill-arena/shared/types/index'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
-import { useDisciplineService } from '@/composables/discipline/discipline.service'
-import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
-import { useOrganizationService } from '@/composables/organization/organization.service'
+import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'
-import RichTextEditor from '@/components/editor/RichTextEditor.vue'
-import type { OrganizationWithMemberCount } from '@skill-arena/shared'
+import GeneralInfoSection from '@/components/forms/sections/GeneralInfoSection.vue'
+import ScoreConstraintsSection from '@/components/forms/sections/ScoreConstraintsSection.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -414,33 +221,20 @@ const {
   getEditableFields,
 } = useTournamentService()
 
-const { disciplines, listDisciplines } = useDisciplineService()
-const { rules: gameRulesList, loadRules } = useGameRulesService()
-const { listOrganizations } = useOrganizationService()
+const {
+  organizations,
+  disciplineOptions,
+  rulesOptions,
+  loadAll: loadFormReferences,
+} = useFormReferences()
 const { isSuperAdmin } = useAuth()
-
-const organizations = ref<OrganizationWithMemberCount[]>([])
 
 const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id)
 const editableFields = ref<string[]>(['all'])
 
-const disciplineOptions = computed(() => {
-  return disciplines.value.map((d) => ({
-    label: d.name,
-    value: d.id,
-  }))
-})
-
-const rulesOptions = computed(() => {
-  return gameRulesList.value.map((r) => ({
-    label: r.title,
-    value: r.id,
-  }))
-})
-
-const currentDisciplineName = computed(() => {
-  return currentTournament.value?.discipline?.name || 'Non définie'
-})
+const currentDisciplineName = computed(
+  () => currentTournament.value?.discipline?.name || 'Non définie',
+)
 
 const modeOptions = [
   { label: 'Championnat', value: 'championship' },
@@ -465,28 +259,16 @@ const { handleSubmit, defineField, errors, setValues } = useForm({
   ),
 })
 
-const [name] = defineField('name')
-const [description] = defineField('description')
 const [mode] = defineField('mode')
 const [teamMode] = defineField('teamMode')
 const [status] = defineField('status')
-const [minTeamSize] = defineField('minTeamSize')
-const [maxTeamSize] = defineField('maxTeamSize')
 const [maxMatchesPerPlayer] = defineField('maxMatchesPerPlayer')
 const [maxTimesWithSamePartner] = defineField('maxTimesWithSamePartner')
 const [maxTimesWithSameOpponent] = defineField('maxTimesWithSameOpponent')
 const [pointPerVictory] = defineField('pointPerVictory')
 const [pointPerDraw] = defineField('pointPerDraw')
 const [pointPerLoss] = defineField('pointPerLoss')
-const [allowDraw] = defineField('allowDraw')
-const [startDate] = defineField('startDate')
-const [endDate] = defineField('endDate')
-const [disciplineId] = defineField('disciplineId')
-const [minScore] = defineField('minScore')
-const [maxScore] = defineField('maxScore')
-const [scoreEnabled] = defineField('scoreEnabled')
 const [organizationId] = defineField('organizationId')
-const [rulesId] = defineField('rulesId')
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
@@ -496,15 +278,12 @@ function isFieldEditable(fieldName: string): boolean {
 
 const onSubmit = handleSubmit(async (values) => {
   try {
-    // Validation côté client des règles cross-field
     const formData = values as CreateTournamentFormData & UpdateTournamentFormData
 
-    // Vérification des dates
     if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
       throw new Error('La date de début doit être antérieure à la date de fin')
     }
 
-    // Vérification des tailles d'équipe
     if (
       formData.minTeamSize &&
       formData.maxTeamSize &&
@@ -512,10 +291,8 @@ const onSubmit = handleSubmit(async (values) => {
     ) {
       throw new Error('La taille maximale doit être supérieure ou égale à la taille minimale')
     }
-    console.log(values)
 
     if (isEditMode.value && route.params.id) {
-      // Filter to include only editable fields based on original tournament status
       const allowedFields =
         currentTournament.value?.status === 'draft'
           ? Object.keys(values)
@@ -538,7 +315,6 @@ const onSubmit = handleSubmit(async (values) => {
         },
         {} as Record<string, unknown>,
       )
-      console.log(updateData)
       await updateTournament(route.params.id as string, updateData as UpdateTournamentFormData)
     } else {
       await createTournament({
@@ -549,17 +325,11 @@ const onSubmit = handleSubmit(async (values) => {
     router.push('/admin/tournaments')
   } catch (err) {
     console.error('Erreur lors de la sauvegarde:', err)
-    // L'erreur sera affichée via le state error du service
   }
 })
 
 onMounted(async () => {
-  const loadOrgs = listOrganizations()
-    .then((orgs) => {
-      organizations.value = orgs
-    })
-    .catch(() => {})
-  await Promise.all([listDisciplines(), loadRules(), loadOrgs])
+  await loadFormReferences()
 
   if (isEditMode.value && route.params.id) {
     await getTournament(route.params.id as string)
@@ -591,7 +361,6 @@ onMounted(async () => {
       })
     }
   } else {
-    // Set defaults for new tournament
     setValues({
       mode: 'championship',
       teamMode: 'flex',

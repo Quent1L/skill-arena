@@ -4,6 +4,8 @@ import type { RankedSeason, FinishedSeasonSummary } from './ranked.api'
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
+  CreateRankedSeasonFormData,
+  UpdateRankedSeasonFormData,
   CreateRankTierInput,
   UpdateRankTierInput,
   ClientPlayerMmr,
@@ -11,6 +13,7 @@ import type {
   ClientRankTier,
   ClientTournamentSummary,
 } from '@skill-arena/shared/types/index'
+import { formDataToApiPayload } from '@skill-arena/shared/types/index'
 
 export function getSubRank(mmr: number, tier: ClientRankTier, allTiers: ClientRankTier[]): number | null {
   if (tier.subRanks <= 1) return null
@@ -99,11 +102,14 @@ export function useRankedService() {
     }
   }
 
-  async function createSeason(data: CreateRankedSeasonInput): Promise<RankedSeason | null> {
+  async function createSeason(
+    data: CreateRankedSeasonFormData,
+  ): Promise<RankedSeason | null> {
     loading.value = true
     error.value = null
     try {
-      const season = await rankedApi.createSeason(data)
+      const payload = formDataToApiPayload(data) as unknown as CreateRankedSeasonInput
+      const season = await rankedApi.createSeason(payload)
       seasons.value.unshift(season as RankedSeason)
       return season as RankedSeason
     } catch (err) {
@@ -114,11 +120,15 @@ export function useRankedService() {
     }
   }
 
-  async function updateSeason(id: string, data: UpdateRankedSeasonInput): Promise<boolean> {
+  async function updateSeason(
+    id: string,
+    data: UpdateRankedSeasonFormData,
+  ): Promise<boolean> {
     loading.value = true
     error.value = null
     try {
-      const updated = await rankedApi.updateSeason(id, data)
+      const payload = formDataToApiPayload(data) as unknown as UpdateRankedSeasonInput
+      const updated = await rankedApi.updateSeason(id, payload)
       currentSeason.value = updated as RankedSeason
       return true
     } catch (err) {

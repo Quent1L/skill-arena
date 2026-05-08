@@ -25,6 +25,7 @@ export interface CreateRankedSeasonData {
   minScore?: number | null;
   maxScore?: number | null;
   organizationId?: string | null;
+  allowDraw?: boolean;
   createdBy: string;
 }
 
@@ -71,7 +72,7 @@ export class RankedSeasonRepository {
           maxScore: tournamentData.maxScore ?? null,
           createdBy: tournamentData.createdBy,
           status: "draft",
-          allowDraw: false,
+          allowDraw: tournamentData.allowDraw ?? true,
         })
         .returning();
 

@@ -1,4 +1,14 @@
 import { z } from "zod";
+import {
+  baseSeasonFormSchema,
+  baseSeasonUpdateFormSchema,
+  dateRangePredicate,
+  dateRangeError,
+  teamSizePredicate,
+  teamSizeError,
+  scoreRangePredicate,
+  scoreRangeError,
+} from "./season-form";
 
 // ============================================
 // Types et interfaces pour le mode Ranked
@@ -91,6 +101,57 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
 // Schémas Zod pour la validation
 // ============================================
 
+// ============================================
+// Schémas pour le formulaire (frontend, dates en Date)
+// ============================================
+// Étend baseSeasonFormSchema (champs communs avec les tournois) en ajoutant
+// les champs spécifiques aux saisons ranked (config MMR).
+const rankedSeasonExtraFields = {
+  baseMmr: z.number().int().min(100).max(5000).default(1000),
+  kFactor: z.number().int().min(8).max(128).default(32),
+  placementMatches: z.number().int().min(1).max(20).default(5),
+  usePreviousMmr: z.boolean().default(false),
+  allowAsymmetricMatches: z.boolean().default(false),
+  sourceTierSeasonId: z.string().uuid().nullable().optional(),
+};
+
+export const baseRankedSeasonFormSchema =
+  baseSeasonFormSchema.extend(rankedSeasonExtraFields);
+
+export const baseRankedSeasonUpdateFormSchema =
+  baseSeasonUpdateFormSchema.extend({
+    baseMmr: z.number().int().min(100).max(5000).optional(),
+    kFactor: z.number().int().min(8).max(128).optional(),
+    placementMatches: z.number().int().min(1).max(20).optional(),
+    usePreviousMmr: z.boolean().optional(),
+    allowAsymmetricMatches: z.boolean().optional(),
+    sourceTierSeasonId: z.string().uuid().nullable().optional(),
+  });
+
+export const createRankedSeasonFormSchema = baseRankedSeasonFormSchema
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
+
+export const updateRankedSeasonFormSchema = baseRankedSeasonUpdateFormSchema
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
+
+export type BaseRankedSeasonFormData = z.infer<
+  typeof baseRankedSeasonFormSchema
+>;
+export type CreateRankedSeasonFormData = z.infer<
+  typeof createRankedSeasonFormSchema
+>;
+export type UpdateRankedSeasonFormData = z.infer<
+  typeof updateRankedSeasonFormSchema
+>;
+
+// ============================================
+// Schémas pour l'API (backend, dates en string)
+// ============================================
+
 export const createRankedSeasonSchema = z
   .object({
     name: z
@@ -122,46 +183,17 @@ export const createRankedSeasonSchema = z
       .min(1, "La taille minimale est 1"),
     rulesId: z.string().uuid().nullable().optional(),
     organizationId: z.string().uuid().nullable().optional(),
+    allowDraw: z.boolean().default(true).optional(),
     // Score configuration
     scoreEnabled: z.boolean().default(true).optional(),
     minScore: z.number().int().min(0).nullable().optional(),
     maxScore: z.number().int().min(0).nullable().optional(),
     // Ranked-specific config
-    baseMmr: z.number().int().min(100).max(5000).default(1000),
-    kFactor: z.number().int().min(8).max(128).default(32),
-    placementMatches: z.number().int().min(1).max(20).default(5),
-    usePreviousMmr: z.boolean().default(false),
-    allowAsymmetricMatches: z.boolean().default(false),
-    sourceTierSeasonId: z.string().uuid().nullable().optional(),
+    ...rankedSeasonExtraFields,
   })
-  .refine(
-    (data) => {
-      const start = new Date(data.startDate);
-      const end = new Date(data.endDate);
-      return start < end;
-    },
-    {
-      message: "La date de début doit être antérieure à la date de fin",
-      path: ["endDate"],
-    },
-  )
-  .refine((data) => data.maxTeamSize >= data.minTeamSize, {
-    message:
-      "La taille maximale doit être supérieure ou égale à la taille minimale",
-    path: ["maxTeamSize"],
-  })
-  .refine(
-    (data) => {
-      if (data.scoreEnabled === false) return true;
-      if (data.minScore != null && data.maxScore != null)
-        return data.minScore <= data.maxScore;
-      return true;
-    },
-    {
-      message: "Le score minimum doit être inférieur ou égal au score maximum",
-      path: ["maxScore"],
-    },
-  );
+  .refine(dateRangePredicate, dateRangeError)
+  .refine(teamSizePredicate, teamSizeError)
+  .refine(scoreRangePredicate, scoreRangeError);
 
 export const updateRankedSeasonSchema = z.object({
   name: z
@@ -185,6 +217,7 @@ export const updateRankedSeasonSchema = z.object({
     .optional(),
   rulesId: z.string().uuid().nullable().optional(),
   organizationId: z.string().uuid().nullable().optional(),
+  allowDraw: z.boolean().optional(),
   scoreEnabled: z.boolean().optional(),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),

@@ -6,6 +6,7 @@
 export * from "./enums";
 
 // Types métier
+export * from "./season-form";
 export * from "./tournament";
 export * from "./user";
 export * from "./match";
