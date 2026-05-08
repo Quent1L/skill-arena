@@ -22,5 +22,9 @@
       "Bash(find frontend/src -type f -name \"*.vue\" -exec grep -l \"tournament-rules\\\\|/tournaments.*rules\" {} \\\\;)",
       "Bash(xargs cat)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ],
+  "enableAllProjectMcpServers": true
 }

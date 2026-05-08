@@ -21,13 +21,16 @@ import {
 } from "../../repository/match-confirmation.repository";
 import { notificationService } from "../notification.service";
 import { bracketRepository } from "../../repository/bracket.repository";
+import { bracketService } from "../bracket.service";
 import { teamRepository } from "../../repository/team.repository";
 import { mmrCalculationService } from "../mmr-calculation.service";
+import { mmrAnimationEventService } from "../mmr-animation-event.service";
 import { standingsService } from "../standings.service";
 import { playerComputedDataRepository } from "../../repository/player-computed-data.repository";
 import { rankedSeasonRepository } from "../../repository/ranked-season.repository";
 import { rankedSeasonService } from "../ranked-season.service";
 import { tournamentStatsRepository } from "../../repository/tournament-stats.repository";
+import { matchSidesRepository } from "../../repository/match-sides.repository";
 import {
   NotFoundError,
   BadRequestError,
@@ -101,6 +104,13 @@ beforeEach(() => {
   // Mock bracketRepository to prevent real DB calls in finalizeMatch
   (bracketRepository as any).getMetadataByMatchId = async () => null;
 
+  // Mock bracketService methods called by finalization orchestrator
+  (bracketService as any).advanceWinnerToNextRound = async () => undefined;
+  (bracketService as any).advanceLoserToNextRound = async () => undefined;
+
+  // Mock mmrAnimationEventService called by finalization orchestrator
+  (mmrAnimationEventService as any).createOfficialEventsAndBroadcast = async () => undefined;
+
   // Mock teamRepository to prevent real DB calls in static-mode validation
   (teamRepository as any).getMemberCount = async () => 2;
 
@@ -141,13 +151,16 @@ afterEach(() => {
   restore(matchConfirmationRepository);
   restore(notificationService);
   restore(bracketRepository);
+  restore(bracketService);
   restore(teamRepository);
   restore(mmrCalculationService);
+  restore(mmrAnimationEventService);
   restore(standingsService);
   restore(playerComputedDataRepository);
   restore(rankedSeasonRepository);
   restore(rankedSeasonService);
   restore(tournamentStatsRepository);
+  restore(matchSidesRepository);
 });
 
 describe("MatchService - basic flows", () => {
@@ -1675,5 +1688,462 @@ describe("MatchService - Edge Cases", () => {
     await matchService.createMatch(input, "u-1");
 
     expect(confirmationCreated).toBe(true);
+  });
+});
+
+describe("MatchService - Kiosk role permissions", () => {
+  it("confirmMatch should reject kiosk users", async () => {
+    repo.getById = async () =>
+      ({ id: "m-k", tournamentId: "t-1", status: "reported" }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-kiosk", role: "kiosk" }) as any;
+
+    try {
+      await matchService.confirmMatch(
+        "m-k",
+        {} as ConfirmMatchRequestData,
+        "u-kiosk",
+      );
+      throw new Error("Expected ForbiddenError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ForbiddenError);
+      expect((err as ForbiddenError).code).toBe(
+        ErrorCode.INSUFFICIENT_PERMISSIONS,
+      );
+    }
+  });
+
+  it("contestMatch should reject kiosk users", async () => {
+    repo.getById = async () =>
+      ({ id: "m-k", tournamentId: "t-1", status: "reported" }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-kiosk", role: "kiosk" }) as any;
+
+    try {
+      await matchService.contestMatch(
+        "m-k",
+        { contestationReason: "x" } as any,
+        "u-kiosk",
+      );
+      throw new Error("Expected ForbiddenError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ForbiddenError);
+    }
+  });
+
+  it("cancelMatch should reject kiosk user when not creator", async () => {
+    repo.getById = async () =>
+      ({
+        id: "m-c",
+        tournamentId: "t-1",
+        status: "scheduled",
+        createdBy: "u-other",
+      }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-kiosk", role: "kiosk" }) as any;
+
+    try {
+      await matchService.cancelMatch("m-c", "u-kiosk");
+      throw new Error("Expected ForbiddenError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ForbiddenError);
+    }
+  });
+
+  it("cancelMatch should allow kiosk user when creator", async () => {
+    repo.getById = async (id: string) =>
+      ({
+        id,
+        tournamentId: "t-1",
+        status: "scheduled",
+        createdBy: "u-kiosk",
+      }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-kiosk", role: "kiosk" }) as any;
+    let updateCalledWith: UpdateMatchData | null = null;
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalledWith = data;
+      return { id: _id, ...data } as any;
+    };
+
+    await matchService.cancelMatch("m-c", "u-kiosk");
+    expect(updateCalledWith!.status).toBe("cancelled");
+  });
+
+  it("cancelMatch by admin clears action notifications", async () => {
+    repo.getById = async (id: string) =>
+      ({
+        id,
+        tournamentId: "t-1",
+        status: "reported",
+        createdBy: "u-other",
+      }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-admin", role: "super_admin" }) as any;
+
+    let deleteActionsCalled = false;
+    notifService.deleteActionsByMatchId = async () => {
+      deleteActionsCalled = true;
+      return [];
+    };
+
+    await matchService.cancelMatch("m-c", "u-admin");
+    expect(deleteActionsCalled).toBe(true);
+  });
+});
+
+describe("MatchService - Score proposal contest", () => {
+  it("contestMatch with score proposal sets pending_confirmation, resets others, notifies", async () => {
+    repo.getById = async (id: string) =>
+      ({
+        id,
+        tournamentId: "t-1",
+        status: "reported",
+      }) as any;
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
+      [
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "B" },
+      ] as any;
+
+    let updateCalledWith: UpdateMatchData | null = null;
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalledWith = data;
+      return { id: _id, ...data } as any;
+    };
+
+    let resetCalled = false;
+    confRepo.resetConfirmationsExcept = async () => {
+      resetCalled = true;
+      return undefined as any;
+    };
+
+    let notifSendCount = 0;
+    notifService.send = async () => {
+      notifSendCount += 1;
+      return undefined as any;
+    };
+
+    await matchService.contestMatch(
+      "m-1",
+      {
+        contestationReason: "wrong",
+        proposedScoreA: 3,
+        proposedScoreB: 2,
+      } as any,
+      "p1",
+    );
+
+    expect(updateCalledWith!.status).toBe("pending_confirmation");
+    expect(updateCalledWith!.confirmationDeadline).toBeInstanceOf(Date);
+    expect(resetCalled).toBe(true);
+    expect(notifSendCount).toBeGreaterThan(0);
+  });
+});
+
+describe("MatchService - Active proposal application", () => {
+  it("checkAndFinalizeMatch applies active proposal scores before finalize", async () => {
+    let getByIdCalls = 0;
+    repo.getById = async (id: string) => {
+      getByIdCalls += 1;
+      // After finalize, status returns finalized to short-circuit re-entry
+      if (getByIdCalls > 4) {
+        return { id, tournamentId: "t-1", status: "finalized" } as any;
+      }
+      return { id, tournamentId: "t-1", status: "pending_confirmation" } as any;
+    };
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
+      [
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "B" },
+      ] as any;
+    confRepo.getByMatchId = async () =>
+      [
+        { playerId: "p1", isConfirmed: false, isContested: true, proposedScoreA: 3, proposedScoreB: 2 },
+        { playerId: "p2", isConfirmed: true, isContested: false },
+      ] as any;
+    confRepo.getActiveProposal = async () =>
+      ({
+        playerId: "p1",
+        proposedScoreA: 3,
+        proposedScoreB: 2,
+        proposedWinner: "teamA",
+        proposedOutcomeTypeId: "ot-1",
+        proposedOutcomeReasonId: "or-1",
+      }) as any;
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    await matchService.confirmMatch("m-prop", {} as any, "p2");
+
+    const proposalUpdate = updateCalls.find((u) => u.scoreA === 3 && u.scoreB === 2);
+    expect(proposalUpdate).toBeDefined();
+    expect(proposalUpdate!.winner).toBe("teamA");
+    expect(proposalUpdate!.outcomeTypeId).toBe("ot-1");
+    expect(proposalUpdate!.outcomeReasonId).toBe("or-1");
+
+    const finalizeUpdate = updateCalls.find((u) => u.status === "finalized");
+    expect(finalizeUpdate).toBeDefined();
+  });
+
+  it("autoFinalizeExpiredMatches applies active proposal before finalize", async () => {
+    const pastDate = new Date();
+    pastDate.setHours(pastDate.getHours() - 100);
+
+    repo.getMatchesPendingFinalization = async () =>
+      [
+        {
+          id: "m-exp-prop",
+          status: "pending_confirmation",
+          confirmationDeadline: pastDate,
+        },
+      ] as any[];
+
+    confRepo.getByMatchId = async () =>
+      [
+        { playerId: "p1", isContested: true, proposedScoreA: 5, proposedScoreB: 4 },
+      ] as any;
+    confRepo.getActiveProposal = async () =>
+      ({
+        playerId: "p1",
+        proposedScoreA: 5,
+        proposedScoreB: 4,
+        proposedWinner: "teamA",
+      }) as any;
+
+    repo.getById = async (id: string) =>
+      ({ id, tournamentId: "t-1", status: "pending_confirmation" }) as any;
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    const result = await matchService.autoFinalizeExpiredMatches();
+    expect(result.finalized).toContain("m-exp-prop");
+
+    const proposalApply = updateCalls.find((u) => u.scoreA === 5 && u.scoreB === 4);
+    expect(proposalApply).toBeDefined();
+    expect(proposalApply!.winner).toBe("teamA");
+  });
+});
+
+describe("MatchService - finalizeMatch side-effects", () => {
+  it("finalizeMatch invokes bracket advancement for both winner and loser", async () => {
+    repo.getById = async () =>
+      ({ id: "m-fin", tournamentId: "t-1", status: "reported" }) as any;
+    repo.update = async (_id: string, data: UpdateMatchData) =>
+      ({ id: _id, ...data }) as any;
+
+    let advWinner = false;
+    let advLoser = false;
+    (bracketService as any).advanceWinnerToNextRound = async () => {
+      advWinner = true;
+    };
+    (bracketService as any).advanceLoserToNextRound = async () => {
+      advLoser = true;
+    };
+
+    await matchService.finalizeMatch(
+      "m-fin",
+      { finalizationReason: "consensus" },
+      "u-1",
+    );
+
+    expect(advWinner).toBe(true);
+    expect(advLoser).toBe(true);
+  });
+
+  it("finalizeMatch invokes MMR calculation", async () => {
+    repo.getById = async () =>
+      ({ id: "m-fin", tournamentId: "t-1", status: "reported" }) as any;
+    repo.update = async (_id: string, data: UpdateMatchData) =>
+      ({ id: _id, ...data }) as any;
+
+    let mmrCalled = false;
+    (mmrCalculationService as any).processMatchFinalization = async () => {
+      mmrCalled = true;
+    };
+
+    await matchService.finalizeMatch("m-fin", {
+      finalizationReason: "consensus",
+    });
+    expect(mmrCalled).toBe(true);
+  });
+
+  it("finalizeMatch refreshes ranked caches when tournament is ranked", async () => {
+    repo.getById = async () =>
+      ({ id: "m-fin", tournamentId: "t-r", status: "reported" }) as any;
+    repo.update = async (_id: string, data: UpdateMatchData) =>
+      ({ id: _id, ...data }) as any;
+
+    (rankedSeasonRepository as any).getConfigByTournamentId = async () => ({
+      id: "rs-1",
+      tournamentId: "t-r",
+    });
+
+    let officialCalled = false;
+    let provisionalCalled = false;
+    (rankedSeasonService as any).computeAndCacheOfficial = async () => {
+      officialCalled = true;
+    };
+    (rankedSeasonService as any).computeAndCacheProvisional = async () => {
+      provisionalCalled = true;
+    };
+
+    await matchService.finalizeMatch("m-fin", {
+      finalizationReason: "consensus",
+    });
+
+    expect(officialCalled).toBe(true);
+    expect(provisionalCalled).toBe(true);
+  });
+
+  it("finalizeMatch skips ranked caches when tournament is not ranked", async () => {
+    repo.getById = async () =>
+      ({ id: "m-fin", tournamentId: "t-nr", status: "reported" }) as any;
+    repo.update = async (_id: string, data: UpdateMatchData) =>
+      ({ id: _id, ...data }) as any;
+
+    (rankedSeasonRepository as any).getConfigByTournamentId = async () => null;
+
+    let officialCalled = false;
+    let provisionalCalled = false;
+    (rankedSeasonService as any).computeAndCacheOfficial = async () => {
+      officialCalled = true;
+    };
+    (rankedSeasonService as any).computeAndCacheProvisional = async () => {
+      provisionalCalled = true;
+    };
+
+    await matchService.finalizeMatch("m-fin", {
+      finalizationReason: "consensus",
+    });
+
+    expect(officialCalled).toBe(false);
+    expect(provisionalCalled).toBe(false);
+  });
+});
+
+describe("MatchService - listMatchCards", () => {
+  it("returns empty payload when repository returns no rows", async () => {
+    (matchRepository as any).listMatchCards = async () => ({
+      data: [],
+      total: 0,
+    });
+    const res = await matchService.listMatchCards({
+      offset: 0,
+      limit: 10,
+    } as any);
+    expect(res).toEqual({ data: [], total: 0, hasMore: false });
+  });
+
+  it("maps rows + sides and computes hasMore correctly", async () => {
+    (matchRepository as any).listMatchCards = async () => ({
+      data: [
+        {
+          matchId: "m-1",
+          playedAt: new Date("2026-05-01T10:00:00Z"),
+          status: "finalized",
+          tournamentId: "t-1",
+          tournamentName: "Tour",
+          tournamentMode: "ranked",
+          tournamentScoreEnabled: true,
+          winnerSide: "A",
+          outcomeTypeId: null,
+          outcomeTypeName: null,
+        },
+        {
+          matchId: "m-2",
+          playedAt: new Date("2026-05-02T10:00:00Z"),
+          status: "finalized",
+          tournamentId: "t-1",
+          tournamentName: "Tour",
+          tournamentMode: "ranked",
+          tournamentScoreEnabled: true,
+          winnerSide: "B",
+          outcomeTypeId: "ot-1",
+          outcomeTypeName: "Forfait",
+        },
+      ],
+      total: 50,
+    });
+
+    (matchSidesRepository as any).getByMatchIds = async () => [
+      {
+        matchId: "m-1",
+        position: 1,
+        score: 2,
+        entry: {
+          players: [
+            {
+              player: { id: "p1", displayName: "Player 1", shortName: "P1" },
+            },
+          ],
+        },
+      },
+      {
+        matchId: "m-1",
+        position: 2,
+        score: 1,
+        entry: {
+          players: [
+            {
+              player: { id: "p2", displayName: "Player 2", shortName: "P2" },
+            },
+          ],
+        },
+      },
+      {
+        matchId: "m-2",
+        position: 1,
+        score: 0,
+        entry: {
+          players: [
+            {
+              player: { id: "p3", displayName: "Player 3", shortName: null },
+            },
+          ],
+        },
+      },
+      {
+        matchId: "m-2",
+        position: 2,
+        score: 3,
+        entry: {
+          players: [
+            {
+              player: { id: "p4", displayName: "Player 4", shortName: null },
+            },
+          ],
+        },
+      },
+    ];
+
+    const res = await matchService.listMatchCards({
+      offset: 0,
+      limit: 10,
+    } as any);
+
+    expect(res.total).toBe(50);
+    expect(res.hasMore).toBe(true);
+    expect(res.data).toHaveLength(2);
+    const m1 = res.data.find((d) => d.id === "m-1")!;
+    expect(m1.sides).toHaveLength(2);
+    expect(m1.sides[0].isWinner).toBe(true); // position 1 = A, winnerSide = A
+    expect(m1.sides[1].isWinner).toBe(false);
+    expect(m1.outcomeType).toBeNull();
+
+    const m2 = res.data.find((d) => d.id === "m-2")!;
+    expect(m2.sides[0].isWinner).toBe(false); // position 1 = A but winnerSide = B
+    expect(m2.sides[1].isWinner).toBe(true);
+    expect(m2.outcomeType).toEqual({ id: "ot-1", name: "Forfait" });
   });
 });
