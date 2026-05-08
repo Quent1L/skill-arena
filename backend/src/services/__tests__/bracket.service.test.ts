@@ -176,6 +176,13 @@ mock.module("../tournament.service", () => ({
   tournamentService: mockTournamentService,
 }));
 
+mock.module("../notification.service", () => ({
+  notificationService: {
+    deleteActionsByMatchId: mock(() => Promise.resolve()),
+    deleteActionsByMatchIdForUser: mock(() => Promise.resolve()),
+  },
+}));
+
 mock.module("../../config/database", () => ({
   db: proxyDb,
   setTestDatabase: (db: any) => {
