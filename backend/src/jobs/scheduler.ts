@@ -44,13 +44,18 @@ export class JobScheduler {
   }
 
   /**
-   * Run auto-finalize job with error handling
+   * Run auto-finalize job with error handling and garbage collection
    */
   private async runAutoFinalizeJob() {
     try {
       await autoFinalizeMatchesJob();
     } catch (error) {
       logger.error({ err: error }, "[Scheduler] Error running auto-finalize job:");
+    } finally {
+      // Force garbage collection to release memory and compact heap
+      if (typeof Bun !== 'undefined' && Bun.gc) {
+        Bun.gc(true);
+      }
     }
   }
 }

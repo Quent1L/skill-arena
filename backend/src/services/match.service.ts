@@ -1022,7 +1022,7 @@ export class MatchService {
   /**
    * Finalize a match
    */
-  async finalizeMatch(id: string, input: FinalizeMatchInput, finalizedBy?: string) {
+  async finalizeMatch(id: string, input: FinalizeMatchInput, finalizedBy?: string, backgroundTasks?: Promise<void>[]) {
     const match = await this.getMatchById(id)
 
     // Check if match is already finalized
@@ -1050,18 +1050,24 @@ export class MatchService {
     // Process MMR calculation for ranked seasons
     await mmrCalculationService.processMatchFinalization(id)
     // Create official MMR animation events and broadcast to players
-    mmrAnimationEventService
+    const mmrAnimationTask = mmrAnimationEventService
       .createOfficialEventsAndBroadcast(id, match.tournamentId)
       .catch((err) => logger.error({ err }, '[MmrAnimation] official event failed'))
+    if (backgroundTasks) {
+      backgroundTasks.push(mmrAnimationTask)
+    }
     // Recompute official + provisional leaderboard cache for ranked
     const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(match.tournamentId)
     if (rankedConfig) {
-      rankedSeasonService
+      const officialTask = rankedSeasonService
         .computeAndCacheOfficial(match.tournamentId)
         .catch((err) => logger.error({ err }, '[Ranked] background cache update failed'))
-      rankedSeasonService
+      const provisionalTask = rankedSeasonService
         .computeAndCacheProvisional(match.tournamentId)
         .catch((err) => logger.error({ err }, '[Ranked] background cache update failed'))
+      if (backgroundTasks) {
+        backgroundTasks.push(officialTask, provisionalTask)
+      }
     }
     // Recalculate per-player standings points for flex championships
     await this.triggerStandingsRecalcIfNeeded(match.tournamentId, id)
@@ -1082,6 +1088,7 @@ export class MatchService {
 
     const finalized: string[] = []
     const disputed: string[] = []
+    const backgroundTasks: Promise<void>[] = []
 
     for (const match of expiredMatches) {
       if (!match.confirmationDeadline) continue
@@ -1138,9 +1145,14 @@ export class MatchService {
 
         await this.finalizeMatch(match.id, {
           finalizationReason: 'auto_validation',
-        })
+        }, undefined, backgroundTasks)
         finalized.push(match.id)
       }
+    }
+
+    // Wait for all background tasks to complete before returning
+    if (backgroundTasks.length > 0) {
+      await Promise.allSettled(backgroundTasks)
     }
 
     return {
