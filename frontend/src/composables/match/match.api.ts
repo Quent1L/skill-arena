@@ -7,6 +7,7 @@ import type {
   ReportMatchResultRequestData,
   ConfirmMatchRequestData,
   ContestMatchRequestData,
+  RespondToMatchRequestData,
   FinalizeMatchRequestData,
   ClientValidateMatchRequest,
   ListMatchCardsQuery,
@@ -91,6 +92,14 @@ export const matchApi = {
    */
   async contestResult(id: string, payload: ContestMatchRequestData): Promise<ClientMatchModel> {
     const response = await http.post<ClientMatchModel>(`${BASE_URL}/${id}/contest`, payload)
+    return response.data
+  },
+
+  /**
+   * Unified respond to match (agree or dispute, pre or post finalization)
+   */
+  async respondToMatch(id: string, payload: RespondToMatchRequestData): Promise<ClientMatchDetail> {
+    const response = await http.post<ClientMatchDetail>(`${BASE_URL}/${id}/respond`, payload)
     return response.data
   },
 

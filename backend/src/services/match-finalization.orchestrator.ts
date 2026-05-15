@@ -30,6 +30,12 @@ export class MatchFinalizationOrchestrator {
     await this.refreshStandingsAndStats(tournamentId, matchId)
   }
 
+  async runPostCancellationEffects(matchId: string, tournamentId: string): Promise<void> {
+    await mmrCalculationService.processMatchFinalization(matchId)
+    await this.refreshRankedCachesIfNeeded(tournamentId)
+    await this.refreshStandingsAndStats(tournamentId, matchId)
+  }
+
   private async refreshRankedCachesIfNeeded(
     tournamentId: string,
     backgroundTasks?: Promise<void>[],

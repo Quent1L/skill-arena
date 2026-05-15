@@ -22,7 +22,8 @@
       "Bash(find frontend/src -type f -name \"*.vue\" -exec grep -l \"tournament-rules\\\\|/tournaments.*rules\" {} \\\\;)",
       "Bash(xargs cat)",
       "mcp__code-review-graph__semantic_search_nodes_tool",
-      "mcp__code-review-graph__detect_changes_tool"
+      "mcp__code-review-graph__detect_changes_tool",
+      "mcp__code-review-graph__query_graph_tool"
     ]
   },
   "enableAllProjectMcpServers": true,

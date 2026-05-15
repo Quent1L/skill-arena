@@ -11,6 +11,7 @@ import type {
   ReportMatchResultRequestData,
   ConfirmMatchRequestData,
   ContestMatchRequestData,
+  RespondToMatchRequestData,
   FinalizeMatchRequestData,
   ListMatchCardsQuery,
   PaginatedMatchCards,
@@ -304,6 +305,43 @@ export function useMatchService() {
     }
   }
 
+  const respondToMatch = async (
+    id: string,
+    data: RespondToMatchRequestData,
+  ): Promise<ClientMatchDetail> => {
+    try {
+      const match = await matchApi.respondToMatch(id, data)
+      if (data.type === 'agree') {
+        toast.add({
+          severity: 'success',
+          summary: 'Acceptation enregistrée',
+          detail: 'Votre acceptation a été enregistrée avec succès',
+          life: 3000,
+        })
+      } else {
+        const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
+        toast.add({
+          severity: 'warn',
+          summary: hasProposal ? 'Score proposé' : 'Contestation enregistrée',
+          detail: hasProposal
+            ? `Vous avez proposé le score ${data.proposedScoreA} - ${data.proposedScoreB}. Les autres joueurs doivent reconfirmer.`
+            : 'Votre contestation a été enregistrée.',
+          life: 6000,
+        })
+      }
+      return match
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la réponse'
+      toast.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: errorMessage,
+        life: 5000,
+      })
+      throw err
+    }
+  }
+
   const cancelMatch = async (id: string): Promise<ClientMatchModel> => {
     try {
       const match = await matchApi.cancel(id)
@@ -380,6 +418,7 @@ export function useMatchService() {
     reportMatchResult,
     confirmMatchResult,
     contestMatchResult,
+    respondToMatch,
     cancelMatch,
     finalizeMatch,
     validateMatch,

@@ -13,6 +13,7 @@ import {
   type ConfirmMatchRequestData as ConfirmMatchInput,
   type ContestMatchRequestData as ContestMatchInput,
   type FinalizeMatchRequestData as FinalizeMatchInput,
+  type RespondToMatchRequestData as RespondToMatchInput,
   type MatchStatus,
   type ListMatchCardsQuery,
   type ClientMatchCard,
@@ -631,6 +632,157 @@ export class MatchService {
     return await matchRepository.getById(id)
   }
 
+  async respondToMatch(id: string, input: RespondToMatchInput, respondedBy: string) {
+    const match = await this.getMatchById(id)
+
+    const responder = await userRepository.getById(respondedBy)
+    if (responder?.role === 'kiosk') {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+    }
+
+    const isParticipant = await matchRepository.isUserInMatch(id, respondedBy)
+    if (!isParticipant) {
+      throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT)
+    }
+
+    if (match.status === 'finalized') {
+      return this.handlePostFinalizationDispute(id, match, input, respondedBy)
+    }
+
+    return this.handlePreFinalizationResponse(id, match, input, respondedBy)
+  }
+
+  private async handlePostFinalizationDispute(
+    id: string,
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    input: RespondToMatchInput,
+    respondedBy: string,
+  ) {
+    if (input.type === 'agree') {
+      throw new BadRequestError(ErrorCode.CANNOT_AGREE_AFTER_FINALIZATION)
+    }
+
+    const tournament = await matchRepository.getTournament(match.tournamentId)
+    if (tournament?.validationMode !== 'auto') {
+      throw new BadRequestError(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE)
+    }
+
+    const finalizedAt = match.result?.finalizedAt
+    if (!finalizedAt) {
+      throw new BadRequestError(ErrorCode.MATCH_NOT_FOUND)
+    }
+
+    const daysSinceFinalization = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
+    if (daysSinceFinalization > 7) {
+      throw new BadRequestError(ErrorCode.DISPUTE_WINDOW_EXPIRED)
+    }
+
+    const alreadyDisputed = await matchConfirmationRepository.hasPlayerDisputedPostFinalization(id, respondedBy)
+    if (alreadyDisputed) {
+      throw new BadRequestError(ErrorCode.ALREADY_DISPUTED)
+    }
+
+    const participants = await matchRepository.getParticipationsByMatchId(id)
+    const sidePosition = participants.find((p) => p.playerId === respondedBy)?.teamSide === 'A' ? 1 : 2
+
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId: respondedBy,
+      isConfirmed: false,
+      isContested: true,
+      contestationReason: input.reason,
+      contestationProof: input.proof,
+      sidePosition,
+      isPostFinalization: true,
+    })
+
+    return await matchRepository.getById(id)
+  }
+
+  private async handlePreFinalizationResponse(
+    id: string,
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    input: RespondToMatchInput,
+    respondedBy: string,
+  ) {
+    if (!['reported', 'pending_confirmation', 'disputed'].includes(match.status)) {
+      throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS)
+    }
+
+    const participants = await matchRepository.getParticipationsByMatchId(id)
+    const sidePosition = participants.find((p) => p.playerId === respondedBy)?.teamSide === 'A' ? 1 : 2
+
+    if (input.type === 'agree') {
+      await matchConfirmationRepository.upsert({
+        matchId: id,
+        playerId: respondedBy,
+        isConfirmed: true,
+        isContested: false,
+        sidePosition,
+        isPostFinalization: false,
+      })
+
+      await notificationService.deleteActionsByMatchIdForUser(id, respondedBy)
+      await this.checkAndFinalizeMatch(id)
+
+      return await matchRepository.getById(id)
+    }
+
+    // dispute
+    const hasScoreProposal = input.proposedScoreA !== undefined && input.proposedScoreB !== undefined
+
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId: respondedBy,
+      isConfirmed: false,
+      isContested: true,
+      contestationReason: input.reason,
+      contestationProof: input.proof,
+      proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
+      proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
+      proposedWinner: hasScoreProposal ? (input.proposedWinner ?? null) : null,
+      proposedOutcomeTypeId: hasScoreProposal ? (input.proposedOutcomeTypeId ?? null) : null,
+      proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
+      sidePosition,
+      isPostFinalization: false,
+    })
+
+    const originalReporter = match.result?.reportedBy
+    if (originalReporter) {
+      await userRepository.resetTrustScore(originalReporter)
+    }
+
+    if (hasScoreProposal) {
+      await notificationService.deleteActionsByMatchIdForUser(id, respondedBy)
+      await matchConfirmationRepository.resetConfirmationsExcept(id, respondedBy)
+
+      const tournament = await matchRepository.getTournament(match.tournamentId)
+      await matchRepository.update(id, {
+        status: 'pending_confirmation',
+        confirmationDeadline: this.getDeadlineForTournament(tournament),
+      })
+
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
+        logger.error({ err }, '[Ranked] background cache update failed'),
+      )
+
+      await matchNotificationBuilder.notifyScoreProposal(
+        id,
+        respondedBy,
+        input.proposedScoreA!,
+        input.proposedScoreB!,
+      )
+    } else {
+      await matchRepository.update(id, { status: 'disputed' })
+
+      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
+        logger.error({ err }, '[Ranked] background cache update failed'),
+      )
+    }
+
+    return await matchRepository.getById(id)
+  }
+
   async validateMatch(input: CreateMatchInput & { matchId?: string }) {
     const errors: string[] = []
     const warnings: string[] = []
@@ -835,6 +987,11 @@ export class MatchService {
       }
     }
 
+    if (match.status === 'finalized') {
+      await this.cancelFinalizedMatch(id, match, cancelledBy)
+      return await matchRepository.getById(id)
+    }
+
     matchStatusValidator.validateCanCancel(match.status)
 
     const wasUnfinalized = ['reported', 'pending_confirmation', 'disputed'].includes(match.status)
@@ -847,6 +1004,35 @@ export class MatchService {
     }
 
     return await matchRepository.getById(id)
+  }
+
+  private async cancelFinalizedMatch(
+    id: string,
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    cancelledBy: string,
+  ): Promise<void> {
+    const tournament = await matchRepository.getTournament(match.tournamentId)
+    if (!['championship', 'ranked'].includes(tournament?.mode ?? '')) {
+      throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_CANCELLED)
+    }
+
+    const reason = match.result?.finalizationReason
+    if (!['auto_validation', 'trust_score'].includes(reason ?? '')) {
+      throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_CANCELLED)
+    }
+
+    if (match.result?.reportedBy !== cancelledBy) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
+    }
+
+    const finalizedAt = match.result?.finalizedAt
+    if (!finalizedAt) throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_CANCELLED)
+    const hoursSince = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60)
+    if (hoursSince > 48) throw new BadRequestError(ErrorCode.CANCEL_WINDOW_EXPIRED)
+
+    await matchRepository.update(id, { status: 'cancelled' })
+    await notificationService.deleteActionsByMatchId(id)
+    await matchFinalizationOrchestrator.runPostCancellationEffects(id, match.tournamentId)
   }
 
   async finalizeMatch(

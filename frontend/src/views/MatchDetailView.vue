@@ -228,10 +228,129 @@
       <MatchConfirmation
         :match="match"
         :current-user-id="currentUser?.id"
-        :confirming="confirming"
-        @confirm="handleConfirm"
-        @contest="handleContest"
+        :responding="responding"
+        @respond="handleRespond"
+        @redirect-to-score-form="handleRedirectToScoreForm"
       />
+
+      <!-- Post-finalization dispute section -->
+      <div
+        v-if="postFinalizationDisputes.length > 0"
+        class="rounded-xl border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 overflow-hidden"
+      >
+        <div class="p-4 border-b border-red-300 dark:border-red-700">
+          <h3 class="text-lg font-semibold text-red-700 dark:text-red-300">
+            <i class="fa fa-flag mr-2"></i>
+            Contestations post-finalisation
+          </h3>
+        </div>
+        <div class="p-4 space-y-3">
+          <div
+            v-for="dispute in postFinalizationDisputes"
+            :key="dispute.id"
+            class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-1"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-medium">{{ dispute.player?.displayName || 'Joueur inconnu' }}</span>
+              <Tag severity="danger" value="Contesté" />
+            </div>
+            <div v-if="dispute.contestationReason" class="text-sm text-surface-600 dark:text-surface-400">
+              <span class="font-semibold">Raison :</span> {{ dispute.contestationReason }}
+            </div>
+            <div v-if="dispute.contestationProof" class="text-sm text-surface-600 dark:text-surface-400">
+              <span class="font-semibold">Preuve :</span>
+              <a
+                v-if="isProofUrl(dispute.contestationProof)"
+                :href="dispute.contestationProof"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="ml-1 text-primary hover:underline"
+              >{{ dispute.contestationProof }}</a>
+              <span v-else class="ml-1">{{ dispute.contestationProof }}</span>
+            </div>
+            <div class="text-xs text-surface-400 dark:text-surface-500">
+              {{ formatDate(dispute.createdAt) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Post-finalization dispute button (auto mode, participant, within 7 days) -->
+      <div
+        v-if="canDisputePostFinalization"
+        class="rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 overflow-hidden"
+      >
+        <div class="p-4 border-b border-orange-300 dark:border-orange-700">
+          <h3 class="text-lg font-semibold text-orange-700 dark:text-orange-300">
+            <i class="fa fa-exclamation-circle mr-2"></i>
+            Contester ce résultat
+          </h3>
+        </div>
+        <div class="p-4 space-y-3">
+          <p class="text-sm text-surface-600 dark:text-surface-400">
+            Ce match a été finalisé automatiquement. Vous pouvez contester le résultat dans les 7 jours suivant la finalisation.
+          </p>
+          <p class="text-sm text-surface-500 dark:text-surface-500">
+            Temps restant : {{ postFinalizationTimeRemaining }}
+          </p>
+          <Button
+            label="Contester le résultat"
+            icon="fa fa-flag"
+            severity="danger"
+            outlined
+            @click="showPostDisputeDialog = true"
+          />
+        </div>
+      </div>
+
+      <!-- Post-finalization dispute dialog -->
+      <Dialog
+        v-model:visible="showPostDisputeDialog"
+        header="Contester le résultat finalisé"
+        modal
+        :style="{ maxWidth: '480px' }"
+      >
+        <div class="space-y-4">
+          <div>
+            <label for="postDisputeReason" class="block text-sm font-medium mb-2">
+              Raison de la contestation (optionnel)
+            </label>
+            <Textarea
+              id="postDisputeReason"
+              v-model="postDisputeReason"
+              rows="3"
+              placeholder="Expliquez pourquoi vous contestez ce résultat..."
+              class="w-full"
+            />
+          </div>
+          <div>
+            <label for="postDisputeProof" class="block text-sm font-medium mb-2">
+              Preuve (optionnel)
+            </label>
+            <InputText
+              id="postDisputeProof"
+              v-model="postDisputeProof"
+              placeholder="Lien vers une capture d'écran, vidéo..."
+              class="w-full"
+            />
+          </div>
+        </div>
+        <template #footer>
+          <Button
+            label="Annuler"
+            severity="secondary"
+            :disabled="postDisputing"
+            @click="showPostDisputeDialog = false"
+          />
+          <Button
+            label="Soumettre la contestation"
+            icon="fa fa-flag"
+            severity="danger"
+            :loading="postDisputing"
+            @click="handlePostDispute"
+          />
+        </template>
+      </Dialog>
 
       <!-- Cancel Confirmation Dialog -->
       <Dialog
@@ -241,6 +360,10 @@
         :closable="!cancelling"
         :style="{ maxWidth: '600px' }"
       >
+        <p v-if="match.status === 'finalized'" class="text-orange-600 dark:text-orange-400 font-semibold mb-2">
+          <i class="fa fa-triangle-exclamation mr-1" />
+          Ce match a déjà été finalisé automatiquement. L'annulation recalculera les points et le MMR associés.
+        </p>
         <p class="text-surface-600 dark:text-surface-400">
           Êtes-vous sûr de vouloir annuler ce match ? Cette action ne peut pas être défaite.
         </p>
@@ -320,6 +443,8 @@ import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
+import { formatDistanceToNow } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 const route = useRoute()
 const router = useRouter()
@@ -333,16 +458,20 @@ function goBack() {
     router.push('/')
   }
 }
-const { getMatch, confirmMatchResult, finalizeMatch, cancelMatch } = useMatchService()
+const { getMatch, respondToMatch, finalizeMatch, cancelMatch } = useMatchService()
 const { appUser } = useAuth()
 const detailStore = useTournamentDetailStore()
 
 const match = ref<ClientMatchDetail | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-const confirming = ref(false)
+const responding = ref(false)
 const cancelling = ref(false)
 const showCancelDialog = ref(false)
+const showPostDisputeDialog = ref(false)
+const postDisputeReason = ref('')
+const postDisputeProof = ref('')
+const postDisputing = ref(false)
 
 const animationQueue = useMMrAnimationQueue()
 let offWs: (() => void) | null = null
@@ -374,15 +503,54 @@ const isParticipant = computed(() => {
   return match.value.sides.some((s) => s.players.some((p) => p.id === uid))
 })
 
+const postFinalizationDisputes = computed(() => {
+  if (!match.value) return []
+  return (match.value.confirmations ?? []).filter((c) => c.isPostFinalization)
+})
+
+const canDisputePostFinalization = computed(() => {
+  if (!match.value || !appUser.value) return false
+  if (match.value.status !== 'finalized') return false
+  if (match.value.tournament?.validationMode !== 'auto') return false
+  if (!isParticipant.value) return false
+
+  const finalizedAt = match.value.result?.finalizedAt
+  if (!finalizedAt) return false
+
+  const daysSince = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
+  if (daysSince > 7) return false
+
+  const alreadyDisputed = postFinalizationDisputes.value.some(
+    (d) => d.playerId === appUser.value!.id,
+  )
+  return !alreadyDisputed
+})
+
+const postFinalizationTimeRemaining = computed(() => {
+  if (!match.value?.result?.finalizedAt) return ''
+  const deadline = new Date(match.value.result.finalizedAt)
+  deadline.setDate(deadline.getDate() + 7)
+  return formatDistanceToNow(deadline, { locale: fr, addSuffix: true })
+})
+
+const canCancelFinalizedMatch = computed(() => {
+  if (!match.value || !appUser.value) return false
+  if (match.value.status !== 'finalized') return false
+  const mode = match.value.tournament?.mode
+  if (!['championship', 'ranked'].includes(mode ?? '')) return false
+  const reason = match.value.result?.finalizationReason
+  if (!['auto_validation', 'trust_score'].includes(reason ?? '')) return false
+  if (match.value.result?.reportedBy !== appUser.value.id) return false
+  const finalizedAt = match.value.result?.finalizedAt
+  if (!finalizedAt) return false
+  const hoursSince = (Date.now() - new Date(finalizedAt as Date).getTime()) / (1000 * 60 * 60)
+  return hoursSince <= 48
+})
+
 const canCancelMatch = computed(() => {
   if (!match.value) return false
-
-  if (
-    match.value.status === 'finalized' ||
-    match.value.status === 'cancelled' ||
-    match.value.tournament?.mode === 'bracket'
-  )
-    return false
+  if (match.value.status === 'cancelled' || match.value.tournament?.mode === 'bracket') return false
+  if (match.value.status === 'finalized') return canCancelFinalizedMatch.value
   return canManageMatch.value || isParticipant.value
 })
 
@@ -406,18 +574,20 @@ async function loadMatch() {
   }
 }
 
-async function handleConfirm() {
+async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string; proof?: string }) {
   if (!match.value) return
 
   try {
-    confirming.value = true
-    const updatedMatch = await confirmMatchResult(match.value.id)
-    match.value = await getMatch(match.value.id)
-    void updatedMatch
+    responding.value = true
+    match.value = await respondToMatch(match.value.id, {
+      type: data.type,
+      reason: data.reason,
+      proof: data.proof,
+    })
   } catch (err) {
-    console.error('Error confirming match:', err)
+    console.error('Error responding to match:', err)
   } finally {
-    confirming.value = false
+    responding.value = false
   }
   refreshTournament()
 }
@@ -428,7 +598,7 @@ async function refreshTournament() {
   if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()
 }
 
-function handleContest(data: { reason?: string }) {
+function handleRedirectToScoreForm(data: { reason?: string }) {
   if (!match.value?.tournamentId) return
 
   router.push({
@@ -439,6 +609,35 @@ function handleContest(data: { reason?: string }) {
       ...(data.reason && { contestReason: data.reason }),
     },
   })
+}
+
+async function handlePostDispute() {
+  if (!match.value) return
+
+  try {
+    postDisputing.value = true
+    match.value = await respondToMatch(match.value.id, {
+      type: 'dispute',
+      reason: postDisputeReason.value || undefined,
+      proof: postDisputeProof.value || undefined,
+    })
+    showPostDisputeDialog.value = false
+    postDisputeReason.value = ''
+    postDisputeProof.value = ''
+  } catch (err) {
+    console.error('Error submitting post-finalization dispute:', err)
+  } finally {
+    postDisputing.value = false
+  }
+}
+
+function isProofUrl(str: string): boolean {
+  try {
+    new URL(str)
+    return true
+  } catch {
+    return false
+  }
 }
 
 async function handleCancel() {

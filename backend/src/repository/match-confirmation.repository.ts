@@ -14,6 +14,8 @@ export interface CreateMatchConfirmationData {
   proposedWinner?: string | null;
   proposedOutcomeTypeId?: string | null;
   proposedOutcomeReasonId?: string | null;
+  sidePosition?: number | null;
+  isPostFinalization?: boolean;
 }
 
 export interface UpdateMatchConfirmationData {
@@ -26,6 +28,7 @@ export interface UpdateMatchConfirmationData {
   proposedWinner?: string | null;
   proposedOutcomeTypeId?: string | null;
   proposedOutcomeReasonId?: string | null;
+  sidePosition?: number | null;
 }
 
 export class MatchConfirmationRepository {
@@ -41,13 +44,14 @@ export class MatchConfirmationRepository {
   }
 
   /**
-   * Get confirmation by match and player
+   * Get confirmation by match and player (pre-finalization only by default)
    */
-  async getByMatchAndPlayer(matchId: string, playerId: string) {
+  async getByMatchAndPlayer(matchId: string, playerId: string, isPostFinalization = false) {
     const confirmation = await db.query.matchConfirmations.findFirst({
       where: and(
         eq(matchConfirmations.matchId, matchId),
-        eq(matchConfirmations.playerId, playerId)
+        eq(matchConfirmations.playerId, playerId),
+        eq(matchConfirmations.isPostFinalization, isPostFinalization),
       ),
       with: {
         player: true,
@@ -76,14 +80,15 @@ export class MatchConfirmationRepository {
   /**
    * Update a match confirmation
    */
-  async update(matchId: string, playerId: string, data: UpdateMatchConfirmationData) {
+  async update(matchId: string, playerId: string, data: UpdateMatchConfirmationData, isPostFinalization = false) {
     const [confirmation] = await db
       .update(matchConfirmations)
       .set(data)
       .where(
         and(
           eq(matchConfirmations.matchId, matchId),
-          eq(matchConfirmations.playerId, playerId)
+          eq(matchConfirmations.playerId, playerId),
+          eq(matchConfirmations.isPostFinalization, isPostFinalization),
         )
       )
       .returning();
@@ -94,8 +99,9 @@ export class MatchConfirmationRepository {
    * Upsert a match confirmation (insert or update if exists)
    */
   async upsert(data: CreateMatchConfirmationData) {
-    const existing = await this.getByMatchAndPlayer(data.matchId, data.playerId);
-    
+    const isPost = data.isPostFinalization ?? false;
+    const existing = await this.getByMatchAndPlayer(data.matchId, data.playerId, isPost);
+
     if (existing) {
       return await this.update(data.matchId, data.playerId, {
         isConfirmed: data.isConfirmed,
@@ -107,19 +113,22 @@ export class MatchConfirmationRepository {
         proposedWinner: data.proposedWinner,
         proposedOutcomeTypeId: data.proposedOutcomeTypeId,
         proposedOutcomeReasonId: data.proposedOutcomeReasonId,
-      });
+        sidePosition: data.sidePosition,
+      }, isPost);
     }
-    
+
     return await this.create(data);
   }
 
   /**
-   * Reset all confirmations for a match except for the given player.
+   * Reset all pre-finalization confirmations for a match except for the given player.
    * Used when a new score proposal replaces the previous one.
    */
   async resetConfirmationsExcept(matchId: string, excludePlayerId: string) {
     const confirmations = await this.getByMatchId(matchId);
-    const toReset = confirmations.filter((c) => c.playerId !== excludePlayerId);
+    const toReset = confirmations.filter(
+      (c) => c.playerId !== excludePlayerId && !c.isPostFinalization,
+    );
 
     for (const c of toReset) {
       await db
@@ -138,10 +147,32 @@ export class MatchConfirmationRepository {
         .where(
           and(
             eq(matchConfirmations.matchId, matchId),
-            eq(matchConfirmations.playerId, c.playerId)
+            eq(matchConfirmations.playerId, c.playerId),
+            eq(matchConfirmations.isPostFinalization, false),
           )
         );
     }
+  }
+
+  /**
+   * Get post-finalization dispute responses for a match.
+   */
+  async getPostFinalizationResponses(matchId: string) {
+    return db.query.matchConfirmations.findMany({
+      where: and(
+        eq(matchConfirmations.matchId, matchId),
+        eq(matchConfirmations.isPostFinalization, true),
+      ),
+      with: { player: true },
+    });
+  }
+
+  /**
+   * Check if a player already submitted a post-finalization dispute.
+   */
+  async hasPlayerDisputedPostFinalization(matchId: string, playerId: string): Promise<boolean> {
+    const record = await this.getByMatchAndPlayer(matchId, playerId, true);
+    return record !== undefined && record !== null;
   }
 
   /**

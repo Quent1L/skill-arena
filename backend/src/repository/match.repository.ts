@@ -318,6 +318,8 @@ export class MatchRepository {
         proposedWinner: c.proposedWinner,
         proposedOutcomeTypeId: c.proposedOutcomeTypeId,
         proposedOutcomeReasonId: c.proposedOutcomeReasonId,
+        sidePosition: c.sidePosition,
+        isPostFinalization: c.isPostFinalization,
         createdAt: c.createdAt as unknown as Date,
         updatedAt: c.updatedAt as unknown as Date,
         player: c.player ? { id: c.player.id, displayName: c.player.displayName } : null,

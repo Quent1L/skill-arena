@@ -295,6 +295,41 @@ export const contestMatchSchema = z
     },
   );
 
+export const respondToMatchSchema = z
+  .object({
+    type: z.enum(["agree", "dispute"]),
+    reason: z.string().max(500).optional(),
+    proof: z.string().optional(),
+    proposedScoreA: z.number().int().min(0).optional(),
+    proposedScoreB: z.number().int().min(0).optional(),
+    proposedWinner: z.enum(["teamA", "teamB"]).nullable().optional(),
+    proposedOutcomeTypeId: z
+      .string()
+      .uuid("ID de type de résultat invalide")
+      .optional(),
+    proposedOutcomeReasonId: z
+      .string()
+      .uuid("ID de raison de résultat invalide")
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      const hasA = data.proposedScoreA !== undefined;
+      const hasB = data.proposedScoreB !== undefined;
+      return hasA === hasB;
+    },
+    { message: "proposedScoreA et proposedScoreB doivent être fournis ensemble" },
+  )
+  .refine(
+    (data) => {
+      if (data.type === "agree") return data.proposedScoreA === undefined;
+      return true;
+    },
+    { message: "Impossible de proposer un score alternatif en acceptant le résultat" },
+  );
+
+export type RespondToMatchInput = z.infer<typeof respondToMatchSchema>;
+
 export const finalizeMatchSchema = z.object({
   finalizationReason: matchFinalizationReasonSchema,
 });
@@ -348,6 +383,7 @@ export type ReportMatchResultRequestData = z.infer<
 export type ConfirmMatchRequestData = z.infer<typeof confirmMatchSchema>;
 export type ContestMatchRequestData = z.infer<typeof contestMatchSchema>;
 export type FinalizeMatchRequestData = z.infer<typeof finalizeMatchSchema>;
+export type RespondToMatchRequestData = z.infer<typeof respondToMatchSchema>;
 export type ListMatchesQuery = z.infer<typeof listMatchesQuerySchema>;
 
 export const playerMatchHistoryQuerySchema = z.object({
@@ -553,6 +589,8 @@ export interface MatchDetailConfirmation {
   proposedWinner: string | null;
   proposedOutcomeTypeId: string | null;
   proposedOutcomeReasonId: string | null;
+  sidePosition: number | null;
+  isPostFinalization: boolean;
   createdAt: Date;
   updatedAt: Date;
   player: { id: string; displayName: string } | null;

@@ -28,7 +28,7 @@
           </p>
         </div>
 
-        <!-- Score en cours de validation -->
+        <!-- Score contesté avec proposition active -->
         <div
           v-if="activeProposal"
           class="p-4 rounded-lg border-2 border-warn-400 dark:border-warn-500 bg-warn-50 dark:bg-warn-900/20 space-y-3"
@@ -60,26 +60,21 @@
           <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
           </div>
-          <!-- Proposed winner change -->
-          <div v-if="activeProposal.proposedWinner !== undefined && activeProposal.proposedWinner !== null" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+          <div v-if="activeProposal.proposedWinner" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Vainqueur proposé :</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedWinner === 'teamA' ? 'Équipe A' : 'Équipe B' }}</span>
           </div>
-
-          <!-- Proposed outcome type change -->
           <div v-if="activeProposal.proposedOutcomeType" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Type de résultat proposé :</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeType.name }}</span>
           </div>
-
-          <!-- Proposed outcome reason change -->
           <div v-if="activeProposal.proposedOutcomeReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Raison proposée :</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeReason.name }}</span>
           </div>
         </div>
 
-        <!-- Score normal (aucune contestation active) -->
+        <!-- Score normal -->
         <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
           <div class="text-center">
             <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score</p>
@@ -87,7 +82,7 @@
           </div>
         </div>
 
-        <!-- Statut des confirmations -->
+        <!-- Statut des confirmations par side -->
         <div v-if="playersWithStatus && playersWithStatus.length > 0" class="space-y-3">
           <h4 class="font-semibold text-surface-700 dark:text-surface-300">
             Confirmations des joueurs ({{ confirmedCount }}/{{ totalPlayers }})
@@ -109,15 +104,18 @@
                       'fa-clock text-surface-400'
                     ]"
                   ></i>
-                  <span class="font-medium">
-                    {{ player.displayName || 'Joueur inconnu' }}
-                  </span>
+                  <div>
+                    <span class="font-medium">{{ player.displayName || 'Joueur inconnu' }}</span>
+                    <span v-if="player.sideLabel" class="ml-2 text-xs text-surface-400 dark:text-surface-500">
+                      ({{ player.sideLabel }})
+                    </span>
+                  </div>
                 </div>
 
                 <Tag
                   v-if="player.status === 'confirmed'"
                   severity="success"
-                  value="Confirmé"
+                  value="Accepté"
                 />
                 <Tag
                   v-else-if="player.status === 'contested'"
@@ -131,7 +129,6 @@
                 />
               </div>
 
-              <!-- Détails de contestation -->
               <div
                 v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof || player.hasProposal)"
                 class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
@@ -183,31 +180,31 @@
         </div>
 
         <!-- Actions pour le joueur connecté -->
-        <div v-if="canUserConfirm" class="space-y-3">
+        <div v-if="canUserRespond" class="space-y-3">
           <Divider />
 
-          <div v-if="!userConfirmation">
+          <div v-if="!userResponse">
             <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
               {{ activeProposal ? 'Acceptez-vous le score corrigé proposé ?' : 'Confirmez-vous ce résultat ?' }}
             </p>
 
             <div class="flex gap-3">
               <Button
-                label="Confirmer"
+                label="Accepter"
                 icon="fa fa-check"
                 severity="success"
-                :loading="confirming"
-                :disabled="contesting"
-                @click="confirmMatch"
+                :loading="responding && responseIntent === 'agree'"
+                :disabled="responding"
+                @click="openResponseDialog('agree')"
                 class="flex-1"
               />
               <Button
                 label="Contester"
                 icon="fa fa-times"
                 severity="danger"
-                :loading="contesting"
-                :disabled="confirming"
-                @click="openContestDialog"
+                :loading="responding && responseIntent === 'dispute'"
+                :disabled="responding"
+                @click="openResponseDialog('dispute')"
                 class="flex-1"
               />
             </div>
@@ -218,12 +215,12 @@
               <i
                 :class="[
                   'fa text-lg',
-                  userConfirmation.isConfirmed ? 'fa-check-circle text-green-500' :
+                  userResponse.isConfirmed ? 'fa-check-circle text-green-500' :
                   'fa-times-circle text-red-500'
                 ]"
               ></i>
               <span class="text-sm text-surface-700 dark:text-surface-300">
-                Vous avez {{ userConfirmation.isConfirmed ? 'confirmé' : 'contesté' }} ce résultat
+                Vous avez {{ userResponse.isConfirmed ? 'accepté' : 'contesté' }} ce résultat
               </span>
             </div>
           </div>
@@ -232,30 +229,48 @@
     </template>
   </Card>
 
-  <!-- Dialog de contestation -->
+  <!-- Dialog de réponse -->
   <Dialog
-    v-model:visible="contestDialogVisible"
-    header="Contester le résultat"
+    v-model:visible="responseDialogVisible"
+    :header="responseIntent === 'agree' ? 'Accepter le résultat' : 'Contester le résultat'"
     :modal="true"
     :style="{ width: '480px' }"
   >
     <div class="space-y-4">
-      <p class="text-sm text-surface-600 dark:text-surface-400">
-        Vous allez être redirigé vers le formulaire de saisie pour proposer un score corrigé.
-        Vous pouvez indiquer une raison optionnelle ci-dessous.
-      </p>
+      <div v-if="responseIntent === 'dispute'" class="space-y-4">
+        <div>
+          <label for="disputeReason" class="block text-sm font-medium mb-2">
+            Raison de la contestation (optionnel)
+          </label>
+          <Textarea
+            id="disputeReason"
+            v-model="disputeReason"
+            rows="3"
+            placeholder="Expliquez pourquoi vous contestez ce résultat..."
+            class="w-full"
+          />
+        </div>
 
-      <div>
-        <label for="contestReason" class="block text-sm font-medium mb-2">
-          Raison de la contestation (optionnel)
-        </label>
-        <Textarea
-          id="contestReason"
-          v-model="contestReason"
-          rows="3"
-          placeholder="Expliquez pourquoi vous contestez ce résultat..."
-          class="w-full"
-        />
+        <div>
+          <label for="disputeProof" class="block text-sm font-medium mb-2">
+            Preuve (optionnel)
+          </label>
+          <InputText
+            id="disputeProof"
+            v-model="disputeProof"
+            placeholder="Lien vers une capture d'écran, vidéo..."
+            class="w-full"
+          />
+        </div>
+
+        <div class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm text-surface-600 dark:text-surface-400">
+          <i class="fa fa-info-circle mr-2"></i>
+          Pour proposer un score alternatif, utilisez l'option "Saisir un score corrigé" ci-dessous.
+        </div>
+      </div>
+
+      <div v-else class="text-sm text-surface-600 dark:text-surface-400">
+        Vous confirmez le résultat tel qu'il a été saisi. Cette action ne peut pas être annulée.
       </div>
     </div>
 
@@ -263,13 +278,21 @@
       <Button
         label="Annuler"
         severity="secondary"
-        @click="contestDialogVisible = false"
+        @click="responseDialogVisible = false"
       />
       <Button
-        label="Saisir le score corrigé"
+        v-if="responseIntent === 'dispute'"
+        label="Saisir un score corrigé"
         severity="warn"
         icon="fa fa-edit"
-        @click="submitContest"
+        @click="redirectToScoreForm"
+      />
+      <Button
+        :label="responseIntent === 'agree' ? 'Confirmer l\'acceptation' : 'Soumettre la contestation'"
+        :severity="responseIntent === 'agree' ? 'success' : 'danger'"
+        :icon="responseIntent === 'agree' ? 'fa fa-check' : 'fa fa-flag'"
+        :loading="responding"
+        @click="submitResponse"
       />
     </template>
   </Dialog>
@@ -279,10 +302,6 @@
 import { ref, computed } from 'vue';
 import { type ClientMatchDetail } from '@skill-arena/shared';
 import Card from 'primevue/card';
-import Button from 'primevue/button';
-import Tag from 'primevue/tag';
-import Dialog from 'primevue/dialog';
-import Textarea from 'primevue/textarea';
 import Divider from 'primevue/divider';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -290,20 +309,21 @@ import { fr } from 'date-fns/locale';
 interface Props {
   match: ClientMatchDetail;
   currentUserId?: string;
-  confirming?: boolean;
-  contesting?: boolean;
+  responding?: boolean;
 }
 
 interface Emits {
-  (event: 'confirm'): void;
-  (event: 'contest', data: { reason?: string }): void;
+  (event: 'respond', data: { type: 'agree' | 'dispute'; reason?: string; proof?: string }): void;
+  (event: 'redirectToScoreForm', data: { reason?: string }): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const contestDialogVisible = ref(false);
-const contestReason = ref('');
+const responseDialogVisible = ref(false);
+const responseIntent = ref<'agree' | 'dispute'>('agree');
+const disputeReason = ref('');
+const disputeProof = ref('');
 
 const sideA = computed(() => props.match.sides.find((s) => s.position === 1));
 const sideB = computed(() => props.match.sides.find((s) => s.position === 2));
@@ -312,11 +332,13 @@ const shouldShowConfirmation = computed(() => {
   return ['reported', 'pending_confirmation', 'disputed'].includes(props.match.status);
 });
 
-const confirmations = computed(() => props.match.confirmations ?? []);
+const confirmations = computed(() =>
+  (props.match.confirmations ?? []).filter((c) => !c.isPostFinalization),
+);
 
 const participants = computed(() => {
   return props.match.sides.flatMap((side) =>
-    side.players.map((p) => ({ playerId: p.id, displayName: p.displayName }))
+    side.players.map((p) => ({ playerId: p.id, displayName: p.displayName, sidePosition: side.position }))
   );
 });
 
@@ -349,10 +371,14 @@ const playersWithStatus = computed(() => {
       }
     }
 
+    const sidePosition = confirmation?.sidePosition ?? participant.sidePosition;
+    const sideLabel = sidePosition === 1 ? 'Équipe A' : sidePosition === 2 ? 'Équipe B' : null;
+
     return {
       playerId: participant.playerId,
       displayName: participant.displayName || 'Joueur inconnu',
       status,
+      sideLabel,
       contestationReason: confirmation?.contestationReason,
       contestationProof: confirmation?.contestationProof,
       hasProposal: confirmation?.proposedScoreA !== null && confirmation?.proposedScoreA !== undefined,
@@ -362,14 +388,14 @@ const playersWithStatus = computed(() => {
   });
 });
 
-const userConfirmation = computed(() => {
+const userResponse = computed(() => {
   if (!props.currentUserId) return null;
   const confirmation = confirmations.value.find(c => c.playerId === props.currentUserId);
   if (!confirmation || (!confirmation.isConfirmed && !confirmation.isContested)) return null;
   return confirmation;
 });
 
-const canUserConfirm = computed(() => {
+const canUserRespond = computed(() => {
   if (!props.currentUserId) return false;
   if (props.match.status === 'finalized') return false;
   return participants.value.some(p => p.playerId === props.currentUserId);
@@ -426,18 +452,25 @@ function formatDate(date?: Date | string) {
   });
 }
 
-function confirmMatch() {
-  emit('confirm');
+function openResponseDialog(intent: 'agree' | 'dispute') {
+  responseIntent.value = intent;
+  disputeReason.value = '';
+  disputeProof.value = '';
+  responseDialogVisible.value = true;
 }
 
-function openContestDialog() {
-  contestDialogVisible.value = true;
-  contestReason.value = '';
+function submitResponse() {
+  emit('respond', {
+    type: responseIntent.value,
+    reason: disputeReason.value || undefined,
+    proof: disputeProof.value || undefined,
+  });
+  responseDialogVisible.value = false;
 }
 
-function submitContest() {
-  emit('contest', { reason: contestReason.value || undefined });
-  contestDialogVisible.value = false;
+function redirectToScoreForm() {
+  emit('redirectToScoreForm', { reason: disputeReason.value || undefined });
+  responseDialogVisible.value = false;
 }
 
 function isUrl(str: string): boolean {

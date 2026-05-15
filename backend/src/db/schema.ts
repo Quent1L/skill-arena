@@ -513,13 +513,15 @@ export const matchConfirmations = pgTable(
       () => outcomeReasons.id,
       { onDelete: "set null" },
     ),
+    sidePosition: integer("side_position"),
+    isPostFinalization: boolean("is_post_finalization").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [unique().on(table.matchId, table.playerId)],
+  (table) => [unique("match_confirmations_match_id_player_id_post_unique").on(table.matchId, table.playerId, table.isPostFinalization)],
 );
 
 // ********************************************************************

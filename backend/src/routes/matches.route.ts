@@ -6,6 +6,7 @@ import {
   reportMatchResultSchema,
   confirmMatchSchema,
   contestMatchSchema,
+  respondToMatchSchema,
   finalizeMatchSchema,
   listMatchCardsQuerySchema,
   validateMatchSchema,
@@ -137,6 +138,22 @@ matches.post(
     const data = c.req.valid("json");
 
     const match = await matchService.contestMatch(id, data, appUserId);
+
+    return c.json(match);
+  }
+);
+
+// POST /matches/:id/respond - Unified confirm/dispute response
+matches.post(
+  "/:id/respond",
+  requireAuth,
+  zValidator("json", respondToMatchSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
+
+    const match = await matchService.respondToMatch(id, data, appUserId);
 
     return c.json(match);
   }
