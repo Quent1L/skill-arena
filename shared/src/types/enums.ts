@@ -45,8 +45,12 @@ export const matchFinalizationReasonEnum = [
   "consensus",
   "auto_validation",
   "admin_override",
+  "trust_score",
 ] as const;
 export type MatchFinalizationReason = (typeof matchFinalizationReasonEnum)[number];
+
+export const validationModeEnum = ["auto", "strict", "admin"] as const;
+export type ValidationMode = (typeof validationModeEnum)[number];
 
 export const matchTeamSideEnum = ["A", "B"] as const;
 export type MatchTeamSide = (typeof matchTeamSideEnum)[number];
@@ -76,6 +80,7 @@ export const tournamentStatusSchema = z.enum(tournamentStatusEnum);
 export const tournamentAdminRoleSchema = z.enum(tournamentAdminRoleEnum);
 export const matchStatusSchema = z.enum(matchStatusEnum);
 export const matchFinalizationReasonSchema = z.enum(matchFinalizationReasonEnum);
+export const validationModeSchema = z.enum(validationModeEnum);
 export const matchTeamSideSchema = z.enum(matchTeamSideEnum);
 export const bracketTypeSchema = z.enum(bracketTypeEnum);
 export const seedingTypeSchema = z.enum(seedingTypeEnum);

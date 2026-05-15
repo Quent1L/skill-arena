@@ -9,6 +9,16 @@
 
     <template #content>
       <div class="space-y-4">
+        <!-- Mode de validation banner -->
+        <div
+          v-if="match.tournament?.validationMode"
+          class="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+          :class="validationModeBannerClass"
+        >
+          <i :class="['fa', validationModeIcon]" />
+          <span>{{ validationModeMessage }}</span>
+        </div>
+
         <!-- Infos de saisie -->
         <div class="bg-surface-50 dark:bg-surface-800 p-3 rounded-lg text-center text-sm text-surface-500 dark:text-surface-400">
           <p>
@@ -376,6 +386,32 @@ const timeRemaining = computed(() => {
     locale: fr,
     addSuffix: true
   });
+});
+
+const validationModeMessage = computed(() => {
+  const mode = props.match.tournament?.validationMode
+  const hours = props.match.tournament?.validationTimerHours ?? 24
+  if (mode === 'auto')
+    return `Ce score sera automatiquement validé dans ${hours}h si non contesté. Trust Score actif.`
+  if (mode === 'strict') return "Ce score doit être confirmé par au moins un adversaire."
+  if (mode === 'admin') return "Ce score doit être validé par un administrateur du tournoi."
+  return ''
+});
+
+const validationModeBannerClass = computed(() => {
+  const mode = props.match.tournament?.validationMode
+  if (mode === 'auto') return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+  if (mode === 'strict') return 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+  if (mode === 'admin') return 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+  return ''
+});
+
+const validationModeIcon = computed(() => {
+  const mode = props.match.tournament?.validationMode
+  if (mode === 'auto') return 'fa-bolt'
+  if (mode === 'strict') return 'fa-shield-halved'
+  if (mode === 'admin') return 'fa-crown'
+  return 'fa-circle-info'
 });
 
 function formatDate(date?: Date | string) {

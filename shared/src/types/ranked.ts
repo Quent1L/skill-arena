@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validationModeSchema } from "./enums";
 import {
   baseSeasonFormSchema,
   baseSeasonUpdateFormSchema,
@@ -107,11 +108,11 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
 // Étend baseSeasonFormSchema (champs communs avec les tournois) en ajoutant
 // les champs spécifiques aux saisons ranked (config MMR).
 const rankedSeasonExtraFields = {
-  baseMmr: z.number().int().min(100).max(5000).default(1000),
-  kFactor: z.number().int().min(8).max(128).default(32),
-  placementMatches: z.number().int().min(1).max(20).default(5),
-  usePreviousMmr: z.boolean().default(false),
-  allowAsymmetricMatches: z.boolean().default(false),
+  baseMmr: z.number().int().min(100).max(5000),
+  kFactor: z.number().int().min(8).max(128),
+  placementMatches: z.number().int().min(1).max(20),
+  usePreviousMmr: z.boolean(),
+  allowAsymmetricMatches: z.boolean(),
   sourceTierSeasonId: z.string().uuid().nullable().optional(),
 };
 
@@ -190,6 +191,8 @@ export const createRankedSeasonSchema = z
     maxScore: z.number().int().min(0).nullable().optional(),
     // Ranked-specific config
     ...rankedSeasonExtraFields,
+    validationMode: validationModeSchema.default("strict").optional(),
+    validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
   })
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError)
@@ -227,6 +230,8 @@ export const updateRankedSeasonSchema = z.object({
   usePreviousMmr: z.boolean().optional(),
   allowAsymmetricMatches: z.boolean().optional(),
   sourceTierSeasonId: z.string().uuid().nullable().optional(),
+  validationMode: validationModeSchema.optional(),
+  validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
 // ============================================

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validationModeSchema } from "./enums";
 
 // ============================================
 // Schéma de base partagé entre tournois et saisons ranked
@@ -29,10 +30,12 @@ export const baseSeasonFormSchema = z.object({
     .min(1, "La taille minimale est 1"),
   rulesId: z.string().uuid().nullable().optional(),
   organizationId: z.string().uuid().nullable().optional(),
-  scoreEnabled: z.boolean().default(true).optional(),
+  scoreEnabled: z.boolean().optional(),
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
-  allowDraw: z.boolean().default(true).optional(),
+  allowDraw: z.boolean().optional(),
+  validationMode: validationModeSchema.optional(),
+  validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
 export const baseSeasonUpdateFormSchema = baseSeasonFormSchema.partial();

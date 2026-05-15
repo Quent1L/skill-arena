@@ -169,6 +169,11 @@
             <ScoreConstraintsSection :editable-fields="editableFields" />
           </div>
 
+          <!-- Mode de validation -->
+          <div class="mb-6">
+            <ValidationModeSection :editable-fields="editableFields" />
+          </div>
+
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
@@ -208,6 +213,7 @@ import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'
 import GeneralInfoSection from '@/components/forms/sections/GeneralInfoSection.vue'
 import ScoreConstraintsSection from '@/components/forms/sections/ScoreConstraintsSection.vue'
+import ValidationModeSection from '@/components/forms/sections/ValidationModeSection.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -304,6 +310,8 @@ const onSubmit = handleSubmit(async (values) => {
               'rulesId',
               'scoreEnabled',
               'organizationId',
+              'validationMode',
+              'validationTimerHours',
             ]
 
       const updateData = Object.entries(values).reduce(
@@ -358,6 +366,8 @@ onMounted(async () => {
         scoreEnabled: currentTournament.value.scoreEnabled ?? true,
         rulesId: currentTournament.value.rulesId ?? null,
         organizationId: currentTournament.value.organizationId ?? null,
+        validationMode: currentTournament.value.validationMode ?? 'strict',
+        validationTimerHours: currentTournament.value.validationTimerHours ?? null,
       })
     }
   } else {
@@ -375,6 +385,8 @@ onMounted(async () => {
       pointPerLoss: 0,
       allowDraw: true,
       scoreEnabled: true,
+      validationMode: 'strict',
+      validationTimerHours: null,
     })
   }
 })

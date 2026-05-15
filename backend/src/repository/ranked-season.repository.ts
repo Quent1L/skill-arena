@@ -26,6 +26,8 @@ export interface CreateRankedSeasonData {
   maxScore?: number | null;
   organizationId?: string | null;
   allowDraw?: boolean;
+  validationMode?: string;
+  validationTimerHours?: number | null;
   createdBy: string;
 }
 
@@ -73,6 +75,8 @@ export class RankedSeasonRepository {
           createdBy: tournamentData.createdBy,
           status: "draft",
           allowDraw: tournamentData.allowDraw ?? true,
+          validationMode: (tournamentData.validationMode as "auto" | "strict" | "admin") ?? "strict",
+          validationTimerHours: tournamentData.validationTimerHours ?? null,
         })
         .returning();
 

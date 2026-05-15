@@ -63,7 +63,7 @@ export interface UpdateMatchData {
   status?: MatchStatus;
   reportedBy?: string;
   reportProof?: string;
-  confirmationDeadline?: Date;
+  confirmationDeadline?: Date | null;
   finalizedAt?: Date;
   finalizedBy?: string;
   finalizationReason?: MatchFinalizationReason;
@@ -295,6 +295,8 @@ export class MatchRepository {
             mode: match.tournament.mode,
             teamMode: match.tournament.teamMode,
             scoreEnabled: match.tournament.scoreEnabled ?? true,
+            validationMode: match.tournament.validationMode,
+            validationTimerHours: match.tournament.validationTimerHours,
           }
         : undefined,
       outcomeType: match.outcomeType

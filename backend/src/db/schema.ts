@@ -166,7 +166,10 @@ export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
   "consensus",
   "auto_validation",
   "admin_override",
+  "trust_score",
 ]);
+
+export const validationModeEnum = pgEnum("validation_mode", ["auto", "strict", "admin"]);
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
@@ -240,6 +243,7 @@ export const appUsers = pgTable("app_users", {
   displayName: text("display_name").notNull(),
   shortName: text("short_name").notNull(),
   role: userRoleEnum("role").notNull().default("player"),
+  trustScoreCount: integer("trust_score_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
@@ -292,6 +296,8 @@ export const tournaments = pgTable("tournaments", {
   }),
   minScore: integer("min_score"),
   maxScore: integer("max_score"),
+  validationMode: validationModeEnum("validation_mode").notNull().default("strict"),
+  validationTimerHours: integer("validation_timer_hours"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => appUsers.id, { onDelete: "restrict" }),

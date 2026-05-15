@@ -210,7 +210,14 @@
               </div>
               <div v-if="match.result?.finalizationReason">
                 <span class="text-surface-500 dark:text-surface-400">Finalisation :</span>
-                <span class="ml-2 font-semibold">{{ getFinalizationReasonLabel(match.result.finalizationReason) }}</span>
+                <span class="ml-2 font-semibold">
+                  <template v-if="match.result.finalizationReason === 'trust_score'">
+                    Trust Score de {{ match.result.reporter?.displayName ?? 'inconnu' }}
+                  </template>
+                  <template v-else>
+                    {{ getFinalizationReasonLabel(match.result.finalizationReason) }}
+                  </template>
+                </span>
               </div>
             </div>
           </div>
@@ -474,6 +481,7 @@ function getFinalizationReasonLabel(reason: string): string {
     consensus: 'Consensus',
     auto_validation: 'Validation automatique',
     admin_override: 'Décision administrative',
+    trust_score: 'Trust Score',
   }
   return labels[reason] || reason
 }

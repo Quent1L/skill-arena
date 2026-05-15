@@ -47,6 +47,8 @@ export class RankedSeasonService {
         minScore: input.minScore ?? null,
         maxScore: input.maxScore ?? null,
         allowDraw: input.allowDraw ?? true,
+        validationMode: input.validationMode,
+        validationTimerHours: input.validationTimerHours,
         createdBy,
       },
       {
@@ -128,7 +130,9 @@ export class RankedSeasonService {
       input.scoreEnabled !== undefined ||
       input.minScore !== undefined ||
       input.maxScore !== undefined ||
-      input.allowDraw !== undefined
+      input.allowDraw !== undefined ||
+      input.validationMode !== undefined ||
+      input.validationTimerHours !== undefined
     ) {
       await tournamentRepository.update(id, {
         name: input.name,
@@ -142,6 +146,8 @@ export class RankedSeasonService {
         ...(input.minScore !== undefined && { minScore: input.minScore }),
         ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
         ...(input.allowDraw !== undefined && { allowDraw: input.allowDraw }),
+        ...(input.validationMode !== undefined && { validationMode: input.validationMode }),
+        ...(input.validationTimerHours !== undefined && { validationTimerHours: input.validationTimerHours }),
       });
     }
 

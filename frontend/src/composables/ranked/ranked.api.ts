@@ -35,6 +35,8 @@ export type RankedSeason = {
   minScore?: number | null
   maxScore?: number | null
   rulesId?: string | null
+  validationMode?: string | null
+  validationTimerHours?: number | null
   rankedConfig?: {
     baseMmr: number
     kFactor: number

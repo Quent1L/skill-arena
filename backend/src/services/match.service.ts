@@ -45,7 +45,8 @@ import { matchFinalizationOrchestrator } from './match-finalization.orchestrator
 
 type TournamentFromRepository = Awaited<ReturnType<typeof matchRepository.getTournament>>
 
-const CONFIRMATION_DEADLINE_HOURS = 72
+const DEFAULT_AUTO_VALIDATION_HOURS = 24
+const TRUST_SCORE_THRESHOLD = 10
 
 export class MatchService {
   async canManageMatches(tournamentId: string, userId: string): Promise<boolean> {
@@ -56,7 +57,7 @@ export class MatchService {
     const tournament = await this.getAndValidateTournament(input.tournamentId)
     await this.runCreateValidations(input, createdBy, tournament)
 
-    const matchId = await this.createMatchRecord(input, createdBy)
+    const matchId = await this.createMatchRecord(input, createdBy, tournament)
 
     if (input.status === 'reported') {
       return await this.handleReportedCreation(matchId, input, createdBy, tournament)
@@ -120,6 +121,16 @@ export class MatchService {
         isConfirmed: true,
         isContested: false,
       })
+
+      if (
+        tournament.validationMode === 'auto' &&
+        (creator?.trustScoreCount ?? 0) >= TRUST_SCORE_THRESHOLD
+      ) {
+        await this.finalizeMatch(matchId, { finalizationReason: 'trust_score' }, createdBy)
+        await this.triggerStandingsRecalcIfNeeded(input.tournamentId, matchId)
+        await matchNotificationBuilder.notifyMatchCreated(matchId, createdBy, tournament.name)
+        return await matchRepository.getById(matchId)
+      }
     }
 
     await this.checkAndFinalizeMatch(matchId)
@@ -199,7 +210,11 @@ export class MatchService {
     await matchInputValidator.validateMatchInput(input, tournament)
   }
 
-  private async createMatchRecord(input: CreateMatchInput, createdBy: string) {
+  private async createMatchRecord(
+    input: CreateMatchInput,
+    createdBy: string,
+    tournament?: TournamentFromRepository,
+  ) {
     const matchData: CreateMatchData = {
       tournamentId: input.tournamentId,
       teamAId: input.teamAId,
@@ -218,7 +233,7 @@ export class MatchService {
       matchData.outcomeTypeId = input.outcomeTypeId
       matchData.outcomeReasonId = input.outcomeReasonId
       matchData.reportedBy = createdBy
-      matchData.confirmationDeadline = this.buildConfirmationDeadline()
+      matchData.confirmationDeadline = this.getDeadlineForTournament(tournament) ?? undefined
       const winner = this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winner)
       if (winner !== undefined) matchData.winner = winner
     }
@@ -381,7 +396,7 @@ export class MatchService {
       )
 
       updateData.reportedBy = updatedBy
-      updateData.confirmationDeadline = this.buildConfirmationDeadline()
+      updateData.confirmationDeadline = this.getDeadlineForTournament(tournament)
     }
     return updateData
   }
@@ -429,8 +444,9 @@ export class MatchService {
     await this.validateReportStatus(match.status)
     await this.validateScoreConstraints(match.tournamentId, input)
 
+    const tournament = await matchRepository.getTournament(match.tournamentId)
     const updateData = this.buildReportUpdateData(input, match, reportedBy)
-    updateData.confirmationDeadline = this.buildConfirmationDeadline()
+    updateData.confirmationDeadline = this.getDeadlineForTournament(tournament)
 
     const updatedMatch = await matchRepository.update(id, updateData)
 
@@ -440,6 +456,14 @@ export class MatchService {
       isConfirmed: true,
       isContested: false,
     })
+
+    if (tournament?.validationMode === 'auto') {
+      const reporter = await userRepository.getById(reportedBy)
+      if ((reporter?.trustScoreCount ?? 0) >= TRUST_SCORE_THRESHOLD) {
+        await this.finalizeMatch(id, { finalizationReason: 'trust_score' }, reportedBy)
+        return await matchRepository.getById(id)
+      }
+    }
 
     await this.checkAndFinalizeMatch(id)
 
@@ -571,13 +595,19 @@ export class MatchService {
       proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
     })
 
+    const originalReporter = match.result?.reportedBy
+    if (originalReporter) {
+      await userRepository.resetTrustScore(originalReporter)
+    }
+
     if (hasScoreProposal) {
       await notificationService.deleteActionsByMatchIdForUser(id, contestedBy)
       await matchConfirmationRepository.resetConfirmationsExcept(id, contestedBy)
 
+      const tournament = await matchRepository.getTournament(match.tournamentId)
       await matchRepository.update(id, {
         status: 'pending_confirmation',
-        confirmationDeadline: this.buildConfirmationDeadline(),
+        confirmationDeadline: this.getDeadlineForTournament(tournament),
       })
 
       this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
@@ -746,18 +776,11 @@ export class MatchService {
     const match = await matchRepository.getById(matchId)
     if (!match) return
 
-    if (match.status === 'finalized' || match.status === 'disputed') {
-      return
-    }
-
-    if (!['reported', 'pending_confirmation'].includes(match.status)) {
-      return
-    }
+    if (match.status === 'finalized' || match.status === 'disputed') return
+    if (!['reported', 'pending_confirmation'].includes(match.status)) return
 
     const participants = await matchRepository.getParticipationsByMatchId(matchId)
-    const totalPlayers = participants.length
-
-    if (totalPlayers === 0) return
+    if (participants.length === 0) return
 
     const confirmations = await matchConfirmationRepository.getByMatchId(matchId)
 
@@ -765,6 +788,9 @@ export class MatchService {
       await matchRepository.update(matchId, { status: 'disputed' })
       return
     }
+
+    const tournament = await matchRepository.getTournament(match.tournamentId)
+    if (tournament?.validationMode === 'admin') return
 
     const activeProposal = await matchConfirmationRepository.getActiveProposal(matchId)
     const proposerPlayerId =
@@ -774,22 +800,20 @@ export class MatchService {
       c.playerId === proposerPlayerId ? { ...c, isConfirmed: true } : c,
     )
 
-    const confirmedCount = effectiveConfirmations.filter((c) => c.isConfirmed).length
-    const hasaMajority = confirmedCount > totalPlayers / 2
+    // Current score submitter: proposer (pending_confirmation) or original reporter
+    const currentReporter =
+      match.status === 'pending_confirmation'
+        ? proposerPlayerId
+        : match.result?.reportedBy
+    const reporterSide = participants.find((p) => p.playerId === currentReporter)?.teamSide
 
-    const teamAParticipants = participants.filter((p) => p.teamSide === 'A')
-    const teamBParticipants = participants.filter((p) => p.teamSide === 'B')
+    const opponentConfirmed = effectiveConfirmations.some((c) => {
+      if (!c.isConfirmed || c.isContested) return false
+      const side = participants.find((p) => p.playerId === c.playerId)?.teamSide
+      return reporterSide ? side !== reporterSide : c.playerId !== currentReporter
+    })
 
-    const teamAConfirmed = effectiveConfirmations.some(
-      (c) => c.isConfirmed && teamAParticipants.some((p) => p.playerId === c.playerId),
-    )
-    const teamBConfirmed = effectiveConfirmations.some(
-      (c) => c.isConfirmed && teamBParticipants.some((p) => p.playerId === c.playerId),
-    )
-
-    const bothTeamsConfirmed = teamAConfirmed && teamBConfirmed
-
-    if (hasaMajority && bothTeamsConfirmed) {
+    if (opponentConfirmed) {
       await this.applyActiveProposal(matchId, activeProposal)
       await this.finalizeMatch(matchId, { finalizationReason: 'consensus' })
     }
@@ -852,6 +876,14 @@ export class MatchService {
       match.tournamentId,
       backgroundTasks,
     )
+
+    if (['consensus', 'auto_validation', 'trust_score'].includes(input.finalizationReason)) {
+      const reportedBy = match.result?.reportedBy
+      if (reportedBy) {
+        await userRepository.incrementTrustScore(reportedBy)
+      }
+    }
+
     return result
   }
 
@@ -957,10 +989,17 @@ export class MatchService {
     return null
   }
 
-  private buildConfirmationDeadline(): Date {
+  private buildConfirmationDeadline(hours: number): Date {
     const deadline = new Date()
-    deadline.setHours(deadline.getHours() + CONFIRMATION_DEADLINE_HOURS)
+    deadline.setHours(deadline.getHours() + hours)
     return deadline
+  }
+
+  private getDeadlineForTournament(tournament: TournamentFromRepository): Date | null {
+    if (tournament?.validationMode !== 'auto') return null
+    return this.buildConfirmationDeadline(
+      tournament.validationTimerHours ?? DEFAULT_AUTO_VALIDATION_HOURS,
+    )
   }
 
   private async recomputeProvisionalIfRanked(tournamentId: string): Promise<void> {

@@ -3,9 +3,11 @@ import {
   type TournamentMode,
   type TeamMode,
   type TournamentStatus,
+  type ValidationMode,
   tournamentModeSchema,
   teamModeSchema,
   tournamentStatusSchema,
+  validationModeSchema,
 } from "./enums";
 import {
   baseSeasonFormSchema,
@@ -53,6 +55,8 @@ export interface BaseTournament {
   } | null;
   minScore?: number | null;
   maxScore?: number | null;
+  validationMode: ValidationMode;
+  validationTimerHours?: number | null;
   organizationId?: string | null;
   createdBy: string; // uuid
   createdAt: string; // ISO date string
@@ -79,6 +83,8 @@ export interface CreateTournamentInput {
   disciplineId?: string;
   minScore?: number | null;
   maxScore?: number | null;
+  validationMode?: ValidationMode;
+  validationTimerHours?: number | null;
   createdBy: string; // uuid
 }
 
@@ -104,6 +110,8 @@ export interface UpdateTournamentInput {
   rulesId?: string | null;
   minScore?: number | null;
   maxScore?: number | null;
+  validationMode?: ValidationMode;
+  validationTimerHours?: number | null;
 }
 
 export interface ChangeTournamentStatusInput {
@@ -132,24 +140,14 @@ export interface TournamentWithStats extends BaseTournament {
 export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
-  maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),
-  maxTimesWithSamePartner: z
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(2)
-    .optional(),
-  maxTimesWithSameOpponent: z
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(2)
-    .optional(),
-  pointPerVictory: z.number().int().min(0).default(3).optional(),
-  pointPerDraw: z.number().int().min(0).default(1).optional(),
-  pointPerLoss: z.number().int().min(0).default(0).optional(),
+  maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
+  maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
+  maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
+  pointPerVictory: z.number().int().min(0).optional(),
+  pointPerDraw: z.number().int().min(0).optional(),
+  pointPerLoss: z.number().int().min(0).optional(),
+  validationMode: validationModeSchema.optional(),
+  validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
 // Schéma pour la mise à jour sans validations cross-field
@@ -164,6 +162,8 @@ export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
     pointPerDraw: z.number().int().min(0).optional(),
     pointPerLoss: z.number().int().min(0).optional(),
     status: tournamentStatusSchema.optional(),
+    validationMode: validationModeSchema.optional(),
+    validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
   },
 );
 
@@ -222,6 +222,8 @@ const baseTournamentDataSchema = z.object({
   minScore: z.number().int().min(0).nullable().optional(),
   maxScore: z.number().int().min(0).nullable().optional(),
   organizationId: z.string().uuid().optional().nullable(),
+  validationMode: validationModeSchema.default("strict").optional(),
+  validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
 // Schéma pour l'API (validation des données d'entrée - SANS createdBy)
@@ -279,6 +281,8 @@ export const updateTournamentSchema = z
     minScore: z.number().int().min(0).nullable().optional(),
     maxScore: z.number().int().min(0).nullable().optional(),
     organizationId: z.string().uuid().optional().nullable(),
+    validationMode: validationModeSchema.optional(),
+    validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
   })
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError)

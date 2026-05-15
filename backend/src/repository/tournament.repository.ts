@@ -5,6 +5,7 @@ import {
   type TournamentMode,
   type TeamMode,
   type TournamentStatus,
+  type ValidationMode,
 } from "@skill-arena/shared/types/index";
 import { handleDatabaseError } from "../utils/db-errors";
 
@@ -28,6 +29,8 @@ export interface CreateTournamentData {
   disciplineId?: string;
   minScore?: number | null;
   maxScore?: number | null;
+  validationMode?: ValidationMode;
+  validationTimerHours?: number | null;
   createdBy: string;
   status: TournamentStatus;
 }
@@ -53,6 +56,8 @@ export interface UpdateTournamentData {
   rulesId?: string | null;
   minScore?: number | null;
   maxScore?: number | null;
+  validationMode?: ValidationMode;
+  validationTimerHours?: number | null;
 }
 
 export interface TournamentFilters {
@@ -100,6 +105,10 @@ export class TournamentRepository {
       }),
       ...(data.minScore !== undefined && { minScore: data.minScore }),
       ...(data.maxScore !== undefined && { maxScore: data.maxScore }),
+      ...(data.validationMode !== undefined && { validationMode: data.validationMode }),
+      ...(data.validationTimerHours !== undefined && {
+        validationTimerHours: data.validationTimerHours,
+      }),
     };
 
     try {

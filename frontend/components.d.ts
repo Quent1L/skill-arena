@@ -101,6 +101,7 @@ declare module 'vue' {
     TournamentInfoGrid: typeof import('./src/components/tournament/TournamentInfoGrid.vue')['default']
     TournamentParticipantsList: typeof import('./src/components/tournament/TournamentParticipantsList.vue')['default']
     ValidationMessages: typeof import('./src/components/match/ValidationMessages.vue')['default']
+    ValidationModeSection: typeof import('./src/components/forms/sections/ValidationModeSection.vue')['default']
   }
   export interface GlobalDirectives {
     Tooltip: typeof import('primevue/tooltip')['default']

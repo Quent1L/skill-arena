@@ -72,6 +72,8 @@ export interface MatchModel extends Match {
     teamMode: string;
     mode: string;
     scoreEnabled?: boolean;
+    validationMode?: string;
+    validationTimerHours?: number | null;
   };
   teamA?: {
     id: string;
@@ -574,6 +576,8 @@ export interface ClientMatchDetail {
     mode: string;
     teamMode: string;
     scoreEnabled: boolean;
+    validationMode?: string;
+    validationTimerHours?: number | null;
   };
   outcomeType?: { id: string; name: string } | null;
   outcomeReason?: { id: string; name: string } | null;

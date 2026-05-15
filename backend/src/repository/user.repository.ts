@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { appUsers } from "../db/schema";
 
@@ -21,6 +21,17 @@ export class UserRepository {
   async createAppUser(appUser: typeof appUsers.$inferInsert) {
     const [createdUser] = await db.insert(appUsers).values(appUser).returning();
     return createdUser;
+  }
+
+  async incrementTrustScore(userId: string): Promise<void> {
+    await db
+      .update(appUsers)
+      .set({ trustScoreCount: sql`${appUsers.trustScoreCount} + 1` })
+      .where(eq(appUsers.id, userId))
+  }
+
+  async resetTrustScore(userId: string): Promise<void> {
+    await db.update(appUsers).set({ trustScoreCount: 0 }).where(eq(appUsers.id, userId))
   }
 
   async updateAppUser(id: string, data: { displayName?: string; shortName?: string }) {

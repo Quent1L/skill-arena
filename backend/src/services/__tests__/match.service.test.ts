@@ -85,7 +85,10 @@ beforeEach(() => {
       externalId: "",
       displayName: "",
       role: "player",
+      trustScoreCount: 0,
     }) as any;
+  usrRepo.incrementTrustScore = async () => undefined;
+  usrRepo.resetTrustScore = async () => undefined;
 
   // Mock match confirmation repository
   confRepo =
@@ -1626,7 +1629,8 @@ describe("MatchService - Edge Cases", () => {
         teamBId: "B",
       }) as any;
     repo.isUserInMatch = async () => true;
-    repo.getTournament = async () => ({ id: "t-1", allowDraw: true }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", allowDraw: true, validationMode: "auto", validationTimerHours: null }) as any;
 
     let capturedData: any = null;
     repo.update = async (_id: string, data: UpdateMatchData) => {
@@ -1644,12 +1648,12 @@ describe("MatchService - Edge Cases", () => {
     expect(capturedData.confirmationDeadline).toBeTruthy();
     expect(capturedData.confirmationDeadline).toBeInstanceOf(Date);
 
-    // Deadline should be ~72 hours from now
+    // Deadline should be ~24 hours from now (AUTO mode default)
     const now = new Date();
     const deadline = new Date(capturedData.confirmationDeadline);
     const hoursDiff = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
-    expect(hoursDiff).toBeGreaterThan(71);
-    expect(hoursDiff).toBeLessThan(73);
+    expect(hoursDiff).toBeGreaterThan(23);
+    expect(hoursDiff).toBeLessThan(25);
   });
 
   it("should create match with reported status and auto-confirm creator", async () => {
@@ -1800,6 +1804,8 @@ describe("MatchService - Score proposal contest", () => {
         tournamentId: "t-1",
         status: "reported",
       }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", validationMode: "auto", validationTimerHours: null }) as any;
     repo.isUserInMatch = async () => true;
     repo.getParticipationsByMatchId = async () =>
       [

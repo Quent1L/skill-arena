@@ -114,6 +114,11 @@
             <ScoreConstraintsSection />
           </div>
 
+          <!-- Mode de validation -->
+          <div class="mb-6">
+            <ValidationModeSection />
+          </div>
+
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
@@ -153,6 +158,7 @@ import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'
 import GeneralInfoSection from '@/components/forms/sections/GeneralInfoSection.vue'
 import ScoreConstraintsSection from '@/components/forms/sections/ScoreConstraintsSection.vue'
+import ValidationModeSection from '@/components/forms/sections/ValidationModeSection.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -238,6 +244,8 @@ onMounted(async () => {
         usePreviousMmr: s.rankedConfig?.usePreviousMmr ?? false,
         allowAsymmetricMatches: s.rankedConfig?.allowAsymmetricMatches ?? false,
         sourceTierSeasonId: s.rankedConfig?.sourceTierSeasonId ?? null,
+        validationMode: s.validationMode ?? 'strict',
+        validationTimerHours: s.validationTimerHours ?? null,
       })
     }
   } else {
@@ -251,6 +259,8 @@ onMounted(async () => {
       allowAsymmetricMatches: false,
       scoreEnabled: true,
       allowDraw: true,
+      validationMode: 'strict',
+      validationTimerHours: null,
     })
   }
 })

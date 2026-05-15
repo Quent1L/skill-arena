@@ -12,7 +12,7 @@ export type CreateResultData = {
   reportProof?: string;
   finalizedBy?: string;
   finalizedAt?: Date;
-  finalizationReason?: "consensus" | "auto_validation" | "admin_override";
+  finalizationReason?: "consensus" | "auto_validation" | "admin_override" | "trust_score";
 };
 
 export type UpdateResultData = Partial<CreateResultData>;
@@ -94,7 +94,7 @@ export class MatchResultRepository {
   async markAsFinalized(
     matchId: string,
     finalizedBy: string,
-    finalizationReason: "consensus" | "auto_validation" | "admin_override"
+    finalizationReason: "consensus" | "auto_validation" | "admin_override" | "trust_score"
   ) {
     return await this.update(matchId, {
       finalizedBy,

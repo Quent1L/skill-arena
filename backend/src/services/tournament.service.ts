@@ -146,6 +146,8 @@ export class TournamentService {
       disciplineId: input.disciplineId,
       minScore: input.minScore ?? null,
       maxScore: input.maxScore ?? null,
+      validationMode: input.validationMode ?? "strict",
+      validationTimerHours: input.validationTimerHours ?? null,
       createdBy: input.createdBy,
       status: "draft",
     });
@@ -252,6 +254,8 @@ export class TournamentService {
       "rulesId",
       "scoreEnabled",
       "organizationId",
+      "validationMode",
+      "validationTimerHours",
     ]);
     const attemptedFields = Object.keys(input);
     const invalidFields = attemptedFields.filter(
