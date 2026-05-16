@@ -3,6 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <RouterLink to="/" class="flex items-center cursor-pointer">
+          <i v-if="showBackButton" class="fa fa-chevron-left text-lg mt-2 text-gray-400"></i>
           <SkolLogo height="50" width="150"></SkolLogo>
         </RouterLink>
 
@@ -60,8 +61,9 @@
 
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useViewport } from '@/composables/useViewport'
 import type { MenuItem } from 'primevue/menuitem'
 import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
@@ -70,8 +72,13 @@ import PlayerAvatar from './PlayerAvatar.vue'
 
 const appVersion = __APP_VERSION__
 
+const route = useRoute()
 const router = useRouter()
 const { currentUser, appUser, isAuthenticated, logout, kioskSettingsLocked } = useAuth()
+const { isMobile } = useViewport()
+const showBackButton = computed(() =>
+  isMobile.value && (route.name === 'tournament-detail' || route.name === 'tournament-tab')
+)
 const menu = ref()
 const notifDropdown = useTemplateRef('notifDropdown')
 
