@@ -421,6 +421,7 @@ const validationModeMessage = computed(() => {
     return `Ce score sera automatiquement validé dans ${hours}h si non contesté. Trust Score actif.`
   if (mode === 'strict') return "Ce score doit être confirmé par au moins un adversaire."
   if (mode === 'admin') return "Ce score doit être validé par un administrateur du tournoi."
+  if (mode === 'none') return "Les scores sont validés immédiatement. Contestation possible dans les 7 jours."
   return ''
 });
 
@@ -429,6 +430,7 @@ const validationModeBannerClass = computed(() => {
   if (mode === 'auto') return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
   if (mode === 'strict') return 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
   if (mode === 'admin') return 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
+  if (mode === 'none') return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
   return ''
 });
 
@@ -437,6 +439,7 @@ const validationModeIcon = computed(() => {
   if (mode === 'auto') return 'fa-bolt'
   if (mode === 'strict') return 'fa-shield-halved'
   if (mode === 'admin') return 'fa-crown'
+  if (mode === 'none') return 'fa-eye-slash'
   return 'fa-circle-info'
 });
 

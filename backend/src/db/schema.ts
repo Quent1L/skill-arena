@@ -169,7 +169,7 @@ export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
   "trust_score",
 ]);
 
-export const validationModeEnum = pgEnum("validation_mode", ["auto", "strict", "admin"]);
+export const validationModeEnum = pgEnum("validation_mode", ["auto", "strict", "admin", "none"]);
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 

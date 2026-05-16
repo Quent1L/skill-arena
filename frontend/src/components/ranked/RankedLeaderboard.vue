@@ -7,7 +7,7 @@
 
     <template v-else>
       <!-- Toggle -->
-      <div class="flex justify-center mb-4">
+      <div v-if="props.showModeToggle !== false" class="flex justify-center mb-4">
         <SelectButton
           v-model="leaderboardMode"
           :options="modeOptions"
@@ -122,6 +122,7 @@ const props = defineProps<{
   loading?: boolean
   provisionalLoading?: boolean
   currentUserId?: string
+  showModeToggle?: boolean
 }>()
 
 const emit = defineEmits<{

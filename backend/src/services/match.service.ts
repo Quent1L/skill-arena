@@ -123,6 +123,13 @@ export class MatchService {
         isContested: false,
       })
 
+      if (tournament.validationMode === 'none') {
+        await this.finalizeMatch(matchId, { finalizationReason: 'auto_validation' }, createdBy)
+        await this.triggerStandingsRecalcIfNeeded(input.tournamentId, matchId)
+        await matchNotificationBuilder.notifyMatchCreated(matchId, createdBy, tournament.name)
+        return await matchRepository.getById(matchId)
+      }
+
       if (
         tournament.validationMode === 'auto' &&
         (creator?.trustScoreCount ?? 0) >= TRUST_SCORE_THRESHOLD
@@ -455,6 +462,11 @@ export class MatchService {
       isContested: false,
     })
 
+    if (tournament?.validationMode === 'none') {
+      await this.finalizeMatch(id, { finalizationReason: 'auto_validation' }, reportedBy)
+      return await matchRepository.getById(id)
+    }
+
     if (tournament?.validationMode === 'auto') {
       const reporter = await userRepository.getById(reportedBy)
       if ((reporter?.trustScoreCount ?? 0) >= TRUST_SCORE_THRESHOLD) {
@@ -660,7 +672,7 @@ export class MatchService {
     }
 
     const tournament = await matchRepository.getTournament(match.tournamentId)
-    if (tournament?.validationMode !== 'auto') {
+    if (tournament?.validationMode !== 'auto' && tournament?.validationMode !== 'none') {
       throw new BadRequestError(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE)
     }
 

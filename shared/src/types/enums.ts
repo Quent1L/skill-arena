@@ -49,7 +49,7 @@ export const matchFinalizationReasonEnum = [
 ] as const;
 export type MatchFinalizationReason = (typeof matchFinalizationReasonEnum)[number];
 
-export const validationModeEnum = ["auto", "strict", "admin"] as const;
+export const validationModeEnum = ["auto", "strict", "admin", "none"] as const;
 export type ValidationMode = (typeof validationModeEnum)[number];
 
 export const matchTeamSideEnum = ["A", "B"] as const;

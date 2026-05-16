@@ -2,7 +2,7 @@
   <div class="validation-mode-section">
     <h2 class="text-xl font-semibold mb-4">Mode de validation des scores</h2>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
       <div
         v-for="option in modeOptions"
         :key="option.value"
@@ -94,6 +94,13 @@ const modeOptions: { value: ValidationMode; label: string; icon: string; badge?:
     icon: 'fa-crown',
     badge: 'Officiel',
     description: 'Seul un administrateur peut valider les scores. Contrôle total.',
+  },
+  {
+    value: 'none',
+    label: 'LIBRE',
+    icon: 'fa-eye-slash',
+    badge: 'Libre',
+    description: 'Aucune validation requise. Les scores sont acceptés immédiatement. Contestation disponible 7 jours.',
   },
 ]
 </script>

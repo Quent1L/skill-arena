@@ -3,6 +3,7 @@
     <div class="mb-4 flex items-center justify-between w-full">
       <div>
         <SelectButton
+          v-if="props.showProvisionalToggle !== false"
           v-model="standingsType"
           :options="standingsTypeOptions"
           option-label="label"
@@ -495,6 +496,7 @@ interface Props {
   teamMode?: 'static' | 'flex'
   standingsType?: 'official' | 'provisional'
   tournamentConfig?: TournamentConfig
+  showProvisionalToggle?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {

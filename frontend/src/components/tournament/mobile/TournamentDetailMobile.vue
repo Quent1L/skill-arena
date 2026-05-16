@@ -64,6 +64,7 @@
           :allow-draw="store.tournament!.allowDraw"
           :score-enabled="store.tournament!.scoreEnabled ?? true"
           :team-mode="store.tournament!.teamMode"
+          :show-provisional-toggle="store.tournament!.validationMode !== 'none'"
           :tournament-config="{
             pointPerVictory: store.tournament!.pointPerVictory,
             pointPerDraw: store.tournament!.pointPerDraw,
@@ -120,6 +121,7 @@
           :loading="store.rankedLoading"
           :provisional-loading="store.rankedProvisionalLoading"
           :current-user-id="store.appUser?.id"
+          :show-mode-toggle="store.tournament!.validationMode !== 'none'"
           @load-provisional="store.loadProvisionalLeaderboard()"
         />
       </div>
