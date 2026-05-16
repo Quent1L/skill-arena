@@ -41,10 +41,11 @@
     },
     "frontend": {
       "name": "skill-arena",
-      "version": "1.5.1",
+      "version": "1.6.3",
       "dependencies": {
         "@fontsource/exo-2": "^5.2.8",
         "@fontsource/rajdhani": "^5.2.7",
+        "@formkit/drag-and-drop": "^0.5.3",
         "@fortawesome/fontawesome-free": "^7.2.0",
         "@primeuix/themes": "^2.0.3",
         "@skill-arena/shared": "workspace:*",
@@ -458,6 +459,8 @@
     "@fontsource/exo-2": ["@fontsource/exo-2@5.2.8", "", {}, "sha512-cOZuiqW+gKg2SJAjymCicup0A8qto4M/lpyGahal3twMeLCRma8x/okFCdLYlTvYeQesF7d3WLKi+N04iPb40A=="],
 
     "@fontsource/rajdhani": ["@fontsource/rajdhani@5.2.7", "", {}, "sha512-7Gy10U688fCdeFfYKebUF2TZotdgH/ghKyMsseXPmB60lpaUHC8aoCSJl5/OpZ+KHKSU2TqBfKfteVkcIXxTAQ=="],
+
+    "@formkit/drag-and-drop": ["@formkit/drag-and-drop@0.5.3", "", {}, "sha512-VGQsKYc350OOMbz7wYt69YqDbn49x7RJ32eqiJieNke54nGZYmx18XEqTw0lBiJmH3RaiH6V45gB1u+tvI/TNw=="],
 
     "@fortawesome/fontawesome-free": ["@fortawesome/fontawesome-free@7.2.0", "", {}, "sha512-3DguDv/oUE+7vjMeTSOjCSG+KeawgVQOHrKRnvUuqYh1mfArrh7s+s8hXW3e4RerBA1+Wh+hBqf8sJNpqNrBWg=="],
 

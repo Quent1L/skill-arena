@@ -1,433 +1,100 @@
 <template>
-  <div v-if="isMobile">
-    <MatchFormStepper
-      :tournament-id="tournamentId"
-      :min-date="tournamentMinDate"
-      :max-date="tournamentMaxDate"
-      :allow-draw="tournament?.allowDraw ?? false"
-      :score-enabled="tournament?.scoreEnabled ?? true"
-      :min-score="tournament?.minScore"
-      :max-score="tournament?.maxScore"
-      :initial-data="matchData"
-      :match-id="matchId"
-      :is-contest-mode="isContestMode"
-      :contest-reason="contestReason"
-      :bracket-locked="isBracketMatch"
-      :team-a-names="teamAPlayers"
-      :team-b-names="teamBPlayers"
-    />
-  </div>
-  <div v-else class="create-match-view">
-    <div class="max-w-4xl mx-auto p-6">
-      <h1 class="text-2xl font-semibold p-4">
-        {{
-          isContestMode
-            ? 'Proposer une correction de score'
-            : isEditMode
-              ? 'Compléter le match'
-              : 'Créer un match'
-        }}
-      </h1>
-      <Card class="mb-6">
-        <template #content>
-          <Stepper :value="activeStep" class="w-full" linear>
-            <StepItem v-if="!isContestMode" value="1">
-              <Step>Saisie des équipes</Step>
-              <StepPanel v-slot="{ activateCallback }" value="1">
-                <TeamSelectionStep
-                  :tournament-id="tournamentId"
-                  v-model:player-ids-a="matchData.playerIdsA"
-                  v-model:player-ids-b="matchData.playerIdsB"
-                  v-model:scheduled-date="matchData.playedAt"
-                  v-model:team-a-id="matchData.teamAId"
-                  v-model:team-b-id="matchData.teamBId"
-                  :min-date="tournamentMinDate"
-                  :max-date="tournamentMaxDate"
-                  :validation="teamSelectorValidation"
-                  :disabled="!canProceedToNext"
-                  :bracket-locked="isBracketMatch"
-                  :team-a-names="teamAPlayers"
-                  :team-b-names="teamBPlayers"
-                  :team-mode="tournament?.teamMode"
-                  :teams="teams"
-                  @validate="() => validateCurrentStep('1')"
-                  @next="() => goToStep(activateCallback, '2')"
-                  @create="createMatch"
-                />
-              </StepPanel>
-            </StepItem>
-            <StepItem v-if="canAccessResultStep" value="2">
-              <Step>Vainqueur</Step>
-
-              <StepPanel v-slot="{ activateCallback }" value="2">
-                <MatchResultStep
-                  :team-a-players="teamAPlayers"
-                  :team-b-players="teamBPlayers"
-                  :team-a-name="teamAName"
-                  :team-b-name="teamBName"
-                  :tournament-id="tournamentId"
-                  v-model:score-a="scoreA"
-                  v-model:score-b="scoreB"
-                  v-model:outcome-type-id="matchData.outcomeTypeId"
-                  v-model:outcome-reason-id="matchData.outcomeReasonId"
-                  v-model:winner="matchData.winner"
-                  :allow-draw="tournament?.allowDraw ?? false"
-                  :score-enabled="tournament?.scoreEnabled ?? true"
-                  :min-score="tournament?.minScore"
-                  :max-score="tournament?.maxScore"
-                  :loading="matchLoading"
-                  :disabled="!canCreateMatch"
-                  :hide-previous-button="isContestMode"
-                  :submit-label="isContestMode ? 'Proposer la correction' : undefined"
-                  @previous="activateCallback('1')"
-                  @create="createMatch"
-                />
-              </StepPanel>
-            </StepItem>
-          </Stepper>
-        </template>
-      </Card>
-    </div>
-  </div>
+  <MatchFormStepperMobile v-if="isMobile" :tournament-id="tournamentId" :match-id="matchId" />
+  <MatchFormStepperDesktop v-else :tournament-id="tournamentId" :match-id="matchId" />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, provide, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
+import { useViewport } from '@/composables/useViewport'
+import MatchFormStepperMobile from '@/components/match/mobile/MatchFormStepperMobile.vue'
+import MatchFormStepperDesktop from '@/components/match/MatchFormStepperDesktop.vue'
+import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
+import type { MatchFormState } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
-import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useTeamService } from '@/composables/team/team.service'
-import { useViewport } from '@/composables/useViewport'
-import type {
-  MatchStatus,
-  ClientBaseTournament,
-  ClientCreateMatchRequest,
-  ClientUpdateMatchRequest,
-} from '@skill-arena/shared/types/index'
-import TeamSelectionStep from '@/components/match/TeamSelectionStep.vue'
-import MatchResultStep from '@/components/match/MatchResultStep.vue'
-import MatchFormStepper from '@/components/match/mobile/MatchFormStepper.vue'
+import { useParticipantService } from '@/composables/participant.service'
+import { useAuth } from '@/composables/useAuth'
+import { outcomeTypeApi } from '@/composables/outcome-type.api'
+import { outcomeReasonApi } from '@/composables/outcome-reason.api'
+import { disciplineApi } from '@/composables/discipline/discipline.api'
+import type { ClientBaseTournament, MatchSideInput, OutcomeType, OutcomeReason } from '@skill-arena/shared'
+import type { TournamentPlayer } from '@/composables/match/match-form.context'
 
 const route = useRoute()
-const router = useRouter()
-const toast = useToast()
-
-const {
-  validationResult,
-  loading: matchLoading,
-  loadPlayersMap,
-  validateMatchForStep,
-  canProceedToNextStep,
-  canCreateMatch: canCreateMatchCheck,
-  createMatchWithNavigation,
-  updateMatchWithNavigation,
-  contestMatchResult,
-  getMatch,
-  getTeamPlayersNames,
-} = useMatchService()
-const { loadTournamentWithErrorHandling } = useTournamentService()
-const { teams, loadTeams } = useTeamService()
 const { isMobile } = useViewport()
-const detailStore = useTournamentDetailStore()
+const toast = useToast()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined
-const isContestMode = computed(() => route.query.contest === 'true')
-const contestReason = computed(() => route.query.contestReason as string | undefined)
-const isEditMode = computed(() => !!matchId)
-const isBracketMatch = computed(() => isEditMode.value && tournament.value?.mode === 'bracket')
 
-const activeStep = ref('1')
-
-// Local type for form data that includes all fields needed for both create and update
-// Uses client types where dates are Date objects (not strings)
-type MatchFormData = Omit<ClientCreateMatchRequest, 'playedAt'> &
-  Partial<Omit<ClientUpdateMatchRequest, 'playedAt'>> & {
-    scoreA?: number
-    scoreB?: number
-    reportProof?: string
-    outcomeTypeId?: string | null
-    outcomeReasonId?: string | null
-    winner?: 'teamA' | 'teamB' | null
-    playerIdsA: string[]
-    playerIdsB: string[]
-    playedAt?: Date
-    teamAId?: string
-    teamBId?: string
-  }
-
-const matchData = ref<MatchFormData>({
-  tournamentId,
-  playerIdsA: [] as string[],
-  playerIdsB: [] as string[],
-  status: 'reported' as MatchStatus,
-  scoreA: 0,
-  scoreB: 0,
-  reportProof: '',
-  outcomeTypeId: undefined,
-  outcomeReasonId: undefined,
-  winner: null as 'teamA' | 'teamB' | null,
-  playedAt: new Date(),
-  teamAId: undefined,
-  teamBId: undefined,
-})
+const { playersMap, loadPlayersMap, getMatch } = useMatchService()
+const { loadTournamentWithErrorHandling } = useTournamentService()
+const { teams, loadTeams } = useTeamService()
+const { getTournamentParticipants } = useParticipantService()
+const { isAdmin, appUser } = useAuth()
 
 const tournament = ref<ClientBaseTournament | null>(null)
+const participants = ref<TournamentPlayer[]>([])
+const outcomeTypes = ref<OutcomeType[]>([])
+const outcomeReasons = ref<OutcomeReason[]>([])
+const scoreInstructions = ref<string | null>(null)
+const isLoading = ref(false)
 
-const isStaticMode = computed(() => tournament.value?.teamMode === 'static')
-
-const canProceedToNext = computed(() => {
-  if (isStaticMode.value) {
-    return !!(
-      matchData.value.teamAId &&
-      matchData.value.teamBId &&
-      matchData.value.teamAId !== matchData.value.teamBId
-    )
-  }
-  return canProceedToNextStep(
-    activeStep.value,
-    matchData.value.playerIdsA,
-    matchData.value.playerIdsB,
-  )
+const formState = ref<MatchFormState>({
+  playedAt: null,
+  sides: [{ position: 1 }, { position: 2 }],
+  allPlayerIds: [],
+  winnerPosition: null,
+  scorePerSide: { 1: 0, 2: 0 },
+  outcomeTypeId: null,
+  outcomeReasonId: null,
 })
-
-const canCreateMatch = computed(() => {
-  // For scheduled matches (future date), just check if date is set
-  if (matchData.value.playedAt && matchData.value.playedAt > new Date()) {
-    return !!matchData.value.playedAt
-  }
-  // For reported matches (past/present date), check all required fields
-  return canCreateMatchCheck(
-    matchData.value.status ?? 'reported',
-    matchData.value.playedAt ?? null,
-    matchData.value.scoreA ?? 0,
-    matchData.value.scoreB ?? 0,
-  )
-})
-
-const teamSelectorValidation = computed(() => validationResult.value ?? undefined)
-
-const teamAName = computed(() => {
-  if (!isStaticMode.value || !matchData.value.teamAId) return undefined
-  return teams.value.find((t) => t.id === matchData.value.teamAId)?.name
-})
-
-const teamBName = computed(() => {
-  if (!isStaticMode.value || !matchData.value.teamBId) return undefined
-  return teams.value.find((t) => t.id === matchData.value.teamBId)?.name
-})
-
-const teamAPlayers = computed(() => {
-  if (isStaticMode.value && matchData.value.teamAId) {
-    const team = teams.value.find((t) => t.id === matchData.value.teamAId)
-    return team ? team.members.map((m) => m.user.displayName) : []
-  }
-  return getTeamPlayersNames(matchData.value.playerIdsA)
-})
-
-const teamBPlayers = computed(() => {
-  if (isStaticMode.value && matchData.value.teamBId) {
-    const team = teams.value.find((t) => t.id === matchData.value.teamBId)
-    return team ? team.members.map((m) => m.user.displayName) : []
-  }
-  return getTeamPlayersNames(matchData.value.playerIdsB)
-})
-
-// Computed properties for scoreA and scoreB to handle undefined -> number conversion
-const scoreA = computed({
-  get: () => matchData.value.scoreA ?? 0,
-  set: (value: number) => {
-    matchData.value.scoreA = value
-  },
-})
-
-const scoreB = computed({
-  get: () => matchData.value.scoreB ?? 0,
-  set: (value: number) => {
-    matchData.value.scoreB = value
-  },
-})
-
-// Step 2 (Vainqueur) is only accessible if scheduled date is in the past or present
-const canAccessResultStep = computed(() => {
-  if (!matchData.value.playedAt) return false
-  return matchData.value.playedAt <= new Date()
-})
-
-const tournamentMinDate = computed(() => {
-  if (tournament.value?.mode === 'ranked') {
-    // For ranked: no older than 48h
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
-    if (tournament.value.startDate) {
-      const startDate = new Date(tournament.value.startDate)
-      return startDate > fortyEightHoursAgo ? tournament.value.startDate : fortyEightHoursAgo
-    }
-    return fortyEightHoursAgo
-  }
-  if (!tournament.value?.startDate) return undefined
-  return tournament.value.startDate
-})
-
-const tournamentMaxDate = computed(() => {
-  if (!tournament.value?.endDate) return undefined
-  return tournament.value.endDate
-})
-
-async function loadTournament() {
-  tournament.value = await loadTournamentWithErrorHandling(tournamentId)
-}
-
-async function validateCurrentStep(step?: string) {
-  const currentStep = step ?? activeStep.value
-  await validateMatchForStep(
-    tournamentId,
-    currentStep,
-    matchData.value.playerIdsA,
-    matchData.value.playerIdsB,
-    matchId,
-    isStaticMode.value ? matchData.value.teamAId : undefined,
-    isStaticMode.value ? matchData.value.teamBId : undefined,
-    matchData.value.playedAt,
-  )
-}
+const activeStep = ref('when')
 
 watch(
-  () => matchData.value.playedAt,
-  (newDate) => {
-    if (!newDate) return
-
-    if (newDate > new Date()) {
-      // Future date = scheduled match
-      matchData.value.status = 'scheduled'
-      matchData.value.scoreA = 0
-      matchData.value.scoreB = 0
-      matchData.value.reportProof = ''
-      matchData.value.outcomeTypeId = undefined
-      matchData.value.outcomeReasonId = undefined
-      matchData.value.winner = null
-      // If we're on step 2 and date becomes future, go back to step 1
-      if (activeStep.value === '2') {
-        activeStep.value = '1'
-      }
-    } else {
-      // Past or present date = reported match
-      matchData.value.status = 'reported'
+  () => formState.value.playedAt,
+  (date) => {
+    if (!date) return
+    if (date > new Date()) {
+      formState.value.winnerPosition = null
+      formState.value.scorePerSide = { 1: 0, 2: 0 }
+      formState.value.outcomeTypeId = null
+      formState.value.outcomeReasonId = null
     }
-  },
-  { immediate: true },
-)
-
-async function createMatch() {
-  if (!canCreateMatch.value) return
-
-  // Contest mode: submit a score correction
-  if (isContestMode.value && matchId) {
-    await contestMatchResult(matchId, {
-      proposedScoreA: matchData.value.scoreA,
-      proposedScoreB: matchData.value.scoreB,
-      proposedWinner: matchData.value.winner,
-      proposedOutcomeTypeId: matchData.value.outcomeTypeId || undefined,
-      proposedOutcomeReasonId: matchData.value.outcomeReasonId || undefined,
-      contestationReason: contestReason.value,
-    })
-    await router.replace(`/matches/${matchId}`)
-    return
-  }
-
-  // Determine the correct status based on the scheduled date at submission time
-  const now = new Date()
-  if (matchData.value.playedAt && matchData.value.playedAt > now) {
-    matchData.value.status = 'scheduled'
-    // Clear result fields for scheduled matches
-    matchData.value.scoreA = 0
-    matchData.value.scoreB = 0
-    matchData.value.reportProof = ''
-    matchData.value.outcomeTypeId = undefined
-    matchData.value.outcomeReasonId = undefined
-    matchData.value.winner = null
-  } else {
-    matchData.value.status = 'reported'
-  }
-
-  if (isEditMode.value && matchId) {
-    const updateData: ClientUpdateMatchRequest = {
-      ...matchData.value,
-      playedAt: matchData.value.playedAt ?? new Date(),
-    }
-    await updateMatchWithNavigation(matchId, updateData, tournamentId)
-  } else {
-    const createData: ClientCreateMatchRequest = {
-      ...matchData.value,
-      playedAt: matchData.value.playedAt ?? new Date(),
-    }
-    await createMatchWithNavigation(createData, tournamentId)
-  }
-
-  detailStore.reloadStats()
-  detailStore.reloadTournament()
-  if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()
-}
-
-watch(
-  () => matchData.value.playerIdsA,
-  () => {
-    if (!isStaticMode.value) validateCurrentStep('1')
-  },
-  { deep: true },
-)
-watch(
-  () => matchData.value.playerIdsB,
-  () => {
-    if (!isStaticMode.value) validateCurrentStep('1')
-  },
-  { deep: true },
-)
-watch(
-  () => [matchData.value.teamAId, matchData.value.teamBId],
-  () => {
-    if (isStaticMode.value) validateCurrentStep('1')
   },
 )
 
 async function loadExistingMatch() {
   if (!matchId) return
-
   try {
     const match = await getMatch(matchId)
+    if (match.playedAt) formState.value.playedAt = match.playedAt
 
-    const sideA = match.sides.find((s) => s.position === 1)
-    const sideB = match.sides.find((s) => s.position === 2)
+    const sides: MatchSideInput[] = match.sides.map((s) => ({
+      position: s.position,
+      playerIds: s.players.map((p) => p.id),
+    }))
+    formState.value.sides = sides
+    formState.value.allPlayerIds = sides.flatMap((s) => s.playerIds ?? [])
 
-    matchData.value.playerIdsA = sideA?.players.map((p) => p.id) ?? []
-    matchData.value.playerIdsB = sideB?.players.map((p) => p.id) ?? []
-    matchData.value.scoreA = sideA?.score ?? 0
-    matchData.value.scoreB = sideB?.score ?? 0
-    matchData.value.status = match.status
-    if (match.outcomeTypeId) {
-      matchData.value.outcomeTypeId = match.outcomeTypeId
-    }
-    matchData.value.outcomeReasonId = match.outcomeReasonId || undefined
-    matchData.value.reportProof = match.result?.reportProof ?? ''
-
-    if (sideA?.isWinner) matchData.value.winner = 'teamA'
-    else if (sideB?.isWinner) matchData.value.winner = 'teamB'
-    else matchData.value.winner = null
-
-    if (match.playedAt) matchData.value.playedAt = match.playedAt
-
-    if (
-      (match.status === 'reported' || match.status === 'pending_confirmation') &&
-      matchData.value.playedAt &&
-      matchData.value.playedAt <= new Date()
-    ) {
-      activeStep.value = '2'
+    formState.value.scorePerSide = {}
+    for (const s of match.sides) {
+      formState.value.scorePerSide[s.position] = s.score ?? 0
     }
 
-    if (isContestMode.value) activeStep.value = '2'
-  } catch (err) {
-    console.error('Erreur lors du chargement du match:', err)
+    if (match.outcomeTypeId) formState.value.outcomeTypeId = match.outcomeTypeId
+    formState.value.outcomeReasonId = match.outcomeReasonId || null
+
+    const winner = match.sides.find((s) => s.isWinner)
+    formState.value.winnerPosition = winner ? winner.position : null
+
+    if (match.status === 'reported' || match.status === 'pending_confirmation') {
+      activeStep.value = 'result'
+    }
+  } catch {
     toast.add({
       severity: 'error',
       summary: 'Erreur',
@@ -437,57 +104,51 @@ async function loadExistingMatch() {
   }
 }
 
-onMounted(async () => {
-  await loadTournament()
-  await loadPlayersMap(tournamentId)
-  if (tournament.value?.teamMode === 'static') {
-    await loadTeams(tournamentId)
-  }
-  if (isEditMode.value) {
-    await loadExistingMatch()
-  }
-})
-
-watch(activeStep, async (newStep, oldStep) => {
-  if (newStep !== oldStep) {
-    // Prevent going back to step 1 in contest mode
-    if (newStep === '1' && isContestMode.value) {
-      activeStep.value = '2'
-      return
+async function loadParticipants() {
+  const raw = await getTournamentParticipants(tournamentId)
+  participants.value = raw.map((p) => ({ id: p.userId, displayName: p.user.displayName }))
+  if (!isAdmin.value && appUser.value) {
+    const userId = appUser.value.id
+    if (
+      !formState.value.allPlayerIds.includes(userId) &&
+      participants.value.some((p) => p.id === userId)
+    ) {
+      formState.value.allPlayerIds = [userId, ...formState.value.allPlayerIds]
     }
-    // Prevent access to step 2 if date is in the future
-    if (newStep === '2' && !canAccessResultStep.value) {
-      activeStep.value = '1'
-      toast.add({
-        severity: 'warn',
-        summary: 'Action requise',
-        detail: 'La date sélectionnée doit être dans le passé ou présente pour saisir le résultat',
-        life: 3000,
-      })
-      return
-    }
-    await validateCurrentStep()
   }
-})
+}
 
-async function goToStep(activateCallback: (s: string) => void, targetStep: string) {
-  await validateCurrentStep()
-
-  if (validationResult.value?.valid) {
-    activateCallback(targetStep)
+async function loadOutcomeData() {
+  const disciplineId = tournament.value?.disciplineId || undefined
+  if (disciplineId) {
+    const [types, discipline] = await Promise.all([
+      outcomeTypeApi.list(disciplineId),
+      disciplineApi.getById(disciplineId),
+    ])
+    outcomeTypes.value = types
+    scoreInstructions.value = discipline.scoreInstructions ?? null
   } else {
-    toast.add({
-      severity: 'error',
-      summary: 'Validation',
-      detail: 'Veuillez corriger les erreurs avant de continuer',
-      life: 3000,
-    })
+    outcomeTypes.value = await outcomeTypeApi.list()
+  }
+  if (!formState.value.outcomeTypeId) {
+    const def = outcomeTypes.value.find((t) => t.isDefault)
+    if (def) formState.value.outcomeTypeId = def.id
+  }
+  if (formState.value.outcomeTypeId) {
+    outcomeReasons.value = await outcomeReasonApi.list(formState.value.outcomeTypeId)
   }
 }
-</script>
 
-<style scoped>
-.create-match-view {
-  min-height: 100vh;
-}
-</style>
+onMounted(async () => {
+  isLoading.value = true
+  tournament.value = await loadTournamentWithErrorHandling(tournamentId)
+  await loadPlayersMap(tournamentId)
+  if (tournament.value?.teamMode === 'static') await loadTeams(tournamentId)
+  else await loadParticipants()
+  if (matchId) await loadExistingMatch()
+  await loadOutcomeData()
+  isLoading.value = false
+})
+
+provide(MATCH_FORM_KEY, { formState, activeStep, tournament, playersMap, teams, participants, outcomeTypes, outcomeReasons, scoreInstructions, isLoading })
+</script>

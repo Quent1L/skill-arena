@@ -82,13 +82,7 @@ export class MatchPermissionValidator {
      * Check if player is in match
      */
     private isPlayerInMatch(input: CreateMatchInput, playerId: string): boolean {
-        if (input.playerIdsA?.includes(playerId)) {
-            return true;
-        }
-        if (input.playerIdsB?.includes(playerId)) {
-            return true;
-        }
-        return false;
+        return (input.sides ?? []).some((s) => s.playerIds?.includes(playerId));
     }
 }
 

@@ -18,6 +18,7 @@ import type {
   ClientValidateMatchRequest,
   MatchStatus,
   ParticipantListItem,
+  MatchSideInput,
 } from '@skill-arena/shared/types/index'
 
 interface ValidationResult {
@@ -55,29 +56,38 @@ export function useMatchService() {
   }
 
   /**
-   * Validate match for a specific step
+   * Validate participants (partial: all in one side, skips composition checks)
    */
-  async function validateMatchForStep(
+  async function validateParticipants(
     tournamentId: string,
-    step: string,
-    playerIdsA?: string[],
-    playerIdsB?: string[],
+    allPlayerIds: string[],
+    playedAt?: Date,
     matchId?: string,
-    teamAId?: string,
-    teamBId?: string,
-    playedAt?: Date
+  ): Promise<ValidationResult> {
+    return await validateMatchSides(
+      tournamentId,
+      [{ position: 1, playerIds: allPlayerIds }],
+      playedAt,
+      matchId,
+    )
+  }
+
+  /**
+   * Validate match with full sides composition
+   */
+  async function validateMatchSides(
+    tournamentId: string,
+    sides: MatchSideInput[],
+    playedAt?: Date,
+    matchId?: string,
   ): Promise<ValidationResult> {
     try {
       const dataToValidate: ClientValidateMatchRequest = {
         tournamentId,
-        playerIdsA,
-        playerIdsB,
-        ...(matchId && { matchId }),
-        ...(teamAId && { teamAId }),
-        ...(teamBId && { teamBId }),
+        sides,
         playedAt,
+        ...(matchId && { matchId }),
       }
-
       const result = await matchApi.validate(dataToValidate)
       validationResult.value = result
       return result
@@ -92,11 +102,27 @@ export function useMatchService() {
     }
   }
 
-  /**
-   * Check if can proceed to next step
-   */
+  // Keep for backward compat during migration
+  async function validateMatchForStep(
+    tournamentId: string,
+    _step: string,
+    playerIdsA?: string[],
+    playerIdsB?: string[],
+    matchId?: string,
+    teamAId?: string,
+    teamBId?: string,
+    playedAt?: Date,
+  ): Promise<ValidationResult> {
+    const sides: MatchSideInput[] = []
+    if (teamAId) sides.push({ position: 1, teamId: teamAId })
+    if (teamBId) sides.push({ position: 2, teamId: teamBId })
+    if (playerIdsA && playerIdsA.length > 0) sides.push({ position: 1, playerIds: playerIdsA })
+    if (playerIdsB && playerIdsB.length > 0) sides.push({ position: 2, playerIds: playerIdsB })
+    return await validateMatchSides(tournamentId, sides, playedAt, matchId)
+  }
+
   function canProceedToNextStep(
-    step: string,
+    _step: string,
     playerIdsA: string[],
     playerIdsB: string[],
     teamAId?: string,
@@ -104,16 +130,8 @@ export function useMatchService() {
   ): boolean {
     const result = validationResult.value
     if (!result) return false
-
-    switch (step) {
-      case '1':
-        if (teamAId && teamBId) return result.valid
-        return result.valid && playerIdsA.length > 0 && playerIdsB.length > 0
-      case '2':
-        return result.valid
-      default:
-        return false
-    }
+    if (teamAId && teamBId) return result.valid
+    return result.valid && playerIdsA.length > 0 && playerIdsB.length > 0
   }
 
   /**
@@ -402,6 +420,8 @@ export function useMatchService() {
 
     // Business logic methods
     loadPlayersMap,
+    validateParticipants,
+    validateMatchSides,
     validateMatchForStep,
     canProceedToNextStep,
     canCreateMatch,

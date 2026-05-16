@@ -65,7 +65,7 @@ matches.patch(
         reportProof: data.reportProof,
         outcomeTypeId: data.outcomeTypeId,
         outcomeReasonId: data.outcomeReasonId,
-        winner: data.winner,
+        winnerPosition: data.winnerPosition,
         playedAt: data.playedAt,
       },
       appUserId
@@ -100,7 +100,7 @@ matches.post(
         scoreA: data.scoreA,
         scoreB: data.scoreB,
         reportProof: data.reportProof,
-        winner: data.winner,
+        winnerPosition: data.winnerPosition,
         outcomeTypeId: data.outcomeTypeId,
         outcomeReasonId: data.outcomeReasonId,
       },
@@ -209,11 +209,8 @@ matches.post(
     const validation = await matchService.validateMatch({
       tournamentId: data.tournamentId,
       round: data.round,
-      teamAId: data.teamAId,
-      teamBId: data.teamBId,
-      playerIdsA: data.playerIdsA,
-      playerIdsB: data.playerIdsB,
-      matchId: data.matchId, // Pass matchId to exclude from validation (for edit mode)
+      sides: data.sides,
+      matchId: data.matchId,
       playedAt: data.playedAt,
     });
 

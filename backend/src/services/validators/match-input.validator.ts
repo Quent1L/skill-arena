@@ -2,101 +2,100 @@ import { matchRepository } from "../../repository/match.repository";
 import { userRepository } from "../../repository/user.repository";
 import { teamRepository } from "../../repository/team.repository";
 import { BadRequestError, ErrorCode } from "../../types/errors";
-import type { CreateMatchRequestData as CreateMatchInput } from "@skill-arena/shared/types/index";
+import type { CreateMatchRequestData as CreateMatchInput, MatchSideInput } from "@skill-arena/shared/types/index";
 import i18next from "../../config/i18n";
 
 type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>
 >;
 
-/**
- * Validator for match input data (teams, players, scores)
- */
 export class MatchInputValidator {
-    /**
-     * Validate match input based on team mode
-     */
     async validateMatchInput(
         input: CreateMatchInput,
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
+        const sides = input.sides ?? [];
+        if (sides.length < 2) {
+            throw new BadRequestError(
+                tournament.teamMode === "static"
+                    ? ErrorCode.MATCH_INVALID_TEAMS
+                    : ErrorCode.MATCH_INVALID_PLAYERS
+            );
+        }
+
         if (tournament.teamMode === "static") {
-            await this.validateStaticTeamInput(input, tournament);
-        } else if (tournament.teamMode === "flex") {
-            await this.validateFlexTeamInput(input);
+            await this.validateStaticSides(sides, tournament);
+        } else {
+            await this.validateFlexSides(sides, input.tournamentId);
         }
     }
 
-    /**
-     * Validate static team input
-     */
-    private async validateStaticTeamInput(
-        input: CreateMatchInput,
+    private async validateStaticSides(
+        sides: MatchSideInput[],
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
-        if (!input.teamAId || !input.teamBId) {
+        for (const side of sides) {
+            if (!side.teamId) {
+                throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
+            }
+        }
+
+        const teamIds = sides.map((s) => s.teamId!);
+        if (new Set(teamIds).size !== teamIds.length) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
         }
-        await matchRepository.validateEntriesForTournament(
-            input.tournamentId,
-            input.teamAId,
-            input.teamBId
-        );
-        const [sizeA, sizeB] = await Promise.all([
-            teamRepository.getMemberCount(input.teamAId),
-            teamRepository.getMemberCount(input.teamBId),
-        ]);
-        const { minTeamSize, maxTeamSize } = tournament;
-        if (
-            sizeA < minTeamSize || sizeA > maxTeamSize ||
-            sizeB < minTeamSize || sizeB > maxTeamSize
-        ) {
-            throw new BadRequestError(ErrorCode.TEAM_SIZE_INVALID);
+
+        for (const teamId of teamIds) {
+            await matchRepository.validateEntriesForTournament(
+                tournament.id,
+                teamId,
+                undefined
+            );
+            const size = await teamRepository.getMemberCount(teamId);
+            if (size < tournament.minTeamSize || size > tournament.maxTeamSize) {
+                throw new BadRequestError(ErrorCode.TEAM_SIZE_INVALID);
+            }
         }
     }
 
-    /**
-     * Validate flex team input
-     */
-    private async validateFlexTeamInput(input: CreateMatchInput): Promise<void> {
-        if (
-            !input.playerIdsA ||
-            !input.playerIdsB ||
-            input.playerIdsA.length === 0 ||
-            input.playerIdsB.length === 0
-        ) {
-            throw new BadRequestError(ErrorCode.MATCH_INVALID_PLAYERS);
+    private async validateFlexSides(
+        sides: MatchSideInput[],
+        tournamentId: string
+    ): Promise<void> {
+        for (const side of sides) {
+            if (!side.playerIds || side.playerIds.length === 0) {
+                throw new BadRequestError(ErrorCode.MATCH_INVALID_PLAYERS);
+            }
         }
-        await matchRepository.validateEntriesForTournament(
-            input.tournamentId,
-            undefined,
-            undefined,
-            input.playerIdsA,
-            input.playerIdsB
-        );
+
+        const allPlayerIds = sides.flatMap((s) => s.playerIds ?? []);
+        if (new Set(allPlayerIds).size !== allPlayerIds.length) {
+            throw new BadRequestError(ErrorCode.MATCH_OVERLAPPING_PLAYERS);
+        }
+
+        for (const side of sides) {
+            await matchRepository.validateEntriesForTournament(
+                tournamentId,
+                undefined,
+                undefined,
+                side.playerIds,
+                []
+            );
+        }
     }
 
-    /**
-     * Validate that a winner is explicitly set (required when scoreEnabled=false)
-     */
-    validateWinnerRequired(winner?: "teamA" | "teamB" | null): void {
-        if (winner === undefined || winner === null) {
+    validateWinnerRequired(winnerPosition?: number | null): void {
+        if (winnerPosition === undefined || winnerPosition === null) {
             throw new BadRequestError(ErrorCode.MATCH_WINNER_REQUIRED);
         }
     }
 
-    /**
-     * Validate scores are non-negative
-     */
     validateScores(scoreA: number, scoreB: number): void {
         if (scoreA < 0 || scoreB < 0) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_SCORE);
         }
     }
 
-    /**
-     * Validate scores are within the tournament's allowed range
-     */
     validateScoreRange(
         scoreA: number,
         scoreB: number,
@@ -111,17 +110,13 @@ export class MatchInputValidator {
         }
     }
 
-    /**
-     * Validate draw is allowed.
-     * A draw occurs when winner is explicitly null, or scores are tied without an explicit override.
-     */
     async validateDrawAllowed(
         tournamentId: string,
         scoreA: number,
         scoreB: number,
-        winner?: "teamA" | "teamB" | null,
+        winnerPosition?: number | null,
     ): Promise<void> {
-        const isDraw = winner === null || (winner === undefined && scoreA === scoreB);
+        const isDraw = winnerPosition === null || (winnerPosition === undefined && scoreA === scoreB);
         if (!isDraw) return;
 
         const tournament = await matchRepository.getTournament(tournamentId);
@@ -130,203 +125,133 @@ export class MatchInputValidator {
         }
     }
 
-    /**
-     * Validate ranked match: playedAt must be within 48h of now
-     */
     validateRankedPlayedAt(playedAt: Date | string | undefined): void {
         if (!playedAt) {
             throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
         }
         const played = new Date(playedAt);
-        const diffMs = Math.abs(Date.now() - played.getTime());
+        const diffMs = Date.now() - played.getTime();
         const diffHours = diffMs / (1000 * 60 * 60);
         if (diffHours > 48) {
             throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
         }
     }
 
-    /**
-     * Validate match input for validation endpoint
-     */
     async validateMatchInputForValidation(
         input: CreateMatchInput,
         tournament: NonNullable<TournamentFromRepository>,
         errors: string[]
     ): Promise<void> {
+        const sides = input.sides ?? [];
+        if (sides.length === 0) return;
+
         if (tournament.teamMode === "static") {
-            await this.validateStaticTeamsForValidation(input, tournament, errors);
-        } else if (tournament.teamMode === "flex") {
-            await this.validateFlexPlayersForValidation(input, errors);
+            await this.validateStaticSidesForValidation(sides, tournament, errors);
+        } else {
+            await this.validateFlexSidesForValidation(sides, input.tournamentId, errors);
         }
     }
 
-    /**
-     * Validate static teams for validation
-     */
-    private async validateStaticTeamsForValidation(
-        input: CreateMatchInput,
+    private async validateStaticSidesForValidation(
+        sides: MatchSideInput[],
         tournament: NonNullable<TournamentFromRepository>,
         errors: string[]
     ): Promise<void> {
-        if (input.teamAId) {
-            await this.validateTeamForValidation(
-                input.tournamentId,
-                input.teamAId,
-                undefined,
-                errors,
-                "équipe A"
-            );
+        const teamIds = sides.map((s) => s.teamId).filter(Boolean) as string[];
+
+        for (const teamId of teamIds) {
+            try {
+                await matchRepository.validateEntriesForTournament(
+                    tournament.id,
+                    teamId,
+                    undefined
+                );
+            } catch (error) {
+                errors.push(
+                    error instanceof Error ? error.message : `Équipe invalide`
+                );
+            }
         }
 
-        if (input.teamBId) {
-            await this.validateTeamForValidation(
-                input.tournamentId,
-                undefined,
-                input.teamBId,
-                errors,
-                "équipe B"
-            );
+        if (teamIds.length >= 2 && new Set(teamIds).size !== teamIds.length) {
+            errors.push("Les équipes ne peuvent pas être identiques");
         }
 
-        if (input.teamAId && input.teamBId && input.teamAId === input.teamBId) {
-            errors.push("Les deux équipes ne peuvent pas être identiques");
-        }
-
-        if (input.teamAId && input.teamBId) {
+        if (teamIds.length >= 2) {
             await this.validateTeamSizesForValidation(
-                input.teamAId,
-                input.teamBId,
+                teamIds,
                 tournament.minTeamSize,
                 tournament.maxTeamSize,
-                errors,
+                errors
             );
         }
     }
 
-    /**
-     * Validate team sizes against tournament constraints
-     */
     private async validateTeamSizesForValidation(
-        teamAId: string,
-        teamBId: string,
+        teamIds: string[],
         minTeamSize: number,
         maxTeamSize: number,
         errors: string[]
     ): Promise<void> {
-        const [sizeA, sizeB] = await Promise.all([
-            teamRepository.getMemberCount(teamAId),
-            teamRepository.getMemberCount(teamBId),
-        ]);
-        if (sizeA < minTeamSize || sizeA > maxTeamSize) {
-            errors.push(`L'équipe A a ${sizeA} membre(s), attendu entre ${minTeamSize} et ${maxTeamSize}`);
-        }
-        if (sizeB < minTeamSize || sizeB > maxTeamSize) {
-            errors.push(`L'équipe B a ${sizeB} membre(s), attendu entre ${minTeamSize} et ${maxTeamSize}`);
-        }
-    }
-
-    /**
-     * Validate team for validation (helper)
-     */
-    private async validateTeamForValidation(
-        tournamentId: string,
-        teamAId: string | undefined,
-        teamBId: string | undefined,
-        errors: string[],
-        teamLabel: string
-    ): Promise<void> {
-        try {
-            await matchRepository.validateEntriesForTournament(
-                tournamentId,
-                teamAId,
-                teamBId
-            );
-        } catch (error) {
-            errors.push(
-                error instanceof Error
-                    ? error.message
-                    : `Erreur de validation ${teamLabel}`
-            );
-        }
-    }
-
-    /**
-     * Validate flex players for validation
-     */
-    private async validateFlexPlayersForValidation(
-        input: CreateMatchInput,
-        errors: string[]
-    ): Promise<void> {
-        if (input.playerIdsA) {
-            await this.validatePlayersForValidation(
-                input.tournamentId,
-                input.playerIdsA,
-                errors,
-                "joueurs équipe A"
-            );
-        }
-
-        if (input.playerIdsB) {
-            await this.validatePlayersForValidation(
-                input.tournamentId,
-                input.playerIdsB,
-                errors,
-                "joueurs équipe B"
-            );
-        }
-
-        if (input.playerIdsA && input.playerIdsB) {
-            await this.checkOverlappingPlayers(input, errors);
-        }
-    }
-
-    /**
-     * Validate players for validation (helper)
-     */
-    private async validatePlayersForValidation(
-        tournamentId: string,
-        playerIds: string[],
-        errors: string[],
-        label: string
-    ): Promise<void> {
-        try {
-            await matchRepository.validateEntriesForTournament(
-                tournamentId,
-                undefined,
-                undefined,
-                playerIds,
-                []
-            );
-        } catch (error) {
-            errors.push(
-                error instanceof Error ? error.message : `Erreur de validation ${label}`
-            );
-        }
-    }
-
-    /**
-     * Check for overlapping players between teams
-     */
-    private async checkOverlappingPlayers(
-        input: CreateMatchInput,
-        errors: string[]
-    ): Promise<void> {
-        if (!input.playerIdsA || !input.playerIdsB) return;
-
-        const overlappingPlayers = input.playerIdsA.filter((playerId: string) =>
-            input.playerIdsB?.includes(playerId)
+        const sizes = await Promise.all(
+            teamIds.map((id) => teamRepository.getMemberCount(id))
         );
-        if (overlappingPlayers.length > 0) {
-            // Get player information to display name instead of ID
-            const player = await userRepository.getById(overlappingPlayers[0]);
-            const playerName = player?.displayName || overlappingPlayers[0];
+        sizes.forEach((size, i) => {
+            if (size < minTeamSize || size > maxTeamSize) {
+                errors.push(
+                    `L'équipe ${i + 1} a ${size} membre(s), attendu entre ${minTeamSize} et ${maxTeamSize}`
+                );
+            }
+        });
+    }
 
-            const errorMessage = String(
-                i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", {
-                    playerName,
-                })
-            );
-            errors.push(errorMessage);
+    private async validateFlexSidesForValidation(
+        sides: MatchSideInput[],
+        tournamentId: string,
+        errors: string[]
+    ): Promise<void> {
+        for (let i = 0; i < sides.length; i++) {
+            const side = sides[i];
+            if (!side.playerIds || side.playerIds.length === 0) continue;
+
+            try {
+                await matchRepository.validateEntriesForTournament(
+                    tournamentId,
+                    undefined,
+                    undefined,
+                    side.playerIds,
+                    []
+                );
+            } catch (error) {
+                errors.push(
+                    error instanceof Error
+                        ? error.message
+                        : `Erreur de validation joueurs équipe ${i + 1}`
+                );
+            }
+        }
+
+        if (sides.length >= 2) {
+            await this.checkOverlappingPlayersForValidation(sides, errors);
+        }
+    }
+
+    private async checkOverlappingPlayersForValidation(
+        sides: MatchSideInput[],
+        errors: string[]
+    ): Promise<void> {
+        const allIds = sides.flatMap((s) => s.playerIds ?? []);
+        const seen = new Set<string>();
+        for (const id of allIds) {
+            if (seen.has(id)) {
+                const player = await userRepository.getById(id);
+                const playerName = player?.displayName || id;
+                errors.push(
+                    String(i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", { playerName }))
+                );
+                return;
+            }
+            seen.add(id);
         }
     }
 }

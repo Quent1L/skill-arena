@@ -145,7 +145,7 @@ export interface MatchConfirmation {
   contestationProof?: string;
   proposedScoreA?: number | null;
   proposedScoreB?: number | null;
-  proposedWinner?: "teamA" | "teamB" | null;
+  proposedWinnerPosition?: number | null;
   proposedOutcomeTypeId?: string | null;
   proposedOutcomeReasonId?: string | null;
   proposedOutcomeType?: { id: string; name: string } | null;
@@ -158,20 +158,23 @@ export interface MatchConfirmation {
   };
 }
 
+export interface MatchSideInput {
+  position: number;
+  playerIds?: string[];
+  teamId?: string;
+}
+
 export interface CreateMatchInput {
   tournamentId: string;
   round?: number;
-  teamAId?: string;
-  teamBId?: string;
-  playerIdsA?: string[]; // For flex team mode
-  playerIdsB?: string[]; // For flex team mode
+  sides?: MatchSideInput[];
   status?: MatchStatus;
   scoreA?: number | null;
   scoreB?: number | null;
   reportProof?: string;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
-  winner?: "teamA" | "teamB" | null; // Explicit winner selection (overrides score-based calculation)
+  winnerPosition?: number | null;
 }
 
 export interface UpdateMatchInput {
@@ -182,14 +185,14 @@ export interface UpdateMatchInput {
   reportProof?: string;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
-  winner?: "teamA" | "teamB" | null;
+  winnerPosition?: number | null;
 }
 
 export interface ReportMatchResultInput {
   scoreA: number;
   scoreB: number;
   reportProof?: string;
-  winner?: "teamA" | "teamB" | null;
+  winnerPosition?: number | null;
   outcomeTypeId?: string;
   outcomeReasonId?: string;
 }
@@ -204,7 +207,7 @@ export interface ContestMatchInput {
   contestationProof?: string;
   proposedScoreA?: number;
   proposedScoreB?: number;
-  proposedWinner?: "teamA" | "teamB" | null;
+  proposedWinnerPosition?: number | null;
   proposedOutcomeTypeId?: string;
   proposedOutcomeReasonId?: string;
 }
@@ -217,13 +220,16 @@ export interface FinalizeMatchInput {
 // Schémas Zod pour la validation
 // ============================================
 
+export const matchSideInputSchema = z.object({
+  position: z.number().int().min(1),
+  playerIds: z.array(z.string().uuid()).optional(),
+  teamId: z.string().uuid().optional(),
+});
+
 export const createMatchSchema = z.object({
   tournamentId: z.string().uuid("ID de tournoi invalide"),
   round: z.number().int().min(1).optional(),
-  teamAId: z.string().uuid("ID d'équipe A invalide").optional(),
-  teamBId: z.string().uuid("ID d'équipe B invalide").optional(),
-  playerIdsA: z.array(z.string().uuid()).optional(),
-  playerIdsB: z.array(z.string().uuid()).optional(),
+  sides: z.array(matchSideInputSchema).min(2).optional(),
   status: matchStatusSchema.optional(),
   scoreA: z.number().int().min(0).nullable().optional(),
   scoreB: z.number().int().min(0).nullable().optional(),
@@ -233,7 +239,7 @@ export const createMatchSchema = z.object({
     .string()
     .uuid("ID de raison de résultat invalide")
     .optional(),
-  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
+  winnerPosition: z.number().int().min(1).nullable().optional(),
   playedAt: z.string().datetime().optional(),
 });
 
@@ -249,14 +255,14 @@ export const updateMatchSchema = z.object({
     .string()
     .uuid("ID de raison de résultat invalide")
     .optional(),
-  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
+  winnerPosition: z.number().int().min(1).nullable().optional(),
 });
 
 export const reportMatchResultSchema = z.object({
   scoreA: z.number().int().min(0, "Le score doit être positif"),
   scoreB: z.number().int().min(0, "Le score doit être positif"),
   reportProof: z.string().optional(),
-  winner: z.enum(["teamA", "teamB"]).nullable().optional(),
+  winnerPosition: z.number().int().min(1).nullable().optional(),
   outcomeTypeId: z.string().uuid("ID de type de résultat invalide").optional(),
   outcomeReasonId: z
     .string()
@@ -274,7 +280,7 @@ export const contestMatchSchema = z
     contestationProof: z.string().optional(),
     proposedScoreA: z.number().int().min(0).optional(),
     proposedScoreB: z.number().int().min(0).optional(),
-    proposedWinner: z.enum(["teamA", "teamB"]).nullable().optional(),
+    proposedWinnerPosition: z.number().int().min(1).nullable().optional(),
     proposedOutcomeTypeId: z
       .string()
       .uuid("ID de type de résultat invalide")
@@ -302,7 +308,7 @@ export const respondToMatchSchema = z
     proof: z.string().optional(),
     proposedScoreA: z.number().int().min(0).optional(),
     proposedScoreB: z.number().int().min(0).optional(),
-    proposedWinner: z.enum(["teamA", "teamB"]).nullable().optional(),
+    proposedWinnerPosition: z.number().int().min(1).nullable().optional(),
     proposedOutcomeTypeId: z
       .string()
       .uuid("ID de type de résultat invalide")
@@ -341,33 +347,13 @@ export const listMatchesQuerySchema = z.object({
   playerId: z.string().uuid().optional(),
 });
 
-export const validateMatchSchema = z
-  .object({
-    tournamentId: z.string().uuid("ID de tournoi invalide"),
-    round: z.number().int().min(1).optional(),
-    teamAId: z.string().uuid("ID d'équipe A invalide").optional(),
-    teamBId: z.string().uuid("ID d'équipe B invalide").optional(),
-    playerIdsA: z.array(z.string().uuid()).optional(),
-    playerIdsB: z.array(z.string().uuid()).optional(),
-    matchId: z.string().uuid("ID de match invalide").optional(), // Match ID to exclude from validation (for edit mode)
-    playedAt: z.string().datetime().optional(),
-  })
-  .refine(
-    (data) => {
-      // Au moins tournamentId doit être fourni
-      if (!data.tournamentId) {
-        return false;
-      }
-
-      // Si teamAId est fourni, on peut valider partiellement
-      // Si playerIdsA est fourni, on peut valider partiellement
-      // L'important c'est que tournamentId soit là
-      return true;
-    },
-    {
-      message: "tournamentId est requis pour la validation",
-    },
-  );
+export const validateMatchSchema = z.object({
+  tournamentId: z.string().uuid("ID de tournoi invalide"),
+  round: z.number().int().min(1).optional(),
+  sides: z.array(matchSideInputSchema).min(1).optional(),
+  matchId: z.string().uuid("ID de match invalide").optional(),
+  playedAt: z.string().datetime().optional(),
+});
 
 export type ValidateMatchRequestData = z.infer<typeof validateMatchSchema>;
 
@@ -481,6 +467,7 @@ export interface ClientCreateMatchRequest extends Omit<
   "playedAt"
 > {
   playedAt?: Date | string;
+  sides?: MatchSideInput[];
 }
 
 /**
@@ -503,6 +490,7 @@ export interface ClientValidateMatchRequest extends Omit<
   "playedAt"
 > {
   playedAt?: Date | string;
+  sides?: MatchSideInput[];
 }
 
 /**
@@ -586,7 +574,7 @@ export interface MatchDetailConfirmation {
   contestationProof: string | null;
   proposedScoreA: number | null;
   proposedScoreB: number | null;
-  proposedWinner: string | null;
+  proposedWinnerPosition: number | null;
   proposedOutcomeTypeId: string | null;
   proposedOutcomeReasonId: string | null;
   sidePosition: number | null;

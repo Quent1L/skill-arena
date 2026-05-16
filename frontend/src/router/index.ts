@@ -388,6 +388,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/OfflineView.vue'),
     meta: { title: 'Hors ligne', hideBreadcrumb: true },
   },
+  {
+    path: '/debug',
+    name: 'debug',
+    component: () => import('@/views/DragDropDebugView.vue'),
+    meta: { title: 'Debug DnD', hideBreadcrumb: true },
+  },
   /** all ERROR */
   {
     path: '/:pathMatch(.*)*',

@@ -116,6 +116,7 @@ beforeEach(() => {
 
   // Mock teamRepository to prevent real DB calls in static-mode validation
   (teamRepository as any).getMemberCount = async () => 2;
+  (teamRepository as any).getById = async () => null;
 
   // Mock mmrCalculationService to prevent real DB calls in finalizeMatch
   (mmrCalculationService as any).processMatchFinalization = async () => undefined;
@@ -235,8 +236,7 @@ describe("MatchService - basic flows", () => {
         id: "m-draw",
         tournamentId: "t-1",
         status: "scheduled",
-        teamAId: "A",
-        teamBId: "B",
+        sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.getTournament = async () => ({ id: "t-1", allowDraw: true }) as any;
@@ -326,8 +326,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["u-1"],
-      playerIdsB: ["u-2"],
+      sides: [{ position: 1, playerIds: ["u-1"] }, { position: 2, playerIds: ["u-2"] }],
     } as CreateMatchRequestData;
 
     const result = await matchService.createMatch(input, "u-1");
@@ -358,8 +357,7 @@ describe("MatchService - basic flows", () => {
         id: "m-1",
         tournamentId: "t-1",
         status: "scheduled",
-        teamAId: "tA",
-        teamBId: "tB",
+        sides: [{ position: 1, teamId: "tA" }, { position: 2, teamId: "tB" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.getTournament = async () => ({ id: "t-1", allowDraw: true }) as any;
@@ -382,8 +380,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["p1", "p2"],
-      playerIdsB: ["p2", "p3"],
+      sides: [{ position: 1, playerIds: ["p1", "p2"] }, { position: 2, playerIds: ["p2", "p3"] }],
     } as CreateMatchRequestData;
 
     const res = await matchService.validateMatch(input);
@@ -525,8 +522,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["u-1"],
-      playerIdsB: ["u-2"],
+      sides: [{ position: 1, playerIds: ["u-1"] }, { position: 2, playerIds: ["u-2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -552,8 +548,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["u-1", "u-2"],
-      playerIdsB: ["u-3", "u-4"],
+      sides: [{ position: 1, playerIds: ["u-1", "u-2"] }, { position: 2, playerIds: ["u-3", "u-4"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -579,8 +574,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["u-1", "u-2"],
-      playerIdsB: ["u-3", "u-4"],
+      sides: [{ position: 1, playerIds: ["u-1", "u-2"] }, { position: 2, playerIds: ["u-3", "u-4"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -633,8 +627,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-2",
-      teamAId: "A",
-      teamBId: "B",
+      sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
     } as CreateMatchRequestData;
     const result = await matchService.createMatch(input, "u-admin");
     expect(result).toBeTruthy();
@@ -708,8 +701,7 @@ describe("MatchService - basic flows", () => {
         id: "m-w",
         tournamentId: "t-1",
         status: "scheduled",
-        teamAId: "A",
-        teamBId: "B",
+        sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.update = async (_id: string, data: UpdateMatchData) => {
@@ -772,8 +764,7 @@ describe("MatchService - basic flows", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      teamAId: "A",
-      teamBId: "B",
+      sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
     } as CreateMatchRequestData;
     const res = await matchService.validateMatch(input);
     expect(res.warnings.length).toBeGreaterThan(0);
@@ -805,8 +796,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -844,8 +834,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -879,8 +868,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -914,8 +902,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -953,8 +940,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2", "A3"],
-      playerIdsB: ["B1", "B2", "B3"],
+      sides: [{ position: 1, playerIds: ["A1", "A2", "A3"] }, { position: 2, playerIds: ["B1", "B2", "B3"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -997,8 +983,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     const result = await matchService.createMatch(input, "A1");
@@ -1043,8 +1028,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"],
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     // Should succeed because partner constraint is satisfied (1 < 2)
@@ -1089,8 +1073,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     // Creating a 2v2 match should succeed even though they played 2x in 1v1
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"], // 2v2 format
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     const result = await matchService.createMatch(input, "A1");
@@ -1133,8 +1116,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
     // Creating a 2v2 match should succeed even though they played 2x against each other in 1v1
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"], // 2v2 format
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     const result = await matchService.createMatch(input, "A1");
@@ -1164,8 +1146,7 @@ describe("MatchService - Partner and Opponent Constraints", () => {
 
     const input: CreateMatchRequestData = {
       tournamentId: "t-1",
-      playerIdsA: ["A1", "A2"], // 2v2 format
-      playerIdsB: ["B1", "B2"],
+      sides: [{ position: 1, playerIds: ["A1", "A2"] }, { position: 2, playerIds: ["B1", "B2"] }],
     } as CreateMatchRequestData;
 
     try {
@@ -1492,8 +1473,7 @@ describe("MatchService - Status Transitions", () => {
         id: "m-1",
         tournamentId: "t-1",
         status: "scheduled",
-        teamAId: "A",
-        teamBId: "B",
+        sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.getTournament = async () => ({ id: "t-1", allowDraw: true }) as any;
@@ -1516,8 +1496,7 @@ describe("MatchService - Status Transitions", () => {
         id: "m-1",
         tournamentId: "t-1",
         status: "reported",
-        teamAId: "A",
-        teamBId: "B",
+        sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.getTournament = async () => ({ id: "t-1", allowDraw: true }) as any;
@@ -1604,8 +1583,7 @@ describe("MatchService - Edge Cases", () => {
 
     const input = {
       tournamentId: "t-1",
-      playerIdsA: ["p1", "p2"],
-      playerIdsB: ["p3"], // Mismatch!
+      sides: [{ position: 1, playerIds: ["p1", "p2"] }, { position: 2, playerIds: ["p3"] }], // Mismatch!
     } as any;
 
     try {
@@ -1625,8 +1603,7 @@ describe("MatchService - Edge Cases", () => {
         id: "m-1",
         tournamentId: "t-1",
         status: "scheduled",
-        teamAId: "A",
-        teamBId: "B",
+        sides: [{ position: 1, teamId: "A" }, { position: 2, teamId: "B" }],
       }) as any;
     repo.isUserInMatch = async () => true;
     repo.getTournament = async () =>
@@ -1682,8 +1659,7 @@ describe("MatchService - Edge Cases", () => {
 
     const input = {
       tournamentId: "t-1",
-      playerIdsA: ["u-1"],
-      playerIdsB: ["u-2"],
+      sides: [{ position: 1, playerIds: ["u-1"] }, { position: 2, playerIds: ["u-2"] }],
       status: "reported",
       scoreA: 2,
       scoreB: 1,
@@ -1875,7 +1851,7 @@ describe("MatchService - Active proposal application", () => {
         playerId: "p1",
         proposedScoreA: 3,
         proposedScoreB: 2,
-        proposedWinner: "teamA",
+        proposedWinner: "1",
         proposedOutcomeTypeId: "ot-1",
         proposedOutcomeReasonId: "or-1",
       }) as any;
@@ -1890,7 +1866,7 @@ describe("MatchService - Active proposal application", () => {
 
     const proposalUpdate = updateCalls.find((u) => u.scoreA === 3 && u.scoreB === 2);
     expect(proposalUpdate).toBeDefined();
-    expect(proposalUpdate!.winner).toBe("teamA");
+    expect(proposalUpdate!.winnerPosition).toBe(1);
     expect(proposalUpdate!.outcomeTypeId).toBe("ot-1");
     expect(proposalUpdate!.outcomeReasonId).toBe("or-1");
 
@@ -1920,7 +1896,7 @@ describe("MatchService - Active proposal application", () => {
         playerId: "p1",
         proposedScoreA: 5,
         proposedScoreB: 4,
-        proposedWinner: "teamA",
+        proposedWinner: "1",
       }) as any;
 
     repo.getById = async (id: string) =>
@@ -1937,7 +1913,7 @@ describe("MatchService - Active proposal application", () => {
 
     const proposalApply = updateCalls.find((u) => u.scoreA === 5 && u.scoreB === 4);
     expect(proposalApply).toBeDefined();
-    expect(proposalApply!.winner).toBe("teamA");
+    expect(proposalApply!.winnerPosition).toBe(1);
   });
 });
 

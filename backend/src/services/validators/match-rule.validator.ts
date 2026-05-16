@@ -1,4 +1,5 @@
 import { matchRepository } from "../../repository/match.repository";
+import { teamRepository } from "../../repository/team.repository";
 import { userRepository } from "../../repository/user.repository";
 import { BadRequestError, ConflictError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput } from "@skill-arena/shared/types/index";
@@ -7,69 +8,101 @@ type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>
 >;
 
-/**
- * Validator for tournament rules (partner/opponent constraints, match limits)
- */
 export class MatchRuleValidator {
-    /**
-     * Validate match rules against tournament settings
-     */
     async validateMatchRules(
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
         if (tournament.mode === "ranked") return;
 
-        if (
-            tournament.teamMode === "flex" &&
-            input.playerIdsA &&
-            input.playerIdsB
-        ) {
-            await this.validateFlexTeamRules(input, tournament);
-        } else if (
-            tournament.teamMode === "static" &&
-            input.teamAId &&
-            input.teamBId
-        ) {
-            // For static teams, check team constraints
-            // TODO: Implement static team validation - need to get team participants and check rules
+        const sides = input.sides ?? [];
+        if (sides.length < 2) return;
+
+        if (tournament.teamMode === "flex") {
+            const flexSides = sides.filter((s) => s.playerIds && s.playerIds.length > 0);
+            if (flexSides.length >= 2) {
+                await this.validateFlexTeamRules(input, tournament);
+            }
+        } else if (tournament.teamMode === "static") {
+            const staticSides = sides.filter((s) => s.teamId);
+            if (staticSides.length >= 2) {
+                await this.validateStaticTeamRules(input, tournament);
+            }
         }
     }
 
-    /**
-     * Validate flex team match rules
-     */
+    private async validateStaticTeamRules(
+        input: CreateMatchInput & { matchId?: string },
+        tournament: NonNullable<TournamentFromRepository>
+    ): Promise<void> {
+        const sides = input.sides ?? [];
+        const excludeMatchId = input.matchId;
+
+        const sidePlayerIds: string[][] = [];
+        for (const side of sides) {
+            if (!side.teamId) continue;
+            const team = await teamRepository.getById(side.teamId);
+            if (team && team.members.length > 0) {
+                sidePlayerIds.push(team.members.map((m) => m.userId));
+            }
+        }
+
+        if (sidePlayerIds.length < 2) return;
+
+        const allPlayerIds = sidePlayerIds.flat();
+        await this.validateAtLeastOnePlayerUnderLimit(tournament, allPlayerIds, excludeMatchId);
+
+        for (const playerIds of sidePlayerIds) {
+            if (playerIds.length > 1) {
+                await this.validateTeamPartnerConstraints(tournament, playerIds, excludeMatchId);
+            }
+        }
+
+        await this.validateTeamOpponentConstraints(
+            input.tournamentId,
+            sidePlayerIds[0],
+            sidePlayerIds[1],
+            tournament,
+            excludeMatchId
+        );
+    }
+
     private async validateFlexTeamRules(
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
-        if (!input.playerIdsA || !input.playerIdsB) return;
+        const sides = input.sides ?? [];
+        const sideSizes = sides.map((s) => s.playerIds?.length ?? 0);
 
-        if (input.playerIdsA.length !== input.playerIdsB.length) {
+        if (!sideSizes.every((n) => n === sideSizes[0])) {
             throw new BadRequestError(ErrorCode.MATCH_TEAM_SIZE_MISMATCH, {
-                teamASize: input.playerIdsA.length,
-                teamBSize: input.playerIdsB.length,
+                teamASize: sideSizes[0],
+                teamBSize: sideSizes[1],
             });
         }
 
-        const allPlayerIds = [...input.playerIdsA, ...input.playerIdsB];
+        const allPlayerIds = sides.flatMap((s) => s.playerIds ?? []);
         const excludeMatchId = input.matchId;
 
-        // Per-player match limit: block only if ALL players have reached the limit
         await this.validateAtLeastOnePlayerUnderLimit(tournament, allPlayerIds, excludeMatchId);
 
-        // Partner check: once per team as a complete unit
-        await this.validateTeamPartnerConstraints(input, tournament, input.playerIdsA, excludeMatchId);
-        await this.validateTeamPartnerConstraints(input, tournament, input.playerIdsB, excludeMatchId);
+        for (const side of sides) {
+            if (side.playerIds && side.playerIds.length > 1) {
+                await this.validateTeamPartnerConstraints(tournament, side.playerIds, excludeMatchId);
+            }
+        }
 
-        // Opponent check: complete team A vs complete team B
-        await this.validateTeamOpponentConstraints(input, tournament, excludeMatchId);
+        if (sides.length >= 2 && sides[0].playerIds && sides[1].playerIds) {
+            await this.validateTeamOpponentConstraints(
+                input.tournamentId,
+                sides[0].playerIds,
+                sides[1].playerIds,
+                tournament,
+                excludeMatchId
+            );
+        }
     }
 
-    /**
-     * Allow match creation if at least one player has not yet reached the match limit.
-     * Block only if every player across both teams has already reached or exceeded the limit.
-     */
     private async validateAtLeastOnePlayerUnderLimit(
         tournament: NonNullable<TournamentFromRepository>,
         allPlayerIds: string[],
@@ -90,18 +123,11 @@ export class MatchRuleValidator {
         }
     }
 
-    /**
-     * Validate that a complete team hasn't exceeded the partner match limit.
-     * Skipped for 1v1 (no partners).
-     */
     private async validateTeamPartnerConstraints(
-        input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>,
         teamPlayerIds: string[],
         excludeMatchId?: string
     ): Promise<void> {
-        if (teamPlayerIds.length <= 1) return;
-
         const count = await matchRepository.countMatchesForTeam(
             tournament.id,
             teamPlayerIds,
@@ -117,27 +143,24 @@ export class MatchRuleValidator {
         }
     }
 
-    /**
-     * Validate that the complete team A hasn't exceeded the opponent match limit against team B.
-     */
     private async validateTeamOpponentConstraints(
-        input: CreateMatchInput & { matchId?: string },
+        tournamentId: string,
+        playerIdsA: string[],
+        playerIdsB: string[],
         tournament: NonNullable<TournamentFromRepository>,
         excludeMatchId?: string
     ): Promise<void> {
-        if (!input.playerIdsA || !input.playerIdsB) return;
-
         const count = await matchRepository.countMatchesTeamsVsTeam(
-            tournament.id,
-            input.playerIdsA,
-            input.playerIdsB,
+            tournamentId,
+            playerIdsA,
+            playerIdsB,
             excludeMatchId,
         );
 
         if (count >= tournament.maxTimesWithSameOpponent) {
             const [namesA, namesB] = await Promise.all([
-                Promise.all(input.playerIdsA.map((id) => this.getPlayerName(id))),
-                Promise.all(input.playerIdsB.map((id) => this.getPlayerName(id))),
+                Promise.all(playerIdsA.map((id) => this.getPlayerName(id))),
+                Promise.all(playerIdsB.map((id) => this.getPlayerName(id))),
             ]);
             throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
                 max: tournament.maxTimesWithSameOpponent,
@@ -147,9 +170,6 @@ export class MatchRuleValidator {
         }
     }
 
-    /**
-     * Get player display name
-     */
     private async getPlayerName(playerId: string): Promise<string> {
         const player = await userRepository.getById(playerId);
         return player?.displayName || `Joueur ${playerId.substring(0, 8)}`;

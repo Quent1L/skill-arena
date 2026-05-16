@@ -83,6 +83,7 @@
     "PLAYER_NOT_IN_TEAM": "Vous n'êtes pas membre de cette équipe",
     "TEAM_SIZE_INVALID": "La taille de l'équipe ne respecte pas les limites du tournoi",
     "TEAM_HAS_MATCH": "Cette équipe a déjà un match et ne peut plus être modifiée",
-    "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} est déjà engagé dans un autre match à cette heure-ci — la téléportation est prévue pour la prochaine version"
+    "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} est déjà engagé dans un autre match à cette heure-ci — la téléportation est prévue pour la prochaine version",
+    "RANKED_MATCH_TOO_OLD": "Les matchs ranked doivent être déclarés dans les 48h suivant leur dispute"
   }
 }

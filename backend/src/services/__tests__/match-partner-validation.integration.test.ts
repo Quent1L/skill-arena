@@ -21,6 +21,9 @@ import {
   user as betterAuthUser,
   tournamentParticipants,
   tournamentEntries,
+  tournamentAdmins,
+  teams,
+  teamMembers,
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { ConflictError, ErrorCode } from "../../types/errors";
@@ -163,10 +166,6 @@ describe("Match Partner Validation", () => {
     ]);
   });
 
-  afterAll(async () => {
-    // Close the test database
-    await closeTestDatabase();
-  });
 
   it("Step 1: should count matches correctly after creating first match", async () => {
     console.log("[DEBUG] Test 1 starting...");
@@ -175,8 +174,7 @@ describe("Match Partner Validation", () => {
     await matchService.createMatch(
       {
         tournamentId,
-        playerIdsA: [player1Id, player2Id],
-        playerIdsB: [player3Id, player4Id],
+        sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
         status: "scheduled",
       },
       player1Id,
@@ -204,8 +202,7 @@ describe("Match Partner Validation", () => {
     await matchService.createMatch(
       {
         tournamentId,
-        playerIdsA: [player1Id, player2Id],
-        playerIdsB: [player3Id, player4Id],
+        sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
         status: "scheduled",
       },
       player1Id,
@@ -228,8 +225,7 @@ describe("Match Partner Validation", () => {
       await matchService.createMatch(
         {
           tournamentId,
-          playerIdsA: [player1Id, player2Id],
-          playerIdsB: [player3Id, player4Id],
+          sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
           status: "scheduled",
         },
         player1Id,
@@ -247,8 +243,7 @@ describe("Match Partner Validation", () => {
     // Validate match creation (should fail)
     const validation = await matchService.validateMatch({
       tournamentId,
-      playerIdsA: [player1Id, player2Id],
-      playerIdsB: [player3Id, player4Id],
+      sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
       status: "scheduled",
     });
 
@@ -270,15 +265,13 @@ describe("Match Partner Validation", () => {
     // Validate match multiple times
     await matchService.validateMatch({
       tournamentId,
-      playerIdsA: [player1Id, player3Id],
-      playerIdsB: [player2Id, player4Id],
+      sides: [{ position: 1, playerIds: [player1Id, player3Id] }, { position: 2, playerIds: [player2Id, player4Id] }],
       status: "scheduled",
     });
 
     await matchService.validateMatch({
       tournamentId,
-      playerIdsA: [player1Id, player3Id],
-      playerIdsB: [player2Id, player4Id],
+      sides: [{ position: 1, playerIds: [player1Id, player3Id] }, { position: 2, playerIds: [player2Id, player4Id] }],
       status: "scheduled",
     });
 
@@ -300,8 +293,7 @@ describe("Match Partner Validation", () => {
     const match = await matchService.createMatch(
       {
         tournamentId,
-        playerIdsA: [player1Id, player3Id],
-        playerIdsB: [player2Id, player4Id],
+        sides: [{ position: 1, playerIds: [player1Id, player3Id] }, { position: 2, playerIds: [player2Id, player4Id] }],
         status: "scheduled",
       },
       player1Id,
@@ -377,8 +369,7 @@ describe("Match Partner Validation", () => {
     const result = await matchService.createMatch(
       {
         tournamentId,
-        playerIdsA: [player1Id, player4Id],
-        playerIdsB: [player2Id, player3Id],
+        sides: [{ position: 1, playerIds: [player1Id, player4Id] }, { position: 2, playerIds: [player2Id, player3Id] }],
         status: "scheduled",
       },
       player1Id,
@@ -408,8 +399,7 @@ describe("Match Partner Validation", () => {
       await matchService.createMatch(
         {
           tournamentId,
-          playerIdsA: [player1Id, player2Id],
-          playerIdsB: [player3Id, player4Id],
+          sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
           status: "scheduled",
         },
         player1Id,
@@ -422,4 +412,190 @@ describe("Match Partner Validation", () => {
       );
     }
   });
+});
+
+describe("Static Team Rule Validation", () => {
+  let staticTournamentId: string;
+  let teamAId: string;
+  let teamBId: string;
+  let p1Id: string;
+  let p2Id: string;
+  let p3Id: string;
+  let p4Id: string;
+
+  beforeAll(async () => {
+    staticTournamentId = randomUUID();
+    const timestamp = Date.now() + 9000;
+    const today = new Date().toISOString().split("T")[0];
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    // Auth users
+    const authIds: string[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const [u] = await testDb.insert(betterAuthUser).values({
+        id: `st-auth-${i}-${timestamp}`,
+        name: `Static P${i}`,
+        email: `static-p${i}-${timestamp}@test.com`,
+        emailVerified: true,
+      }).returning();
+      authIds.push(u.id);
+    }
+
+    // App users
+    const appIds: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      const [u] = await testDb.insert(appUsers).values({
+        externalId: authIds[i],
+        displayName: `Static Player ${i + 1}`,
+        shortName: `SP${i + 1}`,
+        role: "player",
+      }).returning();
+      appIds.push(u.id);
+    }
+    [p1Id, p2Id, p3Id, p4Id] = appIds;
+
+    // Tournament: static mode, tight partner/opponent limits
+    await testDb.insert(tournaments).values({
+      id: staticTournamentId,
+      name: "Static Team Rule Test",
+      createdBy: p1Id,
+      teamMode: "static",
+      mode: "championship",
+      status: "open",
+      minTeamSize: 2,
+      maxTeamSize: 2,
+      maxMatchesPerPlayer: 10,
+      maxTimesWithSamePartner: 2,
+      maxTimesWithSameOpponent: 10,
+      startDate: today,
+      endDate: nextWeek,
+    });
+
+    // Participants
+    await testDb.insert(tournamentParticipants).values([
+      { tournamentId: staticTournamentId, userId: p1Id },
+      { tournamentId: staticTournamentId, userId: p2Id },
+      { tournamentId: staticTournamentId, userId: p3Id },
+      { tournamentId: staticTournamentId, userId: p4Id },
+    ]);
+
+    // Make p1 a tournament admin so they can create matches in static mode
+    await testDb.insert(tournamentAdmins).values({ tournamentId: staticTournamentId, userId: p1Id });
+
+    // Teams
+    const [tA] = await testDb.insert(teams).values({
+      tournamentId: staticTournamentId,
+      name: "Team Alpha",
+      createdBy: p1Id,
+    }).returning();
+    teamAId = tA.id;
+
+    const [tB] = await testDb.insert(teams).values({
+      tournamentId: staticTournamentId,
+      name: "Team Beta",
+      createdBy: p3Id,
+    }).returning();
+    teamBId = tB.id;
+
+    // Team members
+    await testDb.insert(teamMembers).values([
+      { teamId: teamAId, userId: p1Id },
+      { teamId: teamAId, userId: p2Id },
+      { teamId: teamBId, userId: p3Id },
+      { teamId: teamBId, userId: p4Id },
+    ]);
+  });
+
+  it("should allow first static team match", async () => {
+    const result = await matchService.createMatch(
+      {
+        tournamentId: staticTournamentId,
+        sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
+        status: "scheduled",
+      },
+      p1Id,
+    );
+    expect(result).toBeTruthy();
+    expect(result?.id).toBeDefined();
+  });
+
+  it("should allow second static team match when under partner limit", async () => {
+    const result = await matchService.createMatch(
+      {
+        tournamentId: staticTournamentId,
+        sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
+        status: "scheduled",
+      },
+      p1Id,
+    );
+    expect(result).toBeTruthy();
+  });
+
+  it("should block third match when partner limit (2) is reached", async () => {
+    try {
+      await matchService.createMatch(
+        {
+          tournamentId: staticTournamentId,
+          sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
+          status: "scheduled",
+        },
+        p1Id,
+      );
+      throw new Error("Expected ConflictError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as ConflictError).code).toBe(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED);
+    }
+  });
+
+  it("should block match when opponent limit is reached", async () => {
+    // Raise partner limit, lower opponent limit to 2
+    await testDb
+      .update(tournaments)
+      .set({ maxTimesWithSamePartner: 10, maxTimesWithSameOpponent: 2 })
+      .where(eq(tournaments.id, staticTournamentId));
+
+    // A vs B already played twice → opponent limit = 2 → should block
+    try {
+      await matchService.createMatch(
+        {
+          tournamentId: staticTournamentId,
+          sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
+          status: "scheduled",
+        },
+        p1Id,
+      );
+      throw new Error("Expected ConflictError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as ConflictError).code).toBe(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED);
+    }
+  });
+
+  it("should block when all players in static teams have hit match limit", async () => {
+    // Set per-player limit to 2 (already played 2 matches) and raise other limits
+    await testDb
+      .update(tournaments)
+      .set({ maxMatchesPerPlayer: 2, maxTimesWithSamePartner: 10, maxTimesWithSameOpponent: 10 })
+      .where(eq(tournaments.id, staticTournamentId));
+
+    try {
+      await matchService.createMatch(
+        {
+          tournamentId: staticTournamentId,
+          sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
+          status: "scheduled",
+        },
+        p1Id,
+      );
+      throw new Error("Expected ConflictError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as ConflictError).code).toBe(ErrorCode.ALL_PLAYERS_MAX_MATCHES_EXCEEDED);
+    }
+  });
+});
+
+afterAll(async () => {
+  await closeTestDatabase();
 });

@@ -83,7 +83,7 @@ export class MatchService {
     }
 
     if (!tournament.scoreEnabled && input.status === 'reported') {
-      matchInputValidator.validateWinnerRequired(input.winner)
+      matchInputValidator.validateWinnerRequired(input.winnerPosition)
       input.scoreA = null
       input.scoreB = null
     } else if (input.status === 'reported' && input.scoreA != null && input.scoreB != null) {
@@ -98,7 +98,7 @@ export class MatchService {
         input.tournamentId,
         input.scoreA,
         input.scoreB,
-        input.winner,
+        input.winnerPosition,
       )
     }
 
@@ -171,7 +171,7 @@ export class MatchService {
   }
 
   private async autoRegisterRankedPlayers(input: CreateMatchInput): Promise<void> {
-    const allPlayerIds = [...(input.playerIdsA ?? []), ...(input.playerIdsB ?? [])]
+    const allPlayerIds = (input.sides ?? []).flatMap((s) => s.playerIds ?? [])
     for (const playerId of allPlayerIds) {
       const existing = await participantRepository.findParticipationByUserAndTournament(
         playerId,
@@ -218,10 +218,7 @@ export class MatchService {
   ) {
     const matchData: CreateMatchData = {
       tournamentId: input.tournamentId,
-      teamAId: input.teamAId,
-      teamBId: input.teamBId,
-      playerIdsA: input.playerIdsA,
-      playerIdsB: input.playerIdsB,
+      sides: input.sides ?? [],
       status: input.status ?? ('scheduled' as const),
       createdBy,
       playedAt: input.playedAt ? new Date(input.playedAt) : undefined,
@@ -235,8 +232,8 @@ export class MatchService {
       matchData.outcomeReasonId = input.outcomeReasonId
       matchData.reportedBy = createdBy
       matchData.confirmationDeadline = this.getDeadlineForTournament(tournament) ?? undefined
-      const winner = this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winner)
-      if (winner !== undefined) matchData.winner = winner
+      const winnerPosition = this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winnerPosition)
+      if (winnerPosition !== undefined) matchData.winnerPosition = winnerPosition
     }
 
     return await matchRepository.create(matchData)
@@ -372,7 +369,7 @@ export class MatchService {
     if (input.reportProof !== undefined) updateData.reportProof = input.reportProof
     if (input.outcomeTypeId !== undefined) updateData.outcomeTypeId = input.outcomeTypeId
     if (input.outcomeReasonId !== undefined) updateData.outcomeReasonId = input.outcomeReasonId
-    if (input.winner !== undefined) updateData.winner = input.winner
+    if (input.winnerPosition !== undefined) updateData.winnerPosition = input.winnerPosition
     if (input.playedAt !== undefined) {
       updateData.playedAt = new Date(input.playedAt)
       const playerIds = await matchRepository.getPlayerIdsForMatch(id)
@@ -393,7 +390,7 @@ export class MatchService {
         match.tournamentId,
         scoreA,
         scoreB,
-        input.winner,
+        input.winnerPosition,
       )
 
       updateData.reportedBy = updatedBy
@@ -503,7 +500,7 @@ export class MatchService {
       tournamentId,
       input.scoreA,
       input.scoreB,
-      input.winner,
+      input.winnerPosition,
     )
   }
 
@@ -520,7 +517,7 @@ export class MatchService {
       outcomeTypeId: input.outcomeTypeId,
       outcomeReasonId: input.outcomeReasonId,
       reportedBy,
-      winner: this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winner) ?? null,
+      winnerPosition: this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winnerPosition) ?? null,
     }
   }
 
@@ -591,7 +588,7 @@ export class MatchService {
       contestationProof: input.contestationProof,
       proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
       proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
-      proposedWinner: hasScoreProposal ? (input.proposedWinner ?? null) : null,
+      proposedWinner: hasScoreProposal ? (input.proposedWinnerPosition?.toString() ?? null) : null,
       proposedOutcomeTypeId: hasScoreProposal ? (input.proposedOutcomeTypeId ?? null) : null,
       proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
     })
@@ -740,7 +737,7 @@ export class MatchService {
       contestationProof: input.proof,
       proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
       proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
-      proposedWinner: hasScoreProposal ? (input.proposedWinner ?? null) : null,
+      proposedWinner: hasScoreProposal ? (input.proposedWinnerPosition?.toString() ?? null) : null,
       proposedOutcomeTypeId: hasScoreProposal ? (input.proposedOutcomeTypeId ?? null) : null,
       proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
       sidePosition,
@@ -855,17 +852,23 @@ export class MatchService {
     tournament: NonNullable<TournamentFromRepository>,
     errors: string[],
   ) {
-    if (tournament.teamMode === 'flex' && input.playerIdsA && input.playerIdsB) {
-      try {
-        await this.validateMatchRules(input, tournament)
-      } catch (error) {
-        if (error instanceof AppError) {
-          const translatedMessage = String(i18next.t(`errors.${error.code}`, error.details || {}))
-          errors.push(translatedMessage)
-        } else {
-          const fallbackMessage = String(i18next.t('errors.UNKNOWN'))
-          errors.push(error instanceof Error ? error.message : fallbackMessage)
-        }
+    const sides = input.sides ?? []
+    const hasFullComposition = sides.length >= 2 &&
+      sides.every((s) =>
+        tournament.teamMode === 'static' ? !!s.teamId : (s.playerIds?.length ?? 0) > 0
+      )
+
+    if (!hasFullComposition) return
+
+    try {
+      await this.validateMatchRules(input, tournament)
+    } catch (error) {
+      if (error instanceof AppError) {
+        const translatedMessage = String(i18next.t(`errors.${error.code}`, error.details || {}))
+        errors.push(translatedMessage)
+      } else {
+        const fallbackMessage = String(i18next.t('errors.UNKNOWN'))
+        errors.push(error instanceof Error ? error.message : fallbackMessage)
       }
     }
   }
@@ -875,44 +878,26 @@ export class MatchService {
     warnings: string[],
     excludeMatchId?: string,
   ) {
-    let entryAId: string | undefined
-    let entryBId: string | undefined
+    const sides = input.sides ?? []
+    if (sides.length < 2) return
 
     try {
-      if (input.teamAId && input.teamBId) {
-        const entryA = await entryRepository.findExistingEntry(
-          input.tournamentId,
-          input.teamAId,
-          undefined,
+      const entryIds = await Promise.all(
+        sides.map((side) =>
+          entryRepository.findExistingEntry(
+            input.tournamentId,
+            side.teamId,
+            side.playerIds,
+          ).then((e) => e?.id)
         )
-        const entryB = await entryRepository.findExistingEntry(
-          input.tournamentId,
-          input.teamBId,
-          undefined,
-        )
-        entryAId = entryA?.id
-        entryBId = entryB?.id
-      } else if (input.playerIdsA && input.playerIdsB) {
-        const entryA = await entryRepository.findExistingEntry(
-          input.tournamentId,
-          undefined,
-          input.playerIdsA,
-        )
-        const entryB = await entryRepository.findExistingEntry(
-          input.tournamentId,
-          undefined,
-          input.playerIdsB,
-        )
-        entryAId = entryA?.id
-        entryBId = entryB?.id
-      }
+      )
 
-      if (!entryAId || !entryBId) return
+      if (entryIds.some((id) => !id)) return
 
       const duplicates = await matchRepository.findMatchesWithSameEntries(
         input.tournamentId,
-        entryAId,
-        entryBId,
+        entryIds[0]!,
+        entryIds[1]!,
         excludeMatchId,
       )
 
@@ -1145,7 +1130,8 @@ export class MatchService {
     }
 
     if (activeProposal.proposedWinner !== null && activeProposal.proposedWinner !== undefined) {
-      updateData.winner = activeProposal.proposedWinner as 'teamA' | 'teamB' | null
+      const parsed = parseInt(activeProposal.proposedWinner)
+      updateData.winnerPosition = isNaN(parsed) ? null : parsed
     }
     if (
       activeProposal.proposedOutcomeTypeId !== null &&
@@ -1166,12 +1152,12 @@ export class MatchService {
   private deriveWinnerFromScores(
     scoreA: number | null | undefined,
     scoreB: number | null | undefined,
-    explicitWinner: 'teamA' | 'teamB' | null | undefined,
-  ): 'teamA' | 'teamB' | null | undefined {
-    if (explicitWinner !== undefined) return explicitWinner
+    explicitWinnerPosition: number | null | undefined,
+  ): number | null | undefined {
+    if (explicitWinnerPosition !== undefined) return explicitWinnerPosition
     if (scoreA == null || scoreB == null) return undefined
-    if (scoreA > scoreB) return 'teamA'
-    if (scoreB > scoreA) return 'teamB'
+    if (scoreA > scoreB) return 1
+    if (scoreB > scoreA) return 2
     return null
   }
 
@@ -1201,17 +1187,16 @@ export class MatchService {
     input: CreateMatchInput,
     tournament: NonNullable<TournamentFromRepository>,
   ): Promise<string[]> {
+    const sides = input.sides ?? []
     if (tournament.teamMode === 'flex') {
-      return [...(input.playerIdsA ?? []), ...(input.playerIdsB ?? [])]
+      return sides.flatMap((s) => s.playerIds ?? [])
     }
     const ids: string[] = []
-    if (input.teamAId) {
-      const teamA = await teamRepository.getById(input.teamAId)
-      if (teamA) ids.push(...teamA.members.map((m) => m.userId))
-    }
-    if (input.teamBId) {
-      const teamB = await teamRepository.getById(input.teamBId)
-      if (teamB) ids.push(...teamB.members.map((m) => m.userId))
+    for (const side of sides) {
+      if (side.teamId) {
+        const team = await teamRepository.getById(side.teamId)
+        if (team) ids.push(...team.members.map((m) => m.userId))
+      }
     }
     return ids
   }

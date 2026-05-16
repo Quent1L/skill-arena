@@ -60,9 +60,9 @@
           <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
           </div>
-          <div v-if="activeProposal.proposedWinner" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
+          <div v-if="activeProposal.proposedWinnerPosition" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Vainqueur proposé :</span>
-            <span class="ml-2 font-bold">{{ activeProposal.proposedWinner === 'teamA' ? 'Équipe A' : 'Équipe B' }}</span>
+            <span class="ml-2 font-bold">Équipe {{ activeProposal.proposedWinnerPosition }}</span>
           </div>
           <div v-if="activeProposal.proposedOutcomeType" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
             <span class="font-semibold text-warn-600 dark:text-warn-400">Type de résultat proposé :</span>

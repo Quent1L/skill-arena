@@ -200,8 +200,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       await matchService.createMatch(
         {
           tournamentId: testTournamentId,
-          teamAId,
-          teamBId,
+          sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
           scoreA: 2,
           scoreB: 1,
           status: "finalized",
@@ -212,8 +211,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate second match - should warn about duplicate
       const validation = await matchService.validateMatch({
         tournamentId: testTournamentId,
-        teamAId,
-        teamBId,
+        sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
       });
 
       expect(validation.valid).toBe(true);
@@ -240,8 +238,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate match with different team
       const validation = await matchService.validateMatch({
         tournamentId: testTournamentId,
-        teamAId,
-        teamBId: teamC.id,
+        sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamC.id }],
       });
 
       expect(validation.valid).toBe(true);
@@ -255,8 +252,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       const matchResult = await matchService.createMatch(
         {
           tournamentId: testTournamentId,
-          teamAId,
-          teamBId,
+          sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
           scoreA: 0,
           scoreB: 0,
           status: "scheduled",
@@ -267,8 +263,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate the same match (edit mode) - should NOT warn
       const validation = await matchService.validateMatch({
         tournamentId: testTournamentId,
-        teamAId,
-        teamBId,
+        sides: [{ position: 1, teamId: teamAId }, { position: 2, teamId: teamBId }],
         matchId: matchResult!.id,
       });
 
@@ -345,8 +340,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       await matchService.createMatch(
         {
           tournamentId: flexTournamentId,
-          playerIdsA: [player1Id, player2Id],
-          playerIdsB: [player3Id, player4Id],
+          sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
           scoreA: 2,
           scoreB: 1,
           status: "finalized",
@@ -357,8 +351,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate second match with same players - should warn
       const validation = await matchService.validateMatch({
         tournamentId: flexTournamentId,
-        playerIdsA: [player1Id, player2Id],
-        playerIdsB: [player3Id, player4Id],
+        sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
       });
 
       expect(validation.valid).toBe(true);
@@ -370,8 +363,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       await matchService.createMatch(
         {
           tournamentId: flexTournamentId,
-          playerIdsA: [player1Id, player2Id],
-          playerIdsB: [player3Id, player4Id],
+          sides: [{ position: 1, playerIds: [player1Id, player2Id] }, { position: 2, playerIds: [player3Id, player4Id] }],
           scoreA: 2,
           scoreB: 1,
           status: "finalized",
@@ -382,8 +374,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate with same players but different order
       const validation = await matchService.validateMatch({
         tournamentId: flexTournamentId,
-        playerIdsA: [player2Id, player1Id], // Swapped order
-        playerIdsB: [player4Id, player3Id], // Swapped order
+        sides: [{ position: 1, playerIds: [player2Id, player1Id] }, { position: 2, playerIds: [player4Id, player3Id] }],
       });
 
       expect(validation.valid).toBe(true);
@@ -394,8 +385,7 @@ describe("Match Duplicate Detection Integration Tests", () => {
       // Validate match with different players
       const validation = await matchService.validateMatch({
         tournamentId: flexTournamentId,
-        playerIdsA: [player1Id, player3Id], // Different composition
-        playerIdsB: [player2Id, player4Id],
+        sides: [{ position: 1, playerIds: [player1Id, player3Id] }, { position: 2, playerIds: [player2Id, player4Id] }],
       });
 
       expect(validation.valid).toBe(true);

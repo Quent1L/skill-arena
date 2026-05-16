@@ -37,15 +37,18 @@ export interface SyntheticTeam {
   participants: SyntheticTeamParticipant[];
 }
 
+export interface CreateMatchSideData {
+  position: number;
+  playerIds?: string[];
+  teamId?: string;
+}
+
 export interface CreateMatchData {
   tournamentId: string;
-  teamAId?: string;
-  teamBId?: string;
-  playerIdsA?: string[];
-  playerIdsB?: string[];
+  sides: CreateMatchSideData[];
   scoreA?: number | null;
   scoreB?: number | null;
-  winner?: "teamA" | "teamB" | null;
+  winnerPosition?: number | null;
   status?: MatchStatus;
   reportedBy?: string;
   reportProof?: string;
@@ -59,7 +62,7 @@ export interface CreateMatchData {
 export interface UpdateMatchData {
   scoreA?: number | null;
   scoreB?: number | null;
-  winner?: "teamA" | "teamB" | null;
+  winnerPosition?: number | null;
   status?: MatchStatus;
   reportedBy?: string;
   reportProof?: string;
@@ -106,72 +109,56 @@ export class MatchRepository {
         throw new Error("Tournament not found");
       }
 
-      // 3. Get or create entries
-      const entryA = await entryRepository.getOrCreateForMatch(
-        data.tournamentId,
-        data.teamAId,
-        data.playerIdsA,
-        tx,
-      );
-      const entryB = await entryRepository.getOrCreateForMatch(
-        data.tournamentId,
-        data.teamBId,
-        data.playerIdsB,
-        tx,
+      // 3. Get or create entries for each side
+      const resolvedSides = await Promise.all(
+        data.sides.map(async (side) => {
+          const entry = await entryRepository.getOrCreateForMatch(
+            data.tournamentId,
+            side.teamId,
+            side.playerIds,
+            tx,
+          );
+          if (!entry) throw new Error("Failed to create or find entry");
+          return { ...side, entry };
+        })
       );
 
-      if (!entryA || !entryB) {
-        throw new Error("Failed to create or find entries");
-      }
-
-      // 4. Determine winner and calculate points
+      // 4. Determine winner and calculate points (sides model: winnerPosition = winning side's position)
       const calcScoreA = data.scoreA ?? 0;
       const calcScoreB = data.scoreB ?? 0;
-      const hasExplicitWinner = data.winner !== undefined;
-      const isDraw = hasExplicitWinner ? data.winner === null : calcScoreA === calcScoreB;
-      const isAWinner = hasExplicitWinner
-        ? data.winner === "teamA"
+      const hasExplicitWinner = data.winnerPosition !== undefined;
+      const isDraw = hasExplicitWinner ? data.winnerPosition === null : calcScoreA === calcScoreB;
+      const isPos1Winner = hasExplicitWinner
+        ? data.winnerPosition === 1
         : calcScoreA > calcScoreB;
 
-      // Persist winnerSide on the match record
-      const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";
+      const winnerSideValue = isDraw ? null : isPos1Winner ? "A" : "B";
       await tx
         .update(matches)
         .set({ winnerSide: winnerSideValue })
         .where(eq(matches.id, match.id));
 
-      const pointsA = isDraw
-        ? (tournament.pointPerDraw ?? 1)
-        : isAWinner
-          ? (tournament.pointPerVictory ?? 3)
-          : (tournament.pointPerLoss ?? 0);
-      const pointsB = isDraw
-        ? (tournament.pointPerDraw ?? 1)
-        : isAWinner
-          ? (tournament.pointPerLoss ?? 0)
-          : (tournament.pointPerVictory ?? 3);
+      const scoreByPosition: Record<number, number> = {
+        1: data.scoreA !== undefined && data.scoreA !== null ? data.scoreA : 0,
+        2: data.scoreB !== undefined && data.scoreB !== null ? data.scoreB : 0,
+      };
 
-      // 5. Create match_sides — use explicit null for score when scoreEnabled=false
-      const storeScoreA = data.scoreA !== undefined ? data.scoreA : 0;
-      const storeScoreB = data.scoreB !== undefined ? data.scoreB : 0;
-      await matchSidesRepository.createSides(
-        match.id,
-        [
-          {
-            entryId: entryA.id,
-            position: 1,
-            score: storeScoreA,
-            pointsAwarded: pointsA,
-          },
-          {
-            entryId: entryB.id,
-            position: 2,
-            score: storeScoreB,
-            pointsAwarded: pointsB,
-          },
-        ],
-        tx,
-      );
+      // 5. Create match_sides for all sides
+      const sidesData = resolvedSides.map((rs) => {
+        const isWinnerSide = winnerSideValue === (rs.position === 1 ? "A" : "B");
+        const points = isDraw
+          ? (tournament.pointPerDraw ?? 1)
+          : isWinnerSide
+            ? (tournament.pointPerVictory ?? 3)
+            : (tournament.pointPerLoss ?? 0);
+        return {
+          entryId: rs.entry.id,
+          position: rs.position,
+          score: scoreByPosition[rs.position] ?? 0,
+          pointsAwarded: points,
+        };
+      });
+      await matchSidesRepository.createSides(match.id, sidesData, tx);
 
       // 6. Create match_results if reported
       if (
@@ -315,7 +302,9 @@ export class MatchRepository {
         contestationProof: c.contestationProof,
         proposedScoreA: c.proposedScoreA,
         proposedScoreB: c.proposedScoreB,
-        proposedWinner: c.proposedWinner,
+        proposedWinnerPosition: c.proposedWinner !== null && c.proposedWinner !== undefined
+          ? (parseInt(c.proposedWinner) || null)
+          : null,
         proposedOutcomeTypeId: c.proposedOutcomeTypeId,
         proposedOutcomeReasonId: c.proposedOutcomeReasonId,
         sidePosition: c.sidePosition,
@@ -600,12 +589,12 @@ export class MatchRepository {
             const scoreB = data.scoreB ?? sides[1]?.score ?? 0;
 
             // Use explicit winner if provided, otherwise derive from scores
-            const hasExplicitWinner = data.winner !== undefined;
+            const hasExplicitWinner = data.winnerPosition !== undefined;
             const isDraw = hasExplicitWinner
-              ? data.winner === null
+              ? data.winnerPosition === null
               : scoreA === scoreB;
             const isAWinner = hasExplicitWinner
-              ? data.winner === "teamA"
+              ? data.winnerPosition === 1
               : scoreA > scoreB;
 
             // Persist winnerSide on the match record
