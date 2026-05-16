@@ -156,25 +156,15 @@
 
     </div>
 
-    <!-- Speed Dial for Create Match -->
-    <div v-if="activeTab === 'matches' && store.canCreateMatch">
-      <SpeedDial
-        @click="router.push(`/tournaments/${store.tournamentId}/create-match`)"
-        :radius="150"
-        style="position: fixed; bottom: 5rem; right: 1rem; z-index: 250"
-        showIcon="fa fa-plus"
-        hide-icon="fa fa-plus"
-        buttonClass="p-button-rounded p-button-primary shadow-lg !w-14 !h-14"
-      />
-    </div>
-
     <!-- Bottom Navigation -->
     <MobileBottomNav
       :active-tab="activeTab"
       :tournament-mode="store.tournament!.mode"
       :team-mode="store.tournament!.teamMode"
       :is-authenticated="store.isAuthenticated"
+      :can-create-match="store.canCreateMatch"
       @navigate="handleNavigate"
+      @create-match="handleCreateMatch"
     />
   </div>
 </template>
@@ -224,6 +214,10 @@ function navigate(tab: string) {
 async function handleNavigate(tab: string) {
   navigate(tab)
   if (tab === 'stats' && store.tournament?.mode === 'ranked') await store.ensurePlayerProfile()
+}
+
+function handleCreateMatch() {
+  router.push(`/tournaments/${store.tournamentId}/create-match`)
 }
 </script>
 
