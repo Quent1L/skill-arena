@@ -152,7 +152,7 @@
             @click="goBackFromResult"
           />
           <Button
-            :label="isEditMode ? 'Mettre à jour' : 'Enregistrer le match'"
+            :label="isEditMode ? 'Mettre à jour' : 'Enregistrer'"
             icon="fas fa-check"
             :disabled="!canSubmit"
             :loading="matchLoading"

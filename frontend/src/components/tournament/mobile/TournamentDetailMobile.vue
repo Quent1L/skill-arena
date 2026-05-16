@@ -3,24 +3,9 @@
     class="flex flex-col h-full bg-gray-50 dark:bg-gray-900"
     style="min-height: calc(100vh - 7rem)"
   >
-    <!-- Mobile Header -->
-    <div
-      class="top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 shadow-sm"
-    >
-      <Button
-        icon="fa fa-arrow-left"
-        text
-        rounded
-        @click="router.push('/')"
-        class="mr-2 !w-10 !h-10 text-gray-700 dark:text-gray-200"
-      />
-      <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
-        {{ tabTitles[activeTab] }}
-      </h1>
-    </div>
 
     <!-- Content Area -->
-    <div ref="contentAreaRef" class="flex-1 pb-24">
+    <div ref="contentAreaRef" class="flex-1 pb-16">
       <!-- Tab: Detail & Navigation cards -->
       <div v-show="activeTab === 'infos'" class="space-y-4 p-4">
         <TournamentHeader
@@ -47,9 +32,52 @@
         <TournamentParticipantsTab />
       </div>
 
-      <!-- Tab: Stats globale -->
-      <div v-show="activeTab === 'stats'" class="h-full p-2">
-        <TournamentStatsTab />
+      <!-- Tab: Stats -->
+      <div v-show="activeTab === 'stats'" class="h-full">
+        <!-- Sub-tab switcher: ranked + authenticated only -->
+        <div
+          v-if="store.tournament!.mode === 'ranked' && store.isAuthenticated"
+          class="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+        >
+          <button
+            class="flex-1 py-2 text-sm font-semibold transition-colors"
+            :class="statsSubTab === 'profile' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
+            @click="statsSubTab = 'profile'"
+          >Mon profil</button>
+          <button
+            class="flex-1 py-2 text-sm font-semibold transition-colors"
+            :class="statsSubTab === 'global' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
+            @click="statsSubTab = 'global'"
+          >Stats globales</button>
+        </div>
+
+        <!-- Profile sub-tab (ranked + auth) -->
+        <div
+          v-if="store.tournament!.mode === 'ranked' && store.isAuthenticated"
+          v-show="statsSubTab === 'profile'"
+          class="p-2"
+        >
+          <PlayerMmrProfile
+            v-if="store.playerMmr"
+            :mmr="store.playerMmr"
+            :tiers="store.rankedTiers"
+            :leaderboard-rank="store.playerLeaderboardRank"
+            :history="store.profileChartHistory"
+          />
+          <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <i class="fa fa-user-slash text-4xl mb-4 block"></i>
+            <p>Vous n'avez pas encore de MMR pour cette saison.</p>
+            <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
+          </div>
+        </div>
+
+        <!-- Global stats (always for non-ranked/unauth; global sub-tab for ranked) -->
+        <div
+          v-show="store.tournament!.mode !== 'ranked' || !store.isAuthenticated || statsSubTab === 'global'"
+          class="p-2"
+        >
+          <TournamentStatsTab />
+        </div>
       </div>
 
       <!-- Tab: Standings (championship only) -->
@@ -126,21 +154,6 @@
         />
       </div>
 
-      <!-- Tab: Mon profil (ranked) -->
-      <div v-if="store.tournament!.mode === 'ranked'" v-show="activeTab === 'profile'" class="p-2">
-        <PlayerMmrProfile
-          v-if="store.playerMmr"
-          :mmr="store.playerMmr"
-          :tiers="store.rankedTiers"
-          :leaderboard-rank="store.playerLeaderboardRank"
-          :history="store.profileChartHistory"
-        />
-        <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
-          <i class="fa fa-user-slash text-4xl mb-4 block"></i>
-          <p>Vous n'avez pas encore de MMR pour cette saison.</p>
-          <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
-        </div>
-      </div>
     </div>
 
     <!-- Speed Dial for Create Match -->
@@ -188,6 +201,7 @@ const store = useTournamentDetailStore()
 
 const contentAreaRef = ref<HTMLElement | null>(null)
 const standingsType = ref<'official' | 'provisional'>('official')
+const statsSubTab = ref<'profile' | 'global'>('profile')
 const standingsTypeValues = ['official', 'provisional'] as const
 
 useSwipe(contentAreaRef, {
@@ -203,24 +217,13 @@ useSwipe(contentAreaRef, {
 
 const activeTab = computed(() => (route.params.tab as string) || 'infos')
 
-const tabTitles: Record<string, string> = {
-  infos: 'Info du tournoi',
-  participants: 'Participants',
-  standings: 'Classement',
-  bracket: 'Bracket',
-  matches: 'Matchs',
-  stats: 'Stats',
-  teams: 'Équipes',
-  profile: 'Mon profil',
-}
-
 function navigate(tab: string) {
   router.push({ name: 'tournament-tab', params: { id: store.tournamentId, tab } })
 }
 
 async function handleNavigate(tab: string) {
   navigate(tab)
-  if (tab === 'profile') await store.ensurePlayerProfile()
+  if (tab === 'stats' && store.tournament?.mode === 'ranked') await store.ensurePlayerProfile()
 }
 </script>
 

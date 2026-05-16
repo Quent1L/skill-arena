@@ -98,7 +98,7 @@
         v-else
         ref="container"
         class="overflow-y-auto pr-1"
-        style="max-height: calc(100vh - 260px)"
+        style="max-height: calc(100vh - 200px)"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <MatchCard

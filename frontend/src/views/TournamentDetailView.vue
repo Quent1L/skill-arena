@@ -277,10 +277,7 @@ const visibleTabs = computed(() => {
   if (mode === 'bracket') tabs.push({ value: 'bracket', label: 'Bracket' })
   if (mode === 'ranked') tabs.push({ value: 'standings', label: 'Classement' })
   tabs.push({ value: 'matches', label: 'Matchs' })
-  tabs.push({ value: 'stats', label: 'Stats globale' })
-  if (mode === 'ranked' && store.isAuthenticated && store.appUser) {
-    tabs.push({ value: 'profile', label: 'Mon profil' })
-  }
+  tabs.push({ value: 'stats', label: 'Stats' })
   return tabs
 })
 

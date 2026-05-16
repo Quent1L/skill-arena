@@ -7,7 +7,7 @@
       <label class="text-sm font-medium"
         >Sélectionnez le vainqueur <span class="text-red-500">*</span></label
       >
-      <div class="grid gap-3" :class="allowDraw ? 'grid-cols-3' : 'grid-cols-2'">
+      <div class="grid gap-3 grid-cols-2">
         <button
           v-for="(side, idx) in sidesModel"
           :key="side.position"
@@ -38,7 +38,7 @@
         <button
           v-if="allowDraw"
           type="button"
-          class="rounded-lg border p-3 text-center transition-colors cursor-pointer flex flex-col items-center justify-center gap-1"
+          class="col-span-2 rounded-lg border p-3 text-center transition-colors cursor-pointer flex flex-col items-center justify-center gap-1"
           :class="
             winnerModel === 0
               ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'

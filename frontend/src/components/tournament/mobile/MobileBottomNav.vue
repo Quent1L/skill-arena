@@ -51,9 +51,6 @@ const tabs = computed<NavTab[]>(() => {
     return [
       { id: 'infos', label: 'Détail', icon: 'fas fa-info-circle' },
       { id: 'standings', label: 'Classement', icon: 'fas fa-trophy' },
-      ...(props.isAuthenticated
-        ? [{ id: 'profile', label: 'Profil', icon: 'fas fa-user' }]
-        : []),
       { id: 'matches', label: 'Matchs', icon: 'fas fa-gamepad' },
       { id: 'stats', label: 'Stats', icon: 'fas fa-chart-pie' },
     ]

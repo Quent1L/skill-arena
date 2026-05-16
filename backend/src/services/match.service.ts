@@ -495,8 +495,8 @@ export class MatchService {
     await matchPermissionValidator.validateReportPermissions(matchId, userId)
   }
 
-  private validateReportStatus(status: MatchStatus) {
-    matchStatusValidator.validateReportStatus(status)
+  private async validateReportStatus(status: MatchStatus) {
+    await matchStatusValidator.validateReportStatus(status)
   }
 
   private async validateScoreConstraints(tournamentId: string, input: ReportMatchResultInput) {

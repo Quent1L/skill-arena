@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
     <div class="flex-1">
-      <div class="flex justify-between">
-        <div class="flex items-center gap-3 mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-3">
           <Badge :value="statusLabels[status]" :severity="statusSeverities[status]" />
           <Badge :value="modeLabels[mode]" severity="info" class="bg-blue-100 text-blue-800" />
         </div>
