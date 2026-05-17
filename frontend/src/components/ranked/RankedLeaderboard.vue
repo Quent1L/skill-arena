@@ -141,16 +141,13 @@ import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/
 import { getLp, isTopTier } from '@/composables/ranked/ranked.service'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
-const TIER_BAR = ['bg-gray-400', 'bg-blue-400', 'bg-amber-400', 'bg-orange-400', 'bg-purple-500']
-const TIER_ICON = ['fa fa-seedling', 'fa fa-shield', 'fa fa-star', 'fa fa-gem', 'fa fa-crown']
-const TIER_CARD = [
-  'bg-gray-800/70',
-  'bg-blue-950/60',
-  'bg-amber-950/60',
-  'bg-orange-950/60',
-  'bg-purple-950/60',
-]
-const TIER_TEXT_HEX = ['#9ca3af', '#60a5fa', '#fbbf24', '#fb923c', '#a855f7']
+import {
+  TIER_BAR_CLASS as TIER_BAR,
+  TIER_CARD_CLASS as TIER_CARD,
+  tierStyleIdx,
+  getTierIconClass,
+  getTierTextHex,
+} from '@/composables/ranked/tier-style'
 
 const props = defineProps<{
   players: ClientPlayerMmr[]
@@ -225,24 +222,20 @@ function getPlayerTier(mmr: number): ClientRankTier | null {
   )
 }
 
-function styleIdx(tier: ClientRankTier): number {
-  return Math.min(tier.level - 1, TIER_BAR.length - 1)
-}
-
 function tierTextColor(tier: ClientRankTier): string {
-  return TIER_TEXT_HEX[styleIdx(tier)] ?? '#9ca3af'
+  return getTierTextHex(tier)
 }
 
 function tierIconClass(tier: ClientRankTier): string {
-  return TIER_ICON[styleIdx(tier)] ?? 'fa fa-circle'
+  return getTierIconClass(tier)
 }
 
 function tierCardClass(tier: ClientRankTier): string {
-  return TIER_CARD[styleIdx(tier)] ?? 'bg-gray-800/70'
+  return TIER_CARD[tierStyleIdx(tier)] ?? 'bg-gray-800/70'
 }
 
 function tierBarClass(tier: ClientRankTier): string {
-  return TIER_BAR[styleIdx(tier)] ?? 'bg-gray-400'
+  return TIER_BAR[tierStyleIdx(tier)] ?? 'bg-gray-400'
 }
 
 function tierThreshold(tier: ClientRankTier): string {

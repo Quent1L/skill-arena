@@ -1,46 +1,33 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[500] flex items-end sm:items-center justify-center bg-black/85">
-      <div
-        class="w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden"
-        :class="phase !== 'done' ? 'pb-6' : 'pb-2'"
-      >
-        <!-- Type badge -->
-        <div class="flex justify-center pt-5 pb-1">
-          <span
-            class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full"
-            :class="
-              isProvisional
-                ? 'bg-gray-700 text-gray-300'
-                : 'bg-amber-500/20 text-amber-400'
-            "
-          >
-            {{ isProvisional ? 'Résultat provisoire' : 'Résultat officiel' }}
-          </span>
-        </div>
+    <div class="fixed inset-0 z-[500] flex items-center justify-center bg-black/85 px-4">
+      <div class="w-full max-w-sm rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
 
         <!-- Rank badge area -->
-        <div class="flex flex-col items-center gap-1 py-4 px-6 min-h-[96px]">
+        <div class="flex flex-col items-center gap-2 py-6 px-6 min-h-28">
           <Transition name="badge-exit" mode="out-in">
-            <div
-              v-if="phase === 'rank_up_exit'"
-              key="old"
-              class="flex flex-col items-center gap-1"
-            >
-              <div class="text-4xl font-black text-gray-400">{{ event.tierBeforeName ?? '—' }}</div>
+            <div v-if="phase === 'rank_up_exit'" key="old" class="flex flex-col items-center gap-2">
+              <i
+                :class="tierBeforeIconClass"
+                class="text-5xl"
+                :style="{ color: tierBeforeColor }"
+              />
+              <div class="text-3xl font-black text-gray-400">{{ event.tierBeforeName ?? '—' }}</div>
             </div>
-            <div
-              v-else
-              key="current"
-              class="flex flex-col items-center gap-1"
-            >
+            <div v-else key="current" class="flex flex-col items-center gap-2">
               <Transition name="badge-enter">
-                <div
-                  v-if="phase !== 'entry'"
-                  class="text-4xl font-black"
-                  :class="currentTierClass"
-                >
-                  {{ displayTierName }}
+                <div v-if="phase !== 'entry'" class="flex flex-col items-center gap-2">
+                  <i
+                    :class="[
+                      currentIconClass,
+                      phase === 'rank_up_in' || phase === 'rank_up_hold' ? 'tier-icon-glow' : '',
+                    ]"
+                    class="text-5xl"
+                    :style="{ color: currentTierColor, '--glow-color': currentTierColor }"
+                  />
+                  <div class="text-3xl font-black" :class="currentTierClass">
+                    {{ displayTierName }}
+                  </div>
                 </div>
               </Transition>
             </div>
@@ -49,45 +36,72 @@
           <Transition name="rank-up-text">
             <div
               v-if="phase === 'rank_up_in' || phase === 'rank_up_hold'"
-              class="text-amber-400 font-black text-lg uppercase tracking-widest animate-bounce"
+              class="font-black text-base uppercase tracking-widest"
+              :class="rankChangeTextClass"
             >
-              Montée en rang !
+              {{ rankChangeText }}
             </div>
           </Transition>
         </div>
 
         <!-- MMR counter -->
         <div class="flex items-center justify-center gap-3 px-6 pb-3">
-          <span class="text-gray-400 text-2xl font-mono">{{ event.mmrBefore }}</span>
+          <span class="text-gray-400 text-xl font-mono">{{ event.mmrBefore }}</span>
           <span class="text-gray-500">→</span>
           <span
             class="text-3xl font-black font-mono transition-colors duration-500"
             :class="mmrCounterClass"
           >{{ displayMmr }}</span>
-          <span
-            class="text-lg font-bold"
-            :class="event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'"
-          >
-            {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
-          </span>
+          <Transition name="delta-pop">
+            <span
+              v-if="phase === 'settled' || phase === 'rank_up_exit' || phase === 'rank_up_in' || phase === 'rank_up_hold' || phase === 'done'"
+              class="text-2xl font-black"
+              :class="event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'"
+            >
+              {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
+            </span>
+          </Transition>
         </div>
 
+        <!-- Encouragement message -->
+        <Transition name="fade-up">
+          <div
+            v-if="encouragementMessage && (phase === 'settled' || phase === 'done')"
+            class="text-center px-6 pb-2 text-sm font-semibold"
+            :class="encouragementClass"
+          >
+            {{ encouragementMessage }}
+          </div>
+        </Transition>
+
         <!-- Progress bar -->
-        <div class="px-6 pb-4">
+        <div class="px-6 pb-5">
           <div class="flex justify-between text-xs text-gray-500 mb-1">
             <span>{{ tierMinMmr }}</span>
             <span>{{ tierMaxMmr !== null ? tierMaxMmr : '∞' }}</span>
           </div>
-          <div class="h-3 w-full rounded-full overflow-hidden bg-gray-700">
-            <div
-              class="h-full rounded-full transition-all duration-1000 ease-out"
-              :style="barStyle"
-            />
+          <div class="relative">
+            <Transition name="bubble-pop">
+              <div
+                v-if="showDeltaBubble"
+                class="absolute -top-7 z-10 text-xs font-black px-2 py-0.5 rounded-full whitespace-nowrap"
+                :class="event.mmrDelta >= 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'"
+                :style="bubbleStyle"
+              >
+                {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
+              </div>
+            </Transition>
+            <div class="h-3 w-full rounded-full overflow-hidden bg-gray-700">
+              <div
+                class="h-full rounded-full transition-all duration-1000 ease-out"
+                :style="barStyle"
+              />
+            </div>
           </div>
         </div>
 
         <!-- Dismiss button -->
-        <div class="px-6 pt-2">
+        <div class="px-6 pb-6">
           <Transition name="fade-up">
             <button
               v-if="phase === 'done'"
@@ -106,6 +120,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skill-arena/shared'
+import { tierStyleIdx, getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
 
 const props = defineProps<{
   event: MmrAnimationEventResponse
@@ -120,6 +135,7 @@ const phase = ref<Phase>('entry')
 const displayMmr = ref(props.event.mmrBefore)
 const barFillPercent = ref(0)
 const barHighlighted = ref(false)
+const showDeltaBubble = ref(false)
 
 const isProvisional = computed(() => props.event.eventType === 'provisional')
 
@@ -128,13 +144,42 @@ function getTierForLevel(level: number | null) {
   return props.tiers.find((t) => t.level === level) ?? null
 }
 
+
 const tierBefore = computed(() => getTierForLevel(props.event.tierBeforeLevel))
 const tierAfter = computed(() => getTierForLevel(props.event.tierAfterLevel))
 
+const tierBeforeIconClass = computed(() => getTierIconClass(tierBefore.value))
+const tierAfterIconClass = computed(() => getTierIconClass(tierAfter.value))
+const tierBeforeColor = computed(() => getTierTextHex(tierBefore.value))
+const tierAfterColor = computed(() => getTierTextHex(tierAfter.value))
+
+const isRankUpPhase = (p: Phase) =>
+  p === 'rank_up_in' || p === 'rank_up_hold' || p === 'done'
+
+const currentIconClass = computed(() =>
+  isRankUpPhase(phase.value) ? tierAfterIconClass.value : tierBeforeIconClass.value,
+)
+
+const currentTierColor = computed(() =>
+  isRankUpPhase(phase.value) ? tierAfterColor.value : tierBeforeColor.value,
+)
+
+const rankDirection = computed(() =>
+  (props.event.tierAfterLevel ?? 0) >= (props.event.tierBeforeLevel ?? 0) ? 'up' : 'down',
+)
+
+const rankChangeText = computed(() =>
+  rankDirection.value === 'up' ? 'Montée en rang !' : 'Descente en rang !',
+)
+
+const rankChangeTextClass = computed(() =>
+  rankDirection.value === 'up'
+    ? 'text-amber-400 animate-bounce'
+    : 'text-red-400 animate-pulse',
+)
+
 const displayTierName = computed(() => {
-  if (phase.value === 'rank_up_in' || phase.value === 'rank_up_hold' || phase.value === 'done') {
-    return props.event.tierAfterName ?? '—'
-  }
+  if (isRankUpPhase(phase.value)) return props.event.tierAfterName ?? '—'
   return props.event.tierBeforeName ?? '—'
 })
 
@@ -170,6 +215,11 @@ const barStyle = computed(() => {
   return { width: fill, backgroundColor: color }
 })
 
+const bubbleStyle = computed(() => {
+  const pct = Math.min(barFillPercent.value, 90)
+  return { left: `calc(${pct}% - 20px)` }
+})
+
 const mmrCounterClass = computed(() => {
   if (isProvisional.value) return 'text-gray-300'
   if (phase.value === 'counting' || phase.value === 'settled') {
@@ -180,10 +230,26 @@ const mmrCounterClass = computed(() => {
 
 const currentTierClass = computed(() => {
   if (isProvisional.value) return 'text-gray-400'
-  if (props.event.rankChanged && (phase.value === 'rank_up_in' || phase.value === 'rank_up_hold' || phase.value === 'done')) {
-    return 'text-amber-400'
-  }
+  if (props.event.rankChanged && isRankUpPhase(phase.value)) return 'text-amber-400'
   return 'text-white'
+})
+
+const encouragementMessage = computed(() => {
+  if (props.event.rankChanged && !isProvisional.value) return null
+  if (isProvisional.value) return 'Partie comptabilisée !'
+  if (props.event.mmrDelta >= 40) return 'Performance exceptionnelle !'
+  if (props.event.mmrDelta >= 20) return 'Excellente partie !'
+  if (props.event.mmrDelta > 0) return 'Bien joué !'
+  if (props.event.mmrDelta === 0) return 'Match très serré...'
+  if (props.event.mmrDelta >= -20) return 'Courage, ça va passer !'
+  return 'Remets-toi en selle !'
+})
+
+const encouragementClass = computed(() => {
+  if (isProvisional.value) return 'text-gray-400'
+  if (props.event.mmrDelta > 0) return 'text-emerald-400'
+  if (props.event.mmrDelta < 0) return 'text-red-400'
+  return 'text-gray-400'
 })
 
 let rafId: number | null = null
@@ -193,7 +259,6 @@ function easeOutCubic(t: number): number {
 }
 
 function runPhase() {
-  // Phase 1: entry → counting after 400ms
   setTimeout(() => {
     phase.value = 'counting'
     const startTime = performance.now()
@@ -218,12 +283,11 @@ function runPhase() {
 }
 
 function onSettled() {
-  // Animate the bar fill
   barFillPercent.value = mmrToPercent(props.event.mmrAfter, tierMinMmr.value, tierMaxMmr.value)
+  showDeltaBubble.value = true
 
   if (!isProvisional.value) {
     barHighlighted.value = true
-    // After 800ms, settle to rank color
     setTimeout(() => {
       barHighlighted.value = false
     }, 800)
@@ -245,12 +309,11 @@ function onSettled() {
   } else {
     setTimeout(() => {
       phase.value = 'done'
-    }, 800)
+    }, 1200)
   }
 }
 
 onMounted(() => {
-  // Set initial bar at mmrBefore position
   barFillPercent.value = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
   runPhase()
 })
@@ -266,7 +329,7 @@ onUnmounted(() => {
 }
 .badge-exit-leave-to {
   opacity: 0;
-  transform: translateY(-12px);
+  transform: translateY(-16px) scale(0.85);
 }
 .badge-exit-enter-active {
   transition: opacity 0.3s;
@@ -276,12 +339,12 @@ onUnmounted(() => {
 }
 
 .badge-enter-enter-active {
-  animation: badge-bounce 0.5s ease-out;
+  animation: badge-bounce 0.55s ease-out;
 }
 
 @keyframes badge-bounce {
   0% { transform: scale(0); opacity: 0; }
-  60% { transform: scale(1.25); }
+  55% { transform: scale(1.3); }
   80% { transform: scale(0.9); }
   100% { transform: scale(1); opacity: 1; }
 }
@@ -295,10 +358,40 @@ onUnmounted(() => {
 }
 
 .fade-up-enter-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition: opacity 0.4s, transform 0.4s;
 }
 .fade-up-enter-from {
   opacity: 0;
   transform: translateY(8px);
+}
+
+.delta-pop-enter-active {
+  animation: delta-bounce 0.45s ease-out;
+}
+
+@keyframes delta-bounce {
+  0% { transform: scale(0.4); opacity: 0; }
+  55% { transform: scale(1.3); }
+  80% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.bubble-pop-enter-active {
+  animation: bubble-in 0.4s ease-out;
+}
+
+@keyframes bubble-in {
+  0% { transform: scale(0) translateY(6px); opacity: 0; }
+  60% { transform: scale(1.2) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.tier-icon-glow {
+  animation: icon-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes icon-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--glow-color, #fff)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 20px var(--glow-color, #fff)); transform: scale(1.12); }
 }
 </style>

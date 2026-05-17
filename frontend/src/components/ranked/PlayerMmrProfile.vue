@@ -112,22 +112,18 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
+import {
+  TIER_ICON,
+  TIER_TEXT_CLASS as TIER_TEXT,
+  TIER_ICON_BG_CLASS as ICON_BG,
+  TIER_CARD_BG_CLASS as CARD_BG,
+  TIER_PROGRESS_BAR_CLASS as PROGRESS_BAR,
+  tierStyleIdx as styleIdx,
+} from '@/composables/ranked/tier-style'
 
 const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })
 onBeforeUnmount(() => { isMounted.value = false })
-
-const CARD_BG = [
-  'bg-gradient-to-b from-gray-700/80 to-gray-900',
-  'bg-gradient-to-b from-blue-900/80 to-gray-900',
-  'bg-gradient-to-b from-amber-900/80 to-gray-900',
-  'bg-gradient-to-b from-orange-900/80 to-gray-900',
-  'bg-gradient-to-b from-purple-900/80 to-gray-900',
-]
-const ICON_BG = ['bg-gray-600', 'bg-blue-600', 'bg-amber-500', 'bg-orange-600', 'bg-purple-600']
-const TIER_TEXT = ['text-gray-400', 'text-blue-400', 'text-amber-400', 'text-orange-400', 'text-purple-400']
-const PROGRESS_BAR = ['bg-gray-500', 'bg-blue-500', 'bg-amber-400', 'bg-orange-500', 'bg-purple-500']
-const TIER_ICON = ['fa fa-seedling', 'fa fa-shield', 'fa fa-star', 'fa fa-gem', 'fa fa-crown']
 
 const props = defineProps<{
   mmr: ClientPlayerMmr
@@ -137,10 +133,6 @@ const props = defineProps<{
   history?: ClientMmrHistoryEntry[]
 }>()
 
-function styleIdx(tier: ClientRankTier | null): number {
-  if (!tier) return 0
-  return Math.min(tier.level - 1, TIER_TEXT.length - 1)
-}
 
 const rank = computed((): ClientRankTier | null => {
   if (!props.tiers.length) return null
