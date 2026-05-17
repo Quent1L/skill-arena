@@ -1,5 +1,5 @@
 <template>
-  <div class="match-detail-view max-w-4xl mx-auto p-6">
+  <div class="match-detail-view max-w-4xl mx-auto p-2 sm:p-3 sm:p-6">
     <div v-if="loading" class="text-center">
       <ProgressSpinner />
     </div>
@@ -52,11 +52,11 @@
           </p>
         </div>
 
-        <div class="p-4">
+        <div class="p-1 sm:p-4">
           <div class="space-y-6">
             <!-- Scores et Vainqueur -->
             <div
-              class="flex justify-center items-start gap-8 p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
+              class="flex justify-center items-start gap-3 py-3 px-1 sm:gap-8 sm:p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
             >
               <div class="text-center flex-1" :class="{ 'opacity-50': sideB?.isWinner }">
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -64,17 +64,19 @@
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
-                  class="text-5xl font-bold"
+                  class="text-3xl sm:text-5xl font-bold"
                   :class="sideA?.isWinner ? 'text-green-600' : 'text-primary'"
                 >
                   {{ sideA?.score }}
                 </div>
-                <div v-if="sideA?.players" class="mt-2 text-sm">
+                <div v-if="sideA?.players" class="mt-2 text-sm flex justify-center">
+                  <div class="inline-flex flex-col items-start">
                   <div
                     v-for="p in sideA.players"
                     :key="p.id"
-                    class="flex items-center justify-center gap-1"
+                    class="flex items-center gap-1.5"
                   >
+                    <PlayerAvatar size="xs" :name="p.displayName" :color-key="p.id ?? p.displayName" />
                     <RouterLink
                       v-if="p.id"
                       :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
@@ -105,9 +107,10 @@
                         class="font-semibold"
                         :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
                       >
-                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }} MMR
+                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
                       </span>
                     </template>
+                  </div>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -122,7 +125,7 @@
 
               <div
                 v-if="match.tournament?.scoreEnabled !== false"
-                class="text-3xl font-bold text-surface-400 pt-8"
+                class="text-xl sm:text-3xl font-bold text-surface-400 pt-6 sm:pt-8"
               >
                 -
               </div>
@@ -133,17 +136,19 @@
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
-                  class="text-5xl font-bold"
+                  class="text-3xl sm:text-5xl font-bold"
                   :class="sideB?.isWinner ? 'text-green-600' : 'text-primary'"
                 >
                   {{ sideB?.score }}
                 </div>
-                <div v-if="sideB?.players" class="mt-2 text-sm">
+                <div v-if="sideB?.players" class="mt-2 text-sm flex justify-center">
+                  <div class="inline-flex flex-col items-start">
                   <div
                     v-for="p in sideB.players"
                     :key="p.id"
-                    class="flex items-center justify-center gap-1"
+                    class="flex items-center gap-1.5"
                   >
+                    <PlayerAvatar size="xs" :name="p.displayName" :color-key="p.id ?? p.displayName" />
                     <RouterLink
                       v-if="p.id"
                       :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
@@ -174,9 +179,10 @@
                         class="font-semibold"
                         :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
                       >
-                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }} MMR
+                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
                       </span>
                     </template>
+                  </div>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -441,6 +447,7 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
 import { formatDistanceToNow } from 'date-fns'
