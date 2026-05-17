@@ -1,30 +1,22 @@
 <template>
-  <div class="max-w-5xl mx-auto p-4 space-y-6">
-    <div v-if="error && !player" class="text-center text-red-500 py-8">
-      <p>{{ error }}</p>
-      <Button
-        label="Retour"
-        icon="fa fa-arrow-left"
-        severity="secondary"
-        @click="router.back()"
-        class="mt-4"
-      />
+  <div class="max-w-7xl mx-auto px-4 py-6 space-y-4">
+
+    <!-- Error state -->
+    <div v-if="error && !player" class="text-center py-8">
+      <p class="text-red-400">{{ error }}</p>
+      <Button label="Retour" icon="fa fa-arrow-left" severity="secondary" class="mt-4" @click="router.back()" />
     </div>
 
     <template v-else>
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <Button icon="fa fa-arrow-left" severity="secondary" text @click="router.back()" />
-          <div>
-            <h1 class="text-2xl font-bold">{{ player?.displayName ?? '...' }}</h1>
-            <span v-if="player?.shortName" class="text-surface-500 dark:text-surface-400 text-sm">{{
-              player.shortName
-            }}</span>
-          </div>
+      <!-- Header card -->
+      <div class="rounded-2xl bg-gray-800 px-6 py-5 flex items-center gap-4">
+        <Button icon="fa fa-arrow-left" severity="secondary" text @click="router.back()" class="shrink-0" />
+        <PlayerAvatar :name="player?.displayName ?? '?'" size="lg" shape="square" class="shrink-0 rounded-2xl" />
+        <div class="min-w-0">
+          <div class="text-2xl font-black text-white truncate">{{ player?.displayName ?? '…' }}</div>
+          <div v-if="player?.shortName" class="text-sm text-gray-400">{{ player.shortName }}</div>
         </div>
-        <!-- Bouton filtres mobile -->
-        <div class="md:hidden">
+        <div class="md:hidden ml-auto shrink-0">
           <Button
             icon="fa fa-filter"
             severity="secondary"
@@ -35,45 +27,35 @@
         </div>
       </div>
 
-      <!-- Filtres desktop (masqués sur mobile) -->
-      <div class="hidden md:block">
-        <Card>
-          <template #content>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="flex flex-col gap-1">
-                <label class="text-sm text-surface-500">Tournoi</label>
-                <Select
-                  v-model="selectedTournamentId"
-                  :options="tournamentOptions"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="Tous les tournois"
-                  class="w-full"
-                  show-clear
-                />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="text-sm text-surface-500">Mode</label>
-                <SelectButton
-                  v-model="selectedMode"
-                  :options="modeOptions"
-                  option-label="label"
-                  option-value="value"
-                  class="w-full"
-                />
-              </div>
-            </div>
-            <div class="mt-3 flex justify-end">
-              <Button
-                label="Réinitialiser"
-                severity="secondary"
-                icon="fa fa-rotate-left"
-                size="small"
-                @click="resetFilters"
-              />
-            </div>
-          </template>
-        </Card>
+      <!-- Desktop filters -->
+      <div class="hidden md:block bg-gray-800 rounded-2xl p-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
+            <Select
+              v-model="selectedTournamentId"
+              :options="tournamentOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="Tous les tournois"
+              class="w-full"
+              show-clear
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</label>
+            <SelectButton
+              v-model="selectedMode"
+              :options="modeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </div>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <Button label="Réinitialiser" severity="secondary" icon="fa fa-rotate-left" size="small" @click="resetFilters" />
+        </div>
       </div>
 
       <!-- Drawer filtres mobile -->
@@ -109,224 +91,275 @@
         </div>
         <template #footer>
           <div class="flex gap-3 pt-2">
-            <Button
-              label="Réinitialiser"
-              severity="secondary"
-              icon="fa fa-rotate-left"
-              class="flex-1"
-              @click="resetMobileFilters"
-            />
-            <Button
-              label="Appliquer"
-              icon="fa fa-check"
-              class="flex-1"
-              @click="applyMobileFilters"
-            />
+            <Button label="Réinitialiser" severity="secondary" icon="fa fa-rotate-left" class="flex-1" @click="resetMobileFilters" />
+            <Button label="Appliquer" icon="fa fa-check" class="flex-1" @click="applyMobileFilters" />
           </div>
         </template>
       </Drawer>
 
-      <!-- Stats -->
-      <div v-if="loading" class="flex justify-center py-8">
+      <!-- Loading -->
+      <div v-if="loading || rankedLoading" class="flex justify-center py-12">
         <ProgressSpinner />
       </div>
 
-      <template v-else-if="stats && stats.totalMatches > 0">
-        <!-- Summary -->
-        <Card>
-          <template #header>
-            <div class="p-4 pb-0">
-              <h2 class="text-lg font-semibold">Statistiques globales</h2>
-            </div>
-          </template>
-          <template #content>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                  {{ stats.totalMatches }}
-                </div>
-                <div class="text-sm text-surface-500 mt-1">Matchs joués</div>
-              </div>
-              <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {{ stats.winRate }}%
-                </div>
-                <div class="text-sm text-surface-500 mt-1">Taux de victoire</div>
-              </div>
-              <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold">
-                  {{ stats.wins }}/{{ stats.draws }}/{{ stats.losses }}
-                </div>
-                <div class="text-sm text-surface-500 mt-1">V / N / D</div>
-              </div>
-              <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-4">
-                <div class="text-3xl font-bold text-primary">{{ stats.averageScore }}</div>
-                <div class="text-sm text-surface-500 mt-1">Score moyen</div>
-              </div>
-            </div>
-
-            <!-- Relation stats -->
-            <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div v-if="stats.mostFrequentPartners.length > 0">
-                <h3 class="text-sm font-semibold text-surface-500 mb-2">Partenaires fréquents</h3>
-                <div
-                  v-for="p in stats.mostFrequentPartners"
-                  :key="p.playerId"
-                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
-                >
-                  <RouterLink
-                    :to="`/players/${p.playerId}`"
-                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                    >{{ p.displayName }}</RouterLink
-                  >
-                  <span class="text-sm text-surface-500">{{ p.count }} matchs</span>
-                </div>
-              </div>
-              <div v-if="stats.bestPartners.length > 0">
-                <h3 class="text-sm font-semibold text-surface-500 mb-2">Meilleurs partenaires</h3>
-                <div
-                  v-for="p in stats.bestPartners"
-                  :key="p.playerId"
-                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
-                >
-                  <RouterLink
-                    :to="`/players/${p.playerId}`"
-                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                    >{{ p.displayName }}</RouterLink
-                  >
-                  <span class="text-sm text-green-600"
-                    >{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</span
-                  >
-                </div>
-              </div>
-              <div v-if="stats.nemeses.length > 0">
-                <h3 class="text-sm font-semibold text-surface-500 mb-2">Adversaires difficiles</h3>
-                <div
-                  v-for="p in stats.nemeses"
-                  :key="p.playerId"
-                  class="flex justify-between items-center py-1 border-b border-surface-200 dark:border-surface-700 last:border-0"
-                >
-                  <RouterLink
-                    :to="`/players/${p.playerId}`"
-                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                    >{{ p.displayName }}</RouterLink
-                  >
-                  <span class="text-sm text-red-400">{{ p.losses }} défaites</span>
-                </div>
-              </div>
-            </div>
-          </template>
-        </Card>
-
-        <!-- Tournament history -->
-        <Card v-if="stats.tournamentHistory.length > 0">
-          <template #header>
-            <div class="p-4 pb-0">
-              <h2 class="text-lg font-semibold">Historique des tournois</h2>
-            </div>
-          </template>
-          <template #content>
-            <div class="space-y-3">
-              <RouterLink
-                v-for="entry in stats.tournamentHistory"
-                :key="entry.tournamentId"
-                :to="`/tournaments/${entry.tournamentId}`"
-                class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors no-underline"
-              >
-                <div class="flex items-center justify-between sm:flex-1 gap-2 min-w-0">
-                  <span class="font-medium text-blue-600 dark:text-blue-400 truncate">{{
-                    entry.tournamentName
-                  }}</span>
-                  <Tag
-                    :value="entry.mode === 'championship' ? 'Championnat' : 'Bracket'"
-                    :severity="entry.mode === 'championship' ? 'info' : 'warn'"
-                    class="flex-shrink-0 text-xs"
-                  />
-                </div>
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm flex-shrink-0">
-                  <span class="text-surface-500">{{ entry.matchesPlayed }} MJ</span>
-                  <span class="text-green-600 dark:text-green-400 font-medium"
-                    >{{ entry.wins }}V</span
-                  >
-                  <span class="text-surface-500">{{ entry.draws }}N</span>
-                  <span class="text-red-600 dark:text-red-400 font-medium"
-                    >{{ entry.losses }}D</span
-                  >
-                  <span
-                    v-if="entry.points !== undefined"
-                    class="text-blue-600 dark:text-blue-400 font-semibold"
-                    >{{ entry.points }} pts</span
-                  >
-                  <span v-if="entry.disciplineName" class="text-surface-400 italic">{{
-                    entry.disciplineName
-                  }}</span>
-                </div>
-              </RouterLink>
-            </div>
-          </template>
-        </Card>
+      <!-- RANKED TOURNAMENT VIEW -->
+      <template v-else-if="isRankedTournament && rankedMmr">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <PlayerMmrProfile
+            :mmr="rankedMmr"
+            :tiers="rankedTiers"
+            :history="rankedHistory"
+            :season-id="selectedTournamentId"
+            :most-frequent-partners="stats?.mostFrequentPartners"
+            :best-partners="stats?.bestPartners"
+            :nemeses="stats?.nemeses"
+          />
+          <div class="rounded-2xl  p-4">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Historique des matchs</div>
+            <MatchList
+              :tournament-id="selectedTournamentId"
+              :player-id="playerId"
+              :current-player-id="playerId"
+              :allow-draw="false"
+              :player-mode="true"
+            />
+          </div>
+        </div>
       </template>
 
-      <div v-else-if="!loading" class="text-center py-12 text-surface-400">
-        <i class="fa fa-chart-bar text-4xl mb-4 block"></i>
-        <p>Pas encore de statistique...</p>
+      <!-- Ranked tournament but player not found in season -->
+      <div v-else-if="isRankedTournament && !rankedMmr && !rankedLoading" class="text-center py-12 text-gray-500">
+        <i class="fa fa-user-slash text-4xl mb-4 block opacity-30"></i>
+        <p>Ce joueur ne participe pas à cette saison ranked.</p>
       </div>
 
-      <!-- Match history -->
-      <Card>
-        <template #header>
-          <div class="p-4 pb-0">
-            <h2 class="text-lg font-semibold">Historique des matchs</h2>
+      <!-- FILTERED TOURNAMENT VIEW (non-ranked) -->
+      <template v-else-if="selectedTournamentId && stats && stats.totalMatches > 0">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          <!-- Stats column -->
+          <div class="space-y-3">
+            <div class="grid grid-cols-3 gap-3">
+              <div class="rounded-xl p-3 text-center bg-gray-800">
+                <div class="text-xl font-black text-white">{{ stats.totalMatches }}</div>
+                <div class="text-xs text-gray-400 mt-0.5">Matchs</div>
+              </div>
+              <div class="rounded-xl p-3 text-center bg-gray-800">
+                <div class="text-xl font-black text-white">{{ stats.winRate }}%</div>
+                <div class="text-xs text-gray-400 mt-0.5">Winrate</div>
+              </div>
+              <div class="rounded-xl p-3 text-center bg-gray-800">
+                <div class="text-xl font-black">
+                  <span class="text-green-400">{{ stats.wins }}</span>
+                  <span class="text-gray-600 text-base mx-0.5">/</span>
+                  <span class="text-gray-400">{{ stats.draws }}</span>
+                  <span class="text-gray-600 text-base mx-0.5">/</span>
+                  <span class="text-red-400">{{ stats.losses }}</span>
+                </div>
+                <div class="text-xs text-gray-400 mt-0.5">V / N / D</div>
+              </div>
+            </div>
+            <div v-if="stats.averageScore > 0" class="rounded-xl p-3 text-center bg-gray-800">
+              <div class="text-xl font-black text-white">{{ stats.averageScore }}</div>
+              <div class="text-xs text-gray-400 mt-0.5">Score moyen</div>
+            </div>
           </div>
-        </template>
-        <template #content>
+
+          <!-- Partners & Nemeses -->
+          <PlayerRelationStats
+            class="lg:col-span-2"
+            :most-frequent-partners="stats.mostFrequentPartners"
+            :best-partners="stats.bestPartners"
+            :nemeses="stats.nemeses"
+            :tournament-id="selectedTournamentId"
+          />
+        </div>
+
+        <!-- Match history -->
+        <div class="rounded-2xl p-4">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Matchs</div>
           <MatchList :player-id="playerId" />
-        </template>
-      </Card>
+        </div>
+      </template>
+
+      <!-- UNFILTERED VIEW: grouped by discipline + mode -->
+      <template v-else-if="!selectedTournamentId && groupedStats && groupedStats.length > 0">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div
+          v-for="group in groupedStats"
+          :key="group.key"
+          class="rounded-2xl bg-gray-800 p-4"
+        >
+          <!-- Group header -->
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-sm font-black text-white">{{ group.discipline ?? 'Toutes disciplines' }}</span>
+            <span class="text-gray-600">·</span>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 font-medium">{{ modeLabel(group.mode) }}</span>
+            <span class="ml-auto text-xs text-gray-500">{{ group.entries.length }} tournoi{{ group.entries.length > 1 ? 's' : '' }}</span>
+          </div>
+
+          <!-- Stats grid -->
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div class="rounded-xl bg-gray-700/50 p-3 text-center">
+              <div class="text-xl font-black text-white">{{ group.totalMatches }}</div>
+              <div class="text-xs text-gray-400 mt-0.5">Matchs</div>
+            </div>
+            <div class="rounded-xl bg-gray-700/50 p-3 text-center">
+              <div class="text-xl font-black text-white">{{ group.winRate }}%</div>
+              <div class="text-xs text-gray-400 mt-0.5">Winrate</div>
+            </div>
+            <div class="rounded-xl bg-gray-700/50 p-3 text-center">
+              <div class="text-lg font-black">
+                <span class="text-green-400">{{ group.wins }}V</span>
+                <span class="text-gray-600 text-sm mx-0.5">/</span>
+                <span class="text-red-400">{{ group.losses }}D</span>
+              </div>
+              <div class="text-xs text-gray-400 mt-0.5">V / D</div>
+            </div>
+          </div>
+
+          <!-- Tournaments in group -->
+          <div class="space-y-1.5">
+            <RouterLink
+              v-for="entry in group.entries"
+              :key="entry.tournamentId"
+              :to="`/tournaments/${entry.tournamentId}`"
+              class="flex items-center justify-between px-3 py-2 rounded-xl bg-gray-700/30 hover:bg-gray-700/60 transition-colors"
+            >
+              <span class="text-sm font-medium text-white truncate">{{ entry.tournamentName }}</span>
+              <span class="text-xs text-gray-400 shrink-0 ml-3 tabular-nums">
+                {{ entry.matchesPlayed }} MJ &nbsp;·&nbsp;
+                <span class="text-green-400">{{ entry.wins }}V</span>
+                <span class="text-gray-600"> / </span>
+                <span class="text-red-400">{{ entry.losses }}D</span>
+              </span>
+            </RouterLink>
+          </div>
+        </div>
+        </div>
+
+        <!-- Global partner / nemesis stats (unfiltered) -->
+        <PlayerRelationStats
+          v-if="stats"
+          :most-frequent-partners="stats.mostFrequentPartners"
+          :best-partners="stats.bestPartners"
+          :nemeses="stats.nemeses"
+        />
+
+        <!-- All matches -->
+        <div class="rounded-2xl p-4">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Matchs</div>
+          <MatchList :player-id="playerId" />
+        </div>
+      </template>
+
+      <!-- Empty state -->
+      <div v-else-if="!loading && !rankedLoading" class="text-center py-12 text-gray-500">
+        <i class="fa fa-chart-bar text-4xl mb-4 block opacity-30"></i>
+        <p>Pas encore de statistique…</p>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePlayerService } from '@/composables/player/player.service'
-import type { PlayerStatsFilters } from '@skill-arena/shared/types/index'
+import { rankedApi } from '@/composables/ranked/ranked.api'
+import type { PlayerStatsFilters, PlayerTournamentEntry, ClientPlayerMmr, ClientRankTier, ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
+import { playerLink } from '@/utils/player-link'
 import MatchList from '@/components/MatchList.vue'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import Drawer from 'primevue/drawer'
-import Card from 'primevue/card'
 import Button from 'primevue/button'
-import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const route = useRoute()
 const router = useRouter()
-const {
-  player,
-  stats,
-  availableTournaments,
-  loading,
-  error,
-  loadPlayer,
-  loadTournaments,
-  loadStats,
-} = usePlayerService()
+const { player, stats, availableTournaments, loading, error, loadPlayer, loadTournaments, loadStats } =
+  usePlayerService()
 
 const playerId = computed(() => route.params.id as string)
 
 const initialTournamentId = route.query.tournamentId as string | undefined
 
-// Filtres actifs
 const selectedTournamentId = ref<string | undefined>(initialTournamentId)
 const selectedMode = ref<string | undefined>(undefined)
-
-// Filtres brouillons pour le drawer mobile
 const draftTournamentId = ref<string | undefined>(initialTournamentId)
 const draftMode = ref<string | undefined>(undefined)
-
 const showFilterDrawer = ref(false)
+
+// Ranked tournament detection
+const isRankedTournament = computed(() => {
+  if (!selectedTournamentId.value) return false
+  return availableTournaments.value.find((t) => t.id === selectedTournamentId.value)?.mode === 'ranked'
+})
+
+// Ranked data state
+const rankedMmr = ref<ClientPlayerMmr | null>(null)
+const rankedTiers = ref<ClientRankTier[]>([])
+const rankedHistory = ref<ClientMmrHistoryEntry[]>([])
+const rankedLoading = ref(false)
+
+async function loadRankedData(seasonId: string, pid: string) {
+  rankedLoading.value = true
+  rankedHistory.value = []
+  try {
+    const [mmrData, firstPage] = await Promise.all([
+      rankedApi.getPlayerMmr(seasonId, pid),
+      rankedApi.getPlayerHistory(seasonId, pid, { limit: 20, offset: 0 }),
+      loadStats(pid, { tournamentId: seasonId }),
+    ])
+    rankedMmr.value = mmrData.mmr
+    rankedTiers.value = mmrData.tiers
+    rankedHistory.value = firstPage
+  } catch {
+    rankedMmr.value = null
+    rankedTiers.value = []
+  } finally {
+    rankedLoading.value = false
+  }
+}
+
+// Grouped stats for unfiltered view
+const groupedStats = computed(() => {
+  if (selectedTournamentId.value || !stats.value) return null
+  type Group = {
+    key: string
+    discipline: string | null
+    mode: string
+    entries: PlayerTournamentEntry[]
+    totalMatches: number
+    wins: number
+    draws: number
+    losses: number
+    winRate: number
+  }
+  const map = new Map<string, Omit<Group, 'totalMatches' | 'wins' | 'draws' | 'losses' | 'winRate'> & { entries: PlayerTournamentEntry[] }>()
+  for (const e of stats.value.tournamentHistory) {
+    const key = `${e.disciplineName ?? ''}_${e.mode}`
+    if (!map.has(key)) map.set(key, { key, discipline: e.disciplineName ?? null, mode: e.mode, entries: [] })
+    map.get(key)!.entries.push(e)
+  }
+  return [...map.values()].map((g): Group => {
+    const totalMatches = g.entries.reduce((s, e) => s + e.matchesPlayed, 0)
+    const wins = g.entries.reduce((s, e) => s + e.wins, 0)
+    const draws = g.entries.reduce((s, e) => s + e.draws, 0)
+    const losses = g.entries.reduce((s, e) => s + e.losses, 0)
+    return {
+      ...g,
+      totalMatches,
+      wins,
+      draws,
+      losses,
+      winRate: totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0,
+    }
+  })
+})
 
 const tournamentOptions = computed(() => [
   { label: 'Tous les tournois', value: undefined },
@@ -339,14 +372,16 @@ const modeOptions = [
   { label: 'Bracket', value: 'bracket' },
 ]
 
+function modeLabel(mode: string): string {
+  if (mode === 'championship') return 'Championnat'
+  if (mode === 'bracket') return 'Bracket'
+  if (mode === 'ranked') return 'Ranked'
+  return mode
+}
+
 const activeFilterCount = computed(
   () => [selectedTournamentId.value, selectedMode.value].filter(Boolean).length,
 )
-
-// Desktop: apply on change
-watch([selectedTournamentId, selectedMode], () => {
-  applyFilters(selectedTournamentId.value, selectedMode.value)
-})
 
 function applyFilters(tournamentId: string | undefined, mode: string | undefined) {
   const filters: PlayerStatsFilters = {}
@@ -371,12 +406,32 @@ function applyMobileFilters() {
   selectedTournamentId.value = draftTournamentId.value
   selectedMode.value = draftMode.value
   showFilterDrawer.value = false
-  // watch will trigger applyFilters automatically
 }
 
-onMounted(() => {
-  loadPlayer(playerId.value)
-  loadTournaments(playerId.value)
-  applyFilters(selectedTournamentId.value, selectedMode.value)
+// Load regular stats when filter changes (skip for ranked tournaments)
+watch([selectedTournamentId, selectedMode], ([tid, mode]) => {
+  if (!isRankedTournament.value) {
+    applyFilters(tid ?? undefined, mode ?? undefined)
+  }
+})
+
+// Load ranked data when a ranked tournament is selected
+watch([isRankedTournament, selectedTournamentId], async ([isRanked, tid]) => {
+  if (isRanked && tid) {
+    await loadRankedData(tid, playerId.value)
+  } else if (!isRanked) {
+    rankedMmr.value = null
+    rankedTiers.value = []
+    rankedHistory.value = []
+  }
+})
+
+onMounted(async () => {
+  await Promise.all([loadPlayer(playerId.value), loadTournaments(playerId.value)])
+  if (isRankedTournament.value && selectedTournamentId.value) {
+    await loadRankedData(selectedTournamentId.value, playerId.value)
+  } else {
+    applyFilters(selectedTournamentId.value, selectedMode.value)
+  }
 })
 </script>

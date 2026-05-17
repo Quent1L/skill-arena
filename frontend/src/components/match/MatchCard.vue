@@ -49,25 +49,7 @@
           >
             <i class="fa fa-trophy text-yellow-500 flex-shrink-0 text-xs"></i>
           </div>
-          <div
-            class="flex items-center"
-            :class="(leftSide?.players.length ?? 0) > 1 ? '-space-x-2' : ''"
-          >
-            <PlayerAvatar
-              v-for="(player, idx) in (leftSide?.players ?? []).slice(0, 2)"
-              :key="player.id"
-              :name="player.displayName"
-              :color-key="player.shortName"
-              size="md"
-              :style="{ zIndex: 30 - idx * 10 }"
-            />
-            <span
-              v-if="(leftSide?.players.length ?? 0) > 2"
-              class="ml-1 font-label text-xs text-muted-color self-center"
-            >
-              +{{ (leftSide?.players.length ?? 0) - 2 }}
-            </span>
-          </div>
+          <PlayerAvatarStack :players="leftSide?.players ?? []" size="md" />
           <div class="flex flex-col items-center gap-0.5">
             <span
               v-for="player in (leftSide?.players ?? []).slice(0, 2)"
@@ -105,25 +87,7 @@
           >
             <i class="fa fa-trophy text-yellow-500 shrink-0 text-xs"></i>
           </div>
-          <div
-            class="flex items-center"
-            :class="(rightSide?.players.length ?? 0) > 1 ? '-space-x-2' : ''"
-          >
-            <PlayerAvatar
-              v-for="(player, idx) in (rightSide?.players ?? []).slice(0, 2)"
-              :key="player.id"
-              :name="player.displayName"
-              :color-key="player.shortName"
-              size="md"
-              :style="{ zIndex: 30 - idx * 10 }"
-            />
-            <span
-              v-if="(rightSide?.players.length ?? 0) > 2"
-              class="ml-1 font-label text-xs text-muted-color self-center"
-            >
-              +{{ (rightSide?.players.length ?? 0) - 2 }}
-            </span>
-          </div>
+          <PlayerAvatarStack :players="rightSide?.players ?? []" size="md" />
           <div class="flex flex-col items-center gap-0.5">
             <span
               v-for="player in (rightSide?.players ?? []).slice(0, 2)"
@@ -177,7 +141,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
-import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 
 const props = defineProps<{
   entry: ClientMatchCard

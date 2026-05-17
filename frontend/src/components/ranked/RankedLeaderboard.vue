@@ -52,7 +52,7 @@
             <RouterLink
               v-for="(player, idx) in group.players"
               :key="player.player?.id ?? idx"
-              :to="player.player ? `/players/${player.player.id}` : '#'"
+              :to="player.player ? playerLink(player.player.id, props.tournamentId) : '#'"
               class="flex items-center gap-3 px-4 py-2.5 border-t border-white/5 transition-colors"
               :class="
                 player.player?.id === currentUserId
@@ -136,6 +136,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import { playerLink } from '@/utils/player-link'
 import { useSwipe } from '@vueuse/core'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
 import { getLp, isTopTier } from '@/composables/ranked/ranked.service'
@@ -157,6 +158,7 @@ const props = defineProps<{
   provisionalLoading?: boolean
   currentUserId?: string
   showModeToggle?: boolean
+  tournamentId?: string
 }>()
 
 const emit = defineEmits<{

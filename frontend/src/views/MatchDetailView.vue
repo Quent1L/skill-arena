@@ -59,6 +59,9 @@
               class="flex justify-center items-start gap-3 py-3 px-1 sm:gap-8 sm:p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
             >
               <div class="text-center flex-1" :class="{ 'opacity-50': sideB?.isWinner }">
+                <div class="flex justify-center mb-2">
+                  <PlayerAvatarStack v-if="sideA?.players" :players="sideA.players" size="sm" />
+                </div>
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {{ sideA?.entryName ?? 'Équipe A' }}
                 </div>
@@ -76,7 +79,6 @@
                     :key="p.id"
                     class="flex items-center gap-1.5"
                   >
-                    <PlayerAvatar size="xs" :name="p.displayName" :color-key="p.id ?? p.displayName" />
                     <RouterLink
                       v-if="p.id"
                       :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
@@ -131,6 +133,9 @@
               </div>
 
               <div class="text-center flex-1" :class="{ 'opacity-50': sideA?.isWinner }">
+                <div class="flex justify-center mb-2">
+                  <PlayerAvatarStack v-if="sideB?.players" :players="sideB.players" size="sm" />
+                </div>
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {{ sideB?.entryName ?? 'Équipe B' }}
                 </div>
@@ -148,7 +153,6 @@
                     :key="p.id"
                     class="flex items-center gap-1.5"
                   >
-                    <PlayerAvatar size="xs" :name="p.displayName" :color-key="p.id ?? p.displayName" />
                     <RouterLink
                       v-if="p.id"
                       :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
@@ -447,7 +451,7 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
-import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
 import { formatDistanceToNow } from 'date-fns'

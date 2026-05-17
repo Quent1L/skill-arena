@@ -30,6 +30,7 @@
       :provisional-loading="store.rankedProvisionalLoading"
       :current-user-id="store.appUser?.id"
       :show-mode-toggle="store.tournament!.validationMode !== 'none'"
+      :tournament-id="store.tournamentId"
       @load-provisional="store.loadProvisionalLeaderboard()"
     />
   </div>

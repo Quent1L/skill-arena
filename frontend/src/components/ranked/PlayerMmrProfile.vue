@@ -103,6 +103,13 @@
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
 
+    <!-- Partner / nemesis stats -->
+    <PlayerRelationStats
+      :most-frequent-partners="mostFrequentPartners"
+      :best-partners="bestPartners"
+      :nemeses="nemeses"
+      :tournament-id="seasonId"
+    />
 
   </div>
 </template>
@@ -110,7 +117,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
-import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier } from '@skill-arena/shared/types/index'
+import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier, PlayerRelationStat } from '@skill-arena/shared/types/index'
+import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 import {
   TIER_ICON,
@@ -131,6 +139,10 @@ const props = defineProps<{
   initialMmr?: number
   leaderboardRank?: number
   history?: ClientMmrHistoryEntry[]
+  seasonId?: string
+  mostFrequentPartners?: PlayerRelationStat[]
+  bestPartners?: PlayerRelationStat[]
+  nemeses?: PlayerRelationStat[]
 }>()
 
 

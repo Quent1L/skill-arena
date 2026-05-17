@@ -5,7 +5,7 @@
       <!-- "Mes matchs" + outcome chips -->
       <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
         <button
-          v-if="props.currentPlayerId"
+          v-if="!props.playerMode && props.currentPlayerId"
           @click="toggleMyMatches"
           class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
           :class="
@@ -18,7 +18,7 @@
           <span class="font-label text-xs font-bold uppercase tracking-wider">Mes matchs</span>
         </button>
 
-        <template v-if="myMatchesActive">
+        <template v-if="myMatchesActive || props.playerMode">
           <button
             v-for="f in outcomeFilters"
             :key="f.value"
@@ -105,7 +105,7 @@
             v-for="match in displayedMatches"
             :key="match.id"
             :entry="match"
-            :current-player-id="myMatchesActive ? props.currentPlayerId : undefined"
+            :current-player-id="props.playerMode ? props.currentPlayerId : (myMatchesActive ? props.currentPlayerId : undefined)"
           />
         </div>
 
@@ -142,6 +142,7 @@ interface Props {
   pageSize?: number
   bracketMode?: boolean
   allowDraw?: boolean
+  playerMode?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -222,7 +223,7 @@ function getOutcome(entry: ClientMatchCard): OutcomeFilter {
 }
 
 const displayedMatches = computed(() => {
-  if (!myMatchesActive.value || activeOutcomes.value.size === 0) return matches.value
+  if ((!myMatchesActive.value && !props.playerMode) || activeOutcomes.value.size === 0) return matches.value
   return matches.value.filter((m) => activeOutcomes.value.has(getOutcome(m)))
 })
 
