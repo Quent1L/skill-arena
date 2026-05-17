@@ -22,7 +22,7 @@ import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
 import { userService } from "./services/user.service";
-import { jobScheduler } from "./jobs/scheduler";
+import { startJobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
 import { logger } from "./utils/logger";
@@ -194,7 +194,7 @@ if (typeof process !== "undefined") {
 
   process.on("SIGTERM", () => {
     logger.info("SIGTERM received, shutting down gracefully");
-    jobScheduler.stop();
+    cronJob.stop();
     process.exit(0);
   });
 }
@@ -209,7 +209,7 @@ if (frontendBuildPath) {
 }
 
 // Start job scheduler for auto-finalization
-jobScheduler.start();
+const cronJob = startJobScheduler();
 
 export default {
   fetch: app.fetch,

@@ -5,24 +5,25 @@ import * as schema from '../db/schema'
 
 type AppDatabase = ReturnType<typeof drizzle<typeof schema>>
 
-// Internal database reference that can be replaced for testing
 let _db: AppDatabase | null = null
+let _pool: Pool | null = null
 
-/**
- * Get the database instance. For production, uses PostgreSQL via DATABASE_URL.
- * For tests, use setTestDatabase() to inject a test database instance.
- */
 function getDb(): AppDatabase {
-  _db ??= drizzle(
-    new Pool({
+  if (!_db) {
+    _pool ??= new Pool({
       connectionString: process.env.DATABASE_URL!,
       max: 10,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 3_000,
-    }),
-    { schema },
-  )
+    })
+    _db = drizzle(_pool, { schema })
+  }
   return _db
+}
+
+export function getPool(): Pool {
+  getDb() // ensure pool is initialized
+  return _pool!
 }
 
 /**
