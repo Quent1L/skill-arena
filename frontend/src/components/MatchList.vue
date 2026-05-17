@@ -143,6 +143,7 @@ interface Props {
   bracketMode?: boolean
   allowDraw?: boolean
   playerMode?: boolean
+  noScroll?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -290,7 +291,7 @@ useInfiniteScroll(
   },
   {
     distance: 100,
-    canLoadMore: () => hasMore.value && !loading.value,
+    canLoadMore: () => hasMore.value && !loading.value && !props.noScroll,
   },
 )
 

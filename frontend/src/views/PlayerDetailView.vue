@@ -122,6 +122,8 @@
               :current-player-id="playerId"
               :allow-draw="false"
               :player-mode="true"
+              :page-size="10"
+              :no-scroll="true"
             />
           </div>
         </div>
@@ -177,7 +179,7 @@
         <!-- Match history -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Matchs</div>
-          <MatchList :player-id="playerId" />
+          <MatchList :player-id="playerId" :tournament-id="selectedTournamentId" :page-size="10" :no-scroll="true" />
         </div>
       </template>
 
@@ -248,7 +250,7 @@
         <!-- All matches -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Matchs</div>
-          <MatchList :player-id="playerId" />
+          <MatchList :player-id="playerId" :page-size="10" :no-scroll="true" />
         </div>
       </template>
 
