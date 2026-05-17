@@ -1,10 +1,10 @@
 <template>
-  <MatchFormStepperMobile v-if="isMobile" :tournament-id="tournamentId" :match-id="matchId" />
-  <MatchFormStepperDesktop v-else :tournament-id="tournamentId" :match-id="matchId" />
+  <MatchFormStepperMobile v-if="isMobile" :tournament-id="tournamentId" :match-id="matchId" :bracket-locked="isBracketMatch" />
+  <MatchFormStepperDesktop v-else :tournament-id="tournamentId" :match-id="matchId" :bracket-locked="isBracketMatch" />
 </template>
 
 <script setup lang="ts">
-import { ref, provide, watch, onMounted } from 'vue'
+import { ref, computed, provide, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useViewport } from '@/composables/useViewport'
@@ -37,6 +37,7 @@ const { getTournamentParticipants } = useParticipantService()
 const { isAdmin, appUser } = useAuth()
 
 const tournament = ref<ClientBaseTournament | null>(null)
+const isBracketMatch = computed(() => tournament.value?.mode === 'bracket')
 const participants = ref<TournamentPlayer[]>([])
 const outcomeTypes = ref<OutcomeType[]>([])
 const outcomeReasons = ref<OutcomeReason[]>([])

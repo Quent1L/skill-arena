@@ -51,7 +51,7 @@
           </div>
           <div>
             <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Règles</div>
-            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Consulter les règles du tournoi</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Consulter les règles</div>
           </div>
         </div>
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />

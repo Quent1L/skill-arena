@@ -128,6 +128,7 @@ import type {
 interface Props {
   tournamentId: string
   matchId?: string
+  bracketLocked?: boolean
 }
 
 const props = defineProps<Props>()
@@ -161,9 +162,9 @@ const needsComposition = computed(() => formState.value.allPlayerIds.length > 2)
 
 const visibleSteps = computed(() => {
   const steps: { value: string; icon: string }[] = [{ value: 'when', icon: 'fas fa-calendar-alt' }]
-  if (isFlexMode.value) steps.push({ value: 'participants', icon: 'fas fa-users' })
-  if (isStaticMode.value) steps.push({ value: 'teams', icon: 'fas fa-layer-group' })
-  if (isFlexMode.value && needsComposition.value) steps.push({ value: 'composition', icon: 'fas fa-shuffle' })
+  if (!props.bracketLocked && isFlexMode.value) steps.push({ value: 'participants', icon: 'fas fa-users' })
+  if (!props.bracketLocked && isStaticMode.value) steps.push({ value: 'teams', icon: 'fas fa-layer-group' })
+  if (!props.bracketLocked && isFlexMode.value && needsComposition.value) steps.push({ value: 'composition', icon: 'fas fa-shuffle' })
   if (!isFutureDate.value) steps.push({ value: 'result', icon: 'fas fa-trophy' })
   return steps
 })
@@ -185,11 +186,13 @@ const tournamentMinDate = computed(() => {
 const tournamentMaxDate = computed(() => tournament.value?.endDate ?? undefined)
 
 const nextStepAfterWhen = computed(() => {
+  if (props.bracketLocked) return 'result'
   if (isStaticMode.value) return 'teams'
   return 'participants'
 })
 
 const isLastStepBeforeResult = computed(() => {
+  if (props.bracketLocked) return activeStep.value === 'when'
   if (isStaticMode.value) return activeStep.value === 'teams'
   if (needsComposition.value) return activeStep.value === 'composition'
   return activeStep.value === 'participants'
@@ -229,7 +232,9 @@ function goToStepAfterComposition() {
 }
 
 function goBackFromResult() {
-  if (isStaticMode.value) {
+  if (props.bracketLocked) {
+    activeStep.value = 'when'
+  } else if (isStaticMode.value) {
     activeStep.value = 'teams'
   } else if (needsComposition.value) {
     activeStep.value = 'composition'
