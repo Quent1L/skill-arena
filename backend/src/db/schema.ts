@@ -725,6 +725,7 @@ export const mmrAnimationEvents = pgTable(
     tierBeforeName: text("tier_before_name"),
     tierAfterName: text("tier_after_name"),
     rankChanged: boolean("rank_changed").notNull().default(false),
+    reason: text("reason").notNull().default("match_finalized"),
     viewedAt: timestamp("viewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },

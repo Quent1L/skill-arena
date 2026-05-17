@@ -30,12 +30,15 @@
             class="flex items-center justify-between px-4 py-2.5 text-sm"
           >
             <div class="flex items-center gap-2">
-              <span
-                class="text-xs px-1.5 py-0.5 rounded font-medium"
-                :class="event.eventType === 'official' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-700 text-gray-400'"
-              >
-                {{ event.eventType === 'official' ? 'Officiel' : 'Provisoire' }}
-              </span>
+              <div class="flex items-center gap-1">
+                <PlayerAvatar
+                  v-for="opp in event.opponents ?? []"
+                  :key="opp.id"
+                  :name="opp.displayName"
+                  :color-key="opp.id"
+                  size="xs"
+                />
+              </div>
               <span v-if="event.rankChanged && event.eventType === 'official'" class="text-amber-400 text-xs">
                 ↑ {{ event.tierAfterName }}
               </span>
@@ -66,6 +69,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { MmrAnimationEventResponse } from '@skill-arena/shared'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
 const props = defineProps<{
   events: MmrAnimationEventResponse[]

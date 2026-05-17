@@ -1,8 +1,9 @@
 import { db } from "../config/database";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray, notInArray, gt } from "drizzle-orm";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import type { MmrAnimationEventReason } from "@skill-arena/shared";
 
 export class MmrCalculationService {
   /**
@@ -173,6 +174,106 @@ export class MmrCalculationService {
     }
   }
 
+  /**
+   * BFS cascade recalculation after a match is cancelled.
+   * Recalculates direct participants then propagates to opponents in subsequent matches.
+   */
+  async cascadeRecalculateAfterCancellation(
+    matchId: string,
+    seasonId: string,
+    cancelledMatchPlayedAt: Date,
+  ): Promise<Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>> {
+    const result = new Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>();
+    const directPlayerIds = await this.getMatchPlayerIds(matchId);
+    const processedIds = new Set<string>(directPlayerIds);
+
+    const snapshots = new Map<string, number>();
+    for (const playerId of directPlayerIds) {
+      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+      snapshots.set(playerId, record?.currentMmr ?? 0);
+    }
+
+    for (const playerId of directPlayerIds) {
+      await this.recalculatePlayerMmr(seasonId, playerId);
+    }
+
+    let changedIds: string[] = [];
+    for (const playerId of directPlayerIds) {
+      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+      const mmrAfter = record?.currentMmr ?? 0;
+      const mmrBefore = snapshots.get(playerId) ?? 0;
+      result.set(playerId, { mmrBefore, mmrAfter, reason: "match_cancelled" });
+      if (mmrAfter !== mmrBefore) changedIds.push(playerId);
+    }
+
+    while (changedIds.length > 0) {
+      const nextWave = await this.findAffectedPlayers(seasonId, changedIds, cancelledMatchPlayedAt, [...processedIds]);
+      if (nextWave.length === 0) break;
+
+      for (const playerId of nextWave) processedIds.add(playerId);
+
+      const waveSnapshots = new Map<string, number>();
+      for (const playerId of nextWave) {
+        const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+        waveSnapshots.set(playerId, record?.currentMmr ?? 0);
+      }
+
+      for (const playerId of nextWave) {
+        await this.recalculatePlayerMmr(seasonId, playerId);
+      }
+
+      changedIds = [];
+      for (const playerId of nextWave) {
+        const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+        const mmrAfter = record?.currentMmr ?? 0;
+        const mmrBefore = waveSnapshots.get(playerId) ?? 0;
+        result.set(playerId, { mmrBefore, mmrAfter, reason: "cascade" });
+        if (mmrAfter !== mmrBefore) changedIds.push(playerId);
+      }
+    }
+
+    return result;
+  }
+
+  private async findAffectedPlayers(
+    seasonId: string,
+    changedPlayerIds: string[],
+    afterPlayedAt: Date,
+    excludePlayerIds: string[],
+  ): Promise<string[]> {
+    const matchRows = await db
+      .selectDistinct({ matchId: matchSides.matchId })
+      .from(matchSides)
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+      .innerJoin(matches, eq(matchSides.matchId, matches.id))
+      .where(
+        and(
+          eq(matches.tournamentId, seasonId),
+          eq(matches.status, "finalized"),
+          gt(matches.playedAt, afterPlayedAt),
+          inArray(tournamentEntryPlayers.playerId, changedPlayerIds),
+        ),
+      );
+
+    if (matchRows.length === 0) return [];
+
+    const matchIds = matchRows.map((r) => r.matchId);
+    const conditions = [inArray(matchSides.matchId, matchIds)];
+    if (excludePlayerIds.length > 0) {
+      conditions.push(notInArray(tournamentEntryPlayers.playerId, excludePlayerIds));
+    }
+
+    const playerRows = await db
+      .selectDistinct({ playerId: tournamentEntryPlayers.playerId })
+      .from(matchSides)
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+      .where(and(...conditions));
+
+    return playerRows.map((r) => r.playerId);
+  }
+
   private async recalculateBoundaries(seasonId: string, baseMmr: number): Promise<void> {
     const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
     if (tiers.length === 0) return;
@@ -203,8 +304,6 @@ export class MmrCalculationService {
 
     const ids = playerMatchIds.map((r) => r.matchId);
     if (ids.length === 0) return [];
-
-    const { inArray } = await import("drizzle-orm");
 
     return await db.query.matches.findMany({
       where: and(

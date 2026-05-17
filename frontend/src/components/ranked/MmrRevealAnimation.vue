@@ -5,6 +5,9 @@
 
         <!-- Rank badge area -->
         <div class="flex flex-col items-center gap-2 py-6 px-6 min-h-28">
+          <div v-if="reasonLabel" class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-800 text-gray-400">
+            {{ reasonLabel }}
+          </div>
           <Transition name="badge-exit" mode="out-in">
             <div v-if="phase === 'rank_up_exit'" key="old" class="flex flex-col items-center gap-2">
               <i
@@ -80,23 +83,9 @@
             <span>{{ tierMinMmr }}</span>
             <span>{{ tierMaxMmr !== null ? tierMaxMmr : '∞' }}</span>
           </div>
-          <div class="relative">
-            <Transition name="bubble-pop">
-              <div
-                v-if="showDeltaBubble"
-                class="absolute -top-7 z-10 text-xs font-black px-2 py-0.5 rounded-full whitespace-nowrap"
-                :class="event.mmrDelta >= 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'"
-                :style="bubbleStyle"
-              >
-                {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
-              </div>
-            </Transition>
-            <div class="h-3 w-full rounded-full overflow-hidden bg-gray-700">
-              <div
-                class="h-full rounded-full transition-all duration-1000 ease-out"
-                :style="barStyle"
-              />
-            </div>
+          <div class="h-3 w-full rounded-full overflow-hidden bg-gray-700 relative">
+            <div class="absolute h-full" :style="barBaseStyle" />
+            <div v-if="!isProvisional" class="absolute h-full" :style="barDeltaStyle" />
           </div>
         </div>
 
@@ -120,7 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skill-arena/shared'
-import { tierStyleIdx, getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
+import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
 
 const props = defineProps<{
   event: MmrAnimationEventResponse
@@ -133,11 +122,17 @@ type Phase = 'entry' | 'counting' | 'settled' | 'rank_up_exit' | 'rank_up_in' | 
 
 const phase = ref<Phase>('entry')
 const displayMmr = ref(props.event.mmrBefore)
-const barFillPercent = ref(0)
-const barHighlighted = ref(false)
-const showDeltaBubble = ref(false)
+const barBlueWidth = ref(0)
+const barDeltaLeft = ref(0)
+const barDeltaWidth = ref(0)
 
 const isProvisional = computed(() => props.event.eventType === 'provisional')
+
+const reasonLabel = computed(() => {
+  if (props.event.reason === 'match_cancelled') return 'Match annulé'
+  if (props.event.reason === 'cascade') return 'Recalcul MMR'
+  return null
+})
 
 function getTierForLevel(level: number | null) {
   if (level === null || !props.tiers.length) return null
@@ -203,21 +198,26 @@ const tierMaxMmr = computed((): number | null => {
   return sorted[idx + 1]?.minMmr ?? null
 })
 
-const barStyle = computed(() => {
-  const fill = `${barFillPercent.value}%`
+const barBaseStyle = computed(() => {
   if (isProvisional.value) {
     return {
-      width: fill,
+      width: `${barBlueWidth.value + barDeltaWidth.value}%`,
       background: 'repeating-linear-gradient(45deg, #6b7280 0px 4px, #4b5563 4px 8px)',
+      transition: 'width 1s ease-out',
     }
   }
-  const color = barHighlighted.value ? '#f59e0b' : (tierAfter.value ? '#3b82f6' : '#6b7280')
-  return { width: fill, backgroundColor: color }
+  const tierColor = tierAfter.value ? '#3b82f6' : '#6b7280'
+  return { width: `${barBlueWidth.value}%`, backgroundColor: tierColor, transition: 'width 1s ease-out' }
 })
 
-const bubbleStyle = computed(() => {
-  const pct = Math.min(barFillPercent.value, 90)
-  return { left: `calc(${pct}% - 20px)` }
+const barDeltaStyle = computed(() => {
+  const color = props.event.mmrDelta >= 0 ? '#10b981' : '#ef4444'
+  return {
+    left: `${barDeltaLeft.value}%`,
+    width: `${barDeltaWidth.value}%`,
+    backgroundColor: color,
+    transition: 'width 1s ease-out, left 1s ease-out',
+  }
 })
 
 const mmrCounterClass = computed(() => {
@@ -283,14 +283,17 @@ function runPhase() {
 }
 
 function onSettled() {
-  barFillPercent.value = mmrToPercent(props.event.mmrAfter, tierMinMmr.value, tierMaxMmr.value)
-  showDeltaBubble.value = true
+  const beforePct = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
+  const afterPct = mmrToPercent(props.event.mmrAfter, tierMinMmr.value, tierMaxMmr.value)
 
-  if (!isProvisional.value) {
-    barHighlighted.value = true
-    setTimeout(() => {
-      barHighlighted.value = false
-    }, 800)
+  if (isProvisional.value) {
+    barBlueWidth.value = afterPct
+  } else if (props.event.mmrDelta >= 0) {
+    barDeltaWidth.value = afterPct - beforePct
+  } else {
+    barBlueWidth.value = afterPct
+    barDeltaLeft.value = afterPct
+    barDeltaWidth.value = beforePct - afterPct
   }
 
   if (props.event.rankChanged && !isProvisional.value) {
@@ -314,7 +317,9 @@ function onSettled() {
 }
 
 onMounted(() => {
-  barFillPercent.value = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
+  const startPct = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
+  barBlueWidth.value = startPct
+  barDeltaLeft.value = startPct
   runPhase()
 })
 
@@ -376,15 +381,6 @@ onUnmounted(() => {
   100% { transform: scale(1); opacity: 1; }
 }
 
-.bubble-pop-enter-active {
-  animation: bubble-in 0.4s ease-out;
-}
-
-@keyframes bubble-in {
-  0% { transform: scale(0) translateY(6px); opacity: 0; }
-  60% { transform: scale(1.2) translateY(-2px); }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
 
 .tier-icon-glow {
   animation: icon-glow 1.4s ease-in-out infinite;

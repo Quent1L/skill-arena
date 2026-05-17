@@ -30,8 +30,18 @@ export class MatchFinalizationOrchestrator {
     await this.refreshStandingsAndStats(tournamentId, matchId)
   }
 
-  async runPostCancellationEffects(matchId: string, tournamentId: string): Promise<void> {
-    await mmrCalculationService.processMatchFinalization(matchId)
+  async runPostCancellationEffects(matchId: string, tournamentId: string, cancelledMatchPlayedAt: Date): Promise<void> {
+    const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId)
+    if (rankedConfig) {
+      const mmrChanges = await mmrCalculationService.cascadeRecalculateAfterCancellation(
+        matchId,
+        tournamentId,
+        cancelledMatchPlayedAt,
+      )
+      await mmrAnimationEventService
+        .createCancellationEventsAndBroadcast(matchId, tournamentId, mmrChanges)
+        .catch((err) => logger.error({ err }, '[MmrAnimation] cancellation event failed'))
+    }
     await this.refreshRankedCachesIfNeeded(tournamentId)
     await this.refreshStandingsAndStats(tournamentId, matchId)
   }

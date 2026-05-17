@@ -6,6 +6,7 @@ import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { webSocketService } from "./websocket.service";
+import type { MmrAnimationEventReason } from "@skill-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
 
@@ -96,6 +97,7 @@ export class MmrAnimationEventService {
         seasonId: tournamentId,
         matchId,
         eventType: "provisional",
+        reason: "match_finalized",
         mmrBefore,
         mmrAfter,
         mmrDelta: delta,
@@ -132,6 +134,7 @@ export class MmrAnimationEventService {
         seasonId: tournamentId,
         matchId,
         eventType: "official",
+        reason: "match_finalized",
         mmrBefore: history.mmrBefore,
         mmrAfter: history.mmrAfter,
         mmrDelta: history.mmrDelta,
@@ -144,24 +147,67 @@ export class MmrAnimationEventService {
 
       webSocketService.send(playerId, {
         event: "mmr_animation",
-        data: {
-          id: event.id,
-          matchId: event.matchId,
-          seasonId: event.seasonId,
-          tournamentId,
-          eventType: event.eventType,
-          mmrBefore: event.mmrBefore,
-          mmrAfter: event.mmrAfter,
-          mmrDelta: event.mmrDelta,
-          tierBeforeLevel: event.tierBeforeLevel,
-          tierAfterLevel: event.tierAfterLevel,
-          tierBeforeName: event.tierBeforeName,
-          tierAfterName: event.tierAfterName,
-          rankChanged: event.rankChanged,
-          createdAt: event.createdAt,
-        },
+        data: this.buildWsPayload(event, tournamentId),
       });
     }
+  }
+
+  async createCancellationEventsAndBroadcast(
+    matchId: string,
+    tournamentId: string,
+    mmrChanges: Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>,
+  ): Promise<void> {
+    if (mmrChanges.size === 0) return;
+
+    const tiers = await rankedSeasonRepository.getRankTiers(tournamentId);
+
+    for (const [playerId, { mmrBefore, mmrAfter, reason }] of mmrChanges) {
+      const mmrDelta = mmrAfter - mmrBefore;
+      const tierBefore = getTierForMmr(mmrBefore, tiers);
+      const tierAfter = getTierForMmr(mmrAfter, tiers);
+      const rankChanged = (tierBefore?.level ?? null) !== (tierAfter?.level ?? null);
+
+      const event = await mmrAnimationEventRepository.upsert({
+        playerId,
+        seasonId: tournamentId,
+        matchId,
+        eventType: "official",
+        reason,
+        mmrBefore,
+        mmrAfter,
+        mmrDelta,
+        tierBeforeLevel: tierBefore?.level ?? null,
+        tierAfterLevel: tierAfter?.level ?? null,
+        tierBeforeName: tierBefore?.name ?? null,
+        tierAfterName: tierAfter?.name ?? null,
+        rankChanged,
+      });
+
+      webSocketService.send(playerId, {
+        event: "mmr_animation",
+        data: this.buildWsPayload(event, tournamentId),
+      });
+    }
+  }
+
+  private buildWsPayload(event: { id: string; matchId: string; seasonId: string; eventType: string; reason: string; mmrBefore: number; mmrAfter: number; mmrDelta: number; tierBeforeLevel: number | null; tierAfterLevel: number | null; tierBeforeName: string | null; tierAfterName: string | null; rankChanged: boolean; createdAt: Date }, tournamentId: string) {
+    return {
+      id: event.id,
+      matchId: event.matchId,
+      seasonId: event.seasonId,
+      tournamentId,
+      eventType: event.eventType,
+      reason: event.reason,
+      mmrBefore: event.mmrBefore,
+      mmrAfter: event.mmrAfter,
+      mmrDelta: event.mmrDelta,
+      tierBeforeLevel: event.tierBeforeLevel,
+      tierAfterLevel: event.tierAfterLevel,
+      tierBeforeName: event.tierBeforeName,
+      tierAfterName: event.tierAfterName,
+      rankChanged: event.rankChanged,
+      createdAt: event.createdAt,
+    };
   }
 
   async getPendingForPlayer(playerId: string, seasonId: string) {

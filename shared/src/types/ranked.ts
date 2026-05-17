@@ -264,12 +264,14 @@ export type UpdateRankTierInput = z.infer<typeof updateRankTierSchema>;
 // ============================================
 
 export type MmrAnimationEventType = "provisional" | "official";
+export type MmrAnimationEventReason = "match_finalized" | "match_cancelled" | "cascade";
 
 export interface MmrAnimationEventResponse {
   id: string;
   matchId: string;
   seasonId: string;
   eventType: MmrAnimationEventType;
+  reason: MmrAnimationEventReason;
   mmrBefore: number;
   mmrAfter: number;
   mmrDelta: number;
@@ -279,6 +281,7 @@ export interface MmrAnimationEventResponse {
   tierAfterName: string | null;
   rankChanged: boolean;
   createdAt: string;
+  opponents?: { id: string; displayName: string; shortName: string }[];
 }
 
 export interface MmrAnimationWsPayload extends MmrAnimationEventResponse {

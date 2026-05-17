@@ -1031,7 +1031,7 @@ export class MatchService {
 
     await matchRepository.update(id, { status: 'cancelled' })
     await notificationService.deleteActionsByMatchId(id)
-    await matchFinalizationOrchestrator.runPostCancellationEffects(id, match.tournamentId)
+    await matchFinalizationOrchestrator.runPostCancellationEffects(id, match.tournamentId, match.playedAt ?? new Date())
   }
 
   async finalizeMatch(

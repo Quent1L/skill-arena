@@ -1,12 +1,13 @@
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { db } from "../config/database";
-import { mmrAnimationEvents } from "../db/schema";
+import { mmrAnimationEvents, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
 
 export interface UpsertMmrAnimationEventData {
   playerId: string;
   seasonId: string;
   matchId: string;
   eventType: "provisional" | "official";
+  reason: string;
   mmrBefore: number;
   mmrAfter: number;
   mmrDelta: number;
@@ -38,6 +39,7 @@ export class MmrAnimationEventRepository {
           tierBeforeName: data.tierBeforeName,
           tierAfterName: data.tierAfterName,
           rankChanged: data.rankChanged,
+          reason: data.reason,
           viewedAt: null,
         },
       })
@@ -46,7 +48,7 @@ export class MmrAnimationEventRepository {
   }
 
   async getPendingForPlayer(playerId: string, seasonId: string) {
-    return await db.query.mmrAnimationEvents.findMany({
+    const events = await db.query.mmrAnimationEvents.findMany({
       where: and(
         eq(mmrAnimationEvents.playerId, playerId),
         eq(mmrAnimationEvents.seasonId, seasonId),
@@ -54,6 +56,44 @@ export class MmrAnimationEventRepository {
       ),
       orderBy: (t, { asc }) => [asc(t.createdAt)],
     });
+    if (events.length === 0) return events.map((e) => ({ ...e, opponents: [] }));
+    const opponentMap = await this.fetchOpponentsByMatchIds(events.map((e) => e.matchId), playerId);
+    return events.map((e) => ({ ...e, opponents: opponentMap.get(e.matchId) ?? [] }));
+  }
+
+  private async fetchOpponentsByMatchIds(
+    matchIds: string[],
+    playerId: string,
+  ): Promise<Map<string, { id: string; displayName: string; shortName: string }[]>> {
+    const rows = await db
+      .select({
+        matchId: matchSides.matchId,
+        sidePosition: matchSides.position,
+        playerId: tournamentEntryPlayers.playerId,
+        displayName: appUsers.displayName,
+        shortName: appUsers.shortName,
+      })
+      .from(matchSides)
+      .innerJoin(tournamentEntries, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(tournamentEntryPlayers, eq(tournamentEntries.id, tournamentEntryPlayers.entryId))
+      .innerJoin(appUsers, eq(tournamentEntryPlayers.playerId, appUsers.id))
+      .where(inArray(matchSides.matchId, matchIds));
+
+    // Find which side the current player is on per match, then return the other side
+    const mySideByMatch = new Map<string, number>();
+    for (const row of rows) {
+      if (row.playerId === playerId) mySideByMatch.set(row.matchId, row.sidePosition);
+    }
+
+    const result = new Map<string, { id: string; displayName: string; shortName: string }[]>();
+    for (const row of rows) {
+      const mySide = mySideByMatch.get(row.matchId);
+      if (mySide === undefined || row.sidePosition === mySide) continue;
+      const list = result.get(row.matchId) ?? [];
+      list.push({ id: row.playerId, displayName: row.displayName, shortName: row.shortName });
+      result.set(row.matchId, list);
+    }
+    return result;
   }
 
   async markViewed(ids: string[]) {
