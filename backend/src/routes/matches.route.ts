@@ -210,6 +210,7 @@ matches.post(
       tournamentId: data.tournamentId,
       round: data.round,
       sides: data.sides,
+      allPlayerIds: data.allPlayerIds,
       matchId: data.matchId,
       playedAt: data.playedAt,
     });

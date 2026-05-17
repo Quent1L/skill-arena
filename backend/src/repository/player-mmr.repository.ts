@@ -66,7 +66,7 @@ export class PlayerMmrRepository {
 
     return players.map((p) => ({
       ...p,
-      recentResults: resultsByPlayer.get(p.playerId) ?? [],
+      recentResults: (resultsByPlayer.get(p.playerId) ?? []).slice().reverse(),
     }));
   }
 

@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6 pt-4">
-    <h3 class="text-base font-semibold ">Participants</h3>
+    <h3 class="text-base font-semibold">Participants</h3>
 
     <div>
       <!-- Desktop: AutoComplete -->
@@ -75,7 +75,7 @@
         :icon-pos="props.nextLabel ? undefined : 'right'"
         :class="props.nextLabel ? 'bg-green-600 hover:bg-green-700' : ''"
         :loading="validating"
-        :disabled="allPlayerIdsModel.length < 2"
+        :disabled="allPlayerIdsModel.length < 2 || errors.length > 0"
         @click="onNext"
       />
     </div>
@@ -187,9 +187,7 @@ function getPlayerName(id: string): string {
   return allPlayers.value.find((p) => p.id === id)?.displayName ?? id
 }
 
-async function onNext() {
-  errors.value = []
-  warnings.value = []
+async function runValidation() {
   validating.value = true
   try {
     const result = await validateParticipants(
@@ -198,15 +196,34 @@ async function onNext() {
       props.playedAt ?? undefined,
       props.matchId,
     )
-    if (!result.valid) {
-      errors.value = result.errors
-      return
-    }
+    errors.value = result.errors
     warnings.value = result.warnings
-    emit('next')
+    return result
   } finally {
     validating.value = false
   }
+}
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch([allPlayerIdsModel, () => props.playedAt], () => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  errors.value = []
+  warnings.value = []
+  if (allPlayerIdsModel.value.length < 2) return
+  debounceTimer = setTimeout(() => {
+    void runValidation()
+  }, 500)
+})
+
+async function onNext() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  const result = await runValidation()
+  if (!result?.valid) return
+  emit('next')
 }
 
 defineExpose({ triggerNext: onNext })

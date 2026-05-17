@@ -351,6 +351,7 @@ export const validateMatchSchema = z.object({
   tournamentId: z.string().uuid("ID de tournoi invalide"),
   round: z.number().int().min(1).optional(),
   sides: z.array(matchSideInputSchema).min(1).optional(),
+  allPlayerIds: z.array(z.string().uuid()).optional(),
   matchId: z.string().uuid("ID de match invalide").optional(),
   playedAt: z.string().datetime().optional(),
 });

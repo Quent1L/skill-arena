@@ -792,7 +792,7 @@ export class MatchService {
     return await matchRepository.getById(id)
   }
 
-  async validateMatch(input: CreateMatchInput & { matchId?: string }) {
+  async validateMatch(input: CreateMatchInput & { matchId?: string; allPlayerIds?: string[] }) {
     const errors: string[] = []
     const warnings: string[] = []
 
@@ -811,7 +811,9 @@ export class MatchService {
       await this.validateMatchInputForValidation(input, tournament, errors)
       await this.validateTournamentRulesForValidation(input, tournament, errors)
       if (input.playedAt) {
-        const playerIds = await this.resolvePlayerIds(input, tournament)
+        const playerIds = input.allPlayerIds?.length
+          ? input.allPlayerIds
+          : await this.resolvePlayerIds(input, tournament)
         const conflict = await matchRepository.findPlayerConflictAtTime(
           playerIds,
           new Date(input.playedAt),
@@ -852,7 +854,7 @@ export class MatchService {
   }
 
   private async validateMatchInputForValidation(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { allPlayerIds?: string[] },
     tournament: NonNullable<TournamentFromRepository>,
     errors: string[],
   ) {

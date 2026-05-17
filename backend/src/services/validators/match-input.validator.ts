@@ -138,10 +138,17 @@ export class MatchInputValidator {
     }
 
     async validateMatchInputForValidation(
-        input: CreateMatchInput,
+        input: CreateMatchInput & { allPlayerIds?: string[] },
         tournament: NonNullable<TournamentFromRepository>,
         errors: string[]
     ): Promise<void> {
+        if (input.allPlayerIds && input.allPlayerIds.length > 0) {
+            await this.validateAllPlayerIdsForValidation(
+                input.allPlayerIds, input.tournamentId, tournament, errors
+            );
+            return;
+        }
+
         const sides = input.sides ?? [];
         if (sides.length === 0) return;
 
@@ -149,6 +156,33 @@ export class MatchInputValidator {
             await this.validateStaticSidesForValidation(sides, tournament, errors);
         } else {
             await this.validateFlexSidesForValidation(sides, input.tournamentId, errors);
+        }
+    }
+
+    private async validateAllPlayerIdsForValidation(
+        allPlayerIds: string[],
+        tournamentId: string,
+        tournament: NonNullable<TournamentFromRepository>,
+        errors: string[]
+    ): Promise<void> {
+        const min = tournament.minTeamSize * 2;
+        const max = tournament.maxTeamSize * 2;
+        if (allPlayerIds.length < min || allPlayerIds.length > max) {
+            errors.push(
+                `Le match nécessite entre ${min} et ${max} joueurs ` +
+                `(${tournament.minTeamSize}-${tournament.maxTeamSize} par équipe), ` +
+                `${allPlayerIds.length} sélectionné(s)`
+            );
+            return;
+        }
+        try {
+            await matchRepository.validateEntriesForTournament(
+                tournamentId, undefined, undefined, allPlayerIds, []
+            );
+        } catch (error) {
+            errors.push(
+                error instanceof Error ? error.message : "Joueur non inscrit au tournoi"
+            );
         }
     }
 

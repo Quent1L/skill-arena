@@ -55,21 +55,31 @@ export function useMatchService() {
     }
   }
 
-  /**
-   * Validate participants (partial: all in one side, skips composition checks)
-   */
   async function validateParticipants(
     tournamentId: string,
     allPlayerIds: string[],
     playedAt?: Date,
     matchId?: string,
   ): Promise<ValidationResult> {
-    return await validateMatchSides(
-      tournamentId,
-      [{ position: 1, playerIds: allPlayerIds }],
-      playedAt,
-      matchId,
-    )
+    try {
+      const dataToValidate: ClientValidateMatchRequest = {
+        tournamentId,
+        allPlayerIds,
+        playedAt,
+        ...(matchId && { matchId }),
+      }
+      const result = await matchApi.validate(dataToValidate)
+      validationResult.value = result
+      return result
+    } catch {
+      const errorResult: ValidationResult = {
+        valid: false,
+        errors: ['Erreur lors de la validation'],
+        warnings: [],
+      }
+      validationResult.value = errorResult
+      return errorResult
+    }
   }
 
   /**
