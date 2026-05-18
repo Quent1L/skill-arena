@@ -1,6 +1,7 @@
-import { eq, and, desc, asc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, sql, inArray, lt, gte } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
+import type { MmrHistoryOutcome } from "@skill-arena/shared";
 
 export interface UpsertPlayerMmrData {
   seasonId: string;
@@ -23,6 +24,7 @@ export interface CreateMmrHistoryData {
   kEffective: number;
   opponentAvgMmr: number;
   isPlacement: boolean;
+  outcome?: MmrHistoryOutcome | null;
 }
 
 export class PlayerMmrRepository {
@@ -203,15 +205,99 @@ export class PlayerMmrRepository {
     });
   }
 
-  async deleteMmrHistoryForPlayer(seasonId: string, playerId: string) {
-    await db
-      .delete(mmrHistory)
+  async deleteMmrHistoryForPlayer(seasonId: string, playerId: string, fromPlayedAt?: Date) {
+    if (fromPlayedAt) {
+      const matchIds = await db
+        .select({ id: matches.id })
+        .from(matches)
+        .where(and(eq(matches.tournamentId, seasonId), gte(matches.playedAt, fromPlayedAt)));
+      const ids = matchIds.map((r) => r.id);
+      if (ids.length === 0) return;
+      await db
+        .delete(mmrHistory)
+        .where(
+          and(
+            eq(mmrHistory.seasonId, seasonId),
+            eq(mmrHistory.playerId, playerId),
+            inArray(mmrHistory.matchId, ids),
+          ),
+        );
+    } else {
+      await db
+        .delete(mmrHistory)
+        .where(
+          and(
+            eq(mmrHistory.seasonId, seasonId),
+            eq(mmrHistory.playerId, playerId),
+          ),
+        );
+    }
+  }
+
+  async getCheckpointState(
+    seasonId: string,
+    playerId: string,
+    beforePlayedAt: Date,
+  ): Promise<{ mmr: number; wins: number; losses: number; winStreak: number; maxWinStreak: number } | null> {
+    const rows = await db
+      .select({ mmrAfter: mmrHistory.mmrAfter, outcome: mmrHistory.outcome })
+      .from(mmrHistory)
+      .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
       .where(
         and(
           eq(mmrHistory.seasonId, seasonId),
           eq(mmrHistory.playerId, playerId),
+          lt(matches.playedAt, beforePlayedAt),
+        ),
+      )
+      .orderBy(asc(matches.playedAt));
+
+    if (rows.length === 0) return null;
+
+    let wins = 0, losses = 0, winStreak = 0, maxWinStreak = 0;
+    for (const row of rows) {
+      if (row.outcome === 'win') {
+        wins++; winStreak++; maxWinStreak = Math.max(maxWinStreak, winStreak);
+      } else if (row.outcome === 'loss') {
+        losses++; winStreak = 0;
+      }
+    }
+
+    return { mmr: rows[rows.length - 1].mmrAfter, wins, losses, winStreak, maxWinStreak };
+  }
+
+  async preloadOpponentHistories(
+    seasonId: string,
+    matchIds: string[],
+    opponentIds: string[],
+  ): Promise<Map<string, number>> {
+    if (matchIds.length === 0 || opponentIds.length === 0) return new Map();
+    const rows = await db
+      .select({ playerId: mmrHistory.playerId, matchId: mmrHistory.matchId, mmrBefore: mmrHistory.mmrBefore })
+      .from(mmrHistory)
+      .where(
+        and(
+          eq(mmrHistory.seasonId, seasonId),
+          inArray(mmrHistory.matchId, matchIds),
+          inArray(mmrHistory.playerId, opponentIds),
         ),
       );
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(`${row.playerId}:${row.matchId}`, row.mmrBefore);
+    }
+    return map;
+  }
+
+  async getPlayerCurrentMmrs(
+    seasonId: string,
+    playerIds: string[],
+  ): Promise<Map<string, number>> {
+    if (playerIds.length === 0) return new Map();
+    const rows = await db.query.playerMmr.findMany({
+      where: and(eq(playerMmr.seasonId, seasonId), inArray(playerMmr.playerId, playerIds)),
+    });
+    return new Map(rows.map((r) => [r.playerId, r.currentMmr]));
   }
 
   async getAllPlayersBySeasonId(seasonId: string) {

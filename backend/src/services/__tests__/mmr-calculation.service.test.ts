@@ -55,6 +55,9 @@ const mockPlayerMmrRepo = {
   createMmrHistory: mock((_args: any) => Promise.resolve()),
   upsert: mock((_args: any) => Promise.resolve()),
   getAllPlayersBySeasonId: mock(() => Promise.resolve([] as any[])),
+  getCheckpointState: mock(() => Promise.resolve(null as any)),
+  preloadOpponentHistories: mock(() => Promise.resolve(new Map<string, number>())),
+  getPlayerCurrentMmrs: mock(() => Promise.resolve(new Map<string, number>())),
 };
 
 mock.module("../../repository/player-mmr.repository", () => ({
@@ -111,6 +114,9 @@ function resetMocks() {
   mockPlayerMmrRepo.createMmrHistory.mockImplementation(() => Promise.resolve());
   mockPlayerMmrRepo.upsert.mockImplementation(() => Promise.resolve());
   mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() => Promise.resolve([]));
+  mockPlayerMmrRepo.getCheckpointState.mockImplementation(() => Promise.resolve(null));
+  mockPlayerMmrRepo.preloadOpponentHistories.mockImplementation(() => Promise.resolve(new Map()));
+  mockPlayerMmrRepo.getPlayerCurrentMmrs.mockImplementation(() => Promise.resolve(new Map()));
 
   _selectResult = [];
   mockDb.query.matches.findFirst.mockImplementation(() => Promise.resolve(null));
@@ -294,8 +300,11 @@ describe("MmrCalculationService", () => {
       sideResults: Record<string, ReturnType<typeof makeSideResult>>,
     ) {
       (service as any).getPlayerMatchesForSeason = async () => matches;
-      (service as any).extractMatchSidesForPlayer = async (matchId: string) =>
-        sideResults[matchId] ?? makeSideResult({ playerWon: null });
+      (service as any).preloadMatchSides = async (matchIds: string[]) => {
+        const map = new Map();
+        for (const id of matchIds) map.set(id, sideResults[id] ?? makeSideResult({ playerWon: null }));
+        return map;
+      };
     }
 
     it("aucun match → upsert avec baseMmr, wins=0, losses=0", async () => {
@@ -524,16 +533,10 @@ describe("MmrCalculationService", () => {
       const winnerHistory: any[] = [];
       const loserHistory: any[] = [];
 
-      // Simulate: winner processed first, saves history with mmrBefore=1000
-      // When loser is processed, getMmrHistoryForPlayerAndMatch returns winner's mmrBefore=1000
-      mockPlayerMmrRepo.getMmrHistoryForPlayerAndMatch.mockImplementation(
-        (_seasonId: string, oppId: string, _matchId: string) => {
-          if (oppId === "winner-1") return Promise.resolve({ mmrBefore: 1000 });
-          return Promise.resolve(null);
-        },
+      // Process winner: opponent "opp-1" has no history → falls back to currentMmr=1000
+      mockPlayerMmrRepo.getPlayerCurrentMmrs.mockImplementation(() =>
+        Promise.resolve(new Map([["opp-1", 1000]])),
       );
-
-      // Process winner
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         winnerHistory.push(args);
         return Promise.resolve();
@@ -544,12 +547,9 @@ describe("MmrCalculationService", () => {
       resetMocks();
       service = new MmrCalculationService();
 
-      // Process loser: opponent is "winner-1", whose history shows mmrBefore=1000
-      mockPlayerMmrRepo.getMmrHistoryForPlayerAndMatch.mockImplementation(
-        (_seasonId: string, oppId: string, _matchId: string) => {
-          if (oppId === "winner-1") return Promise.resolve({ mmrBefore: 1000 });
-          return Promise.resolve(null);
-        },
+      // Process loser: opponent "winner-1" has history entry showing mmrBefore=1000
+      mockPlayerMmrRepo.preloadOpponentHistories.mockImplementation(() =>
+        Promise.resolve(new Map([["winner-1:m1", 1000]])),
       );
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         loserHistory.push(args);

@@ -12,6 +12,7 @@ import {
   jsonb,
   varchar,
   real,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -401,36 +402,45 @@ export const tournamentEntryPlayers = pgTable(
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
   },
-  (table) => [unique().on(table.entryId, table.playerId)],
+  (table) => [
+    unique().on(table.entryId, table.playerId),
+    index("idx_tep_player_id").on(table.playerId),
+  ],
 );
 
 // ********************************************************************
 // [End] New generic entry-based tables
 // ***************************************************************
 
-export const matches = pgTable("matches", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tournamentId: uuid("tournament_id")
-    .notNull()
-    .references(() => tournaments.id, { onDelete: "cascade" }),
-  status: matchStatusEnum("status").notNull().default("scheduled"),
-  playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
-  confirmationDeadline: timestamp("confirmation_deadline", { withTimezone: true }),
-  outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
-    onDelete: "set null",
-  }),
-  outcomeReasonId: uuid("outcome_reason_id").references(
-    () => outcomeReasons.id,
-    {
+export const matches = pgTable(
+  "matches",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    status: matchStatusEnum("status").notNull().default("scheduled"),
+    playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
+    confirmationDeadline: timestamp("confirmation_deadline", { withTimezone: true }),
+    outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
       onDelete: "set null",
-    },
-  ),
-  winnerSide: varchar("winner_side", { length: 1 }),
-  createdBy: uuid("created_by").references(() => appUsers.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+    }),
+    outcomeReasonId: uuid("outcome_reason_id").references(
+      () => outcomeReasons.id,
+      {
+        onDelete: "set null",
+      },
+    ),
+    winnerSide: varchar("winner_side", { length: 1 }),
+    createdBy: uuid("created_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_matches_tournament_status_played_at").on(table.tournamentId, table.status, table.playedAt),
+  ],
+);
 
 // ********************************************************************
 // [Start] New match sides and results tables
@@ -677,8 +687,12 @@ export const mmrHistory = pgTable(
     kEffective: real("k_effective").notNull(),
     opponentAvgMmr: integer("opponent_avg_mmr").notNull(),
     isPlacement: boolean("is_placement").notNull().default(false),
+    outcome: varchar("outcome", { length: 4 }),
   },
-  (table) => [unique().on(table.seasonId, table.playerId, table.matchId)],
+  (table) => [
+    unique().on(table.seasonId, table.playerId, table.matchId),
+    index("idx_mmr_history_season_player").on(table.seasonId, table.playerId),
+  ],
 );
 
 export const rankTiers = pgTable(

@@ -38,6 +38,8 @@ export interface PlayerMmr {
   maxWinStreak: number;
 }
 
+export type MmrHistoryOutcome = 'win' | 'loss' | 'draw';
+
 export interface MmrHistoryEntry {
   id: string;
   seasonId: string;
@@ -49,6 +51,7 @@ export interface MmrHistoryEntry {
   kEffective: number;
   opponentAvgMmr: number;
   isPlacement: boolean;
+  outcome?: MmrHistoryOutcome | null;
 }
 
 export interface ClientRankTier {
