@@ -201,7 +201,7 @@
             </div>
 
             <!-- Match Details -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm p-2">
               <div>
                 <span class="text-surface-500 dark:text-surface-400">Date du match :</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
