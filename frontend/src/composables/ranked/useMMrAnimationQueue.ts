@@ -68,6 +68,6 @@ function deduplicateEvents(events: MmrAnimationEventResponse[]): MmrAnimationEve
     }
   }
   return [...byMatch.values()].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    (a, b) => new Date(a.playedAt ?? a.createdAt).getTime() - new Date(b.playedAt ?? b.createdAt).getTime(),
   )
 }

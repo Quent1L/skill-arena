@@ -1,10 +1,14 @@
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/85">
-      <div class="w-full max-w-sm rounded-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
+      <div
+        class="w-full max-w-sm rounded-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden"
+      >
         <!-- Header -->
         <div class="flex justify-center pt-5 pb-2">
-          <span class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-700 text-gray-300">
+          <span
+            class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-700 text-gray-300"
+          >
             Récap MMR
           </span>
         </div>
@@ -19,11 +23,14 @@
           </div>
           <div class="text-gray-400 text-sm mt-1">
             <template v-if="newCount > 0 && recalcCount > 0">
-              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{ newCount > 1 ? 's' : '' }},
-              {{ recalcCount }} recalculé{{ recalcCount > 1 ? 's' : '' }}
+              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{
+                newCount > 1 ? 's' : ''
+              }}, {{ recalcCount }} recalculé{{ recalcCount > 1 ? 's' : '' }}
             </template>
             <template v-else-if="recalcCount > 0">
-              {{ recalcCount }} match{{ recalcCount > 1 ? 's' : '' }} recalculé{{ recalcCount > 1 ? 's' : '' }}
+              {{ recalcCount }} match{{ recalcCount > 1 ? 's' : '' }} recalculé{{
+                recalcCount > 1 ? 's' : ''
+              }}
             </template>
             <template v-else>
               {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{ newCount > 1 ? 's' : '' }}
@@ -32,7 +39,9 @@
         </div>
 
         <!-- Per-match breakdown -->
-        <div class="mx-6 mb-4 rounded-xl bg-gray-800 divide-y divide-gray-700 max-h-48 overflow-y-auto">
+        <div
+          class="mx-6 mb-4 rounded-xl bg-gray-800 divide-y divide-gray-700 max-h-48 overflow-y-auto"
+        >
           <div
             v-for="event in events"
             :key="event.id"
@@ -47,21 +56,23 @@
                   size="xs"
                 />
                 <span class="text-gray-500 text-xs font-medium">vs</span>
-                <PlayerAvatarStack
-                  :players="event.opponents ?? []"
-                  size="xs"
-                />
+                <PlayerAvatarStack :players="event.opponents ?? []" size="xs" />
               </div>
               <!-- Rank change / recalc badges -->
               <span
                 v-if="event.rankChanged"
                 class="text-xs shrink-0"
-                :class="(event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? 'text-amber-400' : 'text-sky-300'"
+                :class="
+                  (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0)
+                    ? 'text-amber-400'
+                    : 'text-sky-300'
+                "
               >
-                {{ (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? '↑' : '↓' }} {{ event.tierAfterName }}
+                {{ (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? '↑' : '↓' }}
+                {{ event.tierAfterName }}
               </span>
               <span v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
-                ↻ recalculé
+                <i class="fa-solid fa-rotate"></i> recalculé
               </span>
             </div>
             <!-- Date -->
