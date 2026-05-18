@@ -118,37 +118,44 @@ export class MmrAnimationEventService {
     const playerIds = await this.getMatchPlayerIds(matchId);
 
     for (const playerId of playerIds) {
-      const history = await playerMmrRepository.getMmrHistoryForPlayerAndMatch(
-        tournamentId,
-        playerId,
-        matchId,
-      );
-      if (!history) continue;
+      const allHistory = await playerMmrRepository.getMmrHistoryOrdered(tournamentId, playerId);
+      const existingEvents = await mmrAnimationEventRepository.getOfficialEventDeltasByPlayer(tournamentId, playerId);
+      const tobroadcast: Awaited<ReturnType<typeof mmrAnimationEventRepository.upsert>>[] = [];
 
-      const tierBefore = getTierForMmr(history.mmrBefore, tiers);
-      const tierAfter = getTierForMmr(history.mmrAfter, tiers);
-      const rankChanged = (tierBefore?.level ?? null) !== (tierAfter?.level ?? null);
+      for (const history of allHistory) {
+        const isCurrentMatch = history.matchId === matchId;
+        const existing = existingEvents.get(history.matchId);
 
-      const event = await mmrAnimationEventRepository.upsert({
-        playerId,
-        seasonId: tournamentId,
-        matchId,
-        eventType: "official",
-        reason: "match_finalized",
-        mmrBefore: history.mmrBefore,
-        mmrAfter: history.mmrAfter,
-        mmrDelta: history.mmrDelta,
-        tierBeforeLevel: tierBefore?.level ?? null,
-        tierAfterLevel: tierAfter?.level ?? null,
-        tierBeforeName: tierBefore?.name ?? null,
-        tierAfterName: tierAfter?.name ?? null,
-        rankChanged,
-      });
+        if (!isCurrentMatch && (!existing || existing.mmrDelta === history.mmrDelta)) continue;
 
-      webSocketService.send(playerId, {
-        event: "mmr_animation",
-        data: this.buildWsPayload(event, tournamentId),
-      });
+        const tierBefore = getTierForMmr(history.mmrBefore, tiers);
+        const tierAfter = getTierForMmr(history.mmrAfter, tiers);
+        const reason: MmrAnimationEventReason = isCurrentMatch ? "match_finalized" : "recalculated";
+
+        const event = await mmrAnimationEventRepository.upsert({
+          playerId,
+          seasonId: tournamentId,
+          matchId: history.matchId,
+          eventType: "official",
+          reason,
+          mmrBefore: history.mmrBefore,
+          mmrAfter: history.mmrAfter,
+          mmrDelta: history.mmrDelta,
+          tierBeforeLevel: tierBefore?.level ?? null,
+          tierAfterLevel: tierAfter?.level ?? null,
+          tierBeforeName: tierBefore?.name ?? null,
+          tierAfterName: tierAfter?.name ?? null,
+          rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+        });
+        tobroadcast.push(event);
+      }
+
+      for (const event of tobroadcast) {
+        webSocketService.send(playerId, {
+          event: "mmr_animation",
+          data: this.buildWsPayload(event, tournamentId),
+        });
+      }
     }
   }
 

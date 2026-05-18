@@ -1,6 +1,6 @@
 import { eq, and, isNull, inArray } from "drizzle-orm";
 import { db } from "../config/database";
-import { mmrAnimationEvents, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
+import { mmrAnimationEvents, matches, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
 
 export interface UpsertMmrAnimationEventData {
   playerId: string;
@@ -56,15 +56,25 @@ export class MmrAnimationEventRepository {
       ),
       orderBy: (t, { asc }) => [asc(t.createdAt)],
     });
-    if (events.length === 0) return events.map((e) => ({ ...e, opponents: [] }));
-    const opponentMap = await this.fetchOpponentsByMatchIds(events.map((e) => e.matchId), playerId);
-    return events.map((e) => ({ ...e, opponents: opponentMap.get(e.matchId) ?? [] }));
+    if (events.length === 0) return events.map((e) => ({ ...e, opponents: [], teammates: [] }));
+    const matchIds = events.map((e) => e.matchId);
+    const { opponents, teammates } = await this.fetchMatchParticipants(matchIds, playerId);
+    const playedAtMap = await this.fetchPlayedAtByMatchIds(matchIds);
+    return events.map((e) => ({
+      ...e,
+      opponents: opponents.get(e.matchId) ?? [],
+      teammates: teammates.get(e.matchId) ?? [],
+      playedAt: playedAtMap.get(e.matchId),
+    }));
   }
 
-  private async fetchOpponentsByMatchIds(
+  private async fetchMatchParticipants(
     matchIds: string[],
     playerId: string,
-  ): Promise<Map<string, { id: string; displayName: string; shortName: string }[]>> {
+  ): Promise<{
+    opponents: Map<string, { id: string; displayName: string; shortName: string }[]>;
+    teammates: Map<string, { id: string; displayName: string; shortName: string }[]>;
+  }> {
     const rows = await db
       .select({
         matchId: matchSides.matchId,
@@ -79,21 +89,51 @@ export class MmrAnimationEventRepository {
       .innerJoin(appUsers, eq(tournamentEntryPlayers.playerId, appUsers.id))
       .where(inArray(matchSides.matchId, matchIds));
 
-    // Find which side the current player is on per match, then return the other side
     const mySideByMatch = new Map<string, number>();
     for (const row of rows) {
       if (row.playerId === playerId) mySideByMatch.set(row.matchId, row.sidePosition);
     }
 
-    const result = new Map<string, { id: string; displayName: string; shortName: string }[]>();
+    const opponents = new Map<string, { id: string; displayName: string; shortName: string }[]>();
+    const teammates = new Map<string, { id: string; displayName: string; shortName: string }[]>();
     for (const row of rows) {
       const mySide = mySideByMatch.get(row.matchId);
-      if (mySide === undefined || row.sidePosition === mySide) continue;
-      const list = result.get(row.matchId) ?? [];
+      if (mySide === undefined || row.playerId === playerId) continue;
+      const target = row.sidePosition === mySide ? teammates : opponents;
+      const list = target.get(row.matchId) ?? [];
       list.push({ id: row.playerId, displayName: row.displayName, shortName: row.shortName });
-      result.set(row.matchId, list);
+      target.set(row.matchId, list);
     }
-    return result;
+    return { opponents, teammates };
+  }
+
+  private async fetchPlayedAtByMatchIds(matchIds: string[]): Promise<Map<string, Date>> {
+    const rows = await db
+      .select({ id: matches.id, playedAt: matches.playedAt })
+      .from(matches)
+      .where(inArray(matches.id, matchIds));
+    return new Map(rows.map((r) => [r.id, r.playedAt]));
+  }
+
+  async getOfficialEventDeltasByPlayer(
+    seasonId: string,
+    playerId: string,
+  ): Promise<Map<string, { id: string; mmrDelta: number }>> {
+    const rows = await db
+      .select({
+        id: mmrAnimationEvents.id,
+        matchId: mmrAnimationEvents.matchId,
+        mmrDelta: mmrAnimationEvents.mmrDelta,
+      })
+      .from(mmrAnimationEvents)
+      .where(
+        and(
+          eq(mmrAnimationEvents.playerId, playerId),
+          eq(mmrAnimationEvents.seasonId, seasonId),
+          eq(mmrAnimationEvents.eventType, "official"),
+        ),
+      );
+    return new Map(rows.map((r) => [r.matchId, { id: r.id, mmrDelta: r.mmrDelta }]));
   }
 
   async markViewed(ids: string[]) {

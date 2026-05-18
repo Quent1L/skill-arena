@@ -20,14 +20,17 @@ export function useMMrAnimationQueue() {
   }
 
   function enqueue(payload: MmrAnimationWsPayload) {
-    if (!queue.value.some((e) => e.id === payload.id)) {
-      const { tournamentId: _t, ...event } = payload
-      const idx = queue.value.findIndex((e) => e.matchId === event.matchId)
-      if (idx !== -1 && event.eventType === 'official') {
-        queue.value.splice(idx, 1, event)
-      } else if (idx === -1) {
-        queue.value.push(event)
-      }
+    const { tournamentId: _t, ...event } = payload
+    const idIdx = queue.value.findIndex((e) => e.id === event.id)
+    if (idIdx !== -1) {
+      queue.value.splice(idIdx, 1, event)
+      return
+    }
+    const matchIdx = queue.value.findIndex((e) => e.matchId === event.matchId)
+    if (matchIdx !== -1 && event.eventType === 'official') {
+      queue.value.splice(matchIdx, 1, event)
+    } else if (matchIdx === -1) {
+      queue.value.push(event)
     }
   }
 

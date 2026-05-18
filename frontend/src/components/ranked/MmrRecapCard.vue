@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/85">
-      <div class="w-full max-w-sm rounded-t-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
+    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/85">
+      <div class="w-full max-w-sm rounded-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
         <!-- Header -->
         <div class="flex justify-center pt-5 pb-2">
           <span class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-700 text-gray-300">
@@ -18,7 +18,16 @@
             {{ netDelta >= 0 ? '+' : '' }}{{ netDelta }}
           </div>
           <div class="text-gray-400 text-sm mt-1">
-            depuis votre dernière visite ({{ events.length }} match{{ events.length > 1 ? 's' : '' }})
+            <template v-if="newCount > 0 && recalcCount > 0">
+              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{ newCount > 1 ? 's' : '' }},
+              {{ recalcCount }} recalculé{{ recalcCount > 1 ? 's' : '' }}
+            </template>
+            <template v-else-if="recalcCount > 0">
+              {{ recalcCount }} match{{ recalcCount > 1 ? 's' : '' }} recalculé{{ recalcCount > 1 ? 's' : '' }}
+            </template>
+            <template v-else>
+              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{ newCount > 1 ? 's' : '' }}
+            </template>
           </div>
         </div>
 
@@ -27,24 +36,41 @@
           <div
             v-for="event in events"
             :key="event.id"
-            class="flex items-center justify-between px-4 py-2.5 text-sm"
+            class="flex items-center justify-between px-4 py-2.5 text-sm gap-2"
           >
-            <div class="flex items-center gap-2">
-              <div class="flex items-center gap-1">
-                <PlayerAvatar
-                  v-for="opp in event.opponents ?? []"
-                  :key="opp.id"
-                  :name="opp.displayName"
-                  :color-key="opp.id"
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <!-- Teams: [teammates] vs [opponents] -->
+              <div class="flex items-center gap-1.5">
+                <PlayerAvatarStack
+                  v-if="(event.teammates ?? []).length > 0"
+                  :players="event.teammates ?? []"
+                  size="xs"
+                />
+                <span class="text-gray-500 text-xs font-medium">vs</span>
+                <PlayerAvatarStack
+                  :players="event.opponents ?? []"
                   size="xs"
                 />
               </div>
-              <span v-if="event.rankChanged && event.eventType === 'official'" class="text-amber-400 text-xs">
-                ↑ {{ event.tierAfterName }}
+              <!-- Rank change / recalc badges -->
+              <span
+                v-if="event.rankChanged"
+                class="text-xs shrink-0"
+                :class="(event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? 'text-amber-400' : 'text-sky-300'"
+              >
+                {{ (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? '↑' : '↓' }} {{ event.tierAfterName }}
+              </span>
+              <span v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
+                ↻ recalculé
               </span>
             </div>
+            <!-- Date -->
+            <span v-if="event.playedAt" class="text-gray-500 text-xs shrink-0">
+              {{ formatMatchDate(event.playedAt) }}
+            </span>
+            <!-- Delta -->
             <span
-              class="font-bold font-mono"
+              class="font-bold font-mono shrink-0"
               :class="event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'"
             >
               {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
@@ -68,8 +94,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { format } from 'date-fns'
 import type { MmrAnimationEventResponse } from '@skill-arena/shared'
-import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 
 const props = defineProps<{
   events: MmrAnimationEventResponse[]
@@ -78,4 +105,10 @@ const props = defineProps<{
 defineEmits<{ (e: 'close'): void }>()
 
 const netDelta = computed(() => props.events.reduce((acc, e) => acc + e.mmrDelta, 0))
+const recalcCount = computed(() => props.events.filter((e) => e.reason === 'recalculated').length)
+const newCount = computed(() => props.events.length - recalcCount.value)
+
+function formatMatchDate(date: Date) {
+  return format(date, 'dd/MM HH:mm')
+}
 </script>
