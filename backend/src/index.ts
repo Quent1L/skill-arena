@@ -26,9 +26,23 @@ import { startJobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
 import { logger } from "./utils/logger";
+import { run, type Runner } from "graphile-worker";
+import { taskList } from "./workers/mmr-recalculation.worker";
 
 await runMigrations();
 await initializeAdminIfNeeded();
+
+let workerRunner: Runner | null = null;
+try {
+  workerRunner = await run({
+    connectionString: process.env.DATABASE_URL!,
+    taskList,
+    concurrency: 1,
+  });
+  logger.info("Graphile Worker started");
+} catch (err) {
+  logger.error({ err }, "Failed to start Graphile Worker — MMR jobs will not be processed");
+}
 
 const app = createAppHonoOptional();
 
@@ -192,9 +206,10 @@ if (typeof process !== "undefined") {
     }
   );
 
-  process.on("SIGTERM", () => {
+  process.on("SIGTERM", async () => {
     logger.info("SIGTERM received, shutting down gracefully");
     cronJob.stop();
+    if (workerRunner) await workerRunner.stop();
     process.exit(0);
   });
 }

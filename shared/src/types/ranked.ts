@@ -292,3 +292,13 @@ export interface MmrAnimationEventResponse {
 export interface MmrAnimationWsPayload extends MmrAnimationEventResponse {
   tournamentId: string;
 }
+
+export type LeaderboardRecalculatingEvent = {
+  event: 'leaderboard_recalculating';
+  data: { seasonId: string };
+};
+
+export type LeaderboardUpdatedEvent = {
+  event: 'leaderboard_updated';
+  data: { seasonId: string };
+};

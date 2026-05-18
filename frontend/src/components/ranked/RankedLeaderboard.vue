@@ -6,6 +6,12 @@
     </div>
 
     <template v-else>
+      <!-- Recalculation in progress -->
+      <div v-if="props.isRecalculating" class="flex items-center justify-center gap-2 mb-3 text-sm text-orange-400">
+        <i class="fa fa-sync fa-spin" />
+        Recalcul MMR en cours…
+      </div>
+
       <!-- Toggle -->
       <div v-if="props.showModeToggle !== false" class="flex justify-center mb-4">
         <SelectButton
@@ -156,6 +162,7 @@ const props = defineProps<{
   tiers: ClientRankTier[]
   loading?: boolean
   provisionalLoading?: boolean
+  isRecalculating?: boolean
   currentUserId?: string
   showModeToggle?: boolean
   tournamentId?: string

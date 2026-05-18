@@ -47,7 +47,7 @@
             :key="event.id"
             class="flex items-center justify-between px-4 py-2.5 text-sm gap-2"
           >
-            <div class="flex items-center gap-2 min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-2 min-w-0 flex-1">
               <!-- Teams: [teammates] vs [opponents] -->
               <div class="flex items-center gap-1.5">
                 <PlayerAvatarStack
@@ -59,7 +59,9 @@
                 <PlayerAvatarStack :players="event.opponents ?? []" size="xs" />
               </div>
               <!-- Rank change / recalc badges -->
-              <span
+            </div>
+            <div class="flex flex-wrap flex-col gap-1.5">
+              <div
                 v-if="event.rankChanged"
                 class="text-xs shrink-0"
                 :class="
@@ -70,15 +72,15 @@
               >
                 {{ (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? '↑' : '↓' }}
                 {{ event.tierAfterName }}
-              </span>
-              <span v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
+              </div>
+              <div v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
                 <i class="fa-solid fa-rotate"></i> recalculé
-              </span>
+              </div>
             </div>
             <!-- Date -->
-            <span v-if="event.playedAt" class="text-gray-500 text-xs shrink-0">
+            <div v-if="event.playedAt" class="text-gray-500 text-xs shrink-0">
               {{ formatMatchDate(event.playedAt) }}
-            </span>
+            </div>
             <!-- Delta -->
             <span
               class="font-bold font-mono shrink-0"
