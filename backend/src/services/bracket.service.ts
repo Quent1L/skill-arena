@@ -52,6 +52,19 @@ interface MatchData {
   loserToRoundNumber?: number;
 }
 
+interface WinnerLink {
+  matchId: string;
+  roundNumber: number;
+  winnerToMatchNumber: number;
+  winnerToRoundNumber?: number;
+}
+
+interface LoserLink {
+  matchId: string;
+  loserToMatchNumber: number;
+  loserToRoundNumber: number;
+}
+
 export class BracketService {
   // ============================================
   // Main API Methods
@@ -70,18 +83,7 @@ export class BracketService {
       await this.validateBracketGeneration(tournamentId, userId, input);
 
       // 2. Delete existing bracket if any
-      const existingConfig = await bracketRepository.getConfigByTournamentId(
-        tournamentId,
-        tx
-      );
-      if (existingConfig) {
-        // Delete action notifications for all bracket matches before removing them
-        const existingMatches = await matchRepository.list({ tournamentId });
-        for (const match of existingMatches) {
-          await notificationService.deleteActionsByMatchId(match.id);
-        }
-        await bracketRepository.deleteAllBracketData(tournamentId, tx);
-      }
+      await this.clearExistingBracket(tournamentId, tx);
 
       // 3. Get or create tournament entries from participants
       const entries = await this.getOrCreateEntriesFromParticipants(
@@ -223,11 +225,29 @@ export class BracketService {
     }
 
     // Delete action notifications for all bracket matches before removing them
+    await this.deleteBracketMatchNotifications(tournamentId);
+    await bracketRepository.deleteAllBracketData(tournamentId);
+  }
+
+  private async deleteBracketMatchNotifications(tournamentId: string): Promise<void> {
     const existingMatches = await matchRepository.list({ tournamentId });
     for (const match of existingMatches) {
       await notificationService.deleteActionsByMatchId(match.id);
     }
-    await bracketRepository.deleteAllBracketData(tournamentId);
+  }
+
+  private async clearExistingBracket(
+    tournamentId: string,
+    tx: DbTransaction
+  ): Promise<void> {
+    const existingConfig = await bracketRepository.getConfigByTournamentId(
+      tournamentId,
+      tx
+    );
+    if (!existingConfig) return;
+
+    await this.deleteBracketMatchNotifications(tournamentId);
+    await bracketRepository.deleteAllBracketData(tournamentId, tx);
   }
 
   // ============================================
@@ -363,33 +383,17 @@ export class BracketService {
    */
   private async getOrCreateEntriesFromParticipants(
     tournamentId: string,
-    tx: NodePgDatabase<typeof schema> | typeof db
+    tx: DbTransaction
   ) {
-    // Get all active participants
     const participants = await participantRepository.findTournamentParticipants(
       tournamentId
     );
+    const existingEntries = await this.findEntriesWithPlayers(tournamentId, tx);
 
-    // Get existing entries using tx
-    const existingEntries = await tx.query.tournamentEntries.findMany({
-      where: eq(tournamentEntries.tournamentId, tournamentId),
-      with: {
-        team: true,
-        players: {
-          with: {
-            player: true,
-          },
-        },
-      },
-    });
-
-    // Create a map of existing entries by player ID for quick lookup
     const existingEntryPlayerIds = new Set<string>();
     for (const entry of existingEntries) {
-      if (entry.players) {
-        for (const player of entry.players) {
-          existingEntryPlayerIds.add(player.playerId);
-        }
+      for (const player of entry.players ?? []) {
+        existingEntryPlayerIds.add(player.playerId);
       }
     }
 
@@ -408,7 +412,14 @@ export class BracketService {
     }
 
     // Return all entries (using tx to see newly created ones)
-    return await tx.query.tournamentEntries.findMany({
+    return this.findEntriesWithPlayers(tournamentId, tx);
+  }
+
+  private async findEntriesWithPlayers(
+    tournamentId: string,
+    tx: DbTransaction
+  ) {
+    return tx.query.tournamentEntries.findMany({
       where: eq(tournamentEntries.tournamentId, tournamentId),
       with: {
         team: true,
@@ -495,12 +506,11 @@ export class BracketService {
     seeded.sort((a, b) => a.seedNumber - b.seedNumber);
 
     // Randomly assign unseeded entries to remaining slots
-    const unseededSeeds = unseeded
-      .sort(() => Math.random() - 0.5)
-      .map((entry, index) => ({
-        entryId: entry.id,
-        seedNumber: seeded.length + index + 1,
-      }));
+    const shuffledUnseeded = [...unseeded].sort(() => Math.random() - 0.5);
+    const unseededSeeds = shuffledUnseeded.map((entry, index) => ({
+      entryId: entry.id,
+      seedNumber: seeded.length + index + 1,
+    }));
 
     return [...seeded, ...unseededSeeds];
   }
@@ -527,94 +537,109 @@ export class BracketService {
   ): RoundData[] {
     const participantCount = seeds.length;
     const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(participantCount)));
-
-    const rounds: RoundData[] = [];
     const totalRounds = Math.ceil(Math.log2(participantCount));
-
-    // Round 1: Quarterfinals, Round of 16, etc.
     const firstRoundMatches = nextPowerOf2 / 2;
-    const firstRoundName = this.getRoundName(0, totalRounds, false);
 
-    const firstRoundMatchData: MatchData[] = [];
+    const rounds: RoundData[] = [
+      this.buildFirstRound(seeds, participantCount, nextPowerOf2, totalRounds),
+      ...this.buildSubsequentRounds(firstRoundMatches, totalRounds),
+    ];
+
+    if (hasBronzeMatch && totalRounds >= 2) {
+      this.appendBronzeMatch(rounds, totalRounds);
+    }
+
+    return rounds;
+  }
+
+  private buildFirstRound(
+    seeds: BracketSeedData[],
+    participantCount: number,
+    nextPowerOf2: number,
+    totalRounds: number
+  ): RoundData {
+    const firstRoundMatches = nextPowerOf2 / 2;
     const seedPairings = this.generateStandardBracketPairings(
       participantCount,
       nextPowerOf2
     );
 
+    const matches: MatchData[] = [];
     for (let i = 0; i < firstRoundMatches; i++) {
       const [seedA, seedB] = seedPairings[i];
       const entryA = seeds.find((s) => s.seedNumber === seedA);
       const entryB = seeds.find((s) => s.seedNumber === seedB);
-
-      // Check if this is a bye match (seedB > participantCount)
       const isBye = seedB > participantCount;
 
-      firstRoundMatchData.push({
+      matches.push({
         matchNumber: i,
         entryAId: entryA?.entryId,
         entryBId: isBye ? undefined : entryB?.entryId,
         isByeMatch: isBye,
-        winnerToMatchNumber: Math.floor(i / 2), // Winner advances to next round
+        winnerToMatchNumber: Math.floor(i / 2),
       });
     }
 
-    rounds.push({
+    return {
       roundNumber: 0,
-      roundName: firstRoundName,
+      roundName: this.getRoundName(0, totalRounds, false),
       bracketType: "winners",
       matchesCount: firstRoundMatches,
-      matches: firstRoundMatchData,
-    });
+      matches,
+    };
+  }
 
-    // Subsequent rounds
+  private buildSubsequentRounds(
+    firstRoundMatches: number,
+    totalRounds: number
+  ): RoundData[] {
+    const rounds: RoundData[] = [];
     let previousRoundMatches = firstRoundMatches;
+
     for (let round = 1; round < totalRounds; round++) {
       const matchesInRound = previousRoundMatches / 2;
-      const roundName = this.getRoundName(round, totalRounds, false);
-
-      const roundMatches: MatchData[] = [];
-      for (let i = 0; i < matchesInRound; i++) {
-        roundMatches.push({
+      const matches: MatchData[] = Array.from(
+        { length: matchesInRound },
+        (_, i) => ({
           matchNumber: i,
           isByeMatch: false,
           winnerToMatchNumber:
             round < totalRounds - 1 ? Math.floor(i / 2) : undefined,
-        });
-      }
+        })
+      );
 
       rounds.push({
         roundNumber: round,
-        roundName,
+        roundName: this.getRoundName(round, totalRounds, false),
         bracketType: "winners",
         matchesCount: matchesInRound,
-        matches: roundMatches,
+        matches,
       });
 
       previousRoundMatches = matchesInRound;
     }
 
-    // Bronze match if requested
-    if (hasBronzeMatch && totalRounds >= 2) {
-      const semiFinalRoundIndex = totalRounds - 2;
-      rounds[semiFinalRoundIndex] = {
-        ...rounds[semiFinalRoundIndex],
-        matches: rounds[semiFinalRoundIndex].matches.map((m) => ({
-          ...m,
-          loserToMatchNumber: 0,
-          loserToRoundNumber: totalRounds,
-        })),
-      };
-
-      rounds.push({
-        roundNumber: totalRounds,
-        roundName: "Match pour la 3ème place",
-        bracketType: "bronze",
-        matchesCount: 1,
-        matches: [{ matchNumber: 0, isByeMatch: false }],
-      });
-    }
-
     return rounds;
+  }
+
+  private appendBronzeMatch(rounds: RoundData[], totalRounds: number): void {
+    const semiFinalRoundIndex = totalRounds - 2;
+    rounds[semiFinalRoundIndex] = {
+      ...rounds[semiFinalRoundIndex],
+      matches: rounds[semiFinalRoundIndex].matches.map((m) => ({
+        ...m,
+        loserToMatchNumber: 0,
+        loserToRoundNumber: totalRounds,
+      })),
+    };
+
+    rounds.push({
+      roundNumber: totalRounds,
+      roundName: "Match pour la 3ème place",
+      bracketType: "bronze",
+      matchesCount: 1,
+      matches: [{ matchNumber: 0, isByeMatch: false }],
+    });
   }
 
   private generateDoubleEliminationBracket(
@@ -622,14 +647,26 @@ export class BracketService {
   ): RoundData[] {
     const participantCount = seeds.length;
     const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(participantCount)));
-
-    const rounds: RoundData[] = [];
     const totalWinnersRounds = Math.ceil(Math.log2(participantCount));
 
     // Winners bracket (same as single elimination for first half)
     const winnersRounds = this.generateSingleEliminationBracket(seeds, false);
+    this.enrichWinnersWithLoserLinks(winnersRounds);
 
-    // Enrich winners rounds with loser destinations
+    const rounds: RoundData[] = winnersRounds.map((round, index) => ({
+      ...round,
+      roundNumber: index,
+    }));
+
+    rounds.push(
+      ...this.buildLosersRounds(rounds.length, totalWinnersRounds, nextPowerOf2)
+    );
+    this.appendGrandFinal(rounds, winnersRounds.length);
+
+    return rounds;
+  }
+
+  private enrichWinnersWithLoserLinks(winnersRounds: RoundData[]): void {
     const winnersRoundsLength = winnersRounds.length;
     for (let k = 0; k < winnersRounds.length; k++) {
       const lbIndex = k === 0 ? 0 : 2 * k - 1;
@@ -638,40 +675,57 @@ export class BracketService {
         ...winnersRounds[k],
         matches: winnersRounds[k].matches.map((m) => ({
           ...m,
-          loserToMatchNumber: k === 0 ? Math.floor(m.matchNumber / 2) : m.matchNumber,
+          loserToMatchNumber:
+            k === 0 ? Math.floor(m.matchNumber / 2) : m.matchNumber,
           loserToRoundNumber,
         })),
       };
     }
+  }
 
-    // Add winners bracket rounds
-    for (const round of winnersRounds) {
-      rounds.push({
-        ...round,
-        roundNumber: rounds.length,
-      });
-    }
-
-    // Losers bracket structure
-    // In double elimination, losers bracket has roughly 2x rounds
+  private buildLosersRounds(
+    startRoundNumber: number,
+    totalWinnersRounds: number,
+    nextPowerOf2: number
+  ): RoundData[] {
     const losersRoundsCount = (totalWinnersRounds - 1) * 2;
+    const rounds: RoundData[] = [];
 
     for (let i = 0; i < losersRoundsCount; i++) {
-      const matchesCount = Math.max(1, Math.floor(nextPowerOf2 / Math.pow(2, Math.floor(i / 2) + 2)));
+      const matchesCount = Math.max(
+        1,
+        Math.floor(nextPowerOf2 / Math.pow(2, Math.floor(i / 2) + 2))
+      );
 
       rounds.push({
-        roundNumber: rounds.length,
+        roundNumber: startRoundNumber + i,
         roundName: `2e chance - Tour ${i + 1}`,
         bracketType: "losers",
         matchesCount,
         matches: Array.from({ length: matchesCount }, (_, j) => ({
           matchNumber: j,
           isByeMatch: false,
-          winnerToMatchNumber: i < losersRoundsCount - 1 ? (i % 2 === 0 ? j : Math.floor(j / 2)) : undefined,
+          winnerToMatchNumber: this.loserWinnerTarget(i, j, losersRoundsCount),
         })),
       });
     }
 
+    return rounds;
+  }
+
+  private loserWinnerTarget(
+    roundIndex: number,
+    matchIndex: number,
+    losersRoundsCount: number
+  ): number | undefined {
+    if (roundIndex >= losersRoundsCount - 1) return undefined;
+    return roundIndex % 2 === 0 ? matchIndex : Math.floor(matchIndex / 2);
+  }
+
+  private appendGrandFinal(
+    rounds: RoundData[],
+    winnersRoundsLength: number
+  ): void {
     const grandFinalRoundNumber = rounds.length;
 
     // Link last losers round winner → Grande Finale
@@ -685,7 +739,7 @@ export class BracketService {
     };
 
     // Link winners final winner → Grande Finale (cross-bracket, needs explicit round override)
-    const winnersFinalIdx = winnersRounds.length - 1;
+    const winnersFinalIdx = winnersRoundsLength - 1;
     rounds[winnersFinalIdx] = {
       ...rounds[winnersFinalIdx],
       matches: rounds[winnersFinalIdx].matches.map((m) => ({
@@ -695,21 +749,13 @@ export class BracketService {
       })),
     };
 
-    // Grand Final
     rounds.push({
       roundNumber: grandFinalRoundNumber,
       roundName: "Grande Finale",
       bracketType: "winners",
       matchesCount: 1,
-      matches: [
-        {
-          matchNumber: 0,
-          isByeMatch: false,
-        },
-      ],
+      matches: [{ matchNumber: 0, isByeMatch: false }],
     });
-
-    return rounds;
   }
 
   /**
@@ -738,8 +784,7 @@ export class BracketService {
     const half = this.getBalancedSeedPositions(size / 2);
     const result: number[] = [];
     for (const seed of half) {
-      result.push(seed);
-      result.push(size + 1 - seed);
+      result.push(seed, size + 1 - seed);
     }
     return result;
   }
@@ -789,93 +834,153 @@ export class BracketService {
     const tournament = await tournamentRepository.getById(tournamentId);
     const startDate = new Date(tournament!.startDate);
 
-    // Map "roundNumber:matchNumber" → matchId for pass 2
+    // Map "roundNumber:matchNumber" → matchId for the linking pass
     const matchIdMap = new Map<string, string>();
-    const pendingLinks: {
-      matchId: string;
-      roundNumber: number;
-      winnerToMatchNumber: number;
-      winnerToRoundNumber?: number;
-    }[] = [];
-    const pendingLoserLinks: {
-      matchId: string;
-      loserToMatchNumber: number;
-      loserToRoundNumber: number;
-    }[] = [];
+    const pendingLinks: WinnerLink[] = [];
+    const pendingLoserLinks: LoserLink[] = [];
 
     // Pass 1: Create all matches and metadata
     for (let i = 0; i < rounds.length; i++) {
-      const round = rounds[i];
-      const createdRound = createdRounds[i];
-
-      for (const matchData of round.matches) {
-        const matchDate = new Date(startDate);
-        matchDate.setDate(matchDate.getDate() + round.roundNumber * 3);
-
-        const [matchRecord] = await tx
-          .insert(matches)
-          .values({ tournamentId, status: "scheduled", playedAt: matchDate })
-          .returning();
-
-        matchIdMap.set(`${round.roundNumber}:${matchData.matchNumber}`, matchRecord.id);
-
-        if (matchData.entryAId) {
-          await tx.insert(matchSides).values({
-            matchId: matchRecord.id,
-            entryId: matchData.entryAId,
-            position: 1,
-            score: 0,
-            pointsAwarded: 0,
-          });
-        }
-
-        if (matchData.entryBId) {
-          await tx.insert(matchSides).values({
-            matchId: matchRecord.id,
-            entryId: matchData.entryBId,
-            position: 2,
-            score: 0,
-            pointsAwarded: 0,
-          });
-        }
-
-        await bracketRepository.createMatchMetadata(
-          {
-            matchId: matchRecord.id,
-            bracketRoundId: createdRound.id,
-            matchNumber: matchData.matchNumber,
-            isByeMatch: matchData.isByeMatch,
-          },
-          tx
-        );
-
-        if (matchData.winnerToMatchNumber !== undefined) {
-          pendingLinks.push({
-            matchId: matchRecord.id,
-            roundNumber: round.roundNumber,
-            winnerToMatchNumber: matchData.winnerToMatchNumber,
-            winnerToRoundNumber: matchData.winnerToRoundNumber,
-          });
-        }
-
-        if (
-          matchData.loserToMatchNumber !== undefined &&
-          matchData.loserToRoundNumber !== undefined
-        ) {
-          pendingLoserLinks.push({
-            matchId: matchRecord.id,
-            loserToMatchNumber: matchData.loserToMatchNumber,
-            loserToRoundNumber: matchData.loserToRoundNumber,
-          });
-        }
-      }
+      await this.createRoundMatches({
+        round: rounds[i],
+        createdRoundId: createdRounds[i].id,
+        tournamentId,
+        startDate,
+        matchIdMap,
+        pendingLinks,
+        pendingLoserLinks,
+        tx,
+      });
     }
 
-    // Pass 2: Link winnerToMatchId using the map
+    // Pass 2: Resolve winner/loser destinations now that every match exists
+    await this.linkWinnerMatches(pendingLinks, matchIdMap, tx);
+    await this.linkLoserMatches(pendingLoserLinks, matchIdMap, tx);
+  }
+
+  private async createRoundMatches(params: {
+    round: RoundData;
+    createdRoundId: string;
+    tournamentId: string;
+    startDate: Date;
+    matchIdMap: Map<string, string>;
+    pendingLinks: WinnerLink[];
+    pendingLoserLinks: LoserLink[];
+    tx: DbTransaction;
+  }): Promise<void> {
+    const {
+      round,
+      createdRoundId,
+      tournamentId,
+      startDate,
+      matchIdMap,
+      pendingLinks,
+      pendingLoserLinks,
+      tx,
+    } = params;
+
+    for (const matchData of round.matches) {
+      const matchId = await this.insertScheduledMatch(
+        tournamentId,
+        startDate,
+        round.roundNumber,
+        tx
+      );
+      matchIdMap.set(`${round.roundNumber}:${matchData.matchNumber}`, matchId);
+
+      if (matchData.entryAId) {
+        await this.insertMatchSide(matchId, matchData.entryAId, 1, tx);
+      }
+      if (matchData.entryBId) {
+        await this.insertMatchSide(matchId, matchData.entryBId, 2, tx);
+      }
+
+      await bracketRepository.createMatchMetadata(
+        {
+          matchId,
+          bracketRoundId: createdRoundId,
+          matchNumber: matchData.matchNumber,
+          isByeMatch: matchData.isByeMatch,
+        },
+        tx
+      );
+
+      this.registerPendingLinks(matchId, round.roundNumber, matchData, {
+        pendingLinks,
+        pendingLoserLinks,
+      });
+    }
+  }
+
+  private registerPendingLinks(
+    matchId: string,
+    roundNumber: number,
+    matchData: MatchData,
+    sinks: { pendingLinks: WinnerLink[]; pendingLoserLinks: LoserLink[] }
+  ): void {
+    if (matchData.winnerToMatchNumber !== undefined) {
+      sinks.pendingLinks.push({
+        matchId,
+        roundNumber,
+        winnerToMatchNumber: matchData.winnerToMatchNumber,
+        winnerToRoundNumber: matchData.winnerToRoundNumber,
+      });
+    }
+
+    if (
+      matchData.loserToMatchNumber !== undefined &&
+      matchData.loserToRoundNumber !== undefined
+    ) {
+      sinks.pendingLoserLinks.push({
+        matchId,
+        loserToMatchNumber: matchData.loserToMatchNumber,
+        loserToRoundNumber: matchData.loserToRoundNumber,
+      });
+    }
+  }
+
+  private async insertScheduledMatch(
+    tournamentId: string,
+    startDate: Date,
+    roundNumber: number,
+    tx: DbTransaction
+  ): Promise<string> {
+    const matchDate = new Date(startDate);
+    matchDate.setDate(matchDate.getDate() + roundNumber * 3);
+
+    const [matchRecord] = await tx
+      .insert(matches)
+      .values({ tournamentId, status: "scheduled", playedAt: matchDate })
+      .returning();
+
+    return matchRecord.id;
+  }
+
+  private async insertMatchSide(
+    matchId: string,
+    entryId: string,
+    position: number,
+    tx: DbTransaction
+  ): Promise<void> {
+    await tx.insert(matchSides).values({
+      matchId,
+      entryId,
+      position,
+      score: 0,
+      pointsAwarded: 0,
+    });
+  }
+
+  private async linkWinnerMatches(
+    pendingLinks: WinnerLink[],
+    matchIdMap: Map<string, string>,
+    tx: DbTransaction
+  ): Promise<void> {
     for (const item of pendingLinks) {
       const targetRound = item.winnerToRoundNumber ?? item.roundNumber + 1;
-      const key = `${targetRound}:${item.winnerToMatchNumber}`;
-      const nextMatchId = matchIdMap.get(key);
+      const nextMatchId = matchIdMap.get(
+        `${targetRound}:${item.winnerToMatchNumber}`
+      );
       if (nextMatchId) {
         await bracketRepository.updateMatchMetadata(
           item.matchId,
@@ -884,10 +989,17 @@ export class BracketService {
         );
       }
     }
+  }
 
+  private async linkLoserMatches(
+    pendingLoserLinks: LoserLink[],
+    matchIdMap: Map<string, string>,
+    tx: DbTransaction
+  ): Promise<void> {
     for (const item of pendingLoserLinks) {
-      const key = `${item.loserToRoundNumber}:${item.loserToMatchNumber}`;
-      const loserMatchId = matchIdMap.get(key);
+      const loserMatchId = matchIdMap.get(
+        `${item.loserToRoundNumber}:${item.loserToMatchNumber}`
+      );
       if (loserMatchId) {
         await bracketRepository.updateMatchMetadata(
           item.matchId,

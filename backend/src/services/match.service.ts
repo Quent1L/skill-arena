@@ -147,9 +147,7 @@ export class MatchService {
     const refreshed = await matchRepository.getById(matchId)
     if (refreshed?.status === 'reported') {
       await matchNotificationBuilder.notifyMatchValidationRequired(matchId, createdBy)
-      this.recomputeProvisionalIfRanked(input.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
+      this.scheduleProvisionalRecompute(input.tournamentId)
     } else {
       await matchNotificationBuilder.notifyMatchCreated(matchId, createdBy, tournament.name)
     }
@@ -446,7 +444,7 @@ export class MatchService {
   async reportMatchResult(id: string, input: ReportMatchResultInput, reportedBy: string) {
     const match = await this.getMatchById(id)
     await this.validateReportPermissions(id, reportedBy)
-    await this.validateReportStatus(match.status)
+    this.validateReportStatus(match.status)
     await this.validateScoreConstraints(match.tournamentId, input)
 
     const tournament = await matchRepository.getTournament(match.tournamentId)
@@ -483,9 +481,7 @@ export class MatchService {
     }
 
     if (refreshed?.status === 'reported' || refreshed?.status === 'pending_confirmation') {
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
+      this.scheduleProvisionalRecompute(match.tournamentId)
     }
 
     return updatedMatch
@@ -495,8 +491,8 @@ export class MatchService {
     await matchPermissionValidator.validateReportPermissions(matchId, userId)
   }
 
-  private async validateReportStatus(status: MatchStatus) {
-    await matchStatusValidator.validateReportStatus(status)
+  private validateReportStatus(status: MatchStatus): void {
+    matchStatusValidator.validateReportStatus(status)
   }
 
   private async validateScoreConstraints(tournamentId: string, input: ReportMatchResultInput) {
@@ -588,8 +584,7 @@ export class MatchService {
       throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED)
     }
 
-    const hasScoreProposal =
-      input.proposedScoreA !== undefined && input.proposedScoreB !== undefined
+    const proposal = this.proposedConfirmationFields(input)
 
     await matchConfirmationRepository.upsert({
       matchId: id,
@@ -598,11 +593,11 @@ export class MatchService {
       isContested: true,
       contestationReason: input.contestationReason,
       contestationProof: input.contestationProof,
-      proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
-      proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
-      proposedWinner: hasScoreProposal ? (input.proposedWinnerPosition?.toString() ?? null) : null,
-      proposedOutcomeTypeId: hasScoreProposal ? (input.proposedOutcomeTypeId ?? null) : null,
-      proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
+      proposedScoreA: proposal.proposedScoreA,
+      proposedScoreB: proposal.proposedScoreB,
+      proposedWinner: proposal.proposedWinner,
+      proposedOutcomeTypeId: proposal.proposedOutcomeTypeId,
+      proposedOutcomeReasonId: proposal.proposedOutcomeReasonId,
     })
 
     const originalReporter = match.result?.reportedBy
@@ -610,33 +605,7 @@ export class MatchService {
       await userRepository.resetTrustScore(originalReporter)
     }
 
-    if (hasScoreProposal) {
-      await notificationService.deleteActionsByMatchIdForUser(id, contestedBy)
-      await matchConfirmationRepository.resetConfirmationsExcept(id, contestedBy)
-
-      const tournament = await matchRepository.getTournament(match.tournamentId)
-      await matchRepository.update(id, {
-        status: 'pending_confirmation',
-        confirmationDeadline: this.getDeadlineForTournament(tournament),
-      })
-
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
-
-      await matchNotificationBuilder.notifyScoreProposal(
-        id,
-        contestedBy,
-        input.proposedScoreA!,
-        input.proposedScoreB!,
-      )
-    } else {
-      await matchRepository.update(id, { status: 'disputed' })
-
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
-    }
+    await this.applyDisputeOutcome(id, match.tournamentId, contestedBy, proposal)
 
     return await matchRepository.getById(id)
   }
@@ -738,7 +707,7 @@ export class MatchService {
     }
 
     // dispute
-    const hasScoreProposal = input.proposedScoreA !== undefined && input.proposedScoreB !== undefined
+    const proposal = this.proposedConfirmationFields(input)
 
     await matchConfirmationRepository.upsert({
       matchId: id,
@@ -747,11 +716,11 @@ export class MatchService {
       isContested: true,
       contestationReason: input.reason,
       contestationProof: input.proof,
-      proposedScoreA: hasScoreProposal ? input.proposedScoreA : null,
-      proposedScoreB: hasScoreProposal ? input.proposedScoreB : null,
-      proposedWinner: hasScoreProposal ? (input.proposedWinnerPosition?.toString() ?? null) : null,
-      proposedOutcomeTypeId: hasScoreProposal ? (input.proposedOutcomeTypeId ?? null) : null,
-      proposedOutcomeReasonId: hasScoreProposal ? (input.proposedOutcomeReasonId ?? null) : null,
+      proposedScoreA: proposal.proposedScoreA,
+      proposedScoreB: proposal.proposedScoreB,
+      proposedWinner: proposal.proposedWinner,
+      proposedOutcomeTypeId: proposal.proposedOutcomeTypeId,
+      proposedOutcomeReasonId: proposal.proposedOutcomeReasonId,
       sidePosition,
       isPostFinalization: false,
     })
@@ -761,33 +730,7 @@ export class MatchService {
       await userRepository.resetTrustScore(originalReporter)
     }
 
-    if (hasScoreProposal) {
-      await notificationService.deleteActionsByMatchIdForUser(id, respondedBy)
-      await matchConfirmationRepository.resetConfirmationsExcept(id, respondedBy)
-
-      const tournament = await matchRepository.getTournament(match.tournamentId)
-      await matchRepository.update(id, {
-        status: 'pending_confirmation',
-        confirmationDeadline: this.getDeadlineForTournament(tournament),
-      })
-
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
-
-      await matchNotificationBuilder.notifyScoreProposal(
-        id,
-        respondedBy,
-        input.proposedScoreA!,
-        input.proposedScoreB!,
-      )
-    } else {
-      await matchRepository.update(id, { status: 'disputed' })
-
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
-    }
+    await this.applyDisputeOutcome(id, match.tournamentId, respondedBy, proposal)
 
     return await matchRepository.getById(id)
   }
@@ -810,20 +753,7 @@ export class MatchService {
 
       await this.validateMatchInputForValidation(input, tournament, errors)
       await this.validateTournamentRulesForValidation(input, tournament, errors)
-      if (input.playedAt) {
-        const playerIds = input.allPlayerIds?.length
-          ? input.allPlayerIds
-          : await this.resolvePlayerIds(input, tournament)
-        const conflict = await matchRepository.findPlayerConflictAtTime(
-          playerIds,
-          new Date(input.playedAt),
-          input.tournamentId,
-          input.matchId,
-        )
-        if (conflict) {
-          errors.push(`${conflict.playerName} a déjà un match à cette date et heure`)
-        }
-      }
+      await this.collectPlayedAtConflict(input, tournament, errors)
       await this.checkSimilarMatch(input, warnings, input.matchId)
 
       return {
@@ -847,6 +777,27 @@ export class MatchService {
 
   private async getTournamentForValidation(input: CreateMatchInput) {
     return await matchRepository.getTournament(input.tournamentId)
+  }
+
+  private async collectPlayedAtConflict(
+    input: CreateMatchInput & { matchId?: string; allPlayerIds?: string[] },
+    tournament: NonNullable<TournamentFromRepository>,
+    errors: string[],
+  ): Promise<void> {
+    if (!input.playedAt) return
+
+    const playerIds = input.allPlayerIds?.length
+      ? input.allPlayerIds
+      : await this.resolvePlayerIds(input, tournament)
+    const conflict = await matchRepository.findPlayerConflictAtTime(
+      playerIds,
+      new Date(input.playedAt),
+      input.tournamentId,
+      input.matchId,
+    )
+    if (conflict) {
+      errors.push(`${conflict.playerName} a déjà un match à cette date et heure`)
+    }
   }
 
   private isTournamentOpenForMatches(tournament: TournamentFromRepository): boolean {
@@ -997,9 +948,7 @@ export class MatchService {
     await matchRepository.update(id, { status: 'cancelled' })
     await notificationService.deleteActionsByMatchId(id)
     if (wasUnfinalized) {
-      this.recomputeProvisionalIfRanked(match.tournamentId).catch((err) =>
-        logger.error({ err }, '[Ranked] background cache update failed'),
-      )
+      this.scheduleProvisionalRecompute(match.tournamentId)
     }
 
     return await matchRepository.getById(id)
@@ -1144,8 +1093,8 @@ export class MatchService {
     }
 
     if (activeProposal.proposedWinner !== null && activeProposal.proposedWinner !== undefined) {
-      const parsed = parseInt(activeProposal.proposedWinner)
-      updateData.winnerPosition = isNaN(parsed) ? null : parsed
+      const parsed = Number.parseInt(activeProposal.proposedWinner)
+      updateData.winnerPosition = Number.isNaN(parsed) ? null : parsed
     }
     if (
       activeProposal.proposedOutcomeTypeId !== null &&
@@ -1194,6 +1143,67 @@ export class MatchService {
       rankedSeasonService
         .computeAndCacheProvisional(tournamentId)
         .catch((err) => logger.error({ err }, '[Ranked] background cache update failed'))
+    }
+  }
+
+  private scheduleProvisionalRecompute(tournamentId: string): void {
+    this.recomputeProvisionalIfRanked(tournamentId).catch((err) =>
+      logger.error({ err }, '[Ranked] background cache update failed'),
+    )
+  }
+
+  private proposedConfirmationFields(input: {
+    proposedScoreA?: number | null
+    proposedScoreB?: number | null
+    proposedWinnerPosition?: number | null
+    proposedOutcomeTypeId?: string | null
+    proposedOutcomeReasonId?: string | null
+  }): {
+    hasScoreProposal: boolean
+    proposedScoreA: number | null
+    proposedScoreB: number | null
+    proposedWinner: string | null
+    proposedOutcomeTypeId: string | null
+    proposedOutcomeReasonId: string | null
+  } {
+    const hasScoreProposal =
+      input.proposedScoreA !== undefined && input.proposedScoreB !== undefined
+    return {
+      hasScoreProposal,
+      proposedScoreA: hasScoreProposal ? input.proposedScoreA ?? null : null,
+      proposedScoreB: hasScoreProposal ? input.proposedScoreB ?? null : null,
+      proposedWinner: hasScoreProposal ? input.proposedWinnerPosition?.toString() ?? null : null,
+      proposedOutcomeTypeId: hasScoreProposal ? input.proposedOutcomeTypeId ?? null : null,
+      proposedOutcomeReasonId: hasScoreProposal ? input.proposedOutcomeReasonId ?? null : null,
+    }
+  }
+
+  private async applyDisputeOutcome(
+    id: string,
+    tournamentId: string,
+    disputerId: string,
+    proposal: { hasScoreProposal: boolean; proposedScoreA: number | null; proposedScoreB: number | null },
+  ): Promise<void> {
+    if (proposal.hasScoreProposal) {
+      await notificationService.deleteActionsByMatchIdForUser(id, disputerId)
+      await matchConfirmationRepository.resetConfirmationsExcept(id, disputerId)
+
+      const tournament = await matchRepository.getTournament(tournamentId)
+      await matchRepository.update(id, {
+        status: 'pending_confirmation',
+        confirmationDeadline: this.getDeadlineForTournament(tournament),
+      })
+
+      this.scheduleProvisionalRecompute(tournamentId)
+      await matchNotificationBuilder.notifyScoreProposal(
+        id,
+        disputerId,
+        proposal.proposedScoreA!,
+        proposal.proposedScoreB!,
+      )
+    } else {
+      await matchRepository.update(id, { status: 'disputed' })
+      this.scheduleProvisionalRecompute(tournamentId)
     }
   }
 

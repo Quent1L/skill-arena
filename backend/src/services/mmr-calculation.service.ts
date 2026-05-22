@@ -20,6 +20,23 @@ interface CheckpointState {
   maxWinStreak: number;
 }
 
+type MatchResult = 1 | 0 | 0.5;
+type ResolvableSide = {
+  score: number | null;
+  entry?: { players: { playerId: string }[] } | null;
+};
+
+function resultFromWin(playerWon: boolean | null): MatchResult {
+  if (playerWon === null) return 0.5;
+  return playerWon ? 1 : 0;
+}
+
+function outcomeFromWin(playerWon: boolean | null): MmrHistoryOutcome {
+  if (playerWon === true) return "win";
+  if (playerWon === false) return "loss";
+  return "draw";
+}
+
 export class MmrCalculationService {
   calculateExpectedScore(playerMmr: number, opponentMmr: number): number {
     return 1 / (1 + Math.pow(10, (opponentMmr - playerMmr) / 400));
@@ -56,7 +73,7 @@ export class MmrCalculationService {
   calculateMmrDelta(
     playerMmr: number,
     oppAvgMmr: number,
-    result: 1 | 0 | 0.5,
+    result: MatchResult,
     kEffective: number,
   ): number {
     const expected = this.calculateExpectedScore(playerMmr, oppAvgMmr);
@@ -127,21 +144,15 @@ export class MmrCalculationService {
       sidesMap.get(match.id) ?? { opponentPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
 
     const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
+    const opponentAvgMmr = this.averageOpponentMmr(
+      opponentPlayerIds,
+      match.id,
+      historiesMap,
+      currentMmrMap,
+      config.baseMmr,
+    );
 
-    const opponentAvgMmr =
-      opponentPlayerIds.length > 0
-        ? Math.round(
-            opponentPlayerIds.reduce((sum, oppId) => {
-              const mmr =
-                historiesMap.get(`${oppId}:${match.id}`) ??
-                currentMmrMap.get(oppId) ??
-                config.baseMmr;
-              return sum + mmr;
-            }, 0) / opponentPlayerIds.length,
-          )
-        : config.baseMmr;
-
-    const result: 1 | 0 | 0.5 = playerWon === null ? 0.5 : playerWon ? 1 : 0;
+    const result = resultFromWin(playerWon);
     const kEffective = this.calculateEffectiveK(
       config.kFactor,
       scoreForPlayer,
@@ -154,17 +165,6 @@ export class MmrCalculationService {
     const delta = this.calculateMmrDelta(state.mmr, opponentAvgMmr, result, kEffective);
     const mmrBefore = state.mmr;
     const mmrAfter = Math.max(1, state.mmr + delta);
-    const outcome: MmrHistoryOutcome = playerWon === true ? 'win' : playerWon === false ? 'loss' : 'draw';
-
-    const newState: CheckpointState = { ...state, mmr: mmrAfter };
-    if (playerWon === true) {
-      newState.wins = state.wins + 1;
-      newState.winStreak = state.winStreak + 1;
-      newState.maxWinStreak = Math.max(state.maxWinStreak, newState.winStreak);
-    } else if (playerWon === false) {
-      newState.losses = state.losses + 1;
-      newState.winStreak = 0;
-    }
 
     await playerMmrRepository.createMmrHistory({
       seasonId,
@@ -176,9 +176,42 @@ export class MmrCalculationService {
       kEffective,
       opponentAvgMmr,
       isPlacement,
-      outcome,
+      outcome: outcomeFromWin(playerWon),
     });
 
+    return this.advanceState(state, playerWon, mmrAfter);
+  }
+
+  private averageOpponentMmr(
+    opponentPlayerIds: string[],
+    matchId: string,
+    historiesMap: Map<string, number>,
+    currentMmrMap: Map<string, number>,
+    baseMmr: number,
+  ): number {
+    if (opponentPlayerIds.length === 0) return baseMmr;
+    const total = opponentPlayerIds.reduce((sum, oppId) => {
+      const mmr =
+        historiesMap.get(`${oppId}:${matchId}`) ?? currentMmrMap.get(oppId) ?? baseMmr;
+      return sum + mmr;
+    }, 0);
+    return Math.round(total / opponentPlayerIds.length);
+  }
+
+  private advanceState(
+    state: CheckpointState,
+    playerWon: boolean | null,
+    mmrAfter: number,
+  ): CheckpointState {
+    const newState: CheckpointState = { ...state, mmr: mmrAfter };
+    if (playerWon === true) {
+      newState.wins = state.wins + 1;
+      newState.winStreak = state.winStreak + 1;
+      newState.maxWinStreak = Math.max(state.maxWinStreak, newState.winStreak);
+    } else if (playerWon === false) {
+      newState.losses = state.losses + 1;
+      newState.winStreak = 0;
+    }
     return newState;
   }
 
@@ -214,24 +247,13 @@ export class MmrCalculationService {
     const directPlayerIds = await this.getMatchPlayerIds(matchId);
     const processedIds = new Set<string>(directPlayerIds);
 
-    const snapshots = new Map<string, number>();
-    for (const playerId of directPlayerIds) {
-      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
-      snapshots.set(playerId, record?.currentMmr ?? 0);
-    }
-
-    for (const playerId of directPlayerIds) {
-      await this.recalculatePlayerMmr(seasonId, playerId, cancelledMatchPlayedAt);
-    }
-
-    let changedIds: string[] = [];
-    for (const playerId of directPlayerIds) {
-      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
-      const mmrAfter = record?.currentMmr ?? 0;
-      const mmrBefore = snapshots.get(playerId) ?? 0;
-      result.set(playerId, { mmrBefore, mmrAfter, reason: "match_cancelled" });
-      if (mmrAfter !== mmrBefore) changedIds.push(playerId);
-    }
+    let changedIds = await this.recalcWaveAndCollectChanges(
+      seasonId,
+      directPlayerIds,
+      cancelledMatchPlayedAt,
+      "match_cancelled",
+      result,
+    );
 
     while (changedIds.length > 0) {
       const nextWave = await this.findAffectedPlayers(seasonId, changedIds, cancelledMatchPlayedAt, [...processedIds]);
@@ -239,27 +261,44 @@ export class MmrCalculationService {
 
       for (const playerId of nextWave) processedIds.add(playerId);
 
-      const waveSnapshots = new Map<string, number>();
-      for (const playerId of nextWave) {
-        const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
-        waveSnapshots.set(playerId, record?.currentMmr ?? 0);
-      }
-
-      for (const playerId of nextWave) {
-        await this.recalculatePlayerMmr(seasonId, playerId, cancelledMatchPlayedAt);
-      }
-
-      changedIds = [];
-      for (const playerId of nextWave) {
-        const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
-        const mmrAfter = record?.currentMmr ?? 0;
-        const mmrBefore = waveSnapshots.get(playerId) ?? 0;
-        result.set(playerId, { mmrBefore, mmrAfter, reason: "cascade" });
-        if (mmrAfter !== mmrBefore) changedIds.push(playerId);
-      }
+      changedIds = await this.recalcWaveAndCollectChanges(
+        seasonId,
+        nextWave,
+        cancelledMatchPlayedAt,
+        "cascade",
+        result,
+      );
     }
 
     return result;
+  }
+
+  private async recalcWaveAndCollectChanges(
+    seasonId: string,
+    playerIds: string[],
+    playedAt: Date,
+    reason: MmrAnimationEventReason,
+    result: Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>,
+  ): Promise<string[]> {
+    const snapshots = new Map<string, number>();
+    for (const playerId of playerIds) {
+      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+      snapshots.set(playerId, record?.currentMmr ?? 0);
+    }
+
+    for (const playerId of playerIds) {
+      await this.recalculatePlayerMmr(seasonId, playerId, playedAt);
+    }
+
+    const changedIds: string[] = [];
+    for (const playerId of playerIds) {
+      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+      const mmrAfter = record?.currentMmr ?? 0;
+      const mmrBefore = snapshots.get(playerId) ?? 0;
+      result.set(playerId, { mmrBefore, mmrAfter, reason });
+      if (mmrAfter !== mmrBefore) changedIds.push(playerId);
+    }
+    return changedIds;
   }
 
   private async findAffectedPlayers(
@@ -379,28 +418,35 @@ export class MmrCalculationService {
         continue;
       }
 
-      const sideA = sides[0];
-      const sideB = sides[1];
-      const playerIdsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
-      const playerIdsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
-      const playerInSideA = playerIdsA.includes(playerId);
-      const mySide = playerInSideA ? sideA : sideB;
-      const oppSide = playerInSideA ? sideB : sideA;
-
       const winnerSide = winnerSideMap.get(matchId) ?? null;
-      let playerWon: boolean | null = null;
-      if (winnerSide === "A") playerWon = playerInSideA;
-      else if (winnerSide === "B") playerWon = !playerInSideA;
-
-      result.set(matchId, {
-        opponentPlayerIds: playerInSideA ? playerIdsB : playerIdsA,
-        scoreForPlayer: mySide.score ?? 0,
-        scoreForOpponent: oppSide.score ?? 0,
-        playerWon,
-      });
+      result.set(matchId, this.resolveSideData(sides[0], sides[1], playerId, winnerSide));
     }
 
     return result;
+  }
+
+  private resolveSideData(
+    sideA: ResolvableSide,
+    sideB: ResolvableSide,
+    playerId: string,
+    winnerSide: string | null,
+  ): MatchSideData {
+    const playerIdsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
+    const playerIdsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
+    const playerInSideA = playerIdsA.includes(playerId);
+    const mySide = playerInSideA ? sideA : sideB;
+    const oppSide = playerInSideA ? sideB : sideA;
+
+    let playerWon: boolean | null = null;
+    if (winnerSide === "A") playerWon = playerInSideA;
+    else if (winnerSide === "B") playerWon = !playerInSideA;
+
+    return {
+      opponentPlayerIds: playerInSideA ? playerIdsB : playerIdsA,
+      scoreForPlayer: mySide.score ?? 0,
+      scoreForOpponent: oppSide.score ?? 0,
+      playerWon,
+    };
   }
 
   private async extractMatchSidesForPlayer(
@@ -436,31 +482,7 @@ export class MmrCalculationService {
       return { opponentPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
     }
 
-    const sideA = sides[0];
-    const sideB = sides[1];
-
-    const playerIdsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
-    const playerIdsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
-
-    const playerInSideA = playerIdsA.includes(playerId);
-    const mySide = playerInSideA ? sideA : sideB;
-    const oppSide = playerInSideA ? sideB : sideA;
-    const opponentPlayerIds = playerInSideA ? playerIdsB : playerIdsA;
-
-    const winnerSide = match.winnerSide;
-    let playerWon: boolean | null = null;
-    if (winnerSide === "A") {
-      playerWon = playerInSideA;
-    } else if (winnerSide === "B") {
-      playerWon = !playerInSideA;
-    }
-
-    return {
-      opponentPlayerIds,
-      scoreForPlayer: mySide.score ?? 0,
-      scoreForOpponent: oppSide.score ?? 0,
-      playerWon,
-    };
+    return this.resolveSideData(sides[0], sides[1], playerId, match.winnerSide);
   }
 
   private async getMatchPlayerIds(matchId: string): Promise<string[]> {

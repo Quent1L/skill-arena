@@ -21,6 +21,54 @@ import {
   BadRequestError,
 } from "../types/errors";
 
+type ProvisionalOutcome = "win" | "loss" | "draw";
+type MatchResult = 1 | 0 | 0.5;
+type SeasonPlayers = Awaited<ReturnType<typeof playerMmrRepository.getBySeasonOrdered>>;
+
+interface ProvisionalReplayCtx {
+  baseMmr: number;
+  kFactor: number;
+  provisionalMmr: Map<string, number>;
+  provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
+}
+
+function loadUnfinalizedMatches(seasonId: string) {
+  return db.query.matches.findMany({
+    where: and(
+      eq(matches.tournamentId, seasonId),
+      inArray(matches.status, ["reported", "pending_confirmation", "disputed"]),
+    ),
+    with: {
+      outcomeType: { columns: { scoreCountsForMmr: true, points: true } },
+      sides: {
+        orderBy: (s, { asc }) => [asc(s.position)],
+        columns: { position: true, score: true },
+        with: {
+          entry: {
+            columns: { id: true },
+            with: { players: { columns: { playerId: true } } },
+          },
+        },
+      },
+    },
+    orderBy: (m, { asc }) => [asc(m.playedAt)],
+  });
+}
+
+type UnfinalizedMatch = Awaited<ReturnType<typeof loadUnfinalizedMatches>>[number];
+
+function sideResult(winnerSide: string | null, side: "A" | "B"): MatchResult {
+  if (winnerSide === "A") return side === "A" ? 1 : 0;
+  if (winnerSide === "B") return side === "B" ? 1 : 0;
+  return 0.5;
+}
+
+function resultToOutcome(result: MatchResult): ProvisionalOutcome {
+  if (result === 1) return "win";
+  if (result === 0) return "loss";
+  return "draw";
+}
+
 export class RankedSeasonService {
   async createSeason(input: CreateRankedSeasonInput, createdBy: string) {
     await this.assertCanManage(createdBy);
@@ -121,7 +169,17 @@ export class RankedSeasonService {
       throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN);
     }
 
-    if (
+    await this.applyTournamentUpdate(id, input);
+    await this.applyConfigUpdate(id, input);
+
+    return await rankedSeasonRepository.getSeasonWithConfig(id);
+  }
+
+  private async applyTournamentUpdate(
+    id: string,
+    input: UpdateRankedSeasonInput,
+  ): Promise<void> {
+    const hasTournamentUpdate =
       input.name ||
       input.description ||
       input.startDate ||
@@ -132,25 +190,31 @@ export class RankedSeasonService {
       input.maxScore !== undefined ||
       input.allowDraw !== undefined ||
       input.validationMode !== undefined ||
-      input.validationTimerHours !== undefined
-    ) {
-      await tournamentRepository.update(id, {
-        name: input.name,
-        description: input.description,
-        startDate: input.startDate,
-        endDate: input.endDate,
-        rulesId: input.rulesId,
-        ...(input.scoreEnabled !== undefined && {
-          scoreEnabled: input.scoreEnabled,
-        }),
-        ...(input.minScore !== undefined && { minScore: input.minScore }),
-        ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
-        ...(input.allowDraw !== undefined && { allowDraw: input.allowDraw }),
-        ...(input.validationMode !== undefined && { validationMode: input.validationMode }),
-        ...(input.validationTimerHours !== undefined && { validationTimerHours: input.validationTimerHours }),
-      });
-    }
+      input.validationTimerHours !== undefined;
 
+    if (!hasTournamentUpdate) return;
+
+    await tournamentRepository.update(id, {
+      name: input.name,
+      description: input.description,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      rulesId: input.rulesId,
+      ...(input.scoreEnabled !== undefined && { scoreEnabled: input.scoreEnabled }),
+      ...(input.minScore !== undefined && { minScore: input.minScore }),
+      ...(input.maxScore !== undefined && { maxScore: input.maxScore }),
+      ...(input.allowDraw !== undefined && { allowDraw: input.allowDraw }),
+      ...(input.validationMode !== undefined && { validationMode: input.validationMode }),
+      ...(input.validationTimerHours !== undefined && {
+        validationTimerHours: input.validationTimerHours,
+      }),
+    });
+  }
+
+  private async applyConfigUpdate(
+    id: string,
+    input: UpdateRankedSeasonInput,
+  ): Promise<void> {
     const configUpdate: Record<string, unknown> = {};
     if (input.baseMmr !== undefined) configUpdate.baseMmr = input.baseMmr;
     if (input.kFactor !== undefined) configUpdate.kFactor = input.kFactor;
@@ -166,16 +230,10 @@ export class RankedSeasonService {
     if (Object.keys(configUpdate).length > 0) {
       await rankedSeasonRepository.updateConfig(id, configUpdate);
     }
-
-    return await rankedSeasonRepository.getSeasonWithConfig(id);
   }
 
   async getSeasonDetails(id: string) {
-    const season = await rankedSeasonRepository.getSeasonWithConfig(id);
-    if (!season) {
-      throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
-    }
-    return season;
+    return this.getSeasonOrThrow(id);
   }
 
   async listSeasons(filters?: { disciplineId?: string; status?: TournamentStatus }) {
@@ -254,114 +312,165 @@ export class RankedSeasonService {
       rankedSeasonRepository.getRankTiers(seasonId),
     ]);
 
-    const baseMmr = config.baseMmr;
-    const kFactor = config.kFactor;
+    const ctx: ProvisionalReplayCtx = {
+      baseMmr: config.baseMmr,
+      kFactor: config.kFactor,
+      provisionalMmr: new Map(players.map((p) => [p.playerId, p.currentMmr])),
+      provisionalResults: new Map(
+        players.map((p) => [p.playerId, (p as ClientPlayerMmr).recentResults ?? []]),
+      ),
+    };
 
-    const provisionalMmr = new Map<string, number>(players.map((p) => [p.playerId, p.currentMmr]));
-    const provisionalResults = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>(
-      players.map((p) => [p.playerId, (p as ClientPlayerMmr).recentResults ?? []])
+    const unfinalizedMatches = await loadUnfinalizedMatches(seasonId);
+    for (const match of unfinalizedMatches) {
+      this.replayMatch(match, ctx);
+    }
+
+    const provisionalOnlyPlayers = await this.collectProvisionalOnlyPlayers(
+      unfinalizedMatches,
+      players,
+      seasonId,
+      ctx,
+    );
+    const provisionalPlayers = this.buildProvisionalPlayers(
+      players,
+      provisionalOnlyPlayers,
+      ctx,
     );
 
-    const unfinalizedMatches = await db.query.matches.findMany({
-      where: and(
-        eq(matches.tournamentId, seasonId),
-        inArray(matches.status, ['reported', 'pending_confirmation', 'disputed']),
-      ),
-      with: {
-        outcomeType: { columns: { scoreCountsForMmr: true, points: true } },
-        sides: {
-          orderBy: (s, { asc }) => [asc(s.position)],
-          columns: { position: true, score: true },
-          with: {
-            entry: {
-              columns: { id: true },
-              with: { players: { columns: { playerId: true } } },
-            },
-          },
-        },
-      },
-      orderBy: (m, { asc }) => [asc(m.playedAt)],
+    await rankedCacheRepository.upsertProvisional(seasonId, {
+      players: provisionalPlayers,
+      tiers,
     });
+  }
 
-    for (const match of unfinalizedMatches) {
-      const sideA = match.sides[0];
-      const sideB = match.sides[1];
-      if (!sideA || !sideB) continue;
+  private replayMatch(match: UnfinalizedMatch, ctx: ProvisionalReplayCtx): void {
+    const sideA = match.sides[0];
+    const sideB = match.sides[1];
+    if (!sideA || !sideB) return;
 
-      const idsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
-      const idsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
-      if (!idsA.length || !idsB.length) continue;
+    const idsA = sideA.entry?.players.map((p) => p.playerId) ?? [];
+    const idsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
+    if (!idsA.length || !idsB.length) return;
 
-      const avgMmrA = idsA.reduce((s, id) => s + (provisionalMmr.get(id) ?? baseMmr), 0) / idsA.length;
-      const avgMmrB = idsB.reduce((s, id) => s + (provisionalMmr.get(id) ?? baseMmr), 0) / idsB.length;
-      const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
-      const outcomePoints = match.outcomeType?.points ?? null;
-      const scoreA = sideA.score ?? 0;
-      const scoreB = sideB.score ?? 0;
+    const scoreA = sideA.score ?? 0;
+    const scoreB = sideB.score ?? 0;
+    const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
+    const outcomePoints = match.outcomeType?.points ?? null;
 
-      for (const playerId of idsA) {
-        const mmr = provisionalMmr.get(playerId) ?? baseMmr;
-        const result: 1 | 0 | 0.5 = match.winnerSide === 'A' ? 1 : match.winnerSide === 'B' ? 0 : 0.5;
-        const kEff = mmrCalculationService.calculateEffectiveK(kFactor, scoreA, scoreB, false, scoreCountsForMmr, outcomePoints);
-        const delta = mmrCalculationService.calculateMmrDelta(mmr, avgMmrB, result, kEff);
-        provisionalMmr.set(playerId, Math.max(1, mmr + delta));
-        const outcome: 'win' | 'loss' | 'draw' = result === 1 ? 'win' : result === 0 ? 'loss' : 'draw';
-        const prev = provisionalResults.get(playerId) ?? [];
-        provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
-      }
+    this.applyProvisionalResults({
+      playerIds: idsA,
+      myScore: scoreA,
+      oppScore: scoreB,
+      oppAvgMmr: this.averageMmr(idsB, ctx),
+      result: sideResult(match.winnerSide, "A"),
+      scoreCountsForMmr,
+      outcomePoints,
+      ctx,
+    });
+    this.applyProvisionalResults({
+      playerIds: idsB,
+      myScore: scoreB,
+      oppScore: scoreA,
+      oppAvgMmr: this.averageMmr(idsA, ctx),
+      result: sideResult(match.winnerSide, "B"),
+      scoreCountsForMmr,
+      outcomePoints,
+      ctx,
+    });
+  }
 
-      for (const playerId of idsB) {
-        const mmr = provisionalMmr.get(playerId) ?? baseMmr;
-        const result: 1 | 0 | 0.5 = match.winnerSide === 'B' ? 1 : match.winnerSide === 'A' ? 0 : 0.5;
-        const kEff = mmrCalculationService.calculateEffectiveK(kFactor, scoreB, scoreA, false, scoreCountsForMmr, outcomePoints);
-        const delta = mmrCalculationService.calculateMmrDelta(mmr, avgMmrA, result, kEff);
-        provisionalMmr.set(playerId, Math.max(1, mmr + delta));
-        const outcome: 'win' | 'loss' | 'draw' = result === 1 ? 'win' : result === 0 ? 'loss' : 'draw';
-        const prev = provisionalResults.get(playerId) ?? [];
-        provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
-      }
+  private averageMmr(ids: string[], ctx: ProvisionalReplayCtx): number {
+    const total = ids.reduce((s, id) => s + (ctx.provisionalMmr.get(id) ?? ctx.baseMmr), 0);
+    return total / ids.length;
+  }
+
+  private applyProvisionalResults(args: {
+    playerIds: string[];
+    myScore: number;
+    oppScore: number;
+    oppAvgMmr: number;
+    result: MatchResult;
+    scoreCountsForMmr: boolean;
+    outcomePoints: number | null;
+    ctx: ProvisionalReplayCtx;
+  }): void {
+    const { playerIds, myScore, oppScore, oppAvgMmr, result, scoreCountsForMmr, outcomePoints, ctx } = args;
+    const outcome = resultToOutcome(result);
+    const kEff = mmrCalculationService.calculateEffectiveK(
+      ctx.kFactor,
+      myScore,
+      oppScore,
+      false,
+      scoreCountsForMmr,
+      outcomePoints,
+    );
+
+    for (const playerId of playerIds) {
+      const mmr = ctx.provisionalMmr.get(playerId) ?? ctx.baseMmr;
+      const delta = mmrCalculationService.calculateMmrDelta(mmr, oppAvgMmr, result, kEff);
+      ctx.provisionalMmr.set(playerId, Math.max(1, mmr + delta));
+      const prev = ctx.provisionalResults.get(playerId) ?? [];
+      ctx.provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
     }
+  }
 
-    // Include players who only appear in unfinalized matches (no player_mmr entry yet)
+  private findProvisionalOnlyPlayerIds(
+    unfinalizedMatches: UnfinalizedMatch[],
+    players: SeasonPlayers,
+  ): string[] {
     const allUnfinalizedPlayerIds = new Set<string>();
     for (const match of unfinalizedMatches) {
-      match.sides[0]?.entry?.players.forEach(p => allUnfinalizedPlayerIds.add(p.playerId));
-      match.sides[1]?.entry?.players.forEach(p => allUnfinalizedPlayerIds.add(p.playerId));
+      for (const p of match.sides[0]?.entry?.players ?? []) allUnfinalizedPlayerIds.add(p.playerId);
+      for (const p of match.sides[1]?.entry?.players ?? []) allUnfinalizedPlayerIds.add(p.playerId);
     }
-    const officialPlayerIds = new Set(players.map(p => p.playerId));
-    const newPlayerIds = [...allUnfinalizedPlayerIds].filter(id => !officialPlayerIds.has(id));
+    const officialPlayerIds = new Set(players.map((p) => p.playerId));
+    return [...allUnfinalizedPlayerIds].filter((id) => !officialPlayerIds.has(id));
+  }
 
-    let provisionalOnlyPlayers: ClientPlayerMmr[] = [];
-    if (newPlayerIds.length > 0) {
-      const users = await db.query.appUsers.findMany({
-        where: inArray(appUsers.id, newPlayerIds),
-        columns: { id: true, displayName: true, shortName: true },
-      });
-      provisionalOnlyPlayers = users.map(user => ({
-        id: `provisional-${user.id}`,
-        seasonId,
-        playerId: user.id,
-        currentMmr: provisionalMmr.get(user.id) ?? baseMmr,
-        matchesPlayed: 0,
-        wins: 0,
-        losses: 0,
-        winStreak: 0,
-        maxWinStreak: 0,
-        player: { id: user.id, displayName: user.displayName, shortName: user.shortName },
-        recentResults: provisionalResults.get(user.id) ?? [],
-      }));
-    }
+  // Players who only appear in unfinalized matches have no player_mmr row yet
+  private async collectProvisionalOnlyPlayers(
+    unfinalizedMatches: UnfinalizedMatch[],
+    players: SeasonPlayers,
+    seasonId: string,
+    ctx: ProvisionalReplayCtx,
+  ): Promise<ClientPlayerMmr[]> {
+    const newPlayerIds = this.findProvisionalOnlyPlayerIds(unfinalizedMatches, players);
+    if (newPlayerIds.length === 0) return [];
 
-    const provisionalPlayers: ClientPlayerMmr[] = [
+    const users = await db.query.appUsers.findMany({
+      where: inArray(appUsers.id, newPlayerIds),
+      columns: { id: true, displayName: true, shortName: true },
+    });
+
+    return users.map((user) => ({
+      id: `provisional-${user.id}`,
+      seasonId,
+      playerId: user.id,
+      currentMmr: ctx.provisionalMmr.get(user.id) ?? ctx.baseMmr,
+      matchesPlayed: 0,
+      wins: 0,
+      losses: 0,
+      winStreak: 0,
+      maxWinStreak: 0,
+      player: { id: user.id, displayName: user.displayName, shortName: user.shortName },
+      recentResults: ctx.provisionalResults.get(user.id) ?? [],
+    }));
+  }
+
+  private buildProvisionalPlayers(
+    players: SeasonPlayers,
+    provisionalOnlyPlayers: ClientPlayerMmr[],
+    ctx: ProvisionalReplayCtx,
+  ): ClientPlayerMmr[] {
+    return [
       ...players.map((p) => ({
         ...(p as ClientPlayerMmr),
-        currentMmr: provisionalMmr.get(p.playerId) ?? p.currentMmr,
-        recentResults: provisionalResults.get(p.playerId) ?? [],
+        currentMmr: ctx.provisionalMmr.get(p.playerId) ?? p.currentMmr,
+        recentResults: ctx.provisionalResults.get(p.playerId) ?? [],
       })),
       ...provisionalOnlyPlayers,
     ].sort((a, b) => b.currentMmr - a.currentMmr);
-
-    await rankedCacheRepository.upsertProvisional(seasonId, { players: provisionalPlayers, tiers });
   }
 
   private async getSeasonOrThrow(id: string) {

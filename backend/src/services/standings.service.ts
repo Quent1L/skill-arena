@@ -9,6 +9,41 @@ import {
   type VictoryQualityDetail,
 } from "@skill-arena/shared";
 
+type FlexMatchRow = Awaited<
+  ReturnType<typeof standingsRepository.getPlayerPointsForStandings>
+>[number];
+type StaticMatchRow = Awaited<
+  ReturnType<typeof standingsRepository.getMatchesWithSides>
+>[number];
+
+type WinnerSide = "A" | "B" | null;
+
+interface OutcomeInfo {
+  key: string;
+  name: string;
+  points: number;
+}
+
+interface PointsConfig {
+  pointPerVictory: number | null;
+  pointPerDraw: number | null;
+  pointPerLoss: number | null;
+}
+
+type RebuildMatch = { id: string; winnerSide: string | null; playedAt: Date | string };
+type RebuildSide = {
+  matchId: string;
+  entryId: string;
+  pointsAwarded: number | null;
+  entry?: { players: Array<{ playerId: string }> } | null;
+};
+type PlayerPointRow = {
+  matchId: string;
+  playerId: string;
+  pointsAwarded: number;
+  countsForRanking: boolean;
+};
+
 export class StandingsService {
   async getOfficialStandings(tournamentId: string): Promise<StandingsResult> {
     const cached = await standingsRepository.getComputedData(tournamentId, "standings:official");
@@ -62,41 +97,7 @@ export class StandingsService {
 
     // Pass 1: base stats (only countsForRanking matches)
     for (const match of matchRows) {
-      const { winnerSide, sides } = match;
-
-      const positionScore = new Map<number, number | null>();
-      const playerPosition = new Map<string, number>();
-      for (const side of sides) {
-        positionScore.set(side.position, side.score);
-        for (const ep of side.entry.players) {
-          playerPosition.set(ep.playerId, side.position);
-        }
-      }
-
-      for (const pp of match.playerPoints) {
-        const entry = standingsMap.get(pp.playerId);
-        if (!entry) continue;
-        if (!pp.countsForRanking) continue;
-
-        entry.matchesPlayed += 1;
-        entry.points += pp.pointsAwarded;
-
-        const pos = playerPosition.get(pp.playerId);
-        const isDraw = winnerSide === null;
-        const isWin = pos === 1 ? winnerSide === "A" : winnerSide === "B";
-
-        if (isDraw) entry.draws += 1;
-        else if (isWin) entry.wins += 1;
-        else entry.losses += 1;
-
-        if (scoreEnabled && pos !== undefined) {
-          const ownScore = positionScore.get(pos) ?? 0;
-          const opponentScore = positionScore.get(pos === 1 ? 2 : 1) ?? 0;
-          entry.scored += ownScore;
-          entry.conceded += opponentScore;
-          entry.scoreDiff = entry.scored - entry.conceded;
-        }
-      }
+      this.accumulateFlexBaseStats(match, standingsMap, scoreEnabled);
     }
 
     // Pass 2: tiebreaker fields
@@ -107,100 +108,155 @@ export class StandingsService {
     return { standings };
   }
 
+  private accumulateFlexBaseStats(
+    match: FlexMatchRow,
+    standingsMap: Map<string, StandingsEntry>,
+    scoreEnabled: boolean
+  ): void {
+    const { positionScore, playerPosition } = this.buildFlexPositionMaps(match.sides);
+
+    for (const pp of match.playerPoints) {
+      const entry = standingsMap.get(pp.playerId);
+      if (!entry || !pp.countsForRanking) continue;
+
+      this.applyFlexPlayerStats(entry, pp.pointsAwarded, {
+        winnerSide: match.winnerSide,
+        pos: playerPosition.get(pp.playerId),
+        positionScore,
+        scoreEnabled,
+      });
+    }
+  }
+
+  private buildFlexPositionMaps(sides: FlexMatchRow["sides"]): {
+    positionScore: Map<number, number | null>;
+    playerPosition: Map<string, number>;
+  } {
+    const positionScore = new Map<number, number | null>();
+    const playerPosition = new Map<string, number>();
+    for (const side of sides) {
+      positionScore.set(side.position, side.score);
+      for (const ep of side.entry.players) {
+        playerPosition.set(ep.playerId, side.position);
+      }
+    }
+    return { positionScore, playerPosition };
+  }
+
+  private applyFlexPlayerStats(
+    entry: StandingsEntry,
+    pointsAwarded: number,
+    ctx: {
+      winnerSide: string | null;
+      pos: number | undefined;
+      positionScore: Map<number, number | null>;
+      scoreEnabled: boolean;
+    }
+  ): void {
+    entry.matchesPlayed += 1;
+    entry.points += pointsAwarded;
+
+    const isDraw = ctx.winnerSide === null;
+    const isWin = ctx.pos === 1 ? ctx.winnerSide === "A" : ctx.winnerSide === "B";
+
+    if (isDraw) entry.draws += 1;
+    else if (isWin) entry.wins += 1;
+    else entry.losses += 1;
+
+    if (ctx.scoreEnabled && ctx.pos !== undefined) {
+      const ownScore = ctx.positionScore.get(ctx.pos) ?? 0;
+      const opponentScore = ctx.positionScore.get(ctx.pos === 1 ? 2 : 1) ?? 0;
+      entry.scored += ownScore;
+      entry.conceded += opponentScore;
+      entry.scoreDiff = entry.scored - entry.conceded;
+    }
+  }
+
   private computeFlexTiebreakers(
     standingsMap: Map<string, StandingsEntry>,
-    matchRows: Awaited<ReturnType<typeof standingsRepository.getPlayerPointsForStandings>>
+    matchRows: FlexMatchRow[]
   ): void {
-    for (const entry of standingsMap.values()) {
-      entry.winLossRatio = entry.wins / Math.max(1, entry.losses);
-      entry.winRate = entry.wins / Math.max(1, entry.matchesPlayed);
-    }
+    this.initRatioFields(standingsMap);
 
-    // outcomeTypeId → breakdown detail per player
     const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
-
     for (const match of matchRows) {
-      const { winnerSide, sides } = match;
-      const outcomePoints = match.outcomeType?.points ?? 3;
-      const outcomeTypeName = match.outcomeType?.name ?? "Défaut";
-      const outcomeKey = match.outcomeTypeId ?? "default";
-
-      // Build side → player ids map
-      const sideAPlayerIds: string[] = [];
-      const sideBPlayerIds: string[] = [];
-      for (const side of sides) {
-        const playerIds = side.entry.players.map((ep) => ep.playerId);
-        if (side.position === 1) sideAPlayerIds.push(...playerIds);
-        else sideBPlayerIds.push(...playerIds);
-      }
-
-      const applyQuality = (playerId: string, isWin: boolean, isLoss: boolean) => {
-        if (!breakdownMap.has(playerId)) breakdownMap.set(playerId, new Map());
-        const playerBreakdown = breakdownMap.get(playerId)!;
-        if (!playerBreakdown.has(outcomeKey)) {
-          playerBreakdown.set(outcomeKey, { outcomeTypeName, points: outcomePoints, wins: 0, losses: 0, contribution: 0 });
-        }
-        const detail = playerBreakdown.get(outcomeKey)!;
-        const entry = standingsMap.get(playerId);
-        if (!entry) return;
-        if (isWin) {
-          detail.wins++;
-          entry.victoryQuality += outcomePoints;
-        } else if (isLoss) {
-          detail.losses++;
-          entry.victoryQuality -= outcomePoints;
-        }
-        detail.contribution = (detail.wins - detail.losses) * detail.points;
-      };
-
-      // Determine player-level outcome
-      const processPlayer = (playerId: string, isWin: boolean, isDraw: boolean, opponentIds: string[]) => {
-        const entry = standingsMap.get(playerId);
-        if (!entry) return;
-
-        const pp = match.playerPoints.find((p) => p.playerId === playerId);
-        if (!pp?.countsForRanking) return;
-
-        applyQuality(playerId, isWin, !isDraw && !isWin);
-
-        // Buchholz: average opponents' points per match (normalizes 2v2, 3v3, etc.)
-        if (opponentIds.length > 0) {
-          let oppTotal = 0;
-          let counted = 0;
-          for (const oppId of opponentIds) {
-            const opp = standingsMap.get(oppId);
-            if (opp) { oppTotal += opp.points; counted++; }
-          }
-          if (counted > 0) entry.buchholzScore += oppTotal / counted;
-        }
-
-        // Head-to-head
-        for (const oppId of opponentIds) {
-          if (!entry.headToHead[oppId]) {
-            entry.headToHead[oppId] = { wins: 0, draws: 0, losses: 0 };
-          }
-          const h2h = entry.headToHead[oppId];
-          if (isDraw) h2h.draws += 1;
-          else if (isWin) h2h.wins += 1;
-          else h2h.losses += 1;
-        }
-      };
-
-      const isDraw = winnerSide === null;
-      for (const pid of sideAPlayerIds) {
-        const isWin = winnerSide === "A";
-        processPlayer(pid, isWin, isDraw, sideBPlayerIds);
-      }
-      for (const pid of sideBPlayerIds) {
-        const isWin = winnerSide === "B";
-        processPlayer(pid, isWin, isDraw, sideAPlayerIds);
-      }
+      this.processFlexMatch(match, standingsMap, breakdownMap);
     }
 
-    for (const [playerId, playerBreakdown] of breakdownMap) {
-      const entry = standingsMap.get(playerId);
-      if (entry) entry.victoryQualityBreakdown = Array.from(playerBreakdown.values());
+    this.finalizeBreakdowns(standingsMap, breakdownMap);
+  }
+
+  private processFlexMatch(
+    match: FlexMatchRow,
+    standingsMap: Map<string, StandingsEntry>,
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>
+  ): void {
+    const { winnerSide } = match;
+    const outcome = this.outcomeInfo(match.outcomeType, match.outcomeTypeId);
+    const { sideAPlayerIds, sideBPlayerIds } = this.splitSidePlayerIds(match.sides);
+    const isDraw = winnerSide === null;
+
+    for (const pid of sideAPlayerIds) {
+      this.processFlexPlayer(pid, { isWin: winnerSide === "A", isDraw, opponentIds: sideBPlayerIds, match, standingsMap, breakdownMap, outcome });
     }
+    for (const pid of sideBPlayerIds) {
+      this.processFlexPlayer(pid, { isWin: winnerSide === "B", isDraw, opponentIds: sideAPlayerIds, match, standingsMap, breakdownMap, outcome });
+    }
+  }
+
+  private processFlexPlayer(
+    playerId: string,
+    ctx: {
+      isWin: boolean;
+      isDraw: boolean;
+      opponentIds: string[];
+      match: FlexMatchRow;
+      standingsMap: Map<string, StandingsEntry>;
+      breakdownMap: Map<string, Map<string, VictoryQualityDetail>>;
+      outcome: OutcomeInfo;
+    }
+  ): void {
+    const entry = ctx.standingsMap.get(playerId);
+    if (!entry) return;
+
+    const pp = ctx.match.playerPoints.find((p) => p.playerId === playerId);
+    if (!pp?.countsForRanking) return;
+
+    this.applyVictoryQuality(ctx.breakdownMap, playerId, entry, ctx.outcome, ctx.isWin, !ctx.isDraw && !ctx.isWin);
+    this.applyFlexBuchholz(entry, ctx.opponentIds, ctx.standingsMap);
+    this.applyHeadToHead(entry, ctx.opponentIds, ctx.isWin, ctx.isDraw);
+  }
+
+  // Buchholz: average opponents' points per match (normalizes 2v2, 3v3, etc.)
+  private applyFlexBuchholz(
+    entry: StandingsEntry,
+    opponentIds: string[],
+    standingsMap: Map<string, StandingsEntry>
+  ): void {
+    let oppTotal = 0;
+    let counted = 0;
+    for (const oppId of opponentIds) {
+      const opp = standingsMap.get(oppId);
+      if (opp) {
+        oppTotal += opp.points;
+        counted++;
+      }
+    }
+    if (counted > 0) entry.buchholzScore += oppTotal / counted;
+  }
+
+  private splitSidePlayerIds(sides: FlexMatchRow["sides"]): {
+    sideAPlayerIds: string[];
+    sideBPlayerIds: string[];
+  } {
+    const sideAPlayerIds: string[] = [];
+    const sideBPlayerIds: string[] = [];
+    for (const side of sides) {
+      const playerIds = side.entry.players.map((ep) => ep.playerId);
+      if (side.position === 1) sideAPlayerIds.push(...playerIds);
+      else sideBPlayerIds.push(...playerIds);
+    }
+    return { sideAPlayerIds, sideBPlayerIds };
   }
 
   // ── Static standings ─────────────────────────────────────────────────
@@ -243,7 +299,7 @@ export class StandingsService {
       this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide, scoreEnabled);
       this.updateStandingsForSide(
         entryB, sideB, sideA, tournament,
-        winnerSide === "A" ? "B" : winnerSide === "B" ? "A" : null,
+        this.oppositeSide(winnerSide),
         scoreEnabled
       );
     }
@@ -258,69 +314,123 @@ export class StandingsService {
 
   private computeStaticTiebreakers(
     standingsMap: Map<string, StandingsEntry>,
-    matchRows: Awaited<ReturnType<typeof standingsRepository.getMatchesWithSides>>
+    matchRows: StaticMatchRow[]
   ): void {
+    this.initRatioFields(standingsMap);
+
+    const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
+    for (const match of matchRows) {
+      this.processStaticMatch(match, standingsMap, breakdownMap);
+    }
+
+    this.finalizeBreakdowns(standingsMap, breakdownMap);
+  }
+
+  private processStaticMatch(
+    match: StaticMatchRow,
+    standingsMap: Map<string, StandingsEntry>,
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>
+  ): void {
+    if (match.sides.length !== 2) return;
+    const [sideA, sideB] = match.sides;
+    const teamAId = sideA.entry?.teamId;
+    const teamBId = sideB.entry?.teamId;
+    if (!teamAId || !teamBId) return;
+
+    const entryA = standingsMap.get(teamAId);
+    const entryB = standingsMap.get(teamBId);
+    if (!entryA || !entryB) return;
+
+    const isDraw = match.winnerSide === null;
+    const outcome = this.outcomeInfo(match.outcomeType, match.outcomeTypeId);
+
+    this.processStaticTeam({ teamId: teamAId, entry: entryA, oppEntry: entryB, isWin: match.winnerSide === "A", isDraw, breakdownMap, outcome });
+    this.processStaticTeam({ teamId: teamBId, entry: entryB, oppEntry: entryA, isWin: match.winnerSide === "B", isDraw, breakdownMap, outcome });
+  }
+
+  private processStaticTeam(args: {
+    teamId: string;
+    entry: StandingsEntry;
+    oppEntry: StandingsEntry;
+    isWin: boolean;
+    isDraw: boolean;
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>;
+    outcome: OutcomeInfo;
+  }): void {
+    const { teamId, entry, oppEntry, isWin, isDraw, breakdownMap, outcome } = args;
+    this.applyVictoryQuality(breakdownMap, teamId, entry, outcome, isWin, !isDraw && !isWin);
+    entry.buchholzScore += oppEntry.points;
+    this.applyHeadToHead(entry, [oppEntry.id], isWin, isDraw);
+  }
+
+  // ── Tiebreaker shared helpers ─────────────────────────────────────────
+
+  private initRatioFields(standingsMap: Map<string, StandingsEntry>): void {
     for (const entry of standingsMap.values()) {
       entry.winLossRatio = entry.wins / Math.max(1, entry.losses);
       entry.winRate = entry.wins / Math.max(1, entry.matchesPlayed);
     }
+  }
 
-    // teamId → outcomeKey → breakdown detail
-    const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
-
-    for (const match of matchRows) {
-      if (match.sides.length !== 2) continue;
-      const [sideA, sideB] = match.sides;
-      const teamAId = sideA.entry?.teamId;
-      const teamBId = sideB.entry?.teamId;
-      if (!teamAId || !teamBId) continue;
-
-      const entryA = standingsMap.get(teamAId);
-      const entryB = standingsMap.get(teamBId);
-      if (!entryA || !entryB) continue;
-
-      const isDraw = match.winnerSide === null;
-      const outcomePoints = match.outcomeType?.points ?? 3;
-      const outcomeTypeName = match.outcomeType?.name ?? "Défaut";
-      const outcomeKey = match.outcomeTypeId ?? "default";
-
-      const applyQuality = (teamId: string, entry: StandingsEntry, isWin: boolean, isLoss: boolean) => {
-        if (!breakdownMap.has(teamId)) breakdownMap.set(teamId, new Map());
-        const teamBreakdown = breakdownMap.get(teamId)!;
-        if (!teamBreakdown.has(outcomeKey)) {
-          teamBreakdown.set(outcomeKey, { outcomeTypeName, points: outcomePoints, wins: 0, losses: 0, contribution: 0 });
-        }
-        const detail = teamBreakdown.get(outcomeKey)!;
-        if (isWin) {
-          detail.wins++;
-          entry.victoryQuality += outcomePoints;
-        } else if (isLoss) {
-          detail.losses++;
-          entry.victoryQuality -= outcomePoints;
-        }
-        detail.contribution = (detail.wins - detail.losses) * detail.points;
-      };
-
-      const processTeam = (teamId: string, entry: StandingsEntry, oppEntry: StandingsEntry, isWin: boolean) => {
-        applyQuality(teamId, entry, isWin, !isDraw && !isWin);
-        entry.buchholzScore += oppEntry.points;
-
-        if (!entry.headToHead[oppEntry.id]) {
-          entry.headToHead[oppEntry.id] = { wins: 0, draws: 0, losses: 0 };
-        }
-        const h2h = entry.headToHead[oppEntry.id];
-        if (isDraw) h2h.draws += 1;
-        else if (isWin) h2h.wins += 1;
-        else h2h.losses += 1;
-      };
-
-      processTeam(teamAId, entryA, entryB, match.winnerSide === "A");
-      processTeam(teamBId, entryB, entryA, match.winnerSide === "B");
+  private finalizeBreakdowns(
+    standingsMap: Map<string, StandingsEntry>,
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>
+  ): void {
+    for (const [id, breakdown] of breakdownMap) {
+      const entry = standingsMap.get(id);
+      if (entry) entry.victoryQualityBreakdown = Array.from(breakdown.values());
     }
+  }
 
-    for (const [teamId, teamBreakdown] of breakdownMap) {
-      const entry = standingsMap.get(teamId);
-      if (entry) entry.victoryQualityBreakdown = Array.from(teamBreakdown.values());
+  private outcomeInfo(
+    outcomeType: { points: number | null; name: string | null } | null | undefined,
+    outcomeTypeId: string | null
+  ): OutcomeInfo {
+    return {
+      key: outcomeTypeId ?? "default",
+      name: outcomeType?.name ?? "Défaut",
+      points: outcomeType?.points ?? 3,
+    };
+  }
+
+  private applyVictoryQuality(
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>,
+    id: string,
+    entry: StandingsEntry,
+    outcome: OutcomeInfo,
+    isWin: boolean,
+    isLoss: boolean
+  ): void {
+    if (!breakdownMap.has(id)) breakdownMap.set(id, new Map());
+    const breakdown = breakdownMap.get(id)!;
+    if (!breakdown.has(outcome.key)) {
+      breakdown.set(outcome.key, { outcomeTypeName: outcome.name, points: outcome.points, wins: 0, losses: 0, contribution: 0 });
+    }
+    const detail = breakdown.get(outcome.key)!;
+    if (isWin) {
+      detail.wins++;
+      entry.victoryQuality += outcome.points;
+    } else if (isLoss) {
+      detail.losses++;
+      entry.victoryQuality -= outcome.points;
+    }
+    detail.contribution = (detail.wins - detail.losses) * detail.points;
+  }
+
+  private applyHeadToHead(
+    entry: StandingsEntry,
+    opponentIds: string[],
+    isWin: boolean,
+    isDraw: boolean
+  ): void {
+    for (const oppId of opponentIds) {
+      if (!entry.headToHead[oppId]) {
+        entry.headToHead[oppId] = { wins: 0, draws: 0, losses: 0 };
+      }
+      const h2h = entry.headToHead[oppId];
+      if (isDraw) h2h.draws += 1;
+      else if (isWin) h2h.wins += 1;
+      else h2h.losses += 1;
     }
   }
 
@@ -385,7 +495,7 @@ export class StandingsService {
       pointPerLoss: number | null;
       allowDraw: boolean | null;
     },
-    winnerSide: "A" | "B" | null,
+    winnerSide: WinnerSide,
     scoreEnabled: boolean
   ) {
     if (scoreEnabled) {
@@ -535,16 +645,8 @@ export class StandingsService {
       const isDraw = match.winnerSide === null;
       const isAWinner = match.winnerSide === "A";
 
-      const pointsA = isDraw
-        ? (tournament.pointPerDraw ?? 1)
-        : isAWinner
-          ? (tournament.pointPerVictory ?? 3)
-          : (tournament.pointPerLoss ?? 0);
-      const pointsB = isDraw
-        ? (tournament.pointPerDraw ?? 1)
-        : isAWinner
-          ? (tournament.pointPerLoss ?? 0)
-          : (tournament.pointPerVictory ?? 3);
+      const pointsA = this.sidePoints(tournament, isDraw, isAWinner);
+      const pointsB = this.sidePoints(tournament, isDraw, !isDraw && !isAWinner);
 
       await matchSidesRepository.updatePointsAwarded(match.id, sideA.entryId, pointsA);
       await matchSidesRepository.updatePointsAwarded(match.id, sideB.entryId, pointsB);
@@ -557,77 +659,69 @@ export class StandingsService {
     return { updatedMatches: matchList.length };
   }
 
+  private oppositeSide(winnerSide: WinnerSide): WinnerSide {
+    if (winnerSide === "A") return "B";
+    if (winnerSide === "B") return "A";
+    return null;
+  }
+
+  private sidePoints(tournament: PointsConfig, isDraw: boolean, isWin: boolean): number {
+    if (isDraw) return tournament.pointPerDraw ?? 1;
+    if (isWin) return tournament.pointPerVictory ?? 3;
+    return tournament.pointPerLoss ?? 0;
+  }
+
   private async rebuildPlayerPoints(
     tournamentId: string,
-    matchList: Array<{ id: string; winnerSide: string | null; playedAt: Date | string }>,
-    sidesMap: Map<string, Array<{
-      matchId: string;
-      entryId: string;
-      pointsAwarded: number | null;
-      entry?: {
-        players: Array<{ playerId: string }>;
-      } | null;
-    }>>,
-    tournament: {
-      pointPerVictory: number | null;
-      pointPerDraw: number | null;
-      pointPerLoss: number | null;
-      maxMatchesPerPlayer: number | null;
-    }
+    matchList: RebuildMatch[],
+    sidesMap: Map<string, RebuildSide[]>,
+    tournament: PointsConfig & { maxMatchesPerPlayer: number | null }
   ) {
     const statuses: MatchStatus[] = ["reported", "finalized"];
     await standingsRepository.deletePlayerPointsForTournament(tournamentId, statuses);
 
     const maxMatches = tournament.maxMatchesPerPlayer ?? Infinity;
     const playerMatchCount = new Map<string, number>();
-
     const sorted = [...matchList].sort(
       (a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime()
     );
 
-    const rows: Array<{
-      matchId: string;
-      playerId: string;
-      pointsAwarded: number;
-      countsForRanking: boolean;
-    }> = [];
-
+    const rows: PlayerPointRow[] = [];
     for (const match of sorted) {
       const sides = sidesMap.get(match.id) ?? [];
       if (sides.length !== 2) continue;
-
-      const isDraw = match.winnerSide === null;
-      const isAWinner = match.winnerSide === "A";
-
-      const standardPoints = (side: "A" | "B") => {
-        const isWin = side === "A" ? isAWinner : !isAWinner && !isDraw;
-        if (isDraw) return tournament.pointPerDraw ?? 1;
-        if (isWin) return tournament.pointPerVictory ?? 3;
-        return tournament.pointPerLoss ?? 0;
-      };
-
-      for (const side of sides) {
-        const sideLabel = side === sides[0] ? "A" : "B";
-        const pts = standardPoints(sideLabel as "A" | "B");
-        const players = side.entry?.players ?? [];
-
-        for (const { playerId } of players) {
-          const prior = playerMatchCount.get(playerId) ?? 0;
-          const countsForRanking = prior < maxMatches;
-          rows.push({
-            matchId: match.id,
-            playerId,
-            pointsAwarded: countsForRanking ? pts : 0,
-            countsForRanking,
-          });
-          if (countsForRanking) {
-            playerMatchCount.set(playerId, prior + 1);
-          }
-        }
-      }
+      this.collectMatchPlayerPoints(match, sides, tournament, { playerMatchCount, maxMatches, rows });
     }
 
     await standingsRepository.insertPlayerPoints(rows);
+  }
+
+  private collectMatchPlayerPoints(
+    match: RebuildMatch,
+    sides: RebuildSide[],
+    tournament: PointsConfig,
+    acc: { playerMatchCount: Map<string, number>; maxMatches: number; rows: PlayerPointRow[] }
+  ): void {
+    const isDraw = match.winnerSide === null;
+    const isAWinner = match.winnerSide === "A";
+
+    for (const side of sides) {
+      const isASide = side === sides[0];
+      const isWin = isASide ? isAWinner : !isAWinner && !isDraw;
+      const pts = this.sidePoints(tournament, isDraw, isWin);
+
+      for (const { playerId } of side.entry?.players ?? []) {
+        const prior = acc.playerMatchCount.get(playerId) ?? 0;
+        const countsForRanking = prior < acc.maxMatches;
+        acc.rows.push({
+          matchId: match.id,
+          playerId,
+          pointsAwarded: countsForRanking ? pts : 0,
+          countsForRanking,
+        });
+        if (countsForRanking) acc.playerMatchCount.set(playerId, prior + 1);
+      }
+    }
   }
 }
 

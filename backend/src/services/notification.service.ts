@@ -34,6 +34,67 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
+type PushDevice = Awaited<ReturnType<typeof pushDeviceRepository.getActiveForUser>>[number];
+
+function buildNotificationContent(data: CreateNotification): { title: string; message: string } {
+  const lng = "fr";
+  return {
+    title: String(i18next.t(data.titleKey, { lng, ...data.translationParams })),
+    message: String(i18next.t(data.messageKey, { lng, ...data.translationParams })),
+  };
+}
+
+function parseSubscriptionKeys(
+  device: PushDevice,
+): { p256dh: string; auth: string } | undefined {
+  if (!device.subscriptionData) {
+    logger.warn(`[Push] No subscription data for device ${device.id}`);
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(device.subscriptionData);
+    logger.debug(`[Push] Parsed subscription keys for device ${device.id}`);
+    return parsed.keys || parsed;
+  } catch (e) {
+    logger.error({ err: e }, `[Push] Failed to parse subscription data for device ${device.id}`);
+    return undefined;
+  }
+}
+
+function isExpiredSubscriptionError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "statusCode" in error &&
+    (error as { statusCode?: number }).statusCode === 410
+  );
+}
+
+async function sendPushToDevice(device: PushDevice, pushPayload: unknown): Promise<void> {
+  logger.debug(
+    `[Push] Processing device ${device.id}, endpoint: ${device.subscriptionEndpoint.substring(0, 50)}...`,
+  );
+  try {
+    const keys = parseSubscriptionKeys(device);
+    if (!keys) {
+      logger.warn(`[Push] Skipping device ${device.id} - no valid keys`);
+      return;
+    }
+
+    logger.debug(`[Push] Sending push notification to device ${device.id}`);
+    await webpush.sendNotification(
+      { endpoint: device.subscriptionEndpoint, keys },
+      JSON.stringify(pushPayload),
+    );
+    logger.debug(`[Push] Successfully sent push notification to device ${device.id}`);
+  } catch (error) {
+    logger.error({ err: error }, `[Push] Error sending push notification to device ${device.id}:`);
+    if (isExpiredSubscriptionError(error)) {
+      logger.debug(`[Push] Removing inactive push device ${device.id} for user ${device.userId}`);
+      await pushDeviceRepository.remove(device.userId, device.id);
+    }
+  }
+}
+
 export const notificationService = {
   async send(data: CreateNotification) {
     logger.debug(
@@ -41,27 +102,15 @@ export const notificationService = {
     );
     const notification = await notificationRepository.create(data);
 
-    const lng = "fr";
-    const title = String(
-      i18next.t(data.titleKey, { lng, ...data.translationParams }),
-    );
-    const message = String(
-      i18next.t(data.messageKey, { lng, ...data.translationParams }),
-    );
-
-    // Payload for WebSocket (HTML entities preserved for v-html)
-    const payload = {
-      ...notification,
-      title,
-      message,
-    };
+    const { title, message } = buildNotificationContent(data);
 
     logger.debug(
       `[Notification] Sending WebSocket notification to user ${data.userId}`,
     );
+    // WebSocket payload keeps HTML entities (rendered with v-html)
     const sent = webSocketService.send(data.userId, {
       event: "new_notification",
-      data: payload,
+      data: { ...notification, title, message },
     });
     logger.debug(`[Notification] WebSocket send result: ${sent}`);
 
@@ -71,7 +120,7 @@ export const notificationService = {
       `[Push] Found ${devices.length} push device(s) for user ${data.userId}`,
     );
 
-    // Payload for Push notifications (HTML entities decoded for plain text)
+    // Push payload decodes HTML entities for plain text
     const pushPayload = {
       ...notification,
       title: decodeHtmlEntities(title),
@@ -79,64 +128,7 @@ export const notificationService = {
     };
 
     for (const device of devices) {
-      logger.debug(
-        `[Push] Processing device ${device.id}, endpoint: ${device.subscriptionEndpoint.substring(0, 50)}...`,
-      );
-      try {
-        let keys = undefined;
-        if (device.subscriptionData) {
-          try {
-            const parsed = JSON.parse(device.subscriptionData);
-            // If subscriptionData IS the keys object or contains it
-            keys = parsed.keys || parsed;
-            logger.debug(
-              `[Push] Parsed subscription keys for device ${device.id}`,
-            );
-          } catch (e) {
-            logger.error(
-              { err: e },
-              `[Push] Failed to parse subscription data for device ${device.id}`,
-            );
-          }
-        } else {
-          logger.warn(`[Push] No subscription data for device ${device.id}`);
-        }
-
-        if (keys) {
-          const pushSubscription = {
-            endpoint: device.subscriptionEndpoint,
-            keys: keys,
-          };
-
-          logger.debug(
-            `[Push] Sending push notification to device ${device.id}`,
-          );
-          await webpush.sendNotification(
-            pushSubscription,
-            JSON.stringify(pushPayload),
-          );
-          logger.debug(
-            `[Push] Successfully sent push notification to device ${device.id}`,
-          );
-        } else {
-          logger.warn(`[Push] Skipping device ${device.id} - no valid keys`);
-        }
-      } catch (error) {
-        logger.error(
-          { err: error },
-          `[Push] Error sending push notification to device ${device.id}:`,
-        );
-        if (
-          error instanceof Error &&
-          "statusCode" in error &&
-          (error as { statusCode?: number }).statusCode === 410
-        ) {
-          logger.debug(
-            `[Push] Removing inactive push device ${device.id} for user ${device.userId}`,
-          );
-          await pushDeviceRepository.remove(device.userId, device.id);
-        }
-      }
+      await sendPushToDevice(device, pushPayload);
     }
 
     return notification;

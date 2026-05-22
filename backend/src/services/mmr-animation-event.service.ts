@@ -9,10 +9,34 @@ import { webSocketService } from "./websocket.service";
 import type { MmrAnimationEventReason } from "@skill-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
+type MmrRecord = { currentMmr: number; matchesPlayed: number };
+type MmrAnimationEventRecord = Awaited<ReturnType<typeof mmrAnimationEventRepository.upsert>>;
+
+interface ProvisionalContext {
+  matchId: string;
+  seasonId: string;
+  playerIdsA: string[];
+  playerIdsB: string[];
+  scoreA: number;
+  scoreB: number;
+  winnerSide: string | null;
+  baseMmr: number;
+  placementMatches: number;
+  kFactor: number;
+  scoreCountsForMmr: boolean;
+  outcomePoints: number | null;
+  tiers: TierData[];
+  mmrRecords: Map<string, MmrRecord>;
+}
 
 function getTierForMmr(mmr: number, tiers: TierData[]): TierData | null {
   if (tiers.length === 0) return null;
   return [...tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tiers[0];
+}
+
+function resolveResult(winnerSide: string | null, playerInSideA: boolean): 1 | 0 | 0.5 {
+  if (winnerSide === null) return 0.5;
+  return (winnerSide === "A") === playerInSideA ? 1 : 0;
 }
 
 export class MmrAnimationEventService {
@@ -47,67 +71,93 @@ export class MmrAnimationEventService {
     const playerIdsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
     const allPlayerIds = [...playerIdsA, ...playerIdsB];
 
-    const mmrRecords = new Map<string, { currentMmr: number; matchesPlayed: number }>();
+    const mmrRecords = await this.loadMmrRecords(allPlayerIds, tournamentId, config.baseMmr);
+
+    const ctx: ProvisionalContext = {
+      matchId,
+      seasonId: tournamentId,
+      playerIdsA,
+      playerIdsB,
+      scoreA: sideA.score ?? 0,
+      scoreB: sideB.score ?? 0,
+      winnerSide: match.winnerSide,
+      baseMmr: config.baseMmr,
+      placementMatches: config.placementMatches,
+      kFactor: config.kFactor,
+      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
+      outcomePoints: match.outcomeType?.points ?? null,
+      tiers,
+      mmrRecords,
+    };
+
     for (const playerId of allPlayerIds) {
-      const record = await playerMmrRepository.getBySeasonAndPlayer(tournamentId, playerId);
-      mmrRecords.set(playerId, {
-        currentMmr: record?.currentMmr ?? config.baseMmr,
+      await this.buildProvisionalEvent(playerId, ctx);
+    }
+  }
+
+  private async loadMmrRecords(
+    playerIds: string[],
+    seasonId: string,
+    baseMmr: number,
+  ): Promise<Map<string, MmrRecord>> {
+    const records = new Map<string, MmrRecord>();
+    for (const playerId of playerIds) {
+      const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
+      records.set(playerId, {
+        currentMmr: record?.currentMmr ?? baseMmr,
         matchesPlayed: record?.matchesPlayed ?? 0,
       });
     }
+    return records;
+  }
 
-    for (const playerId of allPlayerIds) {
-      const playerInSideA = playerIdsA.includes(playerId);
-      const opponentIds = playerInSideA ? playerIdsB : playerIdsA;
-      const mySideScore = playerInSideA ? (sideA.score ?? 0) : (sideB.score ?? 0);
-      const oppSideScore = playerInSideA ? (sideB.score ?? 0) : (sideA.score ?? 0);
+  private averageOpponentMmr(opponentIds: string[], ctx: ProvisionalContext): number {
+    const oppMmrs = opponentIds.map((id) => ctx.mmrRecords.get(id)?.currentMmr ?? ctx.baseMmr);
+    if (oppMmrs.length === 0) return ctx.baseMmr;
+    return Math.round(oppMmrs.reduce((a, b) => a + b, 0) / oppMmrs.length);
+  }
 
-      const { currentMmr, matchesPlayed } = mmrRecords.get(playerId)!;
-      const oppMmrs = opponentIds.map((id) => mmrRecords.get(id)?.currentMmr ?? config.baseMmr);
-      const opponentAvgMmr =
-        oppMmrs.length > 0
-          ? Math.round(oppMmrs.reduce((a, b) => a + b, 0) / oppMmrs.length)
-          : config.baseMmr;
+  private async buildProvisionalEvent(playerId: string, ctx: ProvisionalContext): Promise<void> {
+    const playerInSideA = ctx.playerIdsA.includes(playerId);
+    const opponentIds = playerInSideA ? ctx.playerIdsB : ctx.playerIdsA;
+    const mySideScore = playerInSideA ? ctx.scoreA : ctx.scoreB;
+    const oppSideScore = playerInSideA ? ctx.scoreB : ctx.scoreA;
 
-      const result: 1 | 0 | 0.5 =
-        match.winnerSide === null ? 0.5 : match.winnerSide === "A" ? (playerInSideA ? 1 : 0) : playerInSideA ? 0 : 1;
+    const { currentMmr, matchesPlayed } = ctx.mmrRecords.get(playerId)!;
+    const opponentAvgMmr = this.averageOpponentMmr(opponentIds, ctx);
+    const result = resolveResult(ctx.winnerSide, playerInSideA);
+    const isPlacement = matchesPlayed < ctx.placementMatches;
 
-      const isPlacement = matchesPlayed < config.placementMatches;
-      const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
-      const outcomePoints = match.outcomeType?.points ?? null;
+    const kEffective = mmrCalculationService.calculateEffectiveK(
+      ctx.kFactor,
+      mySideScore,
+      oppSideScore,
+      isPlacement,
+      ctx.scoreCountsForMmr,
+      ctx.outcomePoints,
+    );
 
-      const kEffective = mmrCalculationService.calculateEffectiveK(
-        config.kFactor,
-        mySideScore,
-        oppSideScore,
-        isPlacement,
-        scoreCountsForMmr,
-        outcomePoints,
-      );
+    const delta = mmrCalculationService.calculateMmrDelta(currentMmr, opponentAvgMmr, result, kEffective);
+    const mmrBefore = currentMmr;
+    const mmrAfter = Math.max(1, currentMmr + delta);
+    const tierBefore = getTierForMmr(mmrBefore, ctx.tiers);
+    const tierAfter = getTierForMmr(mmrAfter, ctx.tiers);
 
-      const delta = mmrCalculationService.calculateMmrDelta(currentMmr, opponentAvgMmr, result, kEffective);
-      const mmrBefore = currentMmr;
-      const mmrAfter = Math.max(1, currentMmr + delta);
-
-      const tierBefore = getTierForMmr(mmrBefore, tiers);
-      const tierAfter = getTierForMmr(mmrAfter, tiers);
-
-      await mmrAnimationEventRepository.upsert({
-        playerId,
-        seasonId: tournamentId,
-        matchId,
-        eventType: "provisional",
-        reason: "match_finalized",
-        mmrBefore,
-        mmrAfter,
-        mmrDelta: delta,
-        tierBeforeLevel: tierBefore?.level ?? null,
-        tierAfterLevel: tierAfter?.level ?? null,
-        tierBeforeName: tierBefore?.name ?? null,
-        tierAfterName: tierAfter?.name ?? null,
-        rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
-      });
-    }
+    await mmrAnimationEventRepository.upsert({
+      playerId,
+      seasonId: ctx.seasonId,
+      matchId: ctx.matchId,
+      eventType: "provisional",
+      reason: "match_finalized",
+      mmrBefore,
+      mmrAfter,
+      mmrDelta: delta,
+      tierBeforeLevel: tierBefore?.level ?? null,
+      tierAfterLevel: tierAfter?.level ?? null,
+      tierBeforeName: tierBefore?.name ?? null,
+      tierAfterName: tierAfter?.name ?? null,
+      rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+    });
   }
 
   async createOfficialEventsAndBroadcast(matchId: string, tournamentId: string): Promise<void> {
@@ -118,44 +168,58 @@ export class MmrAnimationEventService {
     const playerIds = await this.getMatchPlayerIds(matchId);
 
     for (const playerId of playerIds) {
-      const allHistory = await playerMmrRepository.getMmrHistoryOrdered(tournamentId, playerId);
-      const existingEvents = await mmrAnimationEventRepository.getOfficialEventDeltasByPlayer(tournamentId, playerId);
-      const tobroadcast: Awaited<ReturnType<typeof mmrAnimationEventRepository.upsert>>[] = [];
+      const events = await this.collectOfficialEvents(playerId, matchId, tournamentId, tiers);
+      this.broadcastEvents(playerId, tournamentId, events);
+    }
+  }
 
-      for (const history of allHistory) {
-        const isCurrentMatch = history.matchId === matchId;
-        const existing = existingEvents.get(history.matchId);
+  private async collectOfficialEvents(
+    playerId: string,
+    matchId: string,
+    seasonId: string,
+    tiers: TierData[],
+  ): Promise<MmrAnimationEventRecord[]> {
+    const allHistory = await playerMmrRepository.getMmrHistoryOrdered(seasonId, playerId);
+    const existingEvents = await mmrAnimationEventRepository.getOfficialEventDeltasByPlayer(seasonId, playerId);
+    const events: MmrAnimationEventRecord[] = [];
 
-        if (!isCurrentMatch && (!existing || existing.mmrDelta === history.mmrDelta)) continue;
+    for (const history of allHistory) {
+      const isCurrentMatch = history.matchId === matchId;
+      const existing = existingEvents.get(history.matchId);
 
-        const tierBefore = getTierForMmr(history.mmrBefore, tiers);
-        const tierAfter = getTierForMmr(history.mmrAfter, tiers);
-        const reason: MmrAnimationEventReason = isCurrentMatch ? "match_finalized" : "recalculated";
+      if (!isCurrentMatch && (!existing || existing.mmrDelta === history.mmrDelta)) continue;
 
-        const event = await mmrAnimationEventRepository.upsert({
-          playerId,
-          seasonId: tournamentId,
-          matchId: history.matchId,
-          eventType: "official",
-          reason,
-          mmrBefore: history.mmrBefore,
-          mmrAfter: history.mmrAfter,
-          mmrDelta: history.mmrDelta,
-          tierBeforeLevel: tierBefore?.level ?? null,
-          tierAfterLevel: tierAfter?.level ?? null,
-          tierBeforeName: tierBefore?.name ?? null,
-          tierAfterName: tierAfter?.name ?? null,
-          rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
-        });
-        tobroadcast.push(event);
-      }
+      const tierBefore = getTierForMmr(history.mmrBefore, tiers);
+      const tierAfter = getTierForMmr(history.mmrAfter, tiers);
+      const reason: MmrAnimationEventReason = isCurrentMatch ? "match_finalized" : "recalculated";
 
-      for (const event of tobroadcast) {
-        webSocketService.send(playerId, {
-          event: "mmr_animation",
-          data: this.buildWsPayload(event, tournamentId),
-        });
-      }
+      const event = await mmrAnimationEventRepository.upsert({
+        playerId,
+        seasonId,
+        matchId: history.matchId,
+        eventType: "official",
+        reason,
+        mmrBefore: history.mmrBefore,
+        mmrAfter: history.mmrAfter,
+        mmrDelta: history.mmrDelta,
+        tierBeforeLevel: tierBefore?.level ?? null,
+        tierAfterLevel: tierAfter?.level ?? null,
+        tierBeforeName: tierBefore?.name ?? null,
+        tierAfterName: tierAfter?.name ?? null,
+        rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+      });
+      events.push(event);
+    }
+
+    return events;
+  }
+
+  private broadcastEvents(playerId: string, tournamentId: string, events: MmrAnimationEventRecord[]): void {
+    for (const event of events) {
+      webSocketService.send(playerId, {
+        event: "mmr_animation",
+        data: this.buildWsPayload(event, tournamentId),
+      });
     }
   }
 
@@ -197,7 +261,7 @@ export class MmrAnimationEventService {
     }
   }
 
-  private buildWsPayload(event: { id: string; matchId: string; seasonId: string; eventType: string; reason: string; mmrBefore: number; mmrAfter: number; mmrDelta: number; tierBeforeLevel: number | null; tierAfterLevel: number | null; tierBeforeName: string | null; tierAfterName: string | null; rankChanged: boolean; createdAt: Date }, tournamentId: string) {
+  private buildWsPayload(event: MmrAnimationEventRecord, tournamentId: string) {
     return {
       id: event.id,
       matchId: event.matchId,
