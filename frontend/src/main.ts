@@ -16,8 +16,20 @@ import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
 
 if ('serviceWorker' in navigator) {
+  let refreshing = false
+  const hadController = !!navigator.serviceWorker.controller // false au tout 1er chargement
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing || !hadController) return // évite double reload + flicker premier chargement
+    refreshing = true
     window.location.reload()
+  })
+
+  navigator.serviceWorker.ready.then((registration) => {
+    const UPDATE_INTERVAL = 60 * 60 * 1000 // 60 min
+    setInterval(() => registration.update(), UPDATE_INTERVAL)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') registration.update()
+    })
   })
 }
 
