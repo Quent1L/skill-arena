@@ -9,18 +9,18 @@ import {
 import {
   createTestDatabase,
   closeTestDatabase,
-} from "../../config/test-database";
+} from "../../../config/test-database";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
-import * as schema from "../../db/schema";
+import * as schema from "../../../db/schema";
 
 // Initialize the test database BEFORE any imports that use `db`
 // createTestDatabase() will call setTestDatabase() to make the shared `db` export point to the test instance
 const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
 
 // Now import the services - they will use the test database through the shared `db` proxy
-import { tournamentService } from "../tournament.service";
-import { participantRepository } from "../../repository/participant.repository";
-import { tournaments, appUsers, user as betterAuthUser } from "../../db/schema";
+import { tournamentService } from "../../tournament.service";
+import { participantRepository } from "../../../repository/participant.repository";
+import { tournaments, appUsers, user as betterAuthUser } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 
 describe("Tournament Participation Integration Tests", () => {

@@ -2,9 +2,9 @@ import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import {
   createTestDatabase,
   closeTestDatabase,
-} from "../../config/test-database";
+} from "../../../config/test-database";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
-import * as schema from "../../db/schema";
+import * as schema from "../../../db/schema";
 import { randomUUID } from "crypto";
 
 // Initialize the test database BEFORE any imports that use `db`
@@ -12,9 +12,9 @@ import { randomUUID } from "crypto";
 const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
 
 // Now import the services - they will use the test database through the shared `db` proxy
-import { matchService } from "../match.service";
-import { entryRepository } from "../../repository/entry.repository";
-import { matchRepository } from "../../repository/match.repository";
+import { matchService } from "../../match.service";
+import { entryRepository } from "../../../repository/entry.repository";
+import { matchRepository } from "../../../repository/match.repository";
 import {
   tournaments,
   appUsers,
@@ -24,9 +24,9 @@ import {
   tournamentAdmins,
   teams,
   teamMembers,
-} from "../../db/schema";
+} from "../../../db/schema";
 import { eq } from "drizzle-orm";
-import { ConflictError, ErrorCode } from "../../types/errors";
+import { ConflictError, ErrorCode } from "../../../types/errors";
 
 describe("Match Partner Validation", () => {
   let tournamentId: string;

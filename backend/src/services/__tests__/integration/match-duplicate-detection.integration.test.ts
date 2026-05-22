@@ -9,9 +9,9 @@ import {
 import {
   createTestDatabase,
   closeTestDatabase,
-} from "../../config/test-database";
+} from "../../../config/test-database";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
-import * as schema from "../../db/schema";
+import * as schema from "../../../db/schema";
 
 // Initialize the test database BEFORE any imports that use `db`.
 // createTestDatabase() calls setTestDatabase() so the shared `db` proxy
@@ -20,7 +20,7 @@ const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
 
 // Static imports — they are hoisted but `db` is accessed lazily through the
 // proxy, so they all see the PGlite instance by the time any test runs.
-import { matchService } from "../match.service";
+import { matchService } from "../../match.service";
 import {
   tournaments,
   appUsers,
@@ -29,7 +29,7 @@ import {
   teamMembers,
   tournamentParticipants,
   matches,
-} from "../../db/schema";
+} from "../../../db/schema";
 import { eq } from "drizzle-orm";
 
 describe("Match Duplicate Detection Integration Tests", () => {

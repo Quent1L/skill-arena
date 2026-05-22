@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 
 import { matchService } from "../match.service";
 import {
@@ -57,7 +57,23 @@ let usrRepo: Partial<UserRepository>;
 let confRepo: Partial<MatchConfirmationRepository>;
 let notifService: Partial<NotificationServiceType>;
 
+// MMR recalculation is offloaded to an async job queue (graphile-worker).
+// finalizeMatch only enqueues the job; mock the queue so tests neither hit a
+// real DB nor expect synchronous MMR work, and can assert the enqueue happened.
+const mmrQueueCalls = { finalization: 0, cascade: 0 };
+mock.module("../mmr-job-queue.service", () => ({
+  enqueueMmrFinalization: async () => {
+    mmrQueueCalls.finalization += 1;
+  },
+  enqueueMmrCascade: async () => {
+    mmrQueueCalls.cascade += 1;
+  },
+}));
+
 beforeEach(() => {
+  mmrQueueCalls.finalization = 0;
+  mmrQueueCalls.cascade = 0;
+
   // Default implementations (can be overridden per-test)
   repo = matchRepository as unknown as Partial<MatchRepository>;
   repo.getTournament = async (_id: string) => undefined;
@@ -1943,24 +1959,25 @@ describe("MatchService - finalizeMatch side-effects", () => {
     expect(advLoser).toBe(true);
   });
 
-  it("finalizeMatch invokes MMR calculation", async () => {
+  it("finalizeMatch enqueues MMR job for ranked tournament", async () => {
     repo.getById = async () =>
-      ({ id: "m-fin", tournamentId: "t-1", status: "reported" }) as any;
+      ({ id: "m-fin", tournamentId: "t-r", status: "reported" }) as any;
     repo.update = async (_id: string, data: UpdateMatchData) =>
       ({ id: _id, ...data }) as any;
 
-    let mmrCalled = false;
-    (mmrCalculationService as any).processMatchFinalization = async () => {
-      mmrCalled = true;
-    };
+    (rankedSeasonRepository as any).getConfigByTournamentId = async () => ({
+      id: "rs-1",
+      tournamentId: "t-r",
+    });
 
     await matchService.finalizeMatch("m-fin", {
       finalizationReason: "consensus",
     });
-    expect(mmrCalled).toBe(true);
+
+    expect(mmrQueueCalls.finalization).toBe(1);
   });
 
-  it("finalizeMatch refreshes ranked caches when tournament is ranked", async () => {
+  it("finalizeMatch defers ranked cache refresh to the worker, not synchronously", async () => {
     repo.getById = async () =>
       ({ id: "m-fin", tournamentId: "t-r", status: "reported" }) as any;
     repo.update = async (_id: string, data: UpdateMatchData) =>
@@ -1984,8 +2001,10 @@ describe("MatchService - finalizeMatch side-effects", () => {
       finalizationReason: "consensus",
     });
 
-    expect(officialCalled).toBe(true);
-    expect(provisionalCalled).toBe(true);
+    // The job is enqueued; cache recomputation happens later in the worker
+    expect(mmrQueueCalls.finalization).toBe(1);
+    expect(officialCalled).toBe(false);
+    expect(provisionalCalled).toBe(false);
   });
 
   it("finalizeMatch skips ranked caches when tournament is not ranked", async () => {
@@ -2009,6 +2028,7 @@ describe("MatchService - finalizeMatch side-effects", () => {
       finalizationReason: "consensus",
     });
 
+    expect(mmrQueueCalls.finalization).toBe(0);
     expect(officialCalled).toBe(false);
     expect(provisionalCalled).toBe(false);
   });

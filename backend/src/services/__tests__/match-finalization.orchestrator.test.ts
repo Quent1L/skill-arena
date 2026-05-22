@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 
 import { matchFinalizationOrchestrator } from "../match-finalization.orchestrator";
 import { notificationService } from "../notification.service";
@@ -17,6 +17,7 @@ interface CallTracker {
   deleteActions: number;
   advWinner: number;
   advLoser: number;
+  enqueueMmr: number;
   mmrCalc: number;
   mmrAnim: number;
   rankedOfficial: number;
@@ -29,11 +30,24 @@ interface CallTracker {
 
 let calls: CallTracker;
 
+// MMR recalculation is offloaded to an async job queue (graphile-worker).
+// The orchestrator only enqueues the job; the downstream MMR/ranked services
+// run later in a worker process, so we mock the queue to track the handoff.
+mock.module("../mmr-job-queue.service", () => ({
+  enqueueMmrFinalization: async () => {
+    calls.enqueueMmr += 1;
+  },
+  enqueueMmrCascade: async () => {
+    calls.enqueueMmr += 1;
+  },
+}));
+
 beforeEach(() => {
   calls = {
     deleteActions: 0,
     advWinner: 0,
     advLoser: 0,
+    enqueueMmr: 0,
     mmrCalc: 0,
     mmrAnim: 0,
     rankedOfficial: 0,
@@ -101,7 +115,7 @@ afterEach(() => {
 });
 
 describe("MatchFinalizationOrchestrator", () => {
-  it("triggers ranked caches when tournament has ranked config", async () => {
+  it("enqueues MMR job when tournament has ranked config", async () => {
     (rankedSeasonRepository as any).getConfigByTournamentId = async () => ({
       id: "rs-1",
     });
@@ -118,14 +132,15 @@ describe("MatchFinalizationOrchestrator", () => {
     expect(calls.deleteActions).toBe(1);
     expect(calls.advWinner).toBe(1);
     expect(calls.advLoser).toBe(1);
-    expect(calls.mmrCalc).toBe(1);
-    expect(calls.mmrAnim).toBe(1);
-    expect(calls.rankedOfficial).toBe(1);
-    expect(calls.rankedProvisional).toBe(1);
+    expect(calls.enqueueMmr).toBe(1);
     expect(calls.statsDelete).toBe(1);
+    // MMR + ranked caches now run in the worker, not synchronously here
+    expect(calls.mmrCalc).toBe(0);
+    expect(calls.rankedOfficial).toBe(0);
+    expect(calls.rankedProvisional).toBe(0);
   });
 
-  it("skips ranked caches when tournament has no ranked config", async () => {
+  it("skips MMR job when tournament has no ranked config", async () => {
     (rankedSeasonRepository as any).getConfigByTournamentId = async () => null;
     (matchRepository as any).getTournament = async () => ({
       id: "t-1",
@@ -138,6 +153,7 @@ describe("MatchFinalizationOrchestrator", () => {
       "t-1",
     );
 
+    expect(calls.enqueueMmr).toBe(0);
     expect(calls.rankedOfficial).toBe(0);
     expect(calls.rankedProvisional).toBe(0);
     expect(calls.standingsInvalidate).toBe(1);
