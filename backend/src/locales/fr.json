@@ -85,5 +85,14 @@
     "TEAM_HAS_MATCH": "Cette équipe a déjà un match et ne peut plus être modifiée",
     "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} est déjà engagé dans un autre match à cette heure-ci — la téléportation est prévue pour la prochaine version",
     "RANKED_MATCH_TOO_OLD": "Les matchs ranked doivent être déclarés dans les 48h suivant leur dispute"
+  },
+  "ranked": {
+    "PROVISIONAL": "Partie comptabilisée !",
+    "EXCEPTIONAL": "Performance exceptionnelle !",
+    "EXCELLENT": "Excellente partie !",
+    "GOOD": "Bien joué !",
+    "DRAW": "Match très serré...",
+    "LOSS_MINOR": "Courage, ça va passer !",
+    "LOSS_MAJOR": "Remets-toi en selle !"
   }
 }

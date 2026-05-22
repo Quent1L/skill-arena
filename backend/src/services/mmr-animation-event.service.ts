@@ -1,3 +1,4 @@
+import i18next from "../config/i18n";
 import { eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
@@ -27,6 +28,23 @@ interface ProvisionalContext {
   outcomePoints: number | null;
   tiers: TierData[];
   mmrRecords: Map<string, MmrRecord>;
+}
+
+function resolveEncouragementKey(mmrDelta: number, eventType: string, rankChanged: boolean): string | null {
+  if (rankChanged && eventType !== "provisional") return null;
+  if (eventType === "provisional") return "ranked.PROVISIONAL";
+  if (mmrDelta >= 40) return "ranked.EXCEPTIONAL";
+  if (mmrDelta >= 20) return "ranked.EXCELLENT";
+  if (mmrDelta > 0) return "ranked.GOOD";
+  if (mmrDelta === 0) return "ranked.DRAW";
+  if (mmrDelta >= -20) return "ranked.LOSS_MINOR";
+  return "ranked.LOSS_MAJOR";
+}
+
+function translateEncouragement(mmrDelta: number, eventType: string, rankChanged: boolean, lang: string): string | null {
+  const key = resolveEncouragementKey(mmrDelta, eventType, rankChanged);
+  if (!key) return null;
+  return String(i18next.t(key, { lng: lang }));
 }
 
 function getTierForMmr(mmr: number, tiers: TierData[]): TierData | null {
@@ -277,12 +295,17 @@ export class MmrAnimationEventService {
       tierBeforeName: event.tierBeforeName,
       tierAfterName: event.tierAfterName,
       rankChanged: event.rankChanged,
+      encouragementMessage: translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, "fr"),
       createdAt: event.createdAt,
     };
   }
 
-  async getPendingForPlayer(playerId: string, seasonId: string) {
-    return await mmrAnimationEventRepository.getPendingForPlayer(playerId, seasonId);
+  async getPendingForPlayer(playerId: string, seasonId: string, lang: string) {
+    const events = await mmrAnimationEventRepository.getPendingForPlayer(playerId, seasonId);
+    return events.map((event) => ({
+      ...event,
+      encouragementMessage: translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, lang),
+    }));
   }
 
   async markViewed(ids: string[]) {

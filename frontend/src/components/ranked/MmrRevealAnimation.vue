@@ -69,11 +69,11 @@
         <!-- Encouragement message -->
         <Transition name="fade-up">
           <div
-            v-if="encouragementMessage && (phase === 'settled' || phase === 'done')"
+            v-if="props.event.encouragementMessage && (phase === 'settled' || phase === 'done')"
             class="text-center px-6 pb-2 text-sm font-semibold"
             :class="encouragementClass"
           >
-            {{ encouragementMessage }}
+            {{ props.event.encouragementMessage }}
           </div>
         </Transition>
 
@@ -234,16 +234,6 @@ const currentTierClass = computed(() => {
   return 'text-white'
 })
 
-const encouragementMessage = computed(() => {
-  if (props.event.rankChanged && !isProvisional.value) return null
-  if (isProvisional.value) return 'Partie comptabilisée !'
-  if (props.event.mmrDelta >= 40) return 'Performance exceptionnelle !'
-  if (props.event.mmrDelta >= 20) return 'Excellente partie !'
-  if (props.event.mmrDelta > 0) return 'Bien joué !'
-  if (props.event.mmrDelta === 0) return 'Match très serré...'
-  if (props.event.mmrDelta >= -20) return 'Courage, ça va passer !'
-  return 'Remets-toi en selle !'
-})
 
 const encouragementClass = computed(() => {
   if (isProvisional.value) return 'text-gray-400'

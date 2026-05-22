@@ -207,7 +207,7 @@ ranked.get("/seasons/:id/players/:playerId/history", async (c) => {
 ranked.get("/seasons/:id/animation-events/pending", requireAuth, async (c) => {
   const seasonId = c.req.param("id")!;
   const playerId = c.get("appUserId");
-  const events = await mmrAnimationEventService.getPendingForPlayer(playerId, seasonId);
+  const events = await mmrAnimationEventService.getPendingForPlayer(playerId, seasonId, c.get("lang"));
   return c.json({ events });
 });
 

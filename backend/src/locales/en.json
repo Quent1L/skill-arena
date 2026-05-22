@@ -85,5 +85,14 @@
     "TEAM_HAS_MATCH": "This team already has a match and cannot be modified",
     "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} is already in another match at this exact time — bilocation isn't on the feature list yet!",
     "RANKED_MATCH_TOO_OLD": "Ranked matches must be reported within 48 hours of being played"
+  },
+  "ranked": {
+    "PROVISIONAL": "Match recorded!",
+    "EXCEPTIONAL": "Exceptional performance!",
+    "EXCELLENT": "Excellent game!",
+    "GOOD": "Well played!",
+    "DRAW": "Very tight match...",
+    "LOSS_MINOR": "Hang in there!",
+    "LOSS_MAJOR": "Bounce back!"
   }
 }

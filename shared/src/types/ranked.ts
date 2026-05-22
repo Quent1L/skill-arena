@@ -283,6 +283,7 @@ export interface MmrAnimationEventResponse {
   tierBeforeName: string | null;
   tierAfterName: string | null;
   rankChanged: boolean;
+  encouragementMessage: string | null;
   createdAt: string;
   playedAt?: Date;
   opponents?: { id: string; displayName: string; shortName: string }[];
