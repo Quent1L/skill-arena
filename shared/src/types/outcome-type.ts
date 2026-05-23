@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Discipline } from "./discipline";
 
 // ============================================
 // Types et interfaces pour les types de résultat
@@ -11,10 +12,7 @@ export interface OutcomeType {
   isDefault: boolean;
   scoreCountsForMmr: boolean;
   points: number;
-  discipline?: {
-    id: string;
-    name: string;
-  };
+  discipline?: Discipline | null;
 }
 
 export interface VictoryQualityDetail {

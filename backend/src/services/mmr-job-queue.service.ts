@@ -29,6 +29,23 @@ export async function enqueueMmrFinalization(matchId: string, tournamentId: stri
   }
 }
 
+export async function enqueueMmrSeasonRecalculation(tournamentId: string): Promise<void> {
+  try {
+    const utils = await getUtils();
+    await utils.addJob(
+      'recalculate_season_mmr',
+      { tournamentId },
+      { jobKey: `recalculate_season:${tournamentId}`, queueName: `mmr:${tournamentId}` },
+    );
+    webSocketService.broadcastToTournament(tournamentId, {
+      event: 'leaderboard_recalculating',
+      data: { seasonId: tournamentId },
+    });
+  } catch (err) {
+    logger.error({ err, tournamentId }, '[MMRQueue] Failed to enqueue season recalculation');
+  }
+}
+
 export async function enqueueMmrCascade(
   matchId: string,
   tournamentId: string,

@@ -2,6 +2,7 @@ import type { Task } from 'graphile-worker';
 import { mmrCalculationService } from '../services/mmr-calculation.service';
 import { mmrAnimationEventService } from '../services/mmr-animation-event.service';
 import { rankedSeasonRepository } from '../repository/ranked-season.repository';
+import { playerMmrRepository } from '../repository/player-mmr.repository';
 import { rankedSeasonService } from '../services/ranked-season.service';
 import { webSocketService } from '../services/websocket.service';
 import { logger } from '../utils/logger';
@@ -73,7 +74,30 @@ async function refreshRankedCaches(tournamentId: string): Promise<void> {
     .catch((err) => logger.error({ err }, '[Worker] provisional cache refresh failed'));
 }
 
+const recalculateSeasonMmr: Task = async (rawPayload) => {
+  const { tournamentId } = rawPayload as { tournamentId: string };
+  logger.info({ tournamentId }, '[Worker] recalculate_season_mmr start');
+
+  const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
+  if (!rankedConfig) return;
+
+  const players = await playerMmrRepository.getAllPlayersBySeasonId(tournamentId);
+  for (const player of players) {
+    await mmrCalculationService.recalculatePlayerMmr(tournamentId, player.playerId);
+  }
+
+  await refreshRankedCaches(tournamentId);
+
+  webSocketService.broadcastToTournament(tournamentId, {
+    event: 'leaderboard_updated',
+    data: { seasonId: tournamentId },
+  });
+
+  logger.info({ tournamentId, playerCount: players.length }, '[Worker] recalculate_season_mmr done');
+};
+
 export const taskList = {
   finalize_match_mmr: finalizeMatchMmr,
   cancel_match_mmr: cancelMatchMmr,
+  recalculate_season_mmr: recalculateSeasonMmr,
 };
