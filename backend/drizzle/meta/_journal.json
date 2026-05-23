@@ -330,6 +330,13 @@
       "when": 1777526400002,
       "tag": "0046_discipline_team_interaction_mode",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1777526400003,
+      "tag": "0047_outcome_type_mmr_multiplier",
+      "breakpoints": true
     }
   ]
 }

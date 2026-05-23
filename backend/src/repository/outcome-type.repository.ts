@@ -8,6 +8,7 @@ export interface CreateOutcomeTypeData {
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
   points?: number;
+  mmrMultiplier?: number;
 }
 
 export interface UpdateOutcomeTypeData {
@@ -16,6 +17,7 @@ export interface UpdateOutcomeTypeData {
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
   points?: number;
+  mmrMultiplier?: number;
 }
 
 export class OutcomeTypeRepository {

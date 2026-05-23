@@ -34,6 +34,7 @@
           <span class="text-gray-700 dark:text-gray-300">{{ data.points }}</span>
         </template>
       </Column>
+      <Column field="mmrMultiplier" header="MMR multiplier"></Column>
 
       <Column header="Actions" style="width: 12rem">
         <template #body="{ data }">
@@ -198,4 +199,3 @@ defineExpose({
   expandedRows,
 })
 </script>
-

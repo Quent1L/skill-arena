@@ -20,6 +20,7 @@ export class OutcomeTypeService {
       name: input.name,
       isDefault: input.isDefault ?? false,
       scoreCountsForMmr: input.scoreCountsForMmr,
+      mmrMultiplier: input.mmrMultiplier,
       points: input.points,
     });
   }
@@ -53,8 +54,9 @@ export class OutcomeTypeService {
       name: input.name,
       isDefault: input.isDefault,
       scoreCountsForMmr: input.scoreCountsForMmr,
+      mmrMultiplier: input.mmrMultiplier,
       points: input.points,
-    });
+    })
   }
 
   async deleteOutcomeType(id: string) {

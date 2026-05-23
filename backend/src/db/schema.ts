@@ -772,6 +772,7 @@ export const outcomeTypes = pgTable("outcome_types", {
   isDefault: boolean("is_default").notNull().default(false),
   scoreCountsForMmr: boolean("score_counts_for_mmr").notNull().default(true),
   points: integer("points").notNull().default(3),
+  mmrMultiplier: real("mmr_multiplier").notNull().default(1),
 });
 
 export const outcomeReasons = pgTable("outcome_reasons", {

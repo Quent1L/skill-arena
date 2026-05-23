@@ -182,7 +182,7 @@ function showOutcomeTypeDialog(outcomeType?: OutcomeType) {
   outcomeTypeDialogVisible.value = true
 }
 
-async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean; points: number }) {
+async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean; points: number; mmrMultiplier: number }) {
   if (!currentDiscipline.value) return
 
   try {
@@ -191,6 +191,7 @@ async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolea
         name: values.name,
         isDefault: values.isDefault,
         points: values.points,
+        mmrMultiplier: values.mmrMultiplier,
       })
     } else {
       await createOutcomeType({
@@ -198,6 +199,7 @@ async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolea
         name: values.name,
         isDefault: values.isDefault,
         points: values.points,
+        mmrMultiplier: values.mmrMultiplier,
       })
     }
 

@@ -177,7 +177,7 @@ export class MmrCalculationService {
       currentMmr: getOtherPlayerMmr(id),
     }));
 
-    const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, discipline: null };
+    const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null };
     const discipline = outcomeType.discipline ?? { id: "", name: "", teamInteractionMode: null };
 
     const calcResults = this.calculateMatchMmrBySides({
@@ -198,7 +198,7 @@ export class MmrCalculationService {
     const opponentAvgMmr = oppSidePlayers.length > 0
       ? Math.round(oppSidePlayers.reduce((s, p) => s + p.currentMmr, 0) / oppSidePlayers.length)
       : config.baseMmr;
-    const kEffective = config.kFactor * (isPlacement ? 2 : 1) * outcomeType.points;
+    const kEffective = config.kFactor * (isPlacement ? 2 : 1) * outcomeType.mmrMultiplier;
 
     await playerMmrRepository.createMmrHistory({
       seasonId,
@@ -574,7 +574,7 @@ export class MmrCalculationService {
     const e1 = this.calculateExpectedScore(avg1, avg2);
     const e2 = 1 - e1;
     const k = kFactor * (isPlacement ? 2 : 1);
-    const f = outcomeType.points;
+    const f = outcomeType.mmrMultiplier;
     const w1 = side1.isWinner === null ? 0.5 : side1.isWinner ? 1 : 0;
     const w2 = side2.isWinner === null ? 0.5 : side2.isWinner ? 1 : 0;
     const baseDelta1 = k * (w1 - e1) * f;

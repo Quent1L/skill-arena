@@ -12,6 +12,7 @@ export interface OutcomeType {
   isDefault: boolean;
   scoreCountsForMmr: boolean;
   points: number;
+  mmrMultiplier: number;
   discipline?: Discipline | null;
 }
 
@@ -29,6 +30,7 @@ export interface CreateOutcomeTypeInput {
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
   points?: number;
+  mmrMultiplier?: number;
 }
 
 export interface UpdateOutcomeTypeInput {
@@ -37,6 +39,7 @@ export interface UpdateOutcomeTypeInput {
   isDefault?: boolean;
   scoreCountsForMmr?: boolean;
   points?: number;
+  mmrMultiplier?: number;
 }
 
 // ============================================
@@ -52,6 +55,7 @@ export const createOutcomeTypeSchema = z.object({
   isDefault: z.boolean().optional(),
   scoreCountsForMmr: z.boolean().optional(),
   points: z.number().int().min(0).default(3),
+  mmrMultiplier: z.number().positive().default(1),
 });
 
 export const updateOutcomeTypeSchema = z.object({
@@ -64,6 +68,7 @@ export const updateOutcomeTypeSchema = z.object({
   isDefault: z.boolean().optional(),
   scoreCountsForMmr: z.boolean().optional(),
   points: z.number().int().min(0).optional(),
+  mmrMultiplier: z.number().positive().optional(),
 });
 
 // ============================================
