@@ -94,5 +94,12 @@
     "DRAW": "Very tight match...",
     "LOSS_MINOR": "Hang in there!",
     "LOSS_MAJOR": "Bounce back!"
+  },
+  "disciplines": {
+    "interaction_modes": {
+      "INDIVIDUAL": "Individual",
+      "SHARED_RESOURCE": "Shared resource",
+      "COLLABORATIVE": "Collaborative"
+    }
   }
 }

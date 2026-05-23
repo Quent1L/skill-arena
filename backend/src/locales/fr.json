@@ -94,5 +94,12 @@
     "DRAW": "Match très serré...",
     "LOSS_MINOR": "Courage, ça va passer !",
     "LOSS_MAJOR": "Remets-toi en selle !"
+  },
+  "disciplines": {
+    "interaction_modes": {
+      "INDIVIDUAL": "Individuel",
+      "SHARED_RESOURCE": "Ressource partagée",
+      "COLLABORATIVE": "Collaboratif"
+    }
   }
 }

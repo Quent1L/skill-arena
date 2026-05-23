@@ -5,11 +5,13 @@ import { disciplines } from "../db/schema";
 export interface CreateDisciplineData {
   name: string;
   scoreInstructions?: string | null;
+  teamInteractionMode?: 'INDIVIDUAL' | 'SHARED_RESOURCE' | 'COLLABORATIVE' | null;
 }
 
 export interface UpdateDisciplineData {
   name?: string;
   scoreInstructions?: string | null;
+  teamInteractionMode?: 'INDIVIDUAL' | 'SHARED_RESOURCE' | 'COLLABORATIVE' | null;
 }
 
 export class DisciplineRepository {

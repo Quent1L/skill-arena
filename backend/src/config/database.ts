@@ -12,9 +12,9 @@ function getDb(): AppDatabase {
   if (!_db) {
     _pool ??= new Pool({
       connectionString: process.env.DATABASE_URL!,
-      max: 10,
+      max: process.env.DATABASE_POOL_MAX ? parseInt(process.env.DATABASE_POOL_MAX) : 10,
       idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 3_000,
+      connectionTimeoutMillis: 5_000,
     })
     _db = drizzle(_pool, { schema })
   }

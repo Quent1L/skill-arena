@@ -3,9 +3,11 @@ import { disciplineService } from "../services/discipline.service";
 import {
   createDisciplineSchema,
   updateDisciplineSchema,
+  TEAM_INTERACTION_MODES,
 } from "@skill-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
+import i18next from "../config/i18n";
 
 const disciplines = createAppHono();
 
@@ -25,6 +27,17 @@ disciplines.post(
 disciplines.get("/", async (c) => {
   const disciplinesList = await disciplineService.listDisciplines();
   return c.json(disciplinesList);
+});
+
+// GET /disciplines/interaction-modes - List team interaction mode options (i18n labels)
+disciplines.get("/interaction-modes", (c) => {
+  const lang = c.get("lang");
+  return c.json(
+    TEAM_INTERACTION_MODES.map((value) => ({
+      value,
+      label: String(i18next.t(`disciplines.interaction_modes.${value}`, { lng: lang })),
+    }))
+  );
 });
 
 // GET /disciplines/:id - Get single discipline

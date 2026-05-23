@@ -4,20 +4,27 @@ import { z } from "zod";
 // Types et interfaces pour les disciplines
 // ============================================
 
+export type TeamInteractionMode = 'INDIVIDUAL' | 'SHARED_RESOURCE' | 'COLLABORATIVE';
+
+export const TEAM_INTERACTION_MODES = ['INDIVIDUAL', 'SHARED_RESOURCE', 'COLLABORATIVE'] as const;
+
 export interface Discipline {
   id: string;
   name: string;
   scoreInstructions?: string | null;
+  teamInteractionMode?: TeamInteractionMode | null;
 }
 
 export interface CreateDisciplineInput {
   name: string;
   scoreInstructions?: string | null;
+  teamInteractionMode?: TeamInteractionMode | null;
 }
 
 export interface UpdateDisciplineInput {
   name?: string;
   scoreInstructions?: string | null;
+  teamInteractionMode?: TeamInteractionMode | null;
 }
 
 // ============================================
@@ -30,6 +37,7 @@ export const createDisciplineSchema = z.object({
     .min(1, "Le nom ne peut pas être vide")
     .max(100, "Le nom ne peut pas dépasser 100 caractères"),
   scoreInstructions: z.string().max(500).nullish(),
+  teamInteractionMode: z.enum(TEAM_INTERACTION_MODES).nullish(),
 });
 
 export const updateDisciplineSchema = z.object({
@@ -39,6 +47,7 @@ export const updateDisciplineSchema = z.object({
     .max(100, "Le nom ne peut pas dépasser 100 caractères")
     .optional(),
   scoreInstructions: z.string().max(500).nullish(),
+  teamInteractionMode: z.enum(TEAM_INTERACTION_MODES).nullish(),
 });
 
 // ============================================

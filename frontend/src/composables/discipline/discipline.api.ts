@@ -7,10 +7,19 @@ import type {
 
 const BASE_URL = '/api/disciplines'
 
+export interface InteractionModeOption {
+  value: string
+  label: string
+}
 
 export const disciplineApi = {
   async list(): Promise<Discipline[]> {
     const response = await http.get<Discipline[]>(BASE_URL)
+    return response.data
+  },
+
+  async listInteractionModes(): Promise<InteractionModeOption[]> {
+    const response = await http.get<InteractionModeOption[]>(`${BASE_URL}/interaction-modes`)
     return response.data
   },
 

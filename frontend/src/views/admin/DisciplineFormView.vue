@@ -36,6 +36,23 @@
                   placeholder="Indiquez comment saisir le score pour cette discipline..."
                 />
               </div>
+              <div>
+                <label for="teamInteractionMode" class="block text-sm font-medium mb-2">
+                  Mode d'interaction d'équipe
+                </label>
+                <Select
+                  id="teamInteractionMode"
+                  v-model="teamInteractionMode"
+                  :options="interactionModeOptions"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="Sélectionner un mode..."
+                  class="w-full"
+                  :class="{ 'p-invalid': errors.teamInteractionMode }"
+                  show-clear
+                />
+                <small class="p-error">{{ errors.teamInteractionMode }}</small>
+              </div>
             </div>
           </div>
 
@@ -108,6 +125,7 @@ import {
 } from '@skill-arena/shared/types/index'
 import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
+import { disciplineApi, type InteractionModeOption } from '@/composables/discipline/discipline.api'
 import { useConfirm } from 'primevue/useconfirm'
 import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
 import OutcomeTypeDialog from './components/OutcomeTypeDialog.vue'
@@ -145,6 +163,9 @@ const { handleSubmit, defineField, errors, setValues } = useForm({
 
 const [name] = defineField('name')
 const [scoreInstructions] = defineField('scoreInstructions')
+const [teamInteractionMode] = defineField('teamInteractionMode')
+
+const interactionModeOptions = ref<InteractionModeOption[]>([])
 
 // Outcome Types management
 const outcomeTypeTableRef = ref<InstanceType<typeof OutcomeTypeTable> | null>(null)
@@ -275,14 +296,17 @@ const onSubmit = handleSubmit(async (values) => {
 })
 
 onMounted(async () => {
-  if (isEditMode.value && route.params.id) {
-    await getDiscipline(route.params.id as string)
-    if (currentDiscipline.value) {
-      setValues({
-        name: currentDiscipline.value.name,
-        scoreInstructions: currentDiscipline.value.scoreInstructions,
-      })
-    }
+  const [modes] = await Promise.all([
+    disciplineApi.listInteractionModes(),
+    isEditMode.value && route.params.id ? getDiscipline(route.params.id as string) : Promise.resolve(),
+  ])
+  interactionModeOptions.value = modes
+  if (isEditMode.value && currentDiscipline.value) {
+    setValues({
+      name: currentDiscipline.value.name,
+      scoreInstructions: currentDiscipline.value.scoreInstructions,
+      teamInteractionMode: currentDiscipline.value.teamInteractionMode,
+    })
   }
 })
 </script>

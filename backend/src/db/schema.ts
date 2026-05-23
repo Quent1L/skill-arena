@@ -172,6 +172,8 @@ export const matchFinalizationReasonEnum = pgEnum("match_finalization_reason", [
 
 export const validationModeEnum = pgEnum("validation_mode", ["auto", "strict", "admin", "none"]);
 
+export const teamInteractionModeEnum = pgEnum("team_interaction_mode", ["INDIVIDUAL", "SHARED_RESOURCE", "COLLABORATIVE"]);
+
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
 export const notificationTypeEnum = pgEnum("notification_type", [
@@ -756,6 +758,7 @@ export const disciplines = pgTable("disciplines", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   scoreInstructions: text("score_instructions"),
+  teamInteractionMode: teamInteractionModeEnum("team_interaction_mode"),
 });
 
 export const outcomeTypes = pgTable("outcome_types", {

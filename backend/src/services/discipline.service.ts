@@ -13,6 +13,7 @@ export class DisciplineService {
     return await disciplineRepository.create({
       name: input.name,
       scoreInstructions: input.scoreInstructions,
+      teamInteractionMode: input.teamInteractionMode,
     });
   }
 
@@ -33,6 +34,7 @@ export class DisciplineService {
     return await disciplineRepository.update(id, {
       name: input.name,
       scoreInstructions: input.scoreInstructions,
+      teamInteractionMode: input.teamInteractionMode,
     });
   }
 

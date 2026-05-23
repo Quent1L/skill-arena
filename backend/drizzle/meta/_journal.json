@@ -323,6 +323,13 @@
       "when": 1777526400001,
       "tag": "0045_mmr_perf",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1777526400002,
+      "tag": "0046_discipline_team_interaction_mode",
+      "breakpoints": true
     }
   ]
 }
