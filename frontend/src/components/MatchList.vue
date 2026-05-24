@@ -98,9 +98,9 @@
         v-else
         ref="container"
         class="overflow-y-auto pr-1"
-        style="max-height: calc(100vh - 200px)"
+        :style="props.noScroll ? undefined : 'max-height: calc(100vh - 200px)'"
       >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div :class="gridClass">
           <MatchCard
             v-for="match in displayedMatches"
             :key="match.id"
@@ -144,10 +144,12 @@ interface Props {
   allowDraw?: boolean
   playerMode?: boolean
   noScroll?: boolean
+  gridClass?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   pageSize: 20,
+  gridClass: 'grid grid-cols-1 md:grid-cols-2 gap-4',
 })
 
 const matches = ref<ClientMatchCard[]>([])

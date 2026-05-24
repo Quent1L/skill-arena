@@ -62,7 +62,12 @@
               <template #option="{ option }">
                 <div class="flex items-center justify-between w-full gap-2">
                   <span class="truncate">{{ option.label }}</span>
-                  <Tag v-if="option.mode" :value="modeLabel(option.mode)" :severity="modeSeverity(option.mode)" class="shrink-0 text-xs" />
+                  <Tag
+                    v-if="option.mode"
+                    :value="modeLabel(option.mode)"
+                    :severity="modeSeverity(option.mode)"
+                    class="shrink-0 text-xs"
+                  />
                 </div>
               </template>
             </Select>
@@ -111,7 +116,12 @@
               <template #option="{ option }">
                 <div class="flex items-center justify-between w-full gap-2">
                   <span class="truncate">{{ option.label }}</span>
-                  <Tag v-if="option.mode" :value="modeLabel(option.mode)" :severity="modeSeverity(option.mode)" class="shrink-0 text-xs" />
+                  <Tag
+                    v-if="option.mode"
+                    :value="modeLabel(option.mode)"
+                    :severity="modeSeverity(option.mode)"
+                    class="shrink-0 text-xs"
+                  />
                 </div>
               </template>
             </Select>
@@ -175,6 +185,7 @@
               :player-mode="true"
               :page-size="10"
               :no-scroll="true"
+              grid-class="grid grid-cols-1 gap-4"
             />
           </div>
         </div>
