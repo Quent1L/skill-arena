@@ -562,6 +562,64 @@ describe("MmrCalculationService", () => {
       expect(Math.abs(winnerHistory[0].mmrDelta)).toBe(Math.abs(loserHistory[0].mmrDelta));
     });
 
+    it("kEffective dans l'historique est amplifié quand score nette et scoreCountsForMmr=true", async () => {
+      const historyNoScore: any[] = [];
+      const historyWithScore: any[] = [];
+
+      // Victoire sans score (0-0, total=0 → pas d'amplification)
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        historyNoScore.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], {
+        m1: makeSideResult({ playerWon: true, scoreForPlayer: 0, scoreForOpponent: 0 }),
+      });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      resetMocks();
+      service = new MmrCalculationService();
+
+      // Victoire écrasante 10-0 → amplification maximale (diff/total = 1)
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        historyWithScore.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], {
+        m1: makeSideResult({ playerWon: true, scoreForPlayer: 10, scoreForOpponent: 0 }),
+      });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      expect(historyWithScore[0].kEffective).toBeGreaterThan(historyNoScore[0].kEffective);
+    });
+
+    it("mmrDelta plus élevé pour score 10-0 que pour score 5-5 avec scoreCountsForMmr=true", async () => {
+      const historyDraw: any[] = [];
+      const historyDomination: any[] = [];
+
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        historyDraw.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], {
+        m1: makeSideResult({ playerWon: true, scoreForPlayer: 5, scoreForOpponent: 5 }),
+      });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      resetMocks();
+      service = new MmrCalculationService();
+
+      mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
+        historyDomination.push(args);
+        return Promise.resolve();
+      });
+      setupMatches([makeMatch("m1")], {
+        m1: makeSideResult({ playerWon: true, scoreForPlayer: 10, scoreForOpponent: 0 }),
+      });
+      await service.recalculatePlayerMmr(SEASON, PLAYER);
+
+      expect(historyDomination[0].mmrDelta).toBeGreaterThan(historyDraw[0].mmrDelta);
+    });
+
     it("retourne immédiatement si pas de config ranked", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(null));
       await service.recalculatePlayerMmr(SEASON, PLAYER);
@@ -589,6 +647,167 @@ describe("MmrCalculationService", () => {
       // isPlacement=false, scoreCountsForMmr=true mais 0-0, outcomePoints=3
       const k = service.calculateEffectiveK(32, 0, 0, false, true, 3);
       expect(k).toBe(32);
+    });
+  });
+
+  // ── calculateMatchMmrBySides ───────────────────────────────────────────────
+
+  describe("calculateMatchMmrBySides", () => {
+    function makeOutcomeType(overrides: Partial<{ scoreCountsForMmr: boolean; mmrMultiplier: number; points: number }> = {}) {
+      return { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, ...overrides };
+    }
+
+    const discipline = { id: "", name: "", teamInteractionMode: null };
+
+    it("scoreCountsForMmr=false → delta=0 pour tous (early return)", () => {
+      const results = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType({ scoreCountsForMmr: false }),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }], score: 10 },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }], score: 0 },
+        ],
+      });
+      expect(results.every((r) => r.mmrDelta === 0)).toBe(true);
+    });
+
+    it("score amplifié 10-0 → delta vainqueur plus élevé qu'avec score 5-5", () => {
+      const resultDraw = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }], score: 5 },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }], score: 5 },
+        ],
+      });
+      const resultDomination = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }], score: 10 },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }], score: 0 },
+        ],
+      });
+      const winnerDraw = resultDraw.find((r) => r.playerId === "p1")!;
+      const winnerDomination = resultDomination.find((r) => r.playerId === "p1")!;
+      expect(winnerDomination.mmrDelta).toBeGreaterThan(winnerDraw.mmrDelta);
+    });
+
+    it("score 0-0 avec scoreCountsForMmr=true → même delta que sans score (total=0 → pas d'amplification)", () => {
+      const resultNoScore = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      const resultZero = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }], score: 0 },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }], score: 0 },
+        ],
+      });
+      expect(resultZero.find((r) => r.playerId === "p1")!.mmrDelta).toBe(
+        resultNoScore.find((r) => r.playerId === "p1")!.mmrDelta,
+      );
+    });
+
+    it("score égal 5-5 → même delta que sans score (diff=0 → pas d'amplification)", () => {
+      const resultNoScore = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      const resultEqual = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }], score: 5 },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }], score: 5 },
+        ],
+      });
+      expect(resultEqual.find((r) => r.playerId === "p1")!.mmrDelta).toBe(
+        resultNoScore.find((r) => r.playerId === "p1")!.mmrDelta,
+      );
+    });
+
+    it("mmrMultiplier=2 → delta doublé", () => {
+      const result1 = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType({ mmrMultiplier: 1 }),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      const result2 = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType({ mmrMultiplier: 2 }),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      expect(result2.find((r) => r.playerId === "p1")!.mmrDelta).toBe(
+        result1.find((r) => r.playerId === "p1")!.mmrDelta * 2,
+      );
+    });
+
+    it("mmrMultiplier=0 → delta=0 pour tous", () => {
+      const results = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType({ mmrMultiplier: 0 }),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      expect(results.every((r) => r.mmrDelta === 0)).toBe(true);
+    });
+
+    it("vainqueur newMmr > currentMmr, perdant newMmr < currentMmr", () => {
+      const results = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1000 }] },
+        ],
+      });
+      expect(results.find((r) => r.playerId === "p1")!.newMmr).toBeGreaterThan(1000);
+      expect(results.find((r) => r.playerId === "p2")!.newMmr).toBeLessThan(1000);
+    });
+
+    it("newMmr plancher à 1 même si currentMmr très bas et kFactor élevé", () => {
+      const results = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 2000 }] },
+          { isWinner: false, players: [{ id: "p2", currentMmr: 1 }] },
+        ],
+        kFactor: 500,
+      });
+      expect(results.find((r) => r.playerId === "p2")!.newMmr).toBeGreaterThanOrEqual(1);
+    });
+
+    it("somme des deltas de tous les joueurs ≈ 0 (conservation, à l'arrondi près)", () => {
+      const results = service.calculateMatchMmrBySides({
+        discipline,
+        outcomeType: makeOutcomeType(),
+        sides: [
+          { isWinner: true, players: [{ id: "p1", currentMmr: 1000 }, { id: "p2", currentMmr: 1000 }] },
+          { isWinner: false, players: [{ id: "p3", currentMmr: 1000 }, { id: "p4", currentMmr: 1000 }] },
+        ],
+      });
+      const total = results.reduce((s, r) => s + r.mmrDelta, 0);
+      expect(Math.abs(total)).toBeLessThanOrEqual(results.length);
     });
   });
 

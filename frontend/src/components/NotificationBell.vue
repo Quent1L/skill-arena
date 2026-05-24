@@ -23,7 +23,7 @@ function handleClick(event: Event) {
 
 <template>
   <Button aria-label="Notifications" text @click="handleClick">
-    <OverlayBadge v-if="unreadCount > 0" :value="unreadCount" severity="danger">
+    <OverlayBadge v-if="unreadCount > 0" :value="unreadCount" severity="danger" size="small">
       <span class="fa fa-bell text-color" style="font-size: 1.3rem" />
     </OverlayBadge>
     <span v-else class="fa fa-bell text-color" style="font-size: 1.3rem"> </span>

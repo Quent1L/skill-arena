@@ -14,6 +14,7 @@ export interface SideInput {
   sideId?: string;
   isWinner: boolean | null; // null = draw
   players: SidePlayerInput[];
+  score?: number;
 }
 
 export interface MatchCalculationInput {
@@ -184,8 +185,8 @@ export class MmrCalculationService {
       discipline,
       outcomeType,
       sides: [
-        { isWinner: playerWon, players: mySidePlayers },
-        { isWinner: playerWon === null ? null : !playerWon, players: oppSidePlayers },
+        { isWinner: playerWon, players: mySidePlayers, score: raw.scoreForPlayer },
+        { isWinner: playerWon === null ? null : !playerWon, players: oppSidePlayers, score: raw.scoreForOpponent },
       ],
       kFactor: config.kFactor,
       isPlacement,
@@ -198,7 +199,14 @@ export class MmrCalculationService {
     const opponentAvgMmr = oppSidePlayers.length > 0
       ? Math.round(oppSidePlayers.reduce((s, p) => s + p.currentMmr, 0) / oppSidePlayers.length)
       : config.baseMmr;
-    const kEffective = config.kFactor * (isPlacement ? 2 : 1) * outcomeType.mmrMultiplier;
+    const kEffective = this.calculateEffectiveK(
+      config.kFactor,
+      raw.scoreForPlayer,
+      raw.scoreForOpponent,
+      isPlacement,
+      outcomeType.scoreCountsForMmr,
+      null,
+    ) * outcomeType.mmrMultiplier;
 
     await playerMmrRepository.createMmrHistory({
       seasonId,
@@ -573,7 +581,7 @@ export class MmrCalculationService {
     const avg2 = this.sideAvgMmr(side2);
     const e1 = this.calculateExpectedScore(avg1, avg2);
     const e2 = 1 - e1;
-    const k = kFactor * (isPlacement ? 2 : 1);
+    const k = this.calculateEffectiveK(kFactor, side1.score ?? 0, side2.score ?? 0, isPlacement, outcomeType.scoreCountsForMmr, null);
     const f = outcomeType.mmrMultiplier;
     const w1 = side1.isWinner === null ? 0.5 : side1.isWinner ? 1 : 0;
     const w2 = side2.isWinner === null ? 0.5 : side2.isWinner ? 1 : 0;
