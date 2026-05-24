@@ -41,6 +41,7 @@ declare module 'vue' {
     MatchList: typeof import('./src/components/MatchList.vue')['default']
     Menu: typeof import('primevue/menu')['default']
     Message: typeof import('primevue/message')['default']
+    MmrExplainerCard: typeof import('./src/components/ranked/MmrExplainerCard.vue')['default']
     MmrRecapCard: typeof import('./src/components/ranked/MmrRecapCard.vue')['default']
     MmrRevealAnimation: typeof import('./src/components/ranked/MmrRevealAnimation.vue')['default']
     MobileBottomNav: typeof import('./src/components/tournament/mobile/MobileBottomNav.vue')['default']

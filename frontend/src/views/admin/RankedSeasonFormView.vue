@@ -1,4 +1,5 @@
 <template>
+  <Toast />
   <div class="ranked-season-form-view p-4">
     <div class="flex items-center gap-3 mb-6">
       <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/ranked')" />
@@ -41,7 +42,9 @@
                   :min="100"
                   :max="5000"
                   class="w-full"
+                  :class="{ 'p-invalid': errors.baseMmr }"
                 />
+                <small class="p-error">{{ errors.baseMmr }}</small>
               </div>
 
               <div>
@@ -52,7 +55,9 @@
                   :min="8"
                   :max="128"
                   class="w-full"
+                  :class="{ 'p-invalid': errors.kFactor }"
                 />
+                <small class="p-error">{{ errors.kFactor }}</small>
               </div>
 
               <div>
@@ -62,10 +67,12 @@
                 <InputNumber
                   id="placementMatches"
                   v-model="placementMatches"
-                  :min="1"
+                  :min="0"
                   :max="20"
                   class="w-full"
+                  :class="{ 'p-invalid': errors.placementMatches }"
                 />
+                <small class="p-error">{{ errors.placementMatches }}</small>
               </div>
             </div>
 
@@ -147,11 +154,12 @@ import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useToast } from 'primevue/usetoast'
 import {
   type CreateRankedSeasonFormData,
   type UpdateRankedSeasonFormData,
-  baseRankedSeasonFormSchema,
-  baseRankedSeasonUpdateFormSchema,
+  createRankedSeasonFormSchema,
+  updateRankedSeasonFormSchema,
 } from '@skill-arena/shared/types/index'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useFormReferences } from '@/composables/useFormReferences'
@@ -184,9 +192,11 @@ const { isSuperAdmin } = useAuth()
 
 const isEditMode = computed(() => !!route.params.id && route.params.id !== 'new')
 
-const { handleSubmit, defineField, setValues } = useForm({
+const toast = useToast()
+
+const { handleSubmit, defineField, setValues, errors } = useForm({
   validationSchema: toTypedSchema(
-    isEditMode.value ? baseRankedSeasonUpdateFormSchema : baseRankedSeasonFormSchema,
+    isEditMode.value ? updateRankedSeasonFormSchema : createRankedSeasonFormSchema,
   ),
 })
 
@@ -207,16 +217,40 @@ const sourceTierOptions = computed(() =>
     })),
 )
 
-const onSubmit = handleSubmit(async (values) => {
-  if (isEditMode.value) {
-    const id = route.params.id as string
-    const success = await updateSeason(id, values as UpdateRankedSeasonFormData)
-    if (success) router.push('/admin/ranked')
-  } else {
-    const season = await createSeason(values as CreateRankedSeasonFormData)
-    if (season) router.push('/admin/ranked')
-  }
-})
+const fieldLabels: Record<string, string> = {
+  name: 'Nom',
+  disciplineId: 'Discipline',
+  startDate: 'Date de début',
+  endDate: 'Date de fin',
+  minTeamSize: 'Taille min équipe',
+  maxTeamSize: 'Taille max équipe',
+  baseMmr: 'MMR de base',
+  kFactor: 'Facteur K',
+  placementMatches: 'Matchs de placement',
+  minScore: 'Score minimum',
+  maxScore: 'Score maximum',
+  validationMode: 'Mode de validation',
+}
+
+const onSubmit = handleSubmit(
+  async (values) => {
+    if (isEditMode.value) {
+      const id = route.params.id as string
+      const success = await updateSeason(id, values as UpdateRankedSeasonFormData)
+      if (success) router.push('/admin/ranked')
+    } else {
+      const season = await createSeason(values as CreateRankedSeasonFormData)
+      if (season) router.push('/admin/ranked')
+    }
+  },
+  ({ errors: formErrors }) => {
+    const errs = formErrors as Record<string, string>
+    const detail = Object.keys(errs)
+      .map((k) => `• ${fieldLabels[k] ?? k}: ${errs[k]}`)
+      .join('\n')
+    toast.add({ severity: 'error', summary: 'Champs invalides', detail, life: 8000 })
+  },
+)
 
 onMounted(async () => {
   await Promise.all([loadFormReferences(), loadFinishedSeasons()])
@@ -244,7 +278,7 @@ onMounted(async () => {
         usePreviousMmr: s.rankedConfig?.usePreviousMmr ?? false,
         allowAsymmetricMatches: s.rankedConfig?.allowAsymmetricMatches ?? false,
         sourceTierSeasonId: s.rankedConfig?.sourceTierSeasonId ?? null,
-        validationMode: s.validationMode ?? 'strict',
+        validationMode: (s.validationMode ?? 'strict') as 'none' | 'auto' | 'strict' | 'admin',
         validationTimerHours: s.validationTimerHours ?? null,
       })
     }

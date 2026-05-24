@@ -63,12 +63,18 @@
       class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 tournament-description text-gray-700 dark:text-gray-300"
       v-html="store.tournament!.description"
     />
+
+    <MmrExplainerCard
+      v-if="store.tournament!.mode === 'ranked'"
+      :tournament-id="(route.params.id as string)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
+import MmrExplainerCard from '@/components/ranked/MmrExplainerCard.vue'
 
 const store = useTournamentDetailStore()
 const router = useRouter()

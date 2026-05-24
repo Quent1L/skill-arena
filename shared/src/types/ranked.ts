@@ -113,7 +113,7 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
 const rankedSeasonExtraFields = {
   baseMmr: z.number().int().min(100).max(5000),
   kFactor: z.number().int().min(8).max(128),
-  placementMatches: z.number().int().min(1).max(20),
+  placementMatches: z.number().int().min(0).max(20),
   usePreviousMmr: z.boolean(),
   allowAsymmetricMatches: z.boolean(),
   sourceTierSeasonId: z.string().uuid().nullable().optional(),
@@ -126,7 +126,7 @@ export const baseRankedSeasonUpdateFormSchema =
   baseSeasonUpdateFormSchema.extend({
     baseMmr: z.number().int().min(100).max(5000).optional(),
     kFactor: z.number().int().min(8).max(128).optional(),
-    placementMatches: z.number().int().min(1).max(20).optional(),
+    placementMatches: z.number().int().min(0).max(20).optional(),
     usePreviousMmr: z.boolean().optional(),
     allowAsymmetricMatches: z.boolean().optional(),
     sourceTierSeasonId: z.string().uuid().nullable().optional(),
