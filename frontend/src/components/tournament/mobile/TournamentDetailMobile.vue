@@ -42,40 +42,43 @@
           <button
             class="flex-1 py-2 text-sm font-semibold transition-colors"
             :class="statsSubTab === 'profile' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
-            @click="statsSubTab = 'profile'"
+            @click="setStatsSubTab('profile')"
           >Mon profil</button>
           <button
             class="flex-1 py-2 text-sm font-semibold transition-colors"
             :class="statsSubTab === 'global' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
-            @click="statsSubTab = 'global'"
+            @click="setStatsSubTab('global')"
           >Stats globales</button>
         </div>
 
-        <!-- Profile sub-tab (ranked + auth) -->
+        <!-- Animated content (ranked + auth) -->
         <div
           v-if="store.tournament!.mode === 'ranked' && store.isAuthenticated"
-          v-show="statsSubTab === 'profile'"
-          class="p-2"
+          class="relative overflow-hidden"
         >
-          <PlayerMmrProfile
-            v-if="store.playerMmr"
-            :mmr="store.playerMmr"
-            :tiers="store.rankedTiers"
-            :leaderboard-rank="store.playerLeaderboardRank"
-            :history="store.profileChartHistory"
-          />
-          <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
-            <i class="fa fa-user-slash text-4xl mb-4 block"></i>
-            <p>Vous n'avez pas encore de MMR pour cette saison.</p>
-            <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
-          </div>
+          <Transition :name="statsSwipeTransition" mode="out-in">
+            <div v-if="statsSubTab === 'profile'" key="profile" class="p-2">
+              <PlayerMmrProfile
+                v-if="store.playerMmr"
+                :mmr="store.playerMmr"
+                :tiers="store.rankedTiers"
+                :leaderboard-rank="store.playerLeaderboardRank"
+                :history="store.profileChartHistory"
+              />
+              <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
+                <i class="fa fa-user-slash text-4xl mb-4 block"></i>
+                <p>Vous n'avez pas encore de MMR pour cette saison.</p>
+                <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
+              </div>
+            </div>
+            <div v-else key="global" class="p-2">
+              <TournamentStatsTab />
+            </div>
+          </Transition>
         </div>
 
-        <!-- Global stats (always for non-ranked/unauth; global sub-tab for ranked) -->
-        <div
-          v-show="store.tournament!.mode !== 'ranked' || !store.isAuthenticated || statsSubTab === 'global'"
-          class="p-2"
-        >
+        <!-- Non-ranked / unauthenticated -->
+        <div v-else class="p-2">
           <TournamentStatsTab />
         </div>
       </div>
@@ -196,16 +199,42 @@ const standingsTypeValues = ['official', 'provisional'] as const
 
 useSwipe(contentAreaRef, {
   onSwipeEnd(_e, direction) {
-    if (activeTab.value !== 'standings') return
-    const currentIndex = standingsTypeValues.indexOf(standingsType.value)
-    const next = standingsTypeValues[currentIndex + 1]
-    const prev = standingsTypeValues[currentIndex - 1]
-    if (direction === 'left' && next) standingsType.value = next
-    else if (direction === 'right' && prev) standingsType.value = prev
+    if (activeTab.value === 'standings') {
+      const currentIndex = standingsTypeValues.indexOf(standingsType.value)
+      const next = standingsTypeValues[currentIndex + 1]
+      const prev = standingsTypeValues[currentIndex - 1]
+      if (direction === 'left' && next) standingsType.value = next
+      else if (direction === 'right' && prev) standingsType.value = prev
+    } else if (
+      activeTab.value === 'stats' &&
+      store.tournament?.mode === 'ranked' &&
+      store.isAuthenticated
+    ) {
+      const currentIndex = statsSubTabValues.indexOf(statsSubTab.value)
+      const next = statsSubTabValues[currentIndex + 1]
+      const prev = statsSubTabValues[currentIndex - 1]
+      if (direction === 'left' && next) {
+        statsSwipeTransition.value = 'slide-left'
+        statsSubTab.value = next
+      } else if (direction === 'right' && prev) {
+        statsSwipeTransition.value = 'slide-right'
+        statsSubTab.value = prev
+      }
+    }
   },
 })
 
 const activeTab = computed(() => (route.params.tab as string) || 'infos')
+
+const statsSubTabValues = ['profile', 'global'] as const
+const statsSwipeTransition = ref<'slide-left' | 'slide-right'>('slide-left')
+
+function setStatsSubTab(tab: 'profile' | 'global') {
+  const from = statsSubTabValues.indexOf(statsSubTab.value)
+  const to = statsSubTabValues.indexOf(tab)
+  statsSwipeTransition.value = to > from ? 'slide-left' : 'slide-right'
+  statsSubTab.value = tab
+}
 
 function navigate(tab: string) {
   router.push({ name: 'tournament-tab', params: { id: store.tournamentId, tab } })
@@ -221,4 +250,16 @@ function handleCreateMatch() {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+
+.slide-left-enter-from  { transform: translateX(40px);  opacity: 0; }
+.slide-left-leave-to    { transform: translateX(-40px); opacity: 0; }
+.slide-right-enter-from { transform: translateX(-40px); opacity: 0; }
+.slide-right-leave-to   { transform: translateX(40px);  opacity: 0; }
+</style>
