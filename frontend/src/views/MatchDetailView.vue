@@ -37,7 +37,9 @@
       </div>
 
       <!-- Match Info Card -->
-      <div class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 overflow-hidden">
+      <div
+        class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 overflow-hidden"
+      >
         <div class="p-4 border-b border-surface-200 dark:border-surface-700">
           <div class="flex justify-between">
             <div class="text-2xl font-bold">Match</div>
@@ -74,45 +76,56 @@
                 </div>
                 <div v-if="sideA?.players" class="mt-2 text-sm flex justify-center">
                   <div class="inline-flex flex-col items-start">
-                  <div
-                    v-for="p in sideA.players"
-                    :key="p.id"
-                    class="flex items-center gap-1.5"
-                  >
-                    <RouterLink
-                      v-if="p.id"
-                      :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
-                      class="hover:underline text-blue-600 dark:text-blue-400"
-                    >
-                      {{ p.displayName }}
-                    </RouterLink>
-                    <span v-else>{{ p.displayName }}</span>
-                    <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode === 'championship' && p.effectivePointsAwarded !== undefined"
-                    >
-                      <Tag
-                        v-if="p.exceededMatchLimit"
-                        value="hors limite"
-                        severity="secondary"
-                        class="text-xs"
-                      />
-                      <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                        +{{ p.effectivePointsAwarded }} pt{{
-                          p.effectivePointsAwarded !== 1 ? 's' : ''
-                        }}
-                      </span>
-                    </template>
-                    <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode === 'ranked' && p.mmrDelta !== undefined"
-                    >
-                      <span
-                        class="font-semibold"
-                        :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                    <div v-for="p in sideA.players" :key="p.id" class="flex items-center gap-1.5">
+                      <RouterLink
+                        v-if="p.id"
+                        :to="{
+                          path: `/players/${p.id}`,
+                          query: match.tournamentId ? { tournamentId: match.tournamentId } : {},
+                        }"
+                        class="hover:underline text-blue-600 dark:text-blue-400"
                       >
-                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
-                      </span>
-                    </template>
-                  </div>
+                        {{ p.displayName }}
+                      </RouterLink>
+                      <span v-else>{{ p.displayName }}</span>
+                      <template
+                        v-if="
+                          match.status === 'finalized' &&
+                          match.tournament?.mode === 'championship' &&
+                          p.effectivePointsAwarded !== undefined
+                        "
+                      >
+                        <Tag
+                          v-if="p.exceededMatchLimit"
+                          value="hors limite"
+                          severity="secondary"
+                          class="text-xs"
+                        />
+                        <span v-else class="font-semibold text-green-600 dark:text-green-400">
+                          +{{ p.effectivePointsAwarded }} pt{{
+                            p.effectivePointsAwarded !== 1 ? 's' : ''
+                          }}
+                        </span>
+                      </template>
+                      <template
+                        v-if="
+                          match.status === 'finalized' &&
+                          match.tournament?.mode === 'ranked' &&
+                          p.mmrDelta !== undefined
+                        "
+                      >
+                        <span
+                          class="font-semibold"
+                          :class="
+                            p.mmrDelta && p.mmrDelta > 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          "
+                        >
+                          {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -148,45 +161,56 @@
                 </div>
                 <div v-if="sideB?.players" class="mt-2 text-sm flex justify-center">
                   <div class="inline-flex flex-col items-start">
-                  <div
-                    v-for="p in sideB.players"
-                    :key="p.id"
-                    class="flex items-center gap-1.5"
-                  >
-                    <RouterLink
-                      v-if="p.id"
-                      :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
-                      class="hover:underline text-blue-600 dark:text-blue-400"
-                    >
-                      {{ p.displayName }}
-                    </RouterLink>
-                    <span v-else>{{ p.displayName }}</span>
-                    <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode === 'championship' && p.effectivePointsAwarded !== undefined"
-                    >
-                      <Tag
-                        v-if="p.exceededMatchLimit"
-                        value="hors limite"
-                        severity="secondary"
-                        class="text-xs"
-                      />
-                      <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                        +{{ p.effectivePointsAwarded }} pt{{
-                          p.effectivePointsAwarded !== 1 ? 's' : ''
-                        }}
-                      </span>
-                    </template>
-                    <template
-                      v-if="match.status === 'finalized' && match.tournament?.mode === 'ranked' && p.mmrDelta !== undefined"
-                    >
-                      <span
-                        class="font-semibold"
-                        :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                    <div v-for="p in sideB.players" :key="p.id" class="flex items-center gap-1.5">
+                      <RouterLink
+                        v-if="p.id"
+                        :to="{
+                          path: `/players/${p.id}`,
+                          query: match.tournamentId ? { tournamentId: match.tournamentId } : {},
+                        }"
+                        class="hover:underline text-blue-600 dark:text-blue-400"
                       >
-                        {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
-                      </span>
-                    </template>
-                  </div>
+                        {{ p.displayName }}
+                      </RouterLink>
+                      <span v-else>{{ p.displayName }}</span>
+                      <template
+                        v-if="
+                          match.status === 'finalized' &&
+                          match.tournament?.mode === 'championship' &&
+                          p.effectivePointsAwarded !== undefined
+                        "
+                      >
+                        <Tag
+                          v-if="p.exceededMatchLimit"
+                          value="hors limite"
+                          severity="secondary"
+                          class="text-xs"
+                        />
+                        <span v-else class="font-semibold text-green-600 dark:text-green-400">
+                          +{{ p.effectivePointsAwarded }} pt{{
+                            p.effectivePointsAwarded !== 1 ? 's' : ''
+                          }}
+                        </span>
+                      </template>
+                      <template
+                        v-if="
+                          match.status === 'finalized' &&
+                          match.tournament?.mode === 'ranked' &&
+                          p.mmrDelta !== undefined
+                        "
+                      >
+                        <span
+                          class="font-semibold"
+                          :class="
+                            p.mmrDelta && p.mmrDelta > 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-600 dark:text-red-400'
+                          "
+                        >
+                          {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
+                        </span>
+                      </template>
+                    </div>
                   </div>
                 </div>
                 <div class="mt-3 min-h-[32px]">
@@ -205,6 +229,10 @@
               <div>
                 <span class="text-surface-500 dark:text-surface-400">Date du match :</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
+              </div>
+              <div v-if="match.creator">
+                <span class="text-surface-500 dark:text-surface-400">Saisi par :</span>
+                <span class="ml-2 font-semibold"> {{ match.creator.displayName }}</span>
               </div>
               <div v-if="match.outcomeType">
                 <span class="text-surface-500 dark:text-surface-400">Type de résultat :</span>
@@ -255,6 +283,10 @@
           </h3>
         </div>
         <div class="p-4 space-y-3">
+          <p class="text-xs text-red-600 dark:text-red-400">
+            <i class="fa fa-info-circle mr-1" />
+            Seul le joueur ayant saisi ce match ou un administrateur peut l'annuler.
+          </p>
           <div
             v-for="dispute in postFinalizationDisputes"
             :key="dispute.id"
@@ -264,10 +296,16 @@
               <span class="font-medium">{{ dispute.player?.displayName || 'Joueur inconnu' }}</span>
               <Tag severity="danger" value="Contesté" />
             </div>
-            <div v-if="dispute.contestationReason" class="text-sm text-surface-600 dark:text-surface-400">
+            <div
+              v-if="dispute.contestationReason"
+              class="text-sm text-surface-600 dark:text-surface-400"
+            >
               <span class="font-semibold">Raison :</span> {{ dispute.contestationReason }}
             </div>
-            <div v-if="dispute.contestationProof" class="text-sm text-surface-600 dark:text-surface-400">
+            <div
+              v-if="dispute.contestationProof"
+              class="text-sm text-surface-600 dark:text-surface-400"
+            >
               <span class="font-semibold">Preuve :</span>
               <a
                 v-if="isProofUrl(dispute.contestationProof)"
@@ -275,7 +313,8 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="ml-1 text-primary hover:underline"
-              >{{ dispute.contestationProof }}</a>
+                >{{ dispute.contestationProof }}</a
+              >
               <span v-else class="ml-1">{{ dispute.contestationProof }}</span>
             </div>
             <div class="text-xs text-surface-400 dark:text-surface-500">
@@ -298,10 +337,11 @@
         </div>
         <div class="p-4 space-y-3">
           <p class="text-sm text-surface-600 dark:text-surface-400">
-            Ce match a été finalisé automatiquement. Vous pouvez contester le résultat dans les 7 jours suivant la finalisation.
+            Ce match a été finalisé automatiquement. Vous pouvez contester le résultat dans les 7
+            jours suivant la finalisation.
           </p>
           <p class="text-sm text-surface-500 dark:text-surface-500">
-            Temps restant : {{ postFinalizationTimeRemaining }}
+            Expire {{ postFinalizationTimeRemaining }}
           </p>
           <Button
             label="Contester le résultat"
@@ -333,17 +373,6 @@
               class="w-full"
             />
           </div>
-          <div>
-            <label for="postDisputeProof" class="block text-sm font-medium mb-2">
-              Preuve (optionnel)
-            </label>
-            <InputText
-              id="postDisputeProof"
-              v-model="postDisputeProof"
-              placeholder="Lien vers une capture d'écran, vidéo..."
-              class="w-full"
-            />
-          </div>
         </div>
         <template #footer>
           <Button
@@ -370,9 +399,13 @@
         :closable="!cancelling"
         :style="{ maxWidth: '600px' }"
       >
-        <p v-if="match.status === 'finalized'" class="text-orange-600 dark:text-orange-400 font-semibold mb-2">
+        <p
+          v-if="match.status === 'finalized'"
+          class="text-orange-600 dark:text-orange-400 font-semibold mb-2"
+        >
           <i class="fa fa-triangle-exclamation mr-1" />
-          Ce match a déjà été finalisé automatiquement. L'annulation recalculera les points et le MMR associés.
+          Ce match a déjà été finalisé automatiquement. L'annulation recalculera les points et le
+          MMR associés.
         </p>
         <p class="text-surface-600 dark:text-surface-400">
           Êtes-vous sûr de vouloir annuler ce match ? Cette action ne peut pas être défaite.
@@ -446,7 +479,11 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
-import type { ClientMatchDetail, MatchFinalizationReason, MmrAnimationWsPayload } from '@skill-arena/shared/types/index'
+import type {
+  ClientMatchDetail,
+  MatchFinalizationReason,
+  MmrAnimationWsPayload,
+} from '@skill-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
@@ -522,8 +559,10 @@ const postFinalizationDisputes = computed(() => {
 const canDisputePostFinalization = computed(() => {
   if (!match.value || !appUser.value) return false
   if (match.value.status !== 'finalized') return false
-  if (match.value.tournament?.validationMode !== 'auto') return false
+  const reason = match.value.result?.finalizationReason
+  if (!reason || !['auto_validation', 'trust_score'].includes(reason)) return false
   if (!isParticipant.value) return false
+  if (match.value.result?.reportedBy === appUser.value.id) return false
 
   const finalizedAt = match.value.result?.finalizedAt
   if (!finalizedAt) return false
@@ -678,7 +717,7 @@ async function handleFinalize(reason: MatchFinalizationReason) {
   } catch (err) {
     console.error('Error finalizing match:', err)
   }
-  refreshTournament();
+  refreshTournament()
 }
 
 function completeMatch() {

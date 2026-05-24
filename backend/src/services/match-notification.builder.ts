@@ -122,6 +122,35 @@ export class MatchNotificationBuilder {
     }
   }
 
+  async notifyPostFinalizationDispute(matchId: string, disputedBy: string): Promise<void> {
+    const match = await matchRepository.getById(matchId)
+    if (!match) return
+
+    const tournament = await matchRepository.getTournament(match.tournamentId)
+    const participants = await matchRepository.getParticipationsByMatchId(matchId)
+    const disputer = await userRepository.getById(disputedBy)
+    const disputerName = disputer?.displayName || 'Un joueur'
+    const matchDate = this.formatMatchDate(match.playedAt)
+
+    const recipients = this.recipientsExcept(participants, disputedBy)
+    for (const playerId of recipients) {
+      await notificationService.send({
+        userId: playerId,
+        type: 'MATCH_POST_DISPUTE',
+        titleKey: 'notifications.MATCH_POST_DISPUTE_TITLE',
+        messageKey: 'notifications.MATCH_POST_DISPUTE_MESSAGE',
+        translationParams: {
+          disputerName,
+          tournamentName: tournament?.name ?? '',
+          matchDate,
+        },
+        actionUrl: `/matches/${matchId}`,
+        requiresAction: false,
+        matchId,
+      })
+    }
+  }
+
   private recipientsExcept(participants: Participation[], excludeUserId: string): string[] {
     return [...new Set(participants.map((p) => p.playerId))].filter(
       (id) => id !== excludeUserId,

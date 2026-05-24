@@ -184,6 +184,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "SYSTEM_ALERT",
   "match_created",
   "MATCH_SCORE_PROPOSAL",
+  "MATCH_POST_DISPUTE",
 ]);
 
 export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
@@ -1024,6 +1025,10 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
   bracketMetadata: one(bracketMatchMetadata, {
     fields: [matches.id],
     references: [bracketMatchMetadata.matchId],
+  }),
+  creator: one(appUsers, {
+    fields: [matches.createdBy],
+    references: [appUsers.id],
   }),
 }));
 

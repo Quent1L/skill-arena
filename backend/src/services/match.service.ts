@@ -674,6 +674,8 @@ export class MatchService {
       isPostFinalization: true,
     })
 
+    await matchNotificationBuilder.notifyPostFinalizationDispute(id, respondedBy)
+
     return await matchRepository.getById(id)
   }
 

@@ -6,6 +6,8 @@
     "MATCH_SCHEDULED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}",
     "MATCH_SCORE_PROPOSAL_TITLE": "{{proposerName}} propose un score corrigé",
     "MATCH_SCORE_PROPOSAL_MESSAGE": "⚠️ Score proposé : {{scoreA}} - {{scoreB}}\nConfirmez ou contestez ce résultat avant la deadline.",
+    "MATCH_POST_DISPUTE_TITLE": "{{disputerName}} a contesté le résultat",
+    "MATCH_POST_DISPUTE_MESSAGE": "🚩 {{tournamentName}}\n📅 {{matchDate}}\n{{disputerName}} conteste le résultat de ce match finalisé.",
     "MATCH_VALIDATION_TITLE": "{{reporterName}} a saisi le résultat ({{matchFormat}})",
     "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}\n✅ Confirmez ou contestez ce résultat avant la deadline."
   },

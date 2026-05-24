@@ -187,6 +187,7 @@ export class MatchRepository {
         tournament: true,
         outcomeType: true,
         outcomeReason: true,
+        creator: true,
         confirmations: {
           with: {
             player: true,
@@ -273,6 +274,9 @@ export class MatchRepository {
       confirmationDeadline: match.confirmationDeadline as unknown as Date | undefined,
       createdAt: match.createdAt as unknown as Date,
       createdBy: match.createdBy ?? undefined,
+      creator: match.creator
+        ? { id: match.creator.id, displayName: match.creator.displayName }
+        : undefined,
       outcomeTypeId: match.outcomeTypeId ?? undefined,
       outcomeReasonId: match.outcomeReasonId,
       tournament: match.tournament

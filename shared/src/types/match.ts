@@ -595,6 +595,7 @@ export interface ClientMatchDetail {
   confirmationDeadline?: Date;
   createdAt: Date;
   createdBy?: string;
+  creator?: { id: string; displayName: string };
   outcomeTypeId?: string;
   outcomeReasonId?: string | null;
   tournament?: {
