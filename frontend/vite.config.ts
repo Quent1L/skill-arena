@@ -6,7 +6,8 @@ import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite'
 import { PrimeVueResolver } from '@primevue/auto-import-resolver'
-import { version } from './package.json'
+import { readFileSync } from 'node:fs'
+const version = readFileSync(new URL('../VERSION', import.meta.url), 'utf-8').trim()
 
 export default defineConfig({
   define: {
