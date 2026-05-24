@@ -97,3 +97,47 @@ Le dossier `shared/` contient tous les types TypeScript partagés entre frontend
 - **Backend** : Hono, Bun, DrizzleORM, PostgreSQL, Better Auth
 - **Shared** : TypeScript, Zod
 - **DevTools** : Bun, Concurrently, ESLint, Prettier
+
+
+
+---
+
+## Git Hooks & Conventional Commits
+
+Ce projet utilise [Husky](https://typicode.github.io/husky/) pour gérer les hooks Git et [commitlint](https://commitlint.js.org/) pour valider les messages de commit selon la convention [Conventional Commits](https://www.conventionalcommits.org/).
+
+Les hooks sont installés automatiquement lors d'un `bun install` grâce au script `prepare` dans `package.json`.
+
+### Format des commits
+
+```
+type(scope): description
+
+# Exemples
+feat(ranked): add MMR recalculation
+fix(bracket): correct seeding order
+docs: update setup instructions
+```
+
+Types acceptés : `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `revert`.
+
+### Résolution d'un problème PATH avec Bun (Linux/macOS)
+
+Husky exécute les hooks dans un shell restreint qui ne charge pas le profil utilisateur. Si Bun n'est pas trouvé dans le PATH au moment du commit, tu obtiendras une erreur du type :
+
+```
+.husky/commit-msg: bun: not found
+husky - commit-msg script failed (code 127)
+```
+
+Husky source le fichier `~/.config/husky/init.sh` avant chaque hook Git. C'est l'endroit prévu pour configurer le PATH ou initialiser un gestionnaire de versions. Pour corriger le problème, crée ce fichier en y ajoutant le chemin vers Bun :
+
+```bash
+mkdir -p ~/.config/husky
+echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.config/husky/init.sh
+```
+
+> **Note :** ce fichier est propre à ta machine et ne doit pas être commité. Chaque contributeur utilisant Bun devra effectuer cette manipulation une seule fois sur son poste.
+
+Pour vérifier le chemin exact de Bun sur ta machine : `which bun`.
+

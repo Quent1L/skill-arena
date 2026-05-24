@@ -29,10 +29,19 @@
     "clean": "bun run clean:shared && bun run clean:frontend && bun run clean:backend",
     "clean:shared": "cd shared && rm -rf dist .tsbuildinfo",
     "clean:backend": "cd backend && rm -rf .tsbuildinfo",
-    "clean:frontend": "cd frontend && rm -rf dist node_modules/.tmp"
+    "clean:frontend": "cd frontend && rm -rf dist node_modules/.tmp",
+    "release": "release-it",
+    "release:dry": "release-it --dry-run",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
+    "@release-it/bumper": "^7.0.5",
+    "@release-it/conventional-changelog": "^11.0.0",
+    "concurrently": "^9.2.1",
+    "husky": "^9.1.7",
+    "release-it": "^20.0.1"
   },
   "workspaces": {
     "packages": [

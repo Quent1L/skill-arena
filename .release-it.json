@@ -1,0 +1,40 @@
+{
+  "plugins": {
+    "@release-it/bumper": {
+      "in": "VERSION",
+      "out": "VERSION"
+    },
+    "@release-it/conventional-changelog": {
+      "preset": {
+        "name": "conventionalcommits",
+        "types": [
+          { "type": "feat", "section": "✨ Nouvelles fonctionnalités" },
+          { "type": "fix", "section": "🐛 Correctifs" },
+          { "type": "perf", "section": "⚡ Performances" },
+          { "type": "refactor", "section": "♻️ Refactoring" },
+          { "type": "docs", "section": "📝 Documentation" },
+          { "type": "chore", "section": "🔧 Maintenance"},
+          { "type": "style", "section": "🎨 Style" },
+          { "type": "test", "section": "✅ Tests", "hidden": true },
+          { "type": "ci", "section": "👷 CI", "hidden": true }
+        ]
+      },
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog"
+    }
+  },
+  "git": {
+    "commitMessage": "chore(release): v${version}",
+    "tagName": "${version}",
+    "tagAnnotation": "Release v${version}",
+    "push": true,
+    "requireCleanWorkingDir": true,
+    "requireUpstream": false
+  },
+  "npm": {
+    "publish": false
+  },
+  "hooks": {
+    "after:bump": "echo '✅ VERSION mise à jour : '$(cat VERSION)"
+  }
+}
