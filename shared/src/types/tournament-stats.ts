@@ -53,5 +53,7 @@ export interface TournamentStats {
   winStreaks: WinStreakEntry[]
   invincibleStreaks: WinStreakEntry[]
   bestDuoPlayers: BestDuoEntry[]
+  bestSoloPlayers: BestDuoEntry[]
+  bestAsymmetricSoloPlayers: BestDuoEntry[]
   outcomeTypeFunStats: OutcomeTypeFunStat[]
 }

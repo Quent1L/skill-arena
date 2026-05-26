@@ -151,6 +151,92 @@ function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
     .slice(0, 5);
 }
 
+function computeBestSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+  const playerStats = new Map<
+    string,
+    { displayName: string; shortName: string; wins: number; losses: number; played: number }
+  >();
+
+  for (const match of matchesData) {
+    const sideA = match.sides.find((s) => s.position === 1);
+    const sideB = match.sides.find((s) => s.position === 2);
+    if (!sideA || !sideB) continue;
+    if (sideA.entry.players.length !== 1 || sideB.entry.players.length !== 1) continue;
+
+    for (const side of [sideA, sideB]) {
+      const won = isWinner(side, match.winnerSide);
+      const lost = isLoser(side, match.winnerSide);
+      for (const ep of side.entry.players) {
+        if (!ep.player) continue;
+        const { id, displayName, shortName } = ep.player;
+        if (!playerStats.has(id)) {
+          playerStats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
+        }
+        const s = playerStats.get(id)!;
+        s.played++;
+        if (won) s.wins++;
+        if (lost) s.losses++;
+      }
+    }
+  }
+
+  return Array.from(playerStats.entries())
+    .filter(([, s]) => s.played >= 2)
+    .map(([playerId, s]) => ({
+      playerId,
+      displayName: s.displayName,
+      shortName: s.shortName,
+      wins: s.wins,
+      losses: s.losses,
+      matchesPlayed: s.played,
+      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
+    }))
+    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
+    .slice(0, 5);
+}
+
+function computeBestAsymmetricSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+  const playerStats = new Map<
+    string,
+    { displayName: string; shortName: string; wins: number; losses: number; played: number }
+  >();
+
+  for (const match of matchesData) {
+    const sideA = match.sides.find((s) => s.position === 1);
+    const sideB = match.sides.find((s) => s.position === 2);
+    if (!sideA || !sideB) continue;
+    if (sideA.entry.players.length === sideB.entry.players.length) continue;
+
+    for (const side of [sideA, sideB]) {
+      if (side.entry.players.length !== 1) continue;
+      const ep = side.entry.players[0];
+      if (!ep.player) continue;
+      const { id, displayName, shortName } = ep.player;
+      if (!playerStats.has(id)) {
+        playerStats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
+      }
+      const s = playerStats.get(id)!;
+      s.played++;
+      if (isWinner(side, match.winnerSide)) s.wins++;
+      if (isLoser(side, match.winnerSide)) s.losses++;
+    }
+  }
+
+  return Array.from(playerStats.entries())
+    .filter(([, s]) => s.played >= 2)
+    .map(([playerId, s]) => ({
+      playerId,
+      displayName: s.displayName,
+      shortName: s.shortName,
+      wins: s.wins,
+      losses: s.losses,
+      matchesPlayed: s.played,
+      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
+    }))
+    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
+    .slice(0, 5);
+}
+
 function computeBestInvincibleStreak(matchesData: MatchData[]): WinStreakEntry[] {
   const playerMatches = new Map<
     string,
@@ -307,6 +393,13 @@ class TournamentStatsService {
     const bestDuoPlayers: BestDuoEntry[] =
       tournamentInfo.teamMode === "flex" ? computeBestDuoPlayers(matchesData) : [];
 
+    const bestSoloPlayers: BestDuoEntry[] = computeBestSoloPlayers(matchesData);
+
+    const bestAsymmetricSoloPlayers: BestDuoEntry[] =
+      tournamentInfo.rankedConfig?.allowAsymmetricMatches
+        ? computeBestAsymmetricSoloPlayers(matchesData)
+        : [];
+
     const outcomeTypeFunStats: OutcomeTypeFunStat[] = computeOutcomeTypeFunStats(matchesData);
 
     return {
@@ -318,6 +411,8 @@ class TournamentStatsService {
       winStreaks,
       invincibleStreaks,
       bestDuoPlayers,
+      bestSoloPlayers,
+      bestAsymmetricSoloPlayers,
       outcomeTypeFunStats,
     };
   }

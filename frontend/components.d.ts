@@ -90,6 +90,7 @@ declare module 'vue' {
     Textarea: typeof import('primevue/textarea')['default']
     Toast: typeof import('primevue/toast')['default']
     ToggleSwitch: typeof import('primevue/toggleswitch')['default']
+    TopPlayersCard: typeof import('./src/components/tournament/TopPlayersCard.vue')['default']
     TournamentBracket: typeof import('./src/components/tournament/TournamentBracket.vue')['default']
     TournamentCard: typeof import('./src/components/TournamentCard.vue')['default']
     TournamentDetailMobile: typeof import('./src/components/tournament/mobile/TournamentDetailMobile.vue')['default']

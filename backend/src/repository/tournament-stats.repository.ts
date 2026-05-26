@@ -8,6 +8,7 @@ export class TournamentStatsRepository {
     return db.query.tournaments.findFirst({
       where: eq(tournaments.id, tournamentId),
       columns: { mode: true, teamMode: true, startDate: true, endDate: true },
+      with: { rankedConfig: { columns: { allowAsymmetricMatches: true } } },
     });
   }
 
