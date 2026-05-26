@@ -172,6 +172,8 @@
             :most-frequent-partners="stats?.mostFrequentPartners"
             :best-partners="stats?.bestPartners"
             :nemeses="stats?.nemeses"
+            :opponent-quality="rankedOpponentQuality"
+            :recent-form="stats?.recentForm"
           />
           <div class="rounded-2xl p-4">
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -239,6 +241,44 @@
             :nemeses="stats.nemeses"
             :tournament-id="selectedTournamentId"
           />
+        </div>
+
+        <!-- Recent form -->
+        <div
+          v-if="stats.recentForm?.length"
+          class="rounded-2xl bg-gray-800 px-4 py-3 flex items-center gap-3"
+        >
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center">
+            Forme récente
+            <i
+              v-tooltip.top="'Du plus ancien au plus récent'"
+              class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
+            />
+          </div>
+
+          <RecentFormBadges :results="stats.recentForm" />
+        </div>
+
+        <!-- Outcome type stats -->
+        <div v-if="stats.outcomeTypeStats?.length" class="rounded-2xl bg-gray-800 p-4">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+            Spécialisation par type d'issue
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="s in stats.outcomeTypeStats"
+              :key="s.outcomeTypeId"
+              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
+            >
+              <span class="text-sm text-gray-200">{{ s.outcomeTypeName }}</span>
+              <div class="flex items-center gap-2 text-xs shrink-0">
+                <span class="text-green-400">{{ s.wins }}V</span>
+                <span v-if="s.draws" class="text-gray-400">{{ s.draws }}N</span>
+                <span class="text-red-400">{{ s.losses }}D</span>
+                <span class="text-gray-500 tabular-nums w-10 text-right">{{ s.winRate }}%</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Match history -->
@@ -324,6 +364,80 @@
           :nemeses="stats.nemeses"
         />
 
+        <!-- Recent form -->
+        <div
+          v-if="stats?.recentForm?.length"
+          class="rounded-2xl bg-gray-800 px-4 py-3 flex items-center gap-3"
+        >
+        <div
+            class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center"
+          >
+            Forme récente
+            <i
+              v-tooltip.top="'Du plus ancien au plus récent'"
+              class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
+            />
+          </div>
+          <RecentFormBadges :results="stats.recentForm" />
+        </div>
+
+        <!-- Outcome type stats -->
+        <div v-if="stats?.outcomeTypeStats?.length" class="rounded-2xl bg-gray-800 p-4">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+            Spécialisation par type de résultat
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="s in stats.outcomeTypeStats"
+              :key="s.outcomeTypeId"
+              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
+            >
+              <span class="text-sm text-gray-200">{{ s.outcomeTypeName }}</span>
+              <div class="flex items-center gap-2 text-xs shrink-0">
+                <span class="text-green-400">{{ s.wins }}V</span>
+                <span v-if="s.draws" class="text-gray-400">{{ s.draws }}N</span>
+                <span class="text-red-400">{{ s.losses }}D</span>
+                <span class="text-gray-500 tabular-nums w-10 text-right">{{ s.winRate }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- H2H rivalries -->
+        <div v-if="stats?.h2hStats?.length" class="rounded-2xl bg-gray-800 p-4">
+          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Rivalités</div>
+          <div class="space-y-1.5">
+            <div
+              v-for="h in stats.h2hStats"
+              :key="h.opponentId"
+              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
+            >
+              <RouterLink
+                :to="`/players/${h.opponentId}`"
+                class="flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 min-w-0"
+              >
+                <span class="truncate">{{ h.displayName }}</span>
+              </RouterLink>
+              <div class="flex items-center gap-2 text-xs shrink-0">
+                <span class="text-green-400">{{ h.wins }}V</span>
+                <span v-if="h.draws" class="text-gray-400">{{ h.draws }}N</span>
+                <span class="text-red-400">{{ h.losses }}D</span>
+                <span
+                  class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                  :class="
+                    h.winRate > 55
+                      ? 'bg-green-800/60 text-green-300'
+                      : h.winRate < 45
+                        ? 'bg-red-800/60 text-red-300'
+                        : 'bg-gray-700 text-gray-400'
+                  "
+                  >{{ h.winRate }}%</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- All matches -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -353,12 +467,13 @@ import type {
   ClientPlayerMmr,
   ClientRankTier,
   ClientMmrHistoryEntry,
+  OpponentQualityStats,
 } from '@skill-arena/shared/types/index'
-import { playerLink } from '@/utils/player-link'
 import MatchList from '@/components/MatchList.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
+import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 import Drawer from 'primevue/drawer'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
@@ -401,6 +516,7 @@ const isRankedTournament = computed(() => {
 const rankedMmr = ref<ClientPlayerMmr | null>(null)
 const rankedTiers = ref<ClientRankTier[]>([])
 const rankedHistory = ref<ClientMmrHistoryEntry[]>([])
+const rankedOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
 const rankedLoading = ref(false)
 
 async function loadRankedData(seasonId: string, pid: string) {
@@ -414,10 +530,12 @@ async function loadRankedData(seasonId: string, pid: string) {
     ])
     rankedMmr.value = mmrData.mmr
     rankedTiers.value = mmrData.tiers
+    rankedOpponentQuality.value = mmrData.opponentQuality
     rankedHistory.value = firstPage
   } catch {
     rankedMmr.value = null
     rankedTiers.value = []
+    rankedOpponentQuality.value = undefined
   } finally {
     rankedLoading.value = false
   }
@@ -535,6 +653,7 @@ watch([isRankedTournament, selectedTournamentId], async ([isRanked, tid]) => {
     rankedMmr.value = null
     rankedTiers.value = []
     rankedHistory.value = []
+    rankedOpponentQuality.value = undefined
   }
 })
 

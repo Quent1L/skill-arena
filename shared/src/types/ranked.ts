@@ -69,6 +69,20 @@ export interface ClientRankTier {
 // Types client (dates converties en Date)
 // ============================================
 
+export interface OpponentQualityBucket {
+  wins: number;
+  losses: number;
+  draws: number;
+  matchesPlayed: number;
+  winRate: number;
+}
+
+export interface OpponentQualityStats {
+  vsStronger: OpponentQualityBucket;
+  vsEqual: OpponentQualityBucket;
+  vsWeaker: OpponentQualityBucket;
+}
+
 export interface ClientPlayerMmr extends PlayerMmr {
   player?: {
     id: string;
@@ -76,6 +90,7 @@ export interface ClientPlayerMmr extends PlayerMmr {
     shortName: string;
   };
   recentResults?: { outcome: 'win' | 'loss' | 'draw' }[];
+  opponentQuality?: OpponentQualityStats;
 }
 
 export interface HistoryMatchSidePlayer {

@@ -7,8 +7,9 @@ import { useParticipantService } from '@/composables/participant.service'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { rankedApi } from '@/composables/ranked/ranked.api'
+import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
-import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
+import type { ClientMmrHistoryEntry, PlayerStatsResponse } from '@skill-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const router = useRouter()
@@ -25,6 +26,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const joining = ref(false)
   const leaving = ref(false)
   const profileChartHistory = ref<ClientMmrHistoryEntry[]>([])
+  const playerStats = ref<PlayerStatsResponse | null>(null)
 
   // Pass-through refs from services
   const tournament = tournamentSvc.currentTournament
@@ -36,6 +38,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const rankedProvisionalLeaderboard = rankedSvc.provisionalLeaderboard
   const rankedTiers = rankedSvc.tiers
   const playerMmr = rankedSvc.playerMmr
+  const playerOpponentQuality = rankedSvc.playerOpponentQuality
   const rankedLoading = rankedSvc.loading
   const rankedProvisionalLoading = rankedSvc.provisionalLoading
   const tournamentStats = statsSvc.stats
@@ -161,12 +164,13 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   async function ensurePlayerProfile() {
     if (!appUser.value?.id) return
     if (!playerMmr.value) {
-      await rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id)
-      profileChartHistory.value = await rankedApi.getPlayerHistory(
-        tournamentId.value,
-        appUser.value.id,
-        { limit: 200 },
-      )
+      await Promise.all([
+        rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
+        rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
+          .then((h) => { profileChartHistory.value = h }),
+        playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
+          .then((s) => { playerStats.value = s }),
+      ])
     }
   }
 
@@ -212,6 +216,8 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     rankedProvisionalLeaderboard,
     rankedTiers,
     playerMmr,
+    playerOpponentQuality,
+    playerStats,
     rankedLoading,
     rankedProvisionalLoading,
     profileChartHistory,

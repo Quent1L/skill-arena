@@ -39,9 +39,14 @@
           <PlayerAvatar :name="p.displayName" size="xs" shape="square" class="shrink-0" />
           <span class="truncate">{{ p.displayName }}</span>
         </RouterLink>
-        <span class="text-xs text-green-400"
-          >{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</span
-        >
+        <div class="text-right">
+          <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</div>
+          <div
+            v-if="p.chemistryDelta !== undefined"
+            class="text-[10px]"
+            :class="p.chemistryDelta > 0 ? 'text-emerald-400' : p.chemistryDelta < 0 ? 'text-red-400' : 'text-gray-500'"
+          >{{ p.chemistryDelta > 0 ? '+' : '' }}{{ p.chemistryDelta }}%</div>
+        </div>
       </div>
     </div>
 

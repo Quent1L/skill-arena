@@ -12,6 +12,7 @@ import type {
   ClientMmrHistoryEntry,
   ClientRankTier,
   ClientTournamentSummary,
+  OpponentQualityStats,
 } from '@skill-arena/shared/types/index'
 import { formDataToApiPayload } from '@skill-arena/shared/types/index'
 
@@ -66,6 +67,7 @@ export function useRankedService() {
   const provisionalLeaderboard = ref<ClientPlayerMmr[]>([])
   const tiers = ref<ClientRankTier[]>([])
   const playerMmr = ref<ClientPlayerMmr | null>(null)
+  const playerOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
   const playerHistory = ref<ClientMmrHistoryEntry[]>([])
   const finishedSeasons = ref<FinishedSeasonSummary[]>([])
   const playerHistoryHasMore = ref(false)
@@ -207,8 +209,10 @@ export function useRankedService() {
       const data = await rankedApi.getPlayerMmr(seasonId, playerId)
       playerMmr.value = data.mmr
       tiers.value = data.tiers ?? []
+      playerOpponentQuality.value = data.opponentQuality
     } catch {
       playerMmr.value = null
+      playerOpponentQuality.value = undefined
     }
   }
 
@@ -341,6 +345,7 @@ export function useRankedService() {
     provisionalLeaderboard,
     tiers,
     playerMmr,
+    playerOpponentQuality,
     playerHistory,
     finishedSeasons,
     loading,

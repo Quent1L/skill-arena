@@ -10,11 +10,12 @@
         >
           <i :class="tierIcon" class="text-white text-3xl" />
         </div>
-        <div class="text-xs font-bold tracking-widest uppercase text-white/50 mb-1">Rang actuel</div>
+        <div class="text-xs font-bold tracking-widest uppercase text-white/50 mb-1">
+          Rang actuel
+        </div>
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
           {{ rank?.name ?? '—' }}
         </div>
-
       </div>
 
       <!-- MMR + position -->
@@ -82,7 +83,9 @@
     <!-- W/L + max streak -->
     <div class="grid grid-cols-2 gap-3">
       <div class="rounded-xl p-4 bg-gray-800">
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Victoires / Défaites</div>
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+          Victoires / Défaites
+        </div>
         <div class="text-2xl font-black">
           <span class="text-green-400">{{ mmr.wins }}V</span>
           <span class="text-gray-600 mx-1">/</span>
@@ -90,17 +93,92 @@
         </div>
       </div>
       <div class="rounded-xl p-4 bg-gray-800">
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Meilleure série</div>
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+          Meilleure série
+        </div>
         <div class="text-2xl font-black text-orange-400">
           {{ mmr.maxWinStreak > 0 ? `🔥 ${mmr.maxWinStreak}` : '—' }}
         </div>
       </div>
     </div>
 
+    <!-- Recent form -->
+    <div v-if="recentForm?.length" class="rounded-xl p-4 bg-gray-800">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
+        Forme récente
+        <i
+          v-tooltip.top="'Du plus ancien au plus récent'"
+          class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
+        />
+      </div>
+      <div class="flex items-center gap-1">
+        <RecentFormBadges :results="recentForm" />
+      </div>
+    </div>
+
     <!-- MMR Progression Chart -->
     <div v-if="isMounted && sortedHistory.length > 1" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Progression MMR</div>
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+        Progression MMR
+      </div>
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
+    </div>
+
+    <!-- Opponent quality -->
+    <div v-if="opponentQuality" class="rounded-xl p-4 bg-gray-800">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+        Qualité des adversaires
+      </div>
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="rounded-lg bg-gray-700/50 p-2">
+          <div class="text-xs text-gray-400 mb-1">Plus forts</div>
+          <div
+            class="text-sm font-black"
+            :class="opponentQuality.vsStronger.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
+          >
+            {{
+              opponentQuality.vsStronger.matchesPlayed > 0
+                ? `${opponentQuality.vsStronger.winRate}%`
+                : '—'
+            }}
+          </div>
+          <div class="text-[10px] text-gray-500">
+            {{ opponentQuality.vsStronger.matchesPlayed }} matchs
+          </div>
+        </div>
+        <div class="rounded-lg bg-gray-700/50 p-2">
+          <div class="text-xs text-gray-400 mb-1">Égaux</div>
+          <div
+            class="text-sm font-black"
+            :class="opponentQuality.vsEqual.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
+          >
+            {{
+              opponentQuality.vsEqual.matchesPlayed > 0
+                ? `${opponentQuality.vsEqual.winRate}%`
+                : '—'
+            }}
+          </div>
+          <div class="text-[10px] text-gray-500">
+            {{ opponentQuality.vsEqual.matchesPlayed }} matchs
+          </div>
+        </div>
+        <div class="rounded-lg bg-gray-700/50 p-2">
+          <div class="text-xs text-gray-400 mb-1">Plus faibles</div>
+          <div
+            class="text-sm font-black"
+            :class="opponentQuality.vsWeaker.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
+          >
+            {{
+              opponentQuality.vsWeaker.matchesPlayed > 0
+                ? `${opponentQuality.vsWeaker.winRate}%`
+                : '—'
+            }}
+          </div>
+          <div class="text-[10px] text-gray-500">
+            {{ opponentQuality.vsWeaker.matchesPlayed }} matchs
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Partner / nemesis stats -->
@@ -110,15 +188,21 @@
       :nemeses="nemeses"
       :tournament-id="seasonId"
     />
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
-import type { ClientPlayerMmr, ClientMmrHistoryEntry, ClientRankTier, PlayerRelationStat } from '@skill-arena/shared/types/index'
+import type {
+  ClientPlayerMmr,
+  ClientMmrHistoryEntry,
+  ClientRankTier,
+  PlayerRelationStat,
+  OpponentQualityStats,
+} from '@skill-arena/shared/types/index'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
+import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 import {
   TIER_ICON,
@@ -130,8 +214,12 @@ import {
 } from '@/composables/ranked/tier-style'
 
 const isMounted = ref(false)
-onMounted(() => { isMounted.value = true })
-onBeforeUnmount(() => { isMounted.value = false })
+onMounted(() => {
+  isMounted.value = true
+})
+onBeforeUnmount(() => {
+  isMounted.value = false
+})
 
 const props = defineProps<{
   mmr: ClientPlayerMmr
@@ -143,13 +231,17 @@ const props = defineProps<{
   mostFrequentPartners?: PlayerRelationStat[]
   bestPartners?: PlayerRelationStat[]
   nemeses?: PlayerRelationStat[]
+  opponentQuality?: OpponentQualityStats
+  recentForm?: Array<'V' | 'D' | 'N'>
 }>()
-
 
 const rank = computed((): ClientRankTier | null => {
   if (!props.tiers.length) return null
   const mmr = props.mmr.currentMmr
-  return [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? props.tiers[0]
+  return (
+    [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ??
+    props.tiers[0]
+  )
 })
 
 const mmrDelta = computed(() => {
@@ -183,10 +275,10 @@ const cardBgClass = computed(() => CARD_BG[styleIdx(rank.value)])
 const iconBgClass = computed(() => ICON_BG[styleIdx(rank.value)])
 const tierTextClass = computed(() => TIER_TEXT[styleIdx(rank.value)])
 const nextTierTextClass = computed(() =>
-  lpProgress.value ? TIER_TEXT[styleIdx(lpProgress.value.nextTierForStyle)] : ''
+  lpProgress.value ? TIER_TEXT[styleIdx(lpProgress.value.nextTierForStyle)] : '',
 )
 const progressBarClass = computed(() =>
-  lpProgress.value ? PROGRESS_BAR[styleIdx(lpProgress.value.nextTierForStyle)] : ''
+  lpProgress.value ? PROGRESS_BAR[styleIdx(lpProgress.value.nextTierForStyle)] : '',
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
 
@@ -205,9 +297,7 @@ const chartData = computed(() => ({
       pointBackgroundColor: sortedHistory.value.map((e) =>
         e.mmrDelta >= 0 ? '#22c55e' : '#ef4444',
       ),
-      pointBorderColor: sortedHistory.value.map((e) =>
-        e.mmrDelta >= 0 ? '#22c55e' : '#ef4444',
-      ),
+      pointBorderColor: sortedHistory.value.map((e) => (e.mmrDelta >= 0 ? '#22c55e' : '#ef4444')),
       pointRadius: 5,
       borderColor: '#6366f1',
       borderWidth: 2,

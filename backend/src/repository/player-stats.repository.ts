@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql, desc, max } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, max, asc } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   appUsers,
@@ -9,6 +9,7 @@ import {
   matchSides,
   matchPlayerPoints,
   disciplines,
+  outcomeTypes,
 } from "../db/schema";
 
 export class PlayerStatsRepository {
@@ -62,6 +63,7 @@ export class PlayerStatsRepository {
         oppScore: sql<number>`ms2.score`,
         allowDraw: tournaments.allowDraw,
         pointsAwarded: sql<number | null>`COALESCE(${matchPlayerPoints.pointsAwarded}, ${matchSides.pointsAwarded})`,
+        outcomeTypeId: matches.outcomeTypeId,
       })
       .from(matchSides)
       .innerJoin(sql`match_sides ms2`, sql`${matchSides.matchId} = ms2.match_id AND ms2.entry_id != ${matchSides.entryId}`)
@@ -167,6 +169,38 @@ export class PlayerStatsRepository {
         },
       },
     });
+  }
+
+  async getPlayerRecentForm(playerId: string, limit = 10, tournamentId?: string) {
+    const conditions = [
+      eq(tournamentEntryPlayers.playerId, playerId),
+      eq(matches.status, "finalized"),
+      ...(tournamentId ? [eq(matches.tournamentId, tournamentId)] : []),
+    ];
+    return db
+      .select({
+        matchId: matches.id,
+        ownPosition: sql<number>`MAX(${matchSides.position})`.mapWith(Number),
+        winnerSide: sql<string | null>`MAX(${matches.winnerSide})`,
+        allowDraw: sql<boolean>`BOOL_OR(${tournaments.allowDraw})`,
+      })
+      .from(tournamentEntryPlayers)
+      .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .innerJoin(matchSides, eq(matchSides.entryId, tournamentEntries.id))
+      .innerJoin(matches, eq(matchSides.matchId, matches.id))
+      .innerJoin(tournaments, eq(matches.tournamentId, tournaments.id))
+      .where(and(...conditions))
+      .groupBy(matches.id)
+      .orderBy(desc(max(matches.playedAt)))
+      .limit(limit);
+  }
+
+  async getOutcomeTypeNames(outcomeTypeIds: string[]) {
+    if (outcomeTypeIds.length === 0) return [];
+    return db
+      .select({ id: outcomeTypes.id, name: outcomeTypes.name })
+      .from(outcomeTypes)
+      .where(inArray(outcomeTypes.id, outcomeTypeIds));
   }
 
   async getPlayerTournaments(playerId: string) {

@@ -6,6 +6,11 @@
       :tiers="store.rankedTiers"
       :leaderboard-rank="store.playerLeaderboardRank"
       :history="store.profileChartHistory"
+      :opponent-quality="store.playerOpponentQuality"
+      :recent-form="store.playerStats?.stats?.recentForm"
+      :most-frequent-partners="store.playerStats?.stats?.mostFrequentPartners"
+      :best-partners="store.playerStats?.stats?.bestPartners"
+      :nemeses="store.playerStats?.stats?.nemeses"
     />
     <div v-else-if="store.rankedLoading" class="flex justify-center py-12">
       <ProgressSpinner />

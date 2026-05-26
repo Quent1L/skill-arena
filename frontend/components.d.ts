@@ -69,6 +69,7 @@ declare module 'vue' {
     PwaInstallBanner: typeof import('./src/components/PwaInstallBanner.vue')['default']
     RankedLeaderboard: typeof import('./src/components/ranked/RankedLeaderboard.vue')['default']
     RankedMatchHistory: typeof import('./src/components/ranked/RankedMatchHistory.vue')['default']
+    RecentFormBadges: typeof import('./src/components/player/RecentFormBadges.vue')['default']
     ResultStep: typeof import('./src/components/match/steps/ResultStep.vue')['default']
     RichTextEditor: typeof import('./src/components/editor/RichTextEditor.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

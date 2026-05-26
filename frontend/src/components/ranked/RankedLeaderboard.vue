@@ -93,21 +93,11 @@
                 </div>
                 <div class="flex items-center justify-between">
                   <div class="flex text-[10px] w-full ">{{ getPlayedMatchLabel(player) }}</div>
-                  <div class="flex items-center justify-end w-full gap-0.5 mt-1">
-                    <div
-                      v-for="(r, i) in player.recentResults ?? []"
-                      :key="i"
-                      class="w-4 h-4 rounded text-[9px] font-bold flex items-center justify-center shrink-0"
-                      :class="
-                        r.outcome === 'win'
-                          ? 'bg-green-600'
-                          : r.outcome === 'loss'
-                            ? 'bg-red-600'
-                            : 'bg-gray-600'
-                      "
-                    >
-                      {{ r.outcome === 'win' ? 'V' : r.outcome === 'loss' ? 'D' : 'N' }}
-                    </div>
+                  <div class="flex items-center justify-end w-full mt-1">
+                    <RecentFormBadges
+                      v-if="player.recentResults?.length"
+                      :results="player.recentResults.map(r => r.outcome === 'win' ? 'V' : r.outcome === 'loss' ? 'D' : 'N')"
+                    />
                   </div>
                 </div>
                 <div
@@ -147,6 +137,7 @@ import { useSwipe } from '@vueuse/core'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
 import { getLp, isTopTier } from '@/composables/ranked/ranked.service'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 
 import {
   TIER_BAR_CLASS as TIER_BAR,

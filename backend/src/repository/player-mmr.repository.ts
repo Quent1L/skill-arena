@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, sql, inArray, lt, gte } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
-import type { MmrHistoryOutcome } from "@skill-arena/shared";
+import type { MmrHistoryOutcome, OpponentQualityStats } from "@skill-arena/shared";
 
 export interface UpsertPlayerMmrData {
   seasonId: string;
@@ -304,6 +304,32 @@ export class PlayerMmrRepository {
     return await db.query.playerMmr.findMany({
       where: eq(playerMmr.seasonId, seasonId),
     });
+  }
+
+  async getOpponentQualityStats(seasonId: string, playerId: string): Promise<OpponentQualityStats> {
+    const emptyBucket = () => ({ wins: 0, losses: 0, draws: 0, matchesPlayed: 0, winRate: 0 });
+    const result = { vsStronger: emptyBucket(), vsEqual: emptyBucket(), vsWeaker: emptyBucket() };
+
+    const rows = await db
+      .select({ mmrBefore: mmrHistory.mmrBefore, opponentAvgMmr: mmrHistory.opponentAvgMmr, outcome: mmrHistory.outcome })
+      .from(mmrHistory)
+      .where(and(eq(mmrHistory.seasonId, seasonId), eq(mmrHistory.playerId, playerId)));
+
+    const THRESHOLD = 100;
+    for (const row of rows) {
+      const diff = row.opponentAvgMmr - row.mmrBefore;
+      const bucket = diff > THRESHOLD ? result.vsStronger : diff < -THRESHOLD ? result.vsWeaker : result.vsEqual;
+      bucket.matchesPlayed++;
+      if (row.outcome === 'win') bucket.wins++;
+      else if (row.outcome === 'loss') bucket.losses++;
+      else bucket.draws++;
+    }
+
+    for (const b of [result.vsStronger, result.vsEqual, result.vsWeaker]) {
+      b.winRate = b.matchesPlayed > 0 ? Math.round((b.wins / b.matchesPlayed) * 100) : 0;
+    }
+
+    return result;
   }
 }
 

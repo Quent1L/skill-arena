@@ -75,6 +75,11 @@
                 :tiers="store.rankedTiers"
                 :leaderboard-rank="store.playerLeaderboardRank"
                 :history="store.profileChartHistory"
+                :opponent-quality="store.playerOpponentQuality"
+                :recent-form="store.playerStats?.stats?.recentForm"
+                :most-frequent-partners="store.playerStats?.stats?.mostFrequentPartners"
+                :best-partners="store.playerStats?.stats?.bestPartners"
+                :nemeses="store.playerStats?.stats?.nemeses"
               />
               <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
                 <i class="fa fa-user-slash text-4xl mb-4 block"></i>

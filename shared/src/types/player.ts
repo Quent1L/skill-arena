@@ -18,6 +18,28 @@ export interface PlayerRelationStat {
   count: number;
   wins: number;
   losses: number;
+  chemistryDelta?: number;
+}
+
+export interface PlayerOutcomeTypeStat {
+  outcomeTypeId: string;
+  outcomeTypeName: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  matchesPlayed: number;
+  winRate: number;
+}
+
+export interface PlayerH2HStat {
+  opponentId: string;
+  displayName: string;
+  shortName: string;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number;
 }
 
 export interface PlayerTournamentEntry {
@@ -41,9 +63,12 @@ export interface PlayerDetailStats {
   winRate: number;
   averageScore: number;
   tournamentsParticipated: number;
+  recentForm: Array<'V' | 'D' | 'N'>;
   mostFrequentPartners: PlayerRelationStat[];
   bestPartners: PlayerRelationStat[];
   nemeses: PlayerRelationStat[];
+  outcomeTypeStats: PlayerOutcomeTypeStat[];
+  h2hStats: PlayerH2HStat[];
   tournamentHistory: PlayerTournamentEntry[];
 }
 
