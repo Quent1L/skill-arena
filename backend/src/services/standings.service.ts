@@ -605,6 +605,14 @@ export class StandingsService {
     });
   }
 
+  // ── Cache ─────────────────────────────────────────────────────────────
+
+  async clearCache(tournamentId: string, userId: string): Promise<void> {
+    const canManage = await tournamentService.canManageTournament(tournamentId, userId);
+    if (!canManage) throw new ForbiddenError(ErrorCode.FORBIDDEN);
+    await standingsRepository.deleteComputedData(tournamentId);
+  }
+
   // ── Recalculate ──────────────────────────────────────────────────────
 
   async recalculatePoints(

@@ -93,6 +93,11 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
           command: () => recalculatePoints(),
         })
       }
+      items.push({
+        label: 'Vider le cache',
+        icon: 'fa fa-trash-can',
+        command: () => clearCache(),
+      })
     }
     if (isAuthenticated.value && isParticipant.value && canLeaveTournament.value) {
       items.push({ label: 'Quitter', icon: 'fa fa-user-minus', command: () => leaveTournament() })
@@ -141,6 +146,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
 
   async function recalculatePoints() {
     await tournamentSvc.recalculatePoints(tournamentId.value)
+  }
+
+  async function clearCache() {
+    await tournamentSvc.clearCache(tournamentId.value)
   }
 
   async function ensureLeaderboard() {
@@ -227,6 +236,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     leaveTournament,
     reloadParticipants,
     recalculatePoints,
+    clearCache,
     ensureLeaderboard,
     ensurePlayerProfile,
     ensureStats,

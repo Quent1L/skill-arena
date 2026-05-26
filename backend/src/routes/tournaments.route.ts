@@ -275,6 +275,14 @@ tournaments.get("/:id/stats", async (c) => {
   return c.json(stats);
 });
 
+// DELETE /tournaments/:id/cache
+tournaments.delete("/:id/cache", requireAuth, async (c) => {
+  const tournamentId = c.req.param("id")!;
+  const appUserId = c.get("appUserId");
+  await standingsService.clearCache(tournamentId, appUserId);
+  return c.json({ success: true });
+});
+
 // POST /tournaments/:id/recalculate-points
 tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;

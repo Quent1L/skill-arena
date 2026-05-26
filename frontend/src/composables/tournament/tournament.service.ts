@@ -224,6 +224,10 @@ export function useTournamentService() {
     return await tournamentApi.recalculatePoints(id)
   }
 
+  async function clearCache(id: string): Promise<void> {
+    await tournamentApi.clearCache(id)
+  }
+
   /**
    * Delete tournament
    */
@@ -335,5 +339,6 @@ export function useTournamentService() {
     changeTournamentStatus,
     deleteTournament,
     recalculatePoints,
+    clearCache,
   }
 }

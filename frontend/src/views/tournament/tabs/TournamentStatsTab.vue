@@ -140,7 +140,7 @@
         <!-- Meilleur joueur solo (asymétrique uniquement) -->
         <TopPlayersCard
           v-if="bestAsymmetricSoloItems.length"
-          title="Meilleur joueur seul contre tous"
+          title="Meilleurs joueurs seuls contre tous"
           icon="fa fa-user-shield"
           icon-class="text-indigo-500"
           first-row-class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"

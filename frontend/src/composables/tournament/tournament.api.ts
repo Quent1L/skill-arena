@@ -88,4 +88,8 @@ export const tournamentApi = {
     const response = await http.post<{ updatedMatches: number }>(`${BASE_URL}/${id}/recalculate-points`)
     return response.data
   },
+
+  async clearCache(id: string): Promise<void> {
+    await http.delete(`${BASE_URL}/${id}/cache`)
+  },
 }
