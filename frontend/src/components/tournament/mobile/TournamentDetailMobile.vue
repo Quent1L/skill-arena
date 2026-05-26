@@ -3,7 +3,6 @@
     class="flex flex-col h-full bg-gray-50 dark:bg-gray-900"
     style="min-height: calc(100vh - 7rem)"
   >
-
     <!-- Content Area -->
     <div ref="contentAreaRef" class="flex-1 pb-16">
       <!-- Tab: Detail & Navigation cards -->
@@ -41,14 +40,26 @@
         >
           <button
             class="flex-1 py-2 text-sm font-semibold transition-colors"
-            :class="statsSubTab === 'profile' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
+            :class="
+              statsSubTab === 'profile'
+                ? 'text-primary-500 border-b-2 border-primary-500'
+                : 'text-gray-500'
+            "
             @click="setStatsSubTab('profile')"
-          >Mon profil</button>
+          >
+            Mon profil
+          </button>
           <button
             class="flex-1 py-2 text-sm font-semibold transition-colors"
-            :class="statsSubTab === 'global' ? 'text-primary-500 border-b-2 border-primary-500' : 'text-gray-500'"
+            :class="
+              statsSubTab === 'global'
+                ? 'text-primary-500 border-b-2 border-primary-500'
+                : 'text-gray-500'
+            "
             @click="setStatsSubTab('global')"
-          >Stats globales</button>
+          >
+            Stats globales
+          </button>
         </div>
 
         <!-- Animated content (ranked + auth) -->
@@ -68,7 +79,9 @@
               <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
                 <i class="fa fa-user-slash text-4xl mb-4 block"></i>
                 <p>Vous n'avez pas encore de MMR pour cette saison.</p>
-                <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
+                <p class="text-sm mt-2">
+                  Déclarez votre premier match pour rejoindre le classement !
+                </p>
               </div>
             </div>
             <div v-else key="global" class="p-2">
@@ -114,11 +127,7 @@
       </div>
 
       <!-- Tab: Bracket -->
-      <div
-        v-if="store.tournament!.mode === 'bracket'"
-        v-show="activeTab === 'bracket'"
-        class="p-2"
-      >
+      <div v-if="store.tournament!.mode === 'bracket'" v-show="activeTab === 'bracket'" class="p-2">
         <BracketView
           :tournament-id="store.tournamentId"
           :tournament="store.tournament!"
@@ -153,10 +162,10 @@
           :provisional-loading="store.rankedProvisionalLoading"
           :current-user-id="store.appUser?.id"
           :show-mode-toggle="store.tournament!.validationMode !== 'none'"
+          :tournament-id="store.tournamentId"
           @load-provisional="store.loadProvisionalLeaderboard()"
         />
       </div>
-
     </div>
 
     <!-- Bottom Navigation -->
@@ -255,11 +264,25 @@ function handleCreateMatch() {
 .slide-left-leave-active,
 .slide-right-enter-active,
 .slide-right-leave-active {
-  transition: transform 0.22s ease, opacity 0.18s ease;
+  transition:
+    transform 0.22s ease,
+    opacity 0.18s ease;
 }
 
-.slide-left-enter-from  { transform: translateX(40px);  opacity: 0; }
-.slide-left-leave-to    { transform: translateX(-40px); opacity: 0; }
-.slide-right-enter-from { transform: translateX(-40px); opacity: 0; }
-.slide-right-leave-to   { transform: translateX(40px);  opacity: 0; }
+.slide-left-enter-from {
+  transform: translateX(40px);
+  opacity: 0;
+}
+.slide-left-leave-to {
+  transform: translateX(-40px);
+  opacity: 0;
+}
+.slide-right-enter-from {
+  transform: translateX(-40px);
+  opacity: 0;
+}
+.slide-right-leave-to {
+  transform: translateX(40px);
+  opacity: 0;
+}
 </style>
