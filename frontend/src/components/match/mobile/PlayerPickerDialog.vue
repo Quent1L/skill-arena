@@ -20,14 +20,10 @@
 
       <!-- Search -->
       <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-        <span class="relative w-full">
-          <i class="fas fa-search absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <InputText
-            v-model="searchQuery"
-            placeholder="Rechercher un joueur..."
-            class="w-full pl-10"
-          />
-        </span>
+        <IconField>
+          <InputText v-model="searchQuery" placeholder="Rechercher un joueur..." class="w-full" />
+          <InputIcon :class="inputFilterIcon" @click="searchQuery = ''" />
+        </IconField>
       </div>
 
       <!-- Player List -->
@@ -108,6 +104,13 @@ const filteredPlayers = computed(() => {
   return props.players.filter((p) => p.displayName.toLowerCase().includes(query))
 })
 
+const inputFilterIcon = computed(() => {
+  const query = searchQuery.value.toLowerCase().trim()
+  if (!query) return 'fas fa-search'
+
+  return 'fas fa-x cursor-pointer'
+})
+
 function isSelected(id: string) {
   return props.selectedIds.includes(id)
 }
@@ -129,6 +132,4 @@ function close() {
   visible.value = false
   emit('close')
 }
-
-
 </script>
