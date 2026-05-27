@@ -103,18 +103,7 @@
     </div>
 
     <!-- Recent form -->
-    <div v-if="recentForm?.length" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
-        Forme récente
-        <i
-          v-tooltip.top="'Du plus ancien au plus récent'"
-          class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
-        />
-      </div>
-      <div class="flex items-center gap-1">
-        <RecentFormBadges :results="recentForm" />
-      </div>
-    </div>
+    <RecentFormSection v-if="recentForm?.length" :results="recentForm" />
 
     <!-- MMR Progression Chart -->
     <div v-if="isMounted && sortedHistory.length > 1" class="rounded-xl p-4 bg-gray-800">
@@ -202,7 +191,7 @@ import type {
   OpponentQualityStats,
 } from '@skill-arena/shared/types/index'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
-import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
+import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 import {
   TIER_ICON,

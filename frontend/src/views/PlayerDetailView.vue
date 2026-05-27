@@ -47,6 +47,22 @@
 
       <!-- Desktop filters -->
       <div class="hidden md:block bg-gray-800 rounded-2xl p-4">
+        <div v-if="hasMultipleDisciplines" class="mb-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+              >Discipline</label
+            >
+            <Select
+              v-model="selectedDisciplineId"
+              :options="disciplineOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="Toutes disciplines"
+              class="w-full"
+              show-clear
+            />
+          </div>
+        </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
@@ -102,6 +118,18 @@
         header="Filtres"
       >
         <div class="flex flex-col gap-5 pb-2">
+          <div v-if="hasMultipleDisciplines" class="flex flex-col gap-1">
+            <label class="text-sm font-medium">Discipline</label>
+            <Select
+              v-model="draftDisciplineId"
+              :options="disciplineOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="Toutes disciplines"
+              class="w-full"
+              show-clear
+            />
+          </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">Tournoi</label>
             <Select
@@ -244,42 +272,13 @@
         </div>
 
         <!-- Recent form -->
-        <div
-          v-if="stats.recentForm?.length"
-          class="rounded-2xl bg-gray-800 px-4 py-3 flex items-center gap-3"
-        >
-          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center">
-            Forme récente
-            <i
-              v-tooltip.top="'Du plus ancien au plus récent'"
-              class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
-            />
-          </div>
-
-          <RecentFormBadges :results="stats.recentForm" />
-        </div>
+        <RecentFormSection v-if="stats.recentForm?.length" :results="stats.recentForm" />
 
         <!-- Outcome type stats -->
-        <div v-if="stats.outcomeTypeStats?.length" class="rounded-2xl bg-gray-800 p-4">
-          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-            Spécialisation par type d'issue
-          </div>
-          <div class="space-y-2">
-            <div
-              v-for="s in stats.outcomeTypeStats"
-              :key="s.outcomeTypeId"
-              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
-            >
-              <span class="text-sm text-gray-200">{{ s.outcomeTypeName }}</span>
-              <div class="flex items-center gap-2 text-xs shrink-0">
-                <span class="text-green-400">{{ s.wins }}V</span>
-                <span v-if="s.draws" class="text-gray-400">{{ s.draws }}N</span>
-                <span class="text-red-400">{{ s.losses }}D</span>
-                <span class="text-gray-500 tabular-nums w-10 text-right">{{ s.winRate }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OutcomeTypeStats v-if="stats.outcomeTypeStats?.length" :stats="stats.outcomeTypeStats" />
+
+        <!-- H2H rivalries -->
+        <H2HRivalries v-if="stats.h2hStats?.length" :stats="stats.h2hStats" />
 
         <!-- Match history -->
         <div class="rounded-2xl p-4">
@@ -365,78 +364,20 @@
         />
 
         <!-- Recent form -->
-        <div
-          v-if="stats?.recentForm?.length"
-          class="rounded-2xl bg-gray-800 px-4 py-3 flex items-center gap-3"
-        >
-        <div
-            class="text-xs font-bold text-gray-400 uppercase tracking-wide flex items-center"
-          >
-            Forme récente
-            <i
-              v-tooltip.top="'Du plus ancien au plus récent'"
-              class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
-            />
-          </div>
-          <RecentFormBadges :results="stats.recentForm" />
-        </div>
+        <RecentFormSection v-if="stats?.recentForm?.length" :results="stats.recentForm" />
 
         <!-- Outcome type stats -->
-        <div v-if="stats?.outcomeTypeStats?.length" class="rounded-2xl bg-gray-800 p-4">
-          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-            Spécialisation par type de résultat
-          </div>
-          <div class="space-y-2">
-            <div
-              v-for="s in stats.outcomeTypeStats"
-              :key="s.outcomeTypeId"
-              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
-            >
-              <span class="text-sm text-gray-200">{{ s.outcomeTypeName }}</span>
-              <div class="flex items-center gap-2 text-xs shrink-0">
-                <span class="text-green-400">{{ s.wins }}V</span>
-                <span v-if="s.draws" class="text-gray-400">{{ s.draws }}N</span>
-                <span class="text-red-400">{{ s.losses }}D</span>
-                <span class="text-gray-500 tabular-nums w-10 text-right">{{ s.winRate }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <OutcomeTypeStats
+          v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.outcomeTypeStats?.length"
+          :stats="stats!.outcomeTypeStats"
+        />
 
         <!-- H2H rivalries -->
-        <div v-if="stats?.h2hStats?.length" class="rounded-2xl bg-gray-800 p-4">
-          <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Rivalités</div>
-          <div class="space-y-1.5">
-            <div
-              v-for="h in stats.h2hStats"
-              :key="h.opponentId"
-              class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
-            >
-              <RouterLink
-                :to="`/players/${h.opponentId}`"
-                class="flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 min-w-0"
-              >
-                <span class="truncate">{{ h.displayName }}</span>
-              </RouterLink>
-              <div class="flex items-center gap-2 text-xs shrink-0">
-                <span class="text-green-400">{{ h.wins }}V</span>
-                <span v-if="h.draws" class="text-gray-400">{{ h.draws }}N</span>
-                <span class="text-red-400">{{ h.losses }}D</span>
-                <span
-                  class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
-                  :class="
-                    h.winRate > 55
-                      ? 'bg-green-800/60 text-green-300'
-                      : h.winRate < 45
-                        ? 'bg-red-800/60 text-red-300'
-                        : 'bg-gray-700 text-gray-400'
-                  "
-                  >{{ h.winRate }}%</span
-                >
-              </div>
-            </div>
-          </div>
-        </div>
+        <H2HRivalries
+          v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.h2hStats?.length"
+          :stats="stats!.h2hStats"
+          tooltip="Liste les adversaires les plus fréquents avec le bilan complet"
+        />
 
         <!-- All matches -->
         <div class="rounded-2xl p-4">
@@ -473,7 +414,9 @@ import MatchList from '@/components/MatchList.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
-import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
+import RecentFormSection from '@/components/player/RecentFormSection.vue'
+import OutcomeTypeStats from '@/components/player/OutcomeTypeStats.vue'
+import H2HRivalries from '@/components/player/H2HRivalries.vue'
 import Drawer from 'primevue/drawer'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
@@ -500,8 +443,10 @@ const initialTournamentId = route.query.tournamentId as string | undefined
 
 const selectedTournamentId = ref<string | undefined>(initialTournamentId)
 const selectedMode = ref<string | undefined>(undefined)
+const selectedDisciplineId = ref<string | undefined>(undefined)
 const draftTournamentId = ref<string | undefined>(initialTournamentId)
 const draftMode = ref<string | undefined>(undefined)
+const draftDisciplineId = ref<string | undefined>(undefined)
 const showFilterDrawer = ref(false)
 
 // Ranked tournament detection
@@ -609,39 +554,66 @@ function modeSeverity(mode: string): string {
   return 'secondary'
 }
 
+const disciplineOptions = computed(() => {
+  const seen = new Set<string>()
+  const opts: { label: string; value: string | undefined }[] = [
+    { label: 'Toutes disciplines', value: undefined },
+  ]
+  for (const t of availableTournaments.value) {
+    if (t.disciplineId && !seen.has(t.disciplineId)) {
+      seen.add(t.disciplineId)
+      opts.push({ label: t.disciplineName ?? t.disciplineId, value: t.disciplineId })
+    }
+  }
+  return opts
+})
+
+const hasMultipleDisciplines = computed(() => disciplineOptions.value.length > 1)
+
 const activeFilterCount = computed(
-  () => [selectedTournamentId.value, selectedMode.value].filter(Boolean).length,
+  () =>
+    [selectedTournamentId.value, selectedMode.value, selectedDisciplineId.value].filter(Boolean)
+      .length,
 )
 
-function applyFilters(tournamentId: string | undefined, mode: string | undefined) {
+function applyFilters(
+  tournamentId: string | undefined,
+  mode: string | undefined,
+  disciplineId: string | undefined,
+) {
   const filters: PlayerStatsFilters = {}
   if (tournamentId) filters.tournamentId = tournamentId
   if (mode) filters.tournamentMode = mode
+  if (disciplineId) filters.disciplineId = disciplineId
   loadStats(playerId.value, filters)
 }
 
 function resetFilters() {
   selectedTournamentId.value = undefined
   selectedMode.value = undefined
+  selectedDisciplineId.value = undefined
   draftTournamentId.value = undefined
   draftMode.value = undefined
+  draftDisciplineId.value = undefined
 }
 
 function resetMobileFilters() {
   draftTournamentId.value = undefined
   draftMode.value = undefined
+  draftDisciplineId.value = undefined
 }
 
 function applyMobileFilters() {
   selectedTournamentId.value = draftTournamentId.value
   selectedMode.value = draftMode.value
+  selectedDisciplineId.value = draftDisciplineId.value
   showFilterDrawer.value = false
 }
 
 // Load regular stats when filter changes (skip for ranked tournaments)
-watch([selectedTournamentId, selectedMode], ([tid, mode]) => {
+watch([selectedTournamentId, selectedMode, selectedDisciplineId], ([tid, mode, did]) => {
   if (!isRankedTournament.value) {
-    applyFilters(tid ?? undefined, mode ?? undefined)
+    applyFilters(tid ?? undefined, mode ?? undefined, did ?? undefined)
   }
 })
 
@@ -662,7 +634,7 @@ onMounted(async () => {
   if (isRankedTournament.value && selectedTournamentId.value) {
     await loadRankedData(selectedTournamentId.value, playerId.value)
   } else {
-    applyFilters(selectedTournamentId.value, selectedMode.value)
+    applyFilters(selectedTournamentId.value, selectedMode.value, selectedDisciplineId.value)
   }
 })
 </script>
