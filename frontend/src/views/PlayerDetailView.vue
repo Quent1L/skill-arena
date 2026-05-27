@@ -46,8 +46,8 @@
       </div>
 
       <!-- Desktop filters -->
-      <div class="hidden md:block bg-gray-800 rounded-2xl p-4">
-        <div v-if="hasMultipleDisciplines" class="mb-3">
+      <div class="hidden md:flex items-center gap-4 bg-gray-800 rounded-2xl p-4 ">
+        <div v-if="hasMultipleDisciplines" >
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-gray-400 uppercase tracking-wide"
               >Discipline</label
@@ -57,13 +57,13 @@
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
-              placeholder="Toutes disciplines"
-              class="w-full"
+              placeholder="Toutes"
               show-clear
+              class="w-40"
             />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
             <Select
@@ -71,8 +71,8 @@
               :options="tournamentOptions"
               option-label="label"
               option-value="value"
-              placeholder="Tous les tournois"
-              class="w-full"
+              placeholder="Tous"
+              class="max-w-[60rem]"
               show-clear
             >
               <template #option="{ option }">
@@ -98,7 +98,6 @@
               class="w-full"
             />
           </div>
-        </div>
         <div class="mt-3 flex justify-end">
           <Button
             label="Réinitialiser"
@@ -529,7 +528,7 @@ const groupedStats = computed(() => {
 })
 
 const tournamentOptions = computed(() => [
-  { label: 'Tous les tournois', value: undefined, mode: undefined },
+  { label: 'Tous', value: undefined, mode: undefined },
   ...availableTournaments.value.map((t) => ({ label: t.name, value: t.id, mode: t.mode })),
 ])
 
@@ -557,7 +556,7 @@ function modeSeverity(mode: string): string {
 const disciplineOptions = computed(() => {
   const seen = new Set<string>()
   const opts: { label: string; value: string | undefined }[] = [
-    { label: 'Toutes disciplines', value: undefined },
+    { label: 'Toutes', value: undefined },
   ]
   for (const t of availableTournaments.value) {
     if (t.disciplineId && !seen.has(t.disciplineId)) {
