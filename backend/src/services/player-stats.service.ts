@@ -54,9 +54,18 @@ export class PlayerStatsService {
 
   async getPlayerStats(playerId: string, filters: PlayerStatsFilters): Promise<PlayerStatsResponse> {
     const isFiltered = !!(filters.tournamentId || filters.disciplineId || filters.tournamentMode);
+    const isTournamentOnlyFilter = !!(filters.tournamentId && !filters.disciplineId && !filters.tournamentMode);
 
     if (!isFiltered) {
       const cached = await playerComputedDataRepository.get(playerId, "stats:global");
+      if (cached) {
+        const player = await this.getPlayerProfile(playerId);
+        return { player, stats: cached, filters };
+      }
+    }
+
+    if (isTournamentOnlyFilter) {
+      const cached = await playerComputedDataRepository.get(playerId, `stats:tournament:${filters.tournamentId}`);
       if (cached) {
         const player = await this.getPlayerProfile(playerId);
         return { player, stats: cached, filters };
@@ -100,12 +109,22 @@ export class PlayerStatsService {
     if (!isFiltered) {
       await playerComputedDataRepository.set(playerId, "stats:global", stats);
     }
+    if (isTournamentOnlyFilter) {
+      await playerComputedDataRepository.set(playerId, `stats:tournament:${filters.tournamentId}`, stats);
+    }
 
     return { player, stats, filters };
   }
 
   async invalidateCache(playerId: string): Promise<void> {
     await playerComputedDataRepository.deleteMany([playerId]);
+  }
+
+  async invalidateCacheForTournament(tournamentId: string): Promise<void> {
+    const playerIds = await playerStatsRepository.getPlayerIdsByTournament(tournamentId);
+    if (playerIds.length > 0) {
+      await playerComputedDataRepository.deleteMany(playerIds);
+    }
   }
 
   private aggregateBaseStats(matchResults: MatchResult[]) {

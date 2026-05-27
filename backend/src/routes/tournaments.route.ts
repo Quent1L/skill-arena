@@ -18,6 +18,7 @@ import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";
 import { ErrorCode, ForbiddenError } from "../types/errors";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { playerStatsService } from "../services/player-stats.service";
 import { enqueueMmrSeasonRecalculation } from "../services/mmr-job-queue.service";
 
 const tournaments = createAppHono();
@@ -280,6 +281,7 @@ tournaments.delete("/:id/cache", requireAuth, async (c) => {
   const tournamentId = c.req.param("id")!;
   const appUserId = c.get("appUserId");
   await standingsService.clearCache(tournamentId, appUserId);
+  await playerStatsService.invalidateCacheForTournament(tournamentId);
   return c.json({ success: true });
 });
 

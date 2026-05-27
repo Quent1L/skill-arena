@@ -220,6 +220,15 @@ export class PlayerStatsRepository {
       .groupBy(tournaments.id, disciplines.name);
   }
 
+  async getPlayerIdsByTournament(tournamentId: string): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ playerId: tournamentEntryPlayers.playerId })
+      .from(tournamentEntryPlayers)
+      .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .where(eq(tournamentEntries.tournamentId, tournamentId));
+    return rows.map((r) => r.playerId);
+  }
+
 }
 
 export const playerStatsRepository = new PlayerStatsRepository();
