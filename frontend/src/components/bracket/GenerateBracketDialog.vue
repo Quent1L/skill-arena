@@ -20,9 +20,9 @@
 
       <!-- Bracket Type -->
       <div class="space-y-2">
-        <label class="block font-medium text-sm text-gray-700 dark:text-gray-300">
+        <span class="block font-medium text-sm text-gray-700 dark:text-gray-300">
           Type de bracket
-        </label>
+        </span>
         <div class="grid grid-cols-2 gap-3">
           <div
             class="border rounded-lg p-4 cursor-pointer transition-all"
@@ -58,9 +58,9 @@
 
       <!-- Seeding Type -->
       <div class="space-y-2">
-        <label class="block font-medium text-sm text-gray-700 dark:text-gray-300">
+        <span class="block font-medium text-sm text-gray-700 dark:text-gray-300">
           Méthode de classement
-        </label>
+        </span>
         <div class="grid grid-cols-2 gap-3">
           <div
             class="border rounded-lg p-4 cursor-pointer transition-all"

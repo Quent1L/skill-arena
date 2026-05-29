@@ -81,6 +81,34 @@ export interface MatchFilters {
   playerId?: string;
 }
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+type MatchOutcome = { isDraw: boolean; isAWinner: boolean; winnerSide: "A" | "B" | null };
+
+function resolveMatchOutcome(
+  data: { winnerPosition?: number | null },
+  scoreA: number,
+  scoreB: number,
+): MatchOutcome {
+  const hasExplicitWinner = data.winnerPosition !== undefined;
+  const isDraw = hasExplicitWinner ? data.winnerPosition === null : scoreA === scoreB;
+  const isAWinner = hasExplicitWinner ? data.winnerPosition === 1 : scoreA > scoreB;
+  let winnerSide: "A" | "B" | null = null;
+  if (!isDraw) winnerSide = isAWinner ? "A" : "B";
+  return { isDraw, isAWinner, winnerSide };
+}
+
+function computeSidePoints(
+  tournament: typeof tournaments.$inferSelect,
+  outcome: MatchOutcome,
+): { a: number; b: number } {
+  const win = tournament.pointPerVictory ?? 3;
+  const loss = tournament.pointPerLoss ?? 0;
+  const draw = tournament.pointPerDraw ?? 1;
+  if (outcome.isDraw) return { a: draw, b: draw };
+  return outcome.isAWinner ? { a: win, b: loss } : { a: loss, b: win };
+}
+
 export class MatchRepository {
   /**
    * Create a new match
@@ -126,38 +154,26 @@ export class MatchRepository {
       // 4. Determine winner and calculate points (sides model: winnerPosition = winning side's position)
       const calcScoreA = data.scoreA ?? 0;
       const calcScoreB = data.scoreB ?? 0;
-      const hasExplicitWinner = data.winnerPosition !== undefined;
-      const isDraw = hasExplicitWinner ? data.winnerPosition === null : calcScoreA === calcScoreB;
-      const isPos1Winner = hasExplicitWinner
-        ? data.winnerPosition === 1
-        : calcScoreA > calcScoreB;
+      const outcome = resolveMatchOutcome(data, calcScoreA, calcScoreB);
 
-      const winnerSideValue = isDraw ? null : isPos1Winner ? "A" : "B";
       await tx
         .update(matches)
-        .set({ winnerSide: winnerSideValue })
+        .set({ winnerSide: outcome.winnerSide })
         .where(eq(matches.id, match.id));
 
       const scoreByPosition: Record<number, number> = {
-        1: data.scoreA !== undefined && data.scoreA !== null ? data.scoreA : 0,
-        2: data.scoreB !== undefined && data.scoreB !== null ? data.scoreB : 0,
+        1: data.scoreA ?? 0,
+        2: data.scoreB ?? 0,
       };
 
       // 5. Create match_sides for all sides
-      const sidesData = resolvedSides.map((rs) => {
-        const isWinnerSide = winnerSideValue === (rs.position === 1 ? "A" : "B");
-        const points = isDraw
-          ? (tournament.pointPerDraw ?? 1)
-          : isWinnerSide
-            ? (tournament.pointPerVictory ?? 3)
-            : (tournament.pointPerLoss ?? 0);
-        return {
-          entryId: rs.entry.id,
-          position: rs.position,
-          score: scoreByPosition[rs.position] ?? 0,
-          pointsAwarded: points,
-        };
-      });
+      const points = computeSidePoints(tournament, outcome);
+      const sidesData = resolvedSides.map((rs) => ({
+        entryId: rs.entry.id,
+        position: rs.position,
+        score: scoreByPosition[rs.position] ?? 0,
+        pointsAwarded: rs.position === 1 ? points.a : points.b,
+      }));
       await matchSidesRepository.createSides(match.id, sidesData, tx);
 
       // 6. Create match_results if reported
@@ -431,12 +447,14 @@ export class MatchRepository {
         const scoreA = sides[0]?.score ?? 0;
         const scoreB = sides[1]?.score ?? 0;
         const winnerSide = this.determineWinnerSide(m);
-        const winnerId =
-          winnerSide === "A"
-            ? sides[0]?.entry?.teamId || sides[0]?.entry?.id
-            : winnerSide === "B"
-              ? sides[1]?.entry?.teamId || sides[1]?.entry?.id
-              : null;
+        let winnerId: string | null = null;
+        if (winnerSide === "A") {
+          winnerId = sides[0]?.entry?.teamId || sides[0]?.entry?.id || null;
+        } else if (winnerSide === "B") {
+          winnerId = sides[1]?.entry?.teamId || sides[1]?.entry?.id || null;
+        }
+        let winner: typeof teamA = null;
+        if (winnerId) winner = winnerSide === "A" ? teamA : teamB;
 
         return {
           ...m,
@@ -448,7 +466,7 @@ export class MatchRepository {
           scoreB,
           winnerId,
           winnerSide,
-          winner: winnerId ? (winnerSide === "A" ? teamA : teamB) : null,
+          winner,
           reportedBy: result?.reportedBy,
           reportedAt: result?.reportedAt,
           reportProof: result?.reportProof,
@@ -543,131 +561,107 @@ export class MatchRepository {
    */
   async update(id: string, data: UpdateMatchData) {
     return await db.transaction(async (tx) => {
-      // Only update the match record if there are fields to set
-      const matchFields = {
-        status: data.status,
-        playedAt: data.playedAt,
-        outcomeTypeId: data.outcomeTypeId,
-        outcomeReasonId: data.outcomeReasonId,
-        confirmationDeadline: data.confirmationDeadline,
-      };
-      const hasMatchFields = Object.values(matchFields).some(
-        (v) => v !== undefined,
-      );
-
-      let updated: typeof matches.$inferSelect | undefined;
-      if (hasMatchFields) {
-        [updated] = await tx
-          .update(matches)
-          .set(matchFields)
-          .where(eq(matches.id, id))
-          .returning();
-      } else {
-        const rows = await tx.select().from(matches).where(eq(matches.id, id));
-        updated = rows[0];
-      }
-
+      const updated = await this.updateMatchRecord(tx, id, data);
       if (!updated) throw new Error(`Match ${id} not found`);
 
-      // Update match_sides scores if provided
       if (data.scoreA !== undefined || data.scoreB !== undefined) {
-        const sides = await matchSidesRepository.getByMatchId(id);
-        const updates = [];
-
-        if (data.scoreA !== undefined && sides[0]) {
-          updates.push({ entryId: sides[0].entryId, score: data.scoreA });
-        }
-        if (data.scoreB !== undefined && sides[1]) {
-          updates.push({ entryId: sides[1].entryId, score: data.scoreB });
-        }
-
-        if (updates.length > 0) {
-          await matchSidesRepository.updateScores(id, updates);
-        }
-
-        // Recalculate points if scores changed
-        if (data.scoreA !== undefined || data.scoreB !== undefined) {
-          const tournament = await this.getTournament(updated.tournamentId);
-          if (tournament) {
-            const scoreA = data.scoreA ?? sides[0]?.score ?? 0;
-            const scoreB = data.scoreB ?? sides[1]?.score ?? 0;
-
-            // Use explicit winner if provided, otherwise derive from scores
-            const hasExplicitWinner = data.winnerPosition !== undefined;
-            const isDraw = hasExplicitWinner
-              ? data.winnerPosition === null
-              : scoreA === scoreB;
-            const isAWinner = hasExplicitWinner
-              ? data.winnerPosition === 1
-              : scoreA > scoreB;
-
-            // Persist winnerSide on the match record
-            const winnerSideValue = isDraw ? null : isAWinner ? "A" : "B";
-            await tx
-              .update(matches)
-              .set({ winnerSide: winnerSideValue })
-              .where(eq(matches.id, id));
-
-            const pointsA = isDraw
-              ? (tournament.pointPerDraw ?? 1)
-              : isAWinner
-                ? (tournament.pointPerVictory ?? 3)
-                : (tournament.pointPerLoss ?? 0);
-            const pointsB = isDraw
-              ? (tournament.pointPerDraw ?? 1)
-              : isAWinner
-                ? (tournament.pointPerLoss ?? 0)
-                : (tournament.pointPerVictory ?? 3);
-
-            if (sides[0]) {
-              await matchSidesRepository.updatePointsAwarded(
-                id,
-                sides[0].entryId,
-                pointsA,
-              );
-            }
-            if (sides[1]) {
-              await matchSidesRepository.updatePointsAwarded(
-                id,
-                sides[1].entryId,
-                pointsB,
-              );
-            }
-          }
-        }
+        await this.applyScoreUpdates(tx, id, updated.tournamentId, data);
       }
 
-      // Update or create match_results
-      const existingResult = await matchResultRepository.getByMatchId(id);
-
-      if (
-        data.reportedBy !== undefined ||
-        data.reportProof !== undefined ||
-        data.finalizedBy !== undefined
-      ) {
-        if (existingResult) {
-          await matchResultRepository.update(id, {
-            reportedBy: data.reportedBy,
-            reportedAt: data.reportedBy ? new Date() : undefined,
-            reportProof: data.reportProof,
-            finalizedBy: data.finalizedBy,
-            finalizedAt: data.finalizedAt,
-            finalizationReason: data.finalizationReason,
-          });
-        } else {
-          await matchResultRepository.create(id, {
-            reportedBy: data.reportedBy,
-            reportedAt: data.reportedBy ? new Date() : undefined,
-            reportProof: data.reportProof,
-            finalizedBy: data.finalizedBy,
-            finalizedAt: data.finalizedAt,
-            finalizationReason: data.finalizationReason,
-          });
-        }
-      }
+      await this.upsertMatchResult(id, data);
 
       return updated;
     });
+  }
+
+  /** Update the match row itself, or just fetch it when no match fields changed */
+  private async updateMatchRecord(tx: Tx, id: string, data: UpdateMatchData) {
+    const matchFields = {
+      status: data.status,
+      playedAt: data.playedAt,
+      outcomeTypeId: data.outcomeTypeId,
+      outcomeReasonId: data.outcomeReasonId,
+      confirmationDeadline: data.confirmationDeadline,
+    };
+    const hasMatchFields = Object.values(matchFields).some((v) => v !== undefined);
+
+    if (hasMatchFields) {
+      const [updated] = await tx
+        .update(matches)
+        .set(matchFields)
+        .where(eq(matches.id, id))
+        .returning();
+      return updated;
+    }
+
+    const rows = await tx.select().from(matches).where(eq(matches.id, id));
+    return rows[0];
+  }
+
+  /** Persist new scores, winner side and recomputed points for the match sides */
+  private async applyScoreUpdates(
+    tx: Tx,
+    id: string,
+    tournamentId: string,
+    data: UpdateMatchData,
+  ) {
+    const sides = await matchSidesRepository.getByMatchId(id);
+    const updates: { entryId: string; score: number | null }[] = [];
+
+    if (data.scoreA !== undefined && sides[0]) {
+      updates.push({ entryId: sides[0].entryId, score: data.scoreA });
+    }
+    if (data.scoreB !== undefined && sides[1]) {
+      updates.push({ entryId: sides[1].entryId, score: data.scoreB });
+    }
+    if (updates.length > 0) {
+      await matchSidesRepository.updateScores(id, updates);
+    }
+
+    const tournament = await this.getTournament(tournamentId);
+    if (!tournament) return;
+
+    const scoreA = data.scoreA ?? sides[0]?.score ?? 0;
+    const scoreB = data.scoreB ?? sides[1]?.score ?? 0;
+    const outcome = resolveMatchOutcome(data, scoreA, scoreB);
+
+    await tx
+      .update(matches)
+      .set({ winnerSide: outcome.winnerSide })
+      .where(eq(matches.id, id));
+
+    const points = computeSidePoints(tournament, outcome);
+    if (sides[0]) {
+      await matchSidesRepository.updatePointsAwarded(id, sides[0].entryId, points.a);
+    }
+    if (sides[1]) {
+      await matchSidesRepository.updatePointsAwarded(id, sides[1].entryId, points.b);
+    }
+  }
+
+  /** Create or update the match_results row when reporting/finalization fields change */
+  private async upsertMatchResult(id: string, data: UpdateMatchData) {
+    const shouldUpsert =
+      data.reportedBy !== undefined ||
+      data.reportProof !== undefined ||
+      data.finalizedBy !== undefined;
+    if (!shouldUpsert) return;
+
+    const payload = {
+      reportedBy: data.reportedBy,
+      reportedAt: data.reportedBy ? new Date() : undefined,
+      reportProof: data.reportProof,
+      finalizedBy: data.finalizedBy,
+      finalizedAt: data.finalizedAt,
+      finalizationReason: data.finalizationReason,
+    };
+
+    const existingResult = await matchResultRepository.getByMatchId(id);
+    if (existingResult) {
+      await matchResultRepository.update(id, payload);
+    } else {
+      await matchResultRepository.create(id, payload);
+    }
   }
 
   /**
@@ -866,11 +860,11 @@ export class MatchRepository {
       );
 
       userEntryIds = userEntriesDetails
-        .filter((e) => e && e.players.length === teamSize)
+        .filter((e) => e?.players.length === teamSize)
         .map((e) => e!.id);
 
       opponentEntryIds = opponentEntriesDetails
-        .filter((e) => e && e.players.length === teamSize)
+        .filter((e) => e?.players.length === teamSize)
         .map((e) => e!.id);
 
       if (userEntryIds.length === 0 || opponentEntryIds.length === 0) {

@@ -39,41 +39,41 @@ export async function createTestDatabase(): Promise<
 /**
  * Runs all migration SQL files in order.
  */
+function parseMigrationStatements(sql: string): string[] {
+  return sql
+    .split("--> statement-breakpoint")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+async function execMigrationStatement(statement: string, file: string): Promise<void> {
+  if (!pgliteInstance) return;
+  try {
+    await pgliteInstance.exec(statement);
+  } catch (error: unknown) {
+    // Ignore errors for IF NOT EXISTS or duplicate constraints
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isSchemaNoise =
+      errorMessage.includes("already exists") || errorMessage.includes("duplicate key");
+    // Only log significant errors, not schema issues
+    if (!isSchemaNoise && process.env.DEBUG_MIGRATIONS) {
+      console.warn(`Migration warning in ${file}: ${errorMessage.substring(0, 100)}`);
+    }
+  }
+}
+
 async function runMigrations(): Promise<void> {
   if (!pgliteInstance) return;
 
   const migrationsPath = join(__dirname, "../../drizzle");
   const files = readdirSync(migrationsPath)
     .filter((f) => f.endsWith(".sql"))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 
   for (const file of files) {
     const sql = readFileSync(join(migrationsPath, file), "utf-8");
-    // Split by statement-breakpoint and execute each statement
-    const statements = sql
-      .split("--> statement-breakpoint")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-
-    for (const statement of statements) {
-      try {
-        await pgliteInstance.exec(statement);
-      } catch (error: unknown) {
-        // Ignore errors for IF NOT EXISTS or duplicate constraints
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        if (
-          !errorMessage.includes("already exists") &&
-          !errorMessage.includes("duplicate key")
-        ) {
-          // Only log significant errors, not schema issues
-          if (process.env.DEBUG_MIGRATIONS) {
-            console.warn(
-              `Migration warning in ${file}: ${errorMessage.substring(0, 100)}`,
-            );
-          }
-        }
-      }
+    for (const statement of parseMigrationStatements(sql)) {
+      await execMigrationStatement(statement, file);
     }
   }
 

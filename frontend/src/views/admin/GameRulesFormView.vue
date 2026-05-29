@@ -32,9 +32,9 @@
 
             <!-- Contenu WYSIWYG -->
             <div>
-              <label class="block text-sm font-medium mb-2">
+              <span class="block text-sm font-medium mb-2">
                 Contenu <span class="text-red-500">*</span>
-              </label>
+              </span>
               <RichTextEditor v-model="content" />
               <small class="p-error">{{ errors.content }}</small>
             </div>

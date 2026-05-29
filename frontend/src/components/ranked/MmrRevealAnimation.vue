@@ -287,23 +287,30 @@ function onSettled() {
   }
 
   if (props.event.rankChanged && !isProvisional.value) {
-    setTimeout(() => {
-      phase.value = 'rank_up_exit'
-      setTimeout(() => {
-        phase.value = 'rank_up_in'
-        setTimeout(() => {
-          phase.value = 'rank_up_hold'
-          setTimeout(() => {
-            phase.value = 'done'
-          }, 1200)
-        }, 800)
-      }, 400)
-    }, 1000)
+    runPhaseSequence([
+      { phase: 'rank_up_exit', delay: 1000 },
+      { phase: 'rank_up_in', delay: 400 },
+      { phase: 'rank_up_hold', delay: 800 },
+      { phase: 'done', delay: 1200 },
+    ])
   } else {
     setTimeout(() => {
       phase.value = 'done'
     }, 1200)
   }
+}
+
+function runPhaseSequence(steps: { phase: Phase; delay: number }[]) {
+  let index = 0
+  const next = () => {
+    if (index >= steps.length) return
+    const step = steps[index++]
+    setTimeout(() => {
+      phase.value = step.phase
+      next()
+    }, step.delay)
+  }
+  next()
 }
 
 onMounted(() => {

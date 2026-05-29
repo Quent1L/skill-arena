@@ -62,7 +62,10 @@ export class PlayerMmrRepository {
     for (const row of recentRows.rows as { player_id: string; mmr_delta: number }[]) {
       const list = resultsByPlayer.get(row.player_id) ?? [];
       const delta = Number(row.mmr_delta);
-      list.push({ outcome: delta > 0 ? 'win' : delta < 0 ? 'loss' : 'draw' });
+      let outcome: 'win' | 'loss' | 'draw' = 'draw';
+      if (delta > 0) outcome = 'win';
+      else if (delta < 0) outcome = 'loss';
+      list.push({ outcome });
       resultsByPlayer.set(row.player_id, list);
     }
 
@@ -318,7 +321,9 @@ export class PlayerMmrRepository {
     const THRESHOLD = 100;
     for (const row of rows) {
       const diff = row.opponentAvgMmr - row.mmrBefore;
-      const bucket = diff > THRESHOLD ? result.vsStronger : diff < -THRESHOLD ? result.vsWeaker : result.vsEqual;
+      let bucket = result.vsEqual;
+      if (diff > THRESHOLD) bucket = result.vsStronger;
+      else if (diff < -THRESHOLD) bucket = result.vsWeaker;
       bucket.matchesPlayed++;
       if (row.outcome === 'win') bucket.wins++;
       else if (row.outcome === 'loss') bucket.losses++;

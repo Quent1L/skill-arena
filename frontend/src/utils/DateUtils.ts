@@ -12,30 +12,42 @@ export function isDateString(str: string) {
  * @param data  données à convertir
  * @returns données converties
  */
-export function convertStringDatesToJS<T>(data: T): T {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function convertStringDatesToJS(data: any): any {
-    if (Array.isArray(data)) {
-      return data.map((item) => convertStringDatesToJS(item))
-    } else if (typeof data === 'object' && data !== null) {
-      for (const key in data) {
-        if (Object.hasOwn(data, key)) {
-          if (typeof data[key] === 'string' && isDateString(data[key])) {
-            const localMatch = (data[key] as string).match(/^(\d{4})-(\d{2})-(\d{2})$/)
-            if (localMatch) {
-              data[key] = new Date(+localMatch[1], +localMatch[2] - 1, +localMatch[3])
-            } else {
-              data[key] = new Date(data[key])
-            }
-          } else if (typeof data[key] === 'object') {
-            data[key] = convertStringDatesToJS(data[key])
-          }
-        }
+function parseDateString(value: string): Date {
+  const localMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (localMatch) {
+    return new Date(+localMatch[1], +localMatch[2] - 1, +localMatch[3])
+  }
+  return new Date(value)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function convertDateValue(value: any): any {
+  if (typeof value === 'string' && isDateString(value)) {
+    return parseDateString(value)
+  }
+  if (typeof value === 'object' && value !== null) {
+    return convertDatesDeep(value)
+  }
+  return value
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function convertDatesDeep(data: any): any {
+  if (Array.isArray(data)) {
+    return data.map((item) => convertDatesDeep(item))
+  }
+  if (typeof data === 'object' && data !== null) {
+    for (const key in data) {
+      if (Object.hasOwn(data, key)) {
+        data[key] = convertDateValue(data[key])
       }
     }
-    return data
   }
-  return convertStringDatesToJS(data) as T
+  return data
+}
+
+export function convertStringDatesToJS<T>(data: T): T {
+  return convertDatesDeep(data) as T
 }
 
 export function dateToStringDDMMYYYY(date: Date | undefined | null) {
@@ -56,6 +68,26 @@ export function formatDate(dateString: string | Date): string {
   return format(date, 'dd/MM/yyyy')
 }
 
+function formatDaysDuration(diffDays: number): string {
+  return diffDays === 1 ? '1 jour' : `${diffDays} jours`
+}
+
+function formatWeeksDuration(diffDays: number): string {
+  const weeks = Math.floor(diffDays / 7)
+  const remainingDays = diffDays % 7
+  if (remainingDays === 0) {
+    return weeks === 1 ? '1 semaine' : `${weeks} semaines`
+  }
+  const weekLabel = `${weeks} semaine${weeks > 1 ? 's' : ''}`
+  const dayLabel = `${remainingDays} jour${remainingDays > 1 ? 's' : ''}`
+  return `${weekLabel} et ${dayLabel}`
+}
+
+function formatMonthsDuration(diffDays: number): string {
+  const months = Math.floor(diffDays / 30)
+  return months === 1 ? '1 mois' : `${months} mois`
+}
+
 export function calculateDuration(startDate: string | Date, endDate: string | Date): string {
   const start = typeof startDate === 'string' ? new Date(startDate) : startDate
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate
@@ -63,20 +95,7 @@ export function calculateDuration(startDate: string | Date, endDate: string | Da
   const diffTime = Math.abs(end.getTime() - start.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-  if (diffDays === 1) {
-    return '1 jour'
-  } else if (diffDays < 7) {
-    return `${diffDays} jours`
-  } else if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7)
-    const remainingDays = diffDays % 7
-    if (remainingDays === 0) {
-      return weeks === 1 ? '1 semaine' : `${weeks} semaines`
-    } else {
-      return `${weeks} semaine${weeks > 1 ? 's' : ''} et ${remainingDays} jour${remainingDays > 1 ? 's' : ''}`
-    }
-  } else {
-    const months = Math.floor(diffDays / 30)
-    return months === 1 ? '1 mois' : `${months} mois`
-  }
+  if (diffDays < 7) return formatDaysDuration(diffDays)
+  if (diffDays < 30) return formatWeeksDuration(diffDays)
+  return formatMonthsDuration(diffDays)
 }

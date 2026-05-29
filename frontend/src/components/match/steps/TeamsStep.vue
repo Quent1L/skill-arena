@@ -1,10 +1,11 @@
 <template>
   <div class="flex flex-col gap-6 pt-4">
     <div v-for="(side, idx) in sidesModel" :key="side.position" class="flex flex-col gap-2">
-      <label class="text-sm font-medium">
+      <label :for="`teams-side-${side.position}`" class="text-sm font-medium">
         Équipe {{ idx + 1 }} <span class="text-red-500">*</span>
       </label>
       <Select
+        :input-id="`teams-side-${side.position}`"
         :model-value="side.teamId"
         :options="availableTeamsFor(side.position)"
         option-label="name"

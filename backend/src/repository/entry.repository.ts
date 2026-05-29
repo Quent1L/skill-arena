@@ -9,6 +9,61 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type * as schema from "../db/schema";
 
 type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
+
+type EntryWithPlayers = {
+  entry: typeof tournamentEntries.$inferSelect;
+  playerIds: string[];
+};
+
+/** Load all PLAYER entries of a tournament grouped with their player ids */
+async function loadPlayerEntries(
+  dbInstance: DbTransaction,
+  tournamentId: string,
+): Promise<EntryWithPlayers[]> {
+  const rows = await dbInstance
+    .select({
+      entry: tournamentEntries,
+      playerIds: tournamentEntryPlayers.playerId,
+    })
+    .from(tournamentEntries)
+    .leftJoin(
+      tournamentEntryPlayers,
+      eq(tournamentEntries.id, tournamentEntryPlayers.entryId),
+    )
+    .where(
+      and(
+        eq(tournamentEntries.tournamentId, tournamentId),
+        eq(tournamentEntries.entryType, "PLAYER"),
+      ),
+    );
+
+  const entriesMap = new Map<string, EntryWithPlayers>();
+  for (const row of rows) {
+    if (!entriesMap.has(row.entry.id)) {
+      entriesMap.set(row.entry.id, { entry: row.entry, playerIds: [] });
+    }
+    if (row.playerIds) {
+      entriesMap.get(row.entry.id)!.playerIds.push(row.playerIds);
+    }
+  }
+  return [...entriesMap.values()];
+}
+
+/** Find the entry whose player composition matches playerIds exactly */
+function findEntryByComposition(
+  entries: EntryWithPlayers[],
+  playerIds: string[],
+): (typeof tournamentEntries.$inferSelect) | undefined {
+  const sorted = [...playerIds].sort((a, b) => a.localeCompare(b));
+  return entries.find(({ playerIds: entryPlayerIds }) => {
+    const sortedEntry = [...entryPlayerIds].sort((a, b) => a.localeCompare(b));
+    return (
+      sortedEntry.length === sorted.length &&
+      sorted.every((id, i) => id === sortedEntry[i])
+    );
+  })?.entry;
+}
+
 export class EntryRepository {
   /**
    * Get entry by ID with players and team info
@@ -146,51 +201,10 @@ export class EntryRepository {
 
     // For flex mode - find entry with exact same player composition
     if (playerIds && playerIds.length > 0) {
-      // Get all PLAYER entries for this tournament
-      const entries = await dbInstance
-        .select({
-          entry: tournamentEntries,
-          playerIds: tournamentEntryPlayers.playerId,
-        })
-        .from(tournamentEntries)
-        .leftJoin(
-          tournamentEntryPlayers,
-          eq(tournamentEntries.id, tournamentEntryPlayers.entryId)
-        )
-        .where(
-          and(
-            eq(tournamentEntries.tournamentId, tournamentId),
-            eq(tournamentEntries.entryType, "PLAYER")
-          )
-        );
-
-      // Group by entry ID
-      const entriesMap = new Map<
-        string,
-        { entry: typeof tournamentEntries.$inferSelect; playerIds: string[] }
-      >();
-      for (const row of entries) {
-        if (!entriesMap.has(row.entry.id)) {
-          entriesMap.set(row.entry.id, {
-            entry: row.entry,
-            playerIds: [],
-          });
-        }
-        if (row.playerIds) {
-          entriesMap.get(row.entry.id)!.playerIds.push(row.playerIds);
-        }
-      }
-
-      // Find entry with exact same player composition
-      const sortedPlayerIds = [...playerIds].sort();
-      for (const { entry, playerIds: entryPlayerIds } of entriesMap.values()) {
-        const sortedEntryPlayerIds = [...entryPlayerIds].sort();
-        if (
-          sortedPlayerIds.length === sortedEntryPlayerIds.length &&
-          sortedPlayerIds.every((id, i) => id === sortedEntryPlayerIds[i])
-        ) {
-          return await this.getById(entry.id, tx);
-        }
+      const entries = await loadPlayerEntries(dbInstance, tournamentId);
+      const match = findEntryByComposition(entries, playerIds);
+      if (match) {
+        return await this.getById(match.id, tx);
       }
 
       // Create new entry for players
@@ -240,61 +254,20 @@ export class EntryRepository {
 
     // For flex mode - find entry with exact same player composition
     if (playerIds && playerIds.length > 0) {
-      // Get all PLAYER entries for this tournament
-      const entries = await db
-        .select({
-          entry: tournamentEntries,
-          playerIds: tournamentEntryPlayers.playerId,
-        })
-        .from(tournamentEntries)
-        .leftJoin(
-          tournamentEntryPlayers,
-          eq(tournamentEntries.id, tournamentEntryPlayers.entryId)
-        )
-        .where(
-          and(
-            eq(tournamentEntries.tournamentId, tournamentId),
-            eq(tournamentEntries.entryType, "PLAYER")
-          )
-        );
-
-      // Group by entry ID
-      const entriesMap = new Map<
-        string,
-        { entry: typeof tournamentEntries.$inferSelect; playerIds: string[] }
-      >();
-      for (const row of entries) {
-        if (!entriesMap.has(row.entry.id)) {
-          entriesMap.set(row.entry.id, {
-            entry: row.entry,
-            playerIds: [],
-          });
-        }
-        if (row.playerIds) {
-          entriesMap.get(row.entry.id)!.playerIds.push(row.playerIds);
-        }
-      }
-
-      // Find entry with exact same player composition
-      const sortedPlayerIds = [...playerIds].sort();
-      for (const { entry, playerIds: entryPlayerIds } of entriesMap.values()) {
-        const sortedEntryPlayerIds = [...entryPlayerIds].sort();
-        if (
-          sortedPlayerIds.length === sortedEntryPlayerIds.length &&
-          sortedPlayerIds.every((id, i) => id === sortedEntryPlayerIds[i])
-        ) {
-          return await db.query.tournamentEntries.findFirst({
-            where: eq(tournamentEntries.id, entry.id),
-            with: {
-              team: true,
-              players: {
-                with: {
-                  player: true,
-                },
+      const entries = await loadPlayerEntries(db, tournamentId);
+      const match = findEntryByComposition(entries, playerIds);
+      if (match) {
+        return await db.query.tournamentEntries.findFirst({
+          where: eq(tournamentEntries.id, match.id),
+          with: {
+            team: true,
+            players: {
+              with: {
+                player: true,
               },
             },
-          });
-        }
+          },
+        });
       }
     }
 

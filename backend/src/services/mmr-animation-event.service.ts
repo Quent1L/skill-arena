@@ -68,7 +68,7 @@ export class MmrAnimationEventService {
       where: eq(matches.id, matchId),
       with: { outcomeType: true },
     });
-    if (!match || match.status !== "reported") return;
+    if (match?.status !== "reported") return;
 
     const sides = await db.query.matchSides.findMany({
       where: eq(matchSides.matchId, matchId),

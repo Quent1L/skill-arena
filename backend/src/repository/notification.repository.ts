@@ -185,8 +185,6 @@ export const notificationRepository = {
         ),
       );
 
-    if (toDelete.length === 0) return toDelete;
-
     // Delete notifications (cascade handles notification_status rows)
     for (const notif of toDelete) {
       await db.delete(notifications).where(eq(notifications.id, notif.id));

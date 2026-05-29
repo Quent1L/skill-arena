@@ -31,6 +31,91 @@ type MatchResult = {
   outcomeTypeId: string | null;
 };
 
+type SideOutcome = { ownPosition: number; winnerSide: string | null };
+
+function isWinResult(r: SideOutcome): boolean {
+  return (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
+}
+
+function isLossResult(r: SideOutcome): boolean {
+  return (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
+}
+
+type EntryPlayer = { playerId: string; displayName: string; shortName: string };
+
+function groupPlayersByEntry(
+  rows: Array<{ entryId: string; playerId: string; displayName: string; shortName: string }>,
+): Map<string, EntryPlayer[]> {
+  const map = new Map<string, EntryPlayer[]>();
+  for (const p of rows) {
+    if (!map.has(p.entryId)) map.set(p.entryId, []);
+    map.get(p.entryId)!.push({ playerId: p.playerId, displayName: p.displayName, shortName: p.shortName });
+  }
+  return map;
+}
+
+type RelationAcc = {
+  displayName: string;
+  shortName: string;
+  wins: number;
+  losses: number;
+  draws: number;
+  count: number;
+};
+
+function tallyRelations(
+  matchResults: MatchResult[],
+  entryToPlayers: Map<string, EntryPlayer[]>,
+  pickEntryId: (r: MatchResult) => string,
+  excludePlayerId?: string,
+): Map<string, RelationAcc> {
+  const acc = new Map<string, RelationAcc>();
+  const seenMatches = new Set<string>();
+
+  for (const r of matchResults) {
+    if (seenMatches.has(r.matchId)) continue;
+    seenMatches.add(r.matchId);
+    const win = isWinResult(r);
+    const loss = isLossResult(r);
+    const draw = r.winnerSide === null && (r.allowDraw ?? false);
+
+    for (const p of entryToPlayers.get(pickEntryId(r)) ?? []) {
+      if (excludePlayerId && p.playerId === excludePlayerId) continue;
+      if (!acc.has(p.playerId)) {
+        acc.set(p.playerId, { displayName: p.displayName, shortName: p.shortName, wins: 0, losses: 0, draws: 0, count: 0 });
+      }
+      const s = acc.get(p.playerId)!;
+      s.count++;
+      if (win) s.wins++;
+      else if (loss) s.losses++;
+      else if (draw) s.draws++;
+    }
+  }
+  return acc;
+}
+
+function accumulateTournamentMatches(
+  base: PlayerTournamentEntry,
+  entryIds: string[],
+  matchesByEntry: Map<string, MatchResult[]>,
+): number {
+  const seenMatches = new Set<string>();
+  let totalPoints = 0;
+
+  for (const entryId of entryIds) {
+    for (const r of matchesByEntry.get(entryId) ?? []) {
+      if (seenMatches.has(r.matchId)) continue;
+      seenMatches.add(r.matchId);
+      base.matchesPlayed++;
+      totalPoints += r.pointsAwarded ?? 0;
+      if (isWinResult(r)) base.wins++;
+      else if (isLossResult(r)) base.losses++;
+      else if (r.winnerSide === null && r.allowDraw) base.draws++;
+    }
+  }
+  return totalPoints;
+}
+
 export class PlayerStatsService {
   async getPlayerProfile(playerId: string): Promise<PlayerProfile> {
     const user = await playerStatsRepository.getPlayerProfile(playerId);
@@ -42,7 +127,11 @@ export class PlayerStatsService {
     const rows = await playerStatsRepository.getPlayerTournaments(playerId);
     const seen = new Set<string>();
     return rows
-      .filter((r) => { if (seen.has(r.id)) return false; seen.add(r.id); return true; })
+      .filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      })
       .map((r) => ({
         id: r.id,
         name: r.name,
@@ -52,20 +141,20 @@ export class PlayerStatsService {
       }));
   }
 
-  async getPlayerStats(playerId: string, filters: PlayerStatsFilters): Promise<PlayerStatsResponse> {
+  /** Returns the cache key for these filters, or null when the result is not cacheable */
+  private statsCacheKey(filters: PlayerStatsFilters): string | null {
     const isFiltered = !!(filters.tournamentId || filters.disciplineId || filters.tournamentMode);
-    const isTournamentOnlyFilter = !!(filters.tournamentId && !filters.disciplineId && !filters.tournamentMode);
+    if (!isFiltered) return "stats:global";
 
-    if (!isFiltered) {
-      const cached = await playerComputedDataRepository.get(playerId, "stats:global");
-      if (cached) {
-        const player = await this.getPlayerProfile(playerId);
-        return { player, stats: cached, filters };
-      }
-    }
+    const isTournamentOnly = !!(filters.tournamentId && !filters.disciplineId && !filters.tournamentMode);
+    return isTournamentOnly ? `stats:tournament:${filters.tournamentId}` : null;
+  }
 
-    if (isTournamentOnlyFilter) {
-      const cached = await playerComputedDataRepository.get(playerId, `stats:tournament:${filters.tournamentId}`);
+  async getPlayerStats(playerId: string, filters: PlayerStatsFilters): Promise<PlayerStatsResponse> {
+    const cacheKey = this.statsCacheKey(filters);
+
+    if (cacheKey) {
+      const cached = await playerComputedDataRepository.get(playerId, cacheKey);
       if (cached) {
         const player = await this.getPlayerProfile(playerId);
         return { player, stats: cached, filters };
@@ -106,11 +195,8 @@ export class PlayerStatsService {
       tournamentHistory,
     };
 
-    if (!isFiltered) {
-      await playerComputedDataRepository.set(playerId, "stats:global", stats);
-    }
-    if (isTournamentOnlyFilter) {
-      await playerComputedDataRepository.set(playerId, `stats:tournament:${filters.tournamentId}`, stats);
+    if (cacheKey) {
+      await playerComputedDataRepository.set(playerId, cacheKey, stats);
     }
 
     return { player, stats, filters };
@@ -135,10 +221,8 @@ export class PlayerStatsService {
       if (seen.has(r.matchId)) continue;
       seen.add(r.matchId);
       totalScore += r.ownScore ?? 0;
-      const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
-      if (isWin) wins++;
-      else if (isLoss) losses++;
+      if (isWinResult(r)) wins++;
+      else if (isLossResult(r)) losses++;
       else if (r.winnerSide === null && r.allowDraw) draws++;
     }
 
@@ -156,11 +240,9 @@ export class PlayerStatsService {
   private async computeRecentForm(playerId: string, tournamentId?: string): Promise<Array<'V' | 'D' | 'N'>> {
     const rows = await playerStatsRepository.getPlayerRecentForm(playerId, 10, tournamentId);
     // Reverse so index 0 = oldest, last = most recent (left→right = ancien→récent)
-    return rows.reverse().map((r) => {
-      const isWin = (r.ownPosition === 1 && r.winnerSide === 'A') || (r.ownPosition === 2 && r.winnerSide === 'B');
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === 'B') || (r.ownPosition === 2 && r.winnerSide === 'A');
-      if (isWin) return 'V';
-      if (isLoss) return 'D';
+    return [...rows].reverse().map((r) => {
+      if (isWinResult(r)) return 'V';
+      if (isLossResult(r)) return 'D';
       return 'N';
     });
   }
@@ -173,12 +255,10 @@ export class PlayerStatsService {
       if (seen.has(r.matchId)) continue;
       seen.add(r.matchId);
       if (!r.outcomeTypeId) continue;
-      const isWin = (r.ownPosition === 1 && r.winnerSide === 'A') || (r.ownPosition === 2 && r.winnerSide === 'B');
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === 'B') || (r.ownPosition === 2 && r.winnerSide === 'A');
       if (!byType.has(r.outcomeTypeId)) byType.set(r.outcomeTypeId, { wins: 0, losses: 0, draws: 0, allowDraw: r.allowDraw ?? false });
       const s = byType.get(r.outcomeTypeId)!;
-      if (isWin) s.wins++;
-      else if (isLoss) s.losses++;
+      if (isWinResult(r)) s.wins++;
+      else if (isLossResult(r)) s.losses++;
       else if (r.winnerSide === null && r.allowDraw) s.draws++;
     }
 
@@ -209,32 +289,9 @@ export class PlayerStatsService {
   ): Promise<PlayerH2HStat[]> {
     const oppEntryIds = [...new Set(matchResults.map((r) => r.oppEntryId))];
     const playersInOppEntries = await playerStatsRepository.getPlayersInEntries(oppEntryIds);
+    const entryToPlayers = groupPlayersByEntry(playersInOppEntries);
 
-    const entryToPlayers = new Map<string, Array<{ playerId: string; displayName: string; shortName: string }>>();
-    for (const p of playersInOppEntries) {
-      if (!entryToPlayers.has(p.entryId)) entryToPlayers.set(p.entryId, []);
-      entryToPlayers.get(p.entryId)!.push({ playerId: p.playerId, displayName: p.displayName, shortName: p.shortName });
-    }
-
-    const h2h = new Map<string, { displayName: string; shortName: string; wins: number; losses: number; draws: number }>();
-    const seenMatches = new Set<string>();
-
-    for (const r of matchResults) {
-      if (seenMatches.has(r.matchId)) continue;
-      seenMatches.add(r.matchId);
-      const isWin = (r.ownPosition === 1 && r.winnerSide === 'A') || (r.ownPosition === 2 && r.winnerSide === 'B');
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === 'B') || (r.ownPosition === 2 && r.winnerSide === 'A');
-      const isDraw = r.winnerSide === null && (r.allowDraw ?? false);
-
-      for (const opp of entryToPlayers.get(r.oppEntryId) ?? []) {
-        if (opp.playerId === playerId) continue;
-        if (!h2h.has(opp.playerId)) h2h.set(opp.playerId, { displayName: opp.displayName, shortName: opp.shortName, wins: 0, losses: 0, draws: 0 });
-        const s = h2h.get(opp.playerId)!;
-        if (isWin) s.wins++;
-        else if (isLoss) s.losses++;
-        else if (isDraw) s.draws++;
-      }
-    }
+    const h2h = tallyRelations(matchResults, entryToPlayers, (r) => r.oppEntryId, playerId);
 
     return [...h2h.entries()]
       .map(([id, s]) => {
@@ -262,34 +319,9 @@ export class PlayerStatsService {
   ): Promise<{ frequent: PlayerRelationStat[]; best: PlayerRelationStat[] }> {
     const partnerEntryIds = [...new Set(playerEntryIds)];
     const playersInEntries = await playerStatsRepository.getPlayersInEntries(partnerEntryIds);
+    const entryToPlayers = groupPlayersByEntry(playersInEntries);
 
-    const entryToPlayers = new Map<string, Array<{ playerId: string; displayName: string; shortName: string }>>();
-    for (const p of playersInEntries) {
-      if (!entryToPlayers.has(p.entryId)) entryToPlayers.set(p.entryId, []);
-      entryToPlayers.get(p.entryId)!.push({ playerId: p.playerId, displayName: p.displayName, shortName: p.shortName });
-    }
-
-    const partnerStats = new Map<string, { displayName: string; shortName: string; count: number; wins: number; losses: number }>();
-    const seenMatches = new Set<string>();
-
-    for (const r of matchResults) {
-      if (seenMatches.has(r.matchId)) continue;
-      seenMatches.add(r.matchId);
-      const partners = entryToPlayers.get(r.entryId) ?? [];
-      const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
-
-      for (const partner of partners) {
-        if (partner.playerId === playerId) continue;
-        if (!partnerStats.has(partner.playerId)) {
-          partnerStats.set(partner.playerId, { displayName: partner.displayName, shortName: partner.shortName, count: 0, wins: 0, losses: 0 });
-        }
-        const stat = partnerStats.get(partner.playerId)!;
-        stat.count++;
-        if (isWin) stat.wins++;
-        if (isLoss) stat.losses++;
-      }
-    }
+    const partnerStats = tallyRelations(matchResults, entryToPlayers, (r) => r.entryId, playerId);
 
     const allPartners = Array.from(partnerStats.entries()).map(([id, s]): PlayerRelationStat => {
       const winRateWith = s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0;
@@ -319,33 +351,9 @@ export class PlayerStatsService {
   ): Promise<PlayerRelationStat[]> {
     const oppEntryIds = [...new Set(matchResults.map((r) => r.oppEntryId))];
     const playersInOppEntries = await playerStatsRepository.getPlayersInEntries(oppEntryIds);
+    const entryToPlayers = groupPlayersByEntry(playersInOppEntries);
 
-    const entryToPlayers = new Map<string, Array<{ playerId: string; displayName: string; shortName: string }>>();
-    for (const p of playersInOppEntries) {
-      if (!entryToPlayers.has(p.entryId)) entryToPlayers.set(p.entryId, []);
-      entryToPlayers.get(p.entryId)!.push({ playerId: p.playerId, displayName: p.displayName, shortName: p.shortName });
-    }
-
-    const nemesisStats = new Map<string, { displayName: string; shortName: string; count: number; wins: number; losses: number }>();
-    const seenMatches = new Set<string>();
-
-    for (const r of matchResults) {
-      if (seenMatches.has(r.matchId)) continue;
-      seenMatches.add(r.matchId);
-      const opponents = entryToPlayers.get(r.oppEntryId) ?? [];
-      const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
-      const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
-
-      for (const opp of opponents) {
-        if (!nemesisStats.has(opp.playerId)) {
-          nemesisStats.set(opp.playerId, { displayName: opp.displayName, shortName: opp.shortName, count: 0, wins: 0, losses: 0 });
-        }
-        const stat = nemesisStats.get(opp.playerId)!;
-        stat.count++;
-        if (isWin) stat.wins++;
-        if (isLoss) stat.losses++;
-      }
-    }
+    const nemesisStats = tallyRelations(matchResults, entryToPlayers, (r) => r.oppEntryId);
 
     return Array.from(nemesisStats.entries())
       .map(([id, s]) => ({ playerId: id, displayName: s.displayName, shortName: s.shortName, count: s.count, wins: s.wins, losses: s.losses }))
@@ -384,22 +392,7 @@ export class PlayerStatsService {
       };
 
       const entryIds = entryIdsByTournament.get(entry.tournamentId) ?? [];
-      const seenMatches = new Set<string>();
-      let totalPoints = 0;
-
-      for (const entryId of entryIds) {
-        for (const r of matchesByEntry.get(entryId) ?? []) {
-          if (seenMatches.has(r.matchId)) continue;
-          seenMatches.add(r.matchId);
-          base.matchesPlayed++;
-          totalPoints += r.pointsAwarded ?? 0;
-          const isWin = (r.ownPosition === 1 && r.winnerSide === "A") || (r.ownPosition === 2 && r.winnerSide === "B");
-          const isLoss = (r.ownPosition === 1 && r.winnerSide === "B") || (r.ownPosition === 2 && r.winnerSide === "A");
-          if (isWin) base.wins++;
-          else if (isLoss) base.losses++;
-          else if (r.winnerSide === null && r.allowDraw) base.draws++;
-        }
-      }
+      const totalPoints = accumulateTournamentMatches(base, entryIds, matchesByEntry);
 
       if (entry.tournamentMode === "championship" && totalPoints > 0)
         base.points = totalPoints;

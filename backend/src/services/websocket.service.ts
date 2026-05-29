@@ -6,9 +6,9 @@ type WS = WSContext;
 export class WebSocketService {
   private static instance: WebSocketService;
   // Map userId -> Set of WebSockets (to support multiple tabs/devices)
-  private connections: Map<string, Set<WS>> = new Map();
+  private readonly connections: Map<string, Set<WS>> = new Map();
   // Map tournamentId -> Set<userId>
-  private tournamentSubscriptions: Map<string, Set<string>> = new Map();
+  private readonly tournamentSubscriptions: Map<string, Set<string>> = new Map();
 
   private constructor() {}
 
@@ -75,34 +75,44 @@ export class WebSocketService {
   public send(userId: string, data: unknown) {
     const userConns = this.connections.get(userId);
     logger.debug(`[WS] Attempting to send to user ${userId}, connections: ${userConns?.size || 0}`);
-    
-    if (userConns) {
-      const message = JSON.stringify(data);
-      logger.debug({ message }, `[WS] Sending message to user ${userId}:`);
-      
-      for (const ws of userConns) {
-        if (ws.readyState === 1) {
-          ws.send(message);
-          logger.debug(`[WS] Message sent successfully to user ${userId}`);
-        } else if (typeof ws.readyState === "undefined") {
-          try {
-            ws.send(message);
-            logger.debug(`[WS] Message sent successfully to user ${userId} (no readyState)`);
-          } catch (e) {
-            logger.error({ err: e }, `[WS] Failed to send to user ${userId}`);
-            userConns.delete(ws);
-            if (userConns.size === 0) this.connections.delete(userId);
-          }
-        } else {
-          logger.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
-          userConns.delete(ws);
-          if (userConns.size === 0) this.connections.delete(userId);
-        }
-      }
-      return true;
+
+    if (!userConns) {
+      logger.warn(`[WS] No connections found for user ${userId}`);
+      return false;
     }
-    logger.warn(`[WS] No connections found for user ${userId}`);
-    return false;
+
+    const message = JSON.stringify(data);
+    logger.debug({ message }, `[WS] Sending message to user ${userId}:`);
+
+    for (const ws of userConns) {
+      this.sendToConnection(userId, ws, message, userConns);
+    }
+    return true;
+  }
+
+  private sendToConnection(userId: string, ws: WS, message: string, userConns: Set<WS>) {
+    if (ws.readyState === 1) {
+      ws.send(message);
+      logger.debug(`[WS] Message sent successfully to user ${userId}`);
+      return;
+    }
+    if (typeof ws.readyState === "undefined") {
+      try {
+        ws.send(message);
+        logger.debug(`[WS] Message sent successfully to user ${userId} (no readyState)`);
+      } catch (e) {
+        logger.error({ err: e }, `[WS] Failed to send to user ${userId}`);
+        this.dropConnection(userId, ws, userConns);
+      }
+      return;
+    }
+    logger.warn(`[WS] WebSocket not ready for user ${userId}, readyState: ${ws.readyState}`);
+    this.dropConnection(userId, ws, userConns);
+  }
+
+  private dropConnection(userId: string, ws: WS, userConns: Set<WS>) {
+    userConns.delete(ws);
+    if (userConns.size === 0) this.connections.delete(userId);
   }
 }
 

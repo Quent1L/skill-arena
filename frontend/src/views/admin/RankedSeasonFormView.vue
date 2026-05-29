@@ -211,10 +211,10 @@ const currentSeasonId = computed(() => (isEditMode.value ? (route.params.id as s
 const sourceTierOptions = computed(() =>
   finishedSeasons.value
     .filter((s) => s.id !== currentSeasonId.value)
-    .map((s) => ({
-      label: `${s.name}${s.discipline ? ` — ${s.discipline.name}` : ''}`,
-      value: s.id,
-    })),
+    .map((s) => {
+      const disciplineSuffix = s.discipline ? ` — ${s.discipline.name}` : ''
+      return { label: `${s.name}${disciplineSuffix}`, value: s.id }
+    }),
 )
 
 const fieldLabels: Record<string, string> = {

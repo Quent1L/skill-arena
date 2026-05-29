@@ -22,6 +22,7 @@ declare module 'vue' {
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
     Checkbox: typeof import('primevue/checkbox')['default']
+    Chip: typeof import('primevue/chip')['default']
     Column: typeof import('primevue/column')['default']
     CompositionStep: typeof import('./src/components/match/steps/CompositionStep.vue')['default']
     ConfirmDialog: typeof import('primevue/confirmdialog')['default']

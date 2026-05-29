@@ -67,9 +67,10 @@
           <ProgressSpinner />
         </div>
         <div v-else>
-          <label class="block text-sm font-medium mb-2">Sélectionner des utilisateurs</label>
+          <label for="participants-user-select" class="block text-sm font-medium mb-2">Sélectionner des utilisateurs</label>
           <MultiSelect
             v-model="selectedUserIds"
+            input-id="participants-user-select"
             :options="availableUsers"
             option-label="displayName"
             option-value="id"

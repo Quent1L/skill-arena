@@ -146,7 +146,7 @@ export class MatchSidesRepository {
       columns: { winnerSide: true },
     });
 
-    if (!match || !match.winnerSide) {
+    if (!match?.winnerSide) {
       return null;
     }
 

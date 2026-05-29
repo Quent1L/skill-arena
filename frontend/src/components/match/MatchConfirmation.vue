@@ -372,7 +372,9 @@ const playersWithStatus = computed(() => {
     }
 
     const sidePosition = confirmation?.sidePosition ?? participant.sidePosition;
-    const sideLabel = sidePosition === 1 ? 'Équipe A' : sidePosition === 2 ? 'Équipe B' : null;
+    let sideLabel: string | null = null;
+    if (sidePosition === 1) sideLabel = 'Équipe A';
+    else if (sidePosition === 2) sideLabel = 'Équipe B';
 
     return {
       playerId: participant.playerId,

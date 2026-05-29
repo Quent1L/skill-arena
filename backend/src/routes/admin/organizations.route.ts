@@ -12,7 +12,7 @@ const adminOrganizations = createAppHono();
 const requireSuperAdmin: MiddlewareHandler<{ Variables: AppVariables }> = async (c, next) => {
   const appUserId = c.get("appUserId");
   const currentUser = await userRepository.getById(appUserId);
-  if (!currentUser || currentUser.role !== "super_admin") {
+  if (currentUser?.role !== "super_admin") {
     throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
   }
   await next();

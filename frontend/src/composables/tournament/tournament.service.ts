@@ -14,6 +14,30 @@ import { formDataToApiPayload } from '@skill-arena/shared/types/index'
 import { useAuth } from '../useAuth'
 
 /**
+ * Recalculate points for all matches in a tournament (admin only)
+ */
+async function recalculatePoints(id: string): Promise<{ updatedMatches: number }> {
+  return await tournamentApi.recalculatePoints(id)
+}
+
+async function clearCache(id: string): Promise<void> {
+  await tournamentApi.clearCache(id)
+}
+
+/**
+ * Get available status transitions
+ */
+function getAvailableStatusTransitions(currentStatus: TournamentStatus): TournamentStatus[] {
+  const transitions: Record<string, TournamentStatus[]> = {
+    draft: ['open'],
+    open: ['ongoing', 'draft'],
+    ongoing: ['finished'],
+    finished: [],
+  }
+  return transitions[currentStatus] || []
+}
+
+/**
  * Tournament service - Business logic and state management
  */
 export function useTournamentService() {
@@ -57,16 +81,8 @@ export function useTournamentService() {
 
     if (isSuperAdmin.value) return true
 
-    // TODO: Implement when tournament admins are available
-    // Owner can delete (but only if draft)
-    // const isOwner =
-    //   tournament.admins?.some(
-    //     (admin) => admin.user.id === currentUser.value?.id && admin.role === 'owner',
-    //   ) ?? false
-
-    // return isOwner && tournament.status === 'draft'
-
-    // For now, only super admin can delete drafts
+    // TODO: allow tournament owner to delete drafts once tournament admins exist.
+    // For now, only super admin can delete drafts.
     return tournament.status === 'draft'
   }
 
@@ -218,17 +234,6 @@ export function useTournamentService() {
   }
 
   /**
-   * Recalculate points for all matches in a tournament (admin only)
-   */
-  async function recalculatePoints(id: string): Promise<{ updatedMatches: number }> {
-    return await tournamentApi.recalculatePoints(id)
-  }
-
-  async function clearCache(id: string): Promise<void> {
-    await tournamentApi.clearCache(id)
-  }
-
-  /**
    * Delete tournament
    */
   async function deleteTournament(id: string) {
@@ -253,19 +258,6 @@ export function useTournamentService() {
     } finally {
       loading.value = false
     }
-  }
-
-  /**
-   * Get available status transitions
-   */
-  function getAvailableStatusTransitions(currentStatus: TournamentStatus): TournamentStatus[] {
-    const transitions: Record<string, TournamentStatus[]> = {
-      draft: ['open'],
-      open: ['ongoing', 'draft'],
-      ongoing: ['finished'],
-      finished: [],
-    }
-    return transitions[currentStatus] || []
   }
 
   /**

@@ -33,8 +33,8 @@
       />
 
       <div v-if="hasFinishedEvents" class="flex items-center gap-2 ml-auto">
-        <label class="text-sm text-gray-600 dark:text-gray-400">Terminés</label>
-        <ToggleSwitch v-model="showFinished" />
+        <label for="show-finished" class="text-sm text-gray-600 dark:text-gray-400">Terminés</label>
+        <ToggleSwitch v-model="showFinished" input-id="show-finished" />
       </div>
     </div>
 

@@ -21,9 +21,10 @@
     </div>
 
     <div v-if="selectedQuick === 'custom'" class="flex flex-col gap-2">
-      <label class="text-sm font-medium">Date et heure</label>
+      <label for="when-custom-date" class="text-sm font-medium">Date et heure</label>
       <DatePicker
         v-model="customDate"
+        input-id="when-custom-date"
         show-time
         hour-format="24"
         icon-display="input"

@@ -48,6 +48,9 @@ usePageTransitions()
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .fade-enter-from,
@@ -216,13 +219,6 @@ usePageTransitions()
 .zoom-out-enter-active,
 .zoom-out-leave-active {
   will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  will-change: opacity;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }

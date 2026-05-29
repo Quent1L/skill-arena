@@ -13,7 +13,7 @@ const requireSuperAdmin = async (c: Context, next: Next) => {
   const appUserId = c.get("appUserId");
   const currentUser = await userRepository.getById(appUserId);
 
-  if (!currentUser || currentUser.role !== "super_admin") {
+  if (currentUser?.role !== "super_admin") {
     throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
   }
 

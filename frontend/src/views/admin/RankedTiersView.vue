@@ -105,25 +105,25 @@
     >
       <div class="flex flex-col gap-4 pt-2">
         <div v-if="!editingTier" class="flex flex-col gap-1">
-          <label class="font-medium text-sm">Niveau</label>
-          <InputNumber v-model="form.level" :min="1" :max="99" showButtons />
+          <label for="tier-level" class="font-medium text-sm">Niveau</label>
+          <InputNumber v-model="form.level" input-id="tier-level" :min="1" :max="99" showButtons />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="font-medium text-sm">Nom</label>
-          <InputText v-model="form.name" placeholder="Ex: Légende" />
+          <label for="tier-name" class="font-medium text-sm">Nom</label>
+          <InputText id="tier-name" v-model="form.name" placeholder="Ex: Légende" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="font-medium text-sm">Percentile (0 à 1)</label>
-          <InputNumber v-model="form.percentile" :min="0" :max="1" :step="0.01" :minFractionDigits="2" :maxFractionDigits="2" />
+          <label for="tier-percentile" class="font-medium text-sm">Percentile (0 à 1)</label>
+          <InputNumber v-model="form.percentile" input-id="tier-percentile" :min="0" :max="1" :step="0.01" :minFractionDigits="2" :maxFractionDigits="2" />
           <small class="text-surface-400">Seuil de MMR basé sur la distribution des joueurs</small>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="font-medium text-sm">MMR minimum</label>
-          <InputNumber v-model="form.minMmr" :min="0" showButtons />
+          <label for="tier-minmmr" class="font-medium text-sm">MMR minimum</label>
+          <InputNumber v-model="form.minMmr" input-id="tier-minmmr" :min="0" showButtons />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="font-medium text-sm">Sous-rangs</label>
-          <InputNumber v-model="form.subRanks" :min="1" :max="10" showButtons />
+          <label for="tier-subranks" class="font-medium text-sm">Sous-rangs</label>
+          <InputNumber v-model="form.subRanks" input-id="tier-subranks" :min="1" :max="10" showButtons />
           <small class="text-surface-400">1 = pas de sous-rang. Ex: 5 → Silver 5, Silver 4, ..., Silver 1</small>
         </div>
       </div>

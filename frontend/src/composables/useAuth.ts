@@ -27,6 +27,24 @@ async function fetchUserData() {
   }
 }
 
+/**
+ * Construit l'URL de logout Keycloak
+ */
+function buildKeycloakLogoutUrl(issuer: string, clientId?: string): string {
+  const postLogoutRedirectUri = window.location.origin + '/login'
+  const logoutUrl = `${issuer}/protocol/openid-connect/logout`
+
+  const params = new URLSearchParams({
+    post_logout_redirect_uri: postLogoutRedirectUri,
+  })
+
+  if (clientId) {
+    params.append('client_id', clientId)
+  }
+
+  return `${logoutUrl}?${params.toString()}`
+}
+
 export function useAuth() {
   const currentUser = computed(() => sessionData.value?.data?.user || null)
   const appUser = computed(() => appUserData.value)
@@ -234,23 +252,6 @@ export function useAuth() {
     }
   }
 
-  /**
-   * Construit l'URL de logout Keycloak
-   */
-  function buildKeycloakLogoutUrl(issuer: string, clientId?: string): string {
-    const postLogoutRedirectUri = window.location.origin + '/login'
-    const logoutUrl = `${issuer}/protocol/openid-connect/logout`
-
-    const params = new URLSearchParams({
-      post_logout_redirect_uri: postLogoutRedirectUri,
-    })
-
-    if (clientId) {
-      params.append('client_id', clientId)
-    }
-
-    return `${logoutUrl}?${params.toString()}`
-  }
 
   /**
    * Demande de réinitialisation de mot de passe

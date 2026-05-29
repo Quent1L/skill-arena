@@ -39,7 +39,7 @@
       v-if="outcomeTypeIdModel && showWinnerSelection && showWinnerSelectionField"
       class="flex flex-col gap-2"
     >
-      <label class="text-xs text-gray-500">Vainqueur</label>
+      <span class="text-xs text-gray-500">Vainqueur</span>
       <SelectButton
         v-model="winnerModel"
         :options="filteredWinnerOptions"

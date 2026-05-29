@@ -1,8 +1,7 @@
 import { notificationApi } from './notification.api'
 import { configApi } from '../config.api'
 
-export function useNotificationPush() {
-  async function enablePush() {
+async function enablePush() {
     try {
       console.log('[enablePush] Starting...')
       if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -127,5 +126,6 @@ export function useNotificationPush() {
     }
   }
 
+export function useNotificationPush() {
   return { enablePush, disablePush }
 }

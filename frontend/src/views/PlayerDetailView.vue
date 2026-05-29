@@ -49,11 +49,12 @@
       <div class="hidden md:flex items-center gap-4 bg-gray-800 rounded-2xl p-4 ">
         <div v-if="hasMultipleDisciplines" >
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+            <label for="filter-discipline" class="text-xs font-bold text-gray-400 uppercase tracking-wide"
               >Discipline</label
             >
             <Select
               v-model="selectedDisciplineId"
+              input-id="filter-discipline"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
@@ -65,9 +66,10 @@
         </div>
 
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
+            <label for="filter-tournament" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
             <Select
               v-model="selectedTournamentId"
+              input-id="filter-tournament"
               :options="tournamentOptions"
               option-label="label"
               option-value="value"
@@ -89,7 +91,7 @@
             </Select>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</label>
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</span>
             <SelectButton
               v-model="selectedMode"
               :options="modeOptions"
@@ -118,9 +120,10 @@
       >
         <div class="flex flex-col gap-5 pb-2">
           <div v-if="hasMultipleDisciplines" class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Discipline</label>
+            <label for="filter-discipline-mobile" class="text-sm font-medium">Discipline</label>
             <Select
               v-model="draftDisciplineId"
+              input-id="filter-discipline-mobile"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
@@ -130,9 +133,10 @@
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Tournoi</label>
+            <label for="filter-tournament-mobile" class="text-sm font-medium">Tournoi</label>
             <Select
               v-model="draftTournamentId"
+              input-id="filter-tournament-mobile"
               :options="tournamentOptions"
               option-label="label"
               option-value="value"
@@ -154,7 +158,7 @@
             </Select>
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Mode</label>
+            <span class="text-sm font-medium">Mode</span>
             <SelectButton
               v-model="draftMode"
               :options="modeOptions"

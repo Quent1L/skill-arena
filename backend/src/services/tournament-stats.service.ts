@@ -23,6 +23,86 @@ function isLoser(side: MatchData["sides"][number], winnerSide: string | null): b
   return (side.position === 1 && winnerSide === "B") || (side.position === 2 && winnerSide === "A");
 }
 
+type PlayerWLStats = {
+  displayName: string;
+  shortName: string;
+  wins: number;
+  losses: number;
+  played: number;
+};
+
+type PlayerRef = { id: string; displayName: string; shortName: string };
+
+function recordPlayerResult(
+  stats: Map<string, PlayerWLStats>,
+  player: PlayerRef,
+  won: boolean,
+  lost: boolean,
+): void {
+  const { id, displayName, shortName } = player;
+  if (!stats.has(id)) {
+    stats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
+  }
+  const s = stats.get(id)!;
+  s.played++;
+  if (won) s.wins++;
+  if (lost) s.losses++;
+}
+
+function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
+  return Array.from(stats.entries())
+    .filter(([, s]) => s.played >= 2)
+    .map(([playerId, s]) => ({
+      playerId,
+      displayName: s.displayName,
+      shortName: s.shortName,
+      wins: s.wins,
+      losses: s.losses,
+      matchesPlayed: s.played,
+      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
+    }))
+    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
+    .slice(0, 5);
+}
+
+function accumulateSides(
+  sides: MatchData["sides"],
+  winnerSide: string | null,
+  stats: Map<string, PlayerWLStats>,
+): void {
+  for (const side of sides) {
+    const won = isWinner(side, winnerSide);
+    const lost = isLoser(side, winnerSide);
+    for (const ep of side.entry.players) {
+      if (ep.player) recordPlayerResult(stats, ep.player, won, lost);
+    }
+  }
+}
+
+type ResultCollector<T> = {
+  displayName: string;
+  shortName: string;
+  results: T[];
+};
+
+function collectPlayerResults<T>(
+  matchesData: MatchData[],
+  makeResult: (match: MatchData, side: MatchData["sides"][number]) => T,
+): Map<string, ResultCollector<T>> {
+  const map = new Map<string, ResultCollector<T>>();
+  for (const match of matchesData) {
+    for (const side of match.sides) {
+      for (const ep of side.entry.players) {
+        if (!ep.player) continue;
+        const { id, displayName, shortName } = ep.player;
+        if (!map.has(id)) map.set(id, { displayName, shortName, results: [] });
+        map.get(id)!.results.push(makeResult(match, side));
+      }
+    }
+  }
+  return map;
+}
+
 function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
   const entryStats = new Map<
     string,
@@ -69,35 +149,18 @@ function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
 }
 
 function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
-  const playerMatches = new Map<
-    string,
-    { displayName: string; shortName: string; results: { playedAt: Date; won: boolean }[] }
-  >();
-
-  for (const match of matchesData) {
-    for (const side of match.sides) {
-      for (const ep of side.entry.players) {
-        if (!ep.player) continue;
-        const { id, displayName, shortName } = ep.player;
-        if (!playerMatches.has(id)) {
-          playerMatches.set(id, { displayName, shortName, results: [] });
-        }
-        playerMatches.get(id)!.results.push({
-          playedAt: new Date(match.playedAt),
-          won: isWinner(side, match.winnerSide),
-        });
-      }
-    }
-  }
+  const playerMatches = collectPlayerResults(matchesData, (match, side) => ({
+    playedAt: new Date(match.playedAt),
+    won: isWinner(side, match.winnerSide),
+  }));
 
   const streaks: WinStreakEntry[] = [];
-
   for (const [playerId, data] of playerMatches) {
     const sorted = [...data.results].sort((a, b) => b.playedAt.getTime() - a.playedAt.getTime());
     let streak = 0;
     for (const r of sorted) {
-      if (r.won) streak++;
-      else break;
+      if (!r.won) break;
+      streak++;
     }
     if (streak >= 2) {
       streaks.push({ playerId, displayName: data.displayName, shortName: data.shortName, currentStreak: streak });
@@ -107,99 +170,31 @@ function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
   return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
 }
 
-function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
-  const playerStats = new Map<
-    string,
-    { displayName: string; shortName: string; wins: number; losses: number; played: number }
-  >();
+function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): BestDuoEntry[] {
+  const playerStats = new Map<string, PlayerWLStats>();
 
   for (const match of matchesData) {
     const sideA = match.sides.find((s) => s.position === 1);
     const sideB = match.sides.find((s) => s.position === 2);
     if (!sideA || !sideB) continue;
-    if (sideA.entry.players.length !== 2 || sideB.entry.players.length !== 2) continue;
+    if (sideA.entry.players.length !== teamSize || sideB.entry.players.length !== teamSize) continue;
 
-    for (const side of [sideA, sideB]) {
-      const won = isWinner(side, match.winnerSide);
-      const lost = isLoser(side, match.winnerSide);
-      for (const ep of side.entry.players) {
-        if (!ep.player) continue;
-        const { id, displayName, shortName } = ep.player;
-        if (!playerStats.has(id)) {
-          playerStats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
-        }
-        const s = playerStats.get(id)!;
-        s.played++;
-        if (won) s.wins++;
-        if (lost) s.losses++;
-      }
-    }
+    accumulateSides([sideA, sideB], match.winnerSide, playerStats);
   }
 
-  return Array.from(playerStats.entries())
-    .filter(([, s]) => s.played >= 2)
-    .map(([playerId, s]) => ({
-      playerId,
-      displayName: s.displayName,
-      shortName: s.shortName,
-      wins: s.wins,
-      losses: s.losses,
-      matchesPlayed: s.played,
-      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
-    }))
-    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
-    .slice(0, 5);
+  return rankBestPlayers(playerStats);
+}
+
+function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+  return computeSymmetricPlayers(matchesData, 2);
 }
 
 function computeBestSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
-  const playerStats = new Map<
-    string,
-    { displayName: string; shortName: string; wins: number; losses: number; played: number }
-  >();
-
-  for (const match of matchesData) {
-    const sideA = match.sides.find((s) => s.position === 1);
-    const sideB = match.sides.find((s) => s.position === 2);
-    if (!sideA || !sideB) continue;
-    if (sideA.entry.players.length !== 1 || sideB.entry.players.length !== 1) continue;
-
-    for (const side of [sideA, sideB]) {
-      const won = isWinner(side, match.winnerSide);
-      const lost = isLoser(side, match.winnerSide);
-      for (const ep of side.entry.players) {
-        if (!ep.player) continue;
-        const { id, displayName, shortName } = ep.player;
-        if (!playerStats.has(id)) {
-          playerStats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
-        }
-        const s = playerStats.get(id)!;
-        s.played++;
-        if (won) s.wins++;
-        if (lost) s.losses++;
-      }
-    }
-  }
-
-  return Array.from(playerStats.entries())
-    .filter(([, s]) => s.played >= 2)
-    .map(([playerId, s]) => ({
-      playerId,
-      displayName: s.displayName,
-      shortName: s.shortName,
-      wins: s.wins,
-      losses: s.losses,
-      matchesPlayed: s.played,
-      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
-    }))
-    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
-    .slice(0, 5);
+  return computeSymmetricPlayers(matchesData, 1);
 }
 
 function computeBestAsymmetricSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
-  const playerStats = new Map<
-    string,
-    { displayName: string; shortName: string; wins: number; losses: number; played: number }
-  >();
+  const playerStats = new Map<string, PlayerWLStats>();
 
   for (const match of matchesData) {
     const sideA = match.sides.find((s) => s.position === 1);
@@ -211,51 +206,23 @@ function computeBestAsymmetricSoloPlayers(matchesData: MatchData[]): BestDuoEntr
       if (side.entry.players.length !== 1) continue;
       const ep = side.entry.players[0];
       if (!ep.player) continue;
-      const { id, displayName, shortName } = ep.player;
-      if (!playerStats.has(id)) {
-        playerStats.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
-      }
-      const s = playerStats.get(id)!;
-      s.played++;
-      if (isWinner(side, match.winnerSide)) s.wins++;
-      if (isLoser(side, match.winnerSide)) s.losses++;
+      recordPlayerResult(
+        playerStats,
+        ep.player,
+        isWinner(side, match.winnerSide),
+        isLoser(side, match.winnerSide),
+      );
     }
   }
 
-  return Array.from(playerStats.entries())
-    .filter(([, s]) => s.played >= 2)
-    .map(([playerId, s]) => ({
-      playerId,
-      displayName: s.displayName,
-      shortName: s.shortName,
-      wins: s.wins,
-      losses: s.losses,
-      matchesPlayed: s.played,
-      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
-    }))
-    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
-    .slice(0, 5);
+  return rankBestPlayers(playerStats);
 }
 
 function computeBestInvincibleStreak(matchesData: MatchData[]): WinStreakEntry[] {
-  const playerMatches = new Map<
-    string,
-    { displayName: string; shortName: string; results: { playedAt: Date; notLost: boolean }[] }
-  >();
-
-  for (const match of matchesData) {
-    for (const side of match.sides) {
-      for (const ep of side.entry.players) {
-        if (!ep.player) continue;
-        const { id, displayName, shortName } = ep.player;
-        if (!playerMatches.has(id)) playerMatches.set(id, { displayName, shortName, results: [] });
-        playerMatches.get(id)!.results.push({
-          playedAt: new Date(match.playedAt),
-          notLost: !isLoser(side, match.winnerSide),
-        });
-      }
-    }
-  }
+  const playerMatches = collectPlayerResults(matchesData, (match, side) => ({
+    playedAt: new Date(match.playedAt),
+    notLost: !isLoser(side, match.winnerSide),
+  }));
 
   const streaks: WinStreakEntry[] = [];
   for (const [playerId, data] of playerMatches) {
@@ -271,15 +238,37 @@ function computeBestInvincibleStreak(matchesData: MatchData[]): WinStreakEntry[]
   return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
 }
 
-function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
-  const typeMap = new Map<
-    string,
-    {
-      name: string;
-      winners: Map<string, { displayName: string; shortName: string; count: number }>;
-      losers: Map<string, { displayName: string; shortName: string; count: number }>;
+type CountEntry = { displayName: string; shortName: string; count: number };
+type OutcomeTypeAcc = {
+  name: string;
+  winners: Map<string, CountEntry>;
+  losers: Map<string, CountEntry>;
+};
+
+function incrementCount(map: Map<string, CountEntry>, player: PlayerRef): void {
+  const { id, displayName, shortName } = player;
+  const c = map.get(id) ?? { displayName, shortName, count: 0 };
+  c.count++;
+  map.set(id, c);
+}
+
+function countOutcomePlayers(match: MatchData, entry: OutcomeTypeAcc): void {
+  for (const side of match.sides) {
+    for (const ep of side.entry.players) {
+      if (!ep.player) continue;
+      if (isWinner(side, match.winnerSide)) incrementCount(entry.winners, ep.player);
+      else if (isLoser(side, match.winnerSide)) incrementCount(entry.losers, ep.player);
     }
-  >();
+  }
+}
+
+function topByCount(map: Map<string, CountEntry>) {
+  const top = Array.from(map.entries()).sort((a, b) => b[1].count - a[1].count)[0];
+  return top ? { playerId: top[0], ...top[1] } : null;
+}
+
+function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
+  const typeMap = new Map<string, OutcomeTypeAcc>();
 
   for (const match of matchesData) {
     if (!match.outcomeType || !match.outcomeTypeId) continue;
@@ -288,43 +277,15 @@ function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunSta
     if (!typeMap.has(typeId)) {
       typeMap.set(typeId, { name: match.outcomeType.name, winners: new Map(), losers: new Map() });
     }
-    const entry = typeMap.get(typeId)!;
-
-    for (const side of match.sides) {
-      for (const ep of side.entry.players) {
-        if (!ep.player) continue;
-        const { id, displayName, shortName } = ep.player;
-        if (isWinner(side, match.winnerSide)) {
-          const w = entry.winners.get(id) ?? { displayName, shortName, count: 0 };
-          w.count++;
-          entry.winners.set(id, w);
-        } else if (isLoser(side, match.winnerSide)) {
-          const l = entry.losers.get(id) ?? { displayName, shortName, count: 0 };
-          l.count++;
-          entry.losers.set(id, l);
-        }
-      }
-    }
+    countOutcomePlayers(match, typeMap.get(typeId)!);
   }
 
-  const result: OutcomeTypeFunStat[] = [];
-  for (const [outcomeTypeId, data] of typeMap) {
-    const topWinnerEntry = Array.from(data.winners.entries()).sort((a, b) => b[1].count - a[1].count)[0];
-    const topLoserEntry = Array.from(data.losers.entries()).sort((a, b) => b[1].count - a[1].count)[0];
-
-    result.push({
-      outcomeTypeId,
-      outcomeTypeName: data.name,
-      topWinner: topWinnerEntry
-        ? { playerId: topWinnerEntry[0], ...topWinnerEntry[1] }
-        : null,
-      topLoser: topLoserEntry
-        ? { playerId: topLoserEntry[0], ...topLoserEntry[1] }
-        : null,
-    });
-  }
-
-  return result;
+  return Array.from(typeMap.entries()).map(([outcomeTypeId, data]) => ({
+    outcomeTypeId,
+    outcomeTypeName: data.name,
+    topWinner: topByCount(data.winners),
+    topLoser: topByCount(data.losers),
+  }));
 }
 
 function fillMomentumDays(

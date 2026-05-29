@@ -4,8 +4,8 @@
 
     <!-- Side previews — click to pick winner -->
     <div class="flex flex-col gap-2">
-      <label class="text-sm font-medium"
-        >Sélectionnez le vainqueur <span class="text-red-500">*</span></label
+      <span class="text-sm font-medium"
+        >Sélectionnez le vainqueur <span class="text-red-500">*</span></span
       >
       <div class="grid gap-3 grid-cols-2">
         <button
@@ -57,9 +57,10 @@
 
     <!-- Outcome type -->
     <div class="flex flex-col gap-2">
-      <label class="text-sm font-medium">Type de résultat</label>
+      <label for="result-outcome-type" class="text-sm font-medium">Type de résultat</label>
       <Select
         v-model="outcomeTypeIdModel"
+        input-id="result-outcome-type"
         :options="outcomeTypes"
         option-label="name"
         option-value="id"
@@ -72,9 +73,10 @@
 
     <!-- Outcome reason -->
     <div v-if="showReasonSelect" class="flex flex-col gap-2">
-      <label class="text-sm font-medium">Raison</label>
+      <label for="result-outcome-reason" class="text-sm font-medium">Raison</label>
       <Select
         v-model="outcomeReasonIdModel"
+        input-id="result-outcome-reason"
         :options="filteredOutcomeReasons"
         option-label="name"
         option-value="id"
@@ -86,7 +88,7 @@
 
     <!-- Score -->
     <div v-if="scoreEnabled !== false" class="flex flex-col gap-2">
-      <label class="text-sm font-medium">Score <span class="text-red-500">*</span></label>
+      <span class="text-sm font-medium">Score <span class="text-red-500">*</span></span>
       <Message v-if="scoreInstructions" severity="info" :closable="false">{{
         scoreInstructions
       }}</Message>

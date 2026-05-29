@@ -12,6 +12,28 @@ const routeHierarchy: Record<string, number> = {
   profile: 1,
 }
 
+interface TransitionRule {
+  match: (newRoute: string, oldRoute: string) => boolean
+  forward: string
+  back: string
+}
+
+// Règles de transition évaluées dans l'ordre, première correspondance gagne
+const transitionRules: TransitionRule[] = [
+  { match: (n, o) => n.includes('quiz') && !o.includes('quiz'), forward: 'slide-left', back: 'slide-right' },
+  { match: (n, o) => n.includes('quiz') && o.includes('quiz'), forward: 'slide-down', back: 'slide-right' },
+  { match: (n) => n === 'profile', forward: 'slide-up', back: 'slide-up' },
+  { match: (n) => n === 'stats', forward: 'zoom', back: 'zoom' },
+  { match: (n) => n === 'rankings', forward: 'slide-left', back: 'slide-right' },
+  { match: (n) => n === 'home', forward: 'zoom-out', back: 'fade' },
+]
+
+function getTransitionForRoute(newRoute: string, oldRoute: string, isBack: boolean): string {
+  const rule = transitionRules.find((r) => r.match(newRoute, oldRoute))
+  if (!rule) return isBack ? 'slide-right' : 'fade'
+  return isBack ? rule.back : rule.forward
+}
+
 export function usePageTransitions() {
   const route = useRoute()
 
@@ -56,43 +78,6 @@ export function usePageTransitions() {
     },
     { immediate: true },
   )
-
-  function getTransitionForRoute(newRoute: string, oldRoute: string, isBack: boolean): string {
-    // Transitions spéciales selon le type de navigation
-
-    // Navigation vers les quiz
-    if (newRoute.includes('quiz') && !oldRoute.includes('quiz')) {
-      return isBack ? 'slide-right' : 'slide-left'
-    }
-
-    // Navigation entre quiz
-    if (newRoute.includes('quiz') && oldRoute.includes('quiz')) {
-      return isBack ? 'slide-right' : 'slide-down'
-    }
-
-    // Navigation vers le profil
-    if (newRoute === 'profile') {
-      return 'slide-up'
-    }
-
-    // Navigation vers les stats
-    if (newRoute === 'stats') {
-      return 'zoom'
-    }
-
-    // Navigation vers les classements
-    if (newRoute === 'rankings') {
-      return isBack ? 'slide-right' : 'slide-left'
-    }
-
-    // Retour à l'accueil
-    if (newRoute === 'home') {
-      return isBack ? 'fade' : 'zoom-out'
-    }
-
-    // Transition par défaut
-    return isBack ? 'slide-right' : 'fade'
-  }
 
   return {
     transitionName,

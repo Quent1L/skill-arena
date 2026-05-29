@@ -112,25 +112,6 @@ export function useMatchService() {
     }
   }
 
-  // Keep for backward compat during migration
-  async function validateMatchForStep(
-    tournamentId: string,
-    _step: string,
-    playerIdsA?: string[],
-    playerIdsB?: string[],
-    matchId?: string,
-    teamAId?: string,
-    teamBId?: string,
-    playedAt?: Date,
-  ): Promise<ValidationResult> {
-    const sides: MatchSideInput[] = []
-    if (teamAId) sides.push({ position: 1, teamId: teamAId })
-    if (teamBId) sides.push({ position: 2, teamId: teamBId })
-    if (playerIdsA && playerIdsA.length > 0) sides.push({ position: 1, playerIds: playerIdsA })
-    if (playerIdsB && playerIdsB.length > 0) sides.push({ position: 2, playerIds: playerIdsB })
-    return await validateMatchSides(tournamentId, sides, playedAt, matchId)
-  }
-
   function canProceedToNextStep(
     _step: string,
     playerIdsA: string[],
@@ -432,7 +413,6 @@ export function useMatchService() {
     loadPlayersMap,
     validateParticipants,
     validateMatchSides,
-    validateMatchForStep,
     canProceedToNextStep,
     canCreateMatch,
     createMatchWithNavigation,

@@ -273,9 +273,11 @@ async function submitMatch() {
     await createMatchWithNavigation(payload, props.tournamentId)
   }
 
-  void detailStore.reloadStats()
-  void detailStore.reloadTournament()
-  if (detailStore.tournament?.mode === 'ranked') void detailStore.reloadLeaderboard()
+  detailStore.reloadStats().catch(() => {})
+  detailStore.reloadTournament().catch(() => {})
+  if (detailStore.tournament?.mode === 'ranked') {
+    detailStore.reloadLeaderboard().catch(() => {})
+  }
 }
 
 </script>

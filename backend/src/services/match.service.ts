@@ -1080,11 +1080,8 @@ export class MatchService {
     > | null,
   ): Promise<void> {
     if (
-      !activeProposal ||
-      activeProposal.proposedScoreA === null ||
-      activeProposal.proposedScoreA === undefined ||
-      activeProposal.proposedScoreB === null ||
-      activeProposal.proposedScoreB === undefined
+      activeProposal?.proposedScoreA == null ||
+      activeProposal?.proposedScoreB == null
     ) {
       return
     }

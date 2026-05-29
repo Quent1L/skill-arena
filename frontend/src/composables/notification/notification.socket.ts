@@ -20,6 +20,18 @@ export function sendWsMessage(data: unknown): void {
   }
 }
 
+function disconnect() {
+  console.log('[WS] Disconnecting')
+  if (reconnectTimer) {
+    window.clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  if (socket) {
+    socket.close()
+    socket = null
+  }
+}
+
 const WS_BASE = import.meta.env.DEV
   ? 'ws://localhost:3000'
   : window.location.origin.replace('http', 'ws')
@@ -91,18 +103,6 @@ export function useNotificationSocket() {
         console.log('[WS] Reconnecting in 2s...')
         reconnectTimer = window.setTimeout(connect, 2000)
       }
-    }
-  }
-
-  function disconnect() {
-    console.log('[WS] Disconnecting')
-    if (reconnectTimer) {
-      window.clearTimeout(reconnectTimer)
-      reconnectTimer = null
-    }
-    if (socket) {
-      socket.close()
-      socket = null
     }
   }
 

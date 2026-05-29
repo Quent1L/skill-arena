@@ -197,44 +197,57 @@ interface Connector {
   d: string
 }
 
+interface RoundGeometry {
+  rIdx: number
+  prevMatchCount: number
+  parentRightX: number
+  currentLeftX: number
+  junctionX: number
+}
+
+function passthroughConnector(geo: RoundGeometry, mIdx: number): Connector | null {
+  if (mIdx >= geo.prevMatchCount) return null
+  return {
+    key: `conn-${geo.rIdx}-${mIdx}`,
+    d: `M ${geo.parentRightX} ${matchCenterY(geo.rIdx - 1, mIdx)} H ${geo.currentLeftX}`,
+  }
+}
+
+function mergeConnector(geo: RoundGeometry, mIdx: number): Connector | null {
+  const p0 = mIdx * 2
+  const p1 = mIdx * 2 + 1
+  if (p0 >= geo.prevMatchCount || p1 >= geo.prevMatchCount) return null
+  return {
+    key: `conn-${geo.rIdx}-${mIdx}`,
+    d: [
+      `M ${geo.parentRightX} ${matchCenterY(geo.rIdx - 1, p0)}`,
+      `H ${geo.junctionX}`,
+      `V ${matchCenterY(geo.rIdx - 1, p1)}`,
+      `H ${geo.parentRightX}`,
+      `M ${geo.junctionX} ${matchCenterY(geo.rIdx, mIdx)}`,
+      `H ${geo.currentLeftX}`,
+    ].join(' '),
+  }
+}
+
 const connectors = computed<Connector[]>(() => {
   const paths: Connector[] = []
 
   for (let rIdx = 1; rIdx < props.rounds.length; rIdx++) {
-    const matchCount = matchCountsByRound.value[rIdx]
-    const prevMatchCount = matchCountsByRound.value[rIdx - 1]
     const parentRightX = (rIdx - 1) * COLUMN_WIDTH + CARD_WIDTH
     const currentLeftX = rIdx * COLUMN_WIDTH
-    const junctionX = parentRightX + (currentLeftX - parentRightX) / 2
-    const prevIsPassthrough = isPassthroughRound(rIdx - 1)
+    const geo: RoundGeometry = {
+      rIdx,
+      prevMatchCount: matchCountsByRound.value[rIdx - 1],
+      parentRightX,
+      currentLeftX,
+      junctionX: parentRightX + (currentLeftX - parentRightX) / 2,
+    }
+    const buildConnector = isPassthroughRound(rIdx - 1) ? passthroughConnector : mergeConnector
 
-    for (let mIdx = 0; mIdx < matchCount; mIdx++) {
-      const currentY = matchCenterY(rIdx, mIdx)
-
-      if (prevIsPassthrough) {
-        if (mIdx < prevMatchCount) {
-          paths.push({
-            key: `conn-${rIdx}-${mIdx}`,
-            d: `M ${parentRightX} ${matchCenterY(rIdx - 1, mIdx)} H ${currentLeftX}`,
-          })
-        }
-      } else {
-        const p0 = mIdx * 2
-        const p1 = mIdx * 2 + 1
-        if (p0 < prevMatchCount && p1 < prevMatchCount) {
-          paths.push({
-            key: `conn-${rIdx}-${mIdx}`,
-            d: [
-              `M ${parentRightX} ${matchCenterY(rIdx - 1, p0)}`,
-              `H ${junctionX}`,
-              `V ${matchCenterY(rIdx - 1, p1)}`,
-              `H ${parentRightX}`,
-              `M ${junctionX} ${currentY}`,
-              `H ${currentLeftX}`,
-            ].join(' '),
-          })
-        }
-      }
+    for (let mIdx = 0; mIdx < matchCountsByRound.value[rIdx]; mIdx++) {
+      const connector = buildConnector(geo, mIdx)
+      if (connector) paths.push(connector)
     }
   }
 

@@ -13,6 +13,10 @@ function isDismissedRecently(): boolean {
   return Date.now() - parseInt(stored, 10) < DISMISS_DURATION_MS
 }
 
+function dismissBanner() {
+  localStorage.setItem(DISMISS_KEY, Date.now().toString())
+}
+
 export function usePWAInstall() {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
   const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent)
@@ -37,10 +41,6 @@ export function usePWAInstall() {
       isInstalled.value = true
     }
     deferredPrompt.value = null
-  }
-
-  function dismissBanner() {
-    localStorage.setItem(DISMISS_KEY, Date.now().toString())
   }
 
   onMounted(() => {

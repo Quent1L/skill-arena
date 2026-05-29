@@ -47,6 +47,12 @@ interface CheckpointState {
   maxWinStreak: number;
 }
 
+interface MmrLookups {
+  sidesMap: Map<string, MatchSideData>;
+  historiesMap: Map<string, number>;
+  currentMmrMap: Map<string, number>;
+}
+
 type MatchResult = 1 | 0 | 0.5;
 type ResolvableSide = {
   score: number | null;
@@ -126,16 +132,11 @@ export class MmrCalculationService {
       const currentMmrMap = await playerMmrRepository.getPlayerCurrentMmrs(seasonId, allOtherPlayerIds);
 
       for (const match of playerMatches) {
-        state = await this.processOneMatch(
-          match,
-          playerId,
-          seasonId,
-          config,
-          state,
+        state = await this.processOneMatch(match, playerId, seasonId, config, state, {
           sidesMap,
           historiesMap,
           currentMmrMap,
-        );
+        });
       }
     }
 
@@ -157,10 +158,9 @@ export class MmrCalculationService {
     seasonId: string,
     config: { baseMmr: number; kFactor: number; placementMatches: number },
     state: CheckpointState,
-    sidesMap: Map<string, MatchSideData>,
-    historiesMap: Map<string, number>,
-    currentMmrMap: Map<string, number>,
+    lookups: MmrLookups,
   ): Promise<CheckpointState> {
+    const { sidesMap, historiesMap, currentMmrMap } = lookups;
     const isPlacement = state.wins + state.losses < config.placementMatches;
     const raw = sidesMap.get(match.id) ?? { opponentPlayerIds: [], sameTeamPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
     const { opponentPlayerIds, playerWon } = raw;
@@ -583,8 +583,10 @@ export class MmrCalculationService {
     const e2 = 1 - e1;
     const k = this.calculateEffectiveK(kFactor, side1.score ?? 0, side2.score ?? 0, isPlacement, outcomeType.scoreCountsForMmr, null);
     const f = outcomeType.mmrMultiplier;
-    const w1 = side1.isWinner === null ? 0.5 : side1.isWinner ? 1 : 0;
-    const w2 = side2.isWinner === null ? 0.5 : side2.isWinner ? 1 : 0;
+    let w1 = 0.5;
+    if (side1.isWinner !== null) w1 = side1.isWinner ? 1 : 0;
+    let w2 = 0.5;
+    if (side2.isWinner !== null) w2 = side2.isWinner ? 1 : 0;
     const baseDelta1 = k * (w1 - e1) * f;
     const baseDelta2 = k * (w2 - e2) * f;
     const mode = discipline.teamInteractionMode ?? "COLLABORATIVE";

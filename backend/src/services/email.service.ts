@@ -10,7 +10,7 @@ interface EmailOptions {
 }
 
 class EmailService {
-  private transporter: Transporter;
+  private readonly transporter: Transporter;
 
   constructor() {
     this.transporter = nodemailer.createTransport({

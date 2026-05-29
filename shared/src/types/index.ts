@@ -49,10 +49,6 @@ export interface ApiError {
   details?: unknown;
 }
 
-// Types pour les dates
-export type DateString = string; // ISO date string
-export type Timestamp = string; // ISO datetime string
-
 // ============================================
 // Types utilitaires pour transformation de dates
 // ============================================

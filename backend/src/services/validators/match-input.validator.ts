@@ -48,8 +48,7 @@ export class MatchInputValidator {
         for (const teamId of teamIds) {
             await matchRepository.validateEntriesForTournament(
                 tournament.id,
-                teamId,
-                undefined
+                teamId
             );
             const size = await teamRepository.getMemberCount(teamId);
             if (size < tournament.minTeamSize || size > tournament.maxTeamSize) {
@@ -197,8 +196,7 @@ export class MatchInputValidator {
             try {
                 await matchRepository.validateEntriesForTournament(
                     tournament.id,
-                    teamId,
-                    undefined
+                    teamId
                 );
             } catch (error) {
                 errors.push(
