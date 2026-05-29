@@ -23,7 +23,7 @@ export default mergeConfig(
           '**/config/**',
         ],
         reportsDirectory: './coverage',
-        reporter: ['text', 'html', 'json'],
+        reporter: ['text', 'html', 'json', 'lcov'],
         lines: 80,
         functions: 80,
         branches: 80,
