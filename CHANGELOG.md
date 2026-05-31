@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.11.0](https://github.com/Quent1L/skill-arena/compare/1.10.0...1.11.0) (2026-05-31)
+
+### ✨ Nouvelles fonctionnalités
+
+* **ux:** suppress non-error toasts on mobile ([0b9cc4d](https://github.com/Quent1L/skill-arena/commit/0b9cc4d6d494b444200b2b0199376dc2d9b3f24d))
+
+### 🐛 Correctifs
+
+* **pwa:** make dismiss button reactively hide install banner ([ff46cb0](https://github.com/Quent1L/skill-arena/commit/ff46cb00a7f3a069a94271e96af46258e29e9073))
+* **ranked:** prevent no-MMR flash while player profile loads ([96ee980](https://github.com/Quent1L/skill-arena/commit/96ee98006bc35f33e3a4f43edcab6da9ec35a173))
+
+### 🔧 Maintenance
+
+* **docker:** cache bun install packages between builds ([5887c51](https://github.com/Quent1L/skill-arena/commit/5887c51cb7fe286962bde10f7b3a35b6741678dd))
+* **release:** prevent release-it from bumping package.json ([7d70bc1](https://github.com/Quent1L/skill-arena/commit/7d70bc16632c6fbe7f7d18fcc3a9ce3582e3252a))
+
 ## [1.10.0](https://github.com/Quent1L/skill-arena/compare/1.9.0...1.10.0) (2026-05-31)
 
 ### ✨ Nouvelles fonctionnalités
