@@ -187,7 +187,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSwipe } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
@@ -239,6 +239,14 @@ useSwipe(contentAreaRef, {
 })
 
 const activeTab = computed(() => (route.params.tab as string) || 'infos')
+
+watch(
+  () => activeTab.value === 'stats' && store.tournament?.mode === 'ranked',
+  async (shouldLoad) => {
+    if (shouldLoad) await store.ensurePlayerProfile()
+  },
+  { immediate: true },
+)
 
 const statsSubTabValues = ['profile', 'global'] as const
 const statsSwipeTransition = ref<'slide-left' | 'slide-right'>('slide-left')
