@@ -32,7 +32,8 @@
     "requireUpstream": false
   },
   "npm": {
-    "publish": false
+    "publish": false,
+    "ignoreVersion": true
   },
   "hooks": {
     "after:bump": "echo '✅ VERSION mise à jour : '$(cat VERSION)"
