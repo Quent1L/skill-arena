@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.10.0](https://github.com/Quent1L/skill-arena/compare/1.9.0...1.10.0) (2026-05-31)
+
+### ✨ Nouvelles fonctionnalités
+
+* **stats:** add 5 new player stat sections ([2382d4b](https://github.com/Quent1L/skill-arena/commit/2382d4bdff675997b2b57637d1a5dc106493f2c8))
+* **tournament:** refresh data on WS reconnect and leaderboard update ([1500ae8](https://github.com/Quent1L/skill-arena/commit/1500ae89bffb8dbef649db2d790fc32db3958681))
+* **ux:** show update overlay before SW-triggered reload ([1a7a967](https://github.com/Quent1L/skill-arena/commit/1a7a96791a44aaf2037fe26bff25d785e6fca459))
+
+### 🐛 Correctifs
+
+* **mobile:** load player profile on stats tab refresh ([5289efe](https://github.com/Quent1L/skill-arena/commit/5289efe7cfabc6d4b9b8919636fe76949db27b86))
+
+### ⚡ Performances
+
+* **player-stats:** cache per-tournament stats in player_computed_data ([4e7eb2c](https://github.com/Quent1L/skill-arena/commit/4e7eb2c0508d559fd1bef40e7aa0d2c343e9fa9a))
+
+### ♻️ Refactoring
+
+* extract helpers and dedupe across stats/match logic ([29e5d28](https://github.com/Quent1L/skill-arena/commit/29e5d283d5cceb79faa2edb0a83044c52c8f6838))
+* **player:** extract stat sections + add discipline filter ([1505ba6](https://github.com/Quent1L/skill-arena/commit/1505ba68cb290b000343d9a9278bae538d3b3322))
+
+### 🎨 Style
+
+* **stats:** modify grid of filter on PlayerStat ([fc7251d](https://github.com/Quent1L/skill-arena/commit/fc7251dfb435a2bb9b7fd78e4d6395619615ded4))
+
 ## [1.9.0](https://github.com/Quent1L/skill-arena/compare/1.8.1...1.9.0) (2026-05-26)
 
 ### ✨ Nouvelles fonctionnalités
