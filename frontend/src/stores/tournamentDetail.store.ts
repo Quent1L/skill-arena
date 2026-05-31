@@ -180,6 +180,34 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
   }
 
+  async function reloadPlayerProfile() {
+    if (!appUser.value?.id) return
+    await Promise.all([
+      rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
+      rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
+        .then((h) => { profileChartHistory.value = h }),
+      playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
+        .then((s) => { playerStats.value = s }),
+    ])
+  }
+
+  async function refreshSilently() {
+    const promises: Promise<unknown>[] = [
+      reloadTournament(),
+      reloadParticipants(),
+    ]
+    if (tournament.value?.mode === 'ranked' && rankedLeaderboard.value.length) {
+      promises.push(reloadLeaderboard())
+    }
+    if (playerMmr.value !== null) {
+      promises.push(reloadPlayerProfile())
+    }
+    if (tournamentStats.value !== null) {
+      promises.push(reloadStats())
+    }
+    await Promise.all(promises)
+  }
+
   async function reloadTournament() {
     await tournamentSvc.loadTournamentWithErrorHandling(tournamentId.value)
   }
@@ -249,6 +277,8 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     reloadTournament,
     reloadStats,
     reloadLeaderboard,
+    reloadPlayerProfile,
+    refreshSilently,
     loadProvisionalLeaderboard,
   }
 })

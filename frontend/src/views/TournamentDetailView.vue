@@ -219,7 +219,7 @@ import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
 import type { TournamentMode, MmrAnimationWsPayload } from '@skill-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
-import { onWsEvent } from '@/composables/notification/notification.socket'
+import { onWsEvent, onWsOpen, sendWsMessage, useNotificationSocket } from '@/composables/notification/notification.socket'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
@@ -235,6 +235,7 @@ const tabBarRef = ref<HTMLElement | null>(null)
 const tabEls = ref<Record<string, HTMLElement | null>>({})
 const indicatorStyle = ref({ left: '0px', width: '0px' })
 const animationQueue = useMMrAnimationQueue()
+const notificationSocket = useNotificationSocket()
 
 const tournamentId = computed(() => route.params.id as string)
 const activeTabName = computed(() => route.params.tab as string | undefined)
@@ -300,9 +301,17 @@ function navigateToTab(tab: string) {
 watch(activeTabName, updateIndicator)
 watch(visibleTabs, updateIndicator)
 
-let offWs: (() => void) | null = null
+const offWsHandlers: (() => void)[] = []
+
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible' && notificationSocket.hadUnexpectedDisconnect.value) {
+    notificationSocket.hadUnexpectedDisconnect.value = false
+    store.refreshSilently()
+  }
+}
 
 onMounted(async () => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
   try {
     await store.initialize(tournamentId.value)
   } catch (err) {
@@ -339,19 +348,32 @@ onMounted(async () => {
 
   await updateIndicator()
 
+  offWsHandlers.push(
+    onWsOpen(() => sendWsMessage({ event: 'subscribe_tournament', tournamentId: tournamentId.value })),
+  )
+  sendWsMessage({ event: 'subscribe_tournament', tournamentId: tournamentId.value })
+
   if (store.tournament?.mode === 'ranked' && store.isAuthenticated) {
     await animationQueue.loadPending(tournamentId.value)
-    offWs = onWsEvent('mmr_animation', (data) => {
-      const payload = data as MmrAnimationWsPayload
-      if (payload.tournamentId !== tournamentId.value) return
-      animationQueue.enqueue(payload)
-    })
+    offWsHandlers.push(
+      onWsEvent('mmr_animation', (data) => {
+        const payload = data as MmrAnimationWsPayload
+        if (payload.tournamentId !== tournamentId.value) return
+        animationQueue.enqueue(payload)
+      }),
+      onWsEvent('leaderboard_updated', () => {
+        if (store.playerMmr !== null) store.reloadPlayerProfile()
+        if (store.tournamentStats !== null) store.reloadStats()
+      }),
+    )
   }
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  sendWsMessage({ event: 'unsubscribe_tournament', tournamentId: tournamentId.value })
   store.$dispose()
-  if (offWs) offWs()
+  offWsHandlers.forEach((off) => off())
 })
 </script>
 

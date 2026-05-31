@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import { useNotificationService } from './notification.service'
 import { useAuth } from '../useAuth'
 import { convertStringDatesToJS } from '@/utils/DateUtils'
@@ -5,8 +6,16 @@ import { convertStringDatesToJS } from '@/utils/DateUtils'
 let socket: WebSocket | null = null
 let reconnectTimer: number | null = null
 
+const hadUnexpectedDisconnect = ref(false)
+const openHandlers = new Set<() => void>()
+
 type WsEventHandler = (data: unknown) => void
 const eventRegistry = new Map<string, Set<WsEventHandler>>()
+
+export function onWsOpen(handler: () => void): () => void {
+  openHandlers.add(handler)
+  return () => openHandlers.delete(handler)
+}
 
 export function onWsEvent(event: string, handler: WsEventHandler): () => void {
   if (!eventRegistry.has(event)) eventRegistry.set(event, new Set())
@@ -67,6 +76,7 @@ export function useNotificationSocket() {
 
     socket.onopen = () => {
       console.log('[WS] Connected successfully')
+      openHandlers.forEach((h) => h())
     }
 
     socket.onmessage = (evt) => {
@@ -98,6 +108,7 @@ export function useNotificationSocket() {
 
     socket.onclose = (evt) => {
       console.log('[WS] Closed:', evt.code, evt.reason)
+      hadUnexpectedDisconnect.value = true
       if (reconnectTimer) window.clearTimeout(reconnectTimer)
       if (isAuthenticated.value) {
         console.log('[WS] Reconnecting in 2s...')
@@ -106,5 +117,5 @@ export function useNotificationSocket() {
     }
   }
 
-  return { connect, disconnect }
+  return { connect, disconnect, hadUnexpectedDisconnect }
 }
