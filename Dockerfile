@@ -15,8 +15,8 @@ COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 
 # Installer TOUTES les deps (y compris devDependencies pour le build)
-RUN bun install --frozen-lockfile
-
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 # --- Build (shared + frontend + backend) -----------------------
 FROM base AS build
