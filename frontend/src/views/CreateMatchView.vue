@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, provide, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useViewport } from '@/composables/useViewport'
 import MatchFormStepperMobile from '@/components/match/mobile/MatchFormStepperMobile.vue'
 import MatchFormStepperDesktop from '@/components/match/MatchFormStepperDesktop.vue'
@@ -25,7 +25,7 @@ import type { TournamentPlayer } from '@/composables/match/match-form.context'
 
 const route = useRoute()
 const { isMobile } = useViewport()
-const toast = useToast()
+const toast = useAppToast()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined

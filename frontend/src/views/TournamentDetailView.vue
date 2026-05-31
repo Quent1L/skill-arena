@@ -212,7 +212,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
@@ -226,7 +226,7 @@ import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
+const toast = useAppToast()
 const { isMobile } = useViewport()
 const { y: scrollY } = useWindowScroll()
 const store = useTournamentDetailStore()

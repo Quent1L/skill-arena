@@ -12,10 +12,10 @@ import type {
   Discipline,
   OutcomeType,
 } from '@skill-arena/shared/types/index'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 
 export function useDisciplineService() {
-  const toast = useToast()
+  const toast = useAppToast()
 
   const disciplines = ref<Discipline[]>([])
   const currentDiscipline = ref<Discipline | null>(null)

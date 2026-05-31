@@ -193,12 +193,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import { useUserService } from '@/composables/user/user.service'
 import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
 
-const toast = useToast()
+const toast = useAppToast()
 const { listOrganizations, createOrganization, getMembers, addMember, removeMember, renameOrganization } = useOrganizationService()
 const { users, loading: isLoadingUsers, listUsers } = useUserService()
 

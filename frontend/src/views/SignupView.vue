@@ -109,11 +109,11 @@ import { useDebounceFn } from '@vueuse/core'
 import { authClient } from '@/lib/auth-client'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useConfigService } from '@/composables/config/config.service'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 
 const route = useRoute()
 const router = useRouter()
-const toast = useToast()
+const toast = useAppToast()
 const { validateCode: validateCodeApi } = useInvitationService()
 const { config } = useConfigService()
 

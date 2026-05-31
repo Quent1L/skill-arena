@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { bracketApi } from './bracket.api'
 import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/shared/types/index'
 
@@ -7,7 +7,7 @@ import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/share
  * Bracket service - Business logic and state management
  */
 export function useBracketService() {
-  const toast = useToast()
+  const toast = useAppToast()
 
   const bracketData = ref<ClientBracketData | null>(null)
   const loading = ref(false)

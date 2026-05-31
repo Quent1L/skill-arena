@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useMatchService } from '../match/match.service'
 import { matchApi } from '../match/match.api'
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useParticipantService } from '../participant.service'
 import type {
   Match as MatchModel,
@@ -24,7 +24,7 @@ vi.mock('@/config/ApiConfig', () => ({
 }))
 vi.mock('../match/match.api')
 vi.mock('vue-router')
-vi.mock('primevue/usetoast')
+vi.mock('@/composables/useAppToast')
 vi.mock('../participant.service')
 
 describe('useMatchService', () => {
@@ -44,7 +44,7 @@ describe('useMatchService', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(useRouter).mockReturnValue(mockRouter as unknown as ReturnType<typeof useRouter>)
-    vi.mocked(useToast).mockReturnValue(mockToast as unknown as ReturnType<typeof useToast>)
+    vi.mocked(useAppToast).mockReturnValue(mockToast as unknown as ReturnType<typeof useAppToast>)
     vi.mocked(useParticipantService).mockReturnValue(
       mockParticipantService as unknown as ReturnType<typeof useParticipantService>,
     )

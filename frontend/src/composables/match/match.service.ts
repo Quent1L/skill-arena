@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { matchApi } from './match.api'
 import { useParticipantService } from '../participant.service'
 import type {
@@ -29,7 +29,7 @@ interface ValidationResult {
 
 export function useMatchService() {
   const router = useRouter()
-  const toast = useToast()
+  const toast = useAppToast()
   const { getTournamentParticipants } = useParticipantService()
 
   const validationResult = ref<ValidationResult | null>(null)

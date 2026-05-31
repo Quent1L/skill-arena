@@ -193,13 +193,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import type { InvitationCode } from '@/composables/invitation/invitation.api'
 import type { OrganizationWithMemberCount } from '@skill-arena/shared'
 
-const toast = useToast()
+const toast = useAppToast()
 const { generateCode, getAllCodes, deactivateCode } = useInvitationService()
 const { listOrganizations } = useOrganizationService()
 

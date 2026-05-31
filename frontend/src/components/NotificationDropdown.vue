@@ -3,12 +3,12 @@ import NotificationList from './NotificationList.vue'
 import { useTemplateRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationService } from '@/composables/notification/notification.service'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 
 const popover = useTemplateRef('popover')
 const router = useRouter()
 const { notifications, markAllAsRead, deleteAll } = useNotificationService()
-const toast = useToast()
+const toast = useAppToast()
 
 const hasNotifications = computed(() => notifications.value.length > 0)
 const hasDeletableNotifs = computed(() => notifications.value.some((n) => !n.requiresAction))

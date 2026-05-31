@@ -154,7 +154,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import {
   type CreateRankedSeasonFormData,
   type UpdateRankedSeasonFormData,
@@ -192,7 +192,7 @@ const { isSuperAdmin } = useAuth()
 
 const isEditMode = computed(() => !!route.params.id && route.params.id !== 'new')
 
-const toast = useToast()
+const toast = useAppToast()
 
 const { handleSubmit, defineField, setValues, errors } = useForm({
   validationSchema: toTypedSchema(

@@ -1,10 +1,10 @@
 import { ref } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { teamApi } from './team.api'
 import type { ClientTeam } from '@skill-arena/shared/types/index'
 
 export function useTeamService() {
-  const toast = useToast()
+  const toast = useAppToast()
   const teams = ref<ClientTeam[]>([])
   const loading = ref(false)
 

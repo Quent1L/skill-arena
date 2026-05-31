@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useParticipantService } from '../participant.service'
 import { participantApi } from '../participant.api'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared/types/index'
 
 vi.mock('@/config/ApiConfig', () => ({
@@ -13,7 +13,7 @@ vi.mock('@/config/ApiConfig', () => ({
   },
 }))
 vi.mock('../participant.api')
-vi.mock('primevue/usetoast')
+vi.mock('@/composables/useAppToast')
 
 describe('useParticipantService', () => {
   const mockToast = {
@@ -25,7 +25,7 @@ describe('useParticipantService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(useToast).mockReturnValue(mockToast as unknown as ReturnType<typeof useToast>)
+    vi.mocked(useAppToast).mockReturnValue(mockToast as unknown as ReturnType<typeof useAppToast>)
   })
 
   describe('joinTournament', () => {

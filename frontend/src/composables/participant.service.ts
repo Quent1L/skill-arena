@@ -1,10 +1,10 @@
 import { ref, computed } from 'vue'
 import { participantApi } from './participant.api'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
 
 export function useParticipantService() {
-  const toast = useToast()
+  const toast = useAppToast()
 
   // State
   const participants = ref<ParticipantListItem[]>([])

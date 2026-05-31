@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from './composables/useAppToast'
 import { useAuth } from './composables/useAuth'
 import { useConfigService } from './composables/config/config.service'
 import { initErrorService, useErrorService } from './composables/useErrorService'
@@ -28,7 +28,7 @@ const { loadConfig } = useConfigService()
 const errorService = useErrorService()
 const notificationService = useNotificationService()
 const notificationSocket = useNotificationSocket()
-const toast = useToast()
+const toast = useAppToast()
 
 const isAppReady = ref(false)
 const showUpdateOverlay = ref(false)

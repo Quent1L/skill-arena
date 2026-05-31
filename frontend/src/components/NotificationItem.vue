@@ -53,13 +53,13 @@ import type { Notification } from '@/composables/notification/notification.servi
 import { useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
 import { computed, ref, useTemplateRef } from 'vue'
-import { useToast } from 'primevue/usetoast'
+import { useAppToast } from '@/composables/useAppToast'
 import { useSwipe } from '@vueuse/core'
 
 const props = defineProps<{ notif: Notification }>()
 const { open, deleteNotification } = useNotificationService()
 const router = useRouter()
-const toast = useToast()
+const toast = useAppToast()
 
 const cardRef = useTemplateRef<HTMLElement>('cardRef')
 const swipeOffset = ref(0)
