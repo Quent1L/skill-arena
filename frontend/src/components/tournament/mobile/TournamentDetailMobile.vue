@@ -81,12 +81,17 @@
                 :best-partners="store.playerStats?.stats?.bestPartners"
                 :nemeses="store.playerStats?.stats?.nemeses"
               />
-              <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div v-else-if="!store.rankedLoading" class="text-center py-12 text-gray-500 dark:text-gray-400">
                 <i class="fa fa-user-slash text-4xl mb-4 block"></i>
                 <p>Vous n'avez pas encore de MMR pour cette saison.</p>
                 <p class="text-sm mt-2">
                   Déclarez votre premier match pour rejoindre le classement !
                 </p>
+              </div>
+              <div v-else class="p-4 space-y-3">
+                <Skeleton height="6rem" class="rounded-xl" />
+                <Skeleton height="4rem" class="rounded-xl" />
+                <Skeleton height="10rem" class="rounded-xl" />
               </div>
             </div>
             <div v-else key="global" class="p-2">

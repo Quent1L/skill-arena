@@ -205,6 +205,7 @@ export function useRankedService() {
   }
 
   async function loadPlayerMmr(seasonId: string, playerId: string) {
+    loading.value = true
     try {
       const data = await rankedApi.getPlayerMmr(seasonId, playerId)
       playerMmr.value = data.mmr
@@ -213,6 +214,8 @@ export function useRankedService() {
     } catch {
       playerMmr.value = null
       playerOpponentQuality.value = undefined
+    } finally {
+      loading.value = false
     }
   }
 
