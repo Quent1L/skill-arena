@@ -1,6 +1,6 @@
 {
   "name": "skill-arena-monorepo",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "description": "Skol - Tournament Management Application",
   "private": true,
   "scripts": {

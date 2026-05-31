@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/Quent1L/skill-arena/compare/1.11.0...1.11.1) (2026-05-31)
+
+### 🐛 Correctifs
+
+* **player:** replace v-tooltip with Popover on RecentFormSection info icon ([a08cfc4](https://github.com/Quent1L/skill-arena/commit/a08cfc4023f8472d38eefa5cf71d3517f0c5dc4a))
+* **ranked:** prevent winStreak/recentResults mismatch on leaderboard ([2c96bfb](https://github.com/Quent1L/skill-arena/commit/2c96bfb8ffdebe1ba966b8f225bb4c42a5d53f44))
+
 ## [1.11.0](https://github.com/Quent1L/skill-arena/compare/1.10.0...1.11.0) (2026-05-31)
 
 ### ✨ Nouvelles fonctionnalités
