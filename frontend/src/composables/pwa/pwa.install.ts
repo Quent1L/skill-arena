@@ -6,6 +6,7 @@ const DISMISS_DURATION_MS = 15 * 24 * 60 * 60 * 1000 // 15 days
 const isInstalled = ref(false)
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
 const showIOSInstructions = ref(false)
+const dismissed = ref(isDismissedRecently())
 
 function isDismissedRecently(): boolean {
   const stored = localStorage.getItem(DISMISS_KEY)
@@ -14,6 +15,7 @@ function isDismissedRecently(): boolean {
 }
 
 function dismissBanner() {
+  dismissed.value = true
   localStorage.setItem(DISMISS_KEY, Date.now().toString())
 }
 
@@ -26,7 +28,7 @@ export function usePWAInstall() {
   )
 
   const shouldShowBanner = computed(
-    () => isMobile && canInstall.value && !isDismissedRecently(),
+    () => isMobile && canInstall.value && !dismissed.value && !showIOSInstructions.value,
   )
 
   async function triggerInstall() {
