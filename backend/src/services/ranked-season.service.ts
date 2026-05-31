@@ -32,6 +32,12 @@ interface ProvisionalReplayCtx {
   provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
 }
 
+function countLeadingWins(results: { outcome: string }[]): number {
+  let n = 0
+  for (const r of results) { if (r.outcome === 'win') n++; else break }
+  return n
+}
+
 function loadUnfinalizedMatches(seasonId: string) {
   return db.query.matches.findMany({
     where: and(
@@ -464,11 +470,19 @@ export class RankedSeasonService {
     ctx: ProvisionalReplayCtx,
   ): ClientPlayerMmr[] {
     return [
-      ...players.map((p) => ({
-        ...(p as ClientPlayerMmr),
-        currentMmr: ctx.provisionalMmr.get(p.playerId) ?? p.currentMmr,
-        recentResults: ctx.provisionalResults.get(p.playerId) ?? [],
-      })),
+      ...players.map((p) => {
+        const provisionalResults = ctx.provisionalResults.get(p.playerId)
+        const recentResults = provisionalResults ?? []
+        const winStreak = provisionalResults !== undefined
+          ? countLeadingWins(provisionalResults)
+          : (p as ClientPlayerMmr).winStreak
+        return {
+          ...(p as ClientPlayerMmr),
+          currentMmr: ctx.provisionalMmr.get(p.playerId) ?? p.currentMmr,
+          recentResults,
+          winStreak,
+        }
+      }),
       ...provisionalOnlyPlayers,
     ].sort((a, b) => b.currentMmr - a.currentMmr);
   }

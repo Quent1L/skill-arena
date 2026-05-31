@@ -38,41 +38,43 @@ export class PlayerMmrRepository {
   }
 
   async getBySeasonOrdered(seasonId: string) {
-    const players = await db.query.playerMmr.findMany({
-      where: eq(playerMmr.seasonId, seasonId),
-      with: { player: true },
-      orderBy: (p, { desc }) => [desc(p.currentMmr)],
+    return db.transaction(async (tx) => {
+      const players = await tx.query.playerMmr.findMany({
+        where: eq(playerMmr.seasonId, seasonId),
+        with: { player: true },
+        orderBy: (p, { desc }) => [desc(p.currentMmr)],
+      });
+
+      if (players.length === 0) return players;
+
+      const recentRows = await tx.execute(sql`
+        SELECT player_id, mmr_delta
+        FROM (
+          SELECT mh.player_id, mh.mmr_delta,
+            ROW_NUMBER() OVER (PARTITION BY mh.player_id ORDER BY m.played_at DESC) AS rn
+          FROM mmr_history mh
+          INNER JOIN matches m ON m.id = mh.match_id
+          WHERE mh.season_id = ${seasonId}
+        ) sub
+        WHERE rn <= 5
+      `);
+
+      const resultsByPlayer = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>();
+      for (const row of recentRows.rows as { player_id: string; mmr_delta: number }[]) {
+        const list = resultsByPlayer.get(row.player_id) ?? [];
+        const delta = Number(row.mmr_delta);
+        let outcome: 'win' | 'loss' | 'draw' = 'draw';
+        if (delta > 0) outcome = 'win';
+        else if (delta < 0) outcome = 'loss';
+        list.push({ outcome });
+        resultsByPlayer.set(row.player_id, list);
+      }
+
+      return players.map((p) => ({
+        ...p,
+        recentResults: (resultsByPlayer.get(p.playerId) ?? []).slice().reverse(),
+      }));
     });
-
-    if (players.length === 0) return players;
-
-    const recentRows = await db.execute(sql`
-      SELECT player_id, mmr_delta
-      FROM (
-        SELECT mh.player_id, mh.mmr_delta,
-          ROW_NUMBER() OVER (PARTITION BY mh.player_id ORDER BY m.played_at DESC) AS rn
-        FROM mmr_history mh
-        INNER JOIN matches m ON m.id = mh.match_id
-        WHERE mh.season_id = ${seasonId}
-      ) sub
-      WHERE rn <= 5
-    `);
-
-    const resultsByPlayer = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>();
-    for (const row of recentRows.rows as { player_id: string; mmr_delta: number }[]) {
-      const list = resultsByPlayer.get(row.player_id) ?? [];
-      const delta = Number(row.mmr_delta);
-      let outcome: 'win' | 'loss' | 'draw' = 'draw';
-      if (delta > 0) outcome = 'win';
-      else if (delta < 0) outcome = 'loss';
-      list.push({ outcome });
-      resultsByPlayer.set(row.player_id, list);
-    }
-
-    return players.map((p) => ({
-      ...p,
-      recentResults: (resultsByPlayer.get(p.playerId) ?? []).slice().reverse(),
-    }));
   }
 
   async upsert(data: UpsertPlayerMmrData) {
