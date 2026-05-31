@@ -22,7 +22,6 @@ declare module 'vue' {
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
     Checkbox: typeof import('primevue/checkbox')['default']
-    Chip: typeof import('primevue/chip')['default']
     Column: typeof import('primevue/column')['default']
     CompositionStep: typeof import('./src/components/match/steps/CompositionStep.vue')['default']
     ConfirmDialog: typeof import('primevue/confirmdialog')['default']
@@ -104,6 +103,7 @@ declare module 'vue' {
     TournamentHeader: typeof import('./src/components/tournament/TournamentHeader.vue')['default']
     TournamentInfoGrid: typeof import('./src/components/tournament/TournamentInfoGrid.vue')['default']
     TournamentParticipantsList: typeof import('./src/components/tournament/TournamentParticipantsList.vue')['default']
+    UpdateOverlay: typeof import('./src/components/UpdateOverlay.vue')['default']
     ValidationModeSection: typeof import('./src/components/forms/sections/ValidationModeSection.vue')['default']
     WhenStep: typeof import('./src/components/match/steps/WhenStep.vue')['default']
   }

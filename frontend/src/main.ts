@@ -21,7 +21,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (refreshing || !hadController) return // évite double reload + flicker premier chargement
     refreshing = true
-    window.location.reload()
+    window.dispatchEvent(new CustomEvent('app:update-available'))
   })
 
   navigator.serviceWorker.ready.then((registration) => {

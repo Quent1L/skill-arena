@@ -1,6 +1,7 @@
 <template>
   <div>
     <SplashLoader :visible="!isAppReady" />
+    <UpdateOverlay :visible="showUpdateOverlay" />
     <Toast
       position="top-right"
       :breakpoints="{ '640px': { width: 'calc(100vw - 1rem)', right: '0.5rem', left: 'auto' } }"
@@ -20,6 +21,7 @@ import { useNotificationService } from './composables/notification/notification.
 import { useNotificationSocket } from './composables/notification/notification.socket'
 import AppWrapper from './AppWrapper.vue'
 import SplashLoader from './components/SplashLoader.vue'
+import UpdateOverlay from './components/UpdateOverlay.vue'
 
 const { initialize, isAuthenticated } = useAuth()
 const { loadConfig } = useConfigService()
@@ -29,8 +31,16 @@ const notificationSocket = useNotificationSocket()
 const toast = useToast()
 
 const isAppReady = ref(false)
+const showUpdateOverlay = ref(false)
+
+const onUpdateAvailable = () => {
+  showUpdateOverlay.value = true
+  setTimeout(() => globalThis.location.reload(), 1500)
+}
 
 onMounted(async () => {
+  globalThis.addEventListener('app:update-available', onUpdateAvailable)
+
   initErrorService(toast)
 
   const minDelay = new Promise((resolve) => setTimeout(resolve, 250))
@@ -66,5 +76,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   errorService.uninstall()
+  globalThis.removeEventListener('app:update-available', onUpdateAvailable)
 })
 </script>

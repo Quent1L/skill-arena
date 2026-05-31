@@ -153,7 +153,7 @@ const isKeycloakLoading = ref(false)
 const emailPasswordEnabled = computed(() => config.value?.auth?.emailPassword?.enabled ?? true)
 const keycloakEnabled = computed(() => config.value?.auth?.keycloak?.enabled ?? false)
 const keycloakLoginLabel = computed(
-  () => config.value?.auth?.keycloak?.loginLabel ?? 'Se connecter avec Keycloak'
+  () => config.value?.auth?.keycloak?.loginLabel ?? 'Se connecter avec Keycloak',
 )
 const forceNative = computed(() => route.query.native === 'true')
 const showEmailPassword = computed(() => emailPasswordEnabled.value || forceNative.value)
