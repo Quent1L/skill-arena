@@ -80,8 +80,12 @@
                 :most-frequent-partners="store.playerStats?.stats?.mostFrequentPartners"
                 :best-partners="store.playerStats?.stats?.bestPartners"
                 :nemeses="store.playerStats?.stats?.nemeses"
+                :season-id="store.tournamentId"
               />
-              <div v-else-if="!store.rankedLoading" class="text-center py-12 text-gray-500 dark:text-gray-400">
+              <div
+                v-else-if="!store.rankedLoading"
+                class="text-center py-12 text-gray-500 dark:text-gray-400"
+              >
                 <i class="fa fa-user-slash text-4xl mb-4 block"></i>
                 <p>Vous n'avez pas encore de MMR pour cette saison.</p>
                 <p class="text-sm mt-2">

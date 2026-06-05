@@ -46,10 +46,12 @@
       </div>
 
       <!-- Desktop filters -->
-      <div class="hidden md:flex items-center gap-4 bg-gray-800 rounded-2xl p-4 ">
-        <div v-if="hasMultipleDisciplines" >
+      <div class="hidden md:flex items-center gap-4 bg-gray-800 rounded-2xl p-4">
+        <div v-if="hasMultipleDisciplines">
           <div class="flex flex-col gap-1">
-            <label for="filter-discipline" class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+            <label
+              for="filter-discipline"
+              class="text-xs font-bold text-gray-400 uppercase tracking-wide"
               >Discipline</label
             >
             <Select
@@ -65,41 +67,45 @@
           </div>
         </div>
 
-          <div class="flex flex-col gap-1">
-            <label for="filter-tournament" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Tournoi</label>
-            <Select
-              v-model="selectedTournamentId"
-              input-id="filter-tournament"
-              :options="tournamentOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="Tous"
-              class="max-w-[60rem]"
-              show-clear
-            >
-              <template #option="{ option }">
-                <div class="flex items-center justify-between w-full gap-2">
-                  <span class="truncate">{{ option.label }}</span>
-                  <Tag
-                    v-if="option.mode"
-                    :value="modeLabel(option.mode)"
-                    :severity="modeSeverity(option.mode)"
-                    class="shrink-0 text-xs"
-                  />
-                </div>
-              </template>
-            </Select>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</span>
-            <SelectButton
-              v-model="selectedMode"
-              :options="modeOptions"
-              option-label="label"
-              option-value="value"
-              class="w-full"
-            />
-          </div>
+        <div class="flex flex-col gap-1">
+          <label
+            for="filter-tournament"
+            class="text-xs font-bold text-gray-400 uppercase tracking-wide"
+            >Tournoi</label
+          >
+          <Select
+            v-model="selectedTournamentId"
+            input-id="filter-tournament"
+            :options="tournamentOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Tous"
+            class="max-w-[60rem]"
+            show-clear
+          >
+            <template #option="{ option }">
+              <div class="flex items-center justify-between w-full gap-2">
+                <span class="truncate">{{ option.label }}</span>
+                <Tag
+                  v-if="option.mode"
+                  :value="modeLabel(option.mode)"
+                  :severity="modeSeverity(option.mode)"
+                  class="shrink-0 text-xs"
+                />
+              </div>
+            </template>
+          </Select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</span>
+          <SelectButton
+            v-model="selectedMode"
+            :options="modeOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </div>
         <div class="mt-3 flex justify-end">
           <Button
             label="Réinitialiser"
@@ -281,7 +287,11 @@
         <OutcomeTypeStats v-if="stats.outcomeTypeStats?.length" :stats="stats.outcomeTypeStats" />
 
         <!-- H2H rivalries -->
-        <H2HRivalries v-if="stats.h2hStats?.length" :stats="stats.h2hStats" />
+        <H2HRivalries
+          v-if="stats.h2hStats?.length"
+          :stats="stats.h2hStats"
+          :tournament-id="selectedTournamentId"
+        />
 
         <!-- Match history -->
         <div class="rounded-2xl p-4">
@@ -364,6 +374,7 @@
           :most-frequent-partners="stats.mostFrequentPartners"
           :best-partners="stats.bestPartners"
           :nemeses="stats.nemeses"
+          :tournament-id="selectedTournamentId"
         />
 
         <!-- Recent form -->
@@ -371,7 +382,9 @@
 
         <!-- Outcome type stats -->
         <OutcomeTypeStats
-          v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.outcomeTypeStats?.length"
+          v-if="
+            (!hasMultipleDisciplines || selectedDisciplineId) && stats?.outcomeTypeStats?.length
+          "
           :stats="stats!.outcomeTypeStats"
         />
 
@@ -380,6 +393,7 @@
           v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.h2hStats?.length"
           :stats="stats!.h2hStats"
           tooltip="Liste les adversaires les plus fréquents avec le bilan complet"
+          :tournament-id="selectedTournamentId"
         />
 
         <!-- All matches -->

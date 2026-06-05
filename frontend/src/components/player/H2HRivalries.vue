@@ -15,7 +15,7 @@
         class="flex items-center justify-between py-1.5 border-b border-gray-700 last:border-0"
       >
         <RouterLink
-          :to="`/players/${h.opponentId}`"
+          :to="playerLink(h.opponentId, tournamentId)"
           class="flex items-center gap-2 text-sm font-medium text-indigo-400 hover:text-indigo-300 min-w-0"
         >
           <span class="truncate">{{ h.displayName }}</span>
@@ -44,9 +44,11 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import type { PlayerH2HStat } from '@skill-arena/shared/types/index'
+import { playerLink } from '@/utils/player-link'
 
 defineProps<{
   stats: PlayerH2HStat[]
   tooltip?: string
+  tournamentId?: string
 }>()
 </script>

@@ -10,7 +10,9 @@
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
         "
         @click="sub = 'profile'"
-      >Mon profil</button>
+      >
+        Mon profil
+      </button>
       <button
         class="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
         :class="
@@ -19,7 +21,9 @@
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
         "
         @click="sub = 'global'"
-      >Global</button>
+      >
+        Global
+      </button>
     </nav>
 
     <!-- Content -->
@@ -36,6 +40,7 @@
           :most-frequent-partners="store.playerStats?.stats?.mostFrequentPartners"
           :best-partners="store.playerStats?.stats?.bestPartners"
           :nemeses="store.playerStats?.stats?.nemeses"
+          :season-id="store.tournamentId"
         />
         <div v-else-if="store.rankedLoading" class="flex justify-center py-12">
           <ProgressSpinner />

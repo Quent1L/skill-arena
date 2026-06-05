@@ -11,6 +11,7 @@
       :most-frequent-partners="store.playerStats?.stats?.mostFrequentPartners"
       :best-partners="store.playerStats?.stats?.bestPartners"
       :nemeses="store.playerStats?.stats?.nemeses"
+      :season-id="store.tournamentId"
     />
     <div v-else-if="store.rankedLoading" class="flex justify-center py-12">
       <ProgressSpinner />
