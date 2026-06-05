@@ -2,9 +2,11 @@
   <div class="p-8 flex gap-8">
     <div>
       <p class="mb-2 font-semibold">Liste A ({{ files1.length }})</p>
-      <ul
-        ref="ulA"
+      <VueDraggable
+        v-model="files1"
+        tag="ul"
         class="flex flex-col gap-1 min-h-32 border-2 border-dashed border-blue-400 p-2 rounded w-48"
+        :group="'A'"
       >
         <li
           v-for="file in files1"
@@ -13,14 +15,16 @@
         >
           {{ file }}
         </li>
-      </ul>
+      </VueDraggable>
     </div>
 
     <div>
       <p class="mb-2 font-semibold">Liste B ({{ files2.length }})</p>
-      <ul
-        ref="ulB"
+      <VueDraggable
+        v-model="files2"
+        tag="ul"
         class="flex flex-col gap-1 min-h-32 border-2 border-dashed border-green-400 p-2 rounded w-48"
+        :group="'A'"
       >
         <li
           v-for="file in files2"
@@ -29,7 +33,7 @@
         >
           {{ file }}
         </li>
-      </ul>
+      </VueDraggable>
     </div>
 
     <div class="text-xs text-surface-400 self-start pt-8 space-y-1">
@@ -40,11 +44,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { dragAndDrop } from '@formkit/drag-and-drop/vue'
-
-const ulA = ref<HTMLElement>()
-const ulB = ref<HTMLElement>()
+import { ref } from 'vue'
+import { VueDraggable } from 'vue-draggable-plus'
 
 const files1 = ref([
   'dungeon_master.exe',
@@ -56,11 +57,4 @@ const files1 = ref([
   'README.txt',
 ])
 const files2 = ref<string[]>([])
-
-onMounted(() => {
-  dragAndDrop([
-    { parent: ulA, values: files1, group: 'A' },
-    { parent: ulB, values: files2, group: 'A' },
-  ])
-})
 </script>

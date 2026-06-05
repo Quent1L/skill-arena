@@ -15,17 +15,23 @@
             class="absolute inset-0 flex items-center justify-center text-xs text-surface-400 pointer-events-none"
             >Vide</span
           >
-          <div ref="containerA" class="flex flex-col gap-2 min-h-14">
+          <VueDraggable
+            v-model="playersA"
+            tag="div"
+            class="flex flex-col gap-2 min-h-14"
+            :group="{ name: 'match-composition', pull: true, put: true }"
+          >
             <div
               v-for="player in playersA"
               :key="player.id"
-              class="flex items-center gap-2 rounded-md bg-surface-100 dark:bg-surface-800 px-3 py-2 cursor-grab select-none text-sm hover:bg-surface-200 dark:hover:bg-surface-700 hover:shadow-sm transition-colors duration-150"
+              class="flex items-center gap-2 rounded-md bg-surface-100 dark:bg-surface-800 px-3 py-2 cursor-grab select-none touch-none text-sm hover:bg-surface-200 dark:hover:bg-surface-700 hover:shadow-sm transition-colors duration-150"
+              @contextmenu.prevent
             >
               <i class="fas fa-grip-vertical text-surface-400 text-xs" />
               <PlayerAvatar :name="player.displayName" size="xs" />
               {{ player.displayName }}
             </div>
-          </div>
+          </VueDraggable>
         </div>
       </div>
 
@@ -39,17 +45,23 @@
             class="absolute inset-0 flex items-center justify-center text-xs text-surface-400 pointer-events-none"
             >Vide</span
           >
-          <div ref="containerB" class="flex flex-col gap-2 min-h-14">
+          <VueDraggable
+            v-model="playersB"
+            tag="div"
+            class="flex flex-col gap-2 min-h-14"
+            :group="{ name: 'match-composition', pull: true, put: true }"
+          >
             <div
               v-for="player in playersB"
               :key="player.id"
-              class="flex items-center gap-2 rounded-md bg-surface-100 dark:bg-surface-800 px-3 py-2 cursor-grab select-none text-sm hover:bg-surface-200 dark:hover:bg-surface-700 hover:shadow-sm transition-colors duration-150"
+              class="flex items-center gap-2 rounded-md bg-surface-100 dark:bg-surface-800 px-3 py-2 cursor-grab select-none touch-none text-sm hover:bg-surface-200 dark:hover:bg-surface-700 hover:shadow-sm transition-colors duration-150"
+              @contextmenu.prevent
             >
               <i class="fas fa-grip-vertical text-surface-400 text-xs" />
               <PlayerAvatar :name="player.displayName" size="xs" />
               {{ player.displayName }}
             </div>
-          </div>
+          </VueDraggable>
         </div>
       </div>
     </div>
@@ -78,10 +90,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from 'vue'
+import { ref, computed, onMounted, watch, watchEffect } from 'vue'
 import Button from 'primevue/button'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
-import { dragAndDrop } from '@formkit/drag-and-drop/vue'
+import { VueDraggable } from 'vue-draggable-plus'
 import type { MatchSideInput } from '@skill-arena/shared/types/index'
 
 interface Player {
@@ -106,8 +118,6 @@ const emit = defineEmits<Emits>()
 const sidesModel = defineModel<MatchSideInput[]>('sides', { required: true })
 const allPlayerIdsModel = defineModel<string[]>('allPlayerIds', { required: true })
 
-const containerA = ref<HTMLElement>()
-const containerB = ref<HTMLElement>()
 const playersA = ref<Player[]>([])
 const playersB = ref<Player[]>([])
 
@@ -182,12 +192,5 @@ watch(
   },
 )
 
-onMounted(async () => {
-  buildAndInit()
-  await nextTick()
-  dragAndDrop([
-    { parent: containerA, values: playersA, group: 'match-composition' },
-    { parent: containerB, values: playersB, group: 'match-composition' },
-  ])
-})
+onMounted(buildAndInit)
 </script>
