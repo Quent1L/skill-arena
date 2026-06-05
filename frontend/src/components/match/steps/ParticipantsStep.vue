@@ -98,7 +98,6 @@ import Message from 'primevue/message'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { useParticipantService } from '@/composables/participant.service'
 import { useMatchService } from '@/composables/match/match.service'
-import { useAuth } from '@/composables/useAuth'
 import { useViewport } from '@/composables/useViewport'
 import PlayerPickerDialog from '@/components/match/mobile/PlayerPickerDialog.vue'
 import type { AutoCompleteCompleteEvent } from 'primevue/autocomplete'
@@ -129,7 +128,6 @@ const allPlayerIdsModel = defineModel<string[]>('allPlayerIds', { required: true
 
 const { getTournamentParticipants } = useParticipantService()
 const { validateParticipants } = useMatchService()
-const { isAdmin, appUser } = useAuth()
 const { isMobile } = useViewport()
 
 const allPlayers = ref<Player[]>([])

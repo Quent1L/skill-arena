@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue'
+import { computed, inject } from 'vue'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'

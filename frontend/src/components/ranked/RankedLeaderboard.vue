@@ -135,7 +135,7 @@ import { RouterLink } from 'vue-router'
 import { playerLink } from '@/utils/player-link'
 import { useSwipe } from '@vueuse/core'
 import type { ClientPlayerMmr, ClientRankTier } from '@skill-arena/shared/types/index'
-import { getLp, isTopTier } from '@/composables/ranked/ranked.service'
+import { isTopTier } from '@/composables/ranked/ranked.service'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 
@@ -254,13 +254,6 @@ function tierProgress(mmr: number, tier: ClientRankTier): number {
   const range = next.minMmr - tier.minMmr
   if (range <= 0) return 100
   return Math.min(100, Math.max(0, ((mmr - tier.minMmr) / range) * 100))
-}
-
-function lpDisplay(mmr: number): string {
-  const tier = getPlayerTier(mmr)
-  if (!tier) return String(mmr)
-  if (isTopTier(tier, props.tiers)) return `${mmr.toLocaleString()} MMR`
-  return `${getLp(mmr, tier)} LP`
 }
 
 function rankOf(player: ClientPlayerMmr): number | string {

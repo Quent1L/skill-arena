@@ -1,4 +1,4 @@
-import { eq, and, inArray, sql, desc, max, asc } from "drizzle-orm";
+import { eq, and, inArray, sql, desc, max } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   appUsers,
