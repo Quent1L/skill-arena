@@ -307,6 +307,9 @@ function onVisibilityChange() {
   if (document.visibilityState === 'visible' && notificationSocket.hadUnexpectedDisconnect.value) {
     notificationSocket.hadUnexpectedDisconnect.value = false
     store.refreshSilently()
+    if (store.tournament?.mode === 'ranked') {
+      animationQueue.loadPending(tournamentId.value)
+    }
   }
 }
 
