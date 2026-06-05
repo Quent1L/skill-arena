@@ -211,6 +211,7 @@
             :nemeses="stats?.nemeses"
             :opponent-quality="rankedOpponentQuality"
             :recent-form="stats?.recentForm"
+            :outcome-type-stats="stats?.outcomeTypeStats"
           />
           <div class="rounded-2xl p-4">
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">

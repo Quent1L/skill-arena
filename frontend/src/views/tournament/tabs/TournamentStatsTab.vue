@@ -35,24 +35,9 @@
                 class="h-full"
               />
             </div>
-            <ul class="space-y-2 text-sm">
-              <li
-                v-for="(item, i) in store.tournamentStats.outcomeDistribution"
-                :key="i"
-                class="flex items-center gap-2"
-              >
-                <span
-                  class="inline-block w-3 h-3 rounded-full shrink-0"
-                  :style="{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }"
-                />
-                <span class="text-gray-700 dark:text-gray-300">
-                  {{ item.outcomeTypeName ?? 'Standard' }}
-                </span>
-                <span class="font-semibold text-gray-900 dark:text-white ml-auto pl-4">
-                  {{ item.count }}
-                </span>
-              </li>
-            </ul>
+            <MatchOutcomeDistribution
+              :items="store.tournamentStats.outcomeDistribution.map((o) => ({ label: o.outcomeTypeName ?? 'Standard', count: o.count }))"
+            />
           </div>
           <p v-else class="text-gray-500 dark:text-gray-400 text-sm">
             Aucun match finalisé pour le moment.
@@ -249,6 +234,7 @@ import Chart from 'primevue/chart'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
 import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
+import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 
 const store = useTournamentDetailStore()
 

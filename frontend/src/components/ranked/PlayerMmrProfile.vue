@@ -113,10 +113,20 @@
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
 
+    <!-- Outcome type distribution -->
+    <div v-if="outcomeTypeStats?.length" class="rounded-xl p-4 bg-gray-800">
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+        Répartition des fins de match
+      </div>
+      <MatchOutcomeDistribution
+        :items="outcomeTypeStats.map((s) => ({ label: s.outcomeTypeName, count: s.matchesPlayed }))"
+      />
+    </div>
+
     <!-- Opponent quality -->
     <div v-if="opponentQuality" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Qualité des adversaires
+        Win rate en fonction du niveau des adversaires
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-gray-700/50 p-2">
@@ -189,9 +199,11 @@ import type {
   ClientRankTier,
   PlayerRelationStat,
   OpponentQualityStats,
+  PlayerOutcomeTypeStat,
 } from '@skill-arena/shared/types/index'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
+import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 import {
   TIER_ICON,
@@ -222,6 +234,7 @@ const props = defineProps<{
   nemeses?: PlayerRelationStat[]
   opponentQuality?: OpponentQualityStats
   recentForm?: Array<'V' | 'D' | 'N'>
+  outcomeTypeStats?: PlayerOutcomeTypeStat[]
 }>()
 
 const rank = computed((): ClientRankTier | null => {
