@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.12.0](https://github.com/Quent1L/skill-arena/compare/1.11.1...1.12.0) (2026-06-05)
+
+### ✨ Nouvelles fonctionnalités
+
+* **ranked:** add outcome distribution to player MMR profile ([ae55f2d](https://github.com/Quent1L/skill-arena/commit/ae55f2d2661f3a5069df69a8dc0b5dc3edd21872))
+
+### 🐛 Correctifs
+
+* **match:** drag-and-drop crashes on mobile when long-press ([f58a5f7](https://github.com/Quent1L/skill-arena/commit/f58a5f7d9d712cfd1b67692a2a4f8474983e1184))
+* **player:** carry tournamentId in players stats link ([14d14d3](https://github.com/Quent1L/skill-arena/commit/14d14d340ac171a0eeba5703768d3c38bb2810fe))
+* **ranked:** reload animation queue on mobile reconnect ([2816645](https://github.com/Quent1L/skill-arena/commit/2816645f512cdb508cbee07dec8caab5e061d6a7))
+* **router:** redirect authenticated users away from /login ([d1008b1](https://github.com/Quent1L/skill-arena/commit/d1008b1346bdf99173fa34a32511a7024b84bd90))
+
+### 🔧 Maintenance
+
+* **deps:** bump all dependencies across workspaces ([4cfe50d](https://github.com/Quent1L/skill-arena/commit/4cfe50d58ff959eefa07e0fcac52ceb95319a28a))
+
 ## [1.11.1](https://github.com/Quent1L/skill-arena/compare/1.11.0...1.11.1) (2026-05-31)
 
 ### 🐛 Correctifs
