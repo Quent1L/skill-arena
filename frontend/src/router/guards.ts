@@ -124,12 +124,17 @@ export async function requireSettingsAccess(to: RouteLocationNormalized) {
 /**
  * Middleware pour rediriger les utilisateurs déjà connectés
  */
-export async function redirectIfAuthenticated() {
-  const { isInitialized, initialize } = useAuth()
+export async function redirectIfAuthenticated(to: RouteLocationNormalized) {
+  const { isAuthenticated, isInitialized, initialize } = useAuth()
 
   try {
     if (!isInitialized.value) {
       await initialize()
+    }
+
+    if (isAuthenticated.value) {
+      const redirect = typeof to.query.redirect === 'string' ? to.query.redirect : '/'
+      return { path: redirect, replace: true }
     }
   } catch (error) {
     console.error('Error during redirect check:', error)
