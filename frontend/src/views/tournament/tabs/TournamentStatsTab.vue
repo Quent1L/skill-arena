@@ -23,20 +23,15 @@
             <i class="fa fa-chart-pie mr-2 text-indigo-500" />
             Répartition des fins de match
           </h2>
-          <div
-            v-if="isMounted && outcomeChartData"
-            class="flex flex-col sm:flex-row items-center gap-6"
-          >
-            <div class="w-48 h-48 shrink-0">
-              <Chart
-                type="doughnut"
-                :data="outcomeChartData"
-                :options="doughnutOptions"
-                class="h-full"
-              />
-            </div>
+          <div v-if="isMounted" class="flex flex-col sm:flex-row items-center gap-6">
             <MatchOutcomeDistribution
-              :items="store.tournamentStats.outcomeDistribution.map((o) => ({ label: o.outcomeTypeName ?? 'Standard', count: o.count }))"
+              class="w-full"
+              :items="
+                store.tournamentStats.outcomeDistribution.map((o) => ({
+                  label: o.outcomeTypeName ?? 'Standard',
+                  count: o.count,
+                }))
+              "
             />
           </div>
           <p v-else class="text-gray-500 dark:text-gray-400 text-sm">
@@ -249,32 +244,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   isMounted.value = false
 })
-
-const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316']
-
-const outcomeChartData = computed(() => {
-  const stats = store.tournamentStats
-  if (!stats || !stats.outcomeDistribution.length) return null
-  return {
-    labels: stats.outcomeDistribution.map((o) => o.outcomeTypeName ?? 'Standard'),
-    datasets: [
-      {
-        data: stats.outcomeDistribution.map((o) => o.count),
-        backgroundColor: PIE_COLORS,
-        borderWidth: 1,
-        borderColor: 'transparent',
-      },
-    ],
-  }
-})
-
-const doughnutOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: false },
-  },
-}
 
 const momentumChartData = computed(() => {
   const stats = store.tournamentStats
