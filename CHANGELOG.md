@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.12.1](https://github.com/Quent1L/skill-arena/compare/1.12.0...1.12.1) (2026-06-07)
+
+### 🐛 Correctifs
+
+* **ranked:** show all outcome types regardless of match count ([41dc149](https://github.com/Quent1L/skill-arena/commit/41dc149742ce687a6850fb556f13268f265c496e))
+
+### ♻️ Refactoring
+
+* **stats:** replace doughnut chart with MatchOutcomeDistribution ([57d15bb](https://github.com/Quent1L/skill-arena/commit/57d15bb3e639de9249b4d5c7dbe1b8673e989f1b))
+
 ## [1.12.0](https://github.com/Quent1L/skill-arena/compare/1.11.1...1.12.0) (2026-06-05)
 
 ### ✨ Nouvelles fonctionnalités
