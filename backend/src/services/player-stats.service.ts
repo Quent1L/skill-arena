@@ -279,7 +279,6 @@ export class PlayerStatsService {
           winRate: matchesPlayed > 0 ? Math.round((s.wins / matchesPlayed) * 100) : 0,
         };
       })
-      .filter((s) => s.matchesPlayed >= 2)
       .sort((a, b) => b.matchesPlayed - a.matchesPlayed);
   }
 

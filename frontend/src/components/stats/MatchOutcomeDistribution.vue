@@ -10,8 +10,7 @@
           <span class="text-gray-300">{{ item.label }}</span>
         </div>
         <div class="flex items-center gap-3 tabular-nums">
-          <span class="text-white font-semibold">{{ item.count }}</span>
-          <span class="text-gray-400 w-10 text-right">{{ pct(item.count) }}%</span>
+          <span class="text-gray-400 text-right">{{ pct(item.count) }}% ({{ item.count }})</span>
         </div>
       </div>
       <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
