@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.2](https://github.com/Quent1L/skill-arena/compare/1.12.1...1.12.2) (2026-06-08)
+
+### 🐛 Correctifs
+
+* **ranked:** disable swipe to provisional when showModeToggle is false ([4a32502](https://github.com/Quent1L/skill-arena/commit/4a32502f159e544b34018282f91e9504870eb26f))
+* **ranked:** fix provisional leaderboard streak/order divergence ([1faae3a](https://github.com/Quent1L/skill-arena/commit/1faae3a53df36bea1189f5eab26024a2983e6f08))
+
 ## [1.12.1](https://github.com/Quent1L/skill-arena/compare/1.12.0...1.12.1) (2026-06-07)
 
 ### 🐛 Correctifs
