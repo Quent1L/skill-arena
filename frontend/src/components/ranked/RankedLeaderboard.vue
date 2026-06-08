@@ -181,6 +181,7 @@ watch(leaderboardMode, (val) => {
 
 useSwipe(contentRef, {
   onSwipeEnd(_e, direction) {
+    if (props.showModeToggle === false) return
     if (direction === 'left' && leaderboardMode.value === 'official') {
       leaderboardMode.value = 'provisional'
     } else if (direction === 'right' && leaderboardMode.value === 'provisional') {
