@@ -318,18 +318,25 @@ export class RankedSeasonService {
       rankedSeasonRepository.getRankTiers(seasonId),
     ]);
 
+    const unfinalizedMatches = await loadUnfinalizedMatches(seasonId);
+
+    if (unfinalizedMatches.length === 0) {
+      await rankedCacheRepository.upsertProvisional(seasonId, { players: players as ClientPlayerMmr[], tiers });
+      return;
+    }
+
     const ctx: ProvisionalReplayCtx = {
       baseMmr: config.baseMmr,
       kFactor: config.kFactor,
       provisionalMmr: new Map(players.map((p) => [p.playerId, p.currentMmr])),
       provisionalResults: new Map(
-        players.map((p) => [p.playerId, (p as ClientPlayerMmr).recentResults ?? []]),
+        players.map((p) => [p.playerId, [...((p as ClientPlayerMmr).recentResults ?? [])].reverse()]),
       ),
     };
 
-    const unfinalizedMatches = await loadUnfinalizedMatches(seasonId);
+    const touchedPlayerIds = new Set<string>();
     for (const match of unfinalizedMatches) {
-      this.replayMatch(match, ctx);
+      this.replayMatch(match, ctx, touchedPlayerIds);
     }
 
     const provisionalOnlyPlayers = await this.collectProvisionalOnlyPlayers(
@@ -342,6 +349,7 @@ export class RankedSeasonService {
       players,
       provisionalOnlyPlayers,
       ctx,
+      touchedPlayerIds,
     );
 
     await rankedCacheRepository.upsertProvisional(seasonId, {
@@ -350,7 +358,7 @@ export class RankedSeasonService {
     });
   }
 
-  private replayMatch(match: UnfinalizedMatch, ctx: ProvisionalReplayCtx): void {
+  private replayMatch(match: UnfinalizedMatch, ctx: ProvisionalReplayCtx, touched: Set<string>): void {
     const sideA = match.sides[0];
     const sideB = match.sides[1];
     if (!sideA || !sideB) return;
@@ -363,6 +371,8 @@ export class RankedSeasonService {
     const scoreB = sideB.score ?? 0;
     const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
     const outcomePoints = match.outcomeType?.points ?? null;
+
+    for (const id of [...idsA, ...idsB]) touched.add(id);
 
     this.applyProvisionalResults({
       playerIds: idsA,
@@ -460,7 +470,7 @@ export class RankedSeasonService {
       winStreak: 0,
       maxWinStreak: 0,
       player: { id: user.id, displayName: user.displayName, shortName: user.shortName },
-      recentResults: ctx.provisionalResults.get(user.id) ?? [],
+      recentResults: [...(ctx.provisionalResults.get(user.id) ?? [])].reverse(),
     }));
   }
 
@@ -468,20 +478,18 @@ export class RankedSeasonService {
     players: SeasonPlayers,
     provisionalOnlyPlayers: ClientPlayerMmr[],
     ctx: ProvisionalReplayCtx,
+    touchedPlayerIds: Set<string>,
   ): ClientPlayerMmr[] {
     return [
       ...players.map((p) => {
-        const provisionalResults = ctx.provisionalResults.get(p.playerId)
-        const recentResults = provisionalResults ?? []
-        const winStreak = provisionalResults !== undefined
-          ? countLeadingWins(provisionalResults)
-          : (p as ClientPlayerMmr).winStreak
+        if (!touchedPlayerIds.has(p.playerId)) return p as ClientPlayerMmr;
+        const provisionalResults = ctx.provisionalResults.get(p.playerId) ?? [];
         return {
           ...(p as ClientPlayerMmr),
           currentMmr: ctx.provisionalMmr.get(p.playerId) ?? p.currentMmr,
-          recentResults,
-          winStreak,
-        }
+          recentResults: [...provisionalResults].reverse(),
+          winStreak: countLeadingWins(provisionalResults),
+        };
       }),
       ...provisionalOnlyPlayers,
     ].sort((a, b) => b.currentMmr - a.currentMmr);
