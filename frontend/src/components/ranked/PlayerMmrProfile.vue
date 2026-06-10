@@ -119,14 +119,23 @@
         Répartition des fins de match
       </div>
       <MatchOutcomeDistribution
-        :items="outcomeTypeStats.map((s) => ({ label: s.outcomeTypeName, count: s.matchesPlayed }))"
+        :items="outcomeTypeStats.map((s) => ({ label: s.outcomeTypeName, count: s.matchesPlayed, wins: s.wins, losses: s.losses, draws: s.draws }))"
       />
     </div>
 
     <!-- Opponent quality -->
     <div v-if="opponentQuality" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Win rate en fonction du niveau des adversaires
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+        Win rate par niveau d'adversaire
+        <button
+          type="button"
+          class="text-gray-500 hover:text-gray-300 focus:outline-none transition-colors"
+          v-tooltip.focus.top="`Basé sur l'écart de MMR : \nForts = +100 \nProches = ±100 \nFaibles = −100`"
+          @mouseenter="($event.currentTarget as HTMLElement).focus()"
+          @mouseleave="($event.currentTarget as HTMLElement).blur()"
+        >
+          <i class="fa fa-circle-question" />
+        </button>
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-gray-700/50 p-2">
@@ -146,7 +155,7 @@
           </div>
         </div>
         <div class="rounded-lg bg-gray-700/50 p-2">
-          <div class="text-xs text-gray-400 mb-1">Égaux</div>
+          <div class="text-xs text-gray-400 mb-1">Proches</div>
           <div
             class="text-sm font-black"
             :class="opponentQuality.vsEqual.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
