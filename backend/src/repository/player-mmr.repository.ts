@@ -305,6 +305,12 @@ export class PlayerMmrRepository {
     return new Map(rows.map((r) => [r.playerId, r.currentMmr]));
   }
 
+  async deleteBySeasonAndPlayer(seasonId: string, playerId: string): Promise<void> {
+    await db
+      .delete(playerMmr)
+      .where(and(eq(playerMmr.seasonId, seasonId), eq(playerMmr.playerId, playerId)));
+  }
+
   async getAllPlayersBySeasonId(seasonId: string) {
     return await db.query.playerMmr.findMany({
       where: eq(playerMmr.seasonId, seasonId),

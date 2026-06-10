@@ -112,9 +112,10 @@ export class MmrCalculationService {
     const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
     if (!config) return;
 
+    let checkpoint: CheckpointState | null = null;
     let state: CheckpointState;
     if (fromPlayedAt) {
-      const checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, fromPlayedAt);
+      checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, fromPlayedAt);
       state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0 };
     } else {
       state = { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0 };
@@ -138,6 +139,11 @@ export class MmrCalculationService {
           currentMmrMap,
         });
       }
+    }
+
+    if (playerMatches.length === 0 && checkpoint === null) {
+      await playerMmrRepository.deleteBySeasonAndPlayer(seasonId, playerId);
+      return;
     }
 
     await playerMmrRepository.upsert({

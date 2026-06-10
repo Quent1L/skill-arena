@@ -58,6 +58,7 @@ const mockPlayerMmrRepo = {
   getCheckpointState: mock(() => Promise.resolve(null as any)),
   preloadOpponentHistories: mock(() => Promise.resolve(new Map<string, number>())),
   getPlayerCurrentMmrs: mock(() => Promise.resolve(new Map<string, number>())),
+  deleteBySeasonAndPlayer: mock((_seasonId: any, _playerId: any) => Promise.resolve()),
 };
 
 mock.module("../../repository/player-mmr.repository", () => ({
@@ -117,6 +118,7 @@ function resetMocks() {
   mockPlayerMmrRepo.getCheckpointState.mockImplementation(() => Promise.resolve(null));
   mockPlayerMmrRepo.preloadOpponentHistories.mockImplementation(() => Promise.resolve(new Map()));
   mockPlayerMmrRepo.getPlayerCurrentMmrs.mockImplementation(() => Promise.resolve(new Map()));
+  mockPlayerMmrRepo.deleteBySeasonAndPlayer.mockImplementation(() => Promise.resolve());
 
   _selectResult = [];
   mockDb.query.matches.findFirst.mockImplementation(() => Promise.resolve(null));
@@ -307,12 +309,12 @@ describe("MmrCalculationService", () => {
       };
     }
 
-    it("aucun match → upsert avec baseMmr, wins=0, losses=0", async () => {
+    it("aucun match → supprime l'entrée MMR, pas d'upsert", async () => {
       setupMatches([], {});
       await service.recalculatePlayerMmr(SEASON, PLAYER);
 
-      const call = mockPlayerMmrRepo.upsert.mock.calls.at(-1)!;
-      expect(call[0]).toMatchObject({ currentMmr: 1000, wins: 0, losses: 0, matchesPlayed: 0 });
+      expect(mockPlayerMmrRepo.deleteBySeasonAndPlayer.mock.calls.length).toBe(1);
+      expect(mockPlayerMmrRepo.upsert.mock.calls.length).toBe(0);
     });
 
     it("1 victoire → wins=1, losses=0, MMR > baseMmr", async () => {
