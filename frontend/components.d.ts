@@ -34,6 +34,7 @@ declare module 'vue' {
     GenerateBracketDialog: typeof import('./src/components/bracket/GenerateBracketDialog.vue')['default']
     H2HRivalries: typeof import('./src/components/player/H2HRivalries.vue')['default']
     IconField: typeof import('primevue/iconfield')['default']
+    InfoTooltip: typeof import('./src/components/InfoTooltip.vue')['default']
     InputIcon: typeof import('primevue/inputicon')['default']
     InputNumber: typeof import('primevue/inputnumber')['default']
     InputText: typeof import('primevue/inputtext')['default']

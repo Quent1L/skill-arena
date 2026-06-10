@@ -37,15 +37,20 @@
           class="flex items-center gap-2 min-w-0 text-sm font-medium text-indigo-400 hover:text-indigo-300"
         >
           <PlayerAvatar :name="p.displayName" size="xs" shape="square" class="shrink-0" />
-          <span class="truncate">{{ p.displayName }}</span>
+          <div class="min-w-0">
+            <span class="truncate block">{{ p.displayName }}</span>
+          </div>
         </RouterLink>
-        <div class="text-right">
-          <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</div>
-          <div
-            v-if="p.chemistryDelta !== undefined"
-            class="text-[10px]"
-            :class="p.chemistryDelta > 0 ? 'text-emerald-400' : p.chemistryDelta < 0 ? 'text-red-400' : 'text-gray-500'"
-          >{{ p.chemistryDelta > 0 ? '+' : '' }}{{ p.chemistryDelta }}%</div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] text-gray-500">{{ p.count }} matchs</span>
+          <div class="text-right">
+            <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</div>
+            <div
+              v-if="p.chemistryDelta !== undefined"
+              class="text-[10px]"
+              :class="p.chemistryDelta > 0 ? 'text-emerald-400' : p.chemistryDelta < 0 ? 'text-red-400' : 'text-gray-500'"
+            >{{ p.chemistryDelta > 0 ? '+' : '' }}{{ p.chemistryDelta }}%</div>
+          </div>
         </div>
       </div>
     </div>

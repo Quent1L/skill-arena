@@ -127,15 +127,10 @@
     <div v-if="opponentQuality" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
         Win rate par niveau d'adversaire
-        <button
-          type="button"
-          class="text-gray-500 hover:text-gray-300 focus:outline-none transition-colors"
-          v-tooltip.focus.top="`Basé sur l'écart de MMR : \nForts = +100 \nProches = ±100 \nFaibles = −100`"
-          @mouseenter="($event.currentTarget as HTMLElement).focus()"
-          @mouseleave="($event.currentTarget as HTMLElement).blur()"
-        >
-          <i class="fa fa-circle-question" />
-        </button>
+        <InfoTooltip
+          text="Basé sur l'écart de MMR :<br>Forts = +100<br>Proches = ±100<br>Faibles = −100"
+          html
+        />
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-gray-700/50 p-2">
@@ -210,6 +205,7 @@ import type {
   OpponentQualityStats,
   PlayerOutcomeTypeStat,
 } from '@skill-arena/shared/types/index'
+import InfoTooltip from '@/components/InfoTooltip.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'

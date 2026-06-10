@@ -296,7 +296,7 @@
             <Column header="" style="width: 3rem" class="md:hidden" header-class="md:hidden">
               <template #body="{ data }">
                 <Button
-                  icon="fa fa-circle-info"
+                  icon="fa fa-circle-question"
                   text
                   rounded
                   size="small"

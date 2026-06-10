@@ -2,11 +2,7 @@
   <div class="rounded-2xl bg-gray-800 p-4">
     <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
       Rivalités
-      <i
-        v-if="tooltip"
-        v-tooltip.top="tooltip"
-        class="ml-1 fas fa-circle-info text-[10px] text-gray-600 cursor-help shrink-0"
-      />
+      <InfoTooltip v-if="tooltip" :text="tooltip" class="ml-1 shrink-0" />
     </div>
     <div class="space-y-1.5">
       <div
@@ -43,6 +39,7 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import InfoTooltip from '@/components/InfoTooltip.vue'
 import type { PlayerH2HStat } from '@skill-arena/shared/types/index'
 import { playerLink } from '@/utils/player-link'
 
