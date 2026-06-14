@@ -165,6 +165,42 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/rules-engine',
+    name: 'admin-rules-engine',
+    component: () => import('@/views/admin/RulesEngineList.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Moteur de règles',
+      title: 'Moteur de règles',
+      requiresAuth: true,
+      parent: 'admin',
+    },
+  },
+  {
+    path: '/admin/rules-engine/new',
+    name: 'admin-rules-engine-new',
+    component: () => import('@/views/admin/RulesEngineFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Nouvelle règle',
+      title: 'Nouvelle règle',
+      requiresAuth: true,
+      parent: 'admin-rules-engine',
+    },
+  },
+  {
+    path: '/admin/rules-engine/:id/edit',
+    name: 'admin-rules-engine-edit',
+    component: () => import('@/views/admin/RulesEngineFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: 'Modifier la règle',
+      title: 'Modifier la règle',
+      requiresAuth: true,
+      parent: 'admin-rules-engine',
+    },
+  },
+  {
     path: '/admin/invitations',
     name: 'admin-invitations',
     component: () => import('@/views/admin/AdminInvitationsView.vue'),

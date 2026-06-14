@@ -297,6 +297,8 @@ export class RankedSeasonService {
         losses: 0,
         winStreak: 0,
         maxWinStreak: 0,
+        lossStreak: 0,
+        maxLossStreak: 0,
       });
     }
   }

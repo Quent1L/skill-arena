@@ -12,6 +12,8 @@ export interface UpsertPlayerMmrData {
   losses: number;
   winStreak: number;
   maxWinStreak: number;
+  lossStreak: number;
+  maxLossStreak: number;
 }
 
 export interface CreateMmrHistoryData {
@@ -92,6 +94,8 @@ export class PlayerMmrRepository {
           losses: data.losses,
           winStreak: data.winStreak,
           maxWinStreak: data.maxWinStreak,
+          lossStreak: data.lossStreak,
+          maxLossStreak: data.maxLossStreak,
         })
         .where(eq(playerMmr.id, existing.id))
         .returning();
@@ -262,7 +266,7 @@ export class PlayerMmrRepository {
     seasonId: string,
     playerId: string,
     beforePlayedAt: Date,
-  ): Promise<{ mmr: number; wins: number; losses: number; winStreak: number; maxWinStreak: number } | null> {
+  ): Promise<{ mmr: number; wins: number; losses: number; winStreak: number; maxWinStreak: number; lossStreak: number; maxLossStreak: number } | null> {
     const rows = await db
       .select({ mmrAfter: mmrHistory.mmrAfter, outcome: mmrHistory.outcome })
       .from(mmrHistory)
@@ -278,16 +282,16 @@ export class PlayerMmrRepository {
 
     if (rows.length === 0) return null;
 
-    let wins = 0, losses = 0, winStreak = 0, maxWinStreak = 0;
+    let wins = 0, losses = 0, winStreak = 0, maxWinStreak = 0, lossStreak = 0, maxLossStreak = 0;
     for (const row of rows) {
       if (row.outcome === 'win') {
-        wins++; winStreak++; maxWinStreak = Math.max(maxWinStreak, winStreak);
+        wins++; winStreak++; maxWinStreak = Math.max(maxWinStreak, winStreak); lossStreak = 0;
       } else if (row.outcome === 'loss') {
-        losses++; winStreak = 0;
+        losses++; winStreak = 0; lossStreak++; maxLossStreak = Math.max(maxLossStreak, lossStreak);
       }
     }
 
-    return { mmr: rows[rows.length - 1].mmrAfter, wins, losses, winStreak, maxWinStreak };
+    return { mmr: rows[rows.length - 1].mmrAfter, wins, losses, winStreak, maxWinStreak, lossStreak, maxLossStreak };
   }
 
   async preloadOpponentHistories(

@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { rankedSeasonService } from "../services/ranked-season.service";
 import { mmrAnimationEventService } from "../services/mmr-animation-event.service";
+import { rulesService } from "../services/rules.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
@@ -223,6 +224,27 @@ ranked.post(
   async (c) => {
     const { ids } = c.req.valid("json");
     await mmrAnimationEventService.markViewed(ids);
+    return c.json({ success: true, markedCount: ids.length });
+  },
+);
+
+// GET /ranked/seasons/:id/badge-animations/pending - Pending badge reveal animations
+ranked.get("/seasons/:id/badge-animations/pending", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  const playerId = c.get("appUserId");
+  const badges = await rulesService.getPendingBadges(playerId, seasonId);
+  return c.json({ badges });
+});
+
+// POST /ranked/seasons/:id/badge-animations/mark-viewed - Mark badge animations as viewed
+ranked.post(
+  "/seasons/:id/badge-animations/mark-viewed",
+  requireAuth,
+  zValidator("json", z.object({ ids: z.array(z.string().uuid()) })),
+  async (c) => {
+    const { ids } = c.req.valid("json");
+    const playerId = c.get("appUserId");
+    await rulesService.markBadgesViewed(ids, playerId);
     return c.json({ success: true, markedCount: ids.length });
   },
 );

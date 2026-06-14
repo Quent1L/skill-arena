@@ -45,6 +45,8 @@ interface CheckpointState {
   losses: number;
   winStreak: number;
   maxWinStreak: number;
+  lossStreak: number;
+  maxLossStreak: number;
 }
 
 interface MmrLookups {
@@ -116,9 +118,9 @@ export class MmrCalculationService {
     let state: CheckpointState;
     if (fromPlayedAt) {
       checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, fromPlayedAt);
-      state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0 };
+      state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     } else {
-      state = { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0 };
+      state = { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     }
 
     await playerMmrRepository.deleteMmrHistoryForPlayer(seasonId, playerId, fromPlayedAt);
@@ -155,6 +157,8 @@ export class MmrCalculationService {
       losses: state.losses,
       winStreak: state.winStreak,
       maxWinStreak: state.maxWinStreak,
+      lossStreak: state.lossStreak,
+      maxLossStreak: state.maxLossStreak,
     });
   }
 
@@ -256,9 +260,12 @@ export class MmrCalculationService {
       newState.wins = state.wins + 1;
       newState.winStreak = state.winStreak + 1;
       newState.maxWinStreak = Math.max(state.maxWinStreak, newState.winStreak);
+      newState.lossStreak = 0;
     } else if (playerWon === false) {
       newState.losses = state.losses + 1;
       newState.winStreak = 0;
+      newState.lossStreak = state.lossStreak + 1;
+      newState.maxLossStreak = Math.max(state.maxLossStreak, newState.lossStreak);
     }
     return newState;
   }
@@ -567,6 +574,8 @@ export class MmrCalculationService {
         losses: 0,
         winStreak: 0,
         maxWinStreak: 0,
+        lossStreak: 0,
+        maxLossStreak: 0,
       });
     }
   }

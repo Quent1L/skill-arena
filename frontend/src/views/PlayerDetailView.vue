@@ -397,6 +397,9 @@
           :tournament-id="selectedTournamentId"
         />
 
+        <!-- Badges -->
+        <PlayerBadges :player-id="playerId" />
+
         <!-- All matches -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -435,6 +438,7 @@ import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import OutcomeTypeStats from '@/components/player/OutcomeTypeStats.vue'
 import H2HRivalries from '@/components/player/H2HRivalries.vue'
+import PlayerBadges from '@/components/player/PlayerBadges.vue'
 import Drawer from 'primevue/drawer'
 import Button from 'primevue/button'
 import Select from 'primevue/select'

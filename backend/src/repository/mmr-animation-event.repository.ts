@@ -143,6 +143,10 @@ export class MmrAnimationEventRepository {
       .set({ viewedAt: new Date() })
       .where(inArray(mmrAnimationEvents.id, ids));
   }
+
+  async updateMessage(id: string, message: string) {
+    await db.update(mmrAnimationEvents).set({ message }).where(eq(mmrAnimationEvents.id, id));
+  }
 }
 
 export const mmrAnimationEventRepository = new MmrAnimationEventRepository();

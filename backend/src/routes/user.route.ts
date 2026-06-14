@@ -6,6 +6,7 @@ import { ForbiddenError, ErrorCode } from "../types/errors";
 import { zValidator } from "@hono/zod-validator";
 import { updateProfileSchema, playerStatsFiltersSchema } from "@skill-arena/shared";
 import { playerStatsService } from "../services/player-stats.service";
+import { rulesService } from "../services/rules.service";
 
 const users = createAppHono();
 
@@ -111,6 +112,13 @@ users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c)
   const filters = c.req.valid("query");
   const result = await playerStatsService.getPlayerStats(id, filters);
   return c.json(result);
+});
+
+// GET /users/:id/badges - Player badges (public)
+users.get("/:id/badges", async (c) => {
+  const id = c.req.param("id")!;
+  const badges = await rulesService.getPlayerBadges(id);
+  return c.json({ badges });
 });
 
 export default users;

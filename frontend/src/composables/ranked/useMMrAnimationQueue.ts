@@ -1,19 +1,52 @@
 import { ref, computed } from 'vue'
 import { mmrAnimationEventApi } from './mmr-animation-event.api'
-import type { MmrAnimationEventResponse, MmrAnimationWsPayload } from '@skill-arena/shared'
+import type {
+  BadgeAnimationResponse,
+  BadgeAnimationWsPayload,
+  MmrAnimationEventResponse,
+  MmrAnimationWsPayload,
+} from '@skill-arena/shared'
 
 export function useMMrAnimationQueue() {
   const queue = ref<MmrAnimationEventResponse[]>([])
+  const badgeQueue = ref<BadgeAnimationResponse[]>([])
   const seasonIdRef = ref<string | null>(null)
 
   const currentEvent = computed(() => queue.value[0] ?? null)
   const showRecap = computed(() => queue.value.length >= 2)
+  // Badges are revealed only once all MMR animations have been acknowledged.
+  const currentBadge = computed(() => (queue.value.length === 0 ? badgeQueue.value[0] ?? null : null))
 
   async function loadPending(seasonId: string) {
     seasonIdRef.value = seasonId
     try {
       const { events } = await mmrAnimationEventApi.fetchPendingEvents(seasonId)
       queue.value = deduplicateEvents(events)
+    } catch {
+      // Silent fail — animation is non-critical
+    }
+    try {
+      const { badges } = await mmrAnimationEventApi.fetchPendingBadges(seasonId)
+      badgeQueue.value = dedupeBadges(badges)
+    } catch {
+      // Silent fail
+    }
+  }
+
+  function enqueueBadge(payload: BadgeAnimationWsPayload) {
+    const { tournamentId: _t, ...badge } = payload
+    if (badgeQueue.value.some((b) => b.id === badge.id)) return
+    badgeQueue.value.push(badge)
+  }
+
+  async function acknowledgeCurrentBadge() {
+    const badge = badgeQueue.value[0]
+    if (!badge || !seasonIdRef.value) return
+    // Optimistic update — same pattern as acknowledgeCurrentEvent and dismissAll.
+    // Recovery: loadPending() on next mount re-fetches unviewed badges from the server.
+    badgeQueue.value.shift()
+    try {
+      await mmrAnimationEventApi.markBadgesViewed(seasonIdRef.value, [badge.id])
     } catch {
       // Silent fail — animation is non-critical
     }
@@ -56,7 +89,25 @@ export function useMMrAnimationQueue() {
     }
   }
 
-  return { queue, currentEvent, showRecap, loadPending, enqueue, acknowledgeCurrentEvent, dismissAll }
+  return {
+    queue,
+    badgeQueue,
+    currentEvent,
+    showRecap,
+    currentBadge,
+    loadPending,
+    enqueue,
+    enqueueBadge,
+    acknowledgeCurrentEvent,
+    acknowledgeCurrentBadge,
+    dismissAll,
+  }
+}
+
+function dedupeBadges(badges: BadgeAnimationResponse[]): BadgeAnimationResponse[] {
+  const byId = new Map<string, BadgeAnimationResponse>()
+  for (const b of badges) byId.set(b.id, b)
+  return [...byId.values()].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 }
 
 function deduplicateEvents(events: MmrAnimationEventResponse[]): MmrAnimationEventResponse[] {

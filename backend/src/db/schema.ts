@@ -176,6 +176,10 @@ export const teamInteractionModeEnum = pgEnum("team_interaction_mode", ["INDIVID
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
+export const ruleTypeEnum = pgEnum("rule_type", ["message", "badge"]);
+
+export const ruleScopeEnum = pgEnum("rule_scope", ["global", "discipline"]);
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "MATCH_INVITE",
   "MATCH_REMINDER",
@@ -667,6 +671,8 @@ export const playerMmr = pgTable(
     losses: integer("losses").notNull().default(0),
     winStreak: integer("win_streak").notNull().default(0),
     maxWinStreak: integer("max_win_streak").notNull().default(0),
+    lossStreak: integer("loss_streak").notNull().default(0),
+    maxLossStreak: integer("max_loss_streak").notNull().default(0),
   },
   (table) => [unique().on(table.seasonId, table.playerId)],
 );
@@ -743,6 +749,8 @@ export const mmrAnimationEvents = pgTable(
     tierAfterName: text("tier_after_name"),
     rankChanged: boolean("rank_changed").notNull().default(false),
     reason: text("reason").notNull().default("match_finalized"),
+    // Rules-engine generated message (overrides default encouragement when set)
+    message: text("message"),
     viewedAt: timestamp("viewed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -761,6 +769,54 @@ export const disciplines = pgTable("disciplines", {
   scoreInstructions: text("score_instructions"),
   teamInteractionMode: teamInteractionModeEnum("team_interaction_mode"),
 });
+
+// ***************************************************************
+// [Start] Rules engine tables (contextual messages + badges)
+// ***************************************************************
+
+export const rules = pgTable("rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  triggerEvent: text("trigger_event").notNull(),
+  type: ruleTypeEnum("type").notNull(),
+  scope: ruleScopeEnum("scope").notNull(),
+  disciplineId: uuid("discipline_id").references(() => disciplines.id, { onDelete: "set null" }),
+  priority: integer("priority").notNull().default(0),
+  name: text("name").notNull(),
+  description: text("description"),
+  conditions: jsonb("conditions").notNull(),
+  action: jsonb("action").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by")
+    .notNull()
+    .references(() => appUsers.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
+export const playerBadges = pgTable(
+  "player_badges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => rules.id, { onDelete: "cascade" }),
+    awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    // null = not yet shown in the badge reveal animation
+    viewedAt: timestamp("viewed_at", { withTimezone: true }),
+  },
+  (table) => [unique().on(table.playerId, table.ruleId)],
+);
+
+// ***************************************************************
+// [End] Rules engine tables
+// ***************************************************************
 
 export const outcomeTypes = pgTable("outcome_types", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -866,6 +922,35 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   organizationMemberships: many(organizationMembers),
   createdOrganizations: many(organizations),
   mmrAnimationEvents: many(mmrAnimationEvents),
+  createdRules: many(rules),
+  badges: many(playerBadges),
+}));
+
+export const rulesRelations = relations(rules, ({ one, many }) => ({
+  creator: one(appUsers, {
+    fields: [rules.createdBy],
+    references: [appUsers.id],
+  }),
+  discipline: one(disciplines, {
+    fields: [rules.disciplineId],
+    references: [disciplines.id],
+  }),
+  badges: many(playerBadges),
+}));
+
+export const playerBadgesRelations = relations(playerBadges, ({ one }) => ({
+  player: one(appUsers, {
+    fields: [playerBadges.playerId],
+    references: [appUsers.id],
+  }),
+  rule: one(rules, {
+    fields: [playerBadges.ruleId],
+    references: [rules.id],
+  }),
+  match: one(matches, {
+    fields: [playerBadges.matchId],
+    references: [matches.id],
+  }),
 }));
 
 export const gameRulesRelations = relations(gameRules, ({ one, many }) => ({

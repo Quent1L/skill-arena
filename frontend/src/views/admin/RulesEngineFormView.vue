@@ -1,0 +1,414 @@
+<template>
+  <div class="rules-engine-form p-4">
+    <div class="flex items-center gap-3 mb-4">
+      <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/rules-engine')" />
+      <h1 class="text-2xl font-bold">{{ isEdit ? 'Modifier la règle' : 'Nouvelle règle' }}</h1>
+    </div>
+
+    <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-4">
+      <!-- Panneau gauche: métadonnées -->
+      <Card>
+        <template #title>Métadonnées</template>
+        <template #content>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block mb-1 text-sm font-medium">Nom *</label>
+              <InputText v-model="form.name" class="w-full" />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Description</label>
+              <Textarea v-model="form.description" class="w-full" rows="2" auto-resize />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Type</label>
+              <SelectButton
+                v-model="form.type"
+                :options="typeOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Événement déclencheur</label>
+              <Select
+                v-model="form.triggerEvent"
+                :options="triggerOptions"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+                @change="loadCatalog(form.triggerEvent)"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Portée</label>
+              <SelectButton
+                v-model="form.scope"
+                :options="scopeOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+              />
+            </div>
+            <div v-if="form.scope === 'discipline'">
+              <label class="block mb-1 text-sm font-medium">Discipline</label>
+              <Select
+                v-model="form.disciplineId"
+                :options="disciplineOptions"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+                placeholder="Choisir une discipline"
+              />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Priorité</label>
+              <InputNumber v-model="form.priority" class="w-full" show-buttons />
+            </div>
+            <div class="flex items-center gap-2">
+              <Checkbox v-model="form.isActive" :binary="true" input-id="isActive" />
+              <label for="isActive" class="text-sm">Règle active</label>
+            </div>
+          </div>
+        </template>
+      </Card>
+
+      <!-- Panneau central: conditions -->
+      <Card>
+        <template #title>Conditions</template>
+        <template #content>
+          <ConditionBuilder v-model="form.conditions" :facts="catalog" :players="players" />
+        </template>
+      </Card>
+
+      <!-- Panneau droit: action -->
+      <Card>
+        <template #title>{{ form.type === 'badge' ? 'Badge' : 'Message' }}</template>
+        <template #content>
+          <!-- MESSAGE -->
+          <div v-if="form.type === 'message'" class="flex flex-col gap-3">
+            <div v-for="(variant, idx) in messageVariants" :key="idx" class="flex gap-2 items-start">
+              <Textarea
+                :model-value="variant"
+                rows="2"
+                auto-resize
+                class="flex-1"
+                @focus="activeVariant = idx"
+                @update:model-value="messageVariants[idx] = $event"
+              />
+              <Button
+                v-if="messageVariants.length > 1"
+                icon="fa fa-trash"
+                text
+                rounded
+                severity="danger"
+                size="small"
+                @click="messageVariants.splice(idx, 1)"
+              />
+            </div>
+            <Button label="Ajouter une variante" icon="fa fa-plus" text size="small" @click="messageVariants.push('')" />
+
+            <div>
+              <p class="text-xs font-semibold text-surface-500 mb-1">Variables (cliquer pour insérer)</p>
+              <div class="flex flex-wrap gap-1">
+                <Tag
+                  v-for="fact in catalog"
+                  :key="fact.key"
+                  :value="`{{${fact.key}}}`"
+                  class="cursor-pointer"
+                  severity="secondary"
+                  @click="insertVariable(fact.key)"
+                />
+              </div>
+            </div>
+
+            <div class="bg-surface-100 dark:bg-surface-800 rounded p-3">
+              <p class="text-xs font-semibold text-surface-500 mb-1">Prévisualisation</p>
+              <p class="text-sm">{{ preview || '—' }}</p>
+            </div>
+          </div>
+
+          <!-- BADGE -->
+          <div v-else class="flex flex-col gap-3">
+            <div>
+              <label class="block mb-1 text-sm font-medium">Icône</label>
+              <FontAwesomeIconPicker v-model="badge.icon" />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Label</label>
+              <InputText v-model="badge.label" class="w-full" placeholder="Inarrêtable" />
+            </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">Description</label>
+              <Textarea v-model="badge.description" rows="2" auto-resize class="w-full" placeholder="5 victoires consécutives" />
+            </div>
+          </div>
+        </template>
+      </Card>
+    </div>
+
+    <div class="flex justify-end gap-2 mt-4">
+      <Button label="Tester" icon="fa fa-flask" severity="secondary" outlined @click="openTest" />
+      <Button label="Annuler" text @click="router.push('/admin/rules-engine')" />
+      <Button label="Sauvegarder" icon="fa fa-save" :loading="loading" @click="handleSave" />
+    </div>
+
+    <!-- Dialog de test -->
+    <Dialog v-model:visible="testDialogVisible" header="Tester la règle" :modal="true" :style="{ width: '600px' }">
+      <div class="grid grid-cols-2 gap-3">
+        <div v-for="fact in catalog" :key="fact.key">
+          <label class="block text-xs font-medium mb-1">{{ fact.label }}</label>
+          <Select
+            v-if="fact.ref === 'player'"
+            v-model="testContext[fact.key]"
+            :options="players"
+            option-label="displayName"
+            option-value="id"
+            placeholder="Joueur"
+            filter
+            class="w-full"
+          />
+          <DatePicker
+            v-else-if="fact.ref === 'time'"
+            :model-value="minutesToDate(testContext[fact.key] as number)"
+            time-only
+            hour-format="24"
+            class="w-full"
+            @update:model-value="testContext[fact.key] = dateToMinutes($event as Date | null)"
+          />
+          <InputNumber v-else-if="fact.type === 'number'" v-model="testContext[fact.key] as number" class="w-full" />
+          <Select
+            v-else-if="fact.type === 'boolean'"
+            v-model="testContext[fact.key]"
+            :options="[{ label: 'Vrai', value: true }, { label: 'Faux', value: false }]"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+          <InputText v-else v-model="testContext[fact.key] as string" class="w-full" />
+        </div>
+      </div>
+      <div v-if="testResult" class="mt-4 p-3 rounded" :class="testResult.matched ? 'bg-green-100 dark:bg-green-900' : 'bg-surface-100 dark:bg-surface-800'">
+        <p class="font-semibold">{{ testResult.matched ? '✓ La règle matche' : '✗ La règle ne matche pas' }}</p>
+        <p v-if="testResult.output?.type === 'message'" class="text-sm mt-1">{{ testResult.output.message }}</p>
+        <p v-else-if="testResult.output?.type === 'badge'" class="text-sm mt-1">
+          <i :class="testResult.output.badge.icon"></i> {{ testResult.output.badge.label }} — {{ testResult.output.badge.description }}
+        </p>
+      </div>
+      <template #footer>
+        <Button label="Fermer" text @click="testDialogVisible = false" />
+        <Button label="Lancer le test" icon="fa fa-play" @click="runTest" />
+      </template>
+    </Dialog>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useRulesService } from '@/composables/rules/rules.service'
+import { useFormReferences } from '@/composables/useFormReferences'
+import { useAppToast } from '@/composables/useAppToast'
+import ConditionBuilder from '@/components/rules/ConditionBuilder.vue'
+import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
+import { emptyGroup, toConditions, fromConditions, hasValidLeaf, type PlayerOption } from '@/components/rules/condition-tree'
+import { userApi } from '@/composables/user/user.api'
+import type {
+  BadgeAction,
+  CreateRuleData,
+  MessageAction,
+  RuleAction,
+  RuleConditions,
+  TestRuleResult,
+} from '@skill-arena/shared/types/index'
+
+const route = useRoute()
+const router = useRouter()
+const toast = useAppToast()
+const { catalog, currentRule, loading, error, loadCatalog, loadRuleById, createRule, updateRule, testRule } =
+  useRulesService()
+const { disciplineOptions, loadAll: loadReferences } = useFormReferences()
+
+function minutesToDate(min: number | null | undefined): Date | null {
+  if (typeof min !== 'number') return null
+  const d = new Date()
+  d.setHours(Math.floor(min / 60), min % 60, 0, 0)
+  return d
+}
+function dateToMinutes(d: Date | null): number | '' {
+  return d ? d.getHours() * 60 + d.getMinutes() : ''
+}
+function formatMinutes(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+const players = ref<PlayerOption[]>([])
+async function loadPlayers() {
+  try {
+    const users = await userApi.list()
+    players.value = users.map((u) => ({ id: u.id, displayName: u.displayName }))
+  } catch {
+    players.value = []
+  }
+}
+
+const ruleId = computed(() => route.params.id as string | undefined)
+const isEdit = computed(() => !!ruleId.value)
+
+const typeOptions = [
+  { label: 'Message', value: 'message' },
+  { label: 'Badge', value: 'badge' },
+]
+const triggerOptions = [{ label: 'Saisie de match', value: 'match_submitted' }]
+const scopeOptions = [
+  { label: 'Global', value: 'global' },
+  { label: 'Discipline', value: 'discipline' },
+]
+
+const form = reactive<{
+  name: string
+  description: string
+  type: 'message' | 'badge'
+  triggerEvent: string
+  scope: 'global' | 'discipline'
+  disciplineId: string | null
+  priority: number
+  isActive: boolean
+  conditions: RuleConditions
+}>({
+  name: '',
+  description: '',
+  type: 'message',
+  triggerEvent: 'match_submitted',
+  scope: 'global',
+  disciplineId: null,
+  priority: 0,
+  isActive: true,
+  conditions: toConditions(emptyGroup('all')),
+})
+
+const messageVariants = ref<string[]>([''])
+const activeVariant = ref(0)
+const badge = reactive<{ icon: string; label: string; description: string }>({ icon: '', label: '', description: '' })
+
+const preview = computed(() => {
+  const variant = messageVariants.value[0]
+  if (!variant) return ''
+  return variant.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) => {
+    const fact = catalog.value.find((f) => f.key === key)
+    if (!fact) return ''
+    // Player-ref facts render a display name; preview with a sample player.
+    if (fact.ref === 'player') return players.value[0]?.displayName ?? 'Joueur'
+    if (fact.ref === 'time') return formatMinutes(Number(fact.sample))
+    return String(fact.sample)
+  })
+})
+
+function insertVariable(key: string) {
+  const idx = activeVariant.value
+  messageVariants.value[idx] = (messageVariants.value[idx] ?? '') + `{{${key}}}`
+}
+
+function buildAction(): RuleAction {
+  if (form.type === 'message') {
+    return { type: 'message', variants: messageVariants.value.filter((v) => v.trim()) } as MessageAction
+  }
+  return { type: 'badge', icon: badge.icon, label: badge.label, description: badge.description } as BadgeAction
+}
+
+function validate(): string | null {
+  if (!form.name.trim()) return 'Le nom est requis'
+  if (form.scope === 'discipline' && !form.disciplineId) return 'Une discipline est requise pour la portée discipline'
+  if (!hasValidLeaf(fromConditions(form.conditions))) return 'Au moins une condition complète est requise'
+  if (form.type === 'message' && messageVariants.value.filter((v) => v.trim()).length === 0)
+    return 'Au moins une variante de message est requise'
+  if (form.type === 'badge' && (!badge.icon || !badge.label || !badge.description))
+    return 'Tous les champs du badge sont requis'
+  return null
+}
+
+async function handleSave() {
+  const validationError = validate()
+  if (validationError) {
+    toast.add({ severity: 'error', summary: 'Validation', detail: validationError, life: 4000 })
+    return
+  }
+  const payload: CreateRuleData = {
+    name: form.name,
+    description: form.description || null,
+    type: form.type,
+    triggerEvent: form.triggerEvent as 'match_submitted',
+    scope: form.scope,
+    disciplineId: form.scope === 'discipline' ? form.disciplineId : null,
+    priority: form.priority,
+    isActive: form.isActive,
+    conditions: form.conditions,
+    action: buildAction(),
+  }
+  const result = isEdit.value ? await updateRule(ruleId.value!, payload) : await createRule(payload)
+  if (result) {
+    toast.add({
+      severity: 'success',
+      summary: 'Succès',
+      detail: isEdit.value ? 'Règle mise à jour' : 'Règle créée',
+      life: 3000,
+    })
+    router.push('/admin/rules-engine')
+  }
+}
+
+// --- Test simulator ---
+const testDialogVisible = ref(false)
+const testContext = reactive<Record<string, unknown>>({})
+const testResult = ref<TestRuleResult | null>(null)
+
+function openTest() {
+  testResult.value = null
+  for (const fact of catalog.value) testContext[fact.key] = fact.sample
+  testDialogVisible.value = true
+}
+
+async function runTest() {
+  testResult.value = await testRule(form.triggerEvent, form.conditions, buildAction(), { ...testContext })
+}
+
+onMounted(async () => {
+  await Promise.all([loadCatalog(form.triggerEvent), loadReferences(), loadPlayers()])
+  if (isEdit.value) {
+    await loadRuleById(ruleId.value!)
+    hydrate()
+  }
+})
+
+function hydrate() {
+  const rule = currentRule.value
+  if (!rule) return
+  form.name = rule.name
+  form.description = rule.description ?? ''
+  form.type = rule.type
+  form.triggerEvent = rule.triggerEvent
+  form.scope = rule.scope
+  form.disciplineId = rule.disciplineId
+  form.priority = rule.priority
+  form.isActive = rule.isActive
+  form.conditions = rule.conditions
+  if (rule.action.type === 'message') {
+    messageVariants.value = rule.action.variants.length ? [...rule.action.variants] : ['']
+  } else {
+    badge.icon = rule.action.icon
+    badge.label = rule.action.label
+    badge.description = rule.action.description
+  }
+}
+</script>
+
+<style scoped>
+.rules-engine-form {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+</style>

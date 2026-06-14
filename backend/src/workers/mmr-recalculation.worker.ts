@@ -5,6 +5,7 @@ import { rankedSeasonRepository } from '../repository/ranked-season.repository';
 import { playerMmrRepository } from '../repository/player-mmr.repository';
 import { rankedSeasonService } from '../services/ranked-season.service';
 import { webSocketService } from '../services/websocket.service';
+import { rulesEvaluationService } from '../services/rules-evaluation.service';
 import { logger } from '../utils/logger';
 
 interface FinalizeMmrPayload {
@@ -24,8 +25,17 @@ const finalizeMatchMmr: Task = async (rawPayload) => {
 
   await mmrCalculationService.processMatchFinalization(matchId);
 
+  // Evaluate rules first: produces the message injected into the MMR animation
+  // and the badge revealed afterwards.
+  const rulesOutputs = await rulesEvaluationService
+    .evaluateMatchSubmitted(matchId)
+    .catch((err) => {
+      logger.error({ err }, '[Worker] rules evaluation failed');
+      return new Map();
+    });
+
   await mmrAnimationEventService
-    .createOfficialEventsAndBroadcast(matchId, tournamentId)
+    .createOfficialEventsAndBroadcast(matchId, tournamentId, rulesOutputs)
     .catch((err) => logger.error({ err }, '[Worker] official animation event failed'));
 
   await refreshRankedCaches(tournamentId);

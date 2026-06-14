@@ -146,6 +146,29 @@
           </div>
         </template>
       </Card>
+
+      <!-- Card Moteur de règles -->
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRulesEngine">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-wand-magic-sparkles text-5xl text-purple-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              Moteur de règles
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              Messages contextuels et badges configurables (saisie de match)
+            </p>
+            <Button
+              label="Accéder"
+              icon="fa fa-arrow-right"
+              class="bg-purple-600 hover:bg-purple-700"
+              @click.stop="navigateToRulesEngine"
+            />
+          </div>
+        </template>
+      </Card>
     </div>
   </div>
 </template>
@@ -177,6 +200,10 @@ function navigateToRules() {
 
 function navigateToRanked() {
   router.push('/admin/ranked')
+}
+
+function navigateToRulesEngine() {
+  router.push('/admin/rules-engine')
 }
 </script>
 

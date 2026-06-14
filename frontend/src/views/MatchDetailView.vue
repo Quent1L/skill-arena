@@ -440,6 +440,11 @@
         :events="animationQueue.queue.value"
         @close="animationQueue.dismissAll()"
       />
+      <BadgeRevealAnimation
+        v-else-if="match.tournament?.mode === 'ranked' && animationQueue.currentBadge.value"
+        :badge="animationQueue.currentBadge.value"
+        @close="animationQueue.acknowledgeCurrentBadge()"
+      />
 
       <!-- Admin Actions -->
       <div
@@ -488,9 +493,11 @@ import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
+import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
+import type { BadgeAnimationWsPayload } from '@skill-arena/shared/types/index'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -521,8 +528,10 @@ const postDisputeReason = ref('')
 const postDisputeProof = ref('')
 const postDisputing = ref(false)
 
+// animationQueue is a plain object (not reactive), so computed refs need .value in template
 const animationQueue = useMMrAnimationQueue()
 let offWs: (() => void) | null = null
+let offBadgeWs: (() => void) | null = null
 
 function initAnimationIfRanked() {
   if (!match.value || match.value.tournament?.mode !== 'ranked' || !appUser.value) return
@@ -530,10 +539,14 @@ function initAnimationIfRanked() {
   offWs = onWsEvent('mmr_animation', (data: MmrAnimationWsPayload) => {
     animationQueue.enqueue(data)
   })
+  offBadgeWs = onWsEvent('badge_animation', (data: BadgeAnimationWsPayload) => {
+    animationQueue.enqueueBadge(data)
+  })
 }
 
 onUnmounted(() => {
   if (offWs) offWs()
+  if (offBadgeWs) offBadgeWs()
 })
 
 const currentUser = computed(() => appUser.value)

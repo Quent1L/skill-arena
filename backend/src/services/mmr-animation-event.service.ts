@@ -7,7 +7,7 @@ import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { webSocketService } from "./websocket.service";
-import type { MmrAnimationEventReason } from "@skill-arena/shared";
+import type { MmrAnimationEventReason, PlayerRulesOutput } from "@skill-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
 type MmrRecord = { currentMmr: number; matchesPlayed: number };
@@ -178,7 +178,11 @@ export class MmrAnimationEventService {
     });
   }
 
-  async createOfficialEventsAndBroadcast(matchId: string, tournamentId: string): Promise<void> {
+  async createOfficialEventsAndBroadcast(
+    matchId: string,
+    tournamentId: string,
+    rulesOutputs: Map<string, PlayerRulesOutput> = new Map(),
+  ): Promise<void> {
     const config = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
     if (!config) return;
 
@@ -187,7 +191,33 @@ export class MmrAnimationEventService {
 
     for (const playerId of playerIds) {
       const events = await this.collectOfficialEvents(playerId, matchId, tournamentId, tiers);
+      const ruleOutput = rulesOutputs.get(playerId);
+
+      // Rules-generated message replaces the default encouragement, but only
+      // when there is a single animation (not a recap/cascade).
+      if (events.length === 1 && ruleOutput?.message) {
+        await mmrAnimationEventRepository.updateMessage(events[0].id, ruleOutput.message);
+        events[0] = { ...events[0], message: ruleOutput.message };
+      }
+
       this.broadcastEvents(playerId, tournamentId, events);
+
+      // Badge reveal animation, chained after the MMR animation.
+      if (ruleOutput?.badge) {
+        webSocketService.send(playerId, {
+          event: "badge_animation",
+          data: {
+            id: ruleOutput.badge.badgeId,
+            matchId,
+            seasonId: tournamentId,
+            tournamentId,
+            icon: ruleOutput.badge.icon,
+            label: ruleOutput.badge.label,
+            description: ruleOutput.badge.description,
+            createdAt: new Date().toISOString(),
+          },
+        });
+      }
     }
   }
 
@@ -295,7 +325,8 @@ export class MmrAnimationEventService {
       tierBeforeName: event.tierBeforeName,
       tierAfterName: event.tierAfterName,
       rankChanged: event.rankChanged,
-      encouragementMessage: translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, "fr"),
+      encouragementMessage:
+        event.message ?? translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, "fr"),
       createdAt: event.createdAt,
     };
   }
@@ -304,7 +335,8 @@ export class MmrAnimationEventService {
     const events = await mmrAnimationEventRepository.getPendingForPlayer(playerId, seasonId);
     return events.map((event) => ({
       ...event,
-      encouragementMessage: translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, lang),
+      encouragementMessage:
+        event.message ?? translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, lang),
     }));
   }
 

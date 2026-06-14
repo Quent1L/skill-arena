@@ -206,6 +206,11 @@
       :tiers="store.rankedTiers"
       @close="animationQueue.acknowledgeCurrentEvent()"
     />
+    <BadgeRevealAnimation
+      v-else-if="store.tournament?.mode === 'ranked' && animationQueue.currentBadge.value"
+      :badge="animationQueue.currentBadge.value"
+      @close="animationQueue.acknowledgeCurrentBadge()"
+    />
   </div>
 </template>
 
@@ -217,12 +222,13 @@ import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
-import type { TournamentMode, MmrAnimationWsPayload } from '@skill-arena/shared'
+import type { TournamentMode, MmrAnimationWsPayload, BadgeAnimationWsPayload } from '@skill-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 import { onWsEvent, onWsOpen, sendWsMessage, useNotificationSocket } from '@/composables/notification/notification.socket'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
+import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -234,6 +240,7 @@ const store = useTournamentDetailStore()
 const tabBarRef = ref<HTMLElement | null>(null)
 const tabEls = ref<Record<string, HTMLElement | null>>({})
 const indicatorStyle = ref({ left: '0px', width: '0px' })
+// animationQueue is a plain object (not reactive), so computed refs need .value in template
 const animationQueue = useMMrAnimationQueue()
 const notificationSocket = useNotificationSocket()
 
@@ -363,6 +370,11 @@ onMounted(async () => {
         const payload = data as MmrAnimationWsPayload
         if (payload.tournamentId !== tournamentId.value) return
         animationQueue.enqueue(payload)
+      }),
+      onWsEvent('badge_animation', (data) => {
+        const payload = data as BadgeAnimationWsPayload
+        if (payload.tournamentId !== tournamentId.value) return
+        animationQueue.enqueueBadge(payload)
       }),
       onWsEvent('leaderboard_updated', () => {
         if (store.playerMmr !== null) store.reloadPlayerProfile()
