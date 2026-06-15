@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.13.0](https://github.com/Quent1L/skill-arena/compare/1.12.2...1.13.0) (2026-06-15)
+
+### ✨ Nouvelles fonctionnalités
+
+* **ranked:** enrich outcome distribution with W/D/L breakdown ([657281d](https://github.com/Quent1L/skill-arena/commit/657281d23dd24197feb92d7d9b6a82d6443a2996))
+* **ui:** unify info tooltip pattern with mobile support ([16499f6](https://github.com/Quent1L/skill-arena/commit/16499f6105c27f5450deb0e96dbf7fd0a254fbd0))
+
+### 🐛 Correctifs
+
+* **ranked:** remove ghost playerMmr rows after match cancellation ([26b8ce7](https://github.com/Quent1L/skill-arena/commit/26b8ce7b3ce5cb0eb23b971ef4f6f1e64c95507e))
+
 ## [1.12.2](https://github.com/Quent1L/skill-arena/compare/1.12.1...1.12.2) (2026-06-08)
 
 ### 🐛 Correctifs
