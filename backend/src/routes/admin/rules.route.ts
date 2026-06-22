@@ -61,6 +61,21 @@ adminRules.post("/", zValidator("json", createRuleSchema), async (c) => {
   return c.json(rule, 201);
 });
 
+adminRules.get("/reconcile-badges/status", async (c) => {
+  const state = await rulesService.getReconciliationState();
+  return c.json(state);
+});
+
+adminRules.post("/reconcile-badges", async (c) => {
+  await rulesService.triggerReconciliation();
+  return c.json({ queued: true }, 202);
+});
+
+adminRules.get("/:id/badge-count", async (c) => {
+  const count = await rulesService.getBadgeCount(c.req.param("id")!);
+  return c.json({ count });
+});
+
 adminRules.get("/:id", async (c) => {
   const rule = await rulesService.getById(c.req.param("id")!);
   return c.json(rule);

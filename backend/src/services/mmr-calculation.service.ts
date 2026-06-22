@@ -218,6 +218,8 @@ export class MmrCalculationService {
       null,
     ) * outcomeType.mmrMultiplier;
 
+    const newState = this.advanceState(state, playerWon, mmrAfter);
+
     await playerMmrRepository.createMmrHistory({
       seasonId,
       playerId,
@@ -229,9 +231,12 @@ export class MmrCalculationService {
       opponentAvgMmr,
       isPlacement,
       outcome: outcomeFromWin(playerWon),
+      winStreakAfter: newState.winStreak,
+      lossStreakAfter: newState.lossStreak,
+      matchesPlayedAfter: newState.wins + newState.losses,
     });
 
-    return this.advanceState(state, playerWon, mmrAfter);
+    return newState;
   }
 
   private averageOpponentMmr(

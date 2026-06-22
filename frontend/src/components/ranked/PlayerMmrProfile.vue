@@ -105,6 +105,9 @@
     <!-- Recent form -->
     <RecentFormSection v-if="recentForm?.length" :results="recentForm" />
 
+    <!-- Earned badges -->
+    <PlayerBadges :player-id="mmr.playerId" />
+
     <!-- MMR Progression Chart -->
     <div v-if="isMounted && chartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -207,6 +210,7 @@ import type {
 } from '@skill-arena/shared/types/index'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
+import PlayerBadges from '@/components/player/PlayerBadges.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'

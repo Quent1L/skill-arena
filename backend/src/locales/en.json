@@ -1,5 +1,9 @@
 {
   "notifications": {
+    "BADGE_AWARDED_TITLE": "New badge unlocked!",
+    "BADGE_AWARDED_MESSAGE": "🏅 You earned the \"{{badgeLabel}}\" badge.",
+    "BADGE_REVOKED_TITLE": "Badge removed",
+    "BADGE_REVOKED_MESSAGE": "The \"{{badgeLabel}}\" badge was removed following a results update.",
     "MATCH_CREATED_TITLE": "{{creatorName}} added you to a {{matchFormat}} match",
     "MATCH_CREATED_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}} • Round {{round}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}",
     "MATCH_SCHEDULED_TITLE": "{{creatorName}} scheduled a {{matchFormat}} match for you",

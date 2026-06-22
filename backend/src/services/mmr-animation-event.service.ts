@@ -202,18 +202,18 @@ export class MmrAnimationEventService {
 
       this.broadcastEvents(playerId, tournamentId, events);
 
-      // Badge reveal animation, chained after the MMR animation.
-      if (ruleOutput?.badge) {
+      // Badge reveal animations, chained after the MMR animation.
+      for (const badge of ruleOutput?.badges ?? []) {
         webSocketService.send(playerId, {
           event: "badge_animation",
           data: {
-            id: ruleOutput.badge.badgeId,
+            id: badge.badgeId,
             matchId,
             seasonId: tournamentId,
             tournamentId,
-            icon: ruleOutput.badge.icon,
-            label: ruleOutput.badge.label,
-            description: ruleOutput.badge.description,
+            icon: badge.icon,
+            label: badge.label,
+            description: badge.description,
             createdAt: new Date().toISOString(),
           },
         });

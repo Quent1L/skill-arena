@@ -6,6 +6,7 @@ import { playerMmrRepository } from '../repository/player-mmr.repository';
 import { rankedSeasonService } from '../services/ranked-season.service';
 import { webSocketService } from '../services/websocket.service';
 import { rulesEvaluationService } from '../services/rules-evaluation.service';
+import { badgeReconciliationService } from '../services/badge-reconciliation.service';
 import { logger } from '../utils/logger';
 
 interface FinalizeMmrPayload {
@@ -65,6 +66,12 @@ const cancelMatchMmr: Task = async (rawPayload) => {
     .createCancellationEventsAndBroadcast(matchId, tournamentId, mmrChanges)
     .catch((err) => logger.error({ err }, '[Worker] cancellation animation event failed'));
 
+  // MMR history (incl. streak snapshots) is now rebuilt for every affected
+  // player — reconcile their badges (revoke now-invalid, award newly-valid).
+  await badgeReconciliationService
+    .reconcilePlayers(tournamentId, [...mmrChanges.keys()])
+    .catch((err) => logger.error({ err }, '[Worker] badge reconciliation failed'));
+
   await refreshRankedCaches(tournamentId);
 
   webSocketService.broadcastToTournament(tournamentId, {
@@ -73,6 +80,13 @@ const cancelMatchMmr: Task = async (rawPayload) => {
   });
 
   logger.info({ matchId, tournamentId }, '[Worker] cancel_match_mmr done');
+};
+
+const reconcilePendingBadges: Task = async (rawPayload) => {
+  const { force } = (rawPayload ?? {}) as { force?: boolean };
+  logger.info({ force }, '[Worker] reconcile_pending_badges start');
+  const result = await badgeReconciliationService.runPendingReconciliation(!!force);
+  logger.info({ force, ran: result.ran }, '[Worker] reconcile_pending_badges done');
 };
 
 async function refreshRankedCaches(tournamentId: string): Promise<void> {
@@ -110,4 +124,5 @@ export const taskList = {
   finalize_match_mmr: finalizeMatchMmr,
   cancel_match_mmr: cancelMatchMmr,
   recalculate_season_mmr: recalculateSeasonMmr,
+  reconcile_pending_badges: reconcilePendingBadges,
 };

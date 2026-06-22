@@ -46,6 +46,21 @@ export async function enqueueMmrSeasonRecalculation(tournamentId: string): Promi
   }
 }
 
+export async function enqueueBadgeReconciliation(force = false): Promise<void> {
+  try {
+    const utils = await getUtils();
+    // Single shared job key: collapses the nightly tick and any manual triggers
+    // into one queued run (no overlap with concurrency:1).
+    await utils.addJob(
+      'reconcile_pending_badges',
+      { force },
+      { jobKey: 'reconcile_pending_badges' },
+    );
+  } catch (err) {
+    logger.error({ err, force }, '[MMRQueue] Failed to enqueue badge reconciliation');
+  }
+}
+
 export async function enqueueMmrCascade(
   matchId: string,
   tournamentId: string,

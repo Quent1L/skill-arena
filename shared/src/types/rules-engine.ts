@@ -198,7 +198,8 @@ export interface RulesOutputBadge {
 /** Résultat de l'évaluation des règles pour un joueur (interne backend). */
 export interface PlayerRulesOutput {
   message?: string;
-  badge?: RulesOutputBadge & { badgeId: string };
+  /** Tous les badges nouvellement attribués lors de cette évaluation. */
+  badges?: (RulesOutputBadge & { badgeId: string })[];
 }
 
 // ============================================
@@ -296,6 +297,15 @@ export interface PlayerBadge {
 
 export interface ClientPlayerBadge extends Omit<PlayerBadge, "awardedAt"> {
   awardedAt: Date;
+}
+
+/** A badge a player can earn in a tournament (global or discipline-scoped rule). */
+export interface AvailableBadge {
+  ruleId: string;
+  icon: string;
+  label: string;
+  description: string;
+  scope: RuleScope;
 }
 
 // ============================================

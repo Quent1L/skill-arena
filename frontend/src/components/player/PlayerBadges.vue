@@ -19,8 +19,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { rulesApi } from '@/composables/rules/rules.api'
+import { onWsEvent } from '@/composables/notification/notification.socket'
 import type { ClientPlayerBadge } from '@skill-arena/shared/types/index'
 
 const props = defineProps<{ playerId: string }>()
@@ -41,4 +42,13 @@ function formatDate(date: Date) {
 }
 
 watch(() => props.playerId, load, { immediate: true })
+
+// Reflect retroactive awards / revocations (reconciliation) live.
+const reload = () => load(props.playerId)
+const offAwarded = onWsEvent('badge_awarded', reload)
+const offRevoked = onWsEvent('badge_revoked', reload)
+onUnmounted(() => {
+  offAwarded()
+  offRevoked()
+})
 </script>

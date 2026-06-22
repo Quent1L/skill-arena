@@ -27,6 +27,10 @@ export interface CreateMmrHistoryData {
   opponentAvgMmr: number;
   isPlacement: boolean;
   outcome?: MmrHistoryOutcome | null;
+  // Player state AFTER this match (for historical badge replay)
+  winStreakAfter: number;
+  lossStreakAfter: number;
+  matchesPlayedAfter: number;
 }
 
 export class PlayerMmrRepository {
@@ -221,6 +225,17 @@ export class PlayerMmrRepository {
         },
       },
     });
+  }
+
+  /** Distinct finalized-match ids of a season that have MMR history, oldest first. */
+  async getSeasonMatchIdsOrdered(seasonId: string): Promise<string[]> {
+    const rows = await db
+      .selectDistinct({ matchId: mmrHistory.matchId, playedAt: matches.playedAt })
+      .from(mmrHistory)
+      .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
+      .where(eq(mmrHistory.seasonId, seasonId))
+      .orderBy(asc(matches.playedAt));
+    return rows.map((r) => r.matchId);
   }
 
   async getMmrHistoryForPlayerAndMatch(seasonId: string, playerId: string, matchId: string) {

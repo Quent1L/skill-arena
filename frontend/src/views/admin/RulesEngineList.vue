@@ -2,8 +2,27 @@
   <div class="rules-engine-list p-4">
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-2xl font-bold">Moteur de règles</h1>
-      <Button label="Nouvelle règle" icon="fa fa-plus" @click="router.push('/admin/rules-engine/new')" />
+      <div class="flex items-center gap-2">
+        <Button
+          label="Recalculer les badges"
+          icon="fa fa-rotate"
+          severity="secondary"
+          outlined
+          :loading="reconciling"
+          @click="handleReconcile"
+          v-tooltip.bottom="'Lance immédiatement un recalcul complet des badges (sinon exécuté chaque nuit)'"
+        />
+        <Button label="Nouvelle règle" icon="fa fa-plus" @click="router.push('/admin/rules-engine/new')" />
+      </div>
     </div>
+
+    <Message v-if="reconciliationStatus?.dirty" severity="info" :closable="false" class="mb-3">
+      Des badges ont été modifiés depuis le dernier recalcul. Le recalcul tournera automatiquement cette nuit, ou
+      lancez-le maintenant.
+    </Message>
+    <p v-if="reconciliationStatus?.lastRunAt" class="text-xs text-surface-500 mb-3">
+      Dernier recalcul des badges : {{ formatRunDate(reconciliationStatus.lastRunAt) }}
+    </p>
 
     <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
 
@@ -124,6 +143,15 @@
           Supprimer la règle <strong>{{ ruleToDelete?.name }}</strong> ? Cette action est irréversible.
         </span>
       </div>
+      <Message
+        v-if="ruleToDelete?.type === 'badge' && badgeHolderCount > 0"
+        severity="warn"
+        :closable="false"
+        class="mb-2"
+      >
+        {{ badgeHolderCount }} joueur(s) possèdent actuellement ce badge. Si vous continuez, il leur sera
+        définitivement retiré.
+      </Message>
       <template #footer>
         <Button label="Annuler" icon="pi pi-times" @click="deleteDialogVisible = false" text />
         <Button label="Supprimer" icon="pi pi-check" severity="danger" :loading="loading" @click="handleDelete" />
@@ -135,11 +163,26 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 import { useRulesService } from '@/composables/rules/rules.service'
 import type { ClientRule, CreateRuleData } from '@skill-arena/shared/types/index'
 
 const router = useRouter()
-const { rules, loading, error, loadRules, deleteRule, createRule } = useRulesService()
+const {
+  rules,
+  loading,
+  error,
+  loadRules,
+  deleteRule,
+  createRule,
+  getBadgeCount,
+  reconciliationStatus,
+  loadReconciliationStatus,
+  triggerReconciliation,
+} = useRulesService()
+
+const reconciling = ref(false)
+const toast = useToast()
 
 const filters = reactive<{ type?: 'message' | 'badge'; scope?: 'global' | 'discipline'; isActive?: boolean }>({})
 
@@ -158,6 +201,7 @@ const statusOptions = [
 
 const deleteDialogVisible = ref(false)
 const ruleToDelete = ref<ClientRule | null>(null)
+const badgeHolderCount = ref(0)
 
 function typeLabel(type: string) {
   return type === 'badge' ? 'Badge' : 'Message'
@@ -168,6 +212,24 @@ function scopeLabel(scope: string) {
 
 function reload() {
   loadRules({ type: filters.type, scope: filters.scope, isActive: filters.isActive })
+}
+
+function formatRunDate(date: Date) {
+  return new Date(date).toLocaleString('fr-FR')
+}
+
+async function handleReconcile() {
+  reconciling.value = true
+  const ok = await triggerReconciliation()
+  reconciling.value = false
+  toast.add({
+    severity: ok ? 'success' : 'error',
+    summary: ok ? 'Recalcul lancé' : 'Erreur',
+    detail: ok
+      ? 'Le recalcul des badges a été mis en file. Il s’exécute en arrière-plan.'
+      : 'Impossible de lancer le recalcul.',
+    life: 4000,
+  })
 }
 
 async function handleDuplicate(rule: ClientRule) {
@@ -186,9 +248,13 @@ async function handleDuplicate(rule: ClientRule) {
   await createRule(copy)
 }
 
-function confirmDelete(rule: ClientRule) {
+async function confirmDelete(rule: ClientRule) {
   ruleToDelete.value = rule
+  badgeHolderCount.value = 0
   deleteDialogVisible.value = true
+  if (rule.type === 'badge') {
+    badgeHolderCount.value = await getBadgeCount(rule.id)
+  }
 }
 
 async function handleDelete() {
@@ -200,7 +266,10 @@ async function handleDelete() {
   }
 }
 
-onMounted(() => loadRules())
+onMounted(() => {
+  loadRules()
+  loadReconciliationStatus()
+})
 </script>
 
 <style scoped>

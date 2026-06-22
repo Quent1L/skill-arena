@@ -38,7 +38,16 @@ export interface MatchSubmittedContexts {
 }
 
 export class RulesContextService {
-  async buildMatchSubmittedContexts(matchId: string): Promise<MatchSubmittedContexts> {
+  /**
+   * @param historical When true, per-player facts (winStreak/lossStreak/newMmr/
+   * matchCountThisSeason) are read from the `mmr_history` snapshot of THIS match
+   * rather than the player's live state. Required to replay past matches during
+   * badge reconciliation. Defaults to false (live, used at finalization).
+   */
+  async buildMatchSubmittedContexts(
+    matchId: string,
+    historical = false,
+  ): Promise<MatchSubmittedContexts> {
     const empty: MatchSubmittedContexts = { contexts: [], displayNames: new Map() };
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, matchId),
@@ -87,7 +96,7 @@ export class RulesContextService {
     const allPlayerTasks = ([sideA, sideB] as const).flatMap((side) => {
       const opponent = side === sideA ? sideB : sideA;
       return side.playerIds.map(async (playerId) => {
-        const personal = await this.buildPersonalFacts(tournamentId, matchId, playerId, opponent, tiers, !!rankedConfig);
+        const personal = await this.buildPersonalFacts(tournamentId, matchId, playerId, opponent, tiers, !!rankedConfig, historical);
         return { playerId, context: { ...base, ...personal } as MatchSubmittedContext };
       });
     });
@@ -142,6 +151,7 @@ export class RulesContextService {
     opponent: SideInfo,
     tiers: TierData[],
     isRanked: boolean,
+    historical: boolean,
   ): Promise<
     Omit<
       MatchSubmittedContext,
@@ -176,12 +186,18 @@ export class RulesContextService {
       };
     }
 
-    const mmr = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
     const history = await playerMmrRepository.getMmrHistoryForPlayerAndMatch(seasonId, playerId, matchId);
+    // Live facts source: the player's current state. In historical mode we read
+    // the snapshot persisted on this match's history row, so facts reflect the
+    // player's state AS OF this match (needed to replay/reconcile badges).
+    const mmr = historical ? null : await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
 
-    const newMmr = mmr?.currentMmr ?? 0;
+    const newMmr = (historical ? history?.mmrAfter : mmr?.currentMmr) ?? 0;
     const previousMmr = history?.mmrBefore ?? newMmr;
     const mmrDelta = history?.mmrDelta ?? 0;
+    const winStreak = (historical ? history?.winStreakAfter : mmr?.winStreak) ?? 0;
+    const lossStreak = (historical ? history?.lossStreakAfter : mmr?.lossStreak) ?? 0;
+    const matchCountThisSeason = (historical ? history?.matchesPlayedAfter : mmr?.matchesPlayed) ?? 0;
 
     const tierBefore = getTierForMmr(previousMmr, tiers);
     const tierAfter = getTierForMmr(newMmr, tiers);
@@ -200,10 +216,10 @@ export class RulesContextService {
       rankChanged,
       rankUp,
       rankDown,
-      winStreak: mmr?.winStreak ?? 0,
-      lossStreak: mmr?.lossStreak ?? 0,
+      winStreak,
+      lossStreak,
       isPlacementMatch: history?.isPlacement ?? false,
-      matchCountThisSeason: mmr?.matchesPlayed ?? 0,
+      matchCountThisSeason,
       opponentRank: opponentTier?.name ?? "",
     };
   }

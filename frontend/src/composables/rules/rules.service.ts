@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { rulesApi, type CatalogFact, type RuleListFilters } from './rules.api'
+import { rulesApi, type BadgeReconciliationStatus, type CatalogFact, type RuleListFilters } from './rules.api'
 import type {
   ClientRule,
   CreateRuleData,
@@ -96,6 +96,35 @@ export function useRulesService() {
     }
   }
 
+  async function getBadgeCount(id: string): Promise<number> {
+    try {
+      return await rulesApi.getBadgeCount(id)
+    } catch {
+      return 0
+    }
+  }
+
+  const reconciliationStatus = ref<BadgeReconciliationStatus | null>(null)
+
+  async function loadReconciliationStatus() {
+    try {
+      reconciliationStatus.value = await rulesApi.getReconciliationStatus()
+    } catch {
+      reconciliationStatus.value = null
+    }
+  }
+
+  async function triggerReconciliation(): Promise<boolean> {
+    try {
+      await rulesApi.triggerReconciliation()
+      await loadReconciliationStatus()
+      return true
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Erreur lors du déclenchement du recalcul'
+      return false
+    }
+  }
+
   async function testRule(
     triggerEvent: string,
     conditions: RuleConditions,
@@ -122,6 +151,10 @@ export function useRulesService() {
     createRule,
     updateRule,
     deleteRule,
+    getBadgeCount,
+    reconciliationStatus,
+    loadReconciliationStatus,
+    triggerReconciliation,
     testRule,
   }
 }

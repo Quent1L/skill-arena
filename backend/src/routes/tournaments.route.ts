@@ -19,6 +19,7 @@ import { createAppHono } from "../types/hono";
 import { ErrorCode, ForbiddenError } from "../types/errors";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerStatsService } from "../services/player-stats.service";
+import { rulesService } from "../services/rules.service";
 import { enqueueMmrSeasonRecalculation } from "../services/mmr-job-queue.service";
 
 const tournaments = createAppHono();
@@ -90,6 +91,15 @@ tournaments.get("/:id", async (c) => {
   await assertTournamentAccess(c.get("user")?.id, id);
   const tournament = await tournamentService.getTournamentById(id);
   return c.json(tournament);
+});
+
+// GET /tournaments/:id/available-badges - badges earnable in this tournament
+tournaments.get("/:id/available-badges", async (c) => {
+  const id = c.req.param("id")!;
+  await assertTournamentAccess(c.get("user")?.id, id);
+  const tournament = await tournamentService.getTournamentById(id);
+  const badges = await rulesService.listAvailableBadges(tournament?.disciplineId ?? null);
+  return c.json({ badges });
 });
 
 // PATCH /tournaments/:id - Update tournament

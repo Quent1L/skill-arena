@@ -189,6 +189,8 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "match_created",
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
+  "BADGE_AWARDED",
+  "BADGE_REVOKED",
 ]);
 
 export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
@@ -697,6 +699,12 @@ export const mmrHistory = pgTable(
     opponentAvgMmr: integer("opponent_avg_mmr").notNull(),
     isPlacement: boolean("is_placement").notNull().default(false),
     outcome: varchar("outcome", { length: 4 }),
+    // Snapshot of the player's state AFTER this match — enables historical
+    // replay of badge facts during reconciliation (winStreak/lossStreak/
+    // matchCountThisSeason as of this match, not the player's current state).
+    winStreakAfter: integer("win_streak_after").notNull().default(0),
+    lossStreakAfter: integer("loss_streak_after").notNull().default(0),
+    matchesPlayedAfter: integer("matches_played_after").notNull().default(0),
   },
   (table) => [
     unique().on(table.seasonId, table.playerId, table.matchId),
@@ -813,6 +821,21 @@ export const playerBadges = pgTable(
   },
   (table) => [unique().on(table.playerId, table.ruleId)],
 );
+
+/**
+ * Singleton state driving the nightly badge reconciliation cron.
+ * `dirty` is set when a badge rule is created/modified; the cron only runs a
+ * full reconciliation when dirty, then clears it. A single row is expected.
+ */
+export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dirty: boolean("dirty").notNull().default(false),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
 
 // ***************************************************************
 // [End] Rules engine tables

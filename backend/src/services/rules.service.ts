@@ -2,6 +2,8 @@ import {
   EVENT_FACT_CATALOG,
   OPERATORS_BY_TYPE,
   TRIGGER_EVENTS,
+  type AvailableBadge,
+  type BadgeAction,
   type CreateRuleData,
   type FactDefinition,
   type RuleAction,
@@ -15,6 +17,8 @@ import {
   type CreateRuleData as CreateRuleRow,
 } from "../repository/rules.repository";
 import { rulesEvaluationService } from "./rules-evaluation.service";
+import { badgeReconciliationService } from "./badge-reconciliation.service";
+import { enqueueBadgeReconciliation } from "./mmr-job-queue.service";
 import { BadRequestError, NotFoundError, ErrorCode } from "../types/errors";
 
 function isTriggerEvent(value: string): value is TriggerEvent {
@@ -42,9 +46,14 @@ export class RulesService {
     return rule;
   }
 
-  create(data: CreateRuleData, createdBy: string) {
+  async create(data: CreateRuleData, createdBy: string) {
     this.validateRule(data.triggerEvent, data.conditions, data.scope, data.disciplineId ?? null);
-    return rulesRepository.create({ ...(data as CreateRuleRow), createdBy });
+    const rule = await rulesRepository.create({ ...(data as CreateRuleRow), createdBy });
+    // Do NOT recompute now: a reconciliation pass can be long and the admin may
+    // keep editing. Just flag it dirty — the nightly cron (or a manual trigger)
+    // runs the actual recompute.
+    if (rule.type === "badge" && rule.isActive) await rulesRepository.markBadgeRulesDirty();
+    return rule;
   }
 
   async update(id: string, data: UpdateRuleData) {
@@ -52,12 +61,43 @@ export class RulesService {
     if (data.triggerEvent && data.conditions) {
       this.validateRule(data.triggerEvent, data.conditions, data.scope ?? "global", data.disciplineId ?? null);
     }
-    return rulesRepository.update(id, data);
+    const rule = await rulesRepository.update(id, data);
+    // Flag dirty for the nightly/manual recompute (deactivation keeps badges, so skip).
+    if (rule.type === "badge" && rule.isActive) await rulesRepository.markBadgeRulesDirty();
+    return rule;
   }
 
   async delete(id: string) {
-    await this.getById(id);
+    const rule = await this.getById(id);
+    // Inform current holders before the FK cascade removes their badges.
+    if (rule.type === "badge") await badgeReconciliationService.notifyHoldersBeforeDelete(id);
     await rulesRepository.delete(id);
+  }
+
+  /** Number of players currently holding the badge produced by a rule (delete confirm). */
+  getBadgeCount(id: string) {
+    return rulesRepository.countBadgeHolders(id);
+  }
+
+  /** Active badge rules earnable for a discipline (global + that discipline). */
+  async listAvailableBadges(disciplineId: string | null): Promise<AvailableBadge[]> {
+    const rules = await rulesRepository.listActiveByTrigger("match_submitted", disciplineId);
+    return rules
+      .filter((r) => r.type === "badge")
+      .map((r) => {
+        const action = r.action as BadgeAction;
+        return { ruleId: r.id, icon: action.icon, label: action.label, description: action.description, scope: r.scope };
+      });
+  }
+
+  /** Current state of the nightly badge reconciliation (admin UI). */
+  getReconciliationState() {
+    return rulesRepository.getReconciliationState();
+  }
+
+  /** Manually queue a full badge reconciliation now (admin button). */
+  triggerReconciliation() {
+    return enqueueBadgeReconciliation(true);
   }
 
   getCatalog(triggerEvent: string): { facts: (FactDefinition & { operators: string[] })[] } {

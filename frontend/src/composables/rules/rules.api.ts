@@ -1,5 +1,6 @@
 import http from '@/config/ApiConfig'
 import type {
+  AvailableBadge,
   ClientPlayerBadge,
   ClientRule,
   CreateRuleData,
@@ -72,4 +73,30 @@ export const rulesApi = {
     const response = await http.get<{ badges: ClientPlayerBadge[] }>(`/api/users/${playerId}/badges`)
     return response.data.badges
   },
+
+  async getAvailableBadges(tournamentId: string): Promise<AvailableBadge[]> {
+    const response = await http.get<{ badges: AvailableBadge[] }>(
+      `/api/tournaments/${tournamentId}/available-badges`,
+    )
+    return response.data.badges
+  },
+
+  async getBadgeCount(id: string): Promise<number> {
+    const response = await http.get<{ count: number }>(`${BASE_URL}/${id}/badge-count`)
+    return response.data.count
+  },
+
+  async getReconciliationStatus(): Promise<BadgeReconciliationStatus> {
+    const response = await http.get<BadgeReconciliationStatus>(`${BASE_URL}/reconcile-badges/status`)
+    return response.data
+  },
+
+  async triggerReconciliation(): Promise<void> {
+    await http.post(`${BASE_URL}/reconcile-badges`)
+  },
+}
+
+export interface BadgeReconciliationStatus {
+  dirty: boolean
+  lastRunAt: Date | null
 }

@@ -68,6 +68,11 @@
       v-if="store.tournament!.mode === 'ranked'"
       :tournament-id="(route.params.id as string)"
     />
+
+    <AvailableBadgesCard
+      v-if="store.tournament!.mode === 'ranked'"
+      :tournament-id="(route.params.id as string)"
+    />
   </div>
 </template>
 
@@ -75,6 +80,7 @@
 import { useRouter, useRoute } from 'vue-router'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MmrExplainerCard from '@/components/ranked/MmrExplainerCard.vue'
+import AvailableBadgesCard from '@/components/rules/AvailableBadgesCard.vue'
 
 const store = useTournamentDetailStore()
 const router = useRouter()

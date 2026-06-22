@@ -13,6 +13,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     AutoComplete: typeof import('primevue/autocomplete')['default']
+    AvailableBadgesCard: typeof import('./src/components/rules/AvailableBadgesCard.vue')['default']
     Avatar: typeof import('primevue/avatar')['default']
     Badge: typeof import('primevue/badge')['default']
     BadgeRevealAnimation: typeof import('./src/components/ranked/BadgeRevealAnimation.vue')['default']

@@ -97,7 +97,7 @@ export class RulesEvaluationService {
           return null;
         },
       );
-      if (output && (output.message || output.badge)) result.set(playerId, output);
+      if (output && (output.message || output.badges?.length)) result.set(playerId, output);
     }
     return result;
   }
@@ -118,20 +118,22 @@ export class RulesEvaluationService {
       output.message = interpolate(pickVariant(messageRule.action as MessageAction), resolveDisplay(facts, displayNames));
     }
 
-    const badgeRule = selectWinner(matched.filter((r) => r.type === "badge"));
-    if (badgeRule) {
+    // Badges are awarded independently (no single-winner): every matching badge
+    // rule grants its badge. This keeps awards order-independent so they can be
+    // recomputed deterministically during reconciliation.
+    const badgeRules = matched.filter((r) => r.type === "badge");
+    for (const badgeRule of badgeRules) {
       // awardBadge uses onConflictDoNothing and returns null if badge already exists
       const awarded = await rulesRepository.awardBadge(playerId, badgeRule.id, matchId);
-      if (awarded) {
-        const badge = badgeRule.action as BadgeAction;
-        output.badge = {
-          badgeId: awarded.id,
-          ruleId: badgeRule.id,
-          icon: badge.icon,
-          label: badge.label,
-          description: badge.description,
-        };
-      }
+      if (!awarded) continue;
+      const badge = badgeRule.action as BadgeAction;
+      (output.badges ??= []).push({
+        badgeId: awarded.id,
+        ruleId: badgeRule.id,
+        icon: badge.icon,
+        label: badge.label,
+        description: badge.description,
+      });
     }
 
     return output;

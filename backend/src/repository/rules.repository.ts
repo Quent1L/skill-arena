@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNull, or, desc } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, desc, count } from "drizzle-orm";
 import { db } from "../config/database";
-import { matches, playerBadges, rules } from "../db/schema";
+import { badgeReconciliationState, matches, playerBadges, rules } from "../db/schema";
 import type { RuleAction, RuleConditions, RuleScope, RuleType } from "@skill-arena/shared";
 
 export interface CreateRuleData {
@@ -124,6 +124,69 @@ export class RulesRepository {
     await db.update(playerBadges)
       .set({ viewedAt: new Date() })
       .where(and(inArray(playerBadges.id, ids), eq(playerBadges.playerId, playerId)));
+  }
+
+  // ---- Badge lifecycle (reconciliation / revocation) ----
+
+  /** Remove a player's badge for a given rule (revocation). */
+  async revokeBadge(playerId: string, ruleId: string): Promise<void> {
+    await db
+      .delete(playerBadges)
+      .where(and(eq(playerBadges.playerId, playerId), eq(playerBadges.ruleId, ruleId)));
+  }
+
+  /** Badges a player holds whose awarding match belongs to the given season. */
+  async listBadgesByPlayerAndSeason(playerId: string, seasonId: string) {
+    return await db.query.playerBadges.findMany({
+      where: and(
+        eq(playerBadges.playerId, playerId),
+        inArray(
+          playerBadges.matchId,
+          db.select({ id: matches.id }).from(matches).where(eq(matches.tournamentId, seasonId)),
+        ),
+      ),
+      with: { rule: true },
+    });
+  }
+
+  /** Number of players currently holding the badge produced by a rule. */
+  async countBadgeHolders(ruleId: string): Promise<number> {
+    const [row] = await db
+      .select({ value: count() })
+      .from(playerBadges)
+      .where(eq(playerBadges.ruleId, ruleId));
+    return row?.value ?? 0;
+  }
+
+  /** Player ids currently holding the badge produced by a rule. */
+  async listBadgeHolderPlayerIds(ruleId: string): Promise<string[]> {
+    const rows = await db
+      .select({ playerId: playerBadges.playerId })
+      .from(playerBadges)
+      .where(eq(playerBadges.ruleId, ruleId));
+    return rows.map((r) => r.playerId);
+  }
+
+  // ---- Nightly reconciliation state (dirty flag) ----
+
+  /** Read the singleton reconciliation state, creating it if absent. */
+  async getReconciliationState(): Promise<{ dirty: boolean; lastRunAt: Date | null }> {
+    const existing = await db.query.badgeReconciliationState.findFirst();
+    if (existing) return { dirty: existing.dirty, lastRunAt: existing.lastRunAt };
+    const [created] = await db.insert(badgeReconciliationState).values({}).returning();
+    return { dirty: created.dirty, lastRunAt: created.lastRunAt };
+  }
+
+  /** Flag that a badge rule changed and a reconciliation is needed. */
+  async markBadgeRulesDirty(): Promise<void> {
+    await this.getReconciliationState(); // ensure the row exists
+    await db.update(badgeReconciliationState).set({ dirty: true });
+  }
+
+  /** Clear the dirty flag and stamp the run time (called when a run starts). */
+  async clearDirtyAndStampRun(): Promise<void> {
+    await this.getReconciliationState();
+    await db.update(badgeReconciliationState).set({ dirty: false, lastRunAt: new Date() });
   }
 }
 

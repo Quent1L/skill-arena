@@ -9,6 +9,8 @@ export const NotificationTypeEnum = z.enum([
   "match_created",
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
+  "BADGE_AWARDED",
+  "BADGE_REVOKED",
 ]);
 
 export const DeviceTypeEnum = z.enum(["WEB", "ANDROID", "IOS"]);
