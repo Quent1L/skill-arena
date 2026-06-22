@@ -6,10 +6,9 @@ import { useTournamentService } from '@/composables/tournament/tournament.servic
 import { useParticipantService } from '@/composables/participant.service'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
-import { rankedApi } from '@/composables/ranked/ranked.api'
 import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
-import type { ClientMmrHistoryEntry, PlayerStatsResponse } from '@skill-arena/shared/types/index'
+import type { MmrChartPoint, PlayerStatsResponse } from '@skill-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const router = useRouter()
@@ -25,7 +24,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const isInitialLoading = ref(true)
   const joining = ref(false)
   const leaving = ref(false)
-  const profileChartHistory = ref<ClientMmrHistoryEntry[]>([])
+  const profileChartHistory = ref<MmrChartPoint[]>([])
   const playerStats = ref<PlayerStatsResponse | null>(null)
 
   // Pass-through refs from services
@@ -164,13 +163,12 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   async function ensurePlayerProfile() {
     if (!appUser.value?.id) return
     if (!playerMmr.value) {
-      await Promise.all([
+      const [chartHistory] = await Promise.all([
         rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
-        rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
-          .then((h) => { profileChartHistory.value = h }),
         playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
           .then((s) => { playerStats.value = s }),
       ])
+      profileChartHistory.value = chartHistory
     }
   }
 
@@ -182,13 +180,12 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
 
   async function reloadPlayerProfile() {
     if (!appUser.value?.id) return
-    await Promise.all([
+    const [chartHistory] = await Promise.all([
       rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
-      rankedApi.getPlayerHistory(tournamentId.value, appUser.value.id, { limit: 200 })
-        .then((h) => { profileChartHistory.value = h }),
       playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
         .then((s) => { playerStats.value = s }),
     ])
+    profileChartHistory.value = chartHistory
   }
 
   async function refreshSilently() {

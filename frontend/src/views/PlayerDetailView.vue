@@ -425,7 +425,7 @@ import type {
   PlayerTournamentEntry,
   ClientPlayerMmr,
   ClientRankTier,
-  ClientMmrHistoryEntry,
+  MmrChartPoint,
   OpponentQualityStats,
 } from '@skill-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
@@ -478,7 +478,7 @@ const isRankedTournament = computed(() => {
 // Ranked data state
 const rankedMmr = ref<ClientPlayerMmr | null>(null)
 const rankedTiers = ref<ClientRankTier[]>([])
-const rankedHistory = ref<ClientMmrHistoryEntry[]>([])
+const rankedHistory = ref<MmrChartPoint[]>([])
 const rankedOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
 const rankedLoading = ref(false)
 
@@ -486,15 +486,14 @@ async function loadRankedData(seasonId: string, pid: string) {
   rankedLoading.value = true
   rankedHistory.value = []
   try {
-    const [mmrData, firstPage] = await Promise.all([
+    const [mmrData] = await Promise.all([
       rankedApi.getPlayerMmr(seasonId, pid),
-      rankedApi.getPlayerHistory(seasonId, pid, { limit: 20, offset: 0 }),
       loadStats(pid, { tournamentId: seasonId }),
     ])
     rankedMmr.value = mmrData.mmr
     rankedTiers.value = mmrData.tiers
     rankedOpponentQuality.value = mmrData.opponentQuality
-    rankedHistory.value = firstPage
+    rankedHistory.value = mmrData.chartHistory
   } catch {
     rankedMmr.value = null
     rankedTiers.value = []

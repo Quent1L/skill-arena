@@ -40,6 +40,13 @@ export interface PlayerMmr {
 
 export type MmrHistoryOutcome = 'win' | 'loss' | 'draw';
 
+export interface MmrChartPoint {
+  mmrAfter: number;
+  mmrDelta: number;
+  outcome?: MmrHistoryOutcome | null;
+  playedAt: Date;
+}
+
 export interface MmrHistoryEntry {
   id: string;
   seasonId: string;

@@ -9,6 +9,7 @@ import type {
   ClientRankTier,
   ClientTournamentSummary,
   OpponentQualityStats,
+  MmrChartPoint,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
@@ -59,6 +60,7 @@ export type PlayerMmrResponse = {
   mmr: ClientPlayerMmr
   tiers: ClientRankTier[]
   opponentQuality?: OpponentQualityStats
+  chartHistory: MmrChartPoint[]
 }
 
 /**

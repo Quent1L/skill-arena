@@ -211,9 +211,11 @@ export function useRankedService() {
       playerMmr.value = data.mmr
       tiers.value = data.tiers ?? []
       playerOpponentQuality.value = data.opponentQuality
+      return data.chartHistory
     } catch {
       playerMmr.value = null
       playerOpponentQuality.value = undefined
+      return []
     } finally {
       loading.value = false
     }

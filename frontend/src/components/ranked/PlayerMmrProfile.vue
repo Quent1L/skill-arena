@@ -106,7 +106,7 @@
     <RecentFormSection v-if="recentForm?.length" :results="recentForm" />
 
     <!-- MMR Progression Chart -->
-    <div v-if="isMounted && sortedHistory.length > 1" class="rounded-xl p-4 bg-gray-800">
+    <div v-if="isMounted && chartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
         Progression MMR
       </div>
@@ -199,7 +199,7 @@ import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Chart from 'primevue/chart'
 import type {
   ClientPlayerMmr,
-  ClientMmrHistoryEntry,
+  MmrChartPoint,
   ClientRankTier,
   PlayerRelationStat,
   OpponentQualityStats,
@@ -232,7 +232,7 @@ const props = defineProps<{
   tiers: ClientRankTier[]
   initialMmr?: number
   leaderboardRank?: number
-  history?: ClientMmrHistoryEntry[]
+  history?: MmrChartPoint[]
   seasonId?: string
   mostFrequentPartners?: PlayerRelationStat[]
   bestPartners?: PlayerRelationStat[]
@@ -289,22 +289,18 @@ const progressBarClass = computed(() =>
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
 
-const sortedHistory = computed(() =>
-  [...(props.history ?? [])]
-    .filter((e) => e.match != null)
-    .sort((a, b) => new Date(a.match!.playedAt).getTime() - new Date(b.match!.playedAt).getTime()),
-)
+const chartPoints = computed(() => props.history ?? [])
 
 const chartData = computed(() => ({
-  labels: sortedHistory.value.map((_, i) => `M${i + 1}`),
+  labels: chartPoints.value.map((_, i) => `M${i + 1}`),
   datasets: [
     {
       label: 'MMR',
-      data: sortedHistory.value.map((e) => e.mmrAfter),
-      pointBackgroundColor: sortedHistory.value.map((e) =>
+      data: chartPoints.value.map((e) => e.mmrAfter),
+      pointBackgroundColor: chartPoints.value.map((e) =>
         e.mmrDelta >= 0 ? '#22c55e' : '#ef4444',
       ),
-      pointBorderColor: sortedHistory.value.map((e) => (e.mmrDelta >= 0 ? '#22c55e' : '#ef4444')),
+      pointBorderColor: chartPoints.value.map((e) => (e.mmrDelta >= 0 ? '#22c55e' : '#ef4444')),
       pointRadius: 5,
       borderColor: '#6366f1',
       borderWidth: 2,
@@ -323,15 +319,15 @@ const chartOptions = computed(() => ({
     tooltip: {
       callbacks: {
         title: (items: { dataIndex: number }[]) => {
-          const entry = sortedHistory.value[items[0].dataIndex]
-          return new Date(entry.match!.playedAt).toLocaleDateString('fr-FR', {
+          const entry = chartPoints.value[items[0].dataIndex]
+          return new Date(entry.playedAt).toLocaleDateString('fr-FR', {
             day: '2-digit',
             month: '2-digit',
             year: '2-digit',
           })
         },
         label: (item: { dataIndex: number }) => {
-          const entry = sortedHistory.value[item.dataIndex]
+          const entry = chartPoints.value[item.dataIndex]
           const d = entry.mmrDelta
           return `${entry.mmrAfter} MMR (${d > 0 ? '+' : ''}${d})`
         },

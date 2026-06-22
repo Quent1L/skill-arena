@@ -167,15 +167,16 @@ ranked.get("/seasons/:id/leaderboard/provisional", async (c) => {
 // GET /ranked/seasons/:id/players/:playerId - Player MMR profile
 ranked.get("/seasons/:id/players/:playerId", async (c) => {
   const { id, playerId } = c.req.param();
-  const [mmr, tiers, opponentQuality] = await Promise.all([
+  const [mmr, tiers, opponentQuality, chartHistory] = await Promise.all([
     playerMmrRepository.getBySeasonAndPlayer(id, playerId),
     rankedSeasonRepository.getRankTiers(id),
     playerMmrRepository.getOpponentQualityStats(id, playerId),
+    playerMmrRepository.getMmrChartSeries(id, playerId),
   ]);
   if (!mmr) {
     throw new NotFoundError(ErrorCode.NOT_FOUND);
   }
-  return c.json({ mmr, tiers, opponentQuality });
+  return c.json({ mmr, tiers, opponentQuality, chartHistory });
 });
 
 // GET /ranked/seasons/:id/players/:playerId/history - MMR history

@@ -146,6 +146,25 @@ export class PlayerMmrRepository {
       .offset(offset);
   }
 
+  async getMmrChartSeries(seasonId: string, playerId: string) {
+    return await db
+      .select({
+        mmrAfter: mmrHistory.mmrAfter,
+        mmrDelta: mmrHistory.mmrDelta,
+        outcome: mmrHistory.outcome,
+        playedAt: matches.playedAt,
+      })
+      .from(mmrHistory)
+      .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
+      .where(
+        and(
+          eq(mmrHistory.seasonId, seasonId),
+          eq(mmrHistory.playerId, playerId),
+        ),
+      )
+      .orderBy(asc(matches.playedAt));
+  }
+
   async getMmrHistoryOrdered(seasonId: string, playerId: string) {
     return await db
       .select({
