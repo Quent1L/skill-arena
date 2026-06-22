@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.13.1](https://github.com/Quent1L/skill-arena/compare/1.13.0...1.13.1) (2026-06-22)
+
+### 🐛 Correctifs
+
+* **ranked:** embed chart series in player MMR endpoint ([d56732b](https://github.com/Quent1L/skill-arena/commit/d56732bd4067cad11945c1c635deedb3d7584dec))
+
 ## [1.13.0](https://github.com/Quent1L/skill-arena/compare/1.12.2...1.13.0) (2026-06-15)
 
 ### ✨ Nouvelles fonctionnalités
