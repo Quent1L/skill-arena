@@ -186,6 +186,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Nouvelle règle',
       requiresAuth: true,
       parent: 'admin-rules-engine',
+      hideBreadcrumb: true,
     },
   },
   {

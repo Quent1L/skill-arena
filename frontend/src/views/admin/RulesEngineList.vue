@@ -1,7 +1,10 @@
 <template>
   <div class="rules-engine-list p-4">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Moteur de règles</h1>
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold">Moteur de règles</h1>
+        <Tag value="Bêta" severity="warn" />
+      </div>
       <div class="flex items-center gap-2">
         <Button
           label="Recalculer les badges"
@@ -15,6 +18,10 @@
         <Button label="Nouvelle règle" icon="fa fa-plus" @click="router.push('/admin/rules-engine/new')" />
       </div>
     </div>
+
+    <Message severity="warn" :closable="false" class="mb-3">
+      <i class="fa fa-triangle-exclamation mr-2" />Cette fonctionnalité est en bêta. Des comportements inattendus peuvent survenir — signalez tout bug rencontré.
+    </Message>
 
     <Message v-if="reconciliationStatus?.dirty" severity="info" :closable="false" class="mb-3">
       Des badges ont été modifiés depuis le dernier recalcul. Le recalcul tournera automatiquement cette nuit, ou

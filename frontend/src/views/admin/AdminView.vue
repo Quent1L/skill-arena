@@ -154,9 +154,10 @@
             <div class="mb-4">
               <i class="fa fa-wand-magic-sparkles text-5xl text-purple-600"></i>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Moteur de règles
-            </h2>
+            <div class="flex items-center justify-center gap-2 mb-3">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Moteur de règles</h2>
+              <Tag value="Bêta" severity="warn" />
+            </div>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
               Messages contextuels et badges configurables (saisie de match)
             </p>

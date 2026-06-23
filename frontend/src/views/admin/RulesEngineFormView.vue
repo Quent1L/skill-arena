@@ -3,7 +3,12 @@
     <div class="flex items-center gap-3 mb-4">
       <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/rules-engine')" />
       <h1 class="text-2xl font-bold">{{ isEdit ? 'Modifier la règle' : 'Nouvelle règle' }}</h1>
+      <Tag value="Bêta" severity="warn" />
     </div>
+
+    <Message severity="warn" :closable="false" class="mb-3">
+      <i class="fa fa-triangle-exclamation mr-2" />Cette fonctionnalité est en bêta. Des comportements inattendus peuvent survenir — signalez tout bug rencontré.
+    </Message>
 
     <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
 
