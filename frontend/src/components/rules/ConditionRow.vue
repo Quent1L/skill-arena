@@ -59,6 +59,71 @@
         hour-format="24"
         class="w-32"
       />
+      <DatePicker
+        v-else-if="isDateFact && !isListOperator"
+        v-model="dateValue"
+        date-format="yy-mm-dd"
+        class="w-40"
+      />
+      <Select
+        v-else-if="isDisciplineFact && !isListOperator"
+        v-model="node.value"
+        :options="disciplines"
+        option-label="name"
+        option-value="id"
+        placeholder="Discipline"
+        filter
+        class="w-52"
+      />
+      <MultiSelect
+        v-else-if="isDisciplineFact && isListOperator"
+        v-model="playerListValue"
+        :options="disciplines"
+        option-label="name"
+        option-value="id"
+        placeholder="Disciplines"
+        display="chip"
+        class="w-72"
+      />
+      <Select
+        v-else-if="isSiteFact && !isListOperator"
+        v-model="node.value"
+        :options="organisations"
+        option-label="name"
+        option-value="id"
+        placeholder="Organisation"
+        filter
+        class="w-52"
+      />
+      <MultiSelect
+        v-else-if="isSiteFact && isListOperator"
+        v-model="playerListValue"
+        :options="organisations"
+        option-label="name"
+        option-value="id"
+        placeholder="Organisations"
+        display="chip"
+        class="w-72"
+      />
+      <Select
+        v-else-if="isWeekdayFact && !isListOperator"
+        v-model="node.value"
+        :options="WEEKDAY_OPTIONS"
+        option-label="label"
+        option-value="value"
+        placeholder="Jour"
+        class="w-40"
+      />
+      <MultiSelect
+        v-else-if="isWeekdayFact && isListOperator"
+        v-model="weekdayListValue"
+        :options="WEEKDAY_OPTIONS"
+        option-label="label"
+        option-value="value"
+        placeholder="Jours"
+        display="chip"
+        class="w-64"
+      />
       <InputNumber
         v-else-if="selectedFact.type === 'number' && !isListOperator"
         :model-value="node.value as number"
@@ -79,13 +144,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject, ref, type Ref } from 'vue'
 import type { BuilderNode, PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
+import type { Discipline, OrganizationWithMemberCount } from '@skill-arena/shared/types/index'
 
 const node = defineModel<Extract<BuilderNode, { kind: 'leaf' }>>({ required: true })
 const props = defineProps<{ facts: CatalogFact[]; players: PlayerOption[] }>()
 defineEmits<{ remove: [] }>()
+
+const disciplines = inject<Ref<Discipline[]>>('disciplines', ref([]))
+const organisations = inject<Ref<OrganizationWithMemberCount[]>>('organisations', ref([]))
 
 const OPERATOR_LABELS: Record<string, string> = {
   equal: '=',
@@ -111,6 +180,42 @@ const isListOperator = computed(() => node.value.operator === 'in' || node.value
 const isPlayerFact = computed(() => selectedFact.value?.ref === 'player')
 
 const isTimeFact = computed(() => selectedFact.value?.ref === 'time')
+
+const isDateFact = computed(() => selectedFact.value?.type === 'date')
+
+const isDisciplineFact = computed(() => selectedFact.value?.ref === 'discipline')
+const isSiteFact = computed(() => selectedFact.value?.ref === 'site')
+const isWeekdayFact = computed(() => selectedFact.value?.ref === 'weekday')
+
+const WEEKDAY_OPTIONS = [
+  { label: 'Lundi', value: 1 },
+  { label: 'Mardi', value: 2 },
+  { label: 'Mercredi', value: 3 },
+  { label: 'Jeudi', value: 4 },
+  { label: 'Vendredi', value: 5 },
+  { label: 'Samedi', value: 6 },
+  { label: 'Dimanche', value: 7 },
+]
+
+const weekdayListValue = computed<number[]>({
+  get: () => (Array.isArray(node.value.value) ? (node.value.value as number[]) : []),
+  set: (val) => { node.value.value = val },
+})
+
+const dateValue = computed<Date | null>({
+  get: () => {
+    const v = node.value.value
+    if (typeof v !== 'string' || !v) return null
+    return new Date(v)
+  },
+  set: (d) => {
+    if (!d) { node.value.value = ''; return }
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    node.value.value = `${y}-${m}-${day}`
+  },
+})
 
 /** Minute-of-day number <-> Date for the time picker. */
 const timeValue = computed<Date | null>({

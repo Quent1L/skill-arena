@@ -105,9 +105,6 @@
     <!-- Recent form -->
     <RecentFormSection v-if="recentForm?.length" :results="recentForm" />
 
-    <!-- Earned badges -->
-    <PlayerBadges :player-id="mmr.playerId" />
-
     <!-- MMR Progression Chart -->
     <div v-if="isMounted && chartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -122,13 +119,23 @@
         Répartition des fins de match
       </div>
       <MatchOutcomeDistribution
-        :items="outcomeTypeStats.map((s) => ({ label: s.outcomeTypeName, count: s.matchesPlayed, wins: s.wins, losses: s.losses, draws: s.draws }))"
+        :items="
+          outcomeTypeStats.map((s) => ({
+            label: s.outcomeTypeName,
+            count: s.matchesPlayed,
+            wins: s.wins,
+            losses: s.losses,
+            draws: s.draws,
+          }))
+        "
       />
     </div>
 
     <!-- Opponent quality -->
     <div v-if="opponentQuality" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+      <div
+        class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5"
+      >
         Win rate par niveau d'adversaire
         <InfoTooltip
           text="Basé sur l'écart de MMR :<br>Forts = +100<br>Proches = ±100<br>Faibles = −100"
@@ -194,6 +201,9 @@
       :nemeses="nemeses"
       :tournament-id="seasonId"
     />
+
+    <!-- Earned badges -->
+    <PlayerBadges :player-id="mmr.playerId" />
   </div>
 </template>
 

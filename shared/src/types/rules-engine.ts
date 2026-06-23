@@ -68,7 +68,7 @@ export interface MatchSubmittedContext {
 // Catalogue de facts (utilisé par l'UI admin + validation backend)
 // ============================================
 
-export type FactType = "number" | "boolean" | "string";
+export type FactType = "number" | "boolean" | "string" | "date";
 
 export interface FactDefinition {
   key: string;
@@ -76,7 +76,7 @@ export interface FactDefinition {
   type: FactType;
   sample: number | boolean | string;
   /** Special reference: render a dedicated picker instead of a raw input. */
-  ref?: "player" | "time";
+  ref?: "player" | "time" | "discipline" | "site" | "weekday";
 }
 
 export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
@@ -100,10 +100,10 @@ export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
   { key: "opponentRank", label: "Rang de l'adversaire", type: "string", sample: "gold" },
   { key: "matchHour", label: "Heure du match (0-23)", type: "number", sample: 21 },
   { key: "matchMinuteOfDay", label: "Horaire du match (précis)", type: "number", sample: 1290, ref: "time" },
-  { key: "matchDayOfWeek", label: "Jour de la semaine (1=lundi … 7=dimanche)", type: "number", sample: 6 },
-  { key: "matchDate", label: "Date du match (AAAA-MM-JJ)", type: "string", sample: "2026-06-12" },
-  { key: "discipline", label: "Discipline", type: "string", sample: "" },
-  { key: "site", label: "Organisation", type: "string", sample: "" },
+  { key: "matchDayOfWeek", label: "Jour de la semaine", type: "number", sample: 6, ref: "weekday" },
+  { key: "matchDate", label: "Date du match (AAAA-MM-JJ)", type: "date", sample: "2026-06-12" },
+  { key: "discipline", label: "Discipline", type: "string", sample: "", ref: "discipline" },
+  { key: "site", label: "Organisation", type: "string", sample: "", ref: "site" },
 ];
 
 export const EVENT_FACT_CATALOG: Record<TriggerEvent, FactDefinition[]> = {
@@ -118,6 +118,7 @@ export const OPERATORS_BY_TYPE: Record<FactType, string[]> = {
   number: ["greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive", "equal", "notEqual", "in", "notIn"],
   boolean: ["equal", "notEqual"],
   string: ["equal", "notEqual", "in", "notIn", "contains", "doesNotContain"],
+  date: ["equal", "notEqual", "greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive"],
 };
 
 // ============================================
