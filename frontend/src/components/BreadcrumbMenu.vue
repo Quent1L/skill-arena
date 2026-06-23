@@ -1,37 +1,35 @@
 <template>
   <div v-if="showHeader" class="breadcrumb-menu hidden md:block">
-    <div class="flex items-center gap-3 flex-wrap">
-      <Button
+    <nav class="flex items-center gap-2 flex-wrap">
+      <button
         v-if="home"
-        :icon="home.icon"
-        text
-        rounded
-        size="small"
         @click="() => home?.command?.()"
-        class="text-muted-color hover:text-color"
-      />
+        class="text-muted-color hover:text-color transition-colors"
+        aria-label="Accueil"
+      >
+        <i :class="home.icon" class="text-sm"></i>
+      </button>
 
       <template v-for="(item, index) in allItems" :key="index">
-        <i v-if="index > 0" class="fas fa-chevron-right text-sm text-muted-color"></i>
+        <i class="fas fa-chevron-right text-xs text-muted-color"></i>
 
-        <Button
+        <button
           v-if="item.command && !item.isTitle"
-          :label="item.label as string"
-          text
-          size="small"
           @click="() => item.command?.()"
-          class="text-muted-color hover:text-color"
-        />
-
-        <h1 v-else-if="item.isTitle" class="text-3xl font-bold m-0">
+          class="text-sm text-muted-color hover:text-color transition-colors"
+        >
           {{ item.label }}
-        </h1>
+        </button>
 
-        <span v-else class="text-muted-color">
+        <span v-else-if="item.isTitle" class="text-sm font-medium text-color">
+          {{ item.label }}
+        </span>
+
+        <span v-else class="text-sm text-muted-color">
           {{ item.label }}
         </span>
       </template>
-    </div>
+    </nav>
   </div>
 </template>
 
@@ -66,39 +64,33 @@ const showHeader = computed(() => {
 })
 
 const allItems = computed<BreadcrumbItem[]>(() => {
-  const items: BreadcrumbItem[] = []
+  const ancestors: BreadcrumbItem[] = []
+  let parentName = route.meta.parent as string | undefined
 
-  if (route.meta.parent) {
-    const parentRoute = router.getRoutes().find((r) => r.name === route.meta.parent)
-    if (parentRoute && parentRoute.meta?.breadcrumb) {
-      items.push({
-        label: parentRoute.meta.breadcrumb as string,
-        command: () => {
-          router.push({ name: parentRoute.name as string })
-        },
-      })
-    }
+  while (parentName) {
+    const parentRoute = router.getRoutes().find((r) => r.name === parentName)
+    if (!parentRoute?.meta?.breadcrumb) break
+    const routeName = parentRoute.name as string
+    ancestors.unshift({
+      label: parentRoute.meta.breadcrumb as string,
+      command: () => router.push({ name: routeName }),
+    })
+    parentName = parentRoute.meta?.parent as string | undefined
   }
 
   if (route.meta.title) {
-    items.push({
-      label: route.meta.title as string,
-      isTitle: true,
-    })
+    ancestors.push({ label: route.meta.title as string, isTitle: true })
   } else if (route.meta.breadcrumb && !route.meta.hideBreadcrumb) {
-    items.push({
-      label: route.meta.breadcrumb as string,
-      isTitle: true,
-    })
+    ancestors.push({ label: route.meta.breadcrumb as string, isTitle: true })
   }
 
-  return items
+  return ancestors
 })
 </script>
 <style scoped>
 .breadcrumb-menu {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 0.5rem 1.5rem;
+  padding: 0.75rem 1rem 0.25rem 1rem;
 }
 </style>

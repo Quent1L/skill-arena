@@ -1,5 +1,6 @@
 <template>
   <div class="tournament-list-view p-4">
+    <h1 class="text-2xl font-bold mb-4">Gestion des tournois</h1>
     <div class="flex justify-between items-center mb-4 flex-xrap">
       <div class="flex flex-wrap gap-4">
         <Select

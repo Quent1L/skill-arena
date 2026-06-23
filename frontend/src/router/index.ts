@@ -97,6 +97,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      breadcrumb: 'Administration',
       title: 'Administration',
       hideBreadcrumb: true,
       requiresAuth: true,
@@ -186,7 +187,6 @@ const routes: RouteRecordRaw[] = [
       title: 'Nouvelle règle',
       requiresAuth: true,
       parent: 'admin-rules-engine',
-      hideBreadcrumb: true,
     },
   },
   {
@@ -279,9 +279,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      breadcrumb: 'Nouvelle saison',
       title: 'Nouvelle saison ranked',
-      hideBreadcrumb: true,
       requiresAuth: true,
+      parent: 'admin-ranked',
     },
   },
   {
@@ -290,9 +291,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
+      breadcrumb: 'Modifier la saison',
       title: 'Modifier la saison ranked',
-      hideBreadcrumb: true,
       requiresAuth: true,
+      parent: 'admin-ranked',
     },
   },
   {
