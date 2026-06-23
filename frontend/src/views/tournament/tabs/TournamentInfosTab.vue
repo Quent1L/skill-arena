@@ -39,6 +39,24 @@
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
       </button>
 
+      <!-- Badges -->
+      <button
+        v-if="store.tournament!.mode === 'ranked'"
+        @click="navigateTo('badges')"
+        class="group flex items-center justify-between p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-primary-400 dark:hover:border-primary-500 hover:shadow-md active:scale-[0.98] transition-all text-left cursor-pointer"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
+            <i class="fa fa-medal text-purple-600 dark:text-purple-400 text-sm sm:text-base" />
+          </div>
+          <div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Badges</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Badges à débloquer</div>
+          </div>
+        </div>
+        <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
+      </button>
+
       <!-- Règles -->
       <button
         v-if="store.tournament!.rulesId"
@@ -69,10 +87,6 @@
       :tournament-id="(route.params.id as string)"
     />
 
-    <AvailableBadgesCard
-      v-if="store.tournament!.mode === 'ranked'"
-      :tournament-id="(route.params.id as string)"
-    />
   </div>
 </template>
 
@@ -80,7 +94,6 @@
 import { useRouter, useRoute } from 'vue-router'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MmrExplainerCard from '@/components/ranked/MmrExplainerCard.vue'
-import AvailableBadgesCard from '@/components/rules/AvailableBadgesCard.vue'
 
 const store = useTournamentDetailStore()
 const router = useRouter()

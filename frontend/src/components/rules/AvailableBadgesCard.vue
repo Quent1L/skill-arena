@@ -15,18 +15,16 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <div
         v-for="badge in badges"
         :key="badge.ruleId"
-        class="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-100 dark:bg-surface-800"
+        class="flex flex-col items-center text-center p-3 rounded-xl bg-surface-100 dark:bg-surface-800 gap-2"
         v-tooltip.top="badge.description"
       >
-        <i :class="badge.icon || 'fa fa-medal'" class="text-2xl text-purple-600 shrink-0" />
-        <div class="min-w-0">
-          <div class="font-semibold text-sm truncate">{{ badge.label }}</div>
-          <div class="text-xs text-surface-500 line-clamp-2">{{ badge.description }}</div>
-        </div>
+        <i :class="badge.icon || 'fa fa-medal'" class="text-3xl text-purple-600" />
+        <div class="font-semibold text-sm leading-tight">{{ badge.label }}</div>
+        <div class="text-xs text-surface-500 line-clamp-2">{{ badge.description }}</div>
       </div>
     </div>
   </div>
