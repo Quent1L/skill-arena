@@ -205,8 +205,10 @@ const weekdayListValue = computed<number[]>({
 const dateValue = computed<Date | null>({
   get: () => {
     const v = node.value.value
+    if (v instanceof Date) return v
     if (typeof v !== 'string' || !v) return null
-    return new Date(v)
+    const [y, mo, d] = v.split('-').map(Number)
+    return new Date(y, mo - 1, d)
   },
   set: (d) => {
     if (!d) { node.value.value = ''; return }
