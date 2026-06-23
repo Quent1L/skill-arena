@@ -170,6 +170,28 @@ function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
   return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
 }
 
+function computeLossStreaks(matchesData: MatchData[]): WinStreakEntry[] {
+  const playerMatches = collectPlayerResults(matchesData, (match, side) => ({
+    playedAt: new Date(match.playedAt),
+    lost: isLoser(side, match.winnerSide),
+  }));
+
+  const streaks: WinStreakEntry[] = [];
+  for (const [playerId, data] of playerMatches) {
+    const sorted = [...data.results].sort((a, b) => b.playedAt.getTime() - a.playedAt.getTime());
+    let streak = 0;
+    for (const r of sorted) {
+      if (!r.lost) break;
+      streak++;
+    }
+    if (streak >= 2) {
+      streaks.push({ playerId, displayName: data.displayName, shortName: data.shortName, currentStreak: streak });
+    }
+  }
+
+  return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
+}
+
 function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): BestDuoEntry[] {
   const playerStats = new Map<string, PlayerWLStats>();
 
@@ -349,6 +371,7 @@ class TournamentStatsService {
       tournamentInfo.teamMode === "flex" ? computeBestTeams(matchesData) : [];
 
     const winStreaks: WinStreakEntry[] = computeWinStreaks(matchesData);
+    const lossStreaks: WinStreakEntry[] = computeLossStreaks(matchesData);
     const invincibleStreaks: WinStreakEntry[] = computeBestInvincibleStreak(matchesData);
 
     const bestDuoPlayers: BestDuoEntry[] =
@@ -370,6 +393,7 @@ class TournamentStatsService {
       bestTeams,
       momentum,
       winStreaks,
+      lossStreaks,
       invincibleStreaks,
       bestDuoPlayers,
       bestSoloPlayers,

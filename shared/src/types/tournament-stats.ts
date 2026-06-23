@@ -51,6 +51,7 @@ export interface TournamentStats {
   bestTeams: BestTeamEntry[]
   momentum: MomentumDay[]
   winStreaks: WinStreakEntry[]
+  lossStreaks: WinStreakEntry[]
   invincibleStreaks: WinStreakEntry[]
   bestDuoPlayers: BestDuoEntry[]
   bestSoloPlayers: BestDuoEntry[]

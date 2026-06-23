@@ -90,6 +90,33 @@
           </div>
         </div>
 
+        <!-- Séries de défaites en cours -->
+        <div
+          v-if="store.tournamentStats.lossStreaks.length"
+          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        >
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="fa fa-skull-crossbones mr-2 text-red-500" />
+            Séries de défaites en cours
+          </h2>
+          <div class="space-y-2">
+            <div
+              v-for="entry in store.tournamentStats.lossStreaks"
+              :key="entry.playerId"
+              class="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
+            >
+              <i class="fa fa-skull-crossbones text-red-500 text-lg" />
+              <span class="flex-1 font-medium text-gray-900 dark:text-white">{{
+                entry.displayName
+              }}</span>
+              <span class="font-bold text-red-600 dark:text-red-400 text-lg">{{
+                entry.currentStreak
+              }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">défaites consécutives</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Meilleures séries d'invincibilité -->
         <div
           v-if="store.tournamentStats.invincibleStreaks.length"

@@ -471,6 +471,8 @@ export class RankedSeasonService {
       losses: 0,
       winStreak: 0,
       maxWinStreak: 0,
+      lossStreak: 0,
+      maxLossStreak: 0,
       player: { id: user.id, displayName: user.displayName, shortName: user.shortName },
       recentResults: [...(ctx.provisionalResults.get(user.id) ?? [])].reverse(),
     }));

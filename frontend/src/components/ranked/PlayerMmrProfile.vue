@@ -72,16 +72,16 @@
       <div class="rounded-xl p-3 text-center bg-gray-800">
         <div
           class="text-xl font-black"
-          :class="mmr.winStreak > 0 ? 'text-orange-400' : 'text-gray-500'"
+          :class="mmr.winStreak > 1 ? 'text-orange-400' : mmr.lossStreak > 1 ? 'text-blue-400' : 'text-gray-500'"
         >
-          {{ mmr.winStreak > 0 ? mmr.winStreak : '—' }}
+          {{ mmr.winStreak > 1 ? `🔥 ${mmr.winStreak}` : mmr.lossStreak > 1 ? `💀 ${mmr.lossStreak}` : '—' }}
         </div>
-        <div class="text-xs text-gray-400 mt-0.5">Streak</div>
+        <div class="text-xs text-gray-400 mt-0.5">Série en cours</div>
       </div>
     </div>
 
-    <!-- W/L + max streak -->
-    <div class="grid grid-cols-2 gap-3">
+    <!-- W/L + max streaks -->
+    <div class="grid grid-cols-3 gap-3">
       <div class="rounded-xl p-4 bg-gray-800">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
           Victoires / Défaites
@@ -98,6 +98,14 @@
         </div>
         <div class="text-2xl font-black text-orange-400">
           {{ mmr.maxWinStreak > 0 ? `🔥 ${mmr.maxWinStreak}` : '—' }}
+        </div>
+      </div>
+      <div class="rounded-xl p-4 bg-gray-800">
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+          Pire série
+        </div>
+        <div class="text-2xl font-black text-blue-400">
+          {{ mmr.maxLossStreak > 0 ? `💀 ${mmr.maxLossStreak}` : '—' }}
         </div>
       </div>
     </div>

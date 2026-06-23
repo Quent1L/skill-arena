@@ -36,6 +36,8 @@ export interface PlayerMmr {
   losses: number;
   winStreak: number;
   maxWinStreak: number;
+  lossStreak: number;
+  maxLossStreak: number;
 }
 
 export type MmrHistoryOutcome = 'win' | 'loss' | 'draw';

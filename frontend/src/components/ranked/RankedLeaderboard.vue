@@ -118,6 +118,9 @@
                 <div v-if="player.winStreak > 1" class="text-[10px] text-orange-400">
                   🔥 {{ player.winStreak }}
                 </div>
+                <div v-else-if="player.lossStreak > 1" class="text-[10px] text-blue-400">
+                  💀 {{ player.lossStreak }}
+                </div>
               </div>
             </RouterLink>
           </template>
