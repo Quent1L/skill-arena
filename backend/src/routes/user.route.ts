@@ -4,7 +4,7 @@ import { createAppHono } from "../types/hono";
 import { userRepository } from "../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../types/errors";
 import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema, playerStatsFiltersSchema } from "@skill-arena/shared";
+import { updateProfileSchema, playerStatsFiltersSchema, userSearchSchema, playerComparisonSchema } from "@skill-arena/shared";
 import { playerStatsService } from "../services/player-stats.service";
 import { rulesService } from "../services/rules.service";
 
@@ -92,23 +92,39 @@ users.get("/", requireAuth, async (c) => {
   return c.json(usersResponse);
 });
 
+// GET /users/search - Search players by name (authenticated)
+// Registered before /:id so it is not captured as a player id
+users.get("/search", requireAuth, zValidator("query", userSearchSchema), async (c) => {
+  const { q, limit } = c.req.valid("query");
+  const players = await userService.searchUsers(q, limit);
+  return c.json(players);
+});
+
+// GET /users/compare - Compare two players (authenticated)
+// Registered before /:id so it is not captured as a player id
+users.get("/compare", requireAuth, zValidator("query", playerComparisonSchema), async (c) => {
+  const { playerA, playerB, ...filters } = c.req.valid("query");
+  const result = await playerStatsService.getComparison(playerA, playerB, filters);
+  return c.json(result);
+});
+
 // GET /users/:id - Public player profile
 users.get("/:id", async (c) => {
-  const id = c.req.param("id")!;
+  const id = c.req.param("id");
   const player = await playerStatsService.getPlayerProfile(id);
   return c.json(player);
 });
 
 // GET /users/:id/tournaments - Tournaments list for filter dropdown
 users.get("/:id/tournaments", async (c) => {
-  const id = c.req.param("id")!;
+  const id = c.req.param("id");
   const tournaments = await playerStatsService.getPlayerTournaments(id);
   return c.json({ tournaments });
 });
 
 // GET /users/:id/stats - Player stats (filterable)
 users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c) => {
-  const id = c.req.param("id")!;
+  const id = c.req.param("id");
   const filters = c.req.valid("query");
   const result = await playerStatsService.getPlayerStats(id, filters);
   return c.json(result);
@@ -116,7 +132,7 @@ users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c)
 
 // GET /users/:id/badges - Player badges (public)
 users.get("/:id/badges", async (c) => {
-  const id = c.req.param("id")!;
+  const id = c.req.param("id");
   const badges = await rulesService.getPlayerBadges(id);
   return c.json({ badges });
 });

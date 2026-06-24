@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, or, ilike, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { appUsers } from "../db/schema";
 
@@ -41,6 +41,19 @@ export class UserRepository {
       .where(eq(appUsers.id, id))
       .returning();
     return updated;
+  }
+
+  /**
+   * Search users by display name or short name (case-insensitive)
+   */
+  async searchByName(query: string, limit = 10) {
+    const pattern = `%${query}%`;
+    return await db.query.appUsers.findMany({
+      where: or(ilike(appUsers.displayName, pattern), ilike(appUsers.shortName, pattern)),
+      columns: { id: true, displayName: true, shortName: true },
+      orderBy: (users, { asc }) => [asc(users.displayName)],
+      limit,
+    });
   }
 
   /**

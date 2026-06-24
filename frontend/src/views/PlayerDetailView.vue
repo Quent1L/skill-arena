@@ -34,14 +34,28 @@
           </div>
           <div v-if="player?.shortName" class="text-sm text-gray-400">{{ player.shortName }}</div>
         </div>
-        <div class="md:hidden ml-auto shrink-0">
-          <Button
-            icon="fa fa-filter"
-            severity="secondary"
-            @click="showFilterDrawer = true"
-            :badge="activeFilterCount > 0 ? String(activeFilterCount) : undefined"
-            badge-severity="info"
-          />
+        <div class="ml-auto shrink-0 flex items-center gap-2">
+          <div v-if="canCompare" class="hidden md:block">
+            <Button
+              label="Se comparer"
+              icon="fa fa-scale-balanced"
+              outlined
+              severity="info"
+              @click="goToCompare"
+            />
+          </div>
+          <div v-if="canCompare" class="md:hidden">
+            <Button icon="fa fa-scale-balanced" severity="secondary" @click="goToCompare" />
+          </div>
+          <div class="md:hidden">
+            <Button
+              icon="fa fa-filter"
+              severity="secondary"
+              @click="showFilterDrawer = true"
+              :badge="activeFilterCount > 0 ? String(activeFilterCount) : undefined"
+              badge-severity="info"
+            />
+          </div>
         </div>
       </div>
 
@@ -57,6 +71,7 @@
             <Select
               v-model="selectedDisciplineId"
               input-id="filter-discipline"
+              aria-label="Discipline"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
@@ -76,6 +91,7 @@
           <Select
             v-model="selectedTournamentId"
             input-id="filter-tournament"
+            aria-label="Tournoi"
             :options="tournamentOptions"
             option-label="label"
             option-value="value"
@@ -130,6 +146,7 @@
             <Select
               v-model="draftDisciplineId"
               input-id="filter-discipline-mobile"
+              aria-label="Discipline"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
@@ -143,6 +160,7 @@
             <Select
               v-model="draftTournamentId"
               input-id="filter-tournament-mobile"
+              aria-label="Tournoi"
               :options="tournamentOptions"
               option-label="label"
               option-value="value"
@@ -422,6 +440,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { usePlayerService } from '@/composables/player/player.service'
+import { useAuth } from '@/composables/useAuth'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import type {
   PlayerStatsFilters,
@@ -448,6 +467,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const route = useRoute()
 const router = useRouter()
+const { appUser } = useAuth()
 const {
   player,
   stats,
@@ -607,6 +627,18 @@ function applyFilters(
   if (mode) filters.tournamentMode = mode
   if (disciplineId) filters.disciplineId = disciplineId
   loadStats(playerId.value, filters)
+}
+
+const canCompare = computed(
+  () => !!appUser.value && appUser.value.id !== playerId.value && appUser.value.role !== 'kiosk',
+)
+
+function goToCompare() {
+  const query: Record<string, string> = { b: playerId.value }
+  if (selectedDisciplineId.value) query.disciplineId = selectedDisciplineId.value
+  if (selectedMode.value) query.mode = selectedMode.value
+  if (selectedTournamentId.value) query.tournamentId = selectedTournamentId.value
+  router.push({ name: 'player-compare', query })
 }
 
 function resetFilters() {

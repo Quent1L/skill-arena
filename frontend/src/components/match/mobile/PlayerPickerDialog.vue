@@ -28,39 +28,42 @@
 
       <!-- Player List -->
       <div class="flex-1 overflow-y-auto p-2">
-        <div v-if="filteredPlayers.length === 0" class="text-center p-8 text-gray-500">
+        <div v-if="searching" class="flex justify-center p-8">
+          <ProgressSpinner style="width: 32px; height: 32px" />
+        </div>
+        <div v-else-if="displayedPlayers.length === 0" class="text-center p-8 text-gray-500">
           Aucun joueur trouvé
         </div>
         <div
-          v-for="player in filteredPlayers"
+          v-for="player in displayedPlayers"
           :key="player.id"
           class="flex items-center p-3 mb-2 rounded-lg active:bg-gray-100 dark:active:bg-gray-800 transition-colors cursor-pointer"
           :class="{
             'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800':
-              isSelected(player.id),
+              !single && isSelected(player.id),
           }"
-          @click="togglePlayer(player.id)"
+          @click="pickPlayer(player)"
         >
           <PlayerAvatar
             :name="player.displayName"
             shape="square"
             class="mr-3"
-            :class="{ 'ring-2 ring-blue-500': isSelected(player.id) }"
+            :class="{ 'ring-2 ring-blue-500': !single && isSelected(player.id) }"
           />
           <div class="flex-1">
             <div class="font-medium">{{ player.displayName }}</div>
           </div>
-          <div v-if="isSelected(player.id)" class="text-blue-600 dark:text-blue-400">
+          <div v-if="!single && isSelected(player.id)" class="text-blue-600 dark:text-blue-400">
             <i class="fas fa-check-circle text-xl" />
           </div>
-          <div v-else class="text-gray-300 dark:text-gray-600">
+          <div v-else-if="!single" class="text-gray-300 dark:text-gray-600">
             <i class="far fa-circle text-xl" />
           </div>
         </div>
       </div>
 
-      <!-- Footer -->
-      <div class="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
+      <!-- Footer (multi-select only) -->
+      <div v-if="!single" class="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
         <Button label="Terminer" class="w-full" @click="close" />
       </div>
     </div>
@@ -68,46 +71,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import ProgressSpinner from 'primevue/progressspinner'
 
 interface Player {
   id: string
   displayName: string
   avatarUrl?: string
+  shortName?: string
 }
 
 interface Props {
   title?: string
-  players: Player[]
-  selectedIds: string[]
+  players?: Player[]
+  selectedIds?: string[]
+  single?: boolean
+  searchFn?: (query: string) => Promise<Player[]>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   title: 'Sélectionner des joueurs',
   players: () => [],
   selectedIds: () => [],
+  single: false,
 })
 
 const emit = defineEmits<{
   'update:selectedIds': [ids: string[]]
+  'select': [player: Player]
   close: []
 }>()
 
 const visible = defineModel<boolean>('visible')
 const searchQuery = ref('')
+const liveResults = ref<Player[]>([])
+const searching = ref(false)
 
 const filteredPlayers = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
   if (!query) return props.players
-
   return props.players.filter((p) => p.displayName.toLowerCase().includes(query))
+})
+
+const displayedPlayers = computed(() =>
+  props.searchFn ? liveResults.value : filteredPlayers.value,
+)
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(searchQuery, (q) => {
+  if (!props.searchFn) return
+  if (debounceTimer) clearTimeout(debounceTimer)
+  const query = q.trim()
+  if (!query) {
+    liveResults.value = []
+    return
+  }
+  searching.value = true
+  debounceTimer = setTimeout(async () => {
+    try {
+      liveResults.value = await props.searchFn!(query)
+    } finally {
+      searching.value = false
+    }
+  }, 300)
 })
 
 const inputFilterIcon = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
   if (!query) return 'fas fa-search'
-
   return 'fas fa-x cursor-pointer'
 })
 
@@ -115,16 +148,16 @@ function isSelected(id: string) {
   return props.selectedIds.includes(id)
 }
 
-function togglePlayer(id: string) {
-  const newIds = [...props.selectedIds]
-  const index = newIds.indexOf(id)
-
-  if (index === -1) {
-    newIds.push(id)
-  } else {
-    newIds.splice(index, 1)
+function pickPlayer(player: Player) {
+  if (props.single) {
+    emit('select', player)
+    close()
+    return
   }
-
+  const newIds = [...props.selectedIds]
+  const index = newIds.indexOf(player.id)
+  if (index === -1) newIds.push(player.id)
+  else newIds.splice(index, 1)
   emit('update:selectedIds', newIds)
 }
 

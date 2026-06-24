@@ -4,6 +4,7 @@ import type {
   PlayerStatsResponse,
   PlayerStatsFilters,
   PlayerTournamentOption,
+  PlayerComparisonResponse,
 } from '@skill-arena/shared/types/index'
 
 const BASE_URL = '/api/users'
@@ -27,6 +28,24 @@ export const playerApi = {
   async getStats(playerId: string, filters?: PlayerStatsFilters): Promise<PlayerStatsResponse> {
     const response = await http.get<PlayerStatsResponse>(`${BASE_URL}/${playerId}/stats`, {
       params: filters,
+    })
+    return response.data
+  },
+
+  async search(query: string, limit?: number): Promise<PlayerProfile[]> {
+    const response = await http.get<PlayerProfile[]>(`${BASE_URL}/search`, {
+      params: { q: query, limit },
+    })
+    return response.data
+  },
+
+  async getComparison(
+    playerAId: string,
+    playerBId: string,
+    filters?: PlayerStatsFilters,
+  ): Promise<PlayerComparisonResponse> {
+    const response = await http.get<PlayerComparisonResponse>(`${BASE_URL}/compare`, {
+      params: { playerA: playerAId, playerB: playerBId, ...filters },
     })
     return response.data
   },

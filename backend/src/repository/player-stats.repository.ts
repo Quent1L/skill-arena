@@ -22,7 +22,7 @@ export class PlayerStatsRepository {
 
   async getPlayerEntries(
     playerId: string,
-    filters?: { tournamentId?: string; disciplineId?: string; tournamentMode?: string }
+    filters?: { tournamentId?: string; disciplineId?: string; tournamentMode?: string; teamMode?: string; allowedModes?: string[] }
   ) {
     const conditions = [eq(tournamentEntryPlayers.playerId, playerId)];
 
@@ -32,6 +32,7 @@ export class PlayerStatsRepository {
         tournamentId: tournaments.id,
         tournamentName: tournaments.name,
         tournamentMode: tournaments.mode,
+        teamMode: tournaments.teamMode,
         disciplineId: tournaments.disciplineId,
         disciplineName: disciplines.name,
       })
@@ -45,8 +46,23 @@ export class PlayerStatsRepository {
       if (filters?.tournamentId && e.tournamentId !== filters.tournamentId) return false;
       if (filters?.disciplineId && e.disciplineId !== filters.disciplineId) return false;
       if (filters?.tournamentMode && e.tournamentMode !== filters.tournamentMode) return false;
+      if (filters?.teamMode && e.teamMode !== filters.teamMode) return false;
+      if (filters?.allowedModes?.length && !filters.allowedModes.includes(e.tournamentMode)) return false;
       return true;
     });
+  }
+
+  async getEntryPlayerCounts(entryIds: string[]): Promise<Map<string, number>> {
+    if (entryIds.length === 0) return new Map();
+    const rows = await db
+      .select({
+        entryId: tournamentEntryPlayers.entryId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(tournamentEntryPlayers)
+      .where(inArray(tournamentEntryPlayers.entryId, entryIds))
+      .groupBy(tournamentEntryPlayers.entryId);
+    return new Map(rows.map((r) => [r.entryId, r.count]));
   }
 
   async getPlayerMatchResults(playerEntryIds: string[], playerId: string) {
@@ -209,6 +225,7 @@ export class PlayerStatsRepository {
         id: tournaments.id,
         name: tournaments.name,
         mode: tournaments.mode,
+        teamMode: tournaments.teamMode,
         disciplineId: tournaments.disciplineId,
         disciplineName: disciplines.name,
       })

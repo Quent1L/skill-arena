@@ -371,6 +371,17 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/players/compare',
+    name: 'player-compare',
+    component: () => import('@/views/PlayerComparisonView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      title: 'Comparer des joueurs',
+      hideBreadcrumb: true,
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/players/:id',
     name: 'player-detail',
     component: () => import('@/views/PlayerDetailView.vue'),

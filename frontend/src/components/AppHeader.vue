@@ -92,6 +92,14 @@ const menuItems = computed<MenuItem[]>(() => [
     visible: appUser.value?.role !== 'kiosk',
   },
   {
+    label: 'Comparer des joueurs',
+    icon: 'fas fa-people-arrows',
+    command: () => {
+      router.push({ name: 'player-compare' })
+    },
+    visible: appUser.value?.role !== 'kiosk',
+  },
+  {
     label: 'Paramètres',
     icon: 'fas fa-cog',
     command: () => {

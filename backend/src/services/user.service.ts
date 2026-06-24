@@ -1,7 +1,7 @@
 import { userRepository } from "../repository/user.repository";
 import { invitationRepository } from "../repository/invitation.repository";
 import { ErrorCode, NotFoundError, UnauthorizedError } from "../types/errors";
-import type { UpdateProfileInput } from "@skill-arena/shared";
+import type { UpdateProfileInput, PlayerProfile } from "@skill-arena/shared";
 
 export class UserService {
   /**
@@ -74,6 +74,14 @@ export class UserService {
       throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
     }
     return await userRepository.updateAppUser(appUserId, data);
+  }
+
+  /**
+   * Search users by name (authenticated). Returns lightweight player profiles.
+   */
+  async searchUsers(query: string, limit = 10): Promise<PlayerProfile[]> {
+    const users = await userRepository.searchByName(query, limit);
+    return users.map((u) => ({ id: u.id, displayName: u.displayName, shortName: u.shortName }));
   }
 
   /**

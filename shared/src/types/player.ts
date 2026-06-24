@@ -76,6 +76,7 @@ export interface PlayerStatsFilters {
   tournamentId?: string;
   disciplineId?: string;
   tournamentMode?: string;
+  teamMode?: string;
 }
 
 export interface PlayerStatsResponse {
@@ -88,14 +89,63 @@ export interface PlayerTournamentOption {
   id: string;
   name: string;
   mode: string;
+  teamMode?: string;
   disciplineId?: string;
   disciplineName?: string;
 }
 
+// ============================================
+// Player comparison (player vs player)
+// ============================================
+
+export interface H2HSubRecord {
+  matchesPlayed: number;
+  playerAWins: number;
+  playerBWins: number;
+  draws: number;
+  playerAWinRate: number;
+}
+
+export interface PlayerHeadToHeadRecord extends H2HSubRecord {
+  solo: H2HSubRecord;
+  team: H2HSubRecord;
+}
+
+export interface PlayerTeamupRecord {
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  winRate: number; // 0-100, record of the pair when on the same side
+}
+
+export interface PlayerComparisonResponse {
+  playerA: PlayerStatsResponse;
+  playerB: PlayerStatsResponse;
+  headToHead: PlayerHeadToHeadRecord;
+  together: PlayerTeamupRecord;
+  filters: PlayerStatsFilters;
+}
+
 export const playerStatsFiltersSchema = z.object({
-  tournamentId: z.string().uuid().optional(),
-  disciplineId: z.string().uuid().optional(),
+  tournamentId: z.uuid().optional(),
+  disciplineId: z.uuid().optional(),
   tournamentMode: tournamentModeSchema.optional(),
+  teamMode: z.string().optional(),
 });
 
 export type PlayerStatsFiltersQuery = z.infer<typeof playerStatsFiltersSchema>;
+
+export const userSearchSchema = z.object({
+  q: z.string().min(1),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
+export type UserSearchQuery = z.infer<typeof userSearchSchema>;
+
+export const playerComparisonSchema = playerStatsFiltersSchema.extend({
+  playerA: z.uuid(),
+  playerB: z.uuid(),
+});
+
+export type PlayerComparisonQuery = z.infer<typeof playerComparisonSchema>;

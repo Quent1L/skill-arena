@@ -16,7 +16,13 @@ import type {
   HistoryMatchSidePlayer,
   PlayerOutcomeTypeStat,
   PlayerH2HStat,
+  H2HSubRecord,
+  PlayerHeadToHeadRecord,
+  PlayerTeamupRecord,
+  PlayerComparisonResponse,
 } from "@skill-arena/shared";
+
+type ExtendedFilters = PlayerStatsFilters & { allowedModes?: string[] };
 
 type MatchResult = {
   matchId: string;
@@ -54,6 +60,33 @@ function groupPlayersByEntry(
   return map;
 }
 
+type H2HAcc = { playerAWins: number; playerBWins: number; draws: number };
+
+function tabulateH2HMatch(
+  r: MatchResult,
+  playerCounts: Map<string, number>,
+  soloAcc: H2HAcc,
+  teamAcc: H2HAcc,
+) {
+  const aCount = playerCounts.get(r.entryId) ?? 1;
+  const bCount = playerCounts.get(r.oppEntryId) ?? 1;
+  const acc = aCount === 1 && bCount === 1 ? soloAcc : teamAcc;
+  if (isWinResult(r)) acc.playerAWins++;
+  else if (isLossResult(r)) acc.playerBWins++;
+  else if (r.winnerSide === null && r.allowDraw) acc.draws++;
+}
+
+function buildH2HSubRecord(acc: H2HAcc): H2HSubRecord {
+  const matchesPlayed = acc.playerAWins + acc.playerBWins + acc.draws;
+  return {
+    matchesPlayed,
+    playerAWins: acc.playerAWins,
+    playerBWins: acc.playerBWins,
+    draws: acc.draws,
+    playerAWinRate: matchesPlayed > 0 ? Math.round((acc.playerAWins / matchesPlayed) * 100) : 0,
+  };
+}
+
 type RelationAcc = {
   displayName: string;
   shortName: string;
@@ -62,6 +95,23 @@ type RelationAcc = {
   draws: number;
   count: number;
 };
+
+function accumulatePlayer(
+  acc: Map<string, RelationAcc>,
+  p: EntryPlayer,
+  win: boolean,
+  loss: boolean,
+  draw: boolean,
+) {
+  if (!acc.has(p.playerId)) {
+    acc.set(p.playerId, { displayName: p.displayName, shortName: p.shortName, wins: 0, losses: 0, draws: 0, count: 0 });
+  }
+  const s = acc.get(p.playerId)!;
+  s.count++;
+  if (win) s.wins++;
+  else if (loss) s.losses++;
+  else if (draw) s.draws++;
+}
 
 function tallyRelations(
   matchResults: MatchResult[],
@@ -81,14 +131,7 @@ function tallyRelations(
 
     for (const p of entryToPlayers.get(pickEntryId(r)) ?? []) {
       if (excludePlayerId && p.playerId === excludePlayerId) continue;
-      if (!acc.has(p.playerId)) {
-        acc.set(p.playerId, { displayName: p.displayName, shortName: p.shortName, wins: 0, losses: 0, draws: 0, count: 0 });
-      }
-      const s = acc.get(p.playerId)!;
-      s.count++;
-      if (win) s.wins++;
-      else if (loss) s.losses++;
-      else if (draw) s.draws++;
+      accumulatePlayer(acc, p, win, loss, draw);
     }
   }
   return acc;
@@ -136,6 +179,7 @@ export class PlayerStatsService {
         id: r.id,
         name: r.name,
         mode: r.mode,
+        teamMode: r.teamMode ?? undefined,
         disciplineId: r.disciplineId ?? undefined,
         disciplineName: r.disciplineName ?? undefined,
       }));
@@ -200,6 +244,142 @@ export class PlayerStatsService {
     }
 
     return { player, stats, filters };
+  }
+
+  async getComparison(
+    playerAId: string,
+    playerBId: string,
+    userFilters: PlayerStatsFilters,
+  ): Promise<PlayerComparisonResponse> {
+    const validModes = ['championship', 'ranked'] as const;
+    const mode = validModes.includes(userFilters.tournamentMode as typeof validModes[number])
+      ? userFilters.tournamentMode
+      : undefined;
+
+    const filters: ExtendedFilters = {
+      disciplineId: userFilters.disciplineId,
+      tournamentId: userFilters.tournamentId,
+      teamMode: 'flex',
+      ...(mode ? { tournamentMode: mode } : { allowedModes: [...validModes] }),
+    };
+
+    const [playerA, playerB, headToHead, together] = await Promise.all([
+      this.getPlayerStats(playerAId, filters),
+      this.getPlayerStats(playerBId, filters),
+      this.computeDirectH2H(playerAId, playerBId, filters),
+      this.computeTogether(playerAId, playerBId, filters),
+    ]);
+
+    return { playerA, playerB, headToHead, together, filters };
+  }
+
+  /** Record of player A and B when they played on the same side (teammates) */
+  private async computeTogether(
+    playerAId: string,
+    playerBId: string,
+    filters: ExtendedFilters,
+  ): Promise<PlayerTeamupRecord> {
+    const empty: PlayerTeamupRecord = { matchesPlayed: 0, wins: 0, losses: 0, draws: 0, winRate: 0 };
+
+    const entries = await playerStatsRepository.getPlayerEntries(playerAId, filters);
+    if (entries.length === 0) return empty;
+
+    const playerEntryIds = entries.map((e) => e.entryId);
+    const matchResults = await playerStatsRepository.getPlayerMatchResults(playerEntryIds, playerAId);
+    if (matchResults.length === 0) return empty;
+
+    const playersInOwnEntries = await playerStatsRepository.getPlayersInEntries(playerEntryIds);
+    const entryToPlayers = groupPlayersByEntry(playersInOwnEntries);
+
+    const ownEntriesWithB = new Set(
+      [...entryToPlayers.entries()]
+        .filter(([, players]) => players.some((p) => p.playerId === playerBId))
+        .map(([entryId]) => entryId),
+    );
+
+    const seenMatches = new Set<string>();
+    let wins = 0, losses = 0, draws = 0;
+
+    for (const r of matchResults) {
+      if (seenMatches.has(r.matchId)) continue;
+      if (!ownEntriesWithB.has(r.entryId)) continue;
+      seenMatches.add(r.matchId);
+      if (isWinResult(r)) wins++;
+      else if (isLossResult(r)) losses++;
+      else if (r.winnerSide === null && r.allowDraw) draws++;
+    }
+
+    const matchesPlayed = wins + losses + draws;
+    return {
+      matchesPlayed,
+      wins,
+      losses,
+      draws,
+      winRate: matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0,
+    };
+  }
+
+  /** Direct head-to-head record from player A's perspective vs player B */
+  private async computeDirectH2H(
+    playerAId: string,
+    playerBId: string,
+    filters: ExtendedFilters,
+  ): Promise<PlayerHeadToHeadRecord> {
+    const emptySubRecord: H2HSubRecord = { matchesPlayed: 0, playerAWins: 0, playerBWins: 0, draws: 0, playerAWinRate: 0 };
+    const empty: PlayerHeadToHeadRecord = { ...emptySubRecord, solo: { ...emptySubRecord }, team: { ...emptySubRecord } };
+
+    const entries = await playerStatsRepository.getPlayerEntries(playerAId, filters);
+    if (entries.length === 0) return empty;
+
+    const playerAEntryIds = entries.map((e) => e.entryId);
+    const matchResults = await playerStatsRepository.getPlayerMatchResults(playerAEntryIds, playerAId);
+    if (matchResults.length === 0) return empty;
+
+    const oppEntryIds = [...new Set(matchResults.map((r) => r.oppEntryId))];
+    const playersInOppEntries = await playerStatsRepository.getPlayersInEntries(oppEntryIds);
+    const entryToPlayers = groupPlayersByEntry(playersInOppEntries);
+
+    const oppEntriesWithB = new Set(
+      [...entryToPlayers.entries()]
+        .filter(([, players]) => players.some((p) => p.playerId === playerBId))
+        .map(([entryId]) => entryId),
+    );
+
+    const relevantOwnEntryIds = [...new Set(
+      matchResults
+        .filter((r) => oppEntriesWithB.has(r.oppEntryId))
+        .map((r) => r.entryId),
+    )];
+    const relevantOppEntryIds = [...oppEntriesWithB];
+    const playerCounts = await playerStatsRepository.getEntryPlayerCounts([...relevantOwnEntryIds, ...relevantOppEntryIds]);
+
+    const seenMatches = new Set<string>();
+    const soloAcc: H2HAcc = { playerAWins: 0, playerBWins: 0, draws: 0 };
+    const teamAcc: H2HAcc = { playerAWins: 0, playerBWins: 0, draws: 0 };
+
+    for (const r of matchResults) {
+      if (seenMatches.has(r.matchId)) continue;
+      if (!oppEntriesWithB.has(r.oppEntryId)) continue;
+      seenMatches.add(r.matchId);
+      tabulateH2HMatch(r, playerCounts, soloAcc, teamAcc);
+    }
+
+    const solo = buildH2HSubRecord(soloAcc);
+    const team = buildH2HSubRecord(teamAcc);
+    const totalWins = solo.playerAWins + team.playerAWins;
+    const totalLosses = solo.playerBWins + team.playerBWins;
+    const totalDraws = solo.draws + team.draws;
+    const matchesPlayed = totalWins + totalLosses + totalDraws;
+
+    return {
+      matchesPlayed,
+      playerAWins: totalWins,
+      playerBWins: totalLosses,
+      draws: totalDraws,
+      playerAWinRate: matchesPlayed > 0 ? Math.round((totalWins / matchesPlayed) * 100) : 0,
+      solo,
+      team,
+    };
   }
 
   async invalidateCache(playerId: string): Promise<void> {
