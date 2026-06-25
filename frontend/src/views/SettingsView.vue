@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="max-w-2xl mx-auto p-4">
-      <h1 class="text-2xl font-bold mb-6">Paramètres</h1>
+      <h1 class="text-2xl font-bold mb-6">{{ t('settings.title') }}</h1>
 
       <div class="space-y-6">
         <!-- Apparence -->
@@ -9,16 +9,56 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-palette"></i>
-              <span>Apparence</span>
+              <span>{{ t('settings.appearance.title') }}</span>
             </div>
           </template>
           <template #content>
             <div class="flex items-center justify-between">
               <div>
-                <p class="font-medium">Mode sombre</p>
-                <p class="text-sm opacity-70">Activer le thème sombre pour l'interface</p>
+                <p class="font-medium">{{ t('settings.appearance.darkMode') }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.appearance.darkModeDesc') }}</p>
               </div>
               <ToggleSwitch :value="darkMode" @update:model-value="toggleDarkMode" />
+            </div>
+          </template>
+        </Card>
+
+        <!-- Langue -->
+        <Card>
+          <template #title>
+            <div class="flex items-center gap-2">
+              <i class="fas fa-language"></i>
+              <span>{{ t('settings.language.title') }}</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="font-medium">{{ t('settings.language.label') }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.language.desc') }}</p>
+              </div>
+              <Select
+                v-model="currentLocale"
+                input-id="language-select"
+                :aria-label="t('settings.language.label')"
+                :options="availableLocales"
+                option-label="label"
+                option-value="code"
+                class="w-44"
+              >
+                <template #value="{ value }">
+                  <span v-if="value" class="flex items-center gap-2">
+                    <span>{{ availableLocales.find((l) => l.code === value)?.flag }}</span>
+                    <span>{{ availableLocales.find((l) => l.code === value)?.label }}</span>
+                  </span>
+                </template>
+                <template #option="{ option }">
+                  <span class="flex items-center gap-2">
+                    <span>{{ option.flag }}</span>
+                    <span>{{ option.label }}</span>
+                  </span>
+                </template>
+              </Select>
             </div>
           </template>
         </Card>
@@ -28,18 +68,18 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-user-edit"></i>
-              <span>Profil</span>
+              <span>{{ t('settings.profile.title') }}</span>
             </div>
           </template>
           <template #content>
             <form @submit="onSubmitProfile" class="space-y-4">
               <Message v-if="profileSuccess" severity="success" :closable="false">
                 <i class="fa fa-check mr-2"></i>
-                Profil mis à jour avec succès.
+                {{ t('settings.profile.updateSuccess') }}
               </Message>
 
               <div class="flex flex-col gap-2">
-                <label for="display-name" class="font-medium">Nom complet</label>
+                <label for="display-name" class="font-medium">{{ t('settings.profile.displayName') }}</label>
                 <InputText
                   id="display-name"
                   v-model="displayName"
@@ -54,7 +94,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label for="short-name" class="font-medium">Nom court (affichage réduit)</label>
+                <label for="short-name" class="font-medium">{{ t('settings.profile.shortName') }}</label>
                 <InputText
                   id="short-name"
                   v-model="shortName"
@@ -65,7 +105,7 @@
                   @input="shortName = (shortName ?? '').toUpperCase()"
                 />
                 <small class="opacity-60">
-                  Jusqu'à 8 caractères, affiché lorsque la place disponible est réduite.
+                  {{ t('settings.profile.shortNameHint') }}
                 </small>
                 <small v-if="profileErrors.shortName" class="text-red-500">
                   {{ profileErrors.shortName }}
@@ -78,7 +118,7 @@
 
               <div class="flex justify-end gap-2 pt-2">
                 <Button
-                  label="Annuler"
+                  :label="t('common.cancel')"
                   severity="secondary"
                   outlined
                   type="button"
@@ -86,7 +126,7 @@
                   @click="$router.back()"
                 />
                 <Button
-                  label="Enregistrer"
+                  :label="t('common.save')"
                   type="submit"
                   icon="fas fa-save"
                   :loading="profileLoading"
@@ -102,20 +142,20 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-mobile-alt"></i>
-              <span>Application</span>
+              <span>{{ t('settings.application.title') }}</span>
             </div>
           </template>
           <template #content>
             <Message v-if="isInstalled" severity="success" :closable="false">
-              L'application est déjà installée sur cet appareil.
+              {{ t('settings.application.installed') }}
             </Message>
 
             <div v-else-if="canInstall" class="flex items-center justify-between gap-4">
               <div>
-                <p class="font-medium">Installer l'application</p>
-                <p class="text-sm opacity-70">Accès rapide depuis l'écran d'accueil</p>
+                <p class="font-medium">{{ t('settings.application.install') }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.application.installDesc') }}</p>
               </div>
-              <Button icon="fas fa-download" label="Installer" @click="triggerInstall" />
+              <Button icon="fas fa-download" :label="t('settings.application.installBtn')" @click="triggerInstall" />
             </div>
 
             <Message
@@ -125,12 +165,13 @@
               class="mt-3"
               @close="showIOSInstructions = false"
             >
-              Appuyez sur <i class="fas fa-share-from-square mx-1"></i> puis
-              <strong>"Sur l'écran d'accueil"</strong>
+              {{ t('settings.application.iosTap') }} <i class="fas fa-share-from-square mx-1"></i>
+              {{ t('settings.application.iosThen') }}
+              <strong>"{{ t('settings.application.iosAddToHome') }}"</strong>
             </Message>
 
             <Message v-else-if="!isInstalled && !canInstall" severity="secondary" :closable="false">
-              L'installation n'est pas disponible sur ce navigateur.
+              {{ t('settings.application.notAvailable') }}
             </Message>
           </template>
         </Card>
@@ -140,14 +181,14 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-bell"></i>
-              <span>Notifications</span>
+              <span>{{ t('settings.notifications.title') }}</span>
             </div>
           </template>
           <template #content>
             <div class="flex items-center justify-between">
               <div>
-                <p class="font-medium">Notifications push</p>
-                <p class="text-sm opacity-70">Recevoir des notifications sur cet appareil</p>
+                <p class="font-medium">{{ t('settings.notifications.push') }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.notifications.pushDesc') }}</p>
               </div>
               <ToggleSwitch
                 :model-value="pushEnabled"
@@ -156,7 +197,7 @@
               />
             </div>
             <Message v-if="!notificationSupported" severity="warn" class="mt-3">
-              Les notifications push ne sont pas supportées par votre navigateur
+              {{ t('settings.notifications.unsupported') }}
             </Message>
           </template>
         </Card>
@@ -166,12 +207,12 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-user"></i>
-              <span>Compte</span>
+              <span>{{ t('settings.account.title') }}</span>
             </div>
           </template>
           <template #content>
             <Button
-              label="Changer le mot de passe"
+              :label="t('settings.account.changePassword')"
               outlined
               icon="fas fa-key"
               severity="secondary"
@@ -186,18 +227,18 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-users"></i>
-              <span>Groupes</span>
+              <span>{{ t('settings.groups.title') }}</span>
             </div>
           </template>
           <template #content>
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="font-medium">Rejoindre un groupe</p>
-                <p class="text-sm opacity-70">Accéder aux tournois privés d'un groupe</p>
+                <p class="font-medium">{{ t('settings.groups.join') }}</p>
+                <p class="text-sm opacity-70">{{ t('settings.groups.joinDesc') }}</p>
               </div>
               <Button
                 icon="fas fa-user-plus"
-                label="Rejoindre"
+                :label="t('common.join')"
                 outlined
                 severity="secondary"
                 @click="openJoinOrgDialog"
@@ -211,17 +252,16 @@
           <template #title>
             <div class="flex items-center gap-2">
               <i class="fas fa-lock"></i>
-              <span>Mode kiosque</span>
+              <span>{{ t('settings.kiosk.title') }}</span>
             </div>
           </template>
           <template #content>
             <div class="space-y-3">
               <Message severity="warn" :closable="false">
-                En verrouillant les paramètres, vous ne pourrez plus y accéder tant que
-                l'utilisateur ne se sera pas reconnecté sur cet appareil.
+                {{ t('settings.kiosk.warning') }}
               </Message>
               <Button
-                label="Verrouiller les paramètres"
+                :label="t('settings.kiosk.lock')"
                 icon="fas fa-lock"
                 severity="danger"
                 outlined
@@ -237,7 +277,7 @@
     <!-- Dialog rejoindre un groupe -->
     <Dialog
       v-model:visible="showJoinOrgDialog"
-      header="Rejoindre un groupe"
+      :header="t('settings.groups.join')"
       modal
       :style="{ width: '28rem' }"
       @hide="resetJoinOrgDialog"
@@ -245,16 +285,16 @@
       <div class="space-y-4">
         <Message v-if="joinOrgSuccess" severity="success" :closable="false">
           <i class="fa fa-check mr-2"></i>
-          Vous avez rejoint <strong>{{ joinOrgSuccessName }}</strong>.
+          {{ t('settings.groups.joinedPrefix') }} <strong>{{ joinOrgSuccessName }}</strong>.
         </Message>
 
         <template v-if="!joinOrgSuccess">
           <div class="flex flex-col gap-2">
-            <label for="org-code" class="font-medium">Code d'invitation</label>
+            <label for="org-code" class="font-medium">{{ t('settings.groups.invitationCode') }}</label>
             <InputText
               id="org-code"
               v-model="joinOrgCode"
-              placeholder="ex: tigre-riviere-soleil-lune"
+              :placeholder="t('settings.groups.codePlaceholder')"
               :disabled="joinOrgIsValidating || joinOrgLoading"
               class="w-full"
               @input="debouncedValidateOrgCode"
@@ -262,7 +302,7 @@
 
             <div v-if="joinOrgIsValidating" class="flex items-center gap-2 text-blue-600">
               <i class="fa fa-spinner fa-spin"></i>
-              <span class="text-sm">Validation en cours...</span>
+              <span class="text-sm">{{ t('settings.groups.validating') }}</span>
             </div>
 
             <Message v-else-if="joinOrgCodeError" severity="error" :closable="false">
@@ -272,7 +312,7 @@
 
             <Message v-else-if="joinOrgCodeValid && joinOrgOrganizationName" severity="success" :closable="false">
               <i class="fa fa-check-circle mr-2"></i>
-              Code valide — groupe : <strong>{{ joinOrgOrganizationName }}</strong>
+              {{ t('settings.groups.codeValidPrefix') }} <strong>{{ joinOrgOrganizationName }}</strong>
             </Message>
           </div>
 
@@ -283,7 +323,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <Button
-              label="Annuler"
+              :label="t('common.cancel')"
               severity="secondary"
               outlined
               type="button"
@@ -291,7 +331,7 @@
               @click="showJoinOrgDialog = false"
             />
             <Button
-              label="Rejoindre"
+              :label="t('common.join')"
               icon="fas fa-user-plus"
               :loading="joinOrgLoading"
               :disabled="!joinOrgCodeValid || !joinOrgOrganizationName || joinOrgLoading"
@@ -301,7 +341,7 @@
         </template>
 
         <div v-else class="flex justify-end pt-2">
-          <Button label="Fermer" type="button" @click="showJoinOrgDialog = false" />
+          <Button :label="t('common.close')" type="button" @click="showJoinOrgDialog = false" />
         </div>
       </div>
     </Dialog>
@@ -309,26 +349,25 @@
     <!-- Dialog confirmation verrouillage kiosque -->
     <Dialog
       v-model:visible="showKioskLockDialog"
-      header="Verrouiller les paramètres ?"
+      :header="t('settings.kiosk.dialogTitle')"
       modal
       :style="{ width: '24rem' }"
     >
       <div class="space-y-4">
         <Message severity="warn" :closable="false">
-          <strong>Attention :</strong> Cette action verrouillera l'accès aux paramètres. Pour y
-          accéder à nouveau, vous devrez vous déconnecter et vous reconnecter.
+          <strong>{{ t('settings.kiosk.attention') }}</strong> {{ t('settings.kiosk.dialogWarningBody') }}
         </Message>
         <p class="text-sm opacity-70">
-          Cette fonctionnalité est conçue pour les appareils partagés en accès public.
+          {{ t('settings.kiosk.dialogNote') }}
         </p>
         <div class="flex justify-end gap-2 pt-2">
           <Button
-            label="Annuler"
+            :label="t('common.cancel')"
             severity="secondary"
             outlined
             @click="showKioskLockDialog = false"
           />
-          <Button label="Verrouiller" icon="fas fa-lock" severity="danger" @click="activateKioskLock" />
+          <Button :label="t('settings.kiosk.lockShort')" icon="fas fa-lock" severity="danger" @click="activateKioskLock" />
         </div>
       </div>
     </Dialog>
@@ -336,7 +375,7 @@
     <!-- Dialog changement de mot de passe -->
     <Dialog
       v-model:visible="showChangePasswordDialog"
-      header="Changer le mot de passe"
+      :header="t('settings.password.title')"
       modal
       :style="{ width: '28rem' }"
       :closable="!authLoading"
@@ -344,12 +383,12 @@
       <form @submit="onChangePassword" class="space-y-4">
         <Message v-if="changePasswordSuccess" severity="success" :closable="false">
           <i class="fa fa-check mr-2"></i>
-          Mot de passe modifié avec succès.
+          {{ t('settings.password.success') }}
         </Message>
 
         <template v-if="!changePasswordSuccess">
           <div class="flex flex-col gap-2">
-            <label for="current-password" class="font-medium">Mot de passe actuel</label>
+            <label for="current-password" class="font-medium">{{ t('settings.password.current') }}</label>
             <Password
               input-id="current-password"
               v-model="currentPassword"
@@ -366,7 +405,7 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="new-password" class="font-medium">Nouveau mot de passe</label>
+            <label for="new-password" class="font-medium">{{ t('settings.password.new') }}</label>
             <Password
               input-id="new-password"
               v-model="newPassword"
@@ -382,9 +421,9 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="password-confirm" class="font-medium"
-              >Confirmer le nouveau mot de passe</label
-            >
+            <label for="password-confirm" class="font-medium">{{
+              t('settings.password.confirm')
+            }}</label>
             <Password
               input-id="password-confirm"
               v-model="passwordConfirm"
@@ -406,7 +445,7 @@
 
           <div class="flex justify-end gap-2 pt-2">
             <Button
-              label="Annuler"
+              :label="t('common.cancel')"
               severity="secondary"
               outlined
               type="button"
@@ -414,7 +453,7 @@
               @click="showChangePasswordDialog = false"
             />
             <Button
-              label="Confirmer"
+              :label="t('common.confirm')"
               type="submit"
               icon="fas fa-check"
               :loading="authLoading"
@@ -424,7 +463,7 @@
         </template>
 
         <div v-else class="flex justify-end pt-2">
-          <Button label="Fermer" type="button" @click="showChangePasswordDialog = false" />
+          <Button :label="t('common.close')" type="button" @click="showChangePasswordDialog = false" />
         </div>
       </form>
     </Dialog>
@@ -433,6 +472,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useLocale } from '@/composables/useLocale'
 import { useRouter } from 'vue-router'
 import { useNotificationPush } from '@/composables/notification/notification.push'
 import { usePWAInstall } from '@/composables/pwa/pwa.install'
@@ -445,6 +486,9 @@ import { displayNameRegex } from '@skill-arena/shared'
 import { userApi } from '@/composables/user/user.api'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useDebounceFn } from '@vueuse/core'
+
+const { t } = useI18n()
+const { currentLocale, availableLocales } = useLocale()
 
 const { isInstalled, isIOS, canInstall, showIOSInstructions, triggerInstall } = usePWAInstall()
 
@@ -469,22 +513,26 @@ function activateKioskLock() {
   router.push('/')
 }
 
-// Profile form
-const profileSchema = z.object({
-  displayName: z
-    .string()
-    .trim()
-    .min(3, 'Minimum 3 caractères')
-    .max(50, 'Maximum 50 caractères')
-    .regex(displayNameRegex, 'Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots'),
-  shortName: z
-    .string()
-    .trim()
-    .min(3, 'Minimum 3 caractères')
-    .max(8, 'Maximum 8 caractères')
-    .regex(displayNameRegex, 'Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots')
-    .transform((v) => v.toUpperCase()),
-})
+// Profile form — schema is reactive so validation messages follow the locale
+const profileValidationSchema = computed(() =>
+  toTypedSchema(
+    z.object({
+      displayName: z
+        .string()
+        .trim()
+        .min(3, t('settings.validation.min3'))
+        .max(50, t('settings.validation.displayNameMax'))
+        .regex(displayNameRegex, t('settings.validation.nameRegex')),
+      shortName: z
+        .string()
+        .trim()
+        .min(3, t('settings.validation.min3'))
+        .max(8, t('settings.validation.shortNameMax'))
+        .regex(displayNameRegex, t('settings.validation.nameRegex'))
+        .transform((v) => v.toUpperCase()),
+    }),
+  ),
+)
 
 const profileLoading = ref(false)
 const profileSuccess = ref(false)
@@ -496,7 +544,7 @@ const {
   errors: profileErrors,
   setValues: setProfileValues,
 } = useForm({
-  validationSchema: toTypedSchema(profileSchema),
+  validationSchema: profileValidationSchema,
 })
 
 const [displayName] = defineProfileField('displayName')
@@ -510,7 +558,7 @@ const onSubmitProfile = handleProfileSubmit(async (values) => {
     await userApi.updateProfile(values)
     profileSuccess.value = true
   } catch {
-    profileError.value = 'Une erreur est survenue lors de la mise à jour.'
+    profileError.value = t('settings.profile.updateError')
   } finally {
     profileLoading.value = false
   }
@@ -589,13 +637,13 @@ const debouncedValidateOrgCode = useDebounceFn(async () => {
   try {
     const result = await validateInvitationCode(joinOrgCode.value)
     if (!result.organizationId) {
-      joinOrgCodeError.value = "Ce code n'est pas un code de groupe."
+      joinOrgCodeError.value = t('settings.groups.notGroupCode')
       return
     }
     joinOrgCodeValid.value = true
     joinOrgOrganizationName.value = result.organizationName ?? null
   } catch (err: unknown) {
-    joinOrgCodeError.value = err instanceof Error ? err.message : 'Code invalide'
+    joinOrgCodeError.value = err instanceof Error ? err.message : t('settings.groups.invalidCode')
   } finally {
     joinOrgIsValidating.value = false
   }
@@ -610,7 +658,7 @@ async function submitJoinOrg() {
     joinOrgSuccessName.value = result.organizationName
     joinOrgSuccess.value = true
   } catch (err: unknown) {
-    joinOrgError.value = err instanceof Error ? err.message : "Erreur lors de l'adhésion au groupe."
+    joinOrgError.value = err instanceof Error ? err.message : t('settings.groups.joinError')
   } finally {
     joinOrgLoading.value = false
   }
@@ -628,7 +676,7 @@ onMounted(async () => {
     const user = await userApi.me()
     setProfileValues({ displayName: user.displayName, shortName: user.shortName })
   } catch {
-    profileError.value = 'Impossible de charger le profil.'
+    profileError.value = t('settings.profile.loadError')
   }
 })
 

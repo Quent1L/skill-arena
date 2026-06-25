@@ -25,7 +25,6 @@ declare module 'vue' {
     Card: typeof import('primevue/card')['default']
     Checkbox: typeof import('primevue/checkbox')['default']
     Column: typeof import('primevue/column')['default']
-    ComparisonStatRow: typeof import('./src/components/player/ComparisonStatRow.vue')['default']
     CompositionStep: typeof import('./src/components/match/steps/CompositionStep.vue')['default']
     ConditionBuilder: typeof import('./src/components/rules/ConditionBuilder.vue')['default']
     ConditionGroup: typeof import('./src/components/rules/ConditionGroup.vue')['default']

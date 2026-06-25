@@ -1,0 +1,88 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "join": "Rejoindre"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "appearance": {
+      "title": "Apparence",
+      "darkMode": "Mode sombre",
+      "darkModeDesc": "Activer le thème sombre pour l'interface"
+    },
+    "language": {
+      "title": "Langue",
+      "label": "Langue de l'interface",
+      "desc": "Choisissez la langue d'affichage de l'application"
+    },
+    "profile": {
+      "title": "Profil",
+      "updateSuccess": "Profil mis à jour avec succès.",
+      "displayName": "Nom complet",
+      "shortName": "Nom court (affichage réduit)",
+      "shortNameHint": "Jusqu'à 8 caractères, affiché lorsque la place disponible est réduite.",
+      "updateError": "Une erreur est survenue lors de la mise à jour.",
+      "loadError": "Impossible de charger le profil."
+    },
+    "application": {
+      "title": "Application",
+      "installed": "L'application est déjà installée sur cet appareil.",
+      "install": "Installer l'application",
+      "installDesc": "Accès rapide depuis l'écran d'accueil",
+      "installBtn": "Installer",
+      "iosTap": "Appuyez sur",
+      "iosThen": "puis",
+      "iosAddToHome": "Sur l'écran d'accueil",
+      "notAvailable": "L'installation n'est pas disponible sur ce navigateur."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "push": "Notifications push",
+      "pushDesc": "Recevoir des notifications sur cet appareil",
+      "unsupported": "Les notifications push ne sont pas supportées par votre navigateur"
+    },
+    "account": {
+      "title": "Compte",
+      "changePassword": "Changer le mot de passe"
+    },
+    "groups": {
+      "title": "Groupes",
+      "join": "Rejoindre un groupe",
+      "joinDesc": "Accéder aux tournois privés d'un groupe",
+      "joinedPrefix": "Vous avez rejoint",
+      "invitationCode": "Code d'invitation",
+      "codePlaceholder": "ex: tigre-riviere-soleil-lune",
+      "validating": "Validation en cours...",
+      "codeValidPrefix": "Code valide — groupe :",
+      "notGroupCode": "Ce code n'est pas un code de groupe.",
+      "invalidCode": "Code invalide",
+      "joinError": "Erreur lors de l'adhésion au groupe."
+    },
+    "kiosk": {
+      "title": "Mode kiosque",
+      "warning": "En verrouillant les paramètres, vous ne pourrez plus y accéder tant que l'utilisateur ne se sera pas reconnecté sur cet appareil.",
+      "lock": "Verrouiller les paramètres",
+      "dialogTitle": "Verrouiller les paramètres ?",
+      "attention": "Attention :",
+      "dialogWarningBody": "Cette action verrouillera l'accès aux paramètres. Pour y accéder à nouveau, vous devrez vous déconnecter et vous reconnecter.",
+      "dialogNote": "Cette fonctionnalité est conçue pour les appareils partagés en accès public.",
+      "lockShort": "Verrouiller"
+    },
+    "password": {
+      "title": "Changer le mot de passe",
+      "success": "Mot de passe modifié avec succès.",
+      "current": "Mot de passe actuel",
+      "new": "Nouveau mot de passe",
+      "confirm": "Confirmer le nouveau mot de passe"
+    },
+    "validation": {
+      "min3": "Minimum 3 caractères",
+      "displayNameMax": "Maximum 50 caractères",
+      "shortNameMax": "Maximum 8 caractères",
+      "nameRegex": "Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots"
+    }
+  }
+}

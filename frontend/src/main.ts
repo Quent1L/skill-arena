@@ -11,9 +11,11 @@ import router from './router'
 import PrimeVue from 'primevue/config'
 import ToastService from 'primevue/toastservice'
 import ConfirmationService from 'primevue/confirmationservice'
-import localeFR from '@/config/locales/fr.json'
+import frLocale from 'primelocale/fr.json'
+import enLocale from 'primelocale/en.json'
 import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
+import { i18n, getInitialLocale } from './i18n'
 
 if ('serviceWorker' in navigator) {
   let refreshing = false
@@ -62,12 +64,17 @@ document.documentElement.classList.add('my-app-dark')
 // Les erreurs seront loggées dans la console jusqu'à ce que le Toast soit disponible
 errorService.install()
 
+// Appliquer la langue initiale (localStorage) à <html> et à PrimeVue
+const initialLocale = getInitialLocale()
+document.documentElement.lang = initialLocale
+const primevueLocale = initialLocale === 'en' ? enLocale.en : frLocale.fr
+
 // Créer l'application Vue
 const app = createApp(App)
 
 // Configurer PrimeVue et les services
 app.use(PrimeVue, {
-  locale: localeFR,
+  locale: primevueLocale,
   theme: {
     preset: themePreset,
     options: {
@@ -78,6 +85,7 @@ app.use(PrimeVue, {
   },
 })
 
+app.use(i18n)
 app.use(createPinia())
 app.use(ToastService)
 app.use(ConfirmationService)

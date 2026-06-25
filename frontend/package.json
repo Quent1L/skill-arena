@@ -20,7 +20,6 @@
   "dependencies": {
     "@fontsource/exo-2": "^5.2.8",
     "@fontsource/rajdhani": "^5.2.7",
-    "vue-draggable-plus": "^0.6.0",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@primeuix/themes": "^2.0.3",
     "@skill-arena/shared": "workspace:*",
@@ -36,10 +35,13 @@
     "chart.js": "^4.5.1",
     "date-fns": "^4.4.0",
     "pinia": "^3.0.4",
+    "primelocale": "^2.4.0",
     "primevue": "^4.5.5",
     "tailwindcss-primeui": "^0.6.1",
     "vee-validate": "^4.15.1",
     "vue": "^3.5.35",
+    "vue-draggable-plus": "^0.6.0",
+    "vue-i18n": "11.4.6",
     "vue-router": "^5.1.0",
     "xior": "^0.8.3",
     "zod": "catalog:"

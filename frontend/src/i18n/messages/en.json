@@ -1,0 +1,88 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "confirm": "Confirm",
+    "join": "Join"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": {
+      "title": "Appearance",
+      "darkMode": "Dark mode",
+      "darkModeDesc": "Enable the dark theme for the interface"
+    },
+    "language": {
+      "title": "Language",
+      "label": "Interface language",
+      "desc": "Choose the display language of the application"
+    },
+    "profile": {
+      "title": "Profile",
+      "updateSuccess": "Profile updated successfully.",
+      "displayName": "Full name",
+      "shortName": "Short name (compact display)",
+      "shortNameHint": "Up to 8 characters, shown when available space is limited.",
+      "updateError": "An error occurred while updating.",
+      "loadError": "Unable to load the profile."
+    },
+    "application": {
+      "title": "Application",
+      "installed": "The app is already installed on this device.",
+      "install": "Install the app",
+      "installDesc": "Quick access from the home screen",
+      "installBtn": "Install",
+      "iosTap": "Tap",
+      "iosThen": "then",
+      "iosAddToHome": "Add to Home Screen",
+      "notAvailable": "Installation is not available in this browser."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "push": "Push notifications",
+      "pushDesc": "Receive notifications on this device",
+      "unsupported": "Push notifications are not supported by your browser"
+    },
+    "account": {
+      "title": "Account",
+      "changePassword": "Change password"
+    },
+    "groups": {
+      "title": "Groups",
+      "join": "Join a group",
+      "joinDesc": "Access a group's private tournaments",
+      "joinedPrefix": "You have joined",
+      "invitationCode": "Invitation code",
+      "codePlaceholder": "e.g. tiger-river-sun-moon",
+      "validating": "Validating...",
+      "codeValidPrefix": "Valid code — group:",
+      "notGroupCode": "This code is not a group code.",
+      "invalidCode": "Invalid code",
+      "joinError": "Error while joining the group."
+    },
+    "kiosk": {
+      "title": "Kiosk mode",
+      "warning": "By locking the settings, you won't be able to access them again until the user logs back in on this device.",
+      "lock": "Lock settings",
+      "dialogTitle": "Lock settings?",
+      "attention": "Warning:",
+      "dialogWarningBody": "This action will lock access to the settings. To access them again, you will need to log out and log back in.",
+      "dialogNote": "This feature is designed for shared, publicly accessible devices.",
+      "lockShort": "Lock"
+    },
+    "password": {
+      "title": "Change password",
+      "success": "Password changed successfully.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password"
+    },
+    "validation": {
+      "min3": "Minimum 3 characters",
+      "displayNameMax": "Maximum 50 characters",
+      "shortNameMax": "Maximum 8 characters",
+      "nameRegex": "At least 2 letters/digits required, hyphens and underscores allowed, a single space between words"
+    }
+  }
+}
