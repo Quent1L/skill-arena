@@ -1,363 +1,363 @@
 # Changelog
 
-## [1.13.1](https://github.com/Quent1L/skill-arena/compare/1.13.0...1.13.1) (2026-06-22)
+## [1.13.1](https://github.com/Quent1L/skol-arena/compare/1.13.0...1.13.1) (2026-06-22)
 
 ### 🐛 Bug Fixes
 
-* **ranked:** embed chart series in player MMR endpoint ([d56732b](https://github.com/Quent1L/skill-arena/commit/d56732bd4067cad11945c1c635deedb3d7584dec))
+* **ranked:** embed chart series in player MMR endpoint ([d56732b](https://github.com/Quent1L/skol-arena/commit/d56732bd4067cad11945c1c635deedb3d7584dec))
 
-## [1.13.0](https://github.com/Quent1L/skill-arena/compare/1.12.2...1.13.0) (2026-06-15)
+## [1.13.0](https://github.com/Quent1L/skol-arena/compare/1.12.2...1.13.0) (2026-06-15)
 
 ### ✨ New Features
 
-* **ranked:** enrich outcome distribution with W/D/L breakdown ([657281d](https://github.com/Quent1L/skill-arena/commit/657281d23dd24197feb92d7d9b6a82d6443a2996))
-* **ui:** unify info tooltip pattern with mobile support ([16499f6](https://github.com/Quent1L/skill-arena/commit/16499f6105c27f5450deb0e96dbf7fd0a254fbd0))
+* **ranked:** enrich outcome distribution with W/D/L breakdown ([657281d](https://github.com/Quent1L/skol-arena/commit/657281d23dd24197feb92d7d9b6a82d6443a2996))
+* **ui:** unify info tooltip pattern with mobile support ([16499f6](https://github.com/Quent1L/skol-arena/commit/16499f6105c27f5450deb0e96dbf7fd0a254fbd0))
 
 ### 🐛 Bug Fixes
 
-* **ranked:** remove ghost playerMmr rows after match cancellation ([26b8ce7](https://github.com/Quent1L/skill-arena/commit/26b8ce7b3ce5cb0eb23b971ef4f6f1e64c95507e))
+* **ranked:** remove ghost playerMmr rows after match cancellation ([26b8ce7](https://github.com/Quent1L/skol-arena/commit/26b8ce7b3ce5cb0eb23b971ef4f6f1e64c95507e))
 
-## [1.12.2](https://github.com/Quent1L/skill-arena/compare/1.12.1...1.12.2) (2026-06-08)
-
-### 🐛 Bug Fixes
-
-* **ranked:** disable swipe to provisional when showModeToggle is false ([4a32502](https://github.com/Quent1L/skill-arena/commit/4a32502f159e544b34018282f91e9504870eb26f))
-* **ranked:** fix provisional leaderboard streak/order divergence ([1faae3a](https://github.com/Quent1L/skill-arena/commit/1faae3a53df36bea1189f5eab26024a2983e6f08))
-
-## [1.12.1](https://github.com/Quent1L/skill-arena/compare/1.12.0...1.12.1) (2026-06-07)
+## [1.12.2](https://github.com/Quent1L/skol-arena/compare/1.12.1...1.12.2) (2026-06-08)
 
 ### 🐛 Bug Fixes
 
-* **ranked:** show all outcome types regardless of match count ([41dc149](https://github.com/Quent1L/skill-arena/commit/41dc149742ce687a6850fb556f13268f265c496e))
+* **ranked:** disable swipe to provisional when showModeToggle is false ([4a32502](https://github.com/Quent1L/skol-arena/commit/4a32502f159e544b34018282f91e9504870eb26f))
+* **ranked:** fix provisional leaderboard streak/order divergence ([1faae3a](https://github.com/Quent1L/skol-arena/commit/1faae3a53df36bea1189f5eab26024a2983e6f08))
+
+## [1.12.1](https://github.com/Quent1L/skol-arena/compare/1.12.0...1.12.1) (2026-06-07)
+
+### 🐛 Bug Fixes
+
+* **ranked:** show all outcome types regardless of match count ([41dc149](https://github.com/Quent1L/skol-arena/commit/41dc149742ce687a6850fb556f13268f265c496e))
 
 ### ♻️ Refactoring
 
-* **stats:** replace doughnut chart with MatchOutcomeDistribution ([57d15bb](https://github.com/Quent1L/skill-arena/commit/57d15bb3e639de9249b4d5c7dbe1b8673e989f1b))
+* **stats:** replace doughnut chart with MatchOutcomeDistribution ([57d15bb](https://github.com/Quent1L/skol-arena/commit/57d15bb3e639de9249b4d5c7dbe1b8673e989f1b))
 
-## [1.12.0](https://github.com/Quent1L/skill-arena/compare/1.11.1...1.12.0) (2026-06-05)
+## [1.12.0](https://github.com/Quent1L/skol-arena/compare/1.11.1...1.12.0) (2026-06-05)
 
 ### ✨ New Features
 
-* **ranked:** add outcome distribution to player MMR profile ([ae55f2d](https://github.com/Quent1L/skill-arena/commit/ae55f2d2661f3a5069df69a8dc0b5dc3edd21872))
+* **ranked:** add outcome distribution to player MMR profile ([ae55f2d](https://github.com/Quent1L/skol-arena/commit/ae55f2d2661f3a5069df69a8dc0b5dc3edd21872))
 
 ### 🐛 Bug Fixes
 
-* **match:** drag-and-drop crashes on mobile when long-press ([f58a5f7](https://github.com/Quent1L/skill-arena/commit/f58a5f7d9d712cfd1b67692a2a4f8474983e1184))
-* **player:** carry tournamentId in players stats link ([14d14d3](https://github.com/Quent1L/skill-arena/commit/14d14d340ac171a0eeba5703768d3c38bb2810fe))
-* **ranked:** reload animation queue on mobile reconnect ([2816645](https://github.com/Quent1L/skill-arena/commit/2816645f512cdb508cbee07dec8caab5e061d6a7))
-* **router:** redirect authenticated users away from /login ([d1008b1](https://github.com/Quent1L/skill-arena/commit/d1008b1346bdf99173fa34a32511a7024b84bd90))
+* **match:** drag-and-drop crashes on mobile when long-press ([f58a5f7](https://github.com/Quent1L/skol-arena/commit/f58a5f7d9d712cfd1b67692a2a4f8474983e1184))
+* **player:** carry tournamentId in players stats link ([14d14d3](https://github.com/Quent1L/skol-arena/commit/14d14d340ac171a0eeba5703768d3c38bb2810fe))
+* **ranked:** reload animation queue on mobile reconnect ([2816645](https://github.com/Quent1L/skol-arena/commit/2816645f512cdb508cbee07dec8caab5e061d6a7))
+* **router:** redirect authenticated users away from /login ([d1008b1](https://github.com/Quent1L/skol-arena/commit/d1008b1346bdf99173fa34a32511a7024b84bd90))
 
 ### 🔧 Maintenance
 
-* **deps:** bump all dependencies across workspaces ([4cfe50d](https://github.com/Quent1L/skill-arena/commit/4cfe50d58ff959eefa07e0fcac52ceb95319a28a))
+* **deps:** bump all dependencies across workspaces ([4cfe50d](https://github.com/Quent1L/skol-arena/commit/4cfe50d58ff959eefa07e0fcac52ceb95319a28a))
 
-## [1.11.1](https://github.com/Quent1L/skill-arena/compare/1.11.0...1.11.1) (2026-05-31)
+## [1.11.1](https://github.com/Quent1L/skol-arena/compare/1.11.0...1.11.1) (2026-05-31)
 
 ### 🐛 Bug Fixes
 
-* **player:** replace v-tooltip with Popover on RecentFormSection info icon ([a08cfc4](https://github.com/Quent1L/skill-arena/commit/a08cfc4023f8472d38eefa5cf71d3517f0c5dc4a))
-* **ranked:** prevent winStreak/recentResults mismatch on leaderboard ([2c96bfb](https://github.com/Quent1L/skill-arena/commit/2c96bfb8ffdebe1ba966b8f225bb4c42a5d53f44))
+* **player:** replace v-tooltip with Popover on RecentFormSection info icon ([a08cfc4](https://github.com/Quent1L/skol-arena/commit/a08cfc4023f8472d38eefa5cf71d3517f0c5dc4a))
+* **ranked:** prevent winStreak/recentResults mismatch on leaderboard ([2c96bfb](https://github.com/Quent1L/skol-arena/commit/2c96bfb8ffdebe1ba966b8f225bb4c42a5d53f44))
 
-## [1.11.0](https://github.com/Quent1L/skill-arena/compare/1.10.0...1.11.0) (2026-05-31)
+## [1.11.0](https://github.com/Quent1L/skol-arena/compare/1.10.0...1.11.0) (2026-05-31)
 
 ### ✨ New Features
 
-* **ux:** suppress non-error toasts on mobile ([0b9cc4d](https://github.com/Quent1L/skill-arena/commit/0b9cc4d6d494b444200b2b0199376dc2d9b3f24d))
+* **ux:** suppress non-error toasts on mobile ([0b9cc4d](https://github.com/Quent1L/skol-arena/commit/0b9cc4d6d494b444200b2b0199376dc2d9b3f24d))
 
 ### 🐛 Bug Fixes
 
-* **pwa:** make dismiss button reactively hide install banner ([ff46cb0](https://github.com/Quent1L/skill-arena/commit/ff46cb00a7f3a069a94271e96af46258e29e9073))
-* **ranked:** prevent no-MMR flash while player profile loads ([96ee980](https://github.com/Quent1L/skill-arena/commit/96ee98006bc35f33e3a4f43edf8b1996e2a403))
+* **pwa:** make dismiss button reactively hide install banner ([ff46cb0](https://github.com/Quent1L/skol-arena/commit/ff46cb00a7f3a069a94271e96af46258e29e9073))
+* **ranked:** prevent no-MMR flash while player profile loads ([96ee980](https://github.com/Quent1L/skol-arena/commit/96ee98006bc35f33e3a4f43edf8b1996e2a403))
 
 ### 🔧 Maintenance
 
-* **docker:** cache bun install packages between builds ([5887c51](https://github.com/Quent1L/skill-arena/commit/5887c51cb7fe286962bde10f7b3a35b6741678dd))
-* **release:** prevent release-it from bumping package.json ([7d70bc1](https://github.com/Quent1L/skill-arena/commit/7d70bc16632c6fbe7f7d18fcc3a9ce3582e3252a))
+* **docker:** cache bun install packages between builds ([5887c51](https://github.com/Quent1L/skol-arena/commit/5887c51cb7fe286962bde10f7b3a35b6741678dd))
+* **release:** prevent release-it from bumping package.json ([7d70bc1](https://github.com/Quent1L/skol-arena/commit/7d70bc16632c6fbe7f7d18fcc3a9ce3582e3252a))
 
-## [1.10.0](https://github.com/Quent1L/skill-arena/compare/1.9.0...1.10.0) (2026-05-31)
+## [1.10.0](https://github.com/Quent1L/skol-arena/compare/1.9.0...1.10.0) (2026-05-31)
 
 ### ✨ New Features
 
-* **stats:** add 5 new player stat sections ([2382d4b](https://github.com/Quent1L/skill-arena/commit/2382d4bdff675997b2b57637d1a5dc106493f2c8))
-* **tournament:** refresh data on WS reconnect and leaderboard update ([1500ae8](https://github.com/Quent1L/skill-arena/commit/1500ae89bffb8dbef649db2d790fc32db3958681))
-* **ux:** show update overlay before SW-triggered reload ([1a7a967](https://github.com/Quent1L/skill-arena/commit/1a7a96791a44aaf2037fe26bff25d785e6fca459))
+* **stats:** add 5 new player stat sections ([2382d4b](https://github.com/Quent1L/skol-arena/commit/2382d4bdff675997b2b57637d1a5dc106493f2c8))
+* **tournament:** refresh data on WS reconnect and leaderboard update ([1500ae8](https://github.com/Quent1L/skol-arena/commit/1500ae89bffb8dbef649db2d790fc32db3958681))
+* **ux:** show update overlay before SW-triggered reload ([1a7a967](https://github.com/Quent1L/skol-arena/commit/1a7a96791a44aaf2037fe26bff25d785e6fca459))
 
 ### 🐛 Bug Fixes
 
-* **mobile:** load player profile on stats tab refresh ([5289efe](https://github.com/Quent1L/skill-arena/commit/5289efe7cfabc6d4b9b8919636fe76949db27b86))
+* **mobile:** load player profile on stats tab refresh ([5289efe](https://github.com/Quent1L/skol-arena/commit/5289efe7cfabc6d4b9b8919636fe76949db27b86))
 
 ### ⚡ Performance
 
-* **player-stats:** cache per-tournament stats in player_computed_data ([4e7eb2c](https://github.com/Quent1L/skill-arena/commit/4e7eb2c0508d559fd1bef40e7aa0d2c343e9fa9a))
+* **player-stats:** cache per-tournament stats in player_computed_data ([4e7eb2c](https://github.com/Quent1L/skol-arena/commit/4e7eb2c0508d559fd1bef40e7aa0d2c343e9fa9a))
 
 ### ♻️ Refactoring
 
-* extract helpers and dedupe across stats/match logic ([29e5d28](https://github.com/Quent1L/skill-arena/commit/29e5d283d5cceb79faa2edb0a83044c52c8f6838))
-* **player:** extract stat sections + add discipline filter ([1505ba6](https://github.com/Quent1L/skill-arena/commit/1505ba68cb290b000343d9a9278bae538d3b3322))
+* extract helpers and dedupe across stats/match logic ([29e5d28](https://github.com/Quent1L/skol-arena/commit/29e5d283d5cceb79faa2edb0a83044c52c8f6838))
+* **player:** extract stat sections + add discipline filter ([1505ba6](https://github.com/Quent1L/skol-arena/commit/1505ba68cb290b000343d9a9278bae538d3b3322))
 
 ### 🎨 Style
 
-* **stats:** modify grid of filter on PlayerStat ([fc7251d](https://github.com/Quent1L/skill-arena/commit/fc7251dfb435a2bb9b7fd78e4d6395619615ded4))
+* **stats:** modify grid of filter on PlayerStat ([fc7251d](https://github.com/Quent1L/skol-arena/commit/fc7251dfb435a2bb9b7fd78e4d6395619615ded4))
 
-## [1.9.0](https://github.com/Quent1L/skill-arena/compare/1.8.1...1.9.0) (2026-05-26)
+## [1.9.0](https://github.com/Quent1L/skol-arena/compare/1.8.1...1.9.0) (2026-05-26)
 
 ### ✨ New Features
 
-* **mobile:** add clearable search in PlayerPickerDialog ([fea6072](https://github.com/Quent1L/skill-arena/commit/fea6072df8da205bc7443a2c78e20d614c766a50))
-* **stats:** add solo & asymmetric solo player rankings ([510f3fd](https://github.com/Quent1L/skill-arena/commit/510f3fdc173f0e0651f5b64f7a2f0b91304ef325))
-* **tournament:** add admin cache-clear action ([2b569ef](https://github.com/Quent1L/skill-arena/commit/2b569eff9160f93676e2e53fc65b484c9cb7c0cb))
+* **mobile:** add clearable search in PlayerPickerDialog ([fea6072](https://github.com/Quent1L/skol-arena/commit/fea6072df8da205bc7443a2c78e20d614c766a50))
+* **stats:** add solo & asymmetric solo player rankings ([510f3fd](https://github.com/Quent1L/skol-arena/commit/510f3fdc173f0e0651f5b64f7a2f0b91304ef325))
+* **tournament:** add admin cache-clear action ([2b569ef](https://github.com/Quent1L/skol-arena/commit/2b569eff9160f93676e2e53fc65b484c9cb7c0cb))
 
 ### 🐛 Bug Fixes
 
-* **mobile:** link players stats into RankedLeaderboard ([f77e3a2](https://github.com/Quent1L/skill-arena/commit/f77e3a2bf82e0867e0da1e1b670fdc695ce40ed0))
+* **mobile:** link players stats into RankedLeaderboard ([f77e3a2](https://github.com/Quent1L/skol-arena/commit/f77e3a2bf82e0867e0da1e1b670fdc695ce40ed0))
 
 ### 🔧 Maintenance
 
-* add release-it ([716f132](https://github.com/Quent1L/skill-arena/commit/716f132386e2c8bd3ff6a4d9fb6e0e2a071006b8))
+* add release-it ([716f132](https://github.com/Quent1L/skol-arena/commit/716f132386e2c8bd3ff6a4d9fb6e0e2a071006b8))
 
-## [1.8.1](https://github.com/Quent1L/skill-arena/compare/1.8.0...1.8.1) (2026-05-24)
+## [1.8.1](https://github.com/Quent1L/skol-arena/compare/1.8.0...1.8.1) (2026-05-24)
 
 ### 🎨 Style
 
-* **frontend:** make MatchList grid layout and scroll configurable ([b6cfa55](https://github.com/Quent1L/skill-arena/commit/b6cfa552c808d975b99912eb03ecba563afc706c))
+* **frontend:** make MatchList grid layout and scroll configurable ([b6cfa55](https://github.com/Quent1L/skol-arena/commit/b6cfa552c808d975b99912eb03ecba563afc706c))
 
-## [1.8.0](https://github.com/Quent1L/skill-arena/compare/1.7.0...1.8.0) (2026-05-24)
-
-### ✨ New Features
-
-* **match:** add MATCH_POST_DISPUTE notification and expose creator ([0fbc150](https://github.com/Quent1L/skill-arena/commit/0fbc1509343fe5252cdb21455d9ebacb5d7094cd))
-* **mobile:** add swipe gesture with slide animation to ranked stats sub-tabs ([9c59fa7](https://github.com/Quent1L/skill-arena/commit/9c59fa7d4629d6540b8f9102d882f4785f4bad46))
-
-## [1.7.0](https://github.com/Quent1L/skill-arena/compare/1.6.2...1.7.0) (2026-05-24)
+## [1.8.0](https://github.com/Quent1L/skol-arena/compare/1.7.0...1.8.0) (2026-05-24)
 
 ### ✨ New Features
 
-* **AppHeader:** show back-chevron on mobile tournament detail ([12ebbeb](https://github.com/Quent1L/skill-arena/commit/12ebbeba09fd5b174de3c4ebf7f58b2f080ac615))
-* **disciplines:** add team_interaction_mode enum field ([7e29941](https://github.com/Quent1L/skill-arena/commit/7e299411a4a688e6ecd2a0a34279347775353da8))
-* **match:** add allPlayerIds validation path + debounced live validation ([70a8d27](https://github.com/Quent1L/skill-arena/commit/70a8d270f5cec05e9596aa086bb6a27fc9056960))
-* **match:** add "none" validation mode with immediate finalization ([2d0b46d](https://github.com/Quent1L/skill-arena/commit/2d0b46daf5fe18112c9c19af6e9b2e5709be2af7))
-* **match:** add configurable validation mode and trust score ([389789a](https://github.com/Quent1L/skill-arena/commit/389789ae9c9d669ebe7e3d4b46eb469a0e12c33f))
-* **match:** add PlayerAvatar to match detail + mobile layout ([1dc5b38](https://github.com/Quent1L/skill-arena/commit/1dc5b380edc8613a314011d61db8063806b7b21d))
-* **match:** lock bracket match player steps ([bc8671f](https://github.com/Quent1L/skill-arena/commit/bc8671f9eb000460496fa543ed1271da379caf34))
-* **match:** unified respond endpoint + post-finalization disputes ([2041eec](https://github.com/Quent1L/skill-arena/commit/2041eeccea42d11eb0fa012559f9ea89a8e461c6))
-* **mmr:** wire match scores into K-factor calculation ([8def8b5](https://github.com/Quent1L/skill-arena/commit/8def8b5c9bb11caf0b736bc248c50c8f375316ea))
-* **mobile:** add floating create-match button to bottom nav ([6aed15c](https://github.com/Quent1L/skill-arena/commit/6aed15c6055eeadf966de7626863a1ba9283a63c))
-* **outcome-type:** add mmrMultiplier field for per-outcome MMR scaling ([436d537](https://github.com/Quent1L/skill-arena/commit/436d5376b02bbb32a5e51c8fae80262eda5bb4e2))
-* **player:** add mode tag in tournament select + ranked filter ([7b56dc6](https://github.com/Quent1L/skill-arena/commit/7b56dc6f926f16f272b144f901110ae9b1bd2106))
-* **player:** disable infinite scroll in player profile MatchList ([5bcbba2](https://github.com/Quent1L/skill-arena/commit/5bcbba25f4c775d3d5c951c54ac79bef30df4983))
-* **player:** redesign profile view + add partner/nemesis panels ([d3c967c](https://github.com/Quent1L/skill-arena/commit/d3c967cca266ff67c2f431b7b6fe17c1728dd2c2))
-* **ranked:** add encouragement messages for MMR events ([3ffcb21](https://github.com/Quent1L/skill-arena/commit/3ffcb2120ecf824f5cd8b30c35b17b3fc2805e4e))
-* **ranked:** add MMR explainer card and improve season form validation ([a0c1078](https://github.com/Quent1L/skill-arena/commit/a0c1078b827dcfbd1711037fb324dd3ea561b8bd))
-* **ranked:** cascade MMR recalculation on match cancellation ([94160c6](https://github.com/Quent1L/skill-arena/commit/94160c66f0525db712ee93a1eab4eacb79def499))
-* **ranked:** improve MmrReveal UX + extract tier-style utils ([e387e7d](https://github.com/Quent1L/skill-arena/commit/e387e7d8543573a90469ee533e3a0b32c62260bf))
-* **ranked:** offload MMR recalculation to async job queue ([d61f5d7](https://github.com/Quent1L/skill-arena/commit/d61f5d7e1f4e992659371441ab67699eda498dd6))
-* **ranked:** surface MMR recalculations in match recap card ([18f185c](https://github.com/Quent1L/skill-arena/commit/18f185c8382d7487afed44ee12cc5707020e710a))
-* **ranked:** team-aware MMR distribution per teamInteractionMode ([b1f8728](https://github.com/Quent1L/skill-arena/commit/b1f8728539201e5427ba7f17a2e26a6dfe64acfd))
+* **match:** add MATCH_POST_DISPUTE notification and expose creator ([0fbc150](https://github.com/Quent1L/skol-arena/commit/0fbc1509343fe5252cdb21455d9ebacb5d7094cd))
+* **mobile:** add swipe gesture with slide animation to ranked stats sub-tabs ([9c59fa7](https://github.com/Quent1L/skol-arena/commit/9c59fa7d4629d6540b8f9102d882f4785f4bad46))
+
+## [1.7.0](https://github.com/Quent1L/skol-arena/compare/1.6.2...1.7.0) (2026-05-24)
+
+### ✨ New Features
+
+* **AppHeader:** show back-chevron on mobile tournament detail ([12ebbeb](https://github.com/Quent1L/skol-arena/commit/12ebbeba09fd5b174de3c4ebf7f58b2f080ac615))
+* **disciplines:** add team_interaction_mode enum field ([7e29941](https://github.com/Quent1L/skol-arena/commit/7e299411a4a688e6ecd2a0a34279347775353da8))
+* **match:** add allPlayerIds validation path + debounced live validation ([70a8d27](https://github.com/Quent1L/skol-arena/commit/70a8d270f5cec05e9596aa086bb6a27fc9056960))
+* **match:** add "none" validation mode with immediate finalization ([2d0b46d](https://github.com/Quent1L/skol-arena/commit/2d0b46daf5fe18112c9c19af6e9b2e5709be2af7))
+* **match:** add configurable validation mode and trust score ([389789a](https://github.com/Quent1L/skol-arena/commit/389789ae9c9d669ebe7e3d4b46eb469a0e12c33f))
+* **match:** add PlayerAvatar to match detail + mobile layout ([1dc5b38](https://github.com/Quent1L/skol-arena/commit/1dc5b380edc8613a314011d61db8063806b7b21d))
+* **match:** lock bracket match player steps ([bc8671f](https://github.com/Quent1L/skol-arena/commit/bc8671f9eb000460496fa543ed1271da379caf34))
+* **match:** unified respond endpoint + post-finalization disputes ([2041eec](https://github.com/Quent1L/skol-arena/commit/2041eeccea42d11eb0fa012559f9ea89a8e461c6))
+* **mmr:** wire match scores into K-factor calculation ([8def8b5](https://github.com/Quent1L/skol-arena/commit/8def8b5c9bb11caf0b736bc248c50c8f375316ea))
+* **mobile:** add floating create-match button to bottom nav ([6aed15c](https://github.com/Quent1L/skol-arena/commit/6aed15c6055eeadf966de7626863a1ba9283a63c))
+* **outcome-type:** add mmrMultiplier field for per-outcome MMR scaling ([436d537](https://github.com/Quent1L/skol-arena/commit/436d5376b02bbb32a5e51c8fae80262eda5bb4e2))
+* **player:** add mode tag in tournament select + ranked filter ([7b56dc6](https://github.com/Quent1L/skol-arena/commit/7b56dc6f926f16f272b144f901110ae9b1bd2106))
+* **player:** disable infinite scroll in player profile MatchList ([5bcbba2](https://github.com/Quent1L/skol-arena/commit/5bcbba25f4c775d3d5c951c54ac79bef30df4983))
+* **player:** redesign profile view + add partner/nemesis panels ([d3c967c](https://github.com/Quent1L/skol-arena/commit/d3c967cca266ff67c2f431b7b6fe17c1728dd2c2))
+* **ranked:** add encouragement messages for MMR events ([3ffcb21](https://github.com/Quent1L/skol-arena/commit/3ffcb2120ecf824f5cd8b30c35b17b3fc2805e4e))
+* **ranked:** add MMR explainer card and improve season form validation ([a0c1078](https://github.com/Quent1L/skol-arena/commit/a0c1078b827dcfbd1711037fb324dd3ea561b8bd))
+* **ranked:** cascade MMR recalculation on match cancellation ([94160c6](https://github.com/Quent1L/skol-arena/commit/94160c66f0525db712ee93a1eab4eacb79def499))
+* **ranked:** improve MmrReveal UX + extract tier-style utils ([e387e7d](https://github.com/Quent1L/skol-arena/commit/e387e7d8543573a90469ee533e3a0b32c62260bf))
+* **ranked:** offload MMR recalculation to async job queue ([d61f5d7](https://github.com/Quent1L/skol-arena/commit/d61f5d7e1f4e992659371441ab67699eda498dd6))
+* **ranked:** surface MMR recalculations in match recap card ([18f185c](https://github.com/Quent1L/skol-arena/commit/18f185c8382d7487afed44ee12cc5707020e710a))
+* **ranked:** team-aware MMR distribution per teamInteractionMode ([b1f8728](https://github.com/Quent1L/skol-arena/commit/b1f8728539201e5427ba7f17a2e26a6dfe64acfd))
 
 ### 🐛 Bug Fixes
 
-* **auth:** replace forgetPassword by requestPasswordReset ([3298863](https://github.com/Quent1L/skill-arena/commit/32988633ab076c3299eab0b482ef9d34eaecbf5d))
-* **perf:** prevent RAM growth in auto-finalize batch job ([37f7e3b](https://github.com/Quent1L/skill-arena/commit/37f7e3bd9c688381bce1d848c3c81210f5847641))
-* **ranked:** sort MMR recap events by match date instead of creation date ([3b82a3c](https://github.com/Quent1L/skill-arena/commit/3b82a3c7dfb5c19048d278280d95c3b44f761174))
-* **serviceWorker:** improve service worker update handling and prevent double reloads ([c242475](https://github.com/Quent1L/skill-arena/commit/c2424759981e310e51142f7ced6b81c5c90ea4fb))
+* **auth:** replace forgetPassword by requestPasswordReset ([3298863](https://github.com/Quent1L/skol-arena/commit/32988633ab076c3299eab0b482ef9d34eaecbf5d))
+* **perf:** prevent RAM growth in auto-finalize batch job ([37f7e3b](https://github.com/Quent1L/skol-arena/commit/37f7e3bd9c688381bce1d848c3c81210f5847641))
+* **ranked:** sort MMR recap events by match date instead of creation date ([3b82a3c](https://github.com/Quent1L/skol-arena/commit/3b82a3c7dfb5c19048d278280d95c3b44f761174))
+* **serviceWorker:** improve service worker update handling and prevent double reloads ([c242475](https://github.com/Quent1L/skol-arena/commit/c2424759981e310e51142f7ced6b81c5c90ea4fb))
 
 ### ⚡ Performance
 
-* **ranked:** optimize MMR recalculation with incremental replay ([0a07f1b](https://github.com/Quent1L/skill-arena/commit/0a07f1b21250d2737dcbb6de564a1913c0146984))
+* **ranked:** optimize MMR recalculation with incremental replay ([0a07f1b](https://github.com/Quent1L/skol-arena/commit/0a07f1b21250d2737dcbb6de564a1913c0146984))
 
 ### ♻️ Refactoring
 
-* **forms:** extract shared season/tournament form schema ([c21685a](https://github.com/Quent1L/skill-arena/commit/c21685a2a8057b3c26a9614dfaf60cdad99b9919))
-* **jobs:** replace setInterval scheduler with Bun.cron + pg advisory lock ([a00fd9b](https://github.com/Quent1L/skill-arena/commit/a00fd9b430fa0cb2bba5a771fc197b128f70104f))
-* **match:** replace A/B side model with position-based sides ([c58e03c](https://github.com/Quent1L/skill-arena/commit/c58e03c5cd86246c1d884c787b5176ab11b12647))
-* **match:** split service into notification + finalization helpers ([4b592bc](https://github.com/Quent1L/skill-arena/commit/4b592bcf970dbca79c811a66ee84aa7f57f61c92))
-* **services:** split oversized functions and clear SonarLint smells ([7d55a10](https://github.com/Quent1L/skill-arena/commit/7d55a10c17624ae168123c7b4060679d2b09beac))
-* **tournament:** merge profile tab into Stats tab ([d928300](https://github.com/Quent1L/skill-arena/commit/d928300f8757b76d871aa605624adfe7d9111b0b))
+* **forms:** extract shared season/tournament form schema ([c21685a](https://github.com/Quent1L/skol-arena/commit/c21685a2a8057b3c26a9614dfaf60cdad99b9919))
+* **jobs:** replace setInterval scheduler with Bun.cron + pg advisory lock ([a00fd9b](https://github.com/Quent1L/skol-arena/commit/a00fd9b430fa0cb2bba5a771fc197b128f70104f))
+* **match:** replace A/B side model with position-based sides ([c58e03c](https://github.com/Quent1L/skol-arena/commit/c58e03c5cd86246c1d884c787b5176ab11b12647))
+* **match:** split service into notification + finalization helpers ([4b592bc](https://github.com/Quent1L/skol-arena/commit/4b592bcf970dbca79c811a66ee84aa7f57f61c92))
+* **services:** split oversized functions and clear SonarLint smells ([7d55a10](https://github.com/Quent1L/skol-arena/commit/7d55a10c17624ae168123c7b4060679d2b09beac))
+* **tournament:** merge profile tab into Stats tab ([d928300](https://github.com/Quent1L/skol-arena/commit/d928300f8757b76d871aa605624adfe7d9111b0b))
 
-## [1.6.2](https://github.com/Quent1L/skill-arena/compare/1.6.1...1.6.2) (2026-05-07)
+## [1.6.2](https://github.com/Quent1L/skol-arena/compare/1.6.1...1.6.2) (2026-05-07)
 
 ### ♻️ Refactoring
 
-* improve database pooling, optimize server startup, and refactor match service ([0b31fad](https://github.com/Quent1L/skill-arena/commit/0b31fad492f945d8ee638f9f21c6ce57a74b130a))
+* improve database pooling, optimize server startup, and refactor match service ([0b31fad](https://github.com/Quent1L/skol-arena/commit/0b31fad492f945d8ee638f9f21c6ce57a74b130a))
 
-## [1.6.1](https://github.com/Quent1L/skill-arena/compare/1.6.0...1.6.1) (2026-05-05)
+## [1.6.1](https://github.com/Quent1L/skol-arena/compare/1.6.0...1.6.1) (2026-05-05)
 
 ### 🐛 Bug Fixes
 
-* **match:** allow participants to update their own scheduled matches ([2201e39](https://github.com/Quent1L/skill-arena/commit/2201e393b42b51fd14c1ad7c3e98260184ae2282))
+* **match:** allow participants to update their own scheduled matches ([2201e39](https://github.com/Quent1L/skol-arena/commit/2201e393b42b51fd14c1ad7c3e98260184ae2282))
 
-## [1.6.0](https://github.com/Quent1L/skill-arena/compare/1.5.1...1.6.0) (2026-05-04)
+## [1.6.0](https://github.com/Quent1L/skol-arena/compare/1.5.1...1.6.0) (2026-05-04)
 
 ### ✨ New Features
 
-* add organization feature ([a9f7684](https://github.com/Quent1L/skill-arena/commit/a9f7684c64084af1a10cc56cd9821e40e02f49fd))
-* add PlayerAvatar + rework BracketMatchCard layout ([d25dd99](https://github.com/Quent1L/skill-arena/commit/d25dd9909e0c8c23da843b589e734d2c4f5cdae2))
-* add sub rank for ranked ([0e2c15e](https://github.com/Quent1L/skill-arena/commit/0e2c15e9065155cc3f117fb89f15e8af1b94224e))
-* **bracket:** replace CSS layout with canvas + SVG connectors ([9aac63e](https://github.com/Quent1L/skill-arena/commit/9aac63e2ec55d7b4a36b360da2a3b6caa8809dd8))
-* **match:** auto-confirm admin update when updater is participant ([6c5e66f](https://github.com/Quent1L/skill-arena/commit/6c5e66fb20f012978eaea0dbfb84e6bfec7d7187))
-* **match:** prevent double-booking players at the same time slot ([b5c3d2d](https://github.com/Quent1L/skill-arena/commit/b5c3d2dec213f065feb53dbe436a3cec611b69b8))
-* **match:** scope points to championship; show MMR delta for ranked ([2f435ba](https://github.com/Quent1L/skill-arena/commit/2f435ba5a89b8507c4b62b2aa577f9e0d7eae6d8))
-* **mmr:** scale K factor by outcome type points ([8ec3c8f](https://github.com/Quent1L/skill-arena/commit/8ec3c8fde9da5ede91cee950476834ef1095f1bf))
-* **ranked:** add MMR animation event system ([90d1d4b](https://github.com/Quent1L/skill-arena/commit/90d1d4ba299eae6dea32b3c152ea914d860eb46e))
-* **ranked:** add provisional leaderboard + redesign leaderboard UI ([4abbdb4](https://github.com/Quent1L/skill-arena/commit/4abbdb41dd621912dd7db5b3746fe064f68f7d7d))
-* **ranked:** LP display + MMR symmetry fix ([2f5dba9](https://github.com/Quent1L/skill-arena/commit/2f5dba918aefc6a009c4565fdcab4ed6279238e2))
-* **user:** enforce display name format via shared regex ([8bf098e](https://github.com/Quent1L/skill-arena/commit/8bf098efd0cb5eaf14433479d4030464a10b81f5))
+* add organization feature ([a9f7684](https://github.com/Quent1L/skol-arena/commit/a9f7684c64084af1a10cc56cd9821e40e02f49fd))
+* add PlayerAvatar + rework BracketMatchCard layout ([d25dd99](https://github.com/Quent1L/skol-arena/commit/d25dd9909e0c8c23da843b589e734d2c4f5cdae2))
+* add sub rank for ranked ([0e2c15e](https://github.com/Quent1L/skol-arena/commit/0e2c15e9065155cc3f117fb89f15e8af1b94224e))
+* **bracket:** replace CSS layout with canvas + SVG connectors ([9aac63e](https://github.com/Quent1L/skol-arena/commit/9aac63e2ec55d7b4a36b360da2a3b6caa8809dd8))
+* **match:** auto-confirm admin update when updater is participant ([6c5e66f](https://github.com/Quent1L/skol-arena/commit/6c5e66fb20f012978eaea0dbfb84e6bfec7d7187))
+* **match:** prevent double-booking players at the same time slot ([b5c3d2d](https://github.com/Quent1L/skol-arena/commit/b5c3d2dec213f065feb53dbe436a3cec611b69b8))
+* **match:** scope points to championship; show MMR delta for ranked ([2f435ba](https://github.com/Quent1L/skol-arena/commit/2f435ba5a89b8507c4b62b2aa577f9e0d7eae6d8))
+* **mmr:** scale K factor by outcome type points ([8ec3c8f](https://github.com/Quent1L/skol-arena/commit/8ec3c8fde9da5ede91cee950476834ef1095f1bf))
+* **ranked:** add MMR animation event system ([90d1d4b](https://github.com/Quent1L/skol-arena/commit/90d1d4ba299eae6dea32b3c152ea914d860eb46e))
+* **ranked:** add provisional leaderboard + redesign leaderboard UI ([4abbdb4](https://github.com/Quent1L/skol-arena/commit/4abbdb41dd621912dd7db5b3746fe064f68f7d7d))
+* **ranked:** LP display + MMR symmetry fix ([2f5dba9](https://github.com/Quent1L/skol-arena/commit/2f5dba918aefc6a009c4565fdcab4ed6279238e2))
+* **user:** enforce display name format via shared regex ([8bf098e](https://github.com/Quent1L/skol-arena/commit/8bf098efd0cb5eaf14433479d4030464a10b81f5))
 
 ### 🐛 Bug Fixes
 
-* fix: remove duplicate text + standings help tooltip ([1e4c6d6](https://github.com/Quent1L/skill-arena/commit/1e4c6d68d28d716331dc67e752e42c19233c87d5))
-* **dates:** use local timezone when serializing/parsing date-only fields ([a00287a](https://github.com/Quent1L/skill-arena/commit/a00287ac0e545ef9bf2f78dbd1b9ec1515e1bbf6))
-* **match:** forward playedAt to repository on create and update ([53c23da](https://github.com/Quent1L/skill-arena/commit/53c23da6f358fc30cba5ec08fcf75d40b7452708))
-* **tournament:** invalidate stats cache on match finalization + surface stats error in UI ([14ea0fa](https://github.com/Quent1L/skill-arena/commit/14ea0fa92b9c5cbd0a1b3f492ff47b2022a0d6b7))
-* **ui:** swap Avatar for PlayerAvatar in PlayerPickerDialog ([970cb05](https://github.com/Quent1L/skill-arena/commit/970cb057fa48339c5d35cce5c3fd8eb1c038d3b5))
+* fix: remove duplicate text + standings help tooltip ([1e4c6d6](https://github.com/Quent1L/skol-arena/commit/1e4c6d68d28d716331dc67e752e42c19233c87d5))
+* **dates:** use local timezone when serializing/parsing date-only fields ([a00287a](https://github.com/Quent1L/skol-arena/commit/a00287ac0e545ef9bf2f78dbd1b9ec1515e1bbf6))
+* **match:** forward playedAt to repository on create and update ([53c23da](https://github.com/Quent1L/skol-arena/commit/53c23da6f358fc30cba5ec08fcf75d40b7452708))
+* **tournament:** invalidate stats cache on match finalization + surface stats error in UI ([14ea0fa](https://github.com/Quent1L/skol-arena/commit/14ea0fa92b9c5cbd0a1b3f492ff47b2022a0d6b7))
+* **ui:** swap Avatar for PlayerAvatar in PlayerPickerDialog ([970cb05](https://github.com/Quent1L/skol-arena/commit/970cb057fa48339c5d35cce5c3fd8eb1c038d3b5))
 
 ### ♻️ Refactoring
 
-* **match:** lean GET /matches/:id response using sides[] ([b63a182](https://github.com/Quent1L/skill-arena/commit/b63a182c850e9cfdfbcbd2cb1c1f63f4b99a2a7b))
-* **standings:** remove BP/BC columns, use CSS for mobile visibility ([c55813b](https://github.com/Quent1L/skill-arena/commit/c55813bbd9552ebbf5de6488ec72b3728329a5b2))
-* **tournament:** centralize overflow menu into store and component ([4fa52a8](https://github.com/Quent1L/skill-arena/commit/4fa52a83c150ba5b2c5253bd68249f316b1c4af8))
+* **match:** lean GET /matches/:id response using sides[] ([b63a182](https://github.com/Quent1L/skol-arena/commit/b63a182c850e9cfdfbcbd2cb1c1f63f4b99a2a7b))
+* **standings:** remove BP/BC columns, use CSS for mobile visibility ([c55813b](https://github.com/Quent1L/skol-arena/commit/c55813bbd9552ebbf5de6488ec72b3728329a5b2))
+* **tournament:** centralize overflow menu into store and component ([4fa52a8](https://github.com/Quent1L/skol-arena/commit/4fa52a83c150ba5b2c5253bd68249f316b1c4af8))
 
-## [1.5.1](https://github.com/Quent1L/skill-arena/compare/1.5.0...1.5.1) (2026-04-19)
+## [1.5.1](https://github.com/Quent1L/skol-arena/compare/1.5.0...1.5.1) (2026-04-19)
 
 ### 🐛 Bug Fixes
 
-* avatar style in match card ([953aaae](https://github.com/Quent1L/skill-arena/commit/953aaae3f675314c949c8db36e1b4afdfdc7a258))
-* hide effectivePointsAwarded for ranked match ([1fd0ee7](https://github.com/Quent1L/skill-arena/commit/1fd0ee7d0a53a14eccef4782981c2c3af8b5c994))
-* z-index SpeedDial create match ([9b3830b](https://github.com/Quent1L/skill-arena/commit/9b3830b1fdc78761045aaa0d57d433ac9553761f))
+* avatar style in match card ([953aaae](https://github.com/Quent1L/skol-arena/commit/953aaae3f675314c949c8db36e1b4afdfdc7a258))
+* hide effectivePointsAwarded for ranked match ([1fd0ee7](https://github.com/Quent1L/skol-arena/commit/1fd0ee7d0a53a14eccef4782981c2c3af8b5c994))
+* z-index SpeedDial create match ([9b3830b](https://github.com/Quent1L/skol-arena/commit/9b3830b1fdc78761045aaa0d57d433ac9553761f))
 
 ### ♻️ Refactoring
 
-* info tab of tournaments ([a80deb4](https://github.com/Quent1L/skill-arena/commit/a80deb49aaf7dcf47d37ff8696d008ba746e0ecb))
+* info tab of tournaments ([a80deb4](https://github.com/Quent1L/skol-arena/commit/a80deb49aaf7dcf47d37ff8696d008ba746e0ecb))
 
-## [1.5.0](https://github.com/Quent1L/skill-arena/compare/1.4.1...1.5.0) (2026-04-19)
+## [1.5.0](https://github.com/Quent1L/skol-arena/compare/1.4.1...1.5.0) (2026-04-19)
 
 ### ✨ New Features
 
-* add match filters ([372bd29](https://github.com/Quent1L/skill-arena/commit/372bd2915f9e9dc0e11d2820e9608e0e03731fa8))
-* add match history ([9872f98](https://github.com/Quent1L/skill-arena/commit/9872f9859b5eafd489f2bb48d2778fd121300b0a))
-* add points on match card ([3059117](https://github.com/Quent1L/skill-arena/commit/3059117816054ef9592e6014106b16d704013ae9))
-* add ranked mode with score config + participant join ([5cea3d9](https://github.com/Quent1L/skill-arena/commit/5cea3d9e644e12940747fed45f415ccffa042170))
-* add victoryQuality by points tiebreak for outcome type ([e2e7b80](https://github.com/Quent1L/skill-arena/commit/e2e7b806b97ea49218330e8403a34cab384d1285))
-* change MobileBottomNav ([9dccd4d](https://github.com/Quent1L/skill-arena/commit/9dccd4d1ecb32b90b68187036943be53cf21fc1b))
-* enhance mobile navigation ([27800cf](https://github.com/Quent1L/skill-arena/commit/27800cfd8007fa84737ac6bf6f3e4105be0d4a99))
-* enhance tournaments stats and surface style ([604c5a0](https://github.com/Quent1L/skill-arena/commit/604c5a077988bad3b4a22c781034d108676b39b2))
-* optimize matches routes ([132c93b](https://github.com/Quent1L/skill-arena/commit/132c93be4f8b08d4e5ae5e5bdbe7f226b70d0a08))
-* refactor rank tier + layout ranked ([20ea701](https://github.com/Quent1L/skill-arena/commit/20ea70100c1771b2b20479134b3d6ef22fd8ac4a))
-* redesign tournament/ranked UI ([ce300f8](https://github.com/Quent1L/skill-arena/commit/ce300f81a0f415fdcfd00b0694f211eab2019cd8))
-* review calculate standings ([9af38d8](https://github.com/Quent1L/skill-arena/commit/9af38d8d550539ebf50e22f7af86d4a298a69be7))
-* store stats in computed_data instead of calculating on the fly ([6cdbc42](https://github.com/Quent1L/skill-arena/commit/6cdbc425228e2bbdc679ba2f15a5a3bcda8ceb4b))
-* add individual points for performance ([387144a](https://github.com/Quent1L/skill-arena/commit/387144a7b61ad46f7ac30c705da23cabdf18eda0))
-* add tournament context for player link ([c9c91e3](https://github.com/Quent1L/skill-arena/commit/c9c91e3bce9e507c9cfb6eb5946c499e1b6e8275))
+* add match filters ([372bd29](https://github.com/Quent1L/skol-arena/commit/372bd2915f9e9dc0e11d2820e9608e0e03731fa8))
+* add match history ([9872f98](https://github.com/Quent1L/skol-arena/commit/9872f9859b5eafd489f2bb48d2778fd121300b0a))
+* add points on match card ([3059117](https://github.com/Quent1L/skol-arena/commit/3059117816054ef9592e6014106b16d704013ae9))
+* add ranked mode with score config + participant join ([5cea3d9](https://github.com/Quent1L/skol-arena/commit/5cea3d9e644e12940747fed45f415ccffa042170))
+* add victoryQuality by points tiebreak for outcome type ([e2e7b80](https://github.com/Quent1L/skol-arena/commit/e2e7b806b97ea49218330e8403a34cab384d1285))
+* change MobileBottomNav ([9dccd4d](https://github.com/Quent1L/skol-arena/commit/9dccd4d1ecb32b90b68187036943be53cf21fc1b))
+* enhance mobile navigation ([27800cf](https://github.com/Quent1L/skol-arena/commit/27800cfd8007fa84737ac6bf6f3e4105be0d4a99))
+* enhance tournaments stats and surface style ([604c5a0](https://github.com/Quent1L/skol-arena/commit/604c5a077988bad3b4a22c781034d108676b39b2))
+* optimize matches routes ([132c93b](https://github.com/Quent1L/skol-arena/commit/132c93be4f8b08d4e5ae5e5bdbe7f226b70d0a08))
+* refactor rank tier + layout ranked ([20ea701](https://github.com/Quent1L/skol-arena/commit/20ea70100c1771b2b20479134b3d6ef22fd8ac4a))
+* redesign tournament/ranked UI ([ce300f8](https://github.com/Quent1L/skol-arena/commit/ce300f81a0f415fdcfd00b0694f211eab2019cd8))
+* review calculate standings ([9af38d8](https://github.com/Quent1L/skol-arena/commit/9af38d8d550539ebf50e22f7af86d4a298a69be7))
+* store stats in computed_data instead of calculating on the fly ([6cdbc42](https://github.com/Quent1L/skol-arena/commit/6cdbc425228e2bbdc679ba2f15a5a3bcda8ceb4b))
+* add individual points for performance ([387144a](https://github.com/Quent1L/skol-arena/commit/387144a7b61ad46f7ac30c705da23cabdf18eda0))
+* add tournament context for player link ([c9c91e3](https://github.com/Quent1L/skol-arena/commit/c9c91e3bce9e507c9cfb6eb5946c499e1b6e8275))
 
 ### 🐛 Bug Fixes
 
-* Buchholz sum in standings ([7e090bf](https://github.com/Quent1L/skill-arena/commit/7e090bfd59e14210bfd762b37ea6b84473ba45e3))
+* Buchholz sum in standings ([7e090bf](https://github.com/Quent1L/skol-arena/commit/7e090bfd59e14210bfd762b37ea6b84473ba45e3))
 
 ### ♻️ Refactoring
 
-* matchList with PlayerMatchHistory ([7cb1d90](https://github.com/Quent1L/skill-arena/commit/7cb1d9046911436f8dbbcd3c177b41ecf522e8c9))
+* matchList with PlayerMatchHistory ([7cb1d90](https://github.com/Quent1L/skol-arena/commit/7cb1d9046911436f8dbbcd3c177b41ecf522e8c9))
 
 ### 🎨 Style
 
-* change match detail surface ([ef84575](https://github.com/Quent1L/skill-arena/commit/ef84575eb7334cf06c43be0678eea47a6b639cba))
+* change match detail surface ([ef84575](https://github.com/Quent1L/skol-arena/commit/ef84575eb7334cf06c43be0678eea47a6b639cba))
 
-## [1.4.1](https://github.com/Quent1L/skill-arena/compare/1.4.0...1.4.1) (2026-04-12)
+## [1.4.1](https://github.com/Quent1L/skol-arena/compare/1.4.0...1.4.1) (2026-04-12)
 
 ### 🐛 Bug Fixes
 
-* resize mobile detection ([9aaec9d](https://github.com/Quent1L/skill-arena/commit/9aaec9d9906225202e0cb7f042f1c7321c36e44b))
+* resize mobile detection ([9aaec9d](https://github.com/Quent1L/skol-arena/commit/9aaec9d9906225202e0cb7f042f1c7321c36e44b))
 
-## [1.4.0](https://github.com/Quent1L/skill-arena/compare/1.3.1...1.4.0) (2026-04-12)
+## [1.4.0](https://github.com/Quent1L/skol-arena/compare/1.3.1...1.4.0) (2026-04-12)
 
 ### ✨ New Features
 
-* add multiple participant management for admin ([d8bbb2b](https://github.com/Quent1L/skill-arena/commit/d8bbb2b46c18e77df6eac1229507a4045daf872c))
+* add multiple participant management for admin ([d8bbb2b](https://github.com/Quent1L/skol-arena/commit/d8bbb2b46c18e77df6eac1229507a4045daf872c))
 
 ### 🐛 Bug Fixes
 
-* bracket generation from standings ([7701b19](https://github.com/Quent1L/skill-arena/commit/7701b19ad2b7f67d028451fb5de3cc7f49ebe110))
-* touch device detection ([ea49bde](https://github.com/Quent1L/skill-arena/commit/ea49bde21309fd55aa66fabc453a26a105fbb784))
+* bracket generation from standings ([7701b19](https://github.com/Quent1L/skol-arena/commit/7701b19ad2b7f67d028451fb5de3cc7f49ebe110))
+* touch device detection ([ea49bde](https://github.com/Quent1L/skol-arena/commit/ea49bde21309fd55aa66fabc453a26a105fbb784))
 
-## [1.3.1](https://github.com/Quent1L/skill-arena/compare/1.3.0...1.3.1) (2026-04-09)
+## [1.3.1](https://github.com/Quent1L/skol-arena/compare/1.3.0...1.3.1) (2026-04-09)
 
 ### 🐛 Bug Fixes
 
-* add kiosk migration into journal.json ([9f97e1e](https://github.com/Quent1L/skill-arena/commit/9f97e1e8d11be13d291f4e41307b394de7c178d7))
+* add kiosk migration into journal.json ([9f97e1e](https://github.com/Quent1L/skol-arena/commit/9f97e1e8d11be13d291f4e41307b394de7c178d7))
 
-## [1.3.0](https://github.com/Quent1L/skill-arena/compare/1.2.0...1.3.0) (2026-04-08)
+## [1.3.0](https://github.com/Quent1L/skol-arena/compare/1.2.0...1.3.0) (2026-04-08)
 
 ### ✨ New Features
 
-* add kiosk user ([f8ab199](https://github.com/Quent1L/skill-arena/commit/f8ab19975f03ac7fe2bb7e1ffe5f236619d68b5f))
-* add setting lock for kiosk user ([653c491](https://github.com/Quent1L/skill-arena/commit/653c49161de1bd95503f78835f3b940461373b6a))
-* add touch device detection for mobile layout ([b53c260](https://github.com/Quent1L/skill-arena/commit/b53c260b72b0446045b74ceabfc008af6f9f5908))
-* added gesture redirection to native auth for PWA ([d0d9d56](https://github.com/Quent1L/skill-arena/commit/d0d9d563452eaef850321f32e8924d9adfd9509e))
-* convert all timestamp columns to timestampz ([f2f9081](https://github.com/Quent1L/skill-arena/commit/f2f90815723e0a782300ba1c2e0d65c0bd980c18))
-* increase better-auth session to 30 days ([5b344e5](https://github.com/Quent1L/skill-arena/commit/5b344e5c738ceba65cb6db1c2ae7211f6edff5a9))
+* add kiosk user ([f8ab199](https://github.com/Quent1L/skol-arena/commit/f8ab19975f03ac7fe2bb7e1ffe5f236619d68b5f))
+* add setting lock for kiosk user ([653c491](https://github.com/Quent1L/skol-arena/commit/653c49161de1bd95503f78835f3b940461373b6a))
+* add touch device detection for mobile layout ([b53c260](https://github.com/Quent1L/skol-arena/commit/b53c260b72b0446045b74ceabfc008af6f9f5908))
+* added gesture redirection to native auth for PWA ([d0d9d56](https://github.com/Quent1L/skol-arena/commit/d0d9d563452eaef850321f32e8924d9adfd9509e))
+* convert all timestamp columns to timestampz ([f2f9081](https://github.com/Quent1L/skol-arena/commit/f2f90815723e0a782300ba1c2e0d65c0bd980c18))
+* increase better-auth session to 30 days ([5b344e5](https://github.com/Quent1L/skol-arena/commit/5b344e5c738ceba65cb6db1c2ae7211f6edff5a9))
 
 ### 🐛 Bug Fixes
 
-* replace timestamp by timestampz ([d2810d2](https://github.com/Quent1L/skill-arena/commit/d2810d2f640f4bd452afaae7bf81db4cb14f88e2))
-* router.back() on MatchDetailView when no history ([6d19c82](https://github.com/Quent1L/skill-arena/commit/6d19c82c392e443c4054de0ef569806a2eb4107e))
+* replace timestamp by timestampz ([d2810d2](https://github.com/Quent1L/skol-arena/commit/d2810d2f640f4bd452afaae7bf81db4cb14f88e2))
+* router.back() on MatchDetailView when no history ([6d19c82](https://github.com/Quent1L/skol-arena/commit/6d19c82c392e443c4054de0ef569806a2eb4107e))
 
-## [1.2.0](https://github.com/Quent1L/skill-arena/compare/1.1.0...1.2.0) (2026-04-06)
+## [1.2.0](https://github.com/Quent1L/skol-arena/compare/1.1.0...1.2.0) (2026-04-06)
 
 ### ✨ New Features
 
-* increase shortName limit and add rules page ([8e3412e](https://github.com/Quent1L/skill-arena/commit/8e3412e88d010d3b9a75eb59c6459a95c379a132))
+* increase shortName limit and add rules page ([8e3412e](https://github.com/Quent1L/skol-arena/commit/8e3412e88d010d3b9a75eb59c6459a95c379a132))
 
 ### 🐛 Bug Fixes
 
-* replace pino transports with sync logfmt formatter for Docker compatibility ([a7c9b91](https://github.com/Quent1L/skill-arena/commit/a7c9b91884cf9f31413461d188f931a46af20544))
+* replace pino transports with sync logfmt formatter for Docker compatibility ([a7c9b91](https://github.com/Quent1L/skol-arena/commit/a7c9b91884cf9f31413461d188f931a46af20544))
 
 ### 🔧 Maintenance
 
-* add structured logging with Pino and configurable log level/format ([07600b0](https://github.com/Quent1L/skill-arena/commit/07600b03b2a89f61fabdd308e8e0b5d2f7ef4205))
+* add structured logging with Pino and configurable log level/format ([07600b0](https://github.com/Quent1L/skol-arena/commit/07600b03b2a89f61fabdd308e8e0b5d2f7ef4205))
 
-## [1.1.0](https://github.com/Quent1L/skill-arena/compare/1.0.0-beta.4...1.1.0) (2026-03-22)
-
-### ✨ New Features
-
-* add Offline View ([9d424e6](https://github.com/Quent1L/skill-arena/commit/9d424e6f9205ccca954e20becd3a26652e533eb1))
-* add support for static teams ([8e21ab4](https://github.com/Quent1L/skill-arena/commit/8e21ab4f3aced4ce5c88a95a2c5c78addf82d7d7))
-* add min and max input score ([589d604](https://github.com/Quent1L/skill-arena/commit/589d604124bf76bfad6b22766e71fb02c6274bc5))
-* add bool for disable score entry ([7b39b7a](https://github.com/Quent1L/skill-arena/commit/7b39b7a459b22776b7a8d193c46f1bebfff67822))
-* change rules for exceed match limit in championship ([100daa9](https://github.com/Quent1L/skill-arena/commit/100daa937c5c8b7539c1f3de1e06ff983dca59b2))
-* enhance UX with smart loading and swipe feature ([8067a8c](https://github.com/Quent1L/skill-arena/commit/8067a8c8a6019776c082f7f0dfa1abb006b2e023))
-* implement bracket feature ([d4f3810](https://github.com/Quent1L/skill-arena/commit/d4f38101ed4cbc236011b9185821fe209e28e185))
-* use Tiptap editor for tournament description ([e5e1a81](https://github.com/Quent1L/skill-arena/commit/e5e1a819be7115a40a4828fdae414723f6857b90))
-* **tournament:** add endpoint to recalculate match points ([4033d93](https://github.com/Quent1L/skill-arena/commit/4033d9397d70bfe0f63e656479067effa469c6be))
-
-### 🐛 Bug Fixes
-
-* **match:** exclude cancelled matches from queries ([905ca42](https://github.com/Quent1L/skill-arena/commit/905ca4219b901623995c1cdb1cd7b81313b93438))
-
-## [1.0.0-beta.4](https://github.com/Quent1L/skill-arena/compare/1.0.0-beta.3...1.0.0-beta.4) (2026-03-04)
-
-### 🐛 Bug Fixes
-
-* refresh service worker ([9f63d6a](https://github.com/Quent1L/skill-arena/commit/9f63d6a5e8ab3b4d192481bc628c5f3b4d915eec))
-
-## [1.0.0-beta.3](https://github.com/Quent1L/skill-arena/compare/1.0.0-beta.2...1.0.0-beta.3) (2026-03-04)
-
-### 🐛 Bug Fixes
-
-* **match:** force select winner match in mobile view ([c42cab0](https://github.com/Quent1L/skill-arena/commit/c42cab072bff4a996fb076b12b9f7b1545cb9ea8))
-* **notification:** delete action notification automatically ([f42c69f](https://github.com/Quent1L/skill-arena/commit/f42c69f3353903a1eb40da31ea6886b4c82eb639))
-
-## [1.0.0-beta.2](https://github.com/Quent1L/skill-arena/compare/1.0.0-beta.1...1.0.0-beta.2) (2026-03-04)
+## [1.1.0](https://github.com/Quent1L/skol-arena/compare/1.0.0-beta.4...1.1.0) (2026-03-22)
 
 ### ✨ New Features
 
-* add cancel match ([881e4df](https://github.com/Quent1L/skill-arena/commit/881e4df1c580e02f382d358d067817c108ef47c9))
-* add PKCE support for Keycloak authentication ([7798c3f](https://github.com/Quent1L/skill-arena/commit/7798c3f943ebc037b23444c68bfdcc117964053e))
-* keep same tab after page refresh ([6c9ccc7](https://github.com/Quent1L/skill-arena/commit/6c9ccc7120593bea97092b354c1e6d4771f13d11))
+* add Offline View ([9d424e6](https://github.com/Quent1L/skol-arena/commit/9d424e6f9205ccca954e20becd3a26652e533eb1))
+* add support for static teams ([8e21ab4](https://github.com/Quent1L/skol-arena/commit/8e21ab4f3aced4ce5c88a95a2c5c78addf82d7d7))
+* add min and max input score ([589d604](https://github.com/Quent1L/skol-arena/commit/589d604124bf76bfad6b22766e71fb02c6274bc5))
+* add bool for disable score entry ([7b39b7a](https://github.com/Quent1L/skol-arena/commit/7b39b7a459b22776b7a8d193c46f1bebfff67822))
+* change rules for exceed match limit in championship ([100daa9](https://github.com/Quent1L/skol-arena/commit/100daa937c5c8b7539c1f3de1e06ff983dca59b2))
+* enhance UX with smart loading and swipe feature ([8067a8c](https://github.com/Quent1L/skol-arena/commit/8067a8c8a6019776c082f7f0dfa1abb006b2e023))
+* implement bracket feature ([d4f3810](https://github.com/Quent1L/skol-arena/commit/d4f38101ed4cbc236011b9185821fe209e28e185))
+* use Tiptap editor for tournament description ([e5e1a81](https://github.com/Quent1L/skol-arena/commit/e5e1a819be7115a40a4828fdae414723f6857b90))
+* **tournament:** add endpoint to recalculate match points ([4033d93](https://github.com/Quent1L/skol-arena/commit/4033d9397d70bfe0f63e656479067effa469c6be))
 
 ### 🐛 Bug Fixes
 
-* calcul standings service ([03f24a9](https://github.com/Quent1L/skill-arena/commit/03f24a9aa38fc0acce5b29c18ee8061be1468b82))
-* check match validation ([c40712b](https://github.com/Quent1L/skill-arena/commit/c40712b519ac3a9fe85c23951645a326662f7637))
-* players stats source ([cfca6e7](https://github.com/Quent1L/skill-arena/commit/cfca6e7e4483c70f2750da8ccc759a461148f1e7))
+* **match:** exclude cancelled matches from queries ([905ca42](https://github.com/Quent1L/skol-arena/commit/905ca4219b901623995c1cdb1cd7b81313b93438))
+
+## [1.0.0-beta.4](https://github.com/Quent1L/skol-arena/compare/1.0.0-beta.3...1.0.0-beta.4) (2026-03-04)
+
+### 🐛 Bug Fixes
+
+* refresh service worker ([9f63d6a](https://github.com/Quent1L/skol-arena/commit/9f63d6a5e8ab3b4d192481bc628c5f3b4d915eec))
+
+## [1.0.0-beta.3](https://github.com/Quent1L/skol-arena/compare/1.0.0-beta.2...1.0.0-beta.3) (2026-03-04)
+
+### 🐛 Bug Fixes
+
+* **match:** force select winner match in mobile view ([c42cab0](https://github.com/Quent1L/skol-arena/commit/c42cab072bff4a996fb076b12b9f7b1545cb9ea8))
+* **notification:** delete action notification automatically ([f42c69f](https://github.com/Quent1L/skol-arena/commit/f42c69f3353903a1eb40da31ea6886b4c82eb639))
+
+## [1.0.0-beta.2](https://github.com/Quent1L/skol-arena/compare/1.0.0-beta.1...1.0.0-beta.2) (2026-03-04)
+
+### ✨ New Features
+
+* add cancel match ([881e4df](https://github.com/Quent1L/skol-arena/commit/881e4df1c580e02f382d358d067817c108ef47c9))
+* add PKCE support for Keycloak authentication ([7798c3f](https://github.com/Quent1L/skol-arena/commit/7798c3f943ebc037b23444c68bfdcc117964053e))
+* keep same tab after page refresh ([6c9ccc7](https://github.com/Quent1L/skol-arena/commit/6c9ccc7120593bea97092b354c1e6d4771f13d11))
+
+### 🐛 Bug Fixes
+
+* calcul standings service ([03f24a9](https://github.com/Quent1L/skol-arena/commit/03f24a9aa38fc0acce5b29c18ee8061be1468b82))
+* check match validation ([c40712b](https://github.com/Quent1L/skol-arena/commit/c40712b519ac3a9fe85c23951645a326662f7637))
+* players stats source ([cfca6e7](https://github.com/Quent1L/skol-arena/commit/cfca6e7e4483c70f2750da8ccc759a461148f1e7))
 
 ## 1.0.0-beta.1 (2026-03-03)
 

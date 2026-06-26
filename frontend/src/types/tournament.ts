@@ -13,7 +13,7 @@ export {
   teamModeSchema,
   createTournamentSchema,
   updateTournamentSchema,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'
 
 // Types spécifiques au frontend (si nécessaire)
 export interface TournamentFormData {

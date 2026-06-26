@@ -1,4 +1,4 @@
-import type { RuleConditions } from '@skill-arena/shared/types/index'
+import type { RuleConditions } from '@skol-arena/shared/types/index'
 
 /**
  * Internal builder representation of the condition tree. Easier to manipulate

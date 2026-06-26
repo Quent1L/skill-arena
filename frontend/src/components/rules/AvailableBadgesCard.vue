@@ -34,7 +34,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
-import type { AvailableBadge } from '@skill-arena/shared/types/index'
+import type { AvailableBadge } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 

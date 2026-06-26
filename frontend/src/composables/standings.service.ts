@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { standingsApi } from './standings.api'
-import type { StandingsEntry } from '@skill-arena/shared/types/index'
+import type { StandingsEntry } from '@skol-arena/shared/types/index'
 
 /**
  * Standings service - Business logic and state management

@@ -20,7 +20,7 @@ import type {
   PlayerHeadToHeadRecord,
   PlayerTeamupRecord,
   PlayerComparisonResponse,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 type ExtendedFilters = PlayerStatsFilters & { allowedModes?: string[] };
 

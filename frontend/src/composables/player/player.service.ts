@@ -5,7 +5,7 @@ import type {
   PlayerDetailStats,
   PlayerStatsFilters,
   PlayerTournamentOption,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 export function usePlayerService() {
   const player = ref<PlayerProfile | null>(null)

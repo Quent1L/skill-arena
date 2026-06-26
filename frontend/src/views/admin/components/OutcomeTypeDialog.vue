@@ -77,7 +77,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import ToggleSwitch from 'primevue/toggleswitch'
 import InputNumber from 'primevue/inputnumber'
-import type { OutcomeType } from '@skill-arena/shared/types/outcome-type'
+import type { OutcomeType } from '@skol-arena/shared/types/outcome-type'
 
 interface Props {
   visible: boolean

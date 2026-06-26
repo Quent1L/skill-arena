@@ -7,7 +7,7 @@ import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { webSocketService } from "./websocket.service";
-import type { MmrAnimationEventReason, PlayerRulesOutput } from "@skill-arena/shared";
+import type { MmrAnimationEventReason, PlayerRulesOutput } from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
 type MmrRecord = { currentMmr: number; matchesPlayed: number };

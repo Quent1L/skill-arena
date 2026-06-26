@@ -3,7 +3,7 @@ import { outcomeTypeService } from "../services/outcome-type.service";
 import {
   createOutcomeTypeSchema,
   updateOutcomeTypeSchema,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 

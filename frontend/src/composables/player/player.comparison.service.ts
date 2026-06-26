@@ -6,7 +6,7 @@ import type {
   PlayerStatsFilters,
   PlayerHeadToHeadRecord,
   PlayerTeamupRecord,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 async function searchPlayers(query: string): Promise<PlayerProfile[]> {
   try {

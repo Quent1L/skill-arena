@@ -11,7 +11,7 @@ import {
   type RuleAction,
   type RuleConditions,
   type TestRuleResult,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 type Facts = Record<string, unknown>;
 

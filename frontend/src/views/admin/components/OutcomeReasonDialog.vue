@@ -42,7 +42,7 @@ import { watch } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
-import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
+import type { OutcomeReason } from '@skol-arena/shared/types/outcome-reason'
 
 interface Props {
   visible: boolean

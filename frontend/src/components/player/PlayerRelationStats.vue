@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { PlayerRelationStat } from '@skill-arena/shared/types/index'
+import type { PlayerRelationStat } from '@skol-arena/shared/types/index'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { playerLink } from '@/utils/player-link'
 

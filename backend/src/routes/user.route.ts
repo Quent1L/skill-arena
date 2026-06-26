@@ -4,7 +4,7 @@ import { createAppHono } from "../types/hono";
 import { userRepository } from "../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../types/errors";
 import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema, playerStatsFiltersSchema, userSearchSchema, playerComparisonSchema } from "@skill-arena/shared";
+import { updateProfileSchema, playerStatsFiltersSchema, userSearchSchema, playerComparisonSchema } from "@skol-arena/shared";
 import { playerStatsService } from "../services/player-stats.service";
 import { rulesService } from "../services/rules.service";
 

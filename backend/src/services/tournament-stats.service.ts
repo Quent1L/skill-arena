@@ -7,7 +7,7 @@ import type {
   WinStreakEntry,
   BestDuoEntry,
   OutcomeTypeFunStat,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 type MatchData = Awaited<
   ReturnType<typeof tournamentStatsRepository.getMatchesWithSidesAndPlayers>

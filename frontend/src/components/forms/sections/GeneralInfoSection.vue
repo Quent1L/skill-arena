@@ -181,7 +181,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
-import type { OrganizationWithMemberCount } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount } from '@skol-arena/shared'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 
 const { t } = useI18n()

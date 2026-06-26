@@ -4,12 +4,12 @@ import i18next from "../config/i18n";
 import { notificationRepository } from "../repository/notification.repository";
 import { pushDeviceRepository } from "../repository/push-device.repository";
 import { webSocketService } from "./websocket.service";
-import { CreateNotification, RegisterDevice } from "@skill-arena/shared";
+import { CreateNotification, RegisterDevice } from "@skol-arena/shared";
 
 // Configure web-push
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    "mailto:noreply@skill-arena.com",
+    "mailto:noreply@skol-arena.com",
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY,
   );

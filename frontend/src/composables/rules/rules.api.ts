@@ -9,7 +9,7 @@ import type {
   RuleConditions,
   TestRuleResult,
   UpdateRuleData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/admin/rules'
 

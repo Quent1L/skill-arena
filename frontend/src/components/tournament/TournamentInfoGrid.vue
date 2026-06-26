@@ -89,7 +89,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/DateUtils'
-import type { TournamentMode, TeamMode } from '@skill-arena/shared'
+import type { TournamentMode, TeamMode } from '@skol-arena/shared'
 
 interface Props {
   mode: TournamentMode

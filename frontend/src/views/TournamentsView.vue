@@ -90,7 +90,7 @@ import { useTournamentService } from '@/composables/tournament/tournament.servic
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useAuth } from '@/composables/useAuth'
 import TournamentCard from '@/components/TournamentCard.vue'
-import type { ClientTournamentSummary } from '@skill-arena/shared'
+import type { ClientTournamentSummary } from '@skol-arena/shared'
 
 const router = useRouter()
 const { t } = useI18n()

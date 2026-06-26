@@ -3,7 +3,7 @@ import { outcomeReasonService } from "../services/outcome-reason.service";
 import {
   createOutcomeReasonSchema,
   updateOutcomeReasonSchema,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 

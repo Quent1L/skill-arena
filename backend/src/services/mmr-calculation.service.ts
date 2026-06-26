@@ -3,7 +3,7 @@ import { eq, and, inArray, notInArray, gt, gte } from "drizzle-orm";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
-import type { Discipline, MmrAnimationEventReason, MmrHistoryOutcome, OutcomeType } from "@skill-arena/shared";
+import type { Discipline, MmrAnimationEventReason, MmrHistoryOutcome, OutcomeType } from "@skol-arena/shared";
 
 export interface SidePlayerInput {
   id: string;

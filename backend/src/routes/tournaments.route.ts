@@ -12,7 +12,7 @@ import {
   joinTournamentSchema,
   adminAddParticipantSchema,
 } from "../schemas/tournament.schema";
-import { generateBracketSchema } from "@skill-arena/shared";
+import { generateBracketSchema } from "@skol-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";

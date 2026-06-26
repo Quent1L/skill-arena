@@ -109,7 +109,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { MmrAnimationEventResponse, ClientRankTier } from '@skill-arena/shared'
+import type { MmrAnimationEventResponse, ClientRankTier } from '@skol-arena/shared'
 import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
 
 const { t } = useI18n()

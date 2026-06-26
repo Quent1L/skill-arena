@@ -5,7 +5,7 @@ import type {
   MatchSideInput,
   OutcomeType,
   OutcomeReason,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 export interface MatchFormState {
   playedAt: Date | null

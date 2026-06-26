@@ -123,8 +123,8 @@ import {
   updateDisciplineSchema,
   type CreateDisciplineRequestData,
   type OutcomeType,
-} from '@skill-arena/shared/types/index'
-import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
+} from '@skol-arena/shared/types/index'
+import type { OutcomeReason } from '@skol-arena/shared/types/outcome-reason'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import { disciplineApi, type InteractionModeOption } from '@/composables/discipline/discipline.api'
 import { useConfirm } from 'primevue/useconfirm'

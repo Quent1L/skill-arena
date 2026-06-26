@@ -3,7 +3,7 @@ import { db } from "../config/database";
 import { matches } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
-import type { MatchSubmittedContext } from "@skill-arena/shared";
+import type { MatchSubmittedContext } from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
 

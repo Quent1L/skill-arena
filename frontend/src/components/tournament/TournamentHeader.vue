@@ -46,7 +46,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { TournamentStatus, TournamentMode } from '@skill-arena/shared'
+import type { TournamentStatus, TournamentMode } from '@skol-arena/shared'
 import type { MenuItem } from 'primevue/menuitem'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 

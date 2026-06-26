@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, or, desc, count } from "drizzle-orm";
 import { db } from "../config/database";
 import { badgeReconciliationState, matches, playerBadges, rules } from "../db/schema";
-import type { RuleAction, RuleConditions, RuleScope, RuleType } from "@skill-arena/shared";
+import type { RuleAction, RuleConditions, RuleScope, RuleType } from "@skol-arena/shared";
 
 export interface CreateRuleData {
   triggerEvent: string;

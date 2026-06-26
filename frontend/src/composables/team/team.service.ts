@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { teamApi } from './team.api'
-import type { ClientTeam } from '@skill-arena/shared/types/index'
+import type { ClientTeam } from '@skol-arena/shared/types/index'
 
 export function useTeamService() {
   const toast = useAppToast()

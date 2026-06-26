@@ -141,7 +141,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import type { ClientMatchCard } from '@skill-arena/shared/types/index'
+import type { ClientMatchCard } from '@skol-arena/shared/types/index'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 
 const props = defineProps<{

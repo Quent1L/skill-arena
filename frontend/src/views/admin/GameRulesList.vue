@@ -102,7 +102,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
-import type { ClientGameRule } from '@skill-arena/shared/types/index'
+import type { ClientGameRule } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 const router = useRouter()

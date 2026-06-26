@@ -1,6 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import { notificationService } from '../services/notification.service';
-import { RegisterDeviceSchema } from '@skill-arena/shared';
+import { RegisterDeviceSchema } from '@skol-arena/shared';
 import { requireAuth } from '../middleware/auth';
 import { createAppHono } from '../types/hono';
 import { logger } from '../utils/logger';

@@ -124,7 +124,7 @@ import ResultStep from '@/components/match/steps/ResultStep.vue'
 import type {
   ClientCreateMatchRequest,
   ClientUpdateMatchRequest,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 interface Props {
   tournamentId: string

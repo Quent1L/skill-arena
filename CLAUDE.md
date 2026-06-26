@@ -44,8 +44,8 @@ cd shared && bun run build       # Build shared package only
 ### Monorepo Structure
 
 ```
-skill-arena/
-├── shared/     # @skill-arena/shared - types + Zod schemas
+skol-arena/
+├── shared/     # @skol-arena/shared - types + Zod schemas
 ├── backend/    # Hono API server
 └── frontend/   # Vue 3 SPA
 ```
@@ -68,8 +68,8 @@ skill-arena/
 
 ### Shared Package
 
-- Import types from `@skill-arena/shared`, never duplicate locally
-- If `Cannot find module '@skill-arena/shared'`: run `cd shared && bun run build`
+- Import types from `@skol-arena/shared`, never duplicate locally
+- If `Cannot find module '@skol-arena/shared'`: run `cd shared && bun run build`
 
 ## Key Conventions
 
@@ -91,7 +91,7 @@ skill-arena/
 
 ### Validation
 
-- Use Zod schemas from `@skill-arena/shared` for all validation
+- Use Zod schemas from `@skol-arena/shared` for all validation
 - Backend routes use `zValidator` middleware from `@hono/zod-validator`
 
 ### Testing

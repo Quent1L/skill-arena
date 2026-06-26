@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { rulesEvaluationService, interpolate } from "../rules-evaluation.service";
-import type { BadgeAction, MessageAction, RuleConditions } from "@skill-arena/shared";
+import type { BadgeAction, MessageAction, RuleConditions } from "@skol-arena/shared";
 
 describe("interpolate", () => {
   it("replaces {{var}} placeholders with context values", () => {

@@ -1,5 +1,5 @@
 import api from '@/config/ApiConfig'
-import type { MmrAnimationEventResponse, BadgeAnimationResponse } from '@skill-arena/shared'
+import type { MmrAnimationEventResponse, BadgeAnimationResponse } from '@skol-arena/shared'
 
 export const mmrAnimationEventApi = {
   async fetchPendingEvents(seasonId: string): Promise<{ events: MmrAnimationEventResponse[] }> {

@@ -301,7 +301,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { type ClientMatchDetail } from '@skill-arena/shared';
+import { type ClientMatchDetail } from '@skol-arena/shared';
 import Card from 'primevue/card';
 import Divider from 'primevue/divider';
 import { formatDistanceToNow } from 'date-fns';

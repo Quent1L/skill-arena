@@ -7,7 +7,7 @@ import {
   type StandingsEntry,
   type StandingsResult,
   type VictoryQualityDetail,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 type FlexMatchRow = Awaited<
   ReturnType<typeof standingsRepository.getPlayerPointsForStandings>

@@ -4,7 +4,7 @@ import {
   createDisciplineSchema,
   updateDisciplineSchema,
   TEAM_INTERACTION_MODES,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 import i18next from "../config/i18n";

@@ -13,7 +13,7 @@ export async function initializeAdminIfNeeded(): Promise<void> {
   }
 
   const adminEmail =
-    process.env.INITIAL_ADMIN_EMAIL ?? "admin@skill-arena.local";
+    process.env.INITIAL_ADMIN_EMAIL ?? "admin@skol-arena.local";
   const password = randomBytes(12).toString("base64url");
   const userId = randomUUID();
 

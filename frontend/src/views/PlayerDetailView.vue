@@ -450,7 +450,7 @@ import type {
   ClientRankTier,
   MmrChartPoint,
   OpponentQualityStats,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'

@@ -174,7 +174,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useInfiniteScroll } from '@vueuse/core'
-import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
+import type { ClientMmrHistoryEntry } from '@skol-arena/shared/types/index'
 import { getMatchLabel } from '@/composables/ranked/ranked.service'
 
 const { t } = useI18n()

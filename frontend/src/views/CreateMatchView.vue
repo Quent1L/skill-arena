@@ -21,7 +21,7 @@ import { useAuth } from '@/composables/useAuth'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
-import type { ClientBaseTournament, MatchSideInput, OutcomeType, OutcomeReason } from '@skill-arena/shared'
+import type { ClientBaseTournament, MatchSideInput, OutcomeType, OutcomeReason } from '@skol-arena/shared'
 import type { TournamentPlayer } from '@/composables/match/match-form.context'
 
 const { t } = useI18n()

@@ -1,5 +1,5 @@
 import http from '@/config/ApiConfig'
-import type { StandingsResult } from '@skill-arena/shared/types/index'
+import type { StandingsResult } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
 

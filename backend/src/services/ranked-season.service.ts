@@ -12,7 +12,7 @@ import type {
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
   TournamentStatus,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
   NotFoundError,

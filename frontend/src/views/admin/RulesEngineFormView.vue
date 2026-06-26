@@ -228,7 +228,7 @@ import type {
   RuleAction,
   RuleConditions,
   TestRuleResult,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const route = useRoute()
 const router = useRouter()

@@ -467,7 +467,7 @@ import Popover from 'primevue/popover'
 import Dialog from 'primevue/dialog'
 import { useStandingsService } from '@/composables/standings.service'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
-import type { StandingsEntry, OutcomeType } from '@skill-arena/shared'
+import type { StandingsEntry, OutcomeType } from '@skol-arena/shared'
 import { useViewport } from '@/composables/useViewport.ts'
 
 interface TournamentConfig {

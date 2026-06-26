@@ -97,7 +97,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { format } from 'date-fns'
-import type { MmrAnimationEventResponse } from '@skill-arena/shared'
+import type { MmrAnimationEventResponse } from '@skol-arena/shared'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 
 const { t } = useI18n()

@@ -7,7 +7,7 @@ import type {
 
   CreateTournamentFormData,
   UpdateTournamentFormData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 vi.mock('@/config/ApiConfig', () => ({
   default: {

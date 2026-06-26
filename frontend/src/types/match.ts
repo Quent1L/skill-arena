@@ -5,12 +5,12 @@ export {
   type ClientMatchModel as MatchModel,
   type MatchParticipation as MatchParticipant,
   type MatchStatus,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 // Types spécifiques au frontend pour compatibilité
 import type { Team } from './team'
 import type { User } from './user'
-import type { ClientMatchModel } from '@skill-arena/shared/types/index'
+import type { ClientMatchModel } from '@skol-arena/shared/types/index'
 
 export interface MatchExpanded extends ClientMatchModel {
   expand?: {

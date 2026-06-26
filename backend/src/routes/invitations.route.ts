@@ -6,7 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import {
   validateInvitationCodeSchema,
   consumeInvitationCodeSchema
-} from "@skill-arena/shared/schemas/invitation.schema";
+} from "@skol-arena/shared/schemas/invitation.schema";
 
 const invitations = createAppHono();
 

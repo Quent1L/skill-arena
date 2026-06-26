@@ -3,7 +3,7 @@ import type {
   ClientBracketData,
   GenerateBracketInput,
   CanGenerateBracketResponse,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
 

@@ -14,8 +14,8 @@ import type {
   ClientRankTier,
   ClientTournamentSummary,
   OpponentQualityStats,
-} from '@skill-arena/shared/types/index'
-import { formDataToApiPayload } from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
+import { formDataToApiPayload } from '@skol-arena/shared/types/index'
 
 export function getSubRank(mmr: number, tier: ClientRankTier, allTiers: ClientRankTier[]): number | null {
   if (tier.subRanks <= 1) return null

@@ -36,7 +36,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import type { ClientBracketData } from '@skill-arena/shared'
+import type { ClientBracketData } from '@skol-arena/shared'
 import BracketCanvas from '@/components/bracket/BracketCanvas.vue'
 
 interface Props {

@@ -8,7 +8,7 @@ import type {
   RuleConditions,
   TestRuleResult,
   UpdateRuleData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 export function useRulesService() {
   const { t } = useI18n()

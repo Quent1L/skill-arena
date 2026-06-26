@@ -50,7 +50,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
-import type { ValidationMode } from '@skill-arena/shared/types/index'
+import type { ValidationMode } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 

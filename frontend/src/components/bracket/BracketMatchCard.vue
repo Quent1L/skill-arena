@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ClientMatchModel, MatchSideModel, ClientBracketSeed } from '@skill-arena/shared'
+import type { ClientMatchModel, MatchSideModel, ClientBracketSeed } from '@skol-arena/shared'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
 interface Props {

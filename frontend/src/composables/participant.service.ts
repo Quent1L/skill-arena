@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { participantApi } from './participant.api'
 import { useAppToast } from '@/composables/useAppToast'
-import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
+import type { JoinTournamentResponse, ParticipantListItem } from '@skol-arena/shared'
 
 export function useParticipantService() {
   const toast = useAppToast()

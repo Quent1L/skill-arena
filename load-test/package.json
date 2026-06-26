@@ -1,5 +1,5 @@
 {
-  "name": "skill-arena-seed",
+  "name": "skol-arena-seed",
   "private": true,
   "dependencies": {
     "pg": "^8.13.3",

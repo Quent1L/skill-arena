@@ -101,7 +101,7 @@ import type {
   ClientBracketRound,
   ClientBracketMatchWithMetadata,
   ClientBracketSeed,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'
 import BracketMatchCard from '@/components/bracket/BracketMatchCard.vue'
 
 const CARD_HEIGHT = 110

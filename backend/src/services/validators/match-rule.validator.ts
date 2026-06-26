@@ -2,7 +2,7 @@ import { matchRepository } from "../../repository/match.repository";
 import { teamRepository } from "../../repository/team.repository";
 import { userRepository } from "../../repository/user.repository";
 import { BadRequestError, ConflictError, ErrorCode } from "../../types/errors";
-import type { CreateMatchRequestData as CreateMatchInput } from "@skill-arena/shared/types/index";
+import type { CreateMatchRequestData as CreateMatchInput } from "@skol-arena/shared/types/index";
 
 type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>

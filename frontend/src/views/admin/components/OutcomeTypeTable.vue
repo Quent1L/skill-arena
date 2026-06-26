@@ -132,8 +132,8 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
-import type { OutcomeType } from '@skill-arena/shared/types/outcome-type'
-import type { OutcomeReason } from '@skill-arena/shared/types/outcome-reason'
+import type { OutcomeType } from '@skol-arena/shared/types/outcome-type'
+import type { OutcomeReason } from '@skol-arena/shared/types/outcome-reason'
 
 interface Props {
   outcomeTypes: OutcomeType[]

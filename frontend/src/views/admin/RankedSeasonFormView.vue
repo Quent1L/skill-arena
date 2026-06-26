@@ -160,7 +160,7 @@ import {
   type UpdateRankedSeasonFormData,
   createRankedSeasonFormSchema,
   updateRankedSeasonFormSchema,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'

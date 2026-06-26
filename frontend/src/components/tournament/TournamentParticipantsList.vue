@@ -105,7 +105,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/DateUtils'
-import type { ParticipantListItem } from '@skill-arena/shared'
+import type { ParticipantListItem } from '@skol-arena/shared'
 import { useAuth } from '@/composables/useAuth'
 import { useUserService } from '@/composables/user/user.service'
 import { useParticipantService } from '@/composables/participant.service'

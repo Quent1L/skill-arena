@@ -3,7 +3,7 @@ import { outcomeTypeRepository } from "../repository/outcome-type.repository";
 import {
   type CreateOutcomeReasonInput,
   type UpdateOutcomeReasonInput,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
   NotFoundError,

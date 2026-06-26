@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.8.0",
-    "@skill-arena/shared": "workspace:*",
+    "@skol-arena/shared": "workspace:*",
     "better-auth": "catalog:",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",

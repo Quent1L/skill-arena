@@ -31,8 +31,8 @@ bun run dev
 ## Project Structure
 
 ```
-skill-arena/
-├── shared/          # @skill-arena/shared — TypeScript types + Zod schemas
+skol-arena/
+├── shared/          # @skol-arena/shared — TypeScript types + Zod schemas
 ├── backend/         # Hono API server
 └── frontend/        # Vue 3 SPA
 ```
@@ -99,8 +99,8 @@ skill-arena/
 
 ### Shared Package
 
-Import types from `@skill-arena/shared`, never duplicate locally.
-If you get `Cannot find module '@skill-arena/shared'`: run `cd shared && bun run build`.
+Import types from `@skol-arena/shared`, never duplicate locally.
+If you get `Cannot find module '@skol-arena/shared'`: run `cd shared && bun run build`.
 
 ## Stack
 

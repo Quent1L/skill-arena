@@ -169,7 +169,7 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from 'vue-i18n'
 import { useRulesService } from '@/composables/rules/rules.service'
-import type { ClientRule, CreateRuleData } from '@skill-arena/shared/types/index'
+import type { ClientRule, CreateRuleData } from '@skol-arena/shared/types/index'
 
 const router = useRouter()
 const { t } = useI18n()

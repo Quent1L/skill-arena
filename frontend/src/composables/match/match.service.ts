@@ -20,7 +20,7 @@ import type {
   MatchStatus,
   ParticipantListItem,
   MatchSideInput,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 interface ValidationResult {
   valid: boolean

@@ -1,5 +1,5 @@
 {
-  "name": "skill-arena",
+  "name": "skol-arena",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -22,7 +22,7 @@
     "@fontsource/rajdhani": "^5.2.7",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@primeuix/themes": "^2.0.3",
-    "@skill-arena/shared": "workspace:*",
+    "@skol-arena/shared": "workspace:*",
     "@tiptap/extension-image": "^3.26.0",
     "@tiptap/extension-link": "^3.26.0",
     "@tiptap/extension-text-align": "^3.26.0",

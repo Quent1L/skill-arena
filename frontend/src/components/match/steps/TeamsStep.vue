@@ -51,7 +51,7 @@ import Select from 'primevue/select'
 import Chip from 'primevue/chip'
 import Message from 'primevue/message'
 import { useMatchService } from '@/composables/match/match.service'
-import type { ClientTeam, MatchSideInput } from '@skill-arena/shared/types/index'
+import type { ClientTeam, MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Props {
   tournamentId: string

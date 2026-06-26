@@ -54,7 +54,7 @@ import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
 import { useAuth } from '@/composables/useAuth'
 import { onWsEvent } from '@/composables/notification/notification.socket'
-import type { AvailableBadge, ClientPlayerBadge } from '@skill-arena/shared/types/index'
+import type { AvailableBadge, ClientPlayerBadge } from '@skol-arena/shared/types/index'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const route = useRoute()

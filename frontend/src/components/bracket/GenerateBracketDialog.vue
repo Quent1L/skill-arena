@@ -153,7 +153,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { GenerateBracketInput } from '@skill-arena/shared/types/index'
+import type { GenerateBracketInput } from '@skol-arena/shared/types/index'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
 import type { TournamentResponse } from '@/composables/tournament/tournament.api'
 

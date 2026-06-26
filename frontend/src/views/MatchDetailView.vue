@@ -487,7 +487,7 @@ import type {
   ClientMatchDetail,
   MatchFinalizationReason,
   MmrAnimationWsPayload,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
@@ -496,7 +496,7 @@ import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
-import type { BadgeAnimationWsPayload } from '@skill-arena/shared/types/index'
+import type { BadgeAnimationWsPayload } from '@skol-arena/shared/types/index'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 

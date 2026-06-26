@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "@skill-arena/shared",
+      "name": "@skol-arena/shared",
       "dependencies": {
         "zod": "^3.22.4",
       },

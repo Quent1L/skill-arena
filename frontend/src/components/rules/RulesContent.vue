@@ -26,7 +26,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { ClientGameRule } from '@skill-arena/shared/types/index'
+import type { ClientGameRule } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 

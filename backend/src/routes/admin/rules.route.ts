@@ -6,8 +6,8 @@ import { requireAuth } from "../../middleware/auth";
 import { userRepository } from "../../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../../types/errors";
 import { rulesService } from "../../services/rules.service";
-import { createRuleSchema, testRuleSchema, updateRuleSchema } from "@skill-arena/shared";
-import type { RuleScope, RuleType } from "@skill-arena/shared";
+import { createRuleSchema, testRuleSchema, updateRuleSchema } from "@skol-arena/shared";
+import type { RuleScope, RuleType } from "@skol-arena/shared";
 
 const adminRules = createAppHono();
 

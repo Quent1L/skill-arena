@@ -9,7 +9,7 @@ import {
   matchPlayerPoints,
   computedData,
 } from "../db/schema";
-import { type MatchStatus, type StandingsResult } from "@skill-arena/shared";
+import { type MatchStatus, type StandingsResult } from "@skol-arena/shared";
 
 export type PlayerPointRow = {
   matchId: string;

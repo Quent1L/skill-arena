@@ -1,7 +1,7 @@
 import { eq, and, desc, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { notifications, notificationStatus } from "../db/schema";
-import { CreateNotification } from "@skill-arena/shared";
+import { CreateNotification } from "@skol-arena/shared";
 
 export const notificationRepository = {
   async create(data: CreateNotification) {

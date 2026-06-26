@@ -1,9 +1,9 @@
 // Re-export des types depuis le package partagé
-export { type Team, type TeamMember, type TeamStats } from '@skill-arena/shared'
+export { type Team, type TeamMember, type TeamStats } from '@skol-arena/shared'
 
 // Types spécifiques au frontend pour compatibilité
 import type { User } from './user'
-import type { Team } from '@skill-arena/shared'
+import type { Team } from '@skol-arena/shared'
 
 export interface TeamExpanded extends Team {
   expand?: {

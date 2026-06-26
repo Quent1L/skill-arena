@@ -31,7 +31,7 @@ Then configure the following variables in your `.env` file:
 
 - **DATABASE_URL**: PostgreSQL connection string
   ```
-  postgres://username:password@localhost:5432/skillarena3
+  postgres://username:password@localhost:5432/skolarena3
   ```
 
 #### Web Push Notifications (VAPID Keys)

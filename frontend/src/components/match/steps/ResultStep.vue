@@ -143,7 +143,7 @@ import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
-import type { OutcomeType, OutcomeReason, MatchSideInput } from '@skill-arena/shared/types/index'
+import type { OutcomeType, OutcomeReason, MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Props {
   tournamentId: string

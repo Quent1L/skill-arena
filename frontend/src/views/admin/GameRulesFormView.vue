@@ -69,7 +69,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
-import { createGameRuleSchema, updateGameRuleSchema } from '@skill-arena/shared/types/index'
+import { createGameRuleSchema, updateGameRuleSchema } from '@skol-arena/shared/types/index'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 

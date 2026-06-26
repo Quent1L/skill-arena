@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import type { OrganizationWithMemberCount } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount } from '@skol-arena/shared'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import { useOrganizationService } from '@/composables/organization/organization.service'

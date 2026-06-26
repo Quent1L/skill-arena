@@ -148,7 +148,7 @@ import { computed, inject, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BuilderNode, PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
-import type { Discipline, OrganizationWithMemberCount } from '@skill-arena/shared/types/index'
+import type { Discipline, OrganizationWithMemberCount } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 

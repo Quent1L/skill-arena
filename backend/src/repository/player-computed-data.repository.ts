@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerComputedData } from "../db/schema";
-import type { PlayerDetailStats } from "@skill-arena/shared";
+import type { PlayerDetailStats } from "@skol-arena/shared";
 
 class PlayerComputedDataRepository {
   async get(playerId: string, key: string): Promise<PlayerDetailStats | null> {

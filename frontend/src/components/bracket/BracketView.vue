@@ -188,7 +188,7 @@ import { useBracketService } from '@/composables/bracket/bracket.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import TournamentBracket from '@/components/tournament/TournamentBracket.vue'
 import GenerateBracketDialog from './GenerateBracketDialog.vue'
-import type { GenerateBracketInput } from '@skill-arena/shared'
+import type { GenerateBracketInput } from '@skol-arena/shared'
 import type { TournamentResponse } from '@/composables/tournament/tournament.api'
 
 interface Props {

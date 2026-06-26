@@ -197,7 +197,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import { useUserService } from '@/composables/user/user.service'
-import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skol-arena/shared'
 
 const { t } = useI18n()
 const toast = useAppToast()

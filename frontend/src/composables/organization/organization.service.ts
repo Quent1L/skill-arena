@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { organizationApi } from './organization.api'
-import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skol-arena/shared'
 
 export function useOrganizationService() {
   const { t } = useI18n()

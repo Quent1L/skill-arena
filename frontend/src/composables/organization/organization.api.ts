@@ -1,5 +1,5 @@
 import http from '@/config/ApiConfig.ts'
-import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skol-arena/shared'
 
 export const organizationApi = {
   async list(): Promise<OrganizationWithMemberCount[]> {

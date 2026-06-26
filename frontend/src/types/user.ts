@@ -7,4 +7,4 @@ export {
   type RegisterCredentials,
   type UserWithStats,
   type UserRole,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'

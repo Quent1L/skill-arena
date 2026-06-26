@@ -198,7 +198,7 @@ import { useAppToast } from '@/composables/useAppToast'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import type { InvitationCode } from '@/composables/invitation/invitation.api'
-import type { OrganizationWithMemberCount } from '@skill-arena/shared'
+import type { OrganizationWithMemberCount } from '@skol-arena/shared'
 
 const { t } = useI18n()
 const toast = useAppToast()

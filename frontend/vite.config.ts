@@ -34,7 +34,7 @@ export default defineConfig({
         type: 'module',
       },
       manifest: {
-        name: 'Skol',
+        name: 'Skol Arena',
         short_name: 'Skol',
         description: 'Skill Or Luck ?',
         theme_color: '#a78bfa',

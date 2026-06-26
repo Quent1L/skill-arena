@@ -166,8 +166,8 @@ import { useI18n } from 'vue-i18n'
 import { useTeamService } from '@/composables/team/team.service'
 import { participantApi } from '@/composables/participant.api'
 import { onWsEvent, sendWsMessage } from '@/composables/notification/notification.socket'
-import type { ClientTeam } from '@skill-arena/shared/types/index'
-import type { ParticipantListItem } from '@skill-arena/shared/types/index'
+import type { ClientTeam } from '@skol-arena/shared/types/index'
+import type { ParticipantListItem } from '@skol-arena/shared/types/index'
 
 const props = defineProps<{
   tournamentId: string

@@ -3,7 +3,7 @@ import type {
   OutcomeReason,
   CreateOutcomeReasonRequestData,
   UpdateOutcomeReasonRequestData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/outcome-reasons'
 

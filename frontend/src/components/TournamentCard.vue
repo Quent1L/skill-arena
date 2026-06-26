@@ -70,7 +70,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ClientTournamentSummary } from '@skill-arena/shared/types/index'
+import type { ClientTournamentSummary } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 

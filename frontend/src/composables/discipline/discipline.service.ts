@@ -12,7 +12,7 @@ import type {
   UpdateOutcomeReasonRequestData,
   Discipline,
   OutcomeType,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import { useAppToast } from '@/composables/useAppToast'
 
 export function useDisciplineService() {

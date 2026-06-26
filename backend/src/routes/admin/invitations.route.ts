@@ -5,7 +5,7 @@ import { requireAuth } from "../../middleware/auth";
 import { invitationService } from "../../services/invitation.service";
 import { userRepository } from "../../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../../types/errors";
-import { generateInvitationCodeSchema } from "@skill-arena/shared/schemas/invitation.schema";
+import { generateInvitationCodeSchema } from "@skol-arena/shared/schemas/invitation.schema";
 
 const adminInvitations = createAppHono();
 

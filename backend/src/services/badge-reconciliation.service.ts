@@ -6,7 +6,7 @@ import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { notificationService } from "./notification.service";
 import { webSocketService } from "./websocket.service";
 import { logger } from "../utils/logger";
-import type { BadgeAction, MatchSubmittedContext, RuleConditions } from "@skill-arena/shared";
+import type { BadgeAction, MatchSubmittedContext, RuleConditions } from "@skol-arena/shared";
 
 type Facts = Record<string, unknown>;
 

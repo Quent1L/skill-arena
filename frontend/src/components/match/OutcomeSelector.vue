@@ -63,7 +63,7 @@ import {
   outcomeTypeNameEnum,
   type OutcomeReason,
   type OutcomeType,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 interface Props {
   outcomeTypeId?: string | null

@@ -45,7 +45,7 @@ import type {
   ReportMatchResultRequestData,
   ConfirmMatchRequestData,
   ListMatchesQuery,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 // Type for notification service mock
 type NotificationServiceType = typeof notificationService;

@@ -1,5 +1,5 @@
 import { BadRequestError, ErrorCode } from "../../types/errors";
-import type { MatchStatus } from "@skill-arena/shared/types/index";
+import type { MatchStatus } from "@skol-arena/shared/types/index";
 
 /**
  * Validator for match status transitions

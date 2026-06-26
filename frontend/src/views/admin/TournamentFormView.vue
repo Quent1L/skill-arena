@@ -208,7 +208,7 @@ import {
   type UpdateTournamentFormData,
   baseTournamentFormSchema,
   baseTournamentUpdateFormSchema,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'

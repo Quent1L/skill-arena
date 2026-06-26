@@ -8,7 +8,7 @@ import {
   type TournamentMode,
   type TournamentStatus,
   type JoinTournamentRequest,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 import {
   ErrorCode,
   NotFoundError,

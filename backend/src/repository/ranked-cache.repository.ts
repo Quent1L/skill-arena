@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
 import { computedData } from "../db/schema";
-import type { ClientPlayerMmr, ClientRankTier } from "@skill-arena/shared/types/index";
+import type { ClientPlayerMmr, ClientRankTier } from "@skol-arena/shared/types/index";
 
 const KEY_OFFICIAL = "leaderboard:official";
 const KEY_PROVISIONAL = "leaderboard:provisional";

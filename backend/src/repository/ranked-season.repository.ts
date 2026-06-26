@@ -2,7 +2,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import type {
   CreateRankTierInput,
   UpdateRankTierInput,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { db } from "../config/database";
 import {
   tournaments,
@@ -10,7 +10,7 @@ import {
   rankedSeasonConfigs,
   rankTiers,
 } from "../db/schema";
-import type { TournamentStatus } from "@skill-arena/shared/types/index";
+import type { TournamentStatus } from "@skol-arena/shared/types/index";
 
 export interface CreateRankedSeasonData {
   name: string;

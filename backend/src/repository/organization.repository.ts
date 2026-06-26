@@ -1,7 +1,7 @@
 import { and, count, eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { organizations, organizationMembers } from "../db/schema";
-import type { OrganizationMemberWithUser } from "@skill-arena/shared";
+import type { OrganizationMemberWithUser } from "@skol-arena/shared";
 
 export class OrganizationRepository {
   async create(name: string, createdBy: string) {

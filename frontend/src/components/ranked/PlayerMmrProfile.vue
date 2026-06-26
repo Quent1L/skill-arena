@@ -226,7 +226,7 @@ import type {
   PlayerRelationStat,
   OpponentQualityStats,
   PlayerOutcomeTypeStat,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import PlayerBadges from '@/components/player/PlayerBadges.vue'

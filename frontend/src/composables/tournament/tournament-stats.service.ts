@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { tournamentStatsApi } from './tournament-stats.api'
-import type { TournamentStats } from '@skill-arena/shared'
+import type { TournamentStats } from '@skol-arena/shared'
 
 export function useTournamentStatsService() {
   const stats = ref<TournamentStats | null>(null)

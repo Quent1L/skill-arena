@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useParticipantService } from '../participant.service'
 import { participantApi } from '../participant.api'
 import { useAppToast } from '@/composables/useAppToast'
-import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared/types/index'
+import type { JoinTournamentResponse, ParticipantListItem } from '@skol-arena/shared/types/index'
 
 vi.mock('@/config/ApiConfig', () => ({
   default: {

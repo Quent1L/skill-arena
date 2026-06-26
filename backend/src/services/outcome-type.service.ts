@@ -3,7 +3,7 @@ import { disciplineRepository } from "../repository/discipline.repository";
 import {
   type CreateOutcomeTypeInput,
   type UpdateOutcomeTypeInput,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
   NotFoundError,

@@ -1,7 +1,7 @@
 import { userRepository } from "../repository/user.repository";
 import { invitationRepository } from "../repository/invitation.repository";
 import { ErrorCode, NotFoundError, UnauthorizedError } from "../types/errors";
-import type { UpdateProfileInput, PlayerProfile } from "@skill-arena/shared";
+import type { UpdateProfileInput, PlayerProfile } from "@skol-arena/shared";
 
 export class UserService {
   /**

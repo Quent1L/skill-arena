@@ -29,7 +29,7 @@ import type {
   TournamentStatus,
   TournamentMode,
   JoinTournamentRequest,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 
 // Create a fresh instance to avoid pollution from other test files' mock.module
 const tournamentService = new TournamentService();

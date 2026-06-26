@@ -5,7 +5,7 @@ import type {
   BadgeAnimationWsPayload,
   MmrAnimationEventResponse,
   MmrAnimationWsPayload,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'
 
 export function useMMrAnimationQueue() {
   const queue = ref<MmrAnimationEventResponse[]>([])

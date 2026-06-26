@@ -8,7 +8,7 @@ import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
-import type { MmrChartPoint, PlayerStatsResponse } from '@skill-arena/shared/types/index'
+import type { MmrChartPoint, PlayerStatsResponse } from '@skol-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const router = useRouter()

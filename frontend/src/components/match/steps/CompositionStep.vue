@@ -95,7 +95,7 @@ import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { VueDraggable } from 'vue-draggable-plus'
-import type { MatchSideInput } from '@skill-arena/shared/types/index'
+import type { MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Player {
   id: string

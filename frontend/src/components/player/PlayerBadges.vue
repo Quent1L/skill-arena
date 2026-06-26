@@ -33,7 +33,7 @@ import { ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
 import { onWsEvent } from '@/composables/notification/notification.socket'
-import type { ClientPlayerBadge } from '@skill-arena/shared/types/index'
+import type { ClientPlayerBadge } from '@skol-arena/shared/types/index'
 import Popover from 'primevue/popover'
 
 const props = defineProps<{ playerId: string }>()

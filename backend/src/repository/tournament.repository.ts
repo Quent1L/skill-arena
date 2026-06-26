@@ -6,7 +6,7 @@ import {
   type TeamMode,
   type TournamentStatus,
   type ValidationMode,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { handleDatabaseError } from "../utils/db-errors";
 
 export interface CreateTournamentData {

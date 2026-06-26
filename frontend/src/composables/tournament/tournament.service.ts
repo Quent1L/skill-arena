@@ -10,8 +10,8 @@ import type {
   CreateTournamentFormData,
   UpdateTournamentFormData,
   TournamentStatus,
-} from '@skill-arena/shared/types/index'
-import { formDataToApiPayload } from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
+import { formDataToApiPayload } from '@skol-arena/shared/types/index'
 import { useAuth } from '../useAuth'
 
 /**

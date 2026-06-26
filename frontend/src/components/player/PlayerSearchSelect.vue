@@ -33,7 +33,7 @@ import AutoComplete, {
 } from 'primevue/autocomplete'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { usePlayerComparisonService } from '@/composables/player/player.comparison.service'
-import type { PlayerProfile } from '@skill-arena/shared/types/index'
+import type { PlayerProfile } from '@skol-arena/shared/types/index'
 
 const props = defineProps<{
   modelValue: PlayerProfile | null

@@ -179,7 +179,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
-import type { ClientRankTier } from '@skill-arena/shared/types/index'
+import type { ClientRankTier } from '@skol-arena/shared/types/index'
 
 const route = useRoute()
 const router = useRouter()

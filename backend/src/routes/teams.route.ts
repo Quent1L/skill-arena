@@ -4,7 +4,7 @@ import { teamService } from "../services/team.service";
 import { tournamentService } from "../services/tournament.service";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
-import { createTeamSchema } from "@skill-arena/shared/types/index";
+import { createTeamSchema } from "@skol-arena/shared/types/index";
 
 const teams = createAppHono();
 

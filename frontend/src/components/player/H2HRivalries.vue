@@ -41,7 +41,7 @@
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import InfoTooltip from '@/components/InfoTooltip.vue'
-import type { PlayerH2HStat } from '@skill-arena/shared/types/index'
+import type { PlayerH2HStat } from '@skol-arena/shared/types/index'
 import { playerLink } from '@/utils/player-link'
 
 defineProps<{

@@ -3,7 +3,7 @@ import type {
   Discipline,
   CreateDisciplineRequestData,
   UpdateDisciplineRequestData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/disciplines'
 

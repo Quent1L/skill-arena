@@ -3,7 +3,7 @@ import type {
   OutcomeType,
   CreateOutcomeTypeRequestData,
   UpdateOutcomeTypeRequestData,
-} from '@skill-arena/shared/types/index'
+} from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/outcome-types'
 

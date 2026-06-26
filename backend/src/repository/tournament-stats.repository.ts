@@ -1,7 +1,7 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { matches, tournaments, outcomeTypes, computedData } from "../db/schema";
-import type { TournamentStats } from "@skill-arena/shared";
+import type { TournamentStats } from "@skol-arena/shared";
 
 export class TournamentStatsRepository {
   async getTournamentMode(tournamentId: string) {

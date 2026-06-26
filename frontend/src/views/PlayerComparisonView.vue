@@ -302,7 +302,7 @@ import type {
   PlayerH2HStat,
   PlayerTournamentOption,
   Discipline,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'
 import PlayerSearchSelect from '@/components/player/PlayerSearchSelect.vue'
 import PlayerPickerDialog from '@/components/match/mobile/PlayerPickerDialog.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'

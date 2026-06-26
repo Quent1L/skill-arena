@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, sql, inArray, lt, gte } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
-import type { MmrHistoryOutcome, OpponentQualityStats } from "@skill-arena/shared";
+import type { MmrHistoryOutcome, OpponentQualityStats } from "@skol-arena/shared";
 
 export interface UpsertPlayerMmrData {
   seasonId: string;

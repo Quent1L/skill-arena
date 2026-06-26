@@ -61,12 +61,12 @@ import { Tournament } from "../types/tournament"; // Local duplicate
 ✅ **GOOD:**
 
 ```typescript
-import { Tournament } from "@skill-arena/shared";
+import { Tournament } from "@skol-arena/shared";
 ```
 
 ### 2. Not Building Shared Package
 
-If you see `Cannot find module '@skill-arena/shared'`:
+If you see `Cannot find module '@skol-arena/shared'`:
 
 ```bash
 cd shared && bun run build
@@ -221,7 +221,7 @@ Always validate external input (API requests, user input) with Zod.
 ```typescript
 // ✅ GOOD - Backend route validation
 import { zValidator } from "@hono/zod-validator";
-import { CreateTournamentSchema } from "@skill-arena/shared";
+import { CreateTournamentSchema } from "@skol-arena/shared";
 
 tournamentRoute.post(
   "/",
@@ -464,7 +464,7 @@ Before submitting code, verify:
 
 **Shared:**
 
-- [ ] Types/schemas imported from `@skill-arena/shared`
+- [ ] Types/schemas imported from `@skol-arena/shared`
 - [ ] No type duplication across workspaces
 - [ ] Zod schemas defined before type inference
 

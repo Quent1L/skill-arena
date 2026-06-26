@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "skill-arena-seed",
+      "name": "skol-arena-seed",
       "dependencies": {
         "@types/pg": "^8.11.11",
         "pg": "^8.13.3",

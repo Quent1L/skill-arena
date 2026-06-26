@@ -1,5 +1,5 @@
 {
-  "name": "@skill-arena/shared",
+  "name": "@skol-arena/shared",
   "version": "0.0.0",
   "description": "Types et interfaces partagés entre frontend et backend",
   "main": "dist/index.js",

@@ -3,11 +3,11 @@ export {
   type TournamentParticipant,
   type TournamentAdmin,
   type TournamentAdminRole,
-} from '@skill-arena/shared'
+} from '@skol-arena/shared'
 
 // Types spécifiques au frontend pour compatibilité
 import type { User } from './user'
-import type { TournamentParticipant } from '@skill-arena/shared'
+import type { TournamentParticipant } from '@skol-arena/shared'
 
 export interface TournamentParticipantExpanded extends TournamentParticipant {
   expand?: {

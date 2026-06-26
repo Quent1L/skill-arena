@@ -11,11 +11,11 @@ import {
   updateRankedSeasonSchema,
   createRankTierSchema,
   updateRankTierSchema,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 import { NotFoundError, ErrorCode } from "../types/errors";
-import type { TournamentStatus } from "@skill-arena/shared/types/index";
+import type { TournamentStatus } from "@skol-arena/shared/types/index";
 
 const ranked = createAppHono();
 

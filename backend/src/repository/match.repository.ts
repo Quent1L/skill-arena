@@ -19,7 +19,7 @@ import {
   type ClientMatchDetail,
   type MatchDetailSide,
   type MatchDetailPlayer,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
 import { matchResultRepository } from "./match-result.repository";

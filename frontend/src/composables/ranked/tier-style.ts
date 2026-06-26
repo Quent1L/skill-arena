@@ -1,4 +1,4 @@
-import type { ClientRankTier } from '@skill-arena/shared'
+import type { ClientRankTier } from '@skol-arena/shared'
 
 export const TIER_ICON = ['fa fa-seedling', 'fa fa-shield', 'fa fa-star', 'fa fa-gem', 'fa fa-crown']
 export const TIER_TEXT_HEX = ['#9ca3af', '#60a5fa', '#fbbf24', '#fb923c', '#a855f7']

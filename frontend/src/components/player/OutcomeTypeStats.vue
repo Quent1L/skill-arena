@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { PlayerOutcomeTypeStat } from '@skill-arena/shared/types/index'
+import type { PlayerOutcomeTypeStat } from '@skol-arena/shared/types/index'
 
 defineProps<{
   stats: PlayerOutcomeTypeStat[]

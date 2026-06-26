@@ -9,7 +9,7 @@ import { Client } from "pg";
 
 const DATABASE_URL =
   process.env.DATABASE_URL ??
-  "postgres://skillarena:skillarena@localhost:5434/skillarena_load";
+  "postgres://skolarena:skolarena@localhost:5434/skolarena_load";
 
 // ---------------------------------------------------------------------------
 // Helpers

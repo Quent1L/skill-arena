@@ -10,7 +10,7 @@ import {
   type RuleConditions,
   type TriggerEvent,
   type UpdateRuleData,
-} from "@skill-arena/shared";
+} from "@skol-arena/shared";
 import {
   rulesRepository,
   type RuleListFilters,

@@ -14,7 +14,7 @@ import {
   tournamentEntries,
 } from "../db/schema";
 import { eq } from "drizzle-orm";
-import type { GenerateBracketInput } from "@skill-arena/shared";
+import type { GenerateBracketInput } from "@skol-arena/shared";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type * as schema from "../db/schema";
 

@@ -1,5 +1,5 @@
 import http from '@/config/ApiConfig'
-import type { ClientTeam, CreateTeamInput } from '@skill-arena/shared/types/index'
+import type { ClientTeam, CreateTeamInput } from '@skol-arena/shared/types/index'
 
 export const teamApi = {
   list: (tournamentId: string) =>

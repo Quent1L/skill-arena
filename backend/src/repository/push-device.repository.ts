@@ -1,7 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../config/database";
 import { userPushDevices } from "../db/schema";
-import { RegisterDevice } from "@skill-arena/shared";
+import { RegisterDevice } from "@skol-arena/shared";
 import { logger } from "../utils/logger";
 
 export const pushDeviceRepository = {

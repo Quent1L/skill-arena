@@ -25,9 +25,9 @@ self.addEventListener('push', (event: PushEvent) => {
     console.log('[SW] No data in push event')
     return
   }
-  
+
   let data: unknown
-  try { 
+  try {
     data = event.data.json()
     console.log('[SW] Push data:', data)
   } catch (err) {
@@ -40,8 +40,8 @@ self.addEventListener('push', (event: PushEvent) => {
   const options: NotificationOptions = {
     body: notification.message,
     data: { url: notification.actionUrl },
-    badge: '/skill-arena-logo.png',
-    icon: '/skill-arena-logo.png',
+    badge: '/skol-arena-logo.png',
+    icon: '/skol-arena-logo.png',
   }
   console.log('[SW] Showing notification:', title, options)
   event.waitUntil(self.registration.showNotification(title, options))

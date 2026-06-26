@@ -101,7 +101,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
-import type { Discipline } from '@skill-arena/shared/types/discipline'
+import type { Discipline } from '@skol-arena/shared/types/discipline'
 
 const { t } = useI18n()
 const router = useRouter()

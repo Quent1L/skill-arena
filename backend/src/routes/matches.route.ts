@@ -10,7 +10,7 @@ import {
   finalizeMatchSchema,
   listMatchCardsQuerySchema,
   validateMatchSchema,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 

@@ -3,7 +3,7 @@ import { gameRulesService } from "../services/game-rules.service";
 import {
   createGameRuleSchema,
   updateGameRuleSchema,
-} from "@skill-arena/shared/types/index";
+} from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 
