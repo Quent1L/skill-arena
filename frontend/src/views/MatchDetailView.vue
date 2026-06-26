@@ -6,18 +6,18 @@
 
     <div v-else-if="error" class="text-center text-red-500">
       <p>{{ error }}</p>
-      <Button label="Retour" @click="goBack()" />
+      <Button :label="t('matchDetailView.back')" @click="goBack()" />
     </div>
 
     <div v-else-if="match" class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <Button label="Retour" icon="fa fa-arrow-left" severity="secondary" @click="goBack()" />
+        <Button :label="t('matchDetailView.back')" icon="fa fa-arrow-left" severity="secondary" @click="goBack()" />
 
         <div class="flex items-center gap-3">
           <Button
             v-if="canEditMatch"
-            label="Compléter le match"
+            :label="t('matchDetailView.completeMatch')"
             icon="fas fa-edit"
             severity="info"
             size="small"
@@ -25,7 +25,7 @@
           />
           <Button
             v-if="canCancelMatch"
-            label="Annuler le match"
+            :label="t('matchDetailView.cancelMatch')"
             icon="fa fa-ban"
             severity="danger"
             outlined
@@ -42,7 +42,7 @@
       >
         <div class="p-4 border-b border-surface-200 dark:border-surface-700">
           <div class="flex justify-between">
-            <div class="text-2xl font-bold">Match</div>
+            <div class="text-2xl font-bold">{{ t('matchDetailView.matchHeading') }}</div>
             <Tag
               :value="getStatusLabel(match.status)"
               :severity="getStatusSeverity(match.status)"
@@ -65,7 +65,7 @@
                   <PlayerAvatarStack v-if="sideA?.players" :players="sideA.players" size="sm" />
                 </div>
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ sideA?.entryName ?? 'Équipe A' }}
+                  {{ sideA?.entryName ?? t('matchDetailView.teamA') }}
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
@@ -97,7 +97,7 @@
                       >
                         <Tag
                           v-if="p.exceededMatchLimit"
-                          value="hors limite"
+                          :value="t('matchDetailView.overLimit')"
                           severity="secondary"
                           class="text-xs"
                         />
@@ -131,7 +131,7 @@
                 <div class="mt-3 min-h-[32px]">
                   <Tag
                     v-if="sideA?.isWinner"
-                    value="Vainqueur"
+                    :value="t('matchDetailView.winner')"
                     severity="success"
                     icon="fa fa-trophy"
                   />
@@ -150,7 +150,7 @@
                   <PlayerAvatarStack v-if="sideB?.players" :players="sideB.players" size="sm" />
                 </div>
                 <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ sideB?.entryName ?? 'Équipe B' }}
+                  {{ sideB?.entryName ?? t('matchDetailView.teamB') }}
                 </div>
                 <div
                   v-if="match.tournament?.scoreEnabled !== false"
@@ -182,7 +182,7 @@
                       >
                         <Tag
                           v-if="p.exceededMatchLimit"
-                          value="hors limite"
+                          :value="t('matchDetailView.overLimit')"
                           severity="secondary"
                           class="text-xs"
                         />
@@ -216,7 +216,7 @@
                 <div class="mt-3 min-h-[32px]">
                   <Tag
                     v-if="sideB?.isWinner"
-                    value="Vainqueur"
+                    :value="t('matchDetailView.winner')"
                     severity="success"
                     icon="fa fa-trophy"
                   />
@@ -227,30 +227,30 @@
             <!-- Match Details -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm p-2">
               <div>
-                <span class="text-surface-500 dark:text-surface-400">Date du match :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.matchDate') }}</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
               </div>
               <div v-if="match.creator">
-                <span class="text-surface-500 dark:text-surface-400">Saisi par :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.enteredBy') }}</span>
                 <span class="ml-2 font-semibold"> {{ match.creator.displayName }}</span>
               </div>
               <div v-if="match.outcomeType">
-                <span class="text-surface-500 dark:text-surface-400">Type de résultat :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.outcomeType') }}</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeType.name }}</span>
               </div>
               <div v-if="match.outcomeReason">
-                <span class="text-surface-500 dark:text-surface-400">Raison du résultat :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.outcomeReason') }}</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
               </div>
               <div v-if="match.result?.finalizedAt">
-                <span class="text-surface-500 dark:text-surface-400">Finalisé le :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.finalizedAt') }}</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.result.finalizedAt) }}</span>
               </div>
               <div v-if="match.result?.finalizationReason">
-                <span class="text-surface-500 dark:text-surface-400">Finalisation :</span>
+                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.finalization') }}</span>
                 <span class="ml-2 font-semibold">
                   <template v-if="match.result.finalizationReason === 'trust_score'">
-                    Trust Score de {{ match.result.reporter?.displayName ?? 'inconnu' }}
+                    {{ t('matchDetailView.trustScoreBy', { name: match.result.reporter?.displayName ?? t('matchDetailView.unknown') }) }}
                   </template>
                   <template v-else>
                     {{ getFinalizationReasonLabel(match.result.finalizationReason) }}
@@ -279,13 +279,13 @@
         <div class="p-4 border-b border-red-300 dark:border-red-700">
           <h3 class="text-lg font-semibold text-red-700 dark:text-red-300">
             <i class="fa fa-flag mr-2"></i>
-            Contestations post-finalisation
+            {{ t('matchDetailView.postDisputesTitle') }}
           </h3>
         </div>
         <div class="p-4 space-y-3">
           <p class="text-xs text-red-600 dark:text-red-400">
             <i class="fa fa-info-circle mr-1" />
-            Seul le joueur ayant saisi ce match ou un administrateur peut l'annuler.
+            {{ t('matchDetailView.cancelNote') }}
           </p>
           <div
             v-for="dispute in postFinalizationDisputes"
@@ -293,20 +293,20 @@
             class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-1"
           >
             <div class="flex items-center justify-between">
-              <span class="font-medium">{{ dispute.player?.displayName || 'Joueur inconnu' }}</span>
-              <Tag severity="danger" value="Contesté" />
+              <span class="font-medium">{{ dispute.player?.displayName || t('matchDetailView.unknownPlayer') }}</span>
+              <Tag severity="danger" :value="t('matchDetailView.disputed')" />
             </div>
             <div
               v-if="dispute.contestationReason"
               class="text-sm text-surface-600 dark:text-surface-400"
             >
-              <span class="font-semibold">Raison :</span> {{ dispute.contestationReason }}
+              <span class="font-semibold">{{ t('matchDetailView.reason') }}</span> {{ dispute.contestationReason }}
             </div>
             <div
               v-if="dispute.contestationProof"
               class="text-sm text-surface-600 dark:text-surface-400"
             >
-              <span class="font-semibold">Preuve :</span>
+              <span class="font-semibold">{{ t('matchDetailView.proof') }}</span>
               <a
                 v-if="isProofUrl(dispute.contestationProof)"
                 :href="dispute.contestationProof"
@@ -332,19 +332,18 @@
         <div class="p-4 border-b border-orange-300 dark:border-orange-700">
           <h3 class="text-lg font-semibold text-orange-700 dark:text-orange-300">
             <i class="fa fa-exclamation-circle mr-2"></i>
-            Contester ce résultat
+            {{ t('matchDetailView.disputeResultTitle') }}
           </h3>
         </div>
         <div class="p-4 space-y-3">
           <p class="text-sm text-surface-600 dark:text-surface-400">
-            Ce match a été finalisé automatiquement. Vous pouvez contester le résultat dans les 7
-            jours suivant la finalisation.
+            {{ t('matchDetailView.disputeResultDescription') }}
           </p>
           <p class="text-sm text-surface-500 dark:text-surface-500">
-            Expire {{ postFinalizationTimeRemaining }}
+            {{ t('matchDetailView.expiresIn', { time: postFinalizationTimeRemaining }) }}
           </p>
           <Button
-            label="Contester le résultat"
+            :label="t('matchDetailView.disputeButton')"
             icon="fa fa-flag"
             severity="danger"
             outlined
@@ -356,33 +355,33 @@
       <!-- Post-finalization dispute dialog -->
       <Dialog
         v-model:visible="showPostDisputeDialog"
-        header="Contester le résultat finalisé"
+        :header="t('matchDetailView.disputeFinalizedDialogTitle')"
         modal
         :style="{ maxWidth: '480px' }"
       >
         <div class="space-y-4">
           <div>
             <label for="postDisputeReason" class="block text-sm font-medium mb-2">
-              Raison de la contestation (optionnel)
+              {{ t('matchDetailView.disputeReasonLabel') }}
             </label>
             <Textarea
               id="postDisputeReason"
               v-model="postDisputeReason"
               rows="3"
-              placeholder="Expliquez pourquoi vous contestez ce résultat..."
+              :placeholder="t('matchDetailView.disputeReasonPlaceholder')"
               class="w-full"
             />
           </div>
         </div>
         <template #footer>
           <Button
-            label="Annuler"
+            :label="t('common.cancel')"
             severity="secondary"
             :disabled="postDisputing"
             @click="showPostDisputeDialog = false"
           />
           <Button
-            label="Soumettre la contestation"
+            :label="t('matchDetailView.submitDispute')"
             icon="fa fa-flag"
             severity="danger"
             :loading="postDisputing"
@@ -394,7 +393,7 @@
       <!-- Cancel Confirmation Dialog -->
       <Dialog
         v-model:visible="showCancelDialog"
-        header="Annuler le match"
+        :header="t('matchDetailView.cancelMatch')"
         modal
         :closable="!cancelling"
         :style="{ maxWidth: '600px' }"
@@ -404,22 +403,21 @@
           class="text-orange-600 dark:text-orange-400 font-semibold mb-2"
         >
           <i class="fa fa-triangle-exclamation mr-1" />
-          Ce match a déjà été finalisé automatiquement. L'annulation recalculera les points et le
-          MMR associés.
+          {{ t('matchDetailView.cancelFinalizedWarning') }}
         </p>
         <p class="text-surface-600 dark:text-surface-400">
-          Êtes-vous sûr de vouloir annuler ce match ? Cette action ne peut pas être défaite.
+          {{ t('matchDetailView.cancelConfirmation') }}
         </p>
         <template #footer>
           <Button
-            label="Non, conserver"
+            :label="t('matchDetailView.keepMatch')"
             severity="secondary"
             outlined
             :disabled="cancelling"
             @click="showCancelDialog = false"
           />
           <Button
-            label="Oui, annuler le match"
+            :label="t('matchDetailView.confirmCancel')"
             icon="fa fa-ban"
             severity="danger"
             :loading="cancelling"
@@ -454,21 +452,21 @@
         <div class="p-4 border-b border-warn-300 dark:border-warn-700">
           <h3 class="text-lg font-semibold text-warn-700 dark:text-warn-300">
             <i class="fa fa-shield-alt mr-2"></i>
-            Actions administrateur
+            {{ t('matchDetailView.adminActionsTitle') }}
           </h3>
         </div>
         <div class="p-4 space-y-3">
           <p class="text-sm text-surface-600 dark:text-surface-400">
-            En tant qu'administrateur, vous pouvez finaliser manuellement ce match.
+            {{ t('matchDetailView.adminActionsDescription') }}
           </p>
           <div class="flex gap-3">
             <Button
-              label="Finaliser (Consensus)"
+              :label="t('matchDetailView.finalizeConsensus')"
               severity="success"
               @click="() => handleFinalize('consensus')"
             />
             <Button
-              label="Finaliser (Override admin)"
+              :label="t('matchDetailView.finalizeOverride')"
               severity="warn"
               @click="() => handleFinalize('admin_override')"
             />
@@ -482,6 +480,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
 import type {
@@ -501,6 +500,7 @@ import type { BadgeAnimationWsPayload } from '@skill-arena/shared/types/index'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -631,7 +631,7 @@ async function loadMatch() {
     initAnimationIfRanked()
   } catch (err) {
     console.error('Error loading match:', err)
-    error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du match'
+    error.value = err instanceof Error ? err.message : t('matchDetailView.loadError')
   } finally {
     loading.value = false
   }
@@ -740,23 +740,23 @@ function completeMatch() {
 
 function getFinalizationReasonLabel(reason: string): string {
   const labels: Record<string, string> = {
-    consensus: 'Consensus',
-    auto_validation: 'Validation automatique',
-    admin_override: 'Décision administrative',
-    trust_score: 'Trust Score',
+    consensus: t('matchDetailView.finalizationReason.consensus'),
+    auto_validation: t('matchDetailView.finalizationReason.autoValidation'),
+    admin_override: t('matchDetailView.finalizationReason.adminOverride'),
+    trust_score: t('matchDetailView.finalizationReason.trustScore'),
   }
   return labels[reason] || reason
 }
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    scheduled: 'Planifié',
-    reported: 'Résultat saisi',
-    pending_confirmation: 'Proposition de score',
-    confirmed: 'Confirmé',
-    disputed: 'Contesté',
-    finalized: 'Finalisé',
-    cancelled: 'Annulé',
+    scheduled: t('matchDetailView.status.scheduled'),
+    reported: t('matchDetailView.status.reported'),
+    pending_confirmation: t('matchDetailView.status.pendingConfirmation'),
+    confirmed: t('matchDetailView.status.confirmed'),
+    disputed: t('matchDetailView.status.disputed'),
+    finalized: t('matchDetailView.status.finalized'),
+    cancelled: t('matchDetailView.status.cancelled'),
   }
   return labels[status] || status
 }

@@ -9,12 +9,12 @@
         <template #content>
           <!-- Informations de la discipline -->
           <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">Informations de la discipline</h2>
+            <h2 class="text-xl font-semibold mb-4">{{ t('disciplineFormView.sectionInfo') }}</h2>
 
             <div class="grid grid-cols-1 gap-4">
               <div>
                 <label for="name" class="block text-sm font-medium mb-2">
-                  Nom de la discipline <span class="text-red-500">*</span>
+                  {{ t('disciplineFormView.nameLabel') }} <span class="text-red-500">*</span>
                 </label>
                 <InputText
                   id="name"
@@ -26,19 +26,19 @@
               </div>
               <div>
                 <label for="scoreInstructions" class="block text-sm font-medium mb-2">
-                  Instructions de saisie du score
+                  {{ t('disciplineFormView.scoreInstructionsLabel') }}
                 </label>
                 <Textarea
                   id="scoreInstructions"
                   v-model="scoreInstructions"
                   class="w-full"
                   :rows="3"
-                  placeholder="Indiquez comment saisir le score pour cette discipline..."
+                  :placeholder="t('disciplineFormView.scoreInstructionsPlaceholder')"
                 />
               </div>
               <div>
                 <label for="teamInteractionMode" class="block text-sm font-medium mb-2">
-                  Mode d'interaction d'équipe
+                  {{ t('disciplineFormView.teamInteractionModeLabel') }}
                 </label>
                 <Select
                   id="teamInteractionMode"
@@ -46,7 +46,7 @@
                   :options="interactionModeOptions"
                   option-label="label"
                   option-value="value"
-                  placeholder="Sélectionner un mode..."
+                  :placeholder="t('disciplineFormView.selectModePlaceholder')"
                   class="w-full"
                   :class="{ 'p-invalid': errors.teamInteractionMode }"
                   show-clear
@@ -75,7 +75,7 @@
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
-              label="Annuler"
+              :label="t('common.cancel')"
               severity="secondary"
               @click="router.back()"
               :disabled="loading"
@@ -83,7 +83,7 @@
             />
             <Button
               type="submit"
-              :label="isEditMode ? 'Mettre à jour' : 'Créer'"
+              :label="isEditMode ? t('common.update') : t('common.create')"
               icon="fa fa-check"
               :loading="loading"
               class="w-full sm:w-auto"
@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import Textarea from 'primevue/textarea'
@@ -131,6 +132,7 @@ import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
 import OutcomeTypeDialog from './components/OutcomeTypeDialog.vue'
 import OutcomeReasonDialog from './components/OutcomeReasonDialog.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const confirm = useConfirm()
@@ -245,9 +247,8 @@ async function handleOutcomeReasonSubmit(values: { name: string }) {
 
 function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
   confirm.require({
-    message:
-      'Êtes-vous sûr de vouloir supprimer ce type de résultat ? Cette action est irréversible.',
-    header: 'Supprimer le type de résultat ?',
+    message: t('disciplineFormView.confirmDeleteOutcomeTypeMessage'),
+    header: t('disciplineFormView.confirmDeleteOutcomeTypeHeader'),
     icon: 'fa fa-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
@@ -267,9 +268,8 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
 
 function confirmDeleteOutcomeReason(outcomeReason: OutcomeReason) {
   confirm.require({
-    message:
-      'Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.',
-    header: 'Supprimer la raison de résultat ?',
+    message: t('disciplineFormView.confirmDeleteOutcomeReasonMessage'),
+    header: t('disciplineFormView.confirmDeleteOutcomeReasonHeader'),
     icon: 'fa fa-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {

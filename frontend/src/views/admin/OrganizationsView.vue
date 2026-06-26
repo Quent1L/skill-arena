@@ -1,31 +1,31 @@
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold mb-2">Gestion des organisations</h1>
-      <p class="text-gray-600">Créez et gérez les groupes d'utilisateurs pour restreindre l'accès aux tournois</p>
+      <h1 class="text-3xl font-bold mb-2">{{ t('organizationsView.title') }}</h1>
+      <p class="text-gray-600">{{ t('organizationsView.subtitle') }}</p>
     </div>
 
     <Card class="mb-6">
       <template #title>
         <div class="flex items-center gap-2">
           <i class="fa fa-plus-circle"></i>
-          Créer une organisation
+          {{ t('organizationsView.createOrganization') }}
         </div>
       </template>
       <template #content>
         <form @submit.prevent="handleCreate" class="flex gap-4 items-end">
           <div class="flex flex-col gap-2 flex-1">
-            <label for="orgName" class="font-medium">Nom de l'organisation</label>
+            <label for="orgName" class="font-medium">{{ t('organizationsView.orgNameLabel') }}</label>
             <InputText
               id="orgName"
               v-model="newOrgName"
-              placeholder="Ex: Club de tennis"
+              :placeholder="t('organizationsView.orgNamePlaceholder')"
               class="w-full"
               :class="{ 'p-invalid': createError }"
             />
             <small v-if="createError" class="p-error">{{ createError }}</small>
           </div>
-          <Button type="submit" :loading="isCreating" label="Créer" icon="fa fa-plus" />
+          <Button type="submit" :loading="isCreating" :label="t('common.create')" icon="fa fa-plus" />
         </form>
       </template>
     </Card>
@@ -34,32 +34,32 @@
       <template #title>
         <div class="flex items-center gap-2">
           <i class="fa fa-list"></i>
-          Organisations existantes
+          {{ t('organizationsView.existingOrgs') }}
         </div>
       </template>
       <template #content>
         <DataTable :value="organizations" :loading="isLoading" striped-rows removable-sort>
           <template #empty>
-            <div class="text-center py-6 text-gray-500">Aucune organisation pour le moment</div>
+            <div class="text-center py-6 text-gray-500">{{ t('organizationsView.noOrgs') }}</div>
           </template>
 
-          <Column field="name" header="Nom" sortable />
+          <Column field="name" :header="t('common.name')" sortable />
 
-          <Column field="memberCount" header="Membres" sortable>
+          <Column field="memberCount" :header="t('organizationsView.columnMembers')" sortable>
             <template #body="{ data }">
-              <Tag severity="info">{{ data.memberCount }} membre{{ data.memberCount > 1 ? 's' : '' }}</Tag>
+              <Tag severity="info">{{ t('organizationsView.memberCount', data.memberCount) }}</Tag>
             </template>
           </Column>
 
-          <Column field="createdAt" header="Créée le" sortable>
+          <Column field="createdAt" :header="t('organizationsView.columnCreatedAt')" sortable>
             <template #body="{ data }">
               {{ formatDate(data.createdAt) }}
             </template>
           </Column>
 
-          <Column header="Actions" :exportable="false">
+          <Column :header="t('organizationsView.columnActions')" :exportable="false">
             <template #body="{ data }">
-              <Button icon="fa fa-cog" label="Gérer" size="small" text @click="openManageDialog(data)" />
+              <Button icon="fa fa-cog" :label="t('organizationsView.manage')" size="small" text @click="openManageDialog(data)" />
             </template>
           </Column>
         </DataTable>
@@ -69,23 +69,23 @@
     <!-- Management Dialog -->
     <Dialog
       v-model:visible="showManageDialog"
-      :header="`Gérer : ${selectedOrg?.name}`"
+      :header="t('organizationsView.manageDialogHeader', { name: selectedOrg?.name })"
       :modal="true"
       :style="{ width: '700px' }"
       @hide="closeManageDialog"
     >
       <!-- Rename section -->
       <div class="mb-6">
-        <h3 class="text-lg font-semibold mb-3">Nom de l'organisation</h3>
+        <h3 class="text-lg font-semibold mb-3">{{ t('organizationsView.orgNameSectionTitle') }}</h3>
         <div class="flex gap-2 items-center">
           <InputText
             v-model="editingName"
             class="flex-1"
-            placeholder="Nom de l'organisation"
+            :placeholder="t('organizationsView.orgNameRenamePlaceholder')"
             :maxlength="100"
           />
           <Button
-            label="Enregistrer"
+            :label="t('common.save')"
             icon="fa fa-check"
             size="small"
             :loading="isSavingName"
@@ -101,10 +101,10 @@
       <div>
         <div class="flex justify-between items-center mb-3">
           <h3 class="text-lg font-semibold">
-            Membres
+            {{ t('organizationsView.membersSection') }}
             <Tag severity="info" class="ml-2">{{ members.length }}</Tag>
           </h3>
-          <Button label="Ajouter" icon="fa fa-user-plus" size="small" @click="showAddMemberDialog = true" />
+          <Button :label="t('organizationsView.addMemberButton')" icon="fa fa-user-plus" size="small" @click="showAddMemberDialog = true" />
         </div>
 
         <div v-if="isLoadingMembers" class="flex justify-center py-4">
@@ -112,7 +112,7 @@
         </div>
 
         <div v-else-if="members.length === 0" class="text-center py-4 text-gray-500">
-          Aucun membre
+          {{ t('organizationsView.noMembers') }}
         </div>
 
         <div v-else class="flex flex-col gap-2">
@@ -126,9 +126,9 @@
               <div class="font-medium truncate">{{ member.user.displayName }}</div>
               <div class="flex items-center gap-2 mt-0.5">
                 <Tag :severity="member.role === 'owner' ? 'warning' : 'secondary'" size="small">
-                  {{ member.role === 'owner' ? 'Propriétaire' : 'Membre' }}
+                  {{ member.role === 'owner' ? t('organizationsView.roleOwner') : t('organizationsView.roleMember') }}
                 </Tag>
-                <span class="text-sm text-gray-500">Ajouté le {{ formatDate(member.joinedAt) }}</span>
+                <span class="text-sm text-gray-500">{{ t('organizationsView.addedAt', { date: formatDate(member.joinedAt) }) }}</span>
               </div>
             </div>
             <Button
@@ -137,7 +137,7 @@
               text
               rounded
               size="small"
-              v-tooltip="'Retirer'"
+              v-tooltip="t('organizationsView.removeMemberTooltip')"
               @click="handleRemoveMember(member.userId)"
             />
           </div>
@@ -147,7 +147,7 @@
       <!-- Add member sub-dialog -->
       <Dialog
         v-model:visible="showAddMemberDialog"
-        header="Ajouter des membres"
+        :header="t('organizationsView.addMembersDialogHeader')"
         :modal="true"
         :style="{ width: '500px' }"
         @hide="selectedUserIds = []"
@@ -157,14 +157,14 @@
             <ProgressSpinner />
           </div>
           <div v-else>
-            <label for="addMembersSelect" class="block text-sm font-medium mb-2">Sélectionner des utilisateurs</label>
+            <label for="addMembersSelect" class="block text-sm font-medium mb-2">{{ t('organizationsView.selectUsersLabel') }}</label>
             <MultiSelect
               inputId="addMembersSelect"
               v-model="selectedUserIds"
               :options="availableUsers"
               option-label="displayName"
               option-value="id"
-              placeholder="Choisir un ou plusieurs utilisateurs"
+              :placeholder="t('organizationsView.selectUsersPlaceholder')"
               class="w-full"
               filter
               display="chip"
@@ -173,13 +173,13 @@
         </div>
         <template #footer>
           <Button
-            label="Annuler"
+            :label="t('common.cancel')"
             severity="secondary"
             @click="showAddMemberDialog = false"
             :disabled="isAddingMembers"
           />
           <Button
-            label="Ajouter"
+            :label="t('organizationsView.add')"
             icon="fa fa-check"
             :disabled="selectedUserIds.length === 0 || isAddingMembers"
             :loading="isAddingMembers"
@@ -193,11 +193,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import { useUserService } from '@/composables/user/user.service'
 import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
 
+const { t } = useI18n()
 const toast = useAppToast()
 const { listOrganizations, createOrganization, getMembers, addMember, removeMember, renameOrganization } = useOrganizationService()
 const { users, loading: isLoadingUsers, listUsers } = useUserService()
@@ -229,7 +231,7 @@ async function loadOrganizations() {
   try {
     organizations.value = await listOrganizations()
   } catch (error: unknown) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error instanceof Error ? error.message : 'Erreur lors du chargement', life: 3000 })
+    toast.add({ severity: 'error', summary: t('organizationsView.errorSummary'), detail: error instanceof Error ? error.message : t('organizationsView.errorLoading'), life: 3000 })
   } finally {
     isLoading.value = false
   }
@@ -237,18 +239,18 @@ async function loadOrganizations() {
 
 async function handleCreate() {
   if (!newOrgName.value.trim()) {
-    createError.value = 'Le nom est requis'
+    createError.value = t('organizationsView.nameRequired')
     return
   }
   createError.value = null
   isCreating.value = true
   try {
     await createOrganization(newOrgName.value.trim())
-    toast.add({ severity: 'success', summary: 'Organisation créée', detail: `L'organisation "${newOrgName.value}" a été créée`, life: 3000 })
+    toast.add({ severity: 'success', summary: t('organizationsView.orgCreatedSummary'), detail: t('organizationsView.orgCreatedDetail', { name: newOrgName.value }), life: 3000 })
     newOrgName.value = ''
     await loadOrganizations()
   } catch (error: unknown) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error instanceof Error ? error.message : 'Erreur lors de la création', life: 3000 })
+    toast.add({ severity: 'error', summary: t('organizationsView.errorSummary'), detail: error instanceof Error ? error.message : t('organizationsView.errorCreating'), life: 3000 })
   } finally {
     isCreating.value = false
   }
@@ -281,9 +283,9 @@ async function handleSaveName() {
     const idx = organizations.value.findIndex((o) => o.id === selectedOrg.value!.id)
     if (idx !== -1) organizations.value[idx].name = name
     selectedOrg.value.name = name
-    toast.add({ severity: 'success', summary: 'Renommée', detail: `Organisation renommée en "${name}"`, life: 3000 })
+    toast.add({ severity: 'success', summary: t('organizationsView.renamedSummary'), detail: t('organizationsView.renamedDetail', { name }), life: 3000 })
   } catch (error: unknown) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error instanceof Error ? error.message : 'Erreur lors du renommage', life: 3000 })
+    toast.add({ severity: 'error', summary: t('organizationsView.errorSummary'), detail: error instanceof Error ? error.message : t('organizationsView.errorRenaming'), life: 3000 })
   } finally {
     isSavingName.value = false
   }
@@ -296,9 +298,9 @@ async function handleRemoveMember(userId: string) {
     members.value = members.value.filter((m) => m.userId !== userId)
     const idx = organizations.value.findIndex((o) => o.id === selectedOrg.value!.id)
     if (idx !== -1) organizations.value[idx].memberCount--
-    toast.add({ severity: 'success', summary: 'Membre retiré', life: 2000 })
+    toast.add({ severity: 'success', summary: t('organizationsView.memberRemovedSummary'), life: 2000 })
   } catch (error: unknown) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error instanceof Error ? error.message : 'Erreur', life: 3000 })
+    toast.add({ severity: 'error', summary: t('organizationsView.errorSummary'), detail: error instanceof Error ? error.message : t('organizationsView.errorGeneric'), life: 3000 })
   }
 }
 
@@ -312,9 +314,9 @@ async function handleAddMembers() {
     if (idx !== -1) organizations.value[idx].memberCount = members.value.length
     showAddMemberDialog.value = false
     selectedUserIds.value = []
-    toast.add({ severity: 'success', summary: 'Membres ajoutés', life: 2000 })
+    toast.add({ severity: 'success', summary: t('organizationsView.membersAddedSummary'), life: 2000 })
   } catch (error: unknown) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error instanceof Error ? error.message : 'Erreur', life: 3000 })
+    toast.add({ severity: 'error', summary: t('organizationsView.errorSummary'), detail: error instanceof Error ? error.message : t('organizationsView.errorGeneric'), life: 3000 })
   } finally {
     isAddingMembers.value = false
   }

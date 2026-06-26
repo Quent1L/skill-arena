@@ -8,19 +8,19 @@
       <div class="flex items-center gap-3 min-w-0">
         <img src="/icons/icon-192x192.png" alt="Skol" class="w-10 h-10 rounded-xl shrink-0" />
         <div class="min-w-0">
-          <p class="font-semibold text-sm leading-tight">Installer Skol</p>
-          <p class="text-xs opacity-60 truncate">Accès rapide depuis l'écran d'accueil</p>
+          <p class="font-semibold text-sm leading-tight">{{ t('pwaInstallBanner.title') }}</p>
+          <p class="text-xs opacity-60 truncate">{{ t('pwaInstallBanner.subtitle') }}</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <Button size="small" label="Installer" icon="fas fa-download" @click="triggerInstall" />
+        <Button size="small" :label="t('pwaInstallBanner.installButton')" icon="fas fa-download" @click="triggerInstall" />
         <Button
           size="small"
           icon="fas fa-times"
           text
           severity="secondary"
-          aria-label="Fermer"
+          :aria-label="t('common.close')"
           @click="handleDismiss"
         />
       </div>
@@ -35,16 +35,16 @@
     >
       <div class="flex items-start justify-between gap-2">
         <p class="text-sm">
-          Appuyez sur
+          {{ t('pwaInstallBanner.iosInstruction.tapOn') }}
           <i class="fas fa-share-from-square mx-1"></i>
-          puis <strong>"Sur l'écran d'accueil"</strong>
+          {{ t('pwaInstallBanner.iosInstruction.then') }} <strong>{{ t('pwaInstallBanner.iosInstruction.addToHomeScreen') }}</strong>
         </p>
         <Button
           size="small"
           icon="fas fa-times"
           text
           severity="secondary"
-          aria-label="Fermer"
+          :aria-label="t('common.close')"
           @click="showIOSInstructions = false"
         />
       </div>
@@ -53,8 +53,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { usePWAInstall } from '@/composables/pwa/pwa.install'
 
+const { t } = useI18n()
 const { shouldShowBanner, showIOSInstructions, triggerInstall, dismissBanner } = usePWAInstall()
 
 function handleDismiss() {

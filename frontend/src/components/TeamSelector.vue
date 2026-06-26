@@ -7,7 +7,7 @@
         @complete="searchPlayers"
         @item-select="addPlayer"
         option-label="displayName"
-        placeholder="Rechercher un joueur..."
+        :placeholder="t('teamSelector.searchPlaceholder')"
         class="w-full"
         :disabled="loading"
         dropdown
@@ -15,7 +15,7 @@
     </div>
 
     <div v-if="modelValue && modelValue.length > 0" class="mb-4">
-      <div class="text-sm font-medium mb-2">Joueurs sélectionnés</div>
+      <div class="text-sm font-medium mb-2">{{ t('teamSelector.selectedPlayers') }}</div>
       <div class="flex flex-wrap gap-2">
         <Chip
           v-for="playerId in modelValue"
@@ -32,8 +32,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useParticipantService } from '@/composables/participant.service'
 import type { AutoCompleteCompleteEvent } from 'primevue/autocomplete'
+
+const { t } = useI18n()
 
 interface Player {
   id: string
@@ -107,7 +110,7 @@ function removePlayer(playerId: string) {
 
 function getPlayerName(playerId: string): string {
   const player = allPlayers.value.find((p) => p.id === playerId)
-  return player ? player.displayName : `Joueur ${playerId}`
+  return player ? player.displayName : t('teamSelector.playerFallback', { playerId })
 }
 
 watch(() => props.tournamentId, loadPlayers, { immediate: true })

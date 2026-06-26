@@ -1,9 +1,9 @@
 <template>
   <div class="game-rules-list-view p-4">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Gestion des règles du jeu</h1>
+      <h1 class="text-2xl font-bold">{{ t('gameRulesList.title') }}</h1>
       <Button
-        label="Nouveau règlement"
+        :label="t('gameRulesList.newRule')"
         icon="fa fa-plus"
         @click="router.push('/admin/rules/new')"
       />
@@ -23,19 +23,19 @@
       responsive-layout="scroll"
       class="p-datatable-sm"
     >
-      <Column field="title" header="Titre" sortable>
+      <Column field="title" :header="t('gameRulesList.columnTitle')" sortable>
         <template #body="{ data }">
           <span class="font-semibold">{{ data.title }}</span>
         </template>
       </Column>
 
-      <Column field="createdAt" header="Créé le" sortable>
+      <Column field="createdAt" :header="t('gameRulesList.columnCreatedAt')" sortable>
         <template #body="{ data }">
           {{ formatDate(data.createdAt) }}
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 10rem">
+      <Column :header="t('common.actions')" style="width: 10rem">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
@@ -44,7 +44,7 @@
               text
               rounded
               @click="router.push(`/admin/rules/${data.id}/edit`)"
-              v-tooltip.top="'Modifier'"
+              v-tooltip.top="t('common.edit')"
             />
             <Button
               icon="fa fa-trash"
@@ -53,7 +53,7 @@
               text
               rounded
               @click="confirmDelete(data)"
-              v-tooltip.top="'Supprimer'"
+              v-tooltip.top="t('common.delete')"
             />
           </div>
         </template>
@@ -61,9 +61,9 @@
 
       <template #empty>
         <div class="text-center py-8">
-          <p class="text-gray-500 mb-4">Aucun règlement trouvé</p>
+          <p class="text-gray-500 mb-4">{{ t('gameRulesList.emptyState') }}</p>
           <Button
-            label="Créer votre premier règlement"
+            :label="t('gameRulesList.createFirst')"
             icon="fa fa-plus"
             @click="router.push('/admin/rules/new')"
           />
@@ -73,20 +73,20 @@
 
     <Dialog
       v-model:visible="deleteDialogVisible"
-      :header="`Supprimer le règlement ?`"
+      :header="t('gameRulesList.deleteDialogHeader')"
       :modal="true"
       :style="{ width: '450px' }"
     >
       <div class="flex items-center gap-3 mb-4">
         <i class="pi pi-exclamation-triangle text-3xl text-red-500"></i>
         <span>
-          Êtes-vous sûr de vouloir supprimer <strong>{{ ruleToDelete?.title }}</strong> ? Cette action est irréversible.
+          {{ t('gameRulesList.deleteConfirmMessage', { title: ruleToDelete?.title }) }}
         </span>
       </div>
       <template #footer>
-        <Button label="Annuler" icon="pi pi-times" @click="deleteDialogVisible = false" text />
+        <Button :label="t('common.cancel')" icon="pi pi-times" @click="deleteDialogVisible = false" text />
         <Button
-          label="Supprimer"
+          :label="t('common.delete')"
           icon="pi pi-check"
           @click="handleDelete"
           severity="danger"
@@ -100,9 +100,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import type { ClientGameRule } from '@skill-arena/shared/types/index'
 
+const { t } = useI18n()
 const router = useRouter()
 const { rules, loading, error, loadRules, deleteRule } = useGameRulesService()
 

@@ -6,10 +6,10 @@
           <i class="fa fa-medal text-purple-600 dark:text-purple-400 text-sm sm:text-base" />
         </div>
         <div>
-          <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Badges du tournoi</div>
+          <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('tournamentBadgesTab.title') }}</div>
           <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-            <template v-if="appUser">{{ earnedCount }} / {{ availableBadges.length }} obtenus</template>
-            <template v-else>{{ availableBadges.length }} badges disponibles</template>
+            <template v-if="appUser">{{ t('tournamentBadgesTab.earnedCount', { earned: earnedCount, total: availableBadges.length }) }}</template>
+            <template v-else>{{ t('tournamentBadgesTab.availableCount', { count: availableBadges.length }) }}</template>
           </div>
         </div>
       </div>
@@ -20,7 +20,7 @@
 
       <div v-else-if="availableBadges.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
         <i class="fa fa-medal text-4xl mb-3 block opacity-30" />
-        <p>Aucun badge disponible</p>
+        <p>{{ t('tournamentBadgesTab.emptyState') }}</p>
       </div>
 
       <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -50,6 +50,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
 import { useAuth } from '@/composables/useAuth'
 import { onWsEvent } from '@/composables/notification/notification.socket'
@@ -58,6 +59,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const route = useRoute()
 const { appUser } = useAuth()
+const { t } = useI18n()
 
 const availableBadges = ref<AvailableBadge[]>([])
 const playerBadges = ref<ClientPlayerBadge[]>([])

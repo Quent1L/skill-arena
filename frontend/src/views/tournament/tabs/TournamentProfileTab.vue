@@ -19,18 +19,20 @@
     </div>
     <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
       <i class="fa fa-user-slash text-4xl mb-4 block"></i>
-      <p>Vous n'avez pas encore de MMR pour cette saison.</p>
-      <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
+      <p>{{ t('tournamentProfileTab.noMmr') }}</p>
+      <p class="text-sm mt-2">{{ t('tournamentProfileTab.noMmrHint') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 
 const store = useTournamentDetailStore()
+const { t } = useI18n()
 
 onMounted(async () => {
   await store.ensurePlayerProfile()

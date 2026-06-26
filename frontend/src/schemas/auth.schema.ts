@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod'
+import { i18n } from '@/i18n'
 
 // Regex simple pour valider l'email
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -13,12 +14,12 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const loginSchema = z.object({
   email: z
     .string()
-    .min(1, "L'adresse email est requise")
-    .regex(emailRegex, 'Adresse email invalide'),
+    .min(1, i18n.global.t('authSchema.validation.emailRequired'))
+    .regex(emailRegex, i18n.global.t('authSchema.validation.emailInvalid')),
   password: z
     .string()
-    .min(1, 'Le mot de passe est requis')
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    .min(1, i18n.global.t('authSchema.validation.passwordRequired'))
+    .min(8, i18n.global.t('authSchema.validation.passwordMinLength')),
 })
 
 /**
@@ -28,17 +29,17 @@ export const registerSchema = z
   .object({
     email: z
       .string()
-      .min(1, "L'adresse email est requise")
-      .regex(emailRegex, 'Adresse email invalide'),
+      .min(1, i18n.global.t('authSchema.validation.emailRequired'))
+      .regex(emailRegex, i18n.global.t('authSchema.validation.emailInvalid')),
     name: z.string().optional(),
     password: z
       .string()
-      .min(1, 'Le mot de passe est requis')
-      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-    passwordConfirm: z.string().min(1, 'La confirmation du mot de passe est requise'),
+      .min(1, i18n.global.t('authSchema.validation.passwordRequired'))
+      .min(8, i18n.global.t('authSchema.validation.passwordMinLength')),
+    passwordConfirm: z.string().min(1, i18n.global.t('authSchema.validation.passwordConfirmRequired')),
   })
   .refine((data) => data.password === data.passwordConfirm, {
-    message: 'Les mots de passe ne correspondent pas',
+    message: i18n.global.t('authSchema.validation.passwordsMismatch'),
     path: ['passwordConfirm'],
   })
 
@@ -48,8 +49,8 @@ export const registerSchema = z
 export const forgotPasswordSchema = z.object({
   email: z
     .string()
-    .min(1, "L'adresse email est requise")
-    .regex(emailRegex, 'Adresse email invalide'),
+    .min(1, i18n.global.t('authSchema.validation.emailRequired'))
+    .regex(emailRegex, i18n.global.t('authSchema.validation.emailInvalid')),
 })
 
 /**
@@ -59,12 +60,12 @@ export const resetPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(1, 'Le mot de passe est requis')
-      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-    passwordConfirm: z.string().min(1, 'La confirmation du mot de passe est requise'),
+      .min(1, i18n.global.t('authSchema.validation.passwordRequired'))
+      .min(8, i18n.global.t('authSchema.validation.passwordMinLength')),
+    passwordConfirm: z.string().min(1, i18n.global.t('authSchema.validation.passwordConfirmRequired')),
   })
   .refine((data) => data.password === data.passwordConfirm, {
-    message: 'Les mots de passe ne correspondent pas',
+    message: i18n.global.t('authSchema.validation.passwordsMismatch'),
     path: ['passwordConfirm'],
   })
 
@@ -73,15 +74,15 @@ export const resetPasswordSchema = z
  */
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, 'Le mot de passe actuel est requis'),
+    currentPassword: z.string().min(1, i18n.global.t('authSchema.validation.currentPasswordRequired')),
     newPassword: z
       .string()
-      .min(1, 'Le nouveau mot de passe est requis')
-      .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-    passwordConfirm: z.string().min(1, 'La confirmation du mot de passe est requise'),
+      .min(1, i18n.global.t('authSchema.validation.newPasswordRequired'))
+      .min(8, i18n.global.t('authSchema.validation.passwordMinLength')),
+    passwordConfirm: z.string().min(1, i18n.global.t('authSchema.validation.passwordConfirmRequired')),
   })
   .refine((data) => data.newPassword === data.passwordConfirm, {
-    message: 'Les mots de passe ne correspondent pas',
+    message: i18n.global.t('authSchema.validation.passwordsMismatch'),
     path: ['passwordConfirm'],
   })
 

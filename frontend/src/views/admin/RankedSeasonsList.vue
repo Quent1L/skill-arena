@@ -1,9 +1,9 @@
 <template>
   <div class="ranked-seasons-list p-4">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Saisons Ranked</h1>
+      <h1 class="text-2xl font-bold">{{ t('rankedSeasonsList.title') }}</h1>
       <Button
-        label="Nouvelle saison"
+        :label="t('rankedSeasonsList.newSeason')"
         icon="fa fa-plus"
         @click="router.push('/admin/ranked/new')"
       />
@@ -23,33 +23,33 @@
       responsive-layout="scroll"
       class="p-datatable-sm"
     >
-      <Column field="name" header="Nom" sortable>
+      <Column field="name" :header="t('common.name')" sortable>
         <template #body="{ data }">
           <span class="font-semibold">{{ data.name }}</span>
         </template>
       </Column>
 
-      <Column field="discipline.name" header="Discipline" sortable />
+      <Column field="discipline.name" :header="t('common.discipline')" sortable />
 
-      <Column field="status" header="Statut" sortable>
+      <Column field="status" :header="t('common.status')" sortable>
         <template #body="{ data }">
           <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
         </template>
       </Column>
 
-      <Column field="startDate" header="Début" sortable>
+      <Column field="startDate" :header="t('rankedSeasonsList.colStart')" sortable>
         <template #body="{ data }">
           {{ formatDate(data.startDate) }}
         </template>
       </Column>
 
-      <Column field="endDate" header="Fin" sortable>
+      <Column field="endDate" :header="t('rankedSeasonsList.colEnd')" sortable>
         <template #body="{ data }">
           {{ formatDate(data.endDate) }}
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 12rem">
+      <Column :header="t('common.actions')" style="width: 12rem">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
@@ -58,7 +58,7 @@
               text
               rounded
               @click="router.push(`/tournaments/${data.id}`)"
-              v-tooltip.top="'Voir'"
+              v-tooltip.top="t('rankedSeasonsList.tooltipView')"
             />
             <Button
               v-if="data.status !== 'draft'"
@@ -67,7 +67,7 @@
               text
               rounded
               @click="router.push(`/admin/ranked/${data.id}/tiers`)"
-              v-tooltip.top="'Gérer les rangs'"
+              v-tooltip.top="t('rankedSeasonsList.tooltipManageRanks')"
             />
             <Button
               v-if="data.status === 'draft'"
@@ -76,7 +76,7 @@
               text
               rounded
               @click="router.push(`/admin/ranked/${data.id}/edit`)"
-              v-tooltip.top="'Modifier'"
+              v-tooltip.top="t('common.edit')"
             />
             <Button
               v-if="data.status === 'draft'"
@@ -86,7 +86,7 @@
               rounded
               severity="success"
               @click="handleStart(data)"
-              v-tooltip.top="'Démarrer'"
+              v-tooltip.top="t('rankedSeasonsList.tooltipStart')"
             />
             <Button
               v-if="data.status === 'ongoing'"
@@ -96,7 +96,7 @@
               rounded
               severity="danger"
               @click="confirmEnd(data)"
-              v-tooltip.top="'Terminer'"
+              v-tooltip.top="t('rankedSeasonsList.tooltipEnd')"
             />
           </div>
         </template>
@@ -104,9 +104,9 @@
 
       <template #empty>
         <div class="text-center py-8">
-          <p class="text-gray-500 mb-4">Aucune saison ranked trouvée</p>
+          <p class="text-gray-500 mb-4">{{ t('rankedSeasonsList.empty') }}</p>
           <Button
-            label="Créer une saison"
+            :label="t('rankedSeasonsList.createSeason')"
             icon="fa fa-plus"
             @click="router.push('/admin/ranked/new')"
           />
@@ -116,21 +116,18 @@
 
     <Dialog
       v-model:visible="endDialogVisible"
-      header="Terminer la saison ?"
+      :header="t('rankedSeasonsList.endDialogHeader')"
       :modal="true"
       :style="{ width: '450px' }"
     >
       <div class="flex items-center gap-3 mb-4">
         <i class="pi pi-exclamation-triangle text-3xl text-orange-500"></i>
-        <span>
-          Êtes-vous sûr de vouloir terminer la saison
-          <strong>{{ seasonToEnd?.name }}</strong> ? Cette action est irréversible.
-        </span>
+        <span>{{ t('rankedSeasonsList.endDialogConfirm', { name: seasonToEnd?.name }) }}</span>
       </div>
       <template #footer>
-        <Button label="Annuler" icon="pi pi-times" @click="endDialogVisible = false" text />
+        <Button :label="t('common.cancel')" icon="pi pi-times" @click="endDialogVisible = false" text />
         <Button
-          label="Terminer"
+          :label="t('rankedSeasonsList.end')"
           icon="pi pi-check"
           @click="handleEnd"
           severity="danger"
@@ -144,10 +141,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import type { RankedSeason } from '@/composables/ranked/ranked.api'
 
 const router = useRouter()
+const { t } = useI18n()
 const { seasons, loading, error, loadSeasons, startSeason, endSeason } = useRankedService()
 
 const endDialogVisible = ref(false)
@@ -163,11 +162,11 @@ function formatDate(date: string) {
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    draft: 'Brouillon',
-    open: 'Ouvert',
-    ongoing: 'En cours',
-    finished: 'Terminé',
-    cancelled: 'Annulé',
+    draft: t('rankedSeasonsList.statusDraft'),
+    open: t('rankedSeasonsList.statusOpen'),
+    ongoing: t('rankedSeasonsList.statusOngoing'),
+    finished: t('rankedSeasonsList.statusFinished'),
+    cancelled: t('rankedSeasonsList.statusCancelled'),
   }
   return labels[status] ?? status
 }

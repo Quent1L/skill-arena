@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-6 pt-4">
     <div v-for="(side, idx) in sidesModel" :key="side.position" class="flex flex-col gap-2">
       <label :for="`teams-side-${side.position}`" class="text-sm font-medium">
-        Équipe {{ idx + 1 }} <span class="text-red-500">*</span>
+        {{ t('teamsStep.team', { number: idx + 1 }) }} <span class="text-red-500">*</span>
       </label>
       <Select
         :input-id="`teams-side-${side.position}`"
@@ -10,7 +10,7 @@
         :options="availableTeamsFor(side.position)"
         option-label="name"
         option-value="id"
-        placeholder="Sélectionner une équipe"
+        :placeholder="t('teamsStep.selectTeam')"
         class="w-full"
         @update:model-value="(val) => setTeam(side.position, val)"
       />
@@ -29,9 +29,9 @@
     </div>
 
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
-      <Button label="Précédent" severity="secondary" icon="fas fa-arrow-left" @click="emit('previous')" />
+      <Button :label="t('teamsStep.previous')" severity="secondary" icon="fas fa-arrow-left" @click="emit('previous')" />
       <Button
-        :label="props.nextLabel ?? 'Suivant'"
+        :label="props.nextLabel ?? t('teamsStep.next')"
         :icon="props.nextLabel ? 'fas fa-calendar-check' : 'fas fa-arrow-right'"
         :icon-pos="props.nextLabel ? undefined : 'right'"
         :class="props.nextLabel ? 'bg-green-600 hover:bg-green-700' : ''"
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Chip from 'primevue/chip'
@@ -68,6 +69,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const { t } = useI18n()
 
 const sidesModel = defineModel<MatchSideInput[]>('sides', { required: true })
 

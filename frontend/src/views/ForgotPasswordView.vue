@@ -3,25 +3,24 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Réinitialisation de mot de passe</p>
+        <p class="mt-2">{{ t('forgotPasswordView.subtitle') }}</p>
       </div>
 
       <Card>
         <template #content>
           <div v-if="!submitted">
             <p class="text-gray-700 mb-6">
-              Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot
-              de passe.
+              {{ t('forgotPasswordView.instructions') }}
             </p>
 
             <form @submit="onSubmit" class="space-y-6">
               <div class="flex flex-col gap-2">
-                <label for="email" class="font-medium">Adresse email</label>
+                <label for="email" class="font-medium">{{ t('forgotPasswordView.emailLabel') }}</label>
                 <InputText
                   id="email"
                   v-model="email"
                   type="email"
-                  placeholder="vous@exemple.com"
+                  :placeholder="t('forgotPasswordView.emailPlaceholder')"
                   :disabled="loading"
                   :invalid="!!errors.email"
                   class="w-full"
@@ -39,7 +38,7 @@
                 <Button
                   type="submit"
                   :loading="loading"
-                  label="Envoyer le lien de réinitialisation"
+                  :label="t('forgotPasswordView.submitButton')"
                   class="w-full"
                   :disabled="loading"
                 />
@@ -47,7 +46,7 @@
                 <div class="text-center text-sm">
                   <Button
                     link
-                    label="← Retour à la connexion"
+                    :label="t('forgotPasswordView.backToLoginLink')"
                     @click="router.push('/login')"
                     class="text-gray-600"
                   />
@@ -58,15 +57,14 @@
 
           <div v-else class="text-center py-4">
             <i class="fa fa-check-circle text-green-500 text-5xl mb-4"></i>
-            <h3 class="text-xl font-semibold mb-2">Email envoyé !</h3>
+            <h3 class="text-xl font-semibold mb-2">{{ t('forgotPasswordView.successTitle') }}</h3>
             <p class="text-gray-700 mb-6">
-              Si un compte existe avec cette adresse email, vous recevrez un lien de
-              réinitialisation dans quelques instants.
+              {{ t('forgotPasswordView.successMessage') }}
             </p>
             <p class="text-sm text-gray-600 mb-6">
-              Vérifiez également votre dossier spam si vous ne voyez pas l'email.
+              {{ t('forgotPasswordView.spamNote') }}
             </p>
-            <Button label="Retour à la connexion" @click="router.push('/login')" />
+            <Button :label="t('forgotPasswordView.backToLoginButton')" @click="router.push('/login')" />
           </div>
         </template>
       </Card>
@@ -77,11 +75,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { forgotPasswordSchema } from '@/schemas/auth.schema'
 
+const { t } = useI18n()
 const router = useRouter()
 const { requestPasswordReset, loading, error } = useAuth()
 const submitted = ref(false)

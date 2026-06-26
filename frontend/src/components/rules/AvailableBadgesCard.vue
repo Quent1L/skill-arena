@@ -8,9 +8,9 @@
         <i class="fa fa-medal text-purple-600 dark:text-purple-400 text-sm sm:text-base" />
       </div>
       <div>
-        <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Badges à débloquer</div>
+        <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('availableBadgesCard.title') }}</div>
         <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-          Récompenses gagnables sur ce tournoi
+          {{ t('availableBadgesCard.subtitle') }}
         </div>
       </div>
     </div>
@@ -32,8 +32,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
 import type { AvailableBadge } from '@skill-arena/shared/types/index'
+
+const { t } = useI18n()
 
 const props = defineProps<{ tournamentId: string }>()
 

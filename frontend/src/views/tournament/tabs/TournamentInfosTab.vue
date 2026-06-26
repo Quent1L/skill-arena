@@ -11,8 +11,8 @@
             <i class="fa fa-users text-blue-600 dark:text-blue-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Participants</div>
-            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Voir les joueurs inscrits</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('tournamentInfosTab.participants.title') }}</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{{ t('tournamentInfosTab.participants.subtitle') }}</div>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -32,8 +32,8 @@
             <i class="fa fa-shield-halved text-green-600 dark:text-green-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Équipes</div>
-            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Gérer les équipes</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('tournamentInfosTab.teams.title') }}</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{{ t('tournamentInfosTab.teams.subtitle') }}</div>
           </div>
         </div>
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
@@ -50,8 +50,8 @@
             <i class="fa fa-medal text-purple-600 dark:text-purple-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Badges</div>
-            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Badges à débloquer</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('tournamentInfosTab.badges.title') }}</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{{ t('tournamentInfosTab.badges.subtitle') }}</div>
           </div>
         </div>
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
@@ -68,8 +68,8 @@
             <i class="fa fa-scroll text-amber-600 dark:text-amber-400 text-sm sm:text-base" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Règles</div>
-            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Consulter les règles</div>
+            <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{{ t('tournamentInfosTab.rules.title') }}</div>
+            <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{{ t('tournamentInfosTab.rules.subtitle') }}</div>
           </div>
         </div>
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
@@ -92,12 +92,14 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MmrExplainerCard from '@/components/ranked/MmrExplainerCard.vue'
 
 const store = useTournamentDetailStore()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 function navigateTo(tab: string) {
   router.push({ name: 'tournament-tab', params: { id: route.params.id, tab } })

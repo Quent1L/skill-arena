@@ -14,7 +14,7 @@
         />
         <div class="flex-1 min-w-0">
           <h1 class="text-lg font-bold text-gray-900 dark:text-white truncate">
-            {{ rule?.title || 'Règlement' }}
+            {{ rule?.title || t('tournamentRulesView.defaultTitle') }}
           </h1>
           <p v-if="tournamentName" class="text-sm text-gray-500 dark:text-gray-400 truncate">
             {{ tournamentName }}
@@ -33,12 +33,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import RulesContent from '@/components/rules/RulesContent.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const { currentRule, loading, error, loadRuleById } = useGameRulesService()
 const { currentTournament, loadTournamentWithErrorHandling } = useTournamentService()
 

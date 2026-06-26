@@ -2,12 +2,12 @@
   <div class="rules-engine-form p-4">
     <div class="flex items-center gap-3 mb-4">
       <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/rules-engine')" />
-      <h1 class="text-2xl font-bold">{{ isEdit ? 'Modifier la règle' : 'Nouvelle règle' }}</h1>
-      <Tag value="Bêta" severity="warn" />
+      <h1 class="text-2xl font-bold">{{ isEdit ? t('rulesEngineFormView.editTitle') : t('rulesEngineFormView.newTitle') }}</h1>
+      <Tag :value="t('rulesEngineFormView.betaTag')" severity="warn" />
     </div>
 
     <Message severity="warn" :closable="false" class="mb-3">
-      <i class="fa fa-triangle-exclamation mr-2" />Cette fonctionnalité est en bêta. Des comportements inattendus peuvent survenir — signalez tout bug rencontré.
+      <i class="fa fa-triangle-exclamation mr-2" />{{ t('rulesEngineFormView.betaWarning') }}
     </Message>
 
     <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
@@ -15,19 +15,19 @@
     <div class="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-4">
       <!-- Panneau gauche: métadonnées -->
       <Card>
-        <template #title>Métadonnées</template>
+        <template #title>{{ t('rulesEngineFormView.metadataTitle') }}</template>
         <template #content>
           <div class="flex flex-col gap-4">
             <div>
-              <label class="block mb-1 text-sm font-medium">Nom *</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelName') }}</label>
               <InputText v-model="form.name" class="w-full" />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Description</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelDescription') }}</label>
               <Textarea v-model="form.description" class="w-full" rows="2" auto-resize />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Type</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelType') }}</label>
               <SelectButton
                 v-model="form.type"
                 :options="typeOptions"
@@ -37,7 +37,7 @@
               />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Événement déclencheur</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelTriggerEvent') }}</label>
               <Select
                 v-model="form.triggerEvent"
                 :options="triggerOptions"
@@ -48,7 +48,7 @@
               />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Portée</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelScope') }}</label>
               <SelectButton
                 v-model="form.scope"
                 :options="scopeOptions"
@@ -58,23 +58,23 @@
               />
             </div>
             <div v-if="form.scope === 'discipline'">
-              <label class="block mb-1 text-sm font-medium">Discipline</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('common.discipline') }}</label>
               <Select
                 v-model="form.disciplineId"
                 :options="disciplineOptions"
                 option-label="label"
                 option-value="value"
                 class="w-full"
-                placeholder="Choisir une discipline"
+                :placeholder="t('rulesEngineFormView.placeholderDiscipline')"
               />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Priorité</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelPriority') }}</label>
               <InputNumber v-model="form.priority" class="w-full" show-buttons />
             </div>
             <div class="flex items-center gap-2">
               <Checkbox v-model="form.isActive" :binary="true" input-id="isActive" />
-              <label for="isActive" class="text-sm">Règle active</label>
+              <label for="isActive" class="text-sm">{{ t('rulesEngineFormView.labelIsActive') }}</label>
             </div>
           </div>
         </template>
@@ -82,7 +82,7 @@
 
       <!-- Panneau central: conditions -->
       <Card>
-        <template #title>Conditions</template>
+        <template #title>{{ t('rulesEngineFormView.conditionsTitle') }}</template>
         <template #content>
           <ConditionBuilder v-model="form.conditions" :facts="catalog" :players="players" />
         </template>
@@ -90,7 +90,7 @@
 
       <!-- Panneau droit: action -->
       <Card>
-        <template #title>{{ form.type === 'badge' ? 'Badge' : 'Message' }}</template>
+        <template #title>{{ form.type === 'badge' ? t('rulesEngineFormView.typeBadge') : t('rulesEngineFormView.typeMessage') }}</template>
         <template #content>
           <!-- MESSAGE -->
           <div v-if="form.type === 'message'" class="flex flex-col gap-3">
@@ -113,10 +113,10 @@
                 @click="messageVariants.splice(idx, 1)"
               />
             </div>
-            <Button label="Ajouter une variante" icon="fa fa-plus" text size="small" @click="messageVariants.push('')" />
+            <Button :label="t('rulesEngineFormView.addVariant')" icon="fa fa-plus" text size="small" @click="messageVariants.push('')" />
 
             <div>
-              <p class="text-xs font-semibold text-surface-500 mb-1">Variables (cliquer pour insérer)</p>
+              <p class="text-xs font-semibold text-surface-500 mb-1">{{ t('rulesEngineFormView.variablesLabel') }}</p>
               <div class="flex flex-wrap gap-1">
                 <Tag
                   v-for="fact in catalog"
@@ -130,7 +130,7 @@
             </div>
 
             <div class="bg-surface-100 dark:bg-surface-800 rounded p-3">
-              <p class="text-xs font-semibold text-surface-500 mb-1">Prévisualisation</p>
+              <p class="text-xs font-semibold text-surface-500 mb-1">{{ t('rulesEngineFormView.previewLabel') }}</p>
               <p class="text-sm">{{ preview || '—' }}</p>
             </div>
           </div>
@@ -138,16 +138,16 @@
           <!-- BADGE -->
           <div v-else class="flex flex-col gap-3">
             <div>
-              <label class="block mb-1 text-sm font-medium">Icône</label>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelIcon') }}</label>
               <FontAwesomeIconPicker v-model="badge.icon" />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Label</label>
-              <InputText v-model="badge.label" class="w-full" placeholder="Inarrêtable" />
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelBadgeLabel') }}</label>
+              <InputText v-model="badge.label" class="w-full" :placeholder="t('rulesEngineFormView.placeholderBadgeLabel')" />
             </div>
             <div>
-              <label class="block mb-1 text-sm font-medium">Description</label>
-              <Textarea v-model="badge.description" rows="2" auto-resize class="w-full" placeholder="5 victoires consécutives" />
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelBadgeDescription') }}</label>
+              <Textarea v-model="badge.description" rows="2" auto-resize class="w-full" :placeholder="t('rulesEngineFormView.placeholderBadgeDescription')" />
             </div>
           </div>
         </template>
@@ -155,13 +155,13 @@
     </div>
 
     <div class="flex justify-end gap-2 mt-4">
-      <Button label="Tester" icon="fa fa-flask" severity="secondary" outlined @click="openTest" />
-      <Button label="Annuler" text @click="router.push('/admin/rules-engine')" />
-      <Button label="Sauvegarder" icon="fa fa-save" :loading="loading" @click="handleSave" />
+      <Button :label="t('rulesEngineFormView.testButton')" icon="fa fa-flask" severity="secondary" outlined @click="openTest" />
+      <Button :label="t('common.cancel')" text @click="router.push('/admin/rules-engine')" />
+      <Button :label="t('rulesEngineFormView.saveButton')" icon="fa fa-save" :loading="loading" @click="handleSave" />
     </div>
 
     <!-- Dialog de test -->
-    <Dialog v-model:visible="testDialogVisible" header="Tester la règle" :modal="true" :style="{ width: '600px' }">
+    <Dialog v-model:visible="testDialogVisible" :header="t('rulesEngineFormView.testDialogTitle')" :modal="true" :style="{ width: '600px' }">
       <div class="grid grid-cols-2 gap-3">
         <div v-for="fact in catalog" :key="fact.key">
           <label class="block text-xs font-medium mb-1">{{ fact.label }}</label>
@@ -171,7 +171,7 @@
             :options="players"
             option-label="displayName"
             option-value="id"
-            placeholder="Joueur"
+            :placeholder="t('rulesEngineFormView.placeholderPlayer')"
             filter
             class="w-full"
           />
@@ -187,7 +187,7 @@
           <Select
             v-else-if="fact.type === 'boolean'"
             v-model="testContext[fact.key]"
-            :options="[{ label: 'Vrai', value: true }, { label: 'Faux', value: false }]"
+            :options="[{ label: t('rulesEngineFormView.boolTrue'), value: true }, { label: t('rulesEngineFormView.boolFalse'), value: false }]"
             option-label="label"
             option-value="value"
             class="w-full"
@@ -196,15 +196,15 @@
         </div>
       </div>
       <div v-if="testResult" class="mt-4 p-3 rounded" :class="testResult.matched ? 'bg-green-100 dark:bg-green-900' : 'bg-surface-100 dark:bg-surface-800'">
-        <p class="font-semibold">{{ testResult.matched ? '✓ La règle matche' : '✗ La règle ne matche pas' }}</p>
+        <p class="font-semibold">{{ testResult.matched ? t('rulesEngineFormView.testMatched') : t('rulesEngineFormView.testNotMatched') }}</p>
         <p v-if="testResult.output?.type === 'message'" class="text-sm mt-1">{{ testResult.output.message }}</p>
         <p v-else-if="testResult.output?.type === 'badge'" class="text-sm mt-1">
           <i :class="testResult.output.badge.icon"></i> {{ testResult.output.badge.label }} — {{ testResult.output.badge.description }}
         </p>
       </div>
       <template #footer>
-        <Button label="Fermer" text @click="testDialogVisible = false" />
-        <Button label="Lancer le test" icon="fa fa-play" @click="runTest" />
+        <Button :label="t('rulesEngineFormView.closeButton')" text @click="testDialogVisible = false" />
+        <Button :label="t('rulesEngineFormView.runTestButton')" icon="fa fa-play" @click="runTest" />
       </template>
     </Dialog>
   </div>
@@ -213,6 +213,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useRulesService } from '@/composables/rules/rules.service'
 import { useFormReferences } from '@/composables/useFormReferences'
 import { useAppToast } from '@/composables/useAppToast'
@@ -231,6 +232,7 @@ import type {
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const toast = useAppToast()
 const { catalog, currentRule, loading, error, loadCatalog, loadRuleById, createRule, updateRule, testRule } =
   useRulesService()
@@ -265,13 +267,13 @@ const ruleId = computed(() => route.params.id as string | undefined)
 const isEdit = computed(() => !!ruleId.value)
 
 const typeOptions = [
-  { label: 'Message', value: 'message' },
-  { label: 'Badge', value: 'badge' },
+  { label: t('rulesEngineFormView.typeMessage'), value: 'message' },
+  { label: t('rulesEngineFormView.typeBadge'), value: 'badge' },
 ]
-const triggerOptions = [{ label: 'Saisie de match', value: 'match_submitted' }]
+const triggerOptions = [{ label: t('rulesEngineFormView.triggerMatchSubmitted'), value: 'match_submitted' }]
 const scopeOptions = [
-  { label: 'Global', value: 'global' },
-  { label: 'Discipline', value: 'discipline' },
+  { label: t('rulesEngineFormView.scopeGlobal'), value: 'global' },
+  { label: t('common.discipline'), value: 'discipline' },
 ]
 
 const form = reactive<{
@@ -307,7 +309,7 @@ const preview = computed(() => {
     const fact = catalog.value.find((f) => f.key === key)
     if (!fact) return ''
     // Player-ref facts render a display name; preview with a sample player.
-    if (fact.ref === 'player') return players.value[0]?.displayName ?? 'Joueur'
+    if (fact.ref === 'player') return players.value[0]?.displayName ?? t('rulesEngineFormView.previewPlayerFallback')
     if (fact.ref === 'time') return formatMinutes(Number(fact.sample))
     return String(fact.sample)
   })
@@ -326,20 +328,20 @@ function buildAction(): RuleAction {
 }
 
 function validate(): string | null {
-  if (!form.name.trim()) return 'Le nom est requis'
-  if (form.scope === 'discipline' && !form.disciplineId) return 'Une discipline est requise pour la portée discipline'
-  if (!hasValidLeaf(fromConditions(form.conditions))) return 'Au moins une condition complète est requise'
+  if (!form.name.trim()) return t('rulesEngineFormView.validationNameRequired')
+  if (form.scope === 'discipline' && !form.disciplineId) return t('rulesEngineFormView.validationDisciplineRequired')
+  if (!hasValidLeaf(fromConditions(form.conditions))) return t('rulesEngineFormView.validationConditionRequired')
   if (form.type === 'message' && messageVariants.value.filter((v) => v.trim()).length === 0)
-    return 'Au moins une variante de message est requise'
+    return t('rulesEngineFormView.validationMessageRequired')
   if (form.type === 'badge' && (!badge.icon || !badge.label || !badge.description))
-    return 'Tous les champs du badge sont requis'
+    return t('rulesEngineFormView.validationBadgeRequired')
   return null
 }
 
 async function handleSave() {
   const validationError = validate()
   if (validationError) {
-    toast.add({ severity: 'error', summary: 'Validation', detail: validationError, life: 4000 })
+    toast.add({ severity: 'error', summary: t('rulesEngineFormView.validationSummary'), detail: validationError, life: 4000 })
     return
   }
   const payload: CreateRuleData = {
@@ -358,8 +360,8 @@ async function handleSave() {
   if (result) {
     toast.add({
       severity: 'success',
-      summary: 'Succès',
-      detail: isEdit.value ? 'Règle mise à jour' : 'Règle créée',
+      summary: t('rulesEngineFormView.successSummary'),
+      detail: isEdit.value ? t('rulesEngineFormView.ruleUpdated') : t('rulesEngineFormView.ruleCreated'),
       life: 3000,
     })
     router.push('/admin/rules-engine')

@@ -9,8 +9,8 @@
 
         <div class="flex items-center gap-3">
           <div v-if="!isAuthenticated" class="flex items-center gap-3">
-            <Button label="Se connecter" text @click="handleLoginTap" />
-            <Button label="S'inscrire" @click="router.push('/signup')" class="text-sm" />
+            <Button :label="t('appHeader.signIn')" text @click="handleLoginTap" />
+            <Button :label="t('appHeader.signUp')" @click="router.push('/signup')" class="text-sm" />
           </div>
 
           <div v-else class="flex items-center gap-3">
@@ -31,7 +31,7 @@
               </template>
               <template #end>
                 <div class="w-full flex justify-center text-xs text-gray-500 h-7 pt-2">
-                  Version {{ appVersion }}
+                  {{ t('appHeader.version', { version: appVersion }) }}
                 </div>
               </template>
             </Menu>
@@ -41,7 +41,7 @@
               rounded
               @click="toggleMenu"
               class="flex items-center gap-2"
-              aria-label="Menu utilisateur"
+              :aria-label="t('appHeader.userMenuAriaLabel')"
             >
               <PlayerAvatar
                 v-if="currentUser"
@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useViewport } from '@/composables/useViewport'
 import type { MenuItem } from 'primevue/menuitem'
@@ -69,6 +70,8 @@ import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
 import SkolLogo from './SkolLogo.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
+
+const { t } = useI18n()
 
 const appVersion = __APP_VERSION__
 
@@ -84,7 +87,7 @@ const notifDropdown = useTemplateRef('notifDropdown')
 
 const menuItems = computed<MenuItem[]>(() => [
   {
-    label: 'Mes stats',
+    label: t('appHeader.menu.myStats'),
     icon: 'fas fa-chart-bar',
     command: () => {
       router.push(`/players/${appUser.value?.id}`)
@@ -92,7 +95,7 @@ const menuItems = computed<MenuItem[]>(() => [
     visible: appUser.value?.role !== 'kiosk',
   },
   {
-    label: 'Comparer des joueurs',
+    label: t('appHeader.menu.comparePlayers'),
     icon: 'fas fa-people-arrows',
     command: () => {
       router.push({ name: 'player-compare' })
@@ -100,7 +103,7 @@ const menuItems = computed<MenuItem[]>(() => [
     visible: appUser.value?.role !== 'kiosk',
   },
   {
-    label: 'Paramètres',
+    label: t('appHeader.menu.settings'),
     icon: 'fas fa-cog',
     command: () => {
       router.push('/settings')
@@ -112,7 +115,7 @@ const menuItems = computed<MenuItem[]>(() => [
     visible: !(appUser.value?.role === 'kiosk' && kioskSettingsLocked.value),
   },
   {
-    label: 'Se déconnecter',
+    label: t('appHeader.menu.logout'),
     icon: 'fas fa-right-from-bracket',
     command: () => {
       handleLogout()

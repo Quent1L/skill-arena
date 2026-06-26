@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { disciplineApi } from './discipline.api'
 import { outcomeTypeApi } from '../outcome-type.api'
 import { outcomeReasonApi, type OutcomeReasonResponse } from '../outcome-reason.api'
@@ -16,6 +17,7 @@ import { useAppToast } from '@/composables/useAppToast'
 
 export function useDisciplineService() {
   const toast = useAppToast()
+  const { t } = useI18n()
 
   const disciplines = ref<Discipline[]>([])
   const currentDiscipline = ref<Discipline | null>(null)
@@ -31,11 +33,11 @@ export function useDisciplineService() {
       disciplines.value = await disciplineApi.list()
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors du chargement des disciplines'
+        err instanceof Error ? err.message : t('disciplineService.errors.listFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -53,11 +55,11 @@ export function useDisciplineService() {
       return currentDiscipline.value
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors du chargement de la discipline'
+        err instanceof Error ? err.message : t('disciplineService.errors.getFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -74,18 +76,18 @@ export function useDisciplineService() {
       const discipline = await disciplineApi.create(data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Discipline créée avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.createSuccess'),
         life: 3000,
       })
       return discipline
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la création de la discipline'
+        err instanceof Error ? err.message : t('disciplineService.errors.createFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -102,8 +104,8 @@ export function useDisciplineService() {
       const discipline = await disciplineApi.update(id, data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Discipline mise à jour avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.updateSuccess'),
         life: 3000,
       })
       if (currentDiscipline.value?.id === id) {
@@ -112,11 +114,11 @@ export function useDisciplineService() {
       return discipline
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la discipline'
+        err instanceof Error ? err.message : t('disciplineService.errors.updateFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -133,8 +135,8 @@ export function useDisciplineService() {
       await disciplineApi.delete(id)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Discipline supprimée avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.deleteSuccess'),
         life: 3000,
       })
       if (currentDiscipline.value?.id === id) {
@@ -142,11 +144,11 @@ export function useDisciplineService() {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la suppression de la discipline'
+        err instanceof Error ? err.message : t('disciplineService.errors.deleteFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -171,8 +173,8 @@ export function useDisciplineService() {
       const outcomeType = await outcomeTypeApi.create(data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Type de résultat créé avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeTypeCreateSuccess'),
         life: 3000,
       })
       if (currentDiscipline.value) {
@@ -181,11 +183,11 @@ export function useDisciplineService() {
       return outcomeType
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la création du type de résultat'
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeCreateFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -202,8 +204,8 @@ export function useDisciplineService() {
       const outcomeType = await outcomeTypeApi.update(id, data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Type de résultat mis à jour avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeTypeUpdateSuccess'),
         life: 3000,
       })
       if (currentDiscipline.value) {
@@ -212,11 +214,11 @@ export function useDisciplineService() {
       return outcomeType
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la mise à jour du type de résultat'
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeUpdateFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -233,8 +235,8 @@ export function useDisciplineService() {
       await outcomeTypeApi.delete(id)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Type de résultat supprimé avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeTypeDeleteSuccess'),
         life: 3000,
       })
       if (currentDiscipline.value) {
@@ -242,11 +244,11 @@ export function useDisciplineService() {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la suppression du type de résultat'
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeDeleteFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -276,18 +278,18 @@ export function useDisciplineService() {
       const outcomeReason = await outcomeReasonApi.create(data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Raison de résultat créée avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeReasonCreateSuccess'),
         life: 3000,
       })
       return outcomeReason
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors de la création de la raison de résultat'
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeReasonCreateFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -304,8 +306,8 @@ export function useDisciplineService() {
       const outcomeReason = await outcomeReasonApi.update(id, data)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Raison de résultat mise à jour avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeReasonUpdateSuccess'),
         life: 3000,
       })
       return outcomeReason
@@ -313,11 +315,11 @@ export function useDisciplineService() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Erreur lors de la mise à jour de la raison de résultat'
+          : t('disciplineService.errors.outcomeReasonUpdateFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -334,19 +336,19 @@ export function useDisciplineService() {
       await outcomeReasonApi.delete(id)
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Raison de résultat supprimée avec succès',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeReasonDeleteSuccess'),
         life: 3000,
       })
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
-          : 'Erreur lors de la suppression de la raison de résultat'
+          : t('disciplineService.errors.outcomeReasonDeleteFailed')
       error.value = message
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })

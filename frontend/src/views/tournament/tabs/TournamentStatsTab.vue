@@ -21,7 +21,7 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-chart-pie mr-2 text-indigo-500" />
-            Répartition des fins de match
+            {{ t('tournamentStatsTab.outcomeDistribution.title') }}
           </h2>
           <div v-if="isMounted" class="flex flex-col sm:flex-row items-center gap-6">
             <MatchOutcomeDistribution
@@ -35,7 +35,7 @@
             />
           </div>
           <p v-else class="text-gray-500 dark:text-gray-400 text-sm">
-            Aucun match finalisé pour le moment.
+            {{ t('tournamentStatsTab.outcomeDistribution.empty') }}
           </p>
         </div>
 
@@ -45,18 +45,18 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-chart-bar mr-2 text-blue-500" />
-            Activité du tournoi
+            {{ t('tournamentStatsTab.activity.title') }}
           </h2>
           <div v-if="isMounted && momentumChartData" class="h-48">
             <Chart type="line" :data="momentumChartData" :options="lineOptions" class="h-full" />
           </div>
-          <p v-else class="text-gray-500 dark:text-gray-400 text-sm">Aucune donnée disponible.</p>
+          <p v-else class="text-gray-500 dark:text-gray-400 text-sm">{{ t('tournamentStatsTab.activity.empty') }}</p>
         </div>
 
         <!-- Meilleure équipe (flex uniquement) -->
         <TopPlayersCard
           v-if="store.tournament!.teamMode === 'flex' && bestTeamsItems.length"
-          title="Meilleures équipes"
+          :title="t('tournamentStatsTab.bestTeams.title')"
           icon="fa fa-trophy"
           icon-class="text-yellow-500"
           first-row-class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
@@ -70,7 +70,7 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-fire mr-2 text-orange-500" />
-            Séries de victoires en cours
+            {{ t('tournamentStatsTab.winStreaks.title') }}
           </h2>
           <div class="space-y-2">
             <div
@@ -85,7 +85,7 @@
               <span class="font-bold text-orange-600 dark:text-orange-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">victoires consécutives</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.winStreaks.consecutiveWins') }}</span>
             </div>
           </div>
         </div>
@@ -97,7 +97,7 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-skull-crossbones mr-2 text-red-500" />
-            Séries de défaites en cours
+            {{ t('tournamentStatsTab.lossStreaks.title') }}
           </h2>
           <div class="space-y-2">
             <div
@@ -112,7 +112,7 @@
               <span class="font-bold text-red-600 dark:text-red-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">défaites consécutives</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.lossStreaks.consecutiveLosses') }}</span>
             </div>
           </div>
         </div>
@@ -124,7 +124,7 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-shield mr-2 text-blue-500" />
-            Meilleures séries d'invincibilité
+            {{ t('tournamentStatsTab.invincibleStreaks.title') }}
           </h2>
           <div class="space-y-2">
             <div
@@ -139,7 +139,7 @@
               <span class="font-bold text-blue-600 dark:text-blue-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">matchs sans défaite</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.invincibleStreaks.unbeatenMatches') }}</span>
             </div>
           </div>
         </div>
@@ -147,7 +147,7 @@
         <!-- Meilleur joueur solo (asymétrique uniquement) -->
         <TopPlayersCard
           v-if="bestAsymmetricSoloItems.length"
-          title="Meilleurs joueurs seuls contre tous"
+          :title="t('tournamentStatsTab.bestAsymmetricSolo.title')"
           icon="fa fa-user-shield"
           icon-class="text-indigo-500"
           first-row-class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"
@@ -157,7 +157,7 @@
         <!-- Meilleur joueur 1v1 -->
         <TopPlayersCard
           v-if="bestSoloItems.length"
-          title="Meilleurs joueurs 1v1"
+          :title="t('tournamentStatsTab.bestSolo.title')"
           icon="fa fa-user"
           icon-class="text-green-500"
           first-row-class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
@@ -167,7 +167,7 @@
         <!-- Meilleur joueur 2v2 (flex uniquement) -->
         <TopPlayersCard
           v-if="store.tournament!.teamMode === 'flex' && bestDuoItems.length"
-          title="Meilleurs joueurs 2v2"
+          :title="t('tournamentStatsTab.bestDuo.title')"
           icon="fa fa-user-group"
           icon-class="text-purple-500"
           first-row-class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
@@ -181,7 +181,7 @@
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-star mr-2 text-amber-500" />
-            Stats par type de résultat
+            {{ t('tournamentStatsTab.outcomeTypeFunStats.title') }}
           </h2>
           <div class="space-y-4">
             <div
@@ -202,13 +202,13 @@
                   <i class="fa fa-crown text-green-600 dark:text-green-400" />
                   <div class="min-w-0">
                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                      Roi de {{ stat.outcomeTypeName }}
+                      {{ t('tournamentStatsTab.outcomeTypeFunStats.king', { name: stat.outcomeTypeName }) }}
                     </div>
                     <div class="font-semibold text-gray-900 dark:text-white truncate">
                       {{ stat.topWinner.displayName }}
                     </div>
                     <div class="text-xs text-green-600 dark:text-green-400 font-medium">
-                      {{ stat.topWinner.count }} fois
+                      {{ t('tournamentStatsTab.outcomeTypeFunStats.times', { count: stat.topWinner.count }) }}
                     </div>
                   </div>
                 </div>
@@ -219,13 +219,13 @@
                   <i class="fa fa-skull text-red-500 dark:text-red-400" />
                   <div class="min-w-0">
                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                      Victime de {{ stat.outcomeTypeName }}
+                      {{ t('tournamentStatsTab.outcomeTypeFunStats.victim', { name: stat.outcomeTypeName }) }}
                     </div>
                     <div class="font-semibold text-gray-900 dark:text-white truncate">
                       {{ stat.topLoser.displayName }}
                     </div>
                     <div class="text-xs text-red-500 dark:text-red-400 font-medium">
-                      {{ stat.topLoser.count }} fois
+                      {{ t('tournamentStatsTab.outcomeTypeFunStats.times', { count: stat.topLoser.count }) }}
                     </div>
                   </div>
                 </div>
@@ -241,7 +241,7 @@
         >
           <i class="fa fa-chart-bar text-4xl text-gray-300 dark:text-gray-700 mb-4 block" />
           <p class="text-gray-500 dark:text-gray-400">
-            Les statistiques s'afficheront une fois les premiers matchs finalisés.
+            {{ t('tournamentStatsTab.emptyStats') }}
           </p>
         </div>
       </div>
@@ -253,12 +253,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import Chart from 'primevue/chart'
+import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
 import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 
 const store = useTournamentDetailStore()
+const { t } = useI18n()
 
 const isMounted = ref(false)
 
@@ -279,7 +281,7 @@ const momentumChartData = computed(() => {
     labels: stats.momentum.map((d) => formatDate(d.date, 'dd/MM')),
     datasets: [
       {
-        label: 'Matchs',
+        label: t('tournamentStatsTab.chartLabel'),
         data: stats.momentum.map((d) => d.matchCount),
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99,102,241,0.15)',
@@ -308,11 +310,11 @@ const lineOptions = {
 }
 
 const bestTeamsItems = computed(() =>
-  (store.tournamentStats?.bestTeams ?? []).map((t) => ({
-    id: t.entryId,
-    displayName: t.displayName,
-    secondaryText: `${t.wins}V ${t.losses}D`,
-    winRate: t.winRate,
+  (store.tournamentStats?.bestTeams ?? []).map((team) => ({
+    id: team.entryId,
+    displayName: team.displayName,
+    secondaryText: `${team.wins}V ${team.losses}D`,
+    winRate: team.winRate,
   })),
 )
 

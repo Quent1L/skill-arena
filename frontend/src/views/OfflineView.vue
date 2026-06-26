@@ -8,14 +8,14 @@
       </div>
 
       <div class="space-y-3">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Vous êtes hors ligne</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('offlineView.title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm">
-          Vérifiez votre connexion internet et réessayez.
+          {{ t('offlineView.description') }}
         </p>
       </div>
 
       <Button
-        :label="checking ? 'Vérification…' : 'Réessayer'"
+        :label="checking ? t('offlineView.checking') : t('offlineView.retry')"
         :icon="checking ? 'fa fa-spinner fa-spin' : 'fa fa-rotate-right'"
         :disabled="checking"
         @click="probe"
@@ -27,8 +27,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import SkolLogo from '@/components/SkolLogo.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 

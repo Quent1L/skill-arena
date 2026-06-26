@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { bracketApi } from './bracket.api'
 import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/shared/types/index'
@@ -8,6 +9,7 @@ import type { ClientBracketData, GenerateBracketInput } from '@skill-arena/share
  */
 export function useBracketService() {
   const toast = useAppToast()
+  const { t } = useI18n()
 
   const bracketData = ref<ClientBracketData | null>(null)
   const loading = ref(false)
@@ -98,13 +100,13 @@ export function useBracketService() {
         const participants = ((err as Error & { details?: { participants?: Array<{ name: string }> } }).details?.participants) ?? []
         const names = participants.map((p) => p.name).join(', ')
         detail = names.length
-          ? `Ces participants n'ont joué aucun match dans le championnat : ${names}`
-          : "Certains participants n'ont joué aucun match dans le championnat sélectionné"
+          ? t('bracketService.errors.participantsWithoutMatchesNamed', { names })
+          : t('bracketService.errors.participantsWithoutMatches')
       }
       error.value = detail
       toast.add({
         severity: 'error',
-        summary: 'Génération impossible',
+        summary: t('bracketService.toast.generateFailedSummary'),
         detail,
         life: 8000,
       })
@@ -131,8 +133,8 @@ export function useBracketService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Bracket regénéré',
-        detail: 'Le tournoi a été regénéré avec succès',
+        summary: t('bracketService.toast.regenerateSuccessSummary'),
+        detail: t('bracketService.toast.regenerateSuccessDetail'),
         life: 5000,
       })
 
@@ -143,13 +145,13 @@ export function useBracketService() {
         const participants = ((err as Error & { details?: { participants?: Array<{ name: string }> } }).details?.participants) ?? []
         const names = participants.map((p) => p.name).join(', ')
         detail = names.length
-          ? `Ces participants n'ont joué aucun match dans le championnat : ${names}`
-          : "Certains participants n'ont joué aucun match dans le championnat sélectionné"
+          ? t('bracketService.errors.participantsWithoutMatchesNamed', { names })
+          : t('bracketService.errors.participantsWithoutMatches')
       }
       error.value = detail
       toast.add({
         severity: 'error',
-        summary: 'Génération impossible',
+        summary: t('bracketService.toast.generateFailedSummary'),
         detail,
         life: 8000,
       })

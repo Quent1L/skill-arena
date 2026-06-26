@@ -6,6 +6,7 @@ import { ref, computed } from 'vue'
 import { authClient } from '@/lib/auth-client'
 import { userApi, type UserResponse } from '@/composables/user/user.api'
 import { useConfigService } from '@/composables/config/config.service'
+import { i18n } from '@/i18n'
 
 const sessionData = ref()
 const appUserData = ref<UserResponse | null>(null)
@@ -71,7 +72,7 @@ export function useAuth() {
     try {
       const result = await authClient.getSession()
       if (result.error) {
-        error.value = result.error.message || 'Erreur lors de la récupération de la session'
+        error.value = result.error.message || i18n.global.t('auth.errors.sessionFetch')
         sessionData.value = { data: { user: null, session: null } }
         appUserData.value = null
         throw new Error(result.error.message)
@@ -82,7 +83,7 @@ export function useAuth() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Une erreur est survenue lors de la récupération de la session'
+          : i18n.global.t('auth.errors.sessionFetchGeneric')
       error.value = message
       sessionData.value = { data: { user: null, session: null } }
       appUserData.value = null
@@ -106,7 +107,7 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || 'Erreur de connexion'
+        error.value = result.error.message || i18n.global.t('auth.errors.login')
         throw new Error(result.error.message)
       }
 
@@ -119,7 +120,7 @@ export function useAuth() {
       return result
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Une erreur est survenue lors de la connexion'
+        err instanceof Error ? err.message : i18n.global.t('auth.errors.loginGeneric')
       error.value = message
       throw err
     } finally {
@@ -154,7 +155,7 @@ export function useAuth() {
 
       if (result.error) {
         // Better Auth peut retourner l'erreur dans différents formats
-        const errorMessage = result.error?.message ?? "Erreur lors de l'inscription"
+        const errorMessage = result.error?.message ?? i18n.global.t('auth.errors.register')
 
         error.value = errorMessage
         throw new Error(errorMessage)
@@ -165,7 +166,7 @@ export function useAuth() {
       return result
     } catch (err: unknown) {
       // Gérer les erreurs spécifiques du code d'invitation
-      let message = "Une erreur est survenue lors de l'inscription"
+      let message = i18n.global.t('auth.errors.registerGeneric')
 
       if (err instanceof Error) {
         message = err.message
@@ -244,7 +245,7 @@ export function useAuth() {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Une erreur est survenue lors de la déconnexion'
+        err instanceof Error ? err.message : i18n.global.t('auth.errors.logoutGeneric')
       error.value = message
       throw err
     } finally {
@@ -267,7 +268,7 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || 'Erreur lors de la demande de réinitialisation'
+        error.value = result.error.message || i18n.global.t('auth.errors.passwordResetRequest')
         throw new Error(result.error.message)
       }
 
@@ -276,7 +277,7 @@ export function useAuth() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Une erreur est survenue lors de la demande de réinitialisation'
+          : i18n.global.t('auth.errors.passwordResetRequestGeneric')
       error.value = message
       throw err
     } finally {
@@ -298,7 +299,7 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || 'Erreur lors de la réinitialisation du mot de passe'
+        error.value = result.error.message || i18n.global.t('auth.errors.passwordReset')
         throw new Error(result.error.message)
       }
 
@@ -307,7 +308,7 @@ export function useAuth() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Une erreur est survenue lors de la réinitialisation du mot de passe'
+          : i18n.global.t('auth.errors.passwordResetGeneric')
       error.value = message
       throw err
     } finally {
@@ -330,7 +331,7 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || 'Erreur lors du changement de mot de passe'
+        error.value = result.error.message || i18n.global.t('auth.errors.passwordChange')
         throw new Error(result.error.message)
       }
 
@@ -339,7 +340,7 @@ export function useAuth() {
       const message =
         err instanceof Error
           ? err.message
-          : 'Une erreur est survenue lors du changement de mot de passe'
+          : i18n.global.t('auth.errors.passwordChangeGeneric')
       error.value = message
       throw err
     } finally {

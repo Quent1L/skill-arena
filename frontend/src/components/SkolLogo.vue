@@ -12,7 +12,7 @@
       xmlns="http://www.w3.org/2000/svg"
       class="skol-svg"
       role="img"
-      aria-label="SKOL - Skill Kills Our Luck"
+      :aria-label="$t('skolLogo.ariaLabel')"
     >
       <defs>
         <!-- Dégradé texte -->

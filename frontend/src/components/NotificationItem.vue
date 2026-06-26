@@ -29,13 +29,13 @@
         <span
           v-if="props.notif.requiresAction"
           class="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-400"
-          >Action</span
+          >{{ t('notificationItem.actionLabel') }}</span
         >
         <Button
           v-if="!props.notif.requiresAction"
           @click="handleDelete"
           class="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-          title="Supprimer la notification"
+          :title="t('notificationItem.deleteTitle')"
           text
           rounded
           size="small"
@@ -52,9 +52,12 @@
 import type { Notification } from '@/composables/notification/notification.service'
 import { useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { computed, ref, useTemplateRef } from 'vue'
 import { useAppToast } from '@/composables/useAppToast'
 import { useSwipe } from '@vueuse/core'
+
+const { t } = useI18n()
 
 const props = defineProps<{ notif: Notification }>()
 const { open, deleteNotification } = useNotificationService()
@@ -105,14 +108,14 @@ function formatDate(date: Date): string {
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
 
-  if (seconds < 60) return 'À l\'instant'
-  if (minutes < 60) return `Il y a ${minutes} min`
-  if (hours < 24) return `Il y a ${hours}h`
-  if (days < 7) return `Il y a ${days}j`
-  
+  if (seconds < 60) return t('notificationItem.date.justNow')
+  if (minutes < 60) return t('notificationItem.date.minutesAgo', { minutes })
+  if (hours < 24) return t('notificationItem.date.hoursAgo', { hours })
+  if (days < 7) return t('notificationItem.date.daysAgo', { days })
+
   // Format complet pour les notifications plus anciennes
-  return date.toLocaleDateString('fr-FR', { 
-    day: 'numeric', 
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit'
@@ -130,14 +133,14 @@ async function handleDelete(event: Event) {
     await deleteNotification(props.notif.id)
     toast.add({
       severity: 'success',
-      summary: 'Notification supprimée',
+      summary: t('notificationItem.toast.deleted'),
       life: 2000,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur lors de la suppression'
+    const message = error instanceof Error ? error.message : t('notificationItem.toast.deleteError')
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
+      summary: t('notificationItem.toast.error'),
       detail: message,
       life: 3000,
     })

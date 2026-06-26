@@ -11,7 +11,7 @@
           <i :class="tierIcon" class="text-white text-3xl" />
         </div>
         <div class="text-xs font-bold tracking-widest uppercase text-white/50 mb-1">
-          Rang actuel
+          {{ t('playerMmrProfile.currentRank') }}
         </div>
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
           {{ rank?.name ?? '—' }}
@@ -23,7 +23,7 @@
         <div class="text-5xl font-black text-white tabular-nums">
           {{ mmr.currentMmr.toLocaleString('fr-FR') }}
         </div>
-        <div class="text-xs uppercase tracking-widest text-white/40 mt-1">MMR</div>
+        <div class="text-xs uppercase tracking-widest text-white/40 mt-1">{{ t('playerMmrProfile.mmrLabel') }}</div>
         <div class="flex items-center justify-center gap-3 mt-3">
           <div
             v-if="leaderboardRank"
@@ -63,11 +63,11 @@
     <div class="grid grid-cols-3 gap-3">
       <div class="rounded-xl p-3 text-center bg-gray-800">
         <div class="text-xl font-black text-white">{{ mmr.matchesPlayed }}</div>
-        <div class="text-xs text-gray-400 mt-0.5">Matchs</div>
+        <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.matchesLabel') }}</div>
       </div>
       <div class="rounded-xl p-3 text-center bg-gray-800">
         <div class="text-xl font-black text-white">{{ winrate }}%</div>
-        <div class="text-xs text-gray-400 mt-0.5">Winrate</div>
+        <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.winrateLabel') }}</div>
       </div>
       <div class="rounded-xl p-3 text-center bg-gray-800">
         <div
@@ -76,7 +76,7 @@
         >
           {{ mmr.winStreak > 1 ? `🔥 ${mmr.winStreak}` : mmr.lossStreak > 1 ? `💀 ${mmr.lossStreak}` : '—' }}
         </div>
-        <div class="text-xs text-gray-400 mt-0.5">Série en cours</div>
+        <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.currentStreak') }}</div>
       </div>
     </div>
 
@@ -84,17 +84,17 @@
     <div class="grid grid-cols-3 gap-3">
       <div class="rounded-xl p-4 bg-gray-800">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-          Victoires / Défaites
+          {{ t('playerMmrProfile.winsLosses') }}
         </div>
         <div class="text-2xl font-black">
-          <span class="text-green-400">{{ mmr.wins }}V</span>
+          <span class="text-green-400">{{ mmr.wins }}{{ t('playerMmrProfile.winsShort') }}</span>
           <span class="text-gray-600 mx-1">/</span>
-          <span class="text-red-400">{{ mmr.losses }}D</span>
+          <span class="text-red-400">{{ mmr.losses }}{{ t('playerMmrProfile.lossesShort') }}</span>
         </div>
       </div>
       <div class="rounded-xl p-4 bg-gray-800">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-          Meilleure série
+          {{ t('playerMmrProfile.bestStreak') }}
         </div>
         <div class="text-2xl font-black text-orange-400">
           {{ mmr.maxWinStreak > 0 ? `🔥 ${mmr.maxWinStreak}` : '—' }}
@@ -102,7 +102,7 @@
       </div>
       <div class="rounded-xl p-4 bg-gray-800">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
-          Pire série
+          {{ t('playerMmrProfile.worstStreak') }}
         </div>
         <div class="text-2xl font-black text-blue-400">
           {{ mmr.maxLossStreak > 0 ? `💀 ${mmr.maxLossStreak}` : '—' }}
@@ -116,7 +116,7 @@
     <!-- MMR Progression Chart -->
     <div v-if="isMounted && chartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Progression MMR
+        {{ t('playerMmrProfile.mmrProgression') }}
       </div>
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
@@ -124,7 +124,7 @@
     <!-- Outcome type distribution -->
     <div v-if="outcomeTypeStats?.length" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Répartition des fins de match
+        {{ t('playerMmrProfile.outcomeDistribution') }}
       </div>
       <MatchOutcomeDistribution
         :items="
@@ -144,15 +144,15 @@
       <div
         class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5"
       >
-        Win rate par niveau d'adversaire
+        {{ t('playerMmrProfile.winrateByOpponentLevel') }}
         <InfoTooltip
-          text="Basé sur l'écart de MMR :<br>Forts = +100<br>Proches = ±100<br>Faibles = −100"
+          :text="t('playerMmrProfile.opponentLevelTooltip')"
           html
         />
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-gray-700/50 p-2">
-          <div class="text-xs text-gray-400 mb-1">Plus forts</div>
+          <div class="text-xs text-gray-400 mb-1">{{ t('playerMmrProfile.vsStronger') }}</div>
           <div
             class="text-sm font-black"
             :class="opponentQuality.vsStronger.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
@@ -164,11 +164,11 @@
             }}
           </div>
           <div class="text-[10px] text-gray-500">
-            {{ opponentQuality.vsStronger.matchesPlayed }} matchs
+            {{ opponentQuality.vsStronger.matchesPlayed }} {{ t('playerMmrProfile.matchesCount') }}
           </div>
         </div>
         <div class="rounded-lg bg-gray-700/50 p-2">
-          <div class="text-xs text-gray-400 mb-1">Proches</div>
+          <div class="text-xs text-gray-400 mb-1">{{ t('playerMmrProfile.vsEqual') }}</div>
           <div
             class="text-sm font-black"
             :class="opponentQuality.vsEqual.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
@@ -180,11 +180,11 @@
             }}
           </div>
           <div class="text-[10px] text-gray-500">
-            {{ opponentQuality.vsEqual.matchesPlayed }} matchs
+            {{ opponentQuality.vsEqual.matchesPlayed }} {{ t('playerMmrProfile.matchesCount') }}
           </div>
         </div>
         <div class="rounded-lg bg-gray-700/50 p-2">
-          <div class="text-xs text-gray-400 mb-1">Plus faibles</div>
+          <div class="text-xs text-gray-400 mb-1">{{ t('playerMmrProfile.vsWeaker') }}</div>
           <div
             class="text-sm font-black"
             :class="opponentQuality.vsWeaker.matchesPlayed > 0 ? 'text-white' : 'text-gray-600'"
@@ -196,7 +196,7 @@
             }}
           </div>
           <div class="text-[10px] text-gray-500">
-            {{ opponentQuality.vsWeaker.matchesPlayed }} matchs
+            {{ opponentQuality.vsWeaker.matchesPlayed }} {{ t('playerMmrProfile.matchesCount') }}
           </div>
         </div>
       </div>
@@ -217,6 +217,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Chart from 'primevue/chart'
 import type {
   ClientPlayerMmr,
@@ -240,6 +241,8 @@ import {
   TIER_PROGRESS_BAR_CLASS as PROGRESS_BAR,
   tierStyleIdx as styleIdx,
 } from '@/composables/ranked/tier-style'
+
+const { t } = useI18n()
 
 const isMounted = ref(false)
 onMounted(() => {
@@ -268,7 +271,7 @@ const rank = computed((): ClientRankTier | null => {
   if (!props.tiers.length) return null
   const mmr = props.mmr.currentMmr
   return (
-    [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ??
+    [...props.tiers].sort((a, b) => b.level - a.level).find((tier) => mmr >= tier.minMmr) ??
     props.tiers[0]
   )
 })
@@ -291,7 +294,7 @@ const lpProgress = computed(() => {
   const lp = getLp(mmrVal, rank.value)
   const percent = Math.min(100, Math.round((lp / TIER_SIZE) * 100))
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const nextTier = sorted.find((t) => t.level > rank.value!.level) ?? null
+  const nextTier = sorted.find((tier) => tier.level > rank.value!.level) ?? null
   return {
     lp,
     percent,
@@ -317,7 +320,7 @@ const chartData = computed(() => ({
   labels: chartPoints.value.map((_, i) => `M${i + 1}`),
   datasets: [
     {
-      label: 'MMR',
+      label: t('playerMmrProfile.mmrLabel'),
       data: chartPoints.value.map((e) => e.mmrAfter),
       pointBackgroundColor: chartPoints.value.map((e) =>
         e.mmrDelta >= 0 ? '#22c55e' : '#ef4444',

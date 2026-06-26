@@ -9,7 +9,7 @@
       <!-- Recalculation in progress -->
       <div v-if="props.isRecalculating" class="flex items-center justify-center gap-2 mb-3 text-sm text-orange-400">
         <i class="fa fa-sync fa-spin" />
-        Recalcul MMR en cours…
+        {{ t('rankedLeaderboard.recalculating') }}
       </div>
 
       <!-- Toggle -->
@@ -26,7 +26,7 @@
       <!-- No tiers configured -->
       <div v-if="!props.tiers.length" class="text-center py-12 text-gray-500">
         <i class="fa fa-trophy text-4xl mb-4 block opacity-30"></i>
-        Aucun rang configuré pour cette saison
+        {{ t('rankedLeaderboard.noTiers') }}
       </div>
 
       <!-- Tier sections -->
@@ -83,12 +83,12 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-1.5 min-w-0">
                   <span class="font-semibold text-sm truncate">{{
-                    player.player?.displayName ?? 'Inconnu'
+                    player.player?.displayName ?? t('rankedLeaderboard.unknownPlayer')
                   }}</span>
                   <span
                     v-if="player.player?.id === currentUserId"
                     class="text-[9px] font-bold text-primary-400 uppercase tracking-wide shrink-0"
-                    >Vous</span
+                    >{{ t('rankedLeaderboard.you') }}</span
                   >
                 </div>
                 <div class="flex items-center justify-between">
@@ -134,6 +134,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { playerLink } from '@/utils/player-link'
 import { useSwipe } from '@vueuse/core'
@@ -149,6 +150,8 @@ import {
   getTierIconClass,
   getTierTextHex,
 } from '@/composables/ranked/tier-style'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   players: ClientPlayerMmr[]
@@ -170,10 +173,10 @@ const leaderboardMode = ref<'official' | 'provisional'>('official')
 const contentRef = ref<HTMLElement | null>(null)
 const provisionalLoaded = ref(false)
 
-const modeOptions = [
-  { label: 'Officiel', value: 'official' },
-  { label: 'Provisoire (Live)', value: 'provisional' },
-]
+const modeOptions = computed(() => [
+  { label: t('rankedLeaderboard.modeOfficial'), value: 'official' },
+  { label: t('rankedLeaderboard.modeProvisional'), value: 'provisional' },
+])
 
 watch(leaderboardMode, (val) => {
   if (val === 'provisional' && !provisionalLoaded.value) {
@@ -221,7 +224,7 @@ const tierGroups = computed(() =>
 function getPlayerTier(mmr: number): ClientRankTier | null {
   if (!props.tiers.length) return null
   return (
-    [...props.tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ??
+    [...props.tiers].sort((a, b) => b.level - a.level).find((tier) => mmr >= tier.minMmr) ??
     props.tiers[0]
   )
 }
@@ -245,7 +248,7 @@ function tierBarClass(tier: ClientRankTier): string {
 function tierThreshold(tier: ClientRankTier): string {
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
   if (tier.level === sorted[0]?.level) {
-    const above = sorted.find((t) => t.level === tier.level + 1)
+    const above = sorted.find((entry) => entry.level === tier.level + 1)
     return above ? `< ${above.minMmr} MMR` : `${tier.minMmr}+ MMR`
   }
   return `${tier.minMmr}+ MMR`
@@ -253,7 +256,7 @@ function tierThreshold(tier: ClientRankTier): string {
 
 function tierProgress(mmr: number, tier: ClientRankTier): number {
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const next = sorted.find((t) => t.level === tier.level + 1)
+  const next = sorted.find((entry) => entry.level === tier.level + 1)
   if (!next) return 100
   const range = next.minMmr - tier.minMmr
   if (range <= 0) return 100
@@ -267,9 +270,8 @@ function rankOf(player: ClientPlayerMmr): number | string {
 
 function getPlayedMatchLabel(player: ClientPlayerMmr): string {
   const number = player.matchesPlayed
-  if (number === 1) return `${number} match`
-  if (number >= 2) return `${number} matchs`
-
+  if (number === 1) return `${number} ${t('rankedLeaderboard.matchSingular')}`
+  if (number >= 2) return `${number} ${t('rankedLeaderboard.matchPlural')}`
   return ''
 }
 </script>

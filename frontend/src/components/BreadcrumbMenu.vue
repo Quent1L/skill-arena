@@ -5,7 +5,7 @@
         v-if="home"
         @click="() => home?.command?.()"
         class="text-muted-color hover:text-color transition-colors"
-        aria-label="Accueil"
+        :aria-label="t('breadcrumbMenu.home')"
       >
         <i :class="home.icon" class="text-sm"></i>
       </button>
@@ -36,6 +36,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 interface BreadcrumbItem {
   label: string

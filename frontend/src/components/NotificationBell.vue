@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 
+const { t } = useI18n()
 const { unreadCount } = useNotificationService()
 const router = useRouter()
 
@@ -22,7 +24,7 @@ function handleClick(event: Event) {
 </script>
 
 <template>
-  <Button aria-label="Notifications" text @click="handleClick">
+  <Button :aria-label="t('notificationBell.ariaLabel')" text @click="handleClick">
     <OverlayBadge v-if="unreadCount > 0" :value="unreadCount" severity="danger" size="small">
       <span class="fa fa-bell text-color" style="font-size: 1.3rem" />
     </OverlayBadge>

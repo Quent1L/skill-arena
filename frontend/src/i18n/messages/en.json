@@ -1,88 +1,1849 @@
 {
+  "adminInvitationsView": {
+    "codeCopiedDetail": "Code copied to clipboard",
+    "codeCreatedDetail": "Code {code} created successfully",
+    "codeCreatedSummary": "Code created",
+    "codeDeactivatedDetail": "Code {code} has been deactivated",
+    "codeDeactivatedSummary": "Code deactivated",
+    "columnCode": "Code",
+    "columnCreatedAt": "Created at",
+    "columnCreator": "Creator",
+    "columnExpiration": "Expiration",
+    "columnNotes": "Notes",
+    "columnUsages": "Uses",
+    "copiedSummary": "Copied",
+    "copyCode": "Copy code",
+    "copySignupLink": "Copy signup link",
+    "deactivate": "Deactivate",
+    "errorDeactivateCode": "Error deactivating code",
+    "errorGenerateCode": "Error generating code",
+    "errorLoadCodes": "Error loading codes",
+    "errorSummary": "Error",
+    "existingCodes": "Existing codes",
+    "expirationDays": "Expiration (days)",
+    "generalAccess": "General access (no group)",
+    "generateCode": "Generate code",
+    "generateNewCode": "Generate new code",
+    "maxUses": "Number of uses",
+    "noCodes": "No invitation codes yet",
+    "noExpiration": "No expiration",
+    "noExpirationValue": "No expiration",
+    "notesOptional": "Notes (optional)",
+    "notesPlaceholder": "E.g. For new players",
+    "organizationOptional": "Organization (optional)",
+    "signupLinkCopiedDetail": "Signup link copied",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "subtitle": "Create and manage invitation codes for user registration",
+    "title": "Invitation codes"
+  },
+  "adminView": {
+    "access": "Go to",
+    "betaTag": "Beta",
+    "disciplinesDescription": "Create, edit and manage available disciplines",
+    "disciplinesTitle": "Discipline management",
+    "invitationsDescription": "Create, edit and manage invitation codes",
+    "invitationsTitle": "Invitation management",
+    "organizationsDescription": "Create and manage user groups to restrict tournament access",
+    "organizationsTitle": "Organizations",
+    "rankedDescription": "Create and manage ranked competitive mode seasons",
+    "rankedTitle": "Ranked seasons",
+    "rulesDescription": "Create and manage rulesets associated with tournaments",
+    "rulesEngineDescription": "Configurable contextual messages and badges (match entry)",
+    "rulesEngineTitle": "Rules engine",
+    "rulesTitle": "Game rules",
+    "subtitle": "Manage the platform's tournaments and disciplines",
+    "title": "Administration",
+    "tournamentsDescription": "Create, edit and manage platform tournaments",
+    "tournamentsTitle": "Tournament management"
+  },
+  "app": {
+    "errorSummary": "Error",
+    "unexpectedError": "An unexpected error occurred"
+  },
+  "appHeader": {
+    "menu": {
+      "comparePlayers": "Compare players",
+      "logout": "Log out",
+      "myStats": "My stats",
+      "settings": "Settings"
+    },
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "userMenuAriaLabel": "User menu",
+    "version": "Version {version}"
+  },
+  "appWrapper": {
+    "appTitle": "Skol - {title}",
+    "pageTitle": "Skol - {title}"
+  },
+  "auth": {
+    "errors": {
+      "login": "Login error",
+      "loginGeneric": "An error occurred during login",
+      "logoutGeneric": "An error occurred during logout",
+      "passwordChange": "Error changing password",
+      "passwordChangeGeneric": "An error occurred while changing the password",
+      "passwordReset": "Error resetting password",
+      "passwordResetGeneric": "An error occurred while resetting the password",
+      "passwordResetRequest": "Error requesting password reset",
+      "passwordResetRequestGeneric": "An error occurred while requesting password reset",
+      "register": "Registration error",
+      "registerGeneric": "An error occurred during registration",
+      "sessionFetch": "Error fetching session",
+      "sessionFetchGeneric": "An error occurred while fetching the session"
+    }
+  },
+  "authSchema": {
+    "validation": {
+      "currentPasswordRequired": "Current password is required",
+      "emailInvalid": "Invalid email address",
+      "emailRequired": "Email address is required",
+      "newPasswordRequired": "New password is required",
+      "passwordConfirmRequired": "Password confirmation is required",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordRequired": "Password is required",
+      "passwordsMismatch": "Passwords do not match"
+    }
+  },
+  "availableBadgesCard": {
+    "subtitle": "Earnable rewards in this tournament",
+    "title": "Available badges"
+  },
+  "badgeRevealAnimation": {
+    "continue": "Continue",
+    "newBadge": "New badge"
+  },
+  "bracketMatchCard": {
+    "statusCancelled": "Cancelled",
+    "statusContested": "Disputed",
+    "statusFinalized": "Validated",
+    "statusOngoing": "Ongoing",
+    "statusReported": "Pending",
+    "statusScheduled": "Scheduled",
+    "unknown": "Unknown",
+    "vs": "VS"
+  },
+  "bracketService": {
+    "errors": {
+      "participantsWithoutMatches": "Some participants have played no matches in the selected championship",
+      "participantsWithoutMatchesNamed": "These participants have played no matches in the championship: {names}"
+    },
+    "toast": {
+      "generateFailedSummary": "Generation failed",
+      "regenerateSuccessDetail": "The bracket has been regenerated successfully",
+      "regenerateSuccessSummary": "Bracket regenerated"
+    }
+  },
+  "bracketView": {
+    "deleteBracket": "Delete bracket",
+    "deleteConfirmText": "Are you sure you want to delete the bracket? This will delete all matches and cannot be undone.",
+    "deleteDialogHeader": "Delete bracket",
+    "deleteHint": "You can regenerate the bracket afterwards if needed.",
+    "generateBracket": "Generate bracket",
+    "infoParticipants": "Participants",
+    "infoRounds": "Rounds",
+    "infoSeeding": "Seeding",
+    "infoType": "Type",
+    "noBracketDesc": "The tournament bracket has not been created yet.",
+    "noBracketDescAdmin": "Click the button below to generate the bracket.",
+    "noBracketDescUser": "An administrator must generate the bracket.",
+    "noBracketTitle": "No bracket generated",
+    "notBracketDesc": "This tournament is not configured in bracket mode.",
+    "notBracketTitle": "Tournament not bracket compatible",
+    "optimalCountWarning": "For an optimal bracket, you need",
+    "refresh": "Refresh",
+    "regenerate": "Regenerate"
+  },
+  "breadcrumbMenu": {
+    "home": "Home"
+  },
   "common": {
+    "actions": "Actions",
     "cancel": "Cancel",
-    "save": "Save",
     "close": "Close",
     "confirm": "Confirm",
-    "join": "Join"
+    "create": "Create",
+    "delete": "Delete",
+    "discipline": "Discipline",
+    "edit": "Edit",
+    "error": "Error",
+    "join": "Join",
+    "name": "Name",
+    "no": "No",
+    "save": "Save",
+    "status": "Status",
+    "success": "Success",
+    "update": "Update",
+    "yes": "Yes"
+  },
+  "compositionStep": {
+    "empty": "Empty",
+    "emptySideError": "Each team must have at least one player.",
+    "instruction": "Drag players to form the teams.",
+    "next": "Next",
+    "previous": "Previous",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "title": "Composition"
+  },
+  "conditionGroup": {
+    "addCondition": "Add condition",
+    "addGroup": "Add group",
+    "allTrue": "All true",
+    "anyTrue": "Any true",
+    "emptyHint": "Drag a condition here, or use the buttons above",
+    "operatorAnd": "AND",
+    "operatorOr": "OR"
+  },
+  "conditionPalette": {
+    "blocksLabel": "Blocks (drag & drop)"
+  },
+  "conditionRow": {
+    "booleanFalse": "False",
+    "booleanTrue": "True",
+    "operatorContains": "contains",
+    "operatorDoesNotContain": "does not contain",
+    "operatorEqual": "=",
+    "operatorGreaterThan": ">",
+    "operatorGreaterThanInclusive": "≥",
+    "operatorIn": "in list",
+    "operatorLessThan": "<",
+    "operatorLessThanInclusive": "≤",
+    "operatorNotEqual": "≠",
+    "operatorNotIn": "not in list",
+    "placeholderDay": "Day",
+    "placeholderDays": "Day",
+    "placeholderDisciplines": "Disciplines",
+    "placeholderListValues": "comma-separated values",
+    "placeholderOperator": "Operator",
+    "placeholderOrganisation": "Organization",
+    "placeholderOrganisations": "Organizations",
+    "placeholderPlayer": "Player",
+    "placeholderPlayers": "Players",
+    "placeholderValue": "value",
+    "placeholderVariable": "Variable",
+    "weekdayFriday": "Friday",
+    "weekdayMonday": "Monday",
+    "weekdaySaturday": "Saturday",
+    "weekdaySunday": "Sunday",
+    "weekdayThursday": "Thursday",
+    "weekdayTuesday": "Tuesday",
+    "weekdayWednesday": "Wednesday"
+  },
+  "createMatchView": {
+    "errorSummary": "Error",
+    "loadMatchError": "Unable to load match"
+  },
+  "dateUtils": {
+    "day": "1 day | {count} days",
+    "month": "1 month | {count} months",
+    "week": "1 week | {count} weeks",
+    "weekAndDays": "{weeks} and {days}"
+  },
+  "disciplineFormView": {
+    "confirmDeleteOutcomeReasonHeader": "Delete outcome reason?",
+    "confirmDeleteOutcomeReasonMessage": "Are you sure you want to delete this outcome reason? This action is irreversible.",
+    "confirmDeleteOutcomeTypeHeader": "Delete outcome type?",
+    "confirmDeleteOutcomeTypeMessage": "Are you sure you want to delete this outcome type? This action is irreversible.",
+    "nameLabel": "Name",
+    "scoreInstructionsLabel": "Score instructions",
+    "scoreInstructionsPlaceholder": "Indicate how to enter the score for this discipline...",
+    "sectionInfo": "Discipline information",
+    "selectModePlaceholder": "Select a mode...",
+    "teamInteractionModeLabel": "Team interaction mode"
+  },
+  "disciplineList": {
+    "createFirst": "Create your first discipline",
+    "deleteConfirmMessage": "Are you sure you want to delete this discipline? This action is irreversible.",
+    "deleteDialogHeader": "Delete {name}?",
+    "emptyState": "No disciplines found",
+    "newDiscipline": "New discipline",
+    "title": "Disciplines"
+  },
+  "disciplineService": {
+    "errors": {
+      "createFailed": "Error creating discipline",
+      "deleteFailed": "Error deleting discipline",
+      "getFailed": "Error loading discipline",
+      "listFailed": "Error loading disciplines",
+      "outcomeReasonCreateFailed": "Error creating outcome reason",
+      "outcomeReasonDeleteFailed": "Error deleting outcome reason",
+      "outcomeReasonUpdateFailed": "Error updating outcome reason",
+      "outcomeTypeCreateFailed": "Error creating outcome type",
+      "outcomeTypeDeleteFailed": "Error deleting outcome type",
+      "outcomeTypeUpdateFailed": "Error updating outcome type",
+      "updateFailed": "Error updating discipline"
+    },
+    "toast": {
+      "createSuccess": "Discipline created successfully",
+      "deleteSuccess": "Discipline deleted successfully",
+      "outcomeReasonCreateSuccess": "Outcome reason created successfully",
+      "outcomeReasonDeleteSuccess": "Outcome reason deleted successfully",
+      "outcomeReasonUpdateSuccess": "Outcome reason updated successfully",
+      "outcomeTypeCreateSuccess": "Outcome type created successfully",
+      "outcomeTypeDeleteSuccess": "Outcome type deleted successfully",
+      "outcomeTypeUpdateSuccess": "Outcome type updated successfully",
+      "updateSuccess": "Discipline updated successfully"
+    }
+  },
+  "dragDropDebugView": {
+    "listA": "List A ({count})",
+    "listB": "List B ({count})"
+  },
+  "emptyPage": {
+    "description": "This page has not been implemented yet.",
+    "title": "Empty page"
+  },
+  "errorService": {
+    "checkConsole": "Check the console for more details",
+    "locationPrefix": "Location: {location}",
+    "summary": "Error",
+    "uncaughtJs": "Uncaught JavaScript error",
+    "unexpectedError": "An unexpected error occurred",
+    "unhandledRejection": "Unhandled promise rejection",
+    "unknownLocation": "Unknown location"
+  },
+  "fontAwesomeIconPicker": {
+    "chooseIcon": "Choose an icon",
+    "clear": "Clear",
+    "dialogHeader": "Choose an icon",
+    "iconCount": "0 icons | {count} icon | {count} icons",
+    "refineSearch": "({count} found — refine your search)",
+    "resultCount": "({count} found — refine your search)",
+    "searchPlaceholder": "Search an icon...",
+    "tabPopular": "Popular"
+  },
+  "forgotPasswordView": {
+    "backToLoginButton": "Back to login",
+    "backToLoginLink": "← Back to login",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "instructions": "Enter your email address and we will send you a link to reset your password.",
+    "spamNote": "Also check your spam folder if you don't see the email.",
+    "submitButton": "Send reset link",
+    "subtitle": "Enter your email to receive a reset link",
+    "successMessage": "Check your inbox",
+    "successTitle": "Email sent"
+  },
+  "gameRulesFormView": {
+    "contentLabel": "Content",
+    "editTitle": "Edit ruleset",
+    "newTitle": "New ruleset",
+    "titleLabel": "Title",
+    "titlePlaceholder": "E.g. Official ruleset season 2026"
+  },
+  "gameRulesList": {
+    "columnCreatedAt": "Created at",
+    "columnTitle": "Title",
+    "createFirst": "Create your first ruleset",
+    "deleteConfirmMessage": "Are you sure you want to delete <strong>{title}</strong>? This action is irreversible.",
+    "deleteDialogHeader": "Delete ruleset?",
+    "emptyState": "No rulesets found",
+    "newRule": "New ruleset",
+    "title": "Game rules"
+  },
+  "gameRulesService": {
+    "errors": {
+      "createFailed": "Error creating ruleset",
+      "deleteFailed": "Error deleting ruleset",
+      "getFailed": "Error loading ruleset",
+      "listFailed": "Error loading rules",
+      "updateFailed": "Error updating ruleset"
+    }
+  },
+  "generalInfoSection": {
+    "fields": {
+      "allowDraw": "Allow draws",
+      "description": "Description",
+      "discipline": "Discipline",
+      "endDate": "End date",
+      "maxTeamSize": "Max team size",
+      "minTeamSize": "Min team size",
+      "name": "Tournament name",
+      "organization": "Organization (optional)",
+      "rules": "Ruleset",
+      "startDate": "Start date"
+    },
+    "placeholders": {
+      "discipline": "Select a discipline",
+      "noOrganization": "General access (no group)",
+      "noRules": "No ruleset"
+    },
+    "title": "General information"
+  },
+  "generateBracketDialog": {
+    "bracketTypeLabel": "Bracket type",
+    "bronzeMatchLabel": "Include 3rd place match",
+    "championshipDesc": "Based on previous standings",
+    "championshipTitle": "Championship",
+    "doubleEliminationDesc": "Second chance via losers bracket",
+    "doubleEliminationTitle": "Double elimination",
+    "generate": "Generate",
+    "headerGenerate": "Generate bracket",
+    "headerRegenerate": "Regenerate bracket",
+    "randomDesc": "Participants randomly ordered",
+    "randomTitle": "Random",
+    "regenerate": "Regenerate",
+    "seedingTypeLabel": "Seeding method",
+    "singleEliminationDesc": "One loss and you're out",
+    "singleEliminationTitle": "Single elimination",
+    "sourceTournamentHint": "Select a finished tournament to use its standings",
+    "sourceTournamentLabel": "Source tournament",
+    "sourceTournamentPlaceholder": "Select a source tournament",
+    "warningDesc": "All bracket matches will be deleted and a new bracket will be generated.",
+    "warningTitle": "Warning: this will delete all existing matches!"
+  },
+  "h2hRivalries": {
+    "drawSuffix": "D",
+    "lossSuffix": "L",
+    "title": "Rivalries",
+    "tooltip": "Lists the most frequent opponents with the full record",
+    "winSuffix": "W"
+  },
+  "home": {
+    "title": "Home"
+  },
+  "homeView": {
+    "description": "Create and manage your tournaments in a few clicks. Championship or direct elimination, track rankings in real time.",
+    "tagline": "Luck won't be enough",
+    "viewTournaments": "View tournaments"
+  },
+  "invitationService": {
+    "errors": {
+      "joinFailed": "Error joining"
+    }
+  },
+  "loginView": {
+    "backToHome": "← Back to home",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "forgotPassword": "Forgot password?",
+    "keycloakDefaultLabel": "Sign in with Keycloak",
+    "keycloakError": "Error during Keycloak login",
+    "keycloakLoading": "Loading...",
+    "loginButton": "Sign in",
+    "noAccount": "No account?",
+    "noAuthDescription": "Contact the system administrator. Authentication configuration is missing.",
+    "noAuthTitle": "No authentication method available",
+    "oauthError": "An error occurred during login",
+    "or": "Or",
+    "passwordLabel": "Password",
+    "register": "Don't have an account?",
+    "subtitle": "Sign in to your account"
+  },
+  "matchCard": {
+    "draw": "Draw",
+    "loss": "Loss",
+    "statusCancelled": "Cancelled",
+    "statusContested": "Disputed",
+    "statusFinalized": "Validated",
+    "statusOngoing": "Ongoing",
+    "statusReported": "Pending",
+    "statusScheduled": "Scheduled",
+    "vs": "VS",
+    "win": "Win"
+  },
+  "matchConfirmation": {
+    "acceptBtn": "Accept",
+    "alternativeScoreHint": "To propose an alternative score, use the \"Enter corrected score\" option below.",
+    "confirmAcceptanceBtn": "Confirm acceptance",
+    "confirmationIrreversible": "You are confirming the result as entered. This action cannot be undone.",
+    "contestedScorePrefix": "Disputed score — correction proposed by",
+    "deadlineLabel": "Confirmation deadline:",
+    "dialogAcceptTitle": "Accept result",
+    "dialogDisputeTitle": "Dispute result",
+    "disputeBtn": "Dispute",
+    "disputeReasonLabel": "Dispute reason (optional)",
+    "disputeReasonPlaceholder": "Describe the issue...",
+    "enterCorrectedScoreBtn": "Enter corrected score",
+    "expired": "(Expired)",
+    "originalScore": "Original score",
+    "playerConfirmations": "Player confirmations ({confirmed}/{total})",
+    "proofInputLabel": "Proof (optional)",
+    "proofInputPlaceholder": "Link to a screenshot, video...",
+    "proofLabel": "Proof:",
+    "proposedOutcomeReason": "Reason:",
+    "proposedOutcomeType": "Proposed reason:",
+    "proposedScore": "Proposed score",
+    "proposedScoreInline": "Proposed score:",
+    "proposedWinner": "Proposed winner:",
+    "proposedWinnerTeam": "Proposed outcome type:",
+    "questionAcceptProposal": "Accept",
+    "questionConfirmResult": "Accept",
+    "reasonLabel": "Reason:",
+    "reportedByPrefix": "Result entered by",
+    "reportedBySuffix": "Result entered by",
+    "score": "Score",
+    "sideA": "Team A",
+    "sideB": "Team B",
+    "submitDisputeBtn": "Submit dispute",
+    "tagAccepted": "Accepted",
+    "tagContested": "Disputed",
+    "tagPending": "Pending",
+    "title": "Result confirmation",
+    "unknownPlayer": "Unknown player",
+    "unknownPlayerName": "Unknown player",
+    "unknownReporter": "Unknown reporter",
+    "userAccepted": "You accepted this result",
+    "userDisputed": "You disputed this result",
+    "validationAdmin": "This score must be validated by a tournament administrator.",
+    "validationAuto": "This score will be automatically validated in {hours}h if not disputed.",
+    "validationNone": "Scores are validated immediately. Dispute possible within 7 days.",
+    "validationStrict": "This score must be confirmed by at least one opponent."
+  },
+  "matchDetailView": {
+    "adminActionsDescription": "As an administrator, you can manually finalize this match.",
+    "adminActionsTitle": "Admin actions",
+    "back": "Back",
+    "cancelConfirmation": "Are you sure you want to cancel this match? This action cannot be undone.",
+    "cancelFinalizedWarning": "This match has already been automatically finalized. Cancellation will recalculate points and associated MMR.",
+    "cancelMatch": "Cancel match",
+    "cancelNote": "Only the player who entered this match or an administrator can cancel it.",
+    "completeMatch": "Complete match",
+    "confirmCancel": "No, keep it",
+    "disputeButton": "Dispute",
+    "disputeFinalizedDialogTitle": "Dispute finalized result",
+    "disputeReasonLabel": "Dispute reason (optional)",
+    "disputeReasonPlaceholder": "Explain why you are disputing this result...",
+    "disputeResultDescription": "This match was automatically finalized. You can dispute the result within 7 days of finalization.",
+    "disputeResultTitle": "Dispute this result",
+    "disputed": "Disputed",
+    "enteredBy": "Entered by:",
+    "expiresIn": "days after finalization.",
+    "finalization": "Finalization:",
+    "finalizationReason": {
+      "adminOverride": "Admin decision",
+      "autoValidation": "Auto validation",
+      "consensus": "Consensus",
+      "trustScore": "Trust Score"
+    },
+    "finalizeConsensus": "Finalize (Consensus)",
+    "finalizeOverride": "Finalize (Admin override)",
+    "finalizedAt": "Finalized on:",
+    "keepMatch": "No, keep match",
+    "loadError": "Error loading match",
+    "matchDate": "Match date:",
+    "matchHeading": "Match",
+    "outcomeReason": "Outcome reason:",
+    "outcomeType": "Outcome type:",
+    "overLimit": "over limit",
+    "postDisputesTitle": "Post-finalization disputes",
+    "proof": "Proof:",
+    "reason": "Reason:",
+    "status": {
+      "cancelled": "Cancelled",
+      "confirmed": "Confirmed",
+      "disputed": "Disputed",
+      "finalized": "Finalized",
+      "pendingConfirmation": "Score proposal",
+      "reported": "Result entered",
+      "scheduled": "Scheduled"
+    },
+    "submitDispute": "Submit dispute",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "trustScoreBy": "Trust Score by {name}",
+    "unknown": "Unknown",
+    "unknownPlayer": "Unknown player",
+    "winner": "Winner"
+  },
+  "matchFormStepperDesktop": {
+    "completeMatch": "Complete match",
+    "createMatch": "Create a match",
+    "teamsStep": "Teams"
+  },
+  "matchFormStepperMobile": {
+    "back": "Back",
+    "next": "Next",
+    "proposeCorrection": "Propose correction",
+    "scheduleMatch": "Schedule match",
+    "titleContest": "Propose a correction",
+    "titleEdit": "Complete match",
+    "titleNew": "New Match"
+  },
+  "matchList": {
+    "filterByPlayerPlaceholder": "Filter by player...",
+    "filterByPlayerTitle": "Filter by player",
+    "filters": "Filters",
+    "myMatches": "My matches",
+    "noMatchFound": "No match found.",
+    "outcome": {
+      "draw": "Draw",
+      "loss": "Loss",
+      "win": "Win"
+    },
+    "resetFilters": "Reset filters"
+  },
+  "matchOutcomeDistribution": {
+    "drawsCount": "{count} D",
+    "lossesCount": "{count} L",
+    "winsCount": "{count} W"
+  },
+  "matchService": {
+    "errors": {
+      "cancelFailed": "Error cancelling match",
+      "confirmFailed": "Error confirming",
+      "contestFailed": "Error disputing",
+      "createFailed": "Error creating match",
+      "finalizeFailed": "Error finalizing match",
+      "respondFailed": "Error responding",
+      "updateFailed": "Error updating match",
+      "validationFailed": "Validation error"
+    },
+    "toast": {
+      "agreeSuccessDetail": "Your acceptance has been recorded successfully",
+      "agreeSuccessSummary": "Acceptance recorded",
+      "cancelSuccessDetail": "The match has been cancelled successfully",
+      "cancelSuccessSummary": "Match cancelled",
+      "confirmSuccessDetail": "Your confirmation has been recorded successfully",
+      "confirmSuccessSummary": "Confirmation recorded",
+      "contestSuccessDetail": "Your dispute has been recorded. An administrator will review the case.",
+      "contestSuccessSummary": "Contest recorded",
+      "createSuccessDetail": "Match created successfully",
+      "finalizeSuccessDetail": "The match has been finalized successfully",
+      "finalizeSuccessSummary": "Match finalized",
+      "respondContestDetail": "Your dispute has been recorded.",
+      "scoreProposedDetail": "You proposed the score {scoreA} - {scoreB}. Other players must reconfirm.",
+      "scoreProposedSummary": "Score proposed",
+      "updateSuccessDetail": "Match updated successfully"
+    },
+    "unknownPlayer": "Player {id}"
+  },
+  "mmrExplainerCard": {
+    "baseGainLoss": "Base gain or loss",
+    "baseGainLossDescPost": "that determines the maximum variation range.",
+    "baseGainLossDescPre": "The actual result (win, draw or loss) is compared to the expected score. The difference is multiplied by a sensitivity coefficient",
+    "expectedScore": "Expected score",
+    "expectedScoreDesc": "Before each match, the system estimates your probability of winning based on the MMR gap between you and your opponents. If both sides are equal, the probability is 50%. A 400-point gap drops it to about 24% for the weaker side.",
+    "gainLoss": "Gain / Loss",
+    "gainLossDesc": "Each result changes your score based on the skill gap with your opponents.",
+    "individualTeamAdjustment": "Individual team adjustment",
+    "opponentFactor": "Opponent factor",
+    "opponentFactorDesc": "Beating a stronger player earns more. Losing to a weaker player costs more.",
+    "placementDetailMid": "first matches",
+    "placementDetailPost": ", the sensitivity coefficient is doubled. Your MMR evolves twice as fast to quickly reach your true level.",
+    "placementDetailPre": "During your",
+    "placementMatches": "Placement matches",
+    "placementMatchesMid": "first matches",
+    "placementMatchesPost": "calibrate your level — gains and losses are doubled.",
+    "placementMatchesPre": "Your",
+    "points": "points",
+    "seeCalculationDetail": "See calculation details",
+    "startingMmr": "Starting MMR",
+    "startingMmrPre": "You start at",
+    "subtitle": "Points-based ranking system",
+    "teamDistribution": "Team distribution —",
+    "teamMode": {
+      "collaborative": "Collaborative",
+      "individual": "Individual",
+      "sharedResource": "Shared resource"
+    },
+    "teamModeDesc": {
+      "collaborative": "All team members receive the same point gain or loss.",
+      "individual": "Each player is evaluated based on the gap between their own MMR and their opponents'.",
+      "sharedResource": "Beating a stronger team earns more for each member; losing to a weaker team costs more."
+    },
+    "teamModeDetail": {
+      "collaborative": "All team members receive exactly the same MMR delta, calculated from the team's average MMR vs the opponent team's average MMR.",
+      "individual": "The calculated gain or loss is adjusted for each player based on the ratio between their personal MMR and the average MMR of their opponents. A player stronger than their opponents earns less on a win and loses more on a defeat.",
+      "sharedResource": "The distribution is inversed compared to individual mode: members whose MMR is close to their opponents' benefit from a more balanced adjustment. Facing a team well above your level amplifies gains on a win."
+    },
+    "title": "How does MMR work?"
+  },
+  "mmrRecapCard": {
+    "newMatchesPlural": "{count} new matches",
+    "newMatchesSingular": "{count} new match",
+    "recalcMatchesPlural": "{count} matches recalculated",
+    "recalcMatchesSingular": "{count} match recalculated",
+    "recalculated": "recalculated",
+    "title": "MMR recap"
+  },
+  "mmrRevealAnimation": {
+    "continue": "Continue",
+    "matchCancelled": "Match cancelled",
+    "mmrRecalculation": "MMR Recalculation",
+    "rankDown": "Rank down!",
+    "rankUp": "Rank up!"
+  },
+  "mobileBottomNav": {
+    "bracket": "Bracket",
+    "detail": "Detail",
+    "info": "Info",
+    "matches": "Matches",
+    "standings": "Standings",
+    "stats": "Stats",
+    "teams": "Teams"
+  },
+  "notFoundView": {
+    "administration": "Administration",
+    "description": "Sorry, the page you are looking for does not exist or has been moved. Check the URL or use the links below.",
+    "goBack": "Go back",
+    "goHome": "Back to home",
+    "login": "Sign in",
+    "notLoggedIn": "You are not logged in",
+    "quickLinks": "Or try these links:",
+    "register": "Sign up",
+    "title": "Page not found",
+    "tournaments": "Tournaments"
+  },
+  "notificationBell": {
+    "ariaLabel": "Notifications"
+  },
+  "notificationDropdown": {
+    "actionNotifsCantDelete": "Action notifications cannot be deleted",
+    "allAlreadyRead": "All notifications are read",
+    "deleteAll": "Delete all",
+    "markAllAsRead": "Mark all as read",
+    "title": "Notifications",
+    "toast": {
+      "deleteAllError": "Unable to delete all notifications",
+      "deleteAllSuccess": "All notifications have been deleted",
+      "error": "Error",
+      "markAllError": "Unable to mark all notifications as read",
+      "markAllSuccess": "All notifications marked as read"
+    },
+    "viewAll": "View all"
+  },
+  "notificationItem": {
+    "actionLabel": "Action",
+    "date": {
+      "daysAgo": "{days}d ago",
+      "hoursAgo": "{hours}h ago",
+      "justNow": "Just now",
+      "minutesAgo": "{minutes} min ago"
+    },
+    "deleteTitle": "Delete notification",
+    "toast": {
+      "deleteError": "Error deleting notification",
+      "deleted": "Notification deleted",
+      "error": "Error"
+    }
+  },
+  "notificationList": {
+    "empty": "No notifications"
+  },
+  "notificationsView": {
+    "backAriaLabel": "Back",
+    "deleteAll": "Delete all",
+    "deleteAllError": "Unable to delete all notifications",
+    "deleteAllSuccess": "All notifications deleted",
+    "errorSummary": "Error",
+    "markAllRead": "Mark all as read",
+    "markAllReadError": "Unable to mark all notifications as read",
+    "markAllReadSuccess": "All notifications marked as read",
+    "title": "Notifications"
+  },
+  "offlineView": {
+    "checking": "Checking…",
+    "description": "Check your internet connection and try again.",
+    "retry": "Retry",
+    "title": "You are offline"
+  },
+  "organizationService": {
+    "errors": {
+      "addMemberFailed": "Error adding member",
+      "createFailed": "Error creating organization",
+      "getMembersFailed": "Error loading members",
+      "listFailed": "Error loading organizations",
+      "removeMemberFailed": "Error removing member",
+      "renameFailed": "Error renaming organization"
+    }
+  },
+  "organizationsView": {
+    "add": "Add",
+    "addMemberButton": "Add",
+    "addMembersDialogHeader": "Add members",
+    "addedAt": "Added on {date}",
+    "columnActions": "Actions",
+    "columnCreatedAt": "Created at",
+    "columnMembers": "Members",
+    "createOrganization": "Create organization",
+    "errorCreating": "Name is required",
+    "errorGeneric": "An error occurred",
+    "errorLoading": "Error loading organizations",
+    "errorRenaming": "Renamed",
+    "errorSummary": "Error",
+    "existingOrgs": "Existing organizations",
+    "manage": "Manage",
+    "manageDialogHeader": "Manage: {name}",
+    "memberCount": "{count} member(s)",
+    "memberRemovedSummary": "Member removed",
+    "membersAddedSummary": "Members added",
+    "membersSection": "Members",
+    "nameRequired": "Name is required",
+    "noMembers": "No members",
+    "noOrgs": "No organizations yet",
+    "orgCreatedDetail": "Organization \"{name}\" created",
+    "orgCreatedSummary": "Organization created",
+    "orgNameLabel": "Organization name",
+    "orgNamePlaceholder": "Organization name",
+    "orgNameRenamePlaceholder": "Organization name",
+    "orgNameSectionTitle": "Organization name",
+    "removeMemberTooltip": "Remove",
+    "renamedDetail": "Organization renamed to \"{name}\"",
+    "renamedSummary": "Renamed",
+    "roleMember": "Member",
+    "roleOwner": "Owner",
+    "selectUsersLabel": "Select users",
+    "selectUsersPlaceholder": "Choose one or more users",
+    "subtitle": "Create and manage user groups to restrict tournament access",
+    "title": "Organizations"
+  },
+  "outcomeSelector": {
+    "draw": "Draw",
+    "outcomeReasonLabel": "Outcome reason",
+    "outcomeReasonPlaceholder": "Select a reason",
+    "outcomeTypeLabel": "Outcome type",
+    "outcomeTypePlaceholder": "Select a type",
+    "teamA": "Team A",
+    "teamB": "Team B",
+    "winnerLabel": "Winner"
+  },
+  "outcomeTypeStats": {
+    "drawSuffix": "D",
+    "lossSuffix": "L",
+    "title": "Specialization by outcome type",
+    "winSuffix": "W"
+  },
+  "participantService": {
+    "errors": {
+      "addFailed": "Error adding participant",
+      "batchAddFailed": "Error adding participants",
+      "joinFailed": "Error joining",
+      "leaveFailed": "Error leaving",
+      "listFailed": "Error loading participants",
+      "removeFailed": "Error removing participant"
+    },
+    "toast": {
+      "addErrorSummary": "Addition error",
+      "addSuccessDetail": "The participant has been added",
+      "addSuccessSummary": "Participant added",
+      "batchAddSuccessDetail": "{count} participant(s) added successfully",
+      "batchAddSuccessSummary": "Participants added",
+      "joinErrorSummary": "Registration error",
+      "joinSuccessDetail": "You have successfully registered",
+      "joinSuccessSummary": "Registered",
+      "leaveErrorSummary": "Unregistration error",
+      "leaveSuccessDetail": "You have successfully unregistered",
+      "leaveSuccessSummary": "Unregistered",
+      "removeErrorSummary": "Removal error",
+      "removeSuccessDetail": "The participant has been removed",
+      "removeSuccessSummary": "Participant removed"
+    }
+  },
+  "participantsStep": {
+    "addPlayers": "Add players",
+    "next": "Next",
+    "pickerTitle": "Select players",
+    "previous": "Previous",
+    "searchPlaceholder": "Search a player...",
+    "selectedParticipants": "Selected participants",
+    "title": "Participants"
+  },
+  "playerBadges": {
+    "title": "Badges"
+  },
+  "playerComparisonView": {
+    "all": "All",
+    "allTournaments": "All tournaments",
+    "championship": "Championship",
+    "chooseDisciplineOrTournament": "Choose a discipline or tournament to compare.",
+    "choosePlaceholder": "Choose…",
+    "chooseTwoPlayers": "Choose two players to compare.",
+    "commonRivalries": "Record against common opponents",
+    "commonRivalriesDesc": "Opponent",
+    "headToHeadTitle": "Head to head",
+    "modify": "Edit",
+    "neverFaced": "These two players have never faced each other.",
+    "neverPlayedTogether": "These two players have never played together.",
+    "noCommonRival": "No common opponents.",
+    "opponent": "Opponent",
+    "outcomeSpecDesc": "Win rate by match outcome type",
+    "outcomeSpecTitle": "Win rate by outcome type",
+    "playerA": "Player A",
+    "playerB": "Player B",
+    "ranked": "Ranked",
+    "searchPlaceholder": "Search…",
+    "solo": "1v1",
+    "teamLabel": "Team",
+    "title": "Compare players",
+    "togetherTitle": "Together"
+  },
+  "playerDetailView": {
+    "allDisciplines": "All disciplines",
+    "allDisciplinesOption": "All",
+    "allOption": "All",
+    "allTournaments": "All tournaments",
+    "apply": "Apply",
+    "avgScore": "Average score",
+    "back": "Back",
+    "bracket": "Bracket",
+    "championship": "Championship",
+    "compare": "Compare",
+    "discipline": "Discipline",
+    "filters": "Filters",
+    "last10Matches": "Last 10 matches",
+    "matches": "Matches",
+    "matchesPlayedAbbr": "MP",
+    "mode": "Mode",
+    "noStats": "No statistics available",
+    "notInRankedSeason": "This player does not participate in this ranked season.",
+    "ranked": "Ranked",
+    "reset": "Reset",
+    "tournament": "Tournament",
+    "wdLabel": "W / L",
+    "winrate": "Win rate",
+    "wldLabel": "W / D / L"
+  },
+  "playerMmrProfile": {
+    "bestStreak": "Best streak",
+    "currentRank": "Current rank",
+    "currentStreak": "Current streak",
+    "lossesShort": "L",
+    "matchesCount": "Matches",
+    "matchesLabel": "Matches",
+    "mmrLabel": "MMR",
+    "mmrProgression": "MMR progression",
+    "opponentLevelTooltip": "Based on MMR gap:<br>Strong = +100<br>Close = ±100<br>Weak = −100",
+    "outcomeDistribution": "Match outcome distribution",
+    "vsEqual": "Equal",
+    "vsStronger": "Stronger",
+    "vsWeaker": "Weaker",
+    "winrateByOpponentLevel": "Win rate by opponent level",
+    "winrateLabel": "Win rate",
+    "winsLosses": "Wins / Losses",
+    "winsShort": "W",
+    "worstStreak": "Worst streak"
+  },
+  "playerPickerDialog": {
+    "defaultTitle": "Select players",
+    "done": "Done",
+    "noResults": "No player found",
+    "searchPlaceholder": "Search..."
+  },
+  "playerRelationStats": {
+    "bestPartners": "Best partners",
+    "frequentPartners": "Frequent partners",
+    "lossCount": "{count} loss | {count} losses",
+    "matchCount": "{count} match(es)",
+    "toughOpponents": "Tough opponents",
+    "winRateSuffix": "% W"
+  },
+  "publicHomeView": {
+    "description": "Create and manage your tournaments in a few clicks. Championship or direct elimination, track rankings in real time.",
+    "enterApp": "Enter app",
+    "tagline": "Luck won't be enough"
+  },
+  "pwaInstallBanner": {
+    "installButton": "Install",
+    "iosInstruction": {
+      "addToHomeScreen": "then <strong>\"Add to Home Screen\"</strong>",
+      "tapOn": "Tap",
+      "then": "then"
+    },
+    "subtitle": "Quick access from your home screen",
+    "title": "Install Skol"
+  },
+  "rankedLeaderboard": {
+    "matchPlural": "{number} matches",
+    "matchSingular": "{number} match",
+    "modeOfficial": "Official",
+    "modeProvisional": "Provisional",
+    "noTiers": "No tiers configured for this season",
+    "recalculating": "MMR recalculation in progress…",
+    "unknownPlayer": "Unknown",
+    "you": "You"
+  },
+  "rankedMatchHistory": {
+    "draw": "Draw",
+    "emptyState": "No matches in history",
+    "filterDraw": "Draw",
+    "loss": "Loss",
+    "seeMatch": "View match",
+    "statusCancelled": "Cancelled",
+    "statusContested": "Disputed",
+    "statusFinalized": "Finalized",
+    "statusOngoing": "Ongoing",
+    "vsLabel": "Against:",
+    "win": "Win",
+    "withLabel": "With:"
+  },
+  "rankedSeasonFormView": {
+    "createSeason": "Create season",
+    "descriptionPlaceholder": "Optional season description",
+    "editTitle": "Edit ranked season",
+    "eloConfigTitle": "Elo configuration",
+    "fieldDisciplineId": "Discipline",
+    "fieldEndDate": "End date",
+    "fieldMaxScore": "Maximum score",
+    "fieldMaxTeamSize": "Max team size",
+    "fieldMinScore": "Minimum score",
+    "fieldMinTeamSize": "Min team size",
+    "fieldName": "Name",
+    "fieldStartDate": "Start date",
+    "fieldValidationMode": "Validation mode",
+    "helpSourceTierSeasonId": "Tier structure will be copied when the season starts. MMR thresholds will be recalculated.",
+    "invalidFieldsTitle": "Invalid fields",
+    "labelAllowAsymmetricMatches": "Allow asymmetric matches (teams of different sizes)",
+    "labelBaseMmr": "Base MMR",
+    "labelKFactor": "K Factor",
+    "labelPlacementMatches": "Placement matches",
+    "labelSourceTierSeasonId": "Copy tiers from a finished season (optional)",
+    "labelUsePreviousMmr": "Resume MMR from previous season (soft reset)",
+    "namePlaceholder": "E.g. Season 1 - Billiards 2026",
+    "newTitle": "New ranked season",
+    "placeholderSourceTierSeasonId": "Use default tiers"
+  },
+  "rankedSeasonsList": {
+    "colEnd": "End",
+    "colStart": "Start",
+    "createSeason": "Create season",
+    "empty": "No seasons",
+    "end": "End",
+    "endDialogConfirm": "Are you sure you want to end the season",
+    "endDialogHeader": "End season?",
+    "newSeason": "New season",
+    "statusCancelled": "Cancelled",
+    "statusDraft": "Draft",
+    "statusFinished": "Finished",
+    "statusOngoing": "Ongoing",
+    "statusOpen": "Open",
+    "title": "Ranked seasons",
+    "tooltipEnd": "End",
+    "tooltipManageRanks": "Manage tiers",
+    "tooltipStart": "Start",
+    "tooltipView": "View"
+  },
+  "rankedService": {
+    "errors": {
+      "createSeasonFailed": "Error creating season",
+      "createTierFailed": "Error creating tier",
+      "deleteTierFailed": "Error deleting tier",
+      "endSeasonFailed": "Error ending season",
+      "loadFinishedSeasonsFailed": "Error loading finished seasons",
+      "loadHistoryFailed": "Error loading history",
+      "loadLeaderboardFailed": "Error loading leaderboard",
+      "loadProvisionalLeaderboardFailed": "Error loading provisional leaderboard",
+      "loadSeasonFailed": "Error loading season",
+      "loadSeasonsFailed": "Error loading seasons",
+      "loadTiersFailed": "Error loading tiers",
+      "recalculateTiersFailed": "Error recalculating tiers",
+      "startSeasonFailed": "Error starting season",
+      "updateSeasonFailed": "Error updating season",
+      "updateTierFailed": "Error updating tier"
+    },
+    "matchLabel": {
+      "exploit": "Exploit 🚀",
+      "favorite": "Favorite Status ⚖️",
+      "rookieProtection": "Rookie Protection 🛡️"
+    }
+  },
+  "rankedTiersView": {
+    "addDialogTitle": "Add tier",
+    "addRank": "Add tier",
+    "colCalculatedAt": "Calculated at",
+    "colLevel": "Level",
+    "colMinMmr": "Min MMR",
+    "colPercentile": "Percentile",
+    "colSubRanks": "Sub-ranks",
+    "delete": "Delete",
+    "deleteConfirm": "Delete tier <strong>{name}</strong>?",
+    "deleteDialogTitle": "Delete tier?",
+    "editDialogTitle": "Edit tier",
+    "empty": "No tiers",
+    "formLevel": "Level",
+    "formMinMmr": "Minimum MMR",
+    "formName": "Name",
+    "formNamePlaceholder": "E.g. Legend",
+    "formPercentile": "Percentile (0 to 1)",
+    "formPercentileHelp": "MMR threshold based on player distribution",
+    "formSubRanks": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
+    "formSubRanksHelp": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
+    "recalcConfirm": "Recalculate MMR thresholds?",
+    "recalcDialogTitle": "Recalculate thresholds",
+    "recalculate": "Recalculate",
+    "recalculateThresholds": "Recalculate MMR thresholds",
+    "statusCancelled": "Cancelled",
+    "statusDraft": "Draft",
+    "statusFinished": "Finished",
+    "statusOngoing": "Ongoing",
+    "statusOpen": "Open",
+    "title": "Tier management",
+    "tooltipBack": "Back to list"
+  },
+  "recentFormSection": {
+    "title": "Recent form",
+    "tooltip": "From oldest to most recent"
+  },
+  "registerView": {
+    "alreadyHaveAccount": "Already have an account?",
+    "backToHome": "← Back to home",
+    "createAccount": "Create my account",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "infoMessage": "By creating an account, you can participate in tournaments and track your statistics.",
+    "login": "Sign in",
+    "nameLabel": "Full name (optional)",
+    "passwordConfirmLabel": "Confirm password",
+    "passwordLabel": "Password",
+    "subtitle": "Create your account"
+  },
+  "resetPasswordView": {
+    "confirmPasswordLabel": "Confirm password",
+    "instructions": "Choose a new secure password.",
+    "invalidLink": "The reset link is invalid or has expired.",
+    "login": "with your new password.",
+    "newPasswordLabel": "New password",
+    "requestNewLink": "Request a new link",
+    "resetButton": "Reset password",
+    "subtitle": "New password",
+    "successMessage": "Your password has been changed successfully. You can now sign in",
+    "successTitle": "Password reset!"
+  },
+  "resultStep": {
+    "create": "Create match",
+    "draw": "Draw",
+    "outcomeType": "Outcome type",
+    "previous": "Previous",
+    "reason": "Reason",
+    "score": "Score",
+    "selectOutcomeType": "Select a type",
+    "selectReason": "Select a reason",
+    "selectWinner": "Select the winner",
+    "selectWinnerOnly": "Select a winner.",
+    "selectWinnerOrDraw": "Select a winner or draw.",
+    "team": "Score",
+    "title": "Result"
+  },
+  "richTextEditor": {
+    "image": {
+      "placeholder": "https://example.com/image.png"
+    },
+    "insert": "Insert",
+    "link": {
+      "placeholder": "https://example.com"
+    },
+    "toolbar": {
+      "alignCenter": "Center",
+      "alignLeft": "Align left",
+      "alignRight": "Align right",
+      "bold": "Bold",
+      "bulletList": "Bullet list",
+      "headingH2": "Heading H2",
+      "headingH3": "Heading H3",
+      "insertImage": "Insert image",
+      "insertLink": "Insert link",
+      "italic": "Italic",
+      "orderedList": "Ordered list",
+      "redo": "Redo",
+      "underline": "Underline",
+      "undo": "Undo"
+    }
+  },
+  "routes": {
+    "admin": "Administration",
+    "adminDisciplineEdit": "Edit discipline",
+    "adminDisciplines": "Discipline management",
+    "adminGameRules": "Game rules management",
+    "adminGameRulesBreadcrumb": "Game rules",
+    "adminGameRulesEdit": "Edit ruleset",
+    "adminGameRulesNew": "New ruleset",
+    "adminInvitations": "Invitation code management",
+    "adminInvitationsBreadcrumb": "Invitation codes",
+    "adminOrganizations": "Organization management",
+    "adminOrganizationsBreadcrumb": "Organizations",
+    "adminRanked": "Ranked season management",
+    "adminRankedBreadcrumb": "Ranked seasons",
+    "adminRankedEdit": "Edit ranked season",
+    "adminRankedEditBreadcrumb": "Edit season",
+    "adminRankedNew": "New ranked season",
+    "adminRankedNewBreadcrumb": "New season",
+    "adminRankedTiers": "Tier management",
+    "adminRankedTiersBreadcrumb": "Tiers",
+    "adminRulesEngine": "Rules engine",
+    "adminRulesEngineEdit": "Edit rule",
+    "adminRulesEngineNew": "New rule",
+    "adminTournamentEdit": "Edit tournament",
+    "adminTournaments": "Tournament management",
+    "createMatch": "Create a match",
+    "editBreadcrumb": "Edit",
+    "forgotPassword": "Forgot password",
+    "home": "Home",
+    "invitationCode": "Invitation code",
+    "login": "Login",
+    "matchDetail": "Match details",
+    "notFound": "Page not found",
+    "notifications": "Notifications",
+    "offline": "Offline",
+    "playerCompare": "Compare players",
+    "playerDetail": "Player profile",
+    "resetPassword": "Reset password",
+    "rules": "Rules",
+    "settings": "Settings",
+    "signup": "Sign up",
+    "tournamentDetail": "Tournament details",
+    "tournaments": "Competitive events"
+  },
+  "rulesContent": {
+    "noRules": "No rules available."
+  },
+  "rulesEngineFormView": {
+    "addVariant": "Add variant",
+    "betaTag": "Beta",
+    "betaWarning": "This feature is in beta. Unexpected behavior may occur — please report any bugs encountered.",
+    "boolFalse": "False",
+    "boolTrue": "True",
+    "closeButton": "Close",
+    "conditionsTitle": "Conditions",
+    "editTitle": "Edit rule",
+    "labelBadgeDescription": "Description",
+    "labelBadgeLabel": "Label",
+    "labelDescription": "Description",
+    "labelIcon": "Icon",
+    "labelIsActive": "Active rule",
+    "labelName": "Name *",
+    "labelPriority": "Priority",
+    "labelScope": "Scope",
+    "labelTriggerEvent": "Trigger event",
+    "labelType": "Type",
+    "metadataTitle": "Metadata",
+    "newTitle": "New rule",
+    "placeholderBadgeDescription": "5 consecutive wins",
+    "placeholderBadgeLabel": "Unstoppable",
+    "placeholderDiscipline": "Choose a discipline",
+    "placeholderPlayer": "Player",
+    "previewLabel": "Preview",
+    "previewPlayerFallback": "Player",
+    "ruleCreated": "Rule created",
+    "ruleUpdated": "Rule updated",
+    "runTestButton": "Run test",
+    "saveButton": "Save",
+    "scopeGlobal": "Global",
+    "successSummary": "Success",
+    "testButton": "Test",
+    "testDialogTitle": "Test rule",
+    "testMatched": "✓ Rule matched",
+    "testNotMatched": "✗ Rule did not match",
+    "triggerMatchSubmitted": "Match submission",
+    "typeBadge": "Badge",
+    "typeMessage": "Message",
+    "validationBadgeRequired": "All badge fields are required",
+    "validationConditionRequired": "At least one complete condition is required",
+    "validationDisciplineRequired": "A discipline is required for discipline scope",
+    "validationMessageRequired": "At least one message variant is required",
+    "validationNameRequired": "Name is required",
+    "validationSummary": "Validation",
+    "variablesLabel": "Variables (click to insert)"
+  },
+  "rulesEngineList": {
+    "badgeHolderWarning": "{count} player(s) currently hold this badge. If you continue, it will be permanently removed.",
+    "betaTag": "Beta",
+    "betaWarning": "This feature is in beta. Unexpected behavior may occur, please report any bugs encountered.",
+    "colActive": "Active",
+    "colEvent": "Event",
+    "colPriority": "Priority",
+    "colScope": "Scope",
+    "colType": "Type",
+    "copyName": "{name} (copy)",
+    "createRule": "Create rule",
+    "deleteConfirm": "Delete rule {name}' ? This action is irreversible.\"",
+    "deleteDialogTitle": "Delete rule?",
+    "dirtyWarning": "Badges have been modified since the last recalculation. Recalculation will run automatically tonight, or launch it now.",
+    "empty": "No rules",
+    "errorSummary": "Error",
+    "filterScope": "Scope",
+    "filterType": "Type",
+    "lastRun": "Last badge recalculation: {date}",
+    "newRule": "New rule",
+    "no": "No",
+    "recalcDetail": "Badge recalculation has been queued. It runs in the background.",
+    "recalcErrorDetail": "Unable to start recalculation.",
+    "recalcLaunchedSummary": "Recalculation started",
+    "recalculateBadges": "Recalculate badges",
+    "recalculateBadgesTooltip": "Immediately triggers a full badge recalculation (otherwise runs nightly)",
+    "scopeGlobal": "Global",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "title": "Rules engine",
+    "tooltipDuplicate": "Duplicate",
+    "typeBadge": "Badge",
+    "typeMessage": "Message",
+    "yes": "Yes"
+  },
+  "rulesService": {
+    "errors": {
+      "createFailed": "Error creating rule",
+      "deleteFailed": "Error deleting rule",
+      "getFailed": "Error loading rule",
+      "listFailed": "Error loading rules",
+      "loadCatalogFailed": "Error loading catalog",
+      "testFailed": "Error testing rule",
+      "triggerReconciliationFailed": "Error triggering reconciliation",
+      "updateFailed": "Error updating rule"
+    }
+  },
+  "rulesView": {
+    "defaultTitle": "Rules"
+  },
+  "scoreConstraintsSection": {
+    "fields": {
+      "maxScore": "Maximum score",
+      "minScore": "Minimum score",
+      "scoreEnabled": "Score input enabled"
+    },
+    "placeholders": {
+      "noLimit": "No limit"
+    },
+    "title": "Score constraints"
+  },
+  "scoreInput": {
+    "enterScore": "Enter score",
+    "matchDateTime": "Match date and time",
+    "schedule": "Schedule",
+    "scoreA": "Score A",
+    "scoreB": "Score B",
+    "vs": "VS"
   },
   "settings": {
-    "title": "Settings",
+    "account": {
+      "changePassword": "Change password",
+      "title": "Account"
+    },
     "appearance": {
-      "title": "Appearance",
       "darkMode": "Dark mode",
-      "darkModeDesc": "Enable the dark theme for the interface"
-    },
-    "language": {
-      "title": "Language",
-      "label": "Interface language",
-      "desc": "Choose the display language of the application"
-    },
-    "profile": {
-      "title": "Profile",
-      "updateSuccess": "Profile updated successfully.",
-      "displayName": "Full name",
-      "shortName": "Short name (compact display)",
-      "shortNameHint": "Up to 8 characters, shown when available space is limited.",
-      "updateError": "An error occurred while updating.",
-      "loadError": "Unable to load the profile."
+      "darkModeDesc": "Enable the dark theme for the interface",
+      "title": "Appearance"
     },
     "application": {
-      "title": "Application",
-      "installed": "The app is already installed on this device.",
       "install": "Install the app",
-      "installDesc": "Quick access from the home screen",
       "installBtn": "Install",
+      "installDesc": "Quick access from the home screen",
+      "installed": "The app is already installed on this device.",
+      "iosAddToHome": "Add to Home Screen",
       "iosTap": "Tap",
       "iosThen": "then",
-      "iosAddToHome": "Add to Home Screen",
-      "notAvailable": "Installation is not available in this browser."
-    },
-    "notifications": {
-      "title": "Notifications",
-      "push": "Push notifications",
-      "pushDesc": "Receive notifications on this device",
-      "unsupported": "Push notifications are not supported by your browser"
-    },
-    "account": {
-      "title": "Account",
-      "changePassword": "Change password"
+      "notAvailable": "Installation is not available in this browser.",
+      "title": "Application"
     },
     "groups": {
-      "title": "Groups",
+      "codePlaceholder": "e.g. tiger-river-sun-moon",
+      "codeValidPrefix": "Valid code — group:",
+      "invalidCode": "Invalid code",
+      "invitationCode": "Invitation code",
       "join": "Join a group",
       "joinDesc": "Access a group's private tournaments",
+      "joinError": "Error while joining the group.",
       "joinedPrefix": "You have joined",
-      "invitationCode": "Invitation code",
-      "codePlaceholder": "e.g. tiger-river-sun-moon",
-      "validating": "Validating...",
-      "codeValidPrefix": "Valid code — group:",
       "notGroupCode": "This code is not a group code.",
-      "invalidCode": "Invalid code",
-      "joinError": "Error while joining the group."
+      "title": "Groups",
+      "validating": "Validating..."
     },
     "kiosk": {
-      "title": "Kiosk mode",
-      "warning": "By locking the settings, you won't be able to access them again until the user logs back in on this device.",
-      "lock": "Lock settings",
-      "dialogTitle": "Lock settings?",
       "attention": "Warning:",
-      "dialogWarningBody": "This action will lock access to the settings. To access them again, you will need to log out and log back in.",
       "dialogNote": "This feature is designed for shared, publicly accessible devices.",
-      "lockShort": "Lock"
+      "dialogTitle": "Lock settings?",
+      "dialogWarningBody": "This action will lock access to the settings. To access them again, you will need to log out and log back in.",
+      "lock": "Lock settings",
+      "lockShort": "Lock",
+      "title": "Kiosk mode",
+      "warning": "By locking the settings, you won't be able to access them again until the user logs back in on this device."
+    },
+    "language": {
+      "desc": "Choose the display language of the application",
+      "label": "Interface language",
+      "title": "Language"
+    },
+    "notifications": {
+      "push": "Push notifications",
+      "pushDesc": "Receive notifications on this device",
+      "title": "Notifications",
+      "unsupported": "Push notifications are not supported by your browser"
     },
     "password": {
-      "title": "Change password",
-      "success": "Password changed successfully.",
+      "confirm": "Confirm new password",
       "current": "Current password",
       "new": "New password",
-      "confirm": "Confirm new password"
+      "success": "Password changed successfully.",
+      "title": "Change password"
     },
+    "profile": {
+      "displayName": "Full name",
+      "loadError": "Unable to load the profile.",
+      "shortName": "Short name (compact display)",
+      "shortNameHint": "Up to 8 characters, shown when available space is limited.",
+      "title": "Profile",
+      "updateError": "An error occurred while updating.",
+      "updateSuccess": "Profile updated successfully."
+    },
+    "title": "Settings",
     "validation": {
-      "min3": "Minimum 3 characters",
       "displayNameMax": "Maximum 50 characters",
-      "shortNameMax": "Maximum 8 characters",
-      "nameRegex": "At least 2 letters/digits required, hyphens and underscores allowed, a single space between words"
+      "min3": "Minimum 3 characters",
+      "nameRegex": "At least 2 letters/digits required, hyphens and underscores allowed, a single space between words",
+      "shortNameMax": "Maximum 8 characters"
     }
+  },
+  "signupView": {
+    "backToLogin": "← Back to login",
+    "chooseMethod": "Choose your registration method",
+    "codeInvalid": "Invalid code",
+    "codeValidMessage": "Valid code ({count} use(s) remaining)",
+    "emailPasswordButton": "Create Email / Password account",
+    "enterCodePrompt": "Please enter your invitation code to continue.",
+    "errorSummary": "Error",
+    "invalidFormat": "Invalid format (e.g. tiger-river-sun-ocean)",
+    "invitationCodeLabel": "Invitation code",
+    "invitationCodePlaceholder": "Invitation code",
+    "invitationRequired": "Invitation code required",
+    "keycloakLabel": "Sign up with Keycloak (SSO)",
+    "noAuthMethodDesc": "Contact the system administrator. Authentication configuration is missing.",
+    "noAuthMethodTitle": "No authentication method available",
+    "oauthError": "An error occurred during registration",
+    "signingIn": "Signing in...",
+    "subtitle": "Create your account",
+    "validating": "Validating...",
+    "validationError": "Validation error"
+  },
+  "skolLogo": {
+    "ariaLabel": "SKOL - Skill Kills Our Luck"
+  },
+  "standingsService": {
+    "errors": {
+      "loadFailed": "Error loading standings"
+    }
+  },
+  "standingsTable": {
+    "buchholzDesc": "Buchholz score — difficulty of path indicator.",
+    "buchholzExplanationLine1": "It corresponds to the sum of points of opponents faced.",
+    "buchholzExplanationLine2": "For team matches (2v2, 3v3, etc.), we take the average of the points of opposing players per match. A high Buchholz means you faced better-ranked players.",
+    "columnBuchholz": "Buch.",
+    "columnDiff": "Diff",
+    "columnDraws": "D",
+    "columnLosses": "L",
+    "columnMatchesPlayed": "MP",
+    "columnPoints": "Pts",
+    "columnVictoryQuality": "Qual.",
+    "columnWinLossRatio": "W/L",
+    "columnWinRate": "Win%",
+    "columnWins": "W",
+    "criteriaPoints": "Total points",
+    "criteriaWinLossRatio": "Win/loss ratio",
+    "criteriaWins": "Number of wins",
+    "defaultPoints": "3 pts per result by default",
+    "directConfrontationsPlayers": "results between tied players",
+    "directConfrontationsTeams": "results between tied teams",
+    "draw": "Draw",
+    "howRankingTooltip": "How is the ranking calculated?",
+    "loss": "Loss",
+    "noMatchesPlayed": "No matches played",
+    "noStandings": "No standings available",
+    "official": "Official",
+    "officialDesc": "validated matches only",
+    "officialVsProvisional": "Official vs provisional ranking",
+    "pointsAwarded": "Points awarded",
+    "provisional": "Provisional",
+    "provisionalDesc": "validated matches + matches pending validation",
+    "ptPerResult": "pt/res.",
+    "ptUnit": "pt",
+    "ptsUnit": "pts",
+    "rankFirst": "First",
+    "rankSecond": "Second",
+    "rankThird": "Third",
+    "rankingCriteria": "Ranking criteria",
+    "rankingCriteriaSubtitle": "Applied in this order in case of tie:",
+    "tiebreakerBuchholz": "Buchholz",
+    "tiebreakerCriteria": "Tiebreaker criteria",
+    "tiebreakerDetails": "Tiebreaker details {name}",
+    "tiebreakerQuality": "Victory quality",
+    "tiebreakerWinLossRatio": "W/L ratio",
+    "tiebreakerWinRate": "Win rate",
+    "tooltipBuchholz": "Buchholz - Score based on opponents faced",
+    "tooltipVictoryQuality": "Victory quality - Score based on victory/defeat type",
+    "total": "Total",
+    "victoryQualityDesc": "Measures how matches are won or lost. A win earns points, a loss removes them, weighted by outcome type.",
+    "victoryQualityLabel": "Victory quality",
+    "win": "Win",
+    "winRateCriteria": "Win rate"
+  },
+  "submitInvitationView": {
+    "codeInvalid": "Invalid code",
+    "codeLabel": "Invitation code",
+    "codePlaceholder": "e.g. tiger-river-sun",
+    "codeValid": "Valid code ({count} use(s) remaining)",
+    "enterCodePrompt": "Please enter your invitation code to continue.",
+    "hint": "Submit your invitation code",
+    "infoDesc": "Your account has been created successfully, but you need to submit an invitation code to access the application.",
+    "infoTitle": "Invitation code required",
+    "logout": "Log out",
+    "submit": "Submit code",
+    "submitError": "Error submitting code",
+    "submitting": "Submitting...",
+    "subtitle": "Account activation",
+    "validating": "Validating..."
+  },
+  "teamManagementPanel": {
+    "addButton": "Add",
+    "addPlayerDescription": "Select a participant to add to",
+    "addPlayerTitle": "Add a player",
+    "alreadyInTeam": "You are already a member of a team for this tournament.",
+    "choosePlayerPlaceholder": "Choose a player…",
+    "joinButton": "Join",
+    "leaveButton": "Leave",
+    "noMembers": "No members",
+    "noTeams": "No teams yet",
+    "teamLockedTitle": "Team locked (one or more matches have already been entered)",
+    "teamNamePlaceholder": "Team name",
+    "teamsLocked": "Teams are locked (tournament ongoing or finished)."
+  },
+  "teamPreview": {
+    "noPlayersSelected": "No players selected",
+    "teamA": "Team A",
+    "teamB": "Team B"
+  },
+  "teamSelector": {
+    "playerFallback": "Player {playerId}",
+    "searchPlaceholder": "Search a player...",
+    "selectedPlayers": "Selected players"
+  },
+  "teamService": {
+    "errors": {
+      "createFailed": "Error creating team",
+      "deleteFailed": "Error deleting team",
+      "joinFailed": "Error joining team",
+      "leaveFailed": "Error leaving team",
+      "listFailed": "Error loading teams"
+    },
+    "toast": {
+      "createSuccess": "Team created",
+      "deleteSuccess": "Team deleted",
+      "joinSuccess": "Team joined",
+      "leaveSuccess": "Team left"
+    }
+  },
+  "teamsStep": {
+    "next": "Next",
+    "previous": "Previous",
+    "selectTeam": "Select a team",
+    "team": "Team {number}"
+  },
+  "tournamentBadgesTab": {
+    "availableCount": "{count} badge available | {count} badges available",
+    "earnedCount": "Tournament badges",
+    "emptyState": "No badges available",
+    "title": "Badges"
+  },
+  "tournamentBracket": {
+    "bronzeMatch": "3rd place match",
+    "losersBracket": "Losers bracket",
+    "mainBracket": "Main bracket"
+  },
+  "tournamentCard": {
+    "mode": {
+      "bracket": "Bracket",
+      "championship": "Championship",
+      "ranked": "Ranked"
+    },
+    "period": {
+      "daysLeft": "{days}d left",
+      "endingSoon": "Ending soon",
+      "finished": "Finished",
+      "label": "Period",
+      "registrationsOpen": "Registrations open",
+      "soon": "Soon",
+      "startsIn": "Starts in {days}d"
+    },
+    "status": {
+      "draft": "Draft",
+      "finished": "Finished",
+      "ongoing": "Ongoing",
+      "open": "Open"
+    }
+  },
+  "tournamentDetailMobile": {
+    "declareFirstMatch": "Enter your first match to join the leaderboard!",
+    "globalStats": "Global stats",
+    "myProfile": "My profile",
+    "noMmrYet": "You don't have any MMR for this season yet."
+  },
+  "tournamentDetailView": {
+    "accessDenied": {
+      "detail": "Access denied",
+      "summary": "Access denied"
+    },
+    "backToHome": "Back to home",
+    "createMatchBtn": "Create a match",
+    "joinBtn": "Join",
+    "mode": {
+      "bracket": "Bracket",
+      "championship": "Championship",
+      "ranked": "Ranked"
+    },
+    "notFound": {
+      "backBtn": "Back to tournaments",
+      "description": "The tournament you are looking for does not exist or is no longer available.",
+      "title": "Tournament not found"
+    },
+    "registered": "Registered",
+    "status": {
+      "cancelled": "Cancelled",
+      "draft": "Draft",
+      "finished": "Finished",
+      "ongoing": "Ongoing",
+      "open": "Open"
+    },
+    "tabs": {
+      "bracket": "Bracket",
+      "infos": "Info",
+      "matches": "Matches",
+      "standings": "Standings",
+      "stats": "Stats",
+      "teams": "Teams"
+    }
+  },
+  "tournamentFormView": {
+    "championshipRulesTitle": "Championship rules",
+    "errorDateRange": "Start date must be before end date",
+    "errorTeamSize": "Maximum size must be greater than or equal to minimum size",
+    "labelMaxMatchesPerPlayer": "Max matches per player",
+    "labelMaxTimesWithSameOpponent": "Max against same opponent",
+    "labelMaxTimesWithSamePartner": "Max with same partner",
+    "labelMode": "Mode",
+    "labelPointPerDraw": "Points per draw",
+    "labelPointPerLoss": "Points per loss",
+    "labelPointPerVictory": "Points per win",
+    "labelTeamMode": "Team formation",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championship",
+    "statusDraft": "Draft",
+    "statusFinished": "Finished",
+    "statusOngoing": "Ongoing",
+    "statusOpen": "Open for registration",
+    "teamModeFlex": "Flexible",
+    "teamModeStatic": "Static",
+    "undefinedDiscipline": "Undefined"
+  },
+  "tournamentHeader": {
+    "alreadyRegistered": "Already registered",
+    "createMatch": "Create match",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championship",
+    "modeRanked": "Ranked",
+    "participate": "Join",
+    "statusCancelled": "Cancelled",
+    "statusDraft": "Draft",
+    "statusFinished": "Finished",
+    "statusOngoing": "Ongoing",
+    "statusOpen": "Open"
+  },
+  "tournamentInfoGrid": {
+    "allowed": "Allowed",
+    "drawLabel": "Draws:",
+    "drawsAllowedLabel": "Draws allowed:",
+    "durationLabel": "Duration:",
+    "endLabel": "End:",
+    "forbidden": "Forbidden",
+    "generalInfo": "General information",
+    "hideDetails": "Hide details",
+    "lossLabel": "Loss:",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championship",
+    "modeLabel": "Mode:",
+    "modeRanked": "Ranked",
+    "playersUnit": "players",
+    "pointSystem": "Point system",
+    "ptsUnit": "pts",
+    "schedule": "Schedule",
+    "showDetails": "View details",
+    "startLabel": "Start:",
+    "teamModeFlex": "Flexible",
+    "teamModeLabel": "Team mode:",
+    "teamModeStatic": "Static",
+    "teamSizeLabel": "Team size:",
+    "victoryLabel": "Victory:"
+  },
+  "tournamentInfosTab": {
+    "badges": {
+      "subtitle": "Unlockable badges",
+      "title": "Badges"
+    },
+    "participants": {
+      "subtitle": "View registered players",
+      "title": "Participants"
+    },
+    "rules": {
+      "subtitle": "View rules",
+      "title": "Rules"
+    },
+    "teams": {
+      "subtitle": "Manage teams",
+      "title": "Teams"
+    }
+  },
+  "tournamentList": {
+    "allModes": "All modes",
+    "allStatuses": "All statuses",
+    "colEnd": "End",
+    "colMode": "Mode",
+    "colStart": "Start",
+    "colStatus": "Status",
+    "colTeams": "Teams",
+    "createFirst": "Create your first tournament",
+    "deleteConfirm": "Are you sure you want to delete this tournament? This action is irreversible.",
+    "deleteDialogTitle": "Delete {name}?",
+    "empty": "No tournaments found",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championship",
+    "newTournament": "New tournament",
+    "statusDraft": "Draft",
+    "statusFinished": "Finished",
+    "statusOngoing": "Ongoing",
+    "statusOpen": "Open",
+    "teamModeFlex": "Flexible",
+    "teamModeStatic": "Static",
+    "title": "Tournament management"
+  },
+  "tournamentParticipantsList": {
+    "addButton": "Add",
+    "addParticipant": "Add participant",
+    "addParticipantsTitle": "Add participants",
+    "matchCount": "{count} match played | {count} matches played",
+    "noParticipants": "No participants yet",
+    "registeredOn": "Registered on {date}",
+    "selectUsersLabel": "Select users",
+    "selectUsersPlaceholder": "Choose one or more users"
+  },
+  "tournamentParticipantsTab": {
+    "title": "Participants"
+  },
+  "tournamentProfileTab": {
+    "noMmr": "You don't have any MMR for this season yet.",
+    "noMmrHint": "Enter your first match to join the leaderboard!"
+  },
+  "tournamentRulesView": {
+    "defaultTitle": "Rules"
+  },
+  "tournamentService": {
+    "errors": {
+      "createFailed": "Error creating",
+      "deleteFailed": "Error deleting",
+      "loadFailed": "Error loading",
+      "noCreatePermission": "You do not have permission to create a tournament",
+      "statusChangeFailed": "Error changing status",
+      "updateFailed": "Error updating"
+    }
+  },
+  "tournamentStatsCombinedTab": {
+    "nav": {
+      "global": "Global",
+      "myProfile": "My profile"
+    },
+    "noMmr": "You don't have any MMR for this season yet.",
+    "noMmrHint": "Enter your first match to join the leaderboard!"
+  },
+  "tournamentStatsTab": {
+    "activity": {
+      "empty": "No data available.",
+      "title": "Tournament activity"
+    },
+    "bestAsymmetricSolo": {
+      "title": "Best solo players against all"
+    },
+    "bestDuo": {
+      "title": "Best 2v2 players"
+    },
+    "bestSolo": {
+      "title": "Best 1v1 players"
+    },
+    "bestTeams": {
+      "title": "Best teams"
+    },
+    "chartLabel": "Matches",
+    "emptyStats": "Statistics will appear once the first matches are finalized.",
+    "invincibleStreaks": {
+      "title": "Best unbeaten streaks",
+      "unbeatenMatches": "matches without a loss"
+    },
+    "lossStreaks": {
+      "consecutiveLosses": "consecutive losses",
+      "title": "Current loss streaks"
+    },
+    "outcomeDistribution": {
+      "empty": "No matches finalized yet.",
+      "title": "Match outcome distribution"
+    },
+    "outcomeTypeFunStats": {
+      "king": "King of {name}",
+      "times": "{count} time | {count} times",
+      "title": "Stats by outcome type",
+      "victim": "Victim of {name}"
+    },
+    "winStreaks": {
+      "consecutiveWins": "consecutive wins",
+      "title": "Current win streaks"
+    }
+  },
+  "tournamentTabView": {
+    "tabNotFound": "Tab not found."
+  },
+  "tournamentsView": {
+    "adminTooltip": "Administration",
+    "clearFilters": "Clear filters",
+    "empty": {
+      "noFilters": "There are currently no events available.",
+      "title": "No events found",
+      "withFilters": "No events match your filters."
+    },
+    "showFinished": "Finished",
+    "subtitle": "Find and join tournaments",
+    "tags": {
+      "bracket": "Bracket",
+      "championship": "Championship",
+      "ranked": "Ranked"
+    },
+    "title": "Competitive events"
+  },
+  "updateOverlay": {
+    "subtitle": "Reloading...",
+    "title": "New version available"
+  },
+  "validationModeSection": {
+    "autoValidationHelp": "If no opponent disputes within this delay, the score is automatically validated.",
+    "fields": {
+      "validationTimerHours": "Auto-validation delay (hours)"
+    },
+    "modes": {
+      "admin": {
+        "badge": "ADMIN",
+        "description": "Only an administrator can validate scores. Full control.",
+        "label": "Admin validation"
+      },
+      "auto": {
+        "badge": "AUTO",
+        "description": "Match is automatically validated after a delay.",
+        "label": "Automatic validation"
+      },
+      "none": {
+        "badge": "FREE",
+        "description": "Scores validated immediately. No dispute period.",
+        "label": "No validation"
+      },
+      "strict": {
+        "badge": "STRICT",
+        "description": "Automatic validation with mutual confirmation. Trust Score active.",
+        "label": "Strict validation"
+      }
+    },
+    "title": "Validation mode"
+  },
+  "whenStep": {
+    "clearButton": "Clear",
+    "custom": "Custom",
+    "dateTimeLabel": "Date and time",
+    "minus10": "10 min ago",
+    "minus5": "5 min ago",
+    "next": "Next",
+    "now": "Now",
+    "title": "When"
   }
 }

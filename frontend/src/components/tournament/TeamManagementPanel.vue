@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 space-y-4">
     <Message v-if="isLocked" severity="warn" :closable="false">
-      Les équipes sont verrouillées (tournoi en cours ou terminé).
+      {{ t('teamManagementPanel.teamsLocked') }}
     </Message>
 
     <Message
@@ -9,20 +9,20 @@
       severity="info"
       :closable="false"
     >
-      Vous êtes déjà membre d'une équipe pour ce tournoi.
+      {{ t('teamManagementPanel.alreadyInTeam') }}
     </Message>
 
     <!-- Create team form -->
     <div v-if="canCreate && !isLocked" class="flex gap-2">
       <InputText
         v-model="newTeamName"
-        placeholder="Nom de l'équipe"
+        :placeholder="t('teamManagementPanel.teamNamePlaceholder')"
         class="flex-1"
         maxlength="50"
         @keyup.enter="handleCreate"
       />
       <Button
-        label="Créer"
+        :label="t('common.create')"
         icon="fa fa-plus"
         :loading="loading"
         :disabled="!newTeamName.trim()"
@@ -35,7 +35,7 @@
     </div>
 
     <div v-else-if="!teams.length" class="text-center py-8 text-gray-500 dark:text-gray-400">
-      Aucune équipe créée pour ce tournoi.
+      {{ t('teamManagementPanel.noTeams') }}
     </div>
 
     <div v-else class="space-y-3">
@@ -53,7 +53,7 @@
                 <i
                   v-if="team.hasMatch"
                   class="fa fa-lock text-xs text-gray-400"
-                  title="Équipe verrouillée (Un ou plusieurs matchs ont déjà été saisies)"
+                  :title="t('teamManagementPanel.teamLockedTitle')"
                 />
               </div>
               <div class="flex flex-wrap gap-1">
@@ -65,7 +65,7 @@
                   class="text-xs"
                 />
                 <span v-if="!team.members.length" class="text-xs text-gray-400 italic"
-                  >Aucun membre</span
+                  >{{ t('teamManagementPanel.noMembers') }}</span
                 >
               </div>
             </div>
@@ -83,7 +83,7 @@
               <!-- Join button -->
               <Button
                 v-if="canJoinTeam(team) && !isTeamLocked(team)"
-                label="Rejoindre"
+                :label="t('teamManagementPanel.joinButton')"
                 icon="fa fa-sign-in"
                 size="small"
                 severity="success"
@@ -94,7 +94,7 @@
               <!-- Leave button -->
               <Button
                 v-if="isMemberOf(team) && !isTeamLocked(team)"
-                label="Quitter"
+                :label="t('teamManagementPanel.leaveButton')"
                 icon="fa fa-sign-out"
                 size="small"
                 severity="warning"
@@ -122,12 +122,12 @@
     <Dialog
       v-model:visible="addPlayerDialogVisible"
       modal
-      header="Ajouter un joueur"
+      :header="t('teamManagementPanel.addPlayerTitle')"
       :style="{ width: '24rem' }"
     >
       <div class="flex flex-col gap-4">
         <span class="text-sm text-gray-500 dark:text-gray-400">
-          Sélectionnez un participant à ajouter dans
+          {{ t('teamManagementPanel.addPlayerDescription') }}
           <strong>{{ targetTeam?.name }}</strong
           >.
         </span>
@@ -136,20 +136,20 @@
           :options="availableParticipants"
           option-label="label"
           option-value="value"
-          placeholder="Choisir un joueur…"
+          :placeholder="t('teamManagementPanel.choosePlayerPlaceholder')"
           class="w-full"
           filter
         />
       </div>
       <template #footer>
         <Button
-          label="Annuler"
+          :label="t('common.cancel')"
           severity="secondary"
           outlined
           @click="addPlayerDialogVisible = false"
         />
         <Button
-          label="Ajouter"
+          :label="t('teamManagementPanel.addButton')"
           icon="fa fa-user-plus"
           :disabled="!selectedUserId"
           :loading="loading"
@@ -162,6 +162,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTeamService } from '@/composables/team/team.service'
 import { participantApi } from '@/composables/participant.api'
 import { onWsEvent, sendWsMessage } from '@/composables/notification/notification.socket'
@@ -175,6 +176,8 @@ const props = defineProps<{
   canManage: boolean
   tournamentStatus?: string
 }>()
+
+const { t } = useI18n()
 
 const { teams, loading, loadTeams, createTeam, joinTeam, leaveTeam, deleteTeam } = useTeamService()
 const newTeamName = ref('')

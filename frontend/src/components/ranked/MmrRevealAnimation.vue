@@ -97,7 +97,7 @@
               class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
               @click="$emit('close')"
             >
-              Continuer
+              {{ t('mmrRevealAnimation.continue') }}
             </button>
           </Transition>
         </div>
@@ -108,8 +108,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skill-arena/shared'
 import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   event: MmrAnimationEventResponse
@@ -129,8 +132,8 @@ const barDeltaWidth = ref(0)
 const isProvisional = computed(() => props.event.eventType === 'provisional')
 
 const reasonLabel = computed(() => {
-  if (props.event.reason === 'match_cancelled') return 'Match annulé'
-  if (props.event.reason === 'cascade') return 'Recalcul MMR'
+  if (props.event.reason === 'match_cancelled') return t('mmrRevealAnimation.matchCancelled')
+  if (props.event.reason === 'cascade') return t('mmrRevealAnimation.mmrRecalculation')
   return null
 })
 
@@ -164,7 +167,7 @@ const rankDirection = computed(() =>
 )
 
 const rankChangeText = computed(() =>
-  rankDirection.value === 'up' ? 'Montée en rang !' : 'Descente en rang !',
+  rankDirection.value === 'up' ? t('mmrRevealAnimation.rankUp') : t('mmrRevealAnimation.rankDown'),
 )
 
 const rankChangeTextClass = computed(() =>

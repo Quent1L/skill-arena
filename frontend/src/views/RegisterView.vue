@@ -3,19 +3,19 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Créez votre compte</p>
+        <p class="mt-2">{{ t('registerView.subtitle') }}</p>
       </div>
 
       <Card>
         <template #content>
           <form @submit="onSubmit" class="space-y-6">
             <div class="flex flex-col gap-2">
-              <label for="email" class="font-medium">Adresse email</label>
+              <label for="email" class="font-medium">{{ t('registerView.emailLabel') }}</label>
               <InputText
                 id="email"
                 v-model="email"
                 type="email"
-                placeholder="vous@exemple.com"
+                :placeholder="t('registerView.emailPlaceholder')"
                 :disabled="loading"
                 :invalid="!!errors.email"
                 class="w-full"
@@ -26,7 +26,7 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label for="name" class="font-medium">Nom complet (optionnel)</label>
+              <label for="name" class="font-medium">{{ t('registerView.nameLabel') }}</label>
               <InputText
                 id="name"
                 v-model="name"
@@ -42,7 +42,7 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label for="password" class="font-medium">Mot de passe</label>
+              <label for="password" class="font-medium">{{ t('registerView.passwordLabel') }}</label>
               <Password
                 id="password"
                 v-model="password"
@@ -59,7 +59,7 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label for="passwordConfirm" class="font-medium"> Confirmer le mot de passe </label>
+              <label for="passwordConfirm" class="font-medium"> {{ t('registerView.passwordConfirmLabel') }} </label>
               <Password
                 id="passwordConfirm"
                 v-model="passwordConfirm"
@@ -80,7 +80,7 @@
             </Message>
 
             <Message severity="info" :closable="false">
-              En créant un compte, vous pourrez participer aux tournois et suivre vos statistiques.
+              {{ t('registerView.infoMessage') }}
             </Message>
 
             <div class="space-y-3">
@@ -88,19 +88,19 @@
                 type="submit"
                 :loading="loading"
                 :disabled="loading"
-                label="Créer mon compte"
+                :label="t('registerView.createAccount')"
                 class="w-full"
               />
 
               <div class="text-center text-sm">
-                <span class="text-gray-600">Déjà un compte ?</span>
-                <Button link label="Se connecter" @click="router.push('/login')" class="ml-1 p-0" />
+                <span class="text-gray-600">{{ t('registerView.alreadyHaveAccount') }}</span>
+                <Button link :label="t('registerView.login')" @click="router.push('/login')" class="ml-1 p-0" />
               </div>
 
               <div class="text-center">
                 <Button
                   link
-                  label="← Retour à l'accueil"
+                  :label="t('registerView.backToHome')"
                   @click="router.push('/')"
                   class="text-sm text-gray-600"
                 />
@@ -115,11 +115,13 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { registerSchema } from '@/schemas/auth.schema'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { register, loading, error } = useAuth()

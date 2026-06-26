@@ -18,7 +18,7 @@
     <Dialog
       v-model:visible="visible"
       modal
-      header="Choisir une icône"
+      :header="t('fontAwesomeIconPicker.dialogHeader')"
       :style="{ width: '90vw', maxWidth: '760px' }"
       :draggable="false"
       @show="searchRef?.$el?.focus()"
@@ -27,7 +27,7 @@
         <InputText
           ref="searchRef"
           v-model="search"
-          placeholder="Rechercher... (ex: fire, trophy, star)"
+          :placeholder="t('fontAwesomeIconPicker.searchPlaceholder')"
           class="w-full"
         />
 
@@ -51,13 +51,13 @@
 
         <p class="text-xs text-surface-400">
           <template v-if="search">
-            {{ displayedIcons.length }} résultat{{ displayedIcons.length !== 1 ? 's' : '' }}
+            {{ t('fontAwesomeIconPicker.resultCount', displayedIcons.length) }}
             <span v-if="filteredIcons.length > MAX_RESULTS">
-              ({{ filteredIcons.length }} trouvés — affinez la recherche)
+              {{ t('fontAwesomeIconPicker.refineSearch', filteredIcons.length) }}
             </span>
           </template>
           <template v-else>
-            {{ displayedIcons.length }} icône{{ displayedIcons.length !== 1 ? 's' : '' }}
+            {{ t('fontAwesomeIconPicker.iconCount', displayedIcons.length) }}
           </template>
         </p>
 
@@ -89,13 +89,13 @@
         <div class="flex justify-between items-center w-full">
           <Button
             v-if="modelValue"
-            label="Effacer"
+            :label="t('fontAwesomeIconPicker.clear')"
             icon="fas fa-times"
             severity="secondary"
             text
             @click="clear"
           />
-          <Button label="Fermer" text class="ml-auto" @click="visible = false" />
+          <Button :label="t('common.close')" text class="ml-auto" @click="visible = false" />
         </div>
       </template>
     </Dialog>
@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import iconFamiliesRaw from '@fortawesome/fontawesome-free/metadata/icon-families.json'
 import categoriesData from '@/config/fa-categories.json'
 
@@ -118,6 +119,8 @@ const faCategories = categoriesData as CategoriesData
 
 const props = defineProps<{ modelValue: string }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
+
+const { t } = useI18n()
 
 const MAX_RESULTS = 200
 
@@ -193,10 +196,10 @@ const POPULAR_NAMES = [
   'target',
 ]
 
-const TABS = [
-  { key: 'popular', label: '⭐ Populaires' },
+const TABS = computed(() => [
+  { key: 'popular', label: t('fontAwesomeIconPicker.tabPopular') },
   ...Object.entries(faCategories).map(([key, cat]) => ({ key, label: cat.label })),
-]
+])
 
 const visible = ref(false)
 const search = ref('')
@@ -223,7 +226,7 @@ const filteredIcons = computed(() => {
 const displayedIcons = computed(() => filteredIcons.value.slice(0, MAX_RESULTS))
 
 const currentLabel = computed(() => {
-  if (!props.modelValue) return 'Choisir une icône'
+  if (!props.modelValue) return t('fontAwesomeIconPicker.chooseIcon')
   const found = ALL_ICONS.find((ic) => ic.class === props.modelValue)
   return found ? found.label : props.modelValue
 })

@@ -12,6 +12,9 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
 vi.mock('../participant.api')
 vi.mock('@/composables/useAppToast')
 
@@ -51,8 +54,8 @@ describe('useParticipantService', () => {
       expect(result).toEqual(mockResponse)
       expect(mockToast.add).toHaveBeenCalledWith({
         severity: 'success',
-        summary: 'Inscription réussie',
-        detail: 'Vous êtes maintenant inscrit au tournoi',
+        summary: 'participantService.toast.joinSuccessSummary',
+        detail: 'participantService.toast.joinSuccessDetail',
         life: 3000,
       })
     })
@@ -70,7 +73,7 @@ describe('useParticipantService', () => {
       expect(result).toBeNull()
       expect(mockToast.add).toHaveBeenCalledWith({
         severity: 'error',
-        summary: "Erreur d'inscription",
+        summary: 'participantService.toast.joinErrorSummary',
         detail: 'Tournament not found',
         life: 5000,
       })
@@ -96,8 +99,8 @@ describe('useParticipantService', () => {
       expect(result).toBe(true)
       expect(mockToast.add).toHaveBeenCalledWith({
         severity: 'success',
-        summary: 'Désinscription réussie',
-        detail: 'Vous avez quitté le tournoi',
+        summary: 'participantService.toast.leaveSuccessSummary',
+        detail: 'participantService.toast.leaveSuccessDetail',
         life: 3000,
       })
     })
@@ -115,7 +118,7 @@ describe('useParticipantService', () => {
       expect(result).toBe(false)
       expect(mockToast.add).toHaveBeenCalledWith({
         severity: 'error',
-        summary: 'Erreur de désinscription',
+        summary: 'participantService.toast.leaveErrorSummary',
         detail: 'Not registered',
         life: 5000,
       })

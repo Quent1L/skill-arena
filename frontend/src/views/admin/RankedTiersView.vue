@@ -6,10 +6,10 @@
         text
         rounded
         @click="router.push('/admin/ranked')"
-        v-tooltip.top="'Retour à la liste'"
+        v-tooltip.top="t('rankedTiersView.tooltipBack')"
       />
       <div>
-        <h1 class="text-2xl font-bold">Gestion des rangs</h1>
+        <h1 class="text-2xl font-bold">{{ t('rankedTiersView.title') }}</h1>
         <p v-if="currentSeason" class="text-sm text-surface-500">
           {{ currentSeason.name }}
           <Tag :severity="statusSeverity(currentSeason.status)" :value="statusLabel(currentSeason.status)" class="ml-2" />
@@ -23,12 +23,12 @@
 
     <div class="flex justify-between items-center mb-3">
       <Button
-        label="Ajouter un rang"
+        :label="t('rankedTiersView.addRank')"
         icon="fa fa-plus"
         @click="openCreateDialog"
       />
       <Button
-        label="Recalculer les seuils MMR"
+        :label="t('rankedTiersView.recalculateThresholds')"
         icon="fa fa-calculator"
         severity="secondary"
         @click="confirmRecalculate"
@@ -41,31 +41,31 @@
       striped-rows
       class="p-datatable-sm"
     >
-      <Column field="level" header="Niveau" sortable style="width: 6rem" />
+      <Column field="level" :header="t('rankedTiersView.colLevel')" sortable style="width: 6rem" />
 
-      <Column field="name" header="Nom" />
+      <Column field="name" :header="t('common.name')" />
 
-      <Column field="percentile" header="Percentile" sortable style="width: 10rem">
+      <Column field="percentile" :header="t('rankedTiersView.colPercentile')" sortable style="width: 10rem">
         <template #body="{ data }">
           {{ Math.round(data.percentile * 100) }}%
         </template>
       </Column>
 
-      <Column field="subRanks" header="Sous-rangs" style="width: 9rem">
+      <Column field="subRanks" :header="t('rankedTiersView.colSubRanks')" style="width: 9rem">
         <template #body="{ data }">
           {{ data.subRanks > 1 ? data.subRanks : '—' }}
         </template>
       </Column>
 
-      <Column field="minMmr" header="MMR min" sortable style="width: 8rem" />
+      <Column field="minMmr" :header="t('rankedTiersView.colMinMmr')" sortable style="width: 8rem" />
 
-      <Column field="calculatedAt" header="Calculé le" style="width: 12rem">
+      <Column field="calculatedAt" :header="t('rankedTiersView.colCalculatedAt')" style="width: 12rem">
         <template #body="{ data }">
           {{ formatDate(data.calculatedAt) }}
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 8rem">
+      <Column :header="t('common.actions')" style="width: 8rem">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
@@ -74,7 +74,7 @@
               text
               rounded
               @click="openEditDialog(data)"
-              v-tooltip.top="'Modifier'"
+              v-tooltip.top="t('common.edit')"
             />
             <Button
               icon="fa fa-trash"
@@ -83,7 +83,7 @@
               rounded
               severity="danger"
               @click="confirmDelete(data)"
-              v-tooltip.top="'Supprimer'"
+              v-tooltip.top="t('common.delete')"
             />
           </div>
         </template>
@@ -91,7 +91,7 @@
 
       <template #empty>
         <div class="text-center py-8">
-          <p class="text-surface-500">Aucun rang défini pour cette saison</p>
+          <p class="text-surface-500">{{ t('rankedTiersView.empty') }}</p>
         </div>
       </template>
     </DataTable>
@@ -99,38 +99,38 @@
     <!-- Create / Edit Dialog -->
     <Dialog
       v-model:visible="formDialogVisible"
-      :header="editingTier ? 'Modifier le rang' : 'Ajouter un rang'"
+      :header="editingTier ? t('rankedTiersView.editDialogTitle') : t('rankedTiersView.addDialogTitle')"
       :modal="true"
       :style="{ width: '420px' }"
     >
       <div class="flex flex-col gap-4 pt-2">
         <div v-if="!editingTier" class="flex flex-col gap-1">
-          <label for="tier-level" class="font-medium text-sm">Niveau</label>
+          <label for="tier-level" class="font-medium text-sm">{{ t('rankedTiersView.formLevel') }}</label>
           <InputNumber v-model="form.level" input-id="tier-level" :min="1" :max="99" showButtons />
         </div>
         <div class="flex flex-col gap-1">
-          <label for="tier-name" class="font-medium text-sm">Nom</label>
-          <InputText id="tier-name" v-model="form.name" placeholder="Ex: Légende" />
+          <label for="tier-name" class="font-medium text-sm">{{ t('rankedTiersView.formName') }}</label>
+          <InputText id="tier-name" v-model="form.name" :placeholder="t('rankedTiersView.formNamePlaceholder')" />
         </div>
         <div class="flex flex-col gap-1">
-          <label for="tier-percentile" class="font-medium text-sm">Percentile (0 à 1)</label>
+          <label for="tier-percentile" class="font-medium text-sm">{{ t('rankedTiersView.formPercentile') }}</label>
           <InputNumber v-model="form.percentile" input-id="tier-percentile" :min="0" :max="1" :step="0.01" :minFractionDigits="2" :maxFractionDigits="2" />
-          <small class="text-surface-400">Seuil de MMR basé sur la distribution des joueurs</small>
+          <small class="text-surface-400">{{ t('rankedTiersView.formPercentileHelp') }}</small>
         </div>
         <div class="flex flex-col gap-1">
-          <label for="tier-minmmr" class="font-medium text-sm">MMR minimum</label>
+          <label for="tier-minmmr" class="font-medium text-sm">{{ t('rankedTiersView.formMinMmr') }}</label>
           <InputNumber v-model="form.minMmr" input-id="tier-minmmr" :min="0" showButtons />
         </div>
         <div class="flex flex-col gap-1">
-          <label for="tier-subranks" class="font-medium text-sm">Sous-rangs</label>
+          <label for="tier-subranks" class="font-medium text-sm">{{ t('rankedTiersView.formSubRanks') }}</label>
           <InputNumber v-model="form.subRanks" input-id="tier-subranks" :min="1" :max="10" showButtons />
-          <small class="text-surface-400">1 = pas de sous-rang. Ex: 5 → Silver 5, Silver 4, ..., Silver 1</small>
+          <small class="text-surface-400">{{ t('rankedTiersView.formSubRanksHelp') }}</small>
         </div>
       </div>
       <template #footer>
-        <Button label="Annuler" text @click="formDialogVisible = false" />
+        <Button :label="t('common.cancel')" text @click="formDialogVisible = false" />
         <Button
-          :label="editingTier ? 'Enregistrer' : 'Créer'"
+          :label="editingTier ? t('common.save') : t('common.create')"
           icon="fa fa-check"
           :loading="loading"
           @click="handleSubmit"
@@ -141,40 +141,34 @@
     <!-- Delete Confirmation -->
     <Dialog
       v-model:visible="deleteDialogVisible"
-      header="Supprimer le rang ?"
+      :header="t('rankedTiersView.deleteDialogTitle')"
       :modal="true"
       :style="{ width: '400px' }"
     >
       <div class="flex items-center gap-3">
         <i class="pi pi-exclamation-triangle text-3xl text-orange-500"></i>
-        <span>
-          Supprimer le rang <strong>{{ tierToDelete?.name }}</strong> ?
-          Cette action est irréversible.
-        </span>
+        <span>{{ t('rankedTiersView.deleteConfirm', { name: tierToDelete?.name }) }}</span>
       </div>
       <template #footer>
-        <Button label="Annuler" text @click="deleteDialogVisible = false" />
-        <Button label="Supprimer" icon="fa fa-trash" severity="danger" :loading="loading" @click="handleDelete" />
+        <Button :label="t('common.cancel')" text @click="deleteDialogVisible = false" />
+        <Button :label="t('rankedTiersView.delete')" icon="fa fa-trash" severity="danger" :loading="loading" @click="handleDelete" />
       </template>
     </Dialog>
 
     <!-- Recalculate Confirmation -->
     <Dialog
       v-model:visible="recalcDialogVisible"
-      header="Recalculer les seuils MMR ?"
+      :header="t('rankedTiersView.recalcDialogTitle')"
       :modal="true"
       :style="{ width: '420px' }"
     >
       <div class="flex items-center gap-3">
         <i class="pi pi-info-circle text-3xl text-blue-500"></i>
-        <span>
-          Les valeurs MMR minimum de chaque rang seront recalculées selon les percentiles
-          et la distribution MMR actuelle des joueurs.
-        </span>
+        <span>{{ t('rankedTiersView.recalcConfirm') }}</span>
       </div>
       <template #footer>
-        <Button label="Annuler" text @click="recalcDialogVisible = false" />
-        <Button label="Recalculer" icon="fa fa-calculator" :loading="loading" @click="handleRecalculate" />
+        <Button :label="t('common.cancel')" text @click="recalcDialogVisible = false" />
+        <Button :label="t('rankedTiersView.recalculate')" icon="fa fa-calculator" :loading="loading" @click="handleRecalculate" />
       </template>
     </Dialog>
   </div>
@@ -183,11 +177,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import type { ClientRankTier } from '@skill-arena/shared/types/index'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const seasonId = route.params.id as string
 
 const { tiers, currentSeason, loading, error, loadTiers, loadSeasonById, createTier, updateTier, deleteTier, recalculateTiers } = useRankedService()
@@ -262,11 +258,11 @@ function formatDate(date: Date | string) {
 
 function statusLabel(status: string) {
   const labels: Record<string, string> = {
-    draft: 'Brouillon',
-    open: 'Ouvert',
-    ongoing: 'En cours',
-    finished: 'Terminé',
-    cancelled: 'Annulé',
+    draft: t('rankedTiersView.statusDraft'),
+    open: t('rankedTiersView.statusOpen'),
+    ongoing: t('rankedTiersView.statusOngoing'),
+    finished: t('rankedTiersView.statusFinished'),
+    cancelled: t('rankedTiersView.statusCancelled'),
   }
   return labels[status] ?? status
 }

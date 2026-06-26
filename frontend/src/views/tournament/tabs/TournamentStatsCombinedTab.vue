@@ -11,7 +11,7 @@
         "
         @click="sub = 'profile'"
       >
-        Mon profil
+        {{ t('tournamentStatsCombinedTab.nav.myProfile') }}
       </button>
       <button
         class="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
@@ -22,7 +22,7 @@
         "
         @click="sub = 'global'"
       >
-        Global
+        {{ t('tournamentStatsCombinedTab.nav.global') }}
       </button>
     </nav>
 
@@ -48,8 +48,8 @@
         </div>
         <div v-else class="text-center py-12 text-gray-500 dark:text-gray-400">
           <i class="fa fa-user-slash text-4xl mb-4 block"></i>
-          <p>Vous n'avez pas encore de MMR pour cette saison.</p>
-          <p class="text-sm mt-2">Déclarez votre premier match pour rejoindre le classement !</p>
+          <p>{{ t('tournamentStatsCombinedTab.noMmr') }}</p>
+          <p class="text-sm mt-2">{{ t('tournamentStatsCombinedTab.noMmrHint') }}</p>
         </div>
       </div>
       <TournamentStatsTab v-else />
@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import TournamentStatsTab from './TournamentStatsTab.vue'
@@ -68,6 +69,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const store = useTournamentDetailStore()
 const sub = ref<'profile' | 'global'>('profile')
+const { t } = useI18n()
 
 const isRankedAndAuth = computed(
   () => store.tournament?.mode === 'ranked' && store.isAuthenticated && !!store.appUser,

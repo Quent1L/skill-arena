@@ -17,10 +17,16 @@
 import { computed } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import { useTitle } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 
-const pageTitle = computed(() => (route.meta.title ? `Skol - ${route.meta.title}` : 'Skol'))
+const pageTitle = computed(() =>
+  route.meta.title
+    ? t('appWrapper.pageTitle', { title: route.meta.title })
+    : t('appWrapper.appTitle'),
+)
 useTitle(pageTitle)
 
 // Use the parent (first matched) route's resolved path as the component key.

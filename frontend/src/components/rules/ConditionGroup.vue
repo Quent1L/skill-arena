@@ -10,11 +10,11 @@
         size="small"
       />
       <span class="text-xs text-surface-500">
-        {{ node.operator === 'all' ? 'toutes les conditions doivent être vraies' : "au moins une condition doit être vraie" }}
+        {{ node.operator === 'all' ? t('conditionGroup.allTrue') : t('conditionGroup.anyTrue') }}
       </span>
       <div class="flex-1"></div>
-      <Button label="Condition" icon="fa fa-plus" size="small" text @click="addLeaf" />
-      <Button label="Sous-groupe" icon="fa fa-plus" size="small" text @click="addGroup" />
+      <Button :label="t('conditionGroup.addCondition')" icon="fa fa-plus" size="small" text @click="addLeaf" />
+      <Button :label="t('conditionGroup.addGroup')" icon="fa fa-plus" size="small" text @click="addGroup" />
       <Button v-if="removable" icon="fa fa-trash" size="small" text rounded severity="danger" @click="$emit('remove')" />
     </div>
 
@@ -46,17 +46,21 @@
       </div>
 
       <p v-if="node.children.length === 0" class="text-center text-xs text-surface-400 py-3">
-        Glissez une condition ici, ou utilisez les boutons ci-dessus
+        {{ t('conditionGroup.emptyHint') }}
       </p>
     </VueDraggable>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VueDraggable } from 'vue-draggable-plus'
 import ConditionRow from './ConditionRow.vue'
 import { emptyGroup, emptyLeaf, type BuilderNode, type PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
+
+const { t } = useI18n()
 
 const node = defineModel<Extract<BuilderNode, { kind: 'group' }>>({ required: true })
 withDefaults(
@@ -71,10 +75,10 @@ withDefaults(
 
 defineEmits<{ remove: [] }>()
 
-const operatorButtons = [
-  { label: 'ET', value: 'all' },
-  { label: 'OU', value: 'any' },
-]
+const operatorButtons = computed(() => [
+  { label: t('conditionGroup.operatorAnd'), value: 'all' },
+  { label: t('conditionGroup.operatorOr'), value: 'any' },
+])
 
 function addLeaf() {
   node.value.children.push(emptyLeaf())

@@ -1,19 +1,19 @@
 <template>
   <div class="flex flex-col gap-6 pt-4">
-    <h3 class="text-base font-semibold">Composition</h3>
+    <h3 class="text-base font-semibold">{{ t('compositionStep.title') }}</h3>
 
-    <p class="text-sm text-surface-500">Faites glisser les joueurs pour former les équipes.</p>
+    <p class="text-sm text-surface-500">{{ t('compositionStep.instruction') }}</p>
 
     <div class="grid grid-cols-2 gap-4">
       <div class="flex flex-col gap-2">
-        <div class="text-sm font-semibold">Équipe 1</div>
+        <div class="text-sm font-semibold">{{ t('compositionStep.teamA') }}</div>
         <div
           class="relative min-h-20 rounded-lg border-2 border-dashed border-surface-300 dark:border-surface-600 p-3"
         >
           <span
             v-if="playersA.length === 0"
             class="absolute inset-0 flex items-center justify-center text-xs text-surface-400 pointer-events-none"
-            >Vide</span
+            >{{ t('compositionStep.empty') }}</span
           >
           <VueDraggable
             v-model="playersA"
@@ -36,14 +36,14 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <div class="text-sm font-semibold">Équipe 2</div>
+        <div class="text-sm font-semibold">{{ t('compositionStep.teamB') }}</div>
         <div
           class="relative min-h-20 rounded-lg border-2 border-dashed border-surface-300 dark:border-surface-600 p-3"
         >
           <span
             v-if="playersB.length === 0"
             class="absolute inset-0 flex items-center justify-center text-xs text-surface-400 pointer-events-none"
-            >Vide</span
+            >{{ t('compositionStep.empty') }}</span
           >
           <VueDraggable
             v-model="playersB"
@@ -67,18 +67,18 @@
     </div>
 
     <div v-if="emptySide" class="text-sm text-red-500">
-      Chaque équipe doit avoir au moins un joueur.
+      {{ t('compositionStep.emptySideError') }}
     </div>
 
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
       <Button
-        label="Précédent"
+        :label="t('compositionStep.previous')"
         severity="secondary"
         icon="fas fa-arrow-left"
         @click="emit('previous')"
       />
       <Button
-        :label="props.nextLabel ?? 'Suivant'"
+        :label="props.nextLabel ?? t('compositionStep.next')"
         :icon="props.nextLabel ? 'fas fa-calendar-check' : 'fas fa-arrow-right'"
         :icon-pos="props.nextLabel ? undefined : 'right'"
         :class="props.nextLabel ? 'bg-green-600 hover:bg-green-700' : ''"
@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { VueDraggable } from 'vue-draggable-plus'
@@ -114,6 +115,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const { t } = useI18n()
 
 const sidesModel = defineModel<MatchSideInput[]>('sides', { required: true })
 const allPlayerIdsModel = defineModel<string[]>('allPlayerIds', { required: true })

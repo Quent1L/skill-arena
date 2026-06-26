@@ -1,8 +1,10 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { gameRulesApi } from './game-rules.api'
 import type { ClientGameRule, CreateGameRuleData, UpdateGameRuleData } from '@skill-arena/shared/types/index'
 
 export function useGameRulesService() {
+  const { t } = useI18n()
   const rules = ref<ClientGameRule[]>([])
   const currentRule = ref<ClientGameRule | null>(null)
   const loading = ref(false)
@@ -14,7 +16,7 @@ export function useGameRulesService() {
     try {
       rules.value = await gameRulesApi.list()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des règles'
+      error.value = err instanceof Error ? err.message : t('gameRulesService.errors.listFailed')
     } finally {
       loading.value = false
     }
@@ -26,7 +28,7 @@ export function useGameRulesService() {
     try {
       currentRule.value = await gameRulesApi.getById(id)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du règlement'
+      error.value = err instanceof Error ? err.message : t('gameRulesService.errors.getFailed')
     } finally {
       loading.value = false
     }
@@ -40,7 +42,7 @@ export function useGameRulesService() {
       rules.value.unshift(rule)
       return rule
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la création du règlement'
+      error.value = err instanceof Error ? err.message : t('gameRulesService.errors.createFailed')
       return null
     } finally {
       loading.value = false
@@ -57,7 +59,7 @@ export function useGameRulesService() {
       currentRule.value = updated
       return updated
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du règlement'
+      error.value = err instanceof Error ? err.message : t('gameRulesService.errors.updateFailed')
       return null
     } finally {
       loading.value = false
@@ -72,7 +74,7 @@ export function useGameRulesService() {
       rules.value = rules.value.filter((r) => r.id !== id)
       return true
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la suppression du règlement'
+      error.value = err instanceof Error ? err.message : t('gameRulesService.errors.deleteFailed')
       return false
     } finally {
       loading.value = false

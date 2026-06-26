@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { rulesApi, type BadgeReconciliationStatus, type CatalogFact, type RuleListFilters } from './rules.api'
 import type {
   ClientRule,
@@ -10,6 +11,7 @@ import type {
 } from '@skill-arena/shared/types/index'
 
 export function useRulesService() {
+  const { t } = useI18n()
   const rules = ref<ClientRule[]>([])
   const currentRule = ref<ClientRule | null>(null)
   const catalog = ref<CatalogFact[]>([])
@@ -22,7 +24,7 @@ export function useRulesService() {
     try {
       rules.value = await rulesApi.list(filters)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des règles'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.listFailed')
     } finally {
       loading.value = false
     }
@@ -34,7 +36,7 @@ export function useRulesService() {
     try {
       currentRule.value = await rulesApi.getById(id)
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement de la règle'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.getFailed')
     } finally {
       loading.value = false
     }
@@ -45,7 +47,7 @@ export function useRulesService() {
       const result = await rulesApi.getCatalog(triggerEvent)
       catalog.value = result.facts
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du catalogue'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.loadCatalogFailed')
     }
   }
 
@@ -57,7 +59,7 @@ export function useRulesService() {
       rules.value.unshift(rule)
       return rule
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la création de la règle'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.createFailed')
       return null
     } finally {
       loading.value = false
@@ -74,7 +76,7 @@ export function useRulesService() {
       currentRule.value = updated
       return updated
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la règle'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.updateFailed')
       return null
     } finally {
       loading.value = false
@@ -89,7 +91,7 @@ export function useRulesService() {
       rules.value = rules.value.filter((r) => r.id !== id)
       return true
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la suppression de la règle'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.deleteFailed')
       return false
     } finally {
       loading.value = false
@@ -120,7 +122,7 @@ export function useRulesService() {
       await loadReconciliationStatus()
       return true
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du déclenchement du recalcul'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.triggerReconciliationFailed')
       return false
     }
   }
@@ -134,7 +136,7 @@ export function useRulesService() {
     try {
       return await rulesApi.test({ triggerEvent, conditions, action, context })
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du test de la règle'
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.testFailed')
       return null
     }
   }

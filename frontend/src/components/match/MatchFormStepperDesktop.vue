@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-2xl mx-auto p-4 sm:p-6">
     <h1 class="text-2xl font-semibold mb-6">
-      {{ isEditMode ? 'Compléter le match' : 'Créer un match' }}
+      {{ isEditMode ? t('matchFormStepperDesktop.completeMatch') : t('matchFormStepperDesktop.createMatch') }}
     </h1>
 
     <Card>
@@ -57,7 +57,7 @@
 
           <!-- Step 2b: Teams (static) -->
           <StepPanel v-if="isStaticMode" value="teams">
-            <h3 class="text-base font-semibold mb-4">Équipes</h3>
+            <h3 class="text-base font-semibold mb-4">{{ t('matchFormStepperDesktop.teamsStep') }}</h3>
             <TeamsStep
               v-model:sides="formState.sides"
               :tournament-id="props.tournamentId"
@@ -112,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed, inject } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
@@ -132,6 +133,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
 
 const {
   loading: matchLoading,

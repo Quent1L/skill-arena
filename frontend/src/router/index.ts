@@ -2,6 +2,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { requireAdmin, requireAuth, requireSettingsAccess, redirectIfAuthenticated } from './guards'
+import { i18n } from '@/i18n'
+
+const t = (key: string) => i18n.global.t(key)
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -19,8 +22,8 @@ const routes: RouteRecordRaw[] = [
     name: 'home',
     component: () => import('@/views/PublicHomeView.vue'),
     meta: {
-      breadcrumb: 'Accueil',
-      title: 'Accueil',
+      breadcrumb: t('routes.home'),
+      title: t('routes.home'),
       hideBreadcrumb: true,
     },
   },
@@ -31,8 +34,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/LoginView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
-      breadcrumb: 'Connexion',
-      title: 'Connexion',
+      breadcrumb: t('routes.login'),
+      title: t('routes.login'),
       hideBreadcrumb: true,
     },
   },
@@ -42,8 +45,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SignupView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
-      breadcrumb: 'Inscription',
-      title: 'Inscription',
+      breadcrumb: t('routes.signup'),
+      title: t('routes.signup'),
       hideBreadcrumb: true,
     },
   },
@@ -53,8 +56,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/RegisterView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
-      breadcrumb: 'Inscription',
-      title: 'Inscription',
+      breadcrumb: t('routes.signup'),
+      title: t('routes.signup'),
       hideBreadcrumb: true,
     },
   },
@@ -63,8 +66,8 @@ const routes: RouteRecordRaw[] = [
     name: 'submit-invitation',
     component: () => import('@/views/SubmitInvitationView.vue'),
     meta: {
-      breadcrumb: "Code d'invitation",
-      title: "Code d'invitation",
+      breadcrumb: t('routes.invitationCode'),
+      title: t('routes.invitationCode'),
       hideBreadcrumb: true,
     },
   },
@@ -74,8 +77,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ForgotPasswordView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
-      breadcrumb: 'Mot de passe oublié',
-      title: 'Mot de passe oublié',
+      breadcrumb: t('routes.forgotPassword'),
+      title: t('routes.forgotPassword'),
       hideBreadcrumb: true,
     },
   },
@@ -85,8 +88,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ResetPasswordView.vue'),
     beforeEnter: redirectIfAuthenticated,
     meta: {
-      breadcrumb: 'Réinitialiser le mot de passe',
-      title: 'Réinitialiser le mot de passe',
+      breadcrumb: t('routes.resetPassword'),
+      title: t('routes.resetPassword'),
       hideBreadcrumb: true,
     },
   },
@@ -97,8 +100,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Administration',
-      title: 'Administration',
+      breadcrumb: t('routes.admin'),
+      title: t('routes.admin'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -110,8 +113,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/TournamentList.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Gestion des tournois',
-      title: 'Gestion des tournois',
+      breadcrumb: t('routes.adminTournaments'),
+      title: t('routes.adminTournaments'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -123,8 +126,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/TournamentFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier',
-      title: 'Modifier le tournoi',
+      breadcrumb: t('routes.editBreadcrumb'),
+      title: t('routes.adminTournamentEdit'),
       requiresAuth: true,
       parent: 'admin-tournaments',
     },
@@ -135,8 +138,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/TournamentFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier',
-      title: 'Modifier le tournoi',
+      breadcrumb: t('routes.editBreadcrumb'),
+      title: t('routes.adminTournamentEdit'),
       requiresAuth: true,
       parent: 'admin-tournaments',
     },
@@ -147,8 +150,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/DisciplineList.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Gestion des disciplines',
-      title: 'Gestion des disciplines',
+      breadcrumb: t('routes.adminDisciplines'),
+      title: t('routes.adminDisciplines'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -159,8 +162,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/DisciplineFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier',
-      title: 'Modifier la discipline',
+      breadcrumb: t('routes.editBreadcrumb'),
+      title: t('routes.adminDisciplineEdit'),
       requiresAuth: true,
       parent: 'admin-disciplines',
     },
@@ -171,8 +174,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RulesEngineList.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Moteur de règles',
-      title: 'Moteur de règles',
+      breadcrumb: t('routes.adminRulesEngine'),
+      title: t('routes.adminRulesEngine'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -183,8 +186,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RulesEngineFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Nouvelle règle',
-      title: 'Nouvelle règle',
+      breadcrumb: t('routes.adminRulesEngineNew'),
+      title: t('routes.adminRulesEngineNew'),
       requiresAuth: true,
       parent: 'admin-rules-engine',
     },
@@ -195,8 +198,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RulesEngineFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier la règle',
-      title: 'Modifier la règle',
+      breadcrumb: t('routes.adminRulesEngineEdit'),
+      title: t('routes.adminRulesEngineEdit'),
       requiresAuth: true,
       parent: 'admin-rules-engine',
     },
@@ -207,8 +210,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/AdminInvitationsView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: "Codes d'invitation",
-      title: "Gestion des codes d'invitation",
+      breadcrumb: t('routes.adminInvitationsBreadcrumb'),
+      title: t('routes.adminInvitations'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -219,8 +222,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/OrganizationsView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Organisations',
-      title: 'Gestion des organisations',
+      breadcrumb: t('routes.adminOrganizationsBreadcrumb'),
+      title: t('routes.adminOrganizations'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -231,8 +234,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/GameRulesList.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Règles du jeu',
-      title: 'Gestion des règles du jeu',
+      breadcrumb: t('routes.adminGameRulesBreadcrumb'),
+      title: t('routes.adminGameRules'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -243,8 +246,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/GameRulesFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Nouveau règlement',
-      title: 'Nouveau règlement',
+      breadcrumb: t('routes.adminGameRulesNew'),
+      title: t('routes.adminGameRulesNew'),
       requiresAuth: true,
       parent: 'admin-rules',
     },
@@ -255,8 +258,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/GameRulesFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier le règlement',
-      title: 'Modifier le règlement',
+      breadcrumb: t('routes.adminGameRulesEdit'),
+      title: t('routes.adminGameRulesEdit'),
       requiresAuth: true,
       parent: 'admin-rules',
     },
@@ -267,8 +270,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonsList.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Saisons Ranked',
-      title: 'Gestion des saisons ranked',
+      breadcrumb: t('routes.adminRankedBreadcrumb'),
+      title: t('routes.adminRanked'),
       requiresAuth: true,
       parent: 'admin',
     },
@@ -279,8 +282,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Nouvelle saison',
-      title: 'Nouvelle saison ranked',
+      breadcrumb: t('routes.adminRankedNewBreadcrumb'),
+      title: t('routes.adminRankedNew'),
       requiresAuth: true,
       parent: 'admin-ranked',
     },
@@ -291,8 +294,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedSeasonFormView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Modifier la saison',
-      title: 'Modifier la saison ranked',
+      breadcrumb: t('routes.adminRankedEditBreadcrumb'),
+      title: t('routes.adminRankedEdit'),
       requiresAuth: true,
       parent: 'admin-ranked',
     },
@@ -303,8 +306,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/RankedTiersView.vue'),
     beforeEnter: requireAdmin,
     meta: {
-      breadcrumb: 'Rangs',
-      title: 'Gestion des rangs',
+      breadcrumb: t('routes.adminRankedTiersBreadcrumb'),
+      title: t('routes.adminRankedTiers'),
       requiresAuth: true,
       parent: 'admin-ranked',
     },
@@ -319,7 +322,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TournamentsView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Évènements compétitifs',
+      title: t('routes.tournaments'),
       requiresAuth: true,
       hideBreadcrumb: true,
     },
@@ -329,8 +332,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/TournamentDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      breadcrumb: 'Détails du tournoi',
-      title: 'Détails du tournoi',
+      breadcrumb: t('routes.tournamentDetail'),
+      title: t('routes.tournamentDetail'),
       requiresAuth: true,
       parent: 'tournaments',
       hideBreadcrumb: true,
@@ -354,7 +357,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/CreateMatchView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Créer un match',
+      title: t('routes.createMatch'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -365,7 +368,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/MatchDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Détails du match',
+      title: t('routes.matchDetail'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -376,7 +379,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PlayerComparisonView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Comparer des joueurs',
+      title: t('routes.playerCompare'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -387,7 +390,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PlayerDetailView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Profil du joueur',
+      title: t('routes.playerDetail'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -397,7 +400,7 @@ const routes: RouteRecordRaw[] = [
     name: 'tournament-rules',
     component: () => import('@/views/TournamentRulesView.vue'),
     meta: {
-      title: 'Règlement',
+      title: t('routes.rules'),
       hideBreadcrumb: true,
     },
   },
@@ -406,7 +409,7 @@ const routes: RouteRecordRaw[] = [
     name: 'rules-detail',
     component: () => import('@/views/RulesView.vue'),
     meta: {
-      title: 'Règlement',
+      title: t('routes.rules'),
       hideBreadcrumb: true,
     },
   },
@@ -416,7 +419,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/SettingsView.vue'),
     beforeEnter: requireSettingsAccess,
     meta: {
-      title: 'Paramètres',
+      title: t('routes.settings'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -427,7 +430,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/NotificationsView.vue'),
     beforeEnter: requireAuth,
     meta: {
-      title: 'Notifications',
+      title: t('routes.notifications'),
       hideBreadcrumb: true,
       requiresAuth: true,
     },
@@ -436,7 +439,7 @@ const routes: RouteRecordRaw[] = [
     path: '/offline',
     name: 'offline',
     component: () => import('@/views/OfflineView.vue'),
-    meta: { title: 'Hors ligne', hideBreadcrumb: true },
+    meta: { title: t('routes.offline'), hideBreadcrumb: true },
   },
   {
     path: '/debug',
@@ -450,7 +453,7 @@ const routes: RouteRecordRaw[] = [
     name: 'not-found',
     component: () => import('@/views/NotFoundView.vue'),
     meta: {
-      title: 'Page introuvable',
+      title: t('routes.notFound'),
       hideBreadcrumb: true,
     },
   },

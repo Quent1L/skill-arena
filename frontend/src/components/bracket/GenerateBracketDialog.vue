@@ -2,7 +2,7 @@
   <Dialog
     v-model:visible="visible"
     modal
-    :header="isRegeneration ? 'Regénérer le bracket' : 'Générer le bracket'"
+    :header="isRegeneration ? t('generateBracketDialog.headerRegenerate') : t('generateBracketDialog.headerGenerate')"
     :style="{ width: '90vw', maxWidth: '600px' }"
     :draggable="false"
   >
@@ -12,16 +12,16 @@
         <template #messageicon>
           <i class="fa fa-exclamation-triangle mr-2" />
         </template>
-        <p class="font-semibold">Attention : cela supprimera tous les matchs existants !</p>
+        <p class="font-semibold">{{ t('generateBracketDialog.warningTitle') }}</p>
         <p class="text-sm mt-1">
-          Tous les matchs du bracket seront supprimés et un nouveau bracket sera généré.
+          {{ t('generateBracketDialog.warningDesc') }}
         </p>
       </Message>
 
       <!-- Bracket Type -->
       <div class="space-y-2">
         <span class="block font-medium text-sm text-gray-700 dark:text-gray-300">
-          Type de bracket
+          {{ t('generateBracketDialog.bracketTypeLabel') }}
         </span>
         <div class="grid grid-cols-2 gap-3">
           <div
@@ -34,8 +34,8 @@
             @click="formData.bracketType = 'single_elimination'"
           >
             <i class="fa fa-trophy text-2xl mb-2 block text-blue-600" />
-            <div class="font-medium">Élimination simple</div>
-            <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">Une défaite et vous êtes éliminé</div>
+            <div class="font-medium">{{ t('generateBracketDialog.singleEliminationTitle') }}</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">{{ t('generateBracketDialog.singleEliminationDesc') }}</div>
           </div>
 
           <div
@@ -48,9 +48,9 @@
             @click="formData.bracketType = 'double_elimination'"
           >
             <i class="fa fa-shield-alt text-2xl mb-2 block text-green-600" />
-            <div class="font-medium">Double élimination</div>
+            <div class="font-medium">{{ t('generateBracketDialog.doubleEliminationTitle') }}</div>
             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Seconde chance via le tableau des perdants
+              {{ t('generateBracketDialog.doubleEliminationDesc') }}
             </div>
           </div>
         </div>
@@ -59,7 +59,7 @@
       <!-- Seeding Type -->
       <div class="space-y-2">
         <span class="block font-medium text-sm text-gray-700 dark:text-gray-300">
-          Méthode de classement
+          {{ t('generateBracketDialog.seedingTypeLabel') }}
         </span>
         <div class="grid grid-cols-2 gap-3">
           <div
@@ -72,9 +72,9 @@
             @click="((formData.seedingType = 'random'), (formData.sourceTournamentId = undefined))"
           >
             <i class="fa fa-random text-2xl mb-2 block text-purple-600" />
-            <div class="font-medium">Aléatoire</div>
+            <div class="font-medium">{{ t('generateBracketDialog.randomTitle') }}</div>
             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Participants ordonnés aléatoirement
+              {{ t('generateBracketDialog.randomDesc') }}
             </div>
           </div>
 
@@ -88,9 +88,9 @@
             @click="formData.seedingType = 'championship_based'"
           >
             <i class="fa fa-medal text-2xl mb-2 block text-yellow-600" />
-            <div class="font-medium">Championnat</div>
+            <div class="font-medium">{{ t('generateBracketDialog.championshipTitle') }}</div>
             <div class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-              Basé sur le classement précédent
+              {{ t('generateBracketDialog.championshipDesc') }}
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@
           for="source-tournament"
           class="block font-medium text-sm text-gray-700 dark:text-gray-300"
         >
-          Tournoi source
+          {{ t('generateBracketDialog.sourceTournamentLabel') }}
         </label>
         <Dropdown
           id="source-tournament"
@@ -110,7 +110,7 @@
           :options="finishedTournaments"
           option-label="name"
           option-value="id"
-          placeholder="Sélectionner un tournoi source"
+          :placeholder="t('generateBracketDialog.sourceTournamentPlaceholder')"
           :loading="loadingTournaments"
           class="w-full"
           show-clear
@@ -123,7 +123,7 @@
           </template>
         </Dropdown>
         <small class="text-gray-600 dark:text-gray-400">
-          Sélectionnez un tournoi terminé pour utiliser son classement
+          {{ t('generateBracketDialog.sourceTournamentHint') }}
         </small>
       </div>
 
@@ -131,16 +131,16 @@
       <div v-if="formData.bracketType === 'single_elimination'" class="flex items-center">
         <Checkbox id="bronze-match" v-model="formData.hasBronzeMatch" :binary="true" class="mr-2" />
         <label for="bronze-match" class="cursor-pointer text-sm">
-          Inclure le match pour la 3ème place
+          {{ t('generateBracketDialog.bronzeMatchLabel') }}
         </label>
       </div>
     </div>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="Annuler" severity="secondary" @click="close" />
+        <Button :label="t('common.cancel')" severity="secondary" @click="close" />
         <Button
-          :label="isRegeneration ? 'Regénérer' : 'Générer'"
+          :label="isRegeneration ? t('generateBracketDialog.regenerate') : t('generateBracketDialog.generate')"
           :loading="loading"
           :disabled="!isFormValid || loading"
           @click="handleSubmit"
@@ -152,6 +152,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { GenerateBracketInput } from '@skill-arena/shared/types/index'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
 import type { TournamentResponse } from '@/composables/tournament/tournament.api'
@@ -172,6 +173,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+
+const { t } = useI18n()
 
 const visible = computed({
   get: () => props.modelValue,

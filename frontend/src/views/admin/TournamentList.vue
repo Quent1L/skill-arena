@@ -1,6 +1,6 @@
 <template>
   <div class="tournament-list-view p-4">
-    <h1 class="text-2xl font-bold mb-4">Gestion des tournois</h1>
+    <h1 class="text-2xl font-bold mb-4">{{ t('tournamentList.title') }}</h1>
     <div class="flex justify-between items-center mb-4 flex-xrap">
       <div class="flex flex-wrap gap-4">
         <Select
@@ -8,7 +8,7 @@
           :options="statusOptions"
           option-label="label"
           option-value="value"
-          placeholder="Tous les statuts"
+          :placeholder="t('tournamentList.allStatuses')"
           show-clear
           class="w-48"
           @change="applyFilters"
@@ -18,7 +18,7 @@
           :options="modeOptions"
           option-label="label"
           option-value="value"
-          placeholder="Tous les modes"
+          :placeholder="t('tournamentList.allModes')"
           show-clear
           class="w-48"
           @change="applyFilters"
@@ -27,7 +27,7 @@
       <div>
         <Button
           v-if="canCreateTournament"
-          label="Nouveau tournoi"
+          :label="t('tournamentList.newTournament')"
           icon="fa fa-plus"
           @click="router.push('/admin/tournaments/new')"
         />
@@ -49,7 +49,7 @@
       responsive-layout="scroll"
       class="p-datatable-sm"
     >
-      <Column field="name" header="Nom" sortable>
+      <Column field="name" :header="t('common.name')" sortable>
         <template #body="{ data }">
           <router-link
             :to="`/admin/tournaments/${data.id}/edit`"
@@ -60,43 +60,43 @@
         </template>
       </Column>
 
-      <Column field="mode" header="Mode" sortable>
+      <Column field="mode" :header="t('tournamentList.colMode')" sortable>
         <template #body="{ data }">
           <Tag
-            :value="data.mode === 'championship' ? 'Championnat' : 'Bracket'"
+            :value="data.mode === 'championship' ? t('tournamentList.modeChampionship') : t('tournamentList.modeBracket')"
             :severity="data.mode === 'championship' ? 'info' : 'warning'"
           />
         </template>
       </Column>
 
-      <Column field="teamMode" header="Équipes" sortable>
+      <Column field="teamMode" :header="t('tournamentList.colTeams')" sortable>
         <template #body="{ data }">
           <span>
-            {{ data.teamMode === 'static' ? 'Statiques' : 'Flexibles' }}
+            {{ data.teamMode === 'static' ? t('tournamentList.teamModeStatic') : t('tournamentList.teamModeFlex') }}
             ({{ data.teamSize }}v{{ data.teamSize }})
           </span>
         </template>
       </Column>
 
-      <Column field="startDate" header="Début" sortable>
+      <Column field="startDate" :header="t('tournamentList.colStart')" sortable>
         <template #body="{ data }">
           {{ formatDate(data.startDate) }}
         </template>
       </Column>
 
-      <Column field="endDate" header="Fin" sortable>
+      <Column field="endDate" :header="t('tournamentList.colEnd')" sortable>
         <template #body="{ data }">
           {{ formatDate(data.endDate) }}
         </template>
       </Column>
 
-      <Column field="status" header="Statut" sortable>
+      <Column field="status" :header="t('tournamentList.colStatus')" sortable>
         <template #body="{ data }">
           <Tag :value="getStatusLabel(data.status)" :severity="getStatusSeverity(data.status)" />
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 12rem">
+      <Column :header="t('common.actions')" style="width: 12rem">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
@@ -106,7 +106,7 @@
               text
               rounded
               @click="router.push(`/admin/tournaments/${data.id}/edit`)"
-              v-tooltip.top="'Modifier'"
+              v-tooltip.top="t('common.edit')"
             />
             <Button
               v-if="canDeleteTournament(data)"
@@ -116,7 +116,7 @@
               text
               rounded
               @click="confirmDelete(data)"
-              v-tooltip.top="'Supprimer'"
+              v-tooltip.top="t('common.delete')"
             />
           </div>
         </template>
@@ -124,10 +124,10 @@
 
       <template #empty>
         <div class="text-center py-8">
-          <p class="text-gray-500 mb-4">Aucun tournoi trouvé</p>
+          <p class="text-gray-500 mb-4">{{ t('tournamentList.empty') }}</p>
           <Button
             v-if="canCreateTournament"
-            label="Créer votre premier tournoi"
+            :label="t('tournamentList.createFirst')"
             icon="pi pi-plus"
             @click="router.push('/admin/tournaments/new')"
           />
@@ -138,20 +138,18 @@
     <!-- Delete confirmation dialog -->
     <Dialog
       v-model:visible="deleteDialogVisible"
-      :header="`Supprimer ${tournamentToDelete?.name}?`"
+      :header="t('tournamentList.deleteDialogTitle', { name: tournamentToDelete?.name })"
       :modal="true"
       :style="{ width: '450px' }"
     >
       <div class="flex items-center gap-3 mb-4">
         <i class="pi pi-exclamation-triangle text-3xl text-red-500"></i>
-        <span>
-          Êtes-vous sûr de vouloir supprimer ce tournoi ? Cette action est irréversible.
-        </span>
+        <span>{{ t('tournamentList.deleteConfirm') }}</span>
       </div>
       <template #footer>
-        <Button label="Annuler" icon="pi pi-times" @click="deleteDialogVisible = false" text />
+        <Button :label="t('common.cancel')" icon="pi pi-times" @click="deleteDialogVisible = false" text />
         <Button
-          label="Supprimer"
+          :label="t('common.delete')"
           icon="pi pi-check"
           @click="handleDelete"
           severity="danger"
@@ -167,10 +165,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { useI18n } from 'vue-i18n'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import type { TournamentResponse } from '@/composables/tournament/tournament.api'
 
 const router = useRouter()
+const { t } = useI18n()
 const {
   tournaments,
   loading,
@@ -188,15 +188,15 @@ const deleteDialogVisible = ref(false)
 const tournamentToDelete = ref<TournamentResponse | null>(null)
 
 const statusOptions = [
-  { label: 'Brouillon', value: 'draft' },
-  { label: 'Ouvert', value: 'open' },
-  { label: 'En cours', value: 'ongoing' },
-  { label: 'Terminé', value: 'finished' },
+  { label: t('tournamentList.statusDraft'), value: 'draft' },
+  { label: t('tournamentList.statusOpen'), value: 'open' },
+  { label: t('tournamentList.statusOngoing'), value: 'ongoing' },
+  { label: t('tournamentList.statusFinished'), value: 'finished' },
 ]
 
 const modeOptions = [
-  { label: 'Championnat', value: 'championship' },
-  { label: 'Bracket', value: 'bracket' },
+  { label: t('tournamentList.modeChampionship'), value: 'championship' },
+  { label: t('tournamentList.modeBracket'), value: 'bracket' },
 ]
 
 function formatDate(date: Date): string {
@@ -205,10 +205,10 @@ function formatDate(date: Date): string {
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    draft: 'Brouillon',
-    open: 'Ouvert',
-    ongoing: 'En cours',
-    finished: 'Terminé',
+    draft: t('tournamentList.statusDraft'),
+    open: t('tournamentList.statusOpen'),
+    ongoing: t('tournamentList.statusOngoing'),
+    finished: t('tournamentList.statusFinished'),
   }
   return labels[status] || status
 }

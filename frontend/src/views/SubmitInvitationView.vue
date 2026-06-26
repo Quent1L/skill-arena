@@ -3,8 +3,8 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Activation du compte</p>
-        <p class="mt-1 text-sm text-gray-300">Soumettez votre code d'invitation</p>
+        <p class="mt-2">{{ t('submitInvitationView.subtitle') }}</p>
+        <p class="mt-1 text-sm text-gray-300">{{ t('submitInvitationView.hint') }}</p>
       </div>
 
       <Card>
@@ -14,21 +14,20 @@
               <div class="space-y-2">
                 <p class="font-semibold">
                   <i class="fa fa-info-circle mr-2"></i>
-                  Code d'invitation requis
+                  {{ t('submitInvitationView.infoTitle') }}
                 </p>
                 <p class="text-sm">
-                  Votre compte a été créé avec succès, mais vous devez soumettre un code
-                  d'invitation pour accéder à l'application.
+                  {{ t('submitInvitationView.infoDesc') }}
                 </p>
               </div>
             </Message>
 
             <div class="flex flex-col gap-2">
-              <label for="code" class="font-medium">Code d'invitation</label>
+              <label for="code" class="font-medium">{{ t('submitInvitationView.codeLabel') }}</label>
               <InputText
                 id="code"
                 v-model="invitationCode"
-                placeholder="ex: tigre-riviere-soleil"
+                :placeholder="t('submitInvitationView.codePlaceholder')"
                 :disabled="isValidating || codeValid || isSubmitting"
                 class="w-full"
                 @input="debouncedValidate"
@@ -36,7 +35,7 @@
 
               <div v-if="isValidating" class="flex items-center gap-2 text-blue-600">
                 <i class="fa fa-spinner fa-spin"></i>
-                <span class="text-sm">Validation en cours...</span>
+                <span class="text-sm">{{ t('submitInvitationView.validating') }}</span>
               </div>
 
               <Message v-else-if="codeError" severity="error" :closable="false">
@@ -46,7 +45,7 @@
 
               <Message v-else-if="codeValid" severity="success" :closable="false">
                 <i class="fa fa-check-circle mr-2"></i>
-                Code valide ({{ remainingUses }} utilisation(s) restante(s))
+                {{ t('submitInvitationView.codeValid', { count: remainingUses }) }}
               </Message>
             </div>
 
@@ -64,7 +63,7 @@
                 size="large"
               >
                 <i class="fa fa-check mr-2"></i>
-                {{ isSubmitting ? 'Soumission...' : 'Soumettre le code' }}
+                {{ isSubmitting ? t('submitInvitationView.submitting') : t('submitInvitationView.submit') }}
               </Button>
 
               <Button
@@ -75,12 +74,12 @@
                 size="large"
               >
                 <i class="fa fa-sign-out mr-2"></i>
-                Se déconnecter
+                {{ t('submitInvitationView.logout') }}
               </Button>
             </div>
 
             <Message v-if="!codeError && !codeValid" severity="info" :closable="false">
-              Veuillez entrer votre code d'invitation pour continuer.
+              {{ t('submitInvitationView.enterCodePrompt') }}
             </Message>
           </div>
         </template>
@@ -92,6 +91,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
@@ -100,6 +100,7 @@ import Message from 'primevue/message'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useAuth } from '@/composables/useAuth'
 
+const { t } = useI18n()
 const router = useRouter()
 const { validateCode, consumeCode } = useInvitationService()
 const { logout: authLogout, fetchUserData } = useAuth()
@@ -132,7 +133,7 @@ onMounted(async () => {
       await submitCode()
     }
   } catch (err: unknown) {
-    codeError.value = (err as Error).message || 'Code invalide'
+    codeError.value = (err as Error).message || t('submitInvitationView.codeInvalid')
   } finally {
     isValidating.value = false
   }
@@ -156,7 +157,7 @@ const debouncedValidate = useDebounceFn(async () => {
       remainingUses.value = result.remainingUses
     }
   } catch (err: unknown) {
-    codeError.value = (err as Error).message || 'Code invalide'
+    codeError.value = (err as Error).message || t('submitInvitationView.codeInvalid')
   } finally {
     isValidating.value = false
   }
@@ -178,7 +179,7 @@ async function submitCode() {
     // Rediriger vers la page d'accueil
     router.push('/')
   } catch (err: unknown) {
-    submitError.value = (err as Error).message || 'Erreur lors de la soumission du code'
+    submitError.value = (err as Error).message || t('submitInvitationView.submitError')
   } finally {
     isSubmitting.value = false
   }

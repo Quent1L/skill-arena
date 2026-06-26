@@ -7,7 +7,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('bold') }"
         @click="editor?.chain().focus().toggleBold().run()"
-        title="Gras"
+        :title="t('richTextEditor.toolbar.bold')"
       >
         <i class="fa fa-bold"></i>
       </button>
@@ -16,7 +16,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('italic') }"
         @click="editor?.chain().focus().toggleItalic().run()"
-        title="Italique"
+        :title="t('richTextEditor.toolbar.italic')"
       >
         <i class="fa fa-italic"></i>
       </button>
@@ -25,7 +25,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('underline') }"
         @click="editor?.chain().focus().toggleUnderline().run()"
-        title="Souligné"
+        :title="t('richTextEditor.toolbar.underline')"
       >
         <i class="fa fa-underline"></i>
       </button>
@@ -37,7 +37,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('heading', { level: 2 }) }"
         @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()"
-        title="Titre H2"
+        :title="t('richTextEditor.toolbar.headingH2')"
       >
         H2
       </button>
@@ -46,7 +46,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('heading', { level: 3 }) }"
         @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()"
-        title="Titre H3"
+        :title="t('richTextEditor.toolbar.headingH3')"
       >
         H3
       </button>
@@ -58,7 +58,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('bulletList') }"
         @click="editor?.chain().focus().toggleBulletList().run()"
-        title="Liste à puces"
+        :title="t('richTextEditor.toolbar.bulletList')"
       >
         <i class="fa fa-list-ul"></i>
       </button>
@@ -67,7 +67,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive('orderedList') }"
         @click="editor?.chain().focus().toggleOrderedList().run()"
-        title="Liste numérotée"
+        :title="t('richTextEditor.toolbar.orderedList')"
       >
         <i class="fa fa-list-ol"></i>
       </button>
@@ -79,7 +79,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive({ textAlign: 'left' }) }"
         @click="editor?.chain().focus().setTextAlign('left').run()"
-        title="Aligner à gauche"
+        :title="t('richTextEditor.toolbar.alignLeft')"
       >
         <i class="fa fa-align-left"></i>
       </button>
@@ -88,7 +88,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive({ textAlign: 'center' }) }"
         @click="editor?.chain().focus().setTextAlign('center').run()"
-        title="Centrer"
+        :title="t('richTextEditor.toolbar.alignCenter')"
       >
         <i class="fa fa-align-center"></i>
       </button>
@@ -97,7 +97,7 @@
         class="toolbar-btn"
         :class="{ active: editor?.isActive({ textAlign: 'right' }) }"
         @click="editor?.chain().focus().setTextAlign('right').run()"
-        title="Aligner à droite"
+        :title="t('richTextEditor.toolbar.alignRight')"
       >
         <i class="fa fa-align-right"></i>
       </button>
@@ -109,7 +109,7 @@
         class="toolbar-btn"
         @click="editor?.chain().focus().undo().run()"
         :disabled="!editor?.can().undo()"
-        title="Annuler"
+        :title="t('richTextEditor.toolbar.undo')"
       >
         <i class="fa fa-undo"></i>
       </button>
@@ -118,7 +118,7 @@
         class="toolbar-btn"
         @click="editor?.chain().focus().redo().run()"
         :disabled="!editor?.can().redo()"
-        title="Rétablir"
+        :title="t('richTextEditor.toolbar.redo')"
       >
         <i class="fa fa-redo"></i>
       </button>
@@ -130,7 +130,7 @@
         class="toolbar-btn"
         @click="toggleLinkInput"
         :class="{ active: editor?.isActive('link') || showLinkInput }"
-        title="Insérer un lien"
+        :title="t('richTextEditor.toolbar.insertLink')"
       >
         <i class="fa fa-link"></i>
       </button>
@@ -139,7 +139,7 @@
         class="toolbar-btn"
         @click="showImageInput = !showImageInput; showLinkInput = false"
         :class="{ active: showImageInput }"
-        title="Insérer une image"
+        :title="t('richTextEditor.toolbar.insertImage')"
       >
         <i class="fa fa-image"></i>
       </button>
@@ -150,14 +150,14 @@
       <input
         v-model="linkUrl"
         type="url"
-        placeholder="https://exemple.com"
+        :placeholder="t('richTextEditor.link.placeholder')"
         class="image-url-input"
         @keydown.enter.prevent="insertLink"
         @keydown.escape="showLinkInput = false"
         ref="linkInputRef"
       />
       <button type="button" class="image-insert-btn" @click="insertLink" :disabled="!linkUrl">
-        Insérer
+        {{ t('richTextEditor.insert') }}
       </button>
       <button type="button" class="image-cancel-btn" @click="showLinkInput = false">
         <i class="fa fa-times"></i>
@@ -169,14 +169,14 @@
       <input
         v-model="imageUrl"
         type="url"
-        placeholder="https://exemple.com/image.png"
+        :placeholder="t('richTextEditor.image.placeholder')"
         class="image-url-input"
         @keydown.enter.prevent="insertImage"
         @keydown.escape="showImageInput = false"
         ref="imageInputRef"
       />
       <button type="button" class="image-insert-btn" @click="insertImage" :disabled="!imageUrl">
-        Insérer
+        {{ t('richTextEditor.insert') }}
       </button>
       <button type="button" class="image-cancel-btn" @click="showImageInput = false">
         <i class="fa fa-times"></i>
@@ -193,10 +193,13 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import Image from '@tiptap/extension-image'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   modelValue: string

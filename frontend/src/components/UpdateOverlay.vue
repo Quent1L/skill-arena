@@ -8,8 +8,8 @@
       <div class="update-content">
         <SkolLogo :animated="false" />
         <div class="update-text">
-          <p class="update-title">Nouvelle version disponible</p>
-          <p class="update-subtitle">Rechargement en cours...</p>
+          <p class="update-title">{{ t('updateOverlay.title') }}</p>
+          <p class="update-subtitle">{{ t('updateOverlay.subtitle') }}</p>
         </div>
         <div class="update-progress-track">
           <div class="update-progress-bar" />
@@ -20,7 +20,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import SkolLogo from '@/components/SkolLogo.vue'
+
+const { t } = useI18n()
 
 defineProps<{ visible: boolean }>()
 </script>

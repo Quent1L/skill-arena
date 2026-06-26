@@ -23,11 +23,10 @@
         <div class="space-y-4">
           <h1 class="text-6xl font-bold text-gray-900 dark:text-white">404</h1>
 
-          <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200">Page introuvable</h2>
+          <h2 class="text-2xl font-semibold text-gray-800 dark:text-gray-200">{{ t('notFoundView.title') }}</h2>
 
           <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
-            Désolé, la page que vous recherchez n'existe pas ou a été déplacée. Vérifiez l'URL ou
-            retournez à l'accueil.
+            {{ t('notFoundView.description') }}
           </p>
         </div>
 
@@ -35,14 +34,14 @@
         <div class="space-y-4">
           <div class="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
-              label="Retour à l'accueil"
+              :label="t('notFoundView.goHome')"
               icon="fa fa-home"
               @click="goHome"
               class="flex-1 sm:flex-none"
             />
 
             <Button
-              label="Retour en arrière"
+              :label="t('notFoundView.goBack')"
               icon="fa fa-arrow-left"
               severity="secondary"
               @click="goBack"
@@ -52,12 +51,12 @@
 
           <!-- Liens rapides pour les utilisateurs connectés -->
           <div v-if="isAuthenticated" class="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Ou essayez ces liens :</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('notFoundView.quickLinks') }}</p>
             <div class="flex flex-wrap gap-2 justify-center">
-              <Button label="Tournois" text size="small" @click="router.push('/')" />
+              <Button :label="t('notFoundView.tournaments')" text size="small" @click="router.push('/')" />
               <Button
                 v-if="canManageTournaments"
-                label="Administration"
+                :label="t('notFoundView.administration')"
                 text
                 size="small"
                 @click="router.push('/admin/tournaments')"
@@ -68,10 +67,10 @@
 
         <!-- Message pour les utilisateurs non connectés -->
         <div v-if="!isAuthenticated" class="pt-6 border-t border-gray-200 dark:border-gray-700">
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Vous n'êtes pas connecté</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('notFoundView.notLoggedIn') }}</p>
           <div class="flex gap-2 justify-center">
-            <Button label="Se connecter" text size="small" @click="router.push('/login')" />
-            <Button label="S'inscrire" text size="small" @click="router.push('/register')" />
+            <Button :label="t('notFoundView.login')" text size="small" @click="router.push('/login')" />
+            <Button :label="t('notFoundView.register')" text size="small" @click="router.push('/register')" />
           </div>
         </div>
       </div>
@@ -98,8 +97,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 
+const { t } = useI18n()
 const router = useRouter()
 const { isAuthenticated, isSuperAdmin } = useAuth()
 

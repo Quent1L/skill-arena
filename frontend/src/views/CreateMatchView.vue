@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref, computed, provide, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useViewport } from '@/composables/useViewport'
 import MatchFormStepperMobile from '@/components/match/mobile/MatchFormStepperMobile.vue'
@@ -23,6 +24,7 @@ import { disciplineApi } from '@/composables/discipline/discipline.api'
 import type { ClientBaseTournament, MatchSideInput, OutcomeType, OutcomeReason } from '@skill-arena/shared'
 import type { TournamentPlayer } from '@/composables/match/match-form.context'
 
+const { t } = useI18n()
 const route = useRoute()
 const { isMobile } = useViewport()
 const toast = useAppToast()
@@ -98,8 +100,8 @@ async function loadExistingMatch() {
   } catch {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: 'Impossible de charger le match',
+      summary: t('createMatchView.errorSummary'),
+      detail: t('createMatchView.loadMatchError'),
       life: 3000,
     })
   }

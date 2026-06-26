@@ -1,6 +1,6 @@
 <template>
   <div class="validation-mode-section">
-    <h2 class="text-xl font-semibold mb-4">Mode de validation des scores</h2>
+    <h2 class="text-xl font-semibold mb-4">{{ t('validationModeSection.title') }}</h2>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
       <div
@@ -26,7 +26,7 @@
 
     <div v-if="validationMode === 'auto'" class="mt-3">
       <label for="validationTimerHours" class="block text-sm font-medium mb-2">
-        Délai d'auto-validation (heures)
+        {{ t('validationModeSection.fields.validationTimerHours') }}
       </label>
       <InputNumber
         id="validationTimerHours"
@@ -40,15 +40,19 @@
         :show-buttons="true"
       />
       <p class="text-xs text-surface-500 mt-1">
-        Si aucun adversaire ne conteste dans ce délai, le score est validé automatiquement.
+        {{ t('validationModeSection.autoValidationHelp') }}
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
 import type { ValidationMode } from '@skill-arena/shared/types/index'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{
@@ -71,36 +75,34 @@ function setMode(mode: ValidationMode) {
   }
 }
 
-const modeOptions: { value: ValidationMode; label: string; icon: string; badge?: string; description: string }[] = [
+const modeOptions = computed<{ value: ValidationMode; label: string; icon: string; badge?: string; description: string }[]>(() => [
   {
     value: 'auto',
-    label: 'AUTO',
+    label: t('validationModeSection.modes.auto.label'),
     icon: 'fa-bolt',
-    badge: 'Détente',
-    description:
-      'Validation automatique après un délai. Trust Score actif : les joueurs fiables valident immédiatement.',
+    badge: t('validationModeSection.modes.auto.badge'),
+    description: t('validationModeSection.modes.auto.description'),
   },
   {
     value: 'strict',
-    label: 'STRICT',
+    label: t('validationModeSection.modes.strict.label'),
     icon: 'fa-shield-halved',
-    badge: 'Compétition',
-    description:
-      "Un adversaire doit confirmer le score pour valider. Pas d'auto-validation.",
+    badge: t('validationModeSection.modes.strict.badge'),
+    description: t('validationModeSection.modes.strict.description'),
   },
   {
     value: 'admin',
-    label: 'ADMIN',
+    label: t('validationModeSection.modes.admin.label'),
     icon: 'fa-crown',
-    badge: 'Officiel',
-    description: 'Seul un administrateur peut valider les scores. Contrôle total.',
+    badge: t('validationModeSection.modes.admin.badge'),
+    description: t('validationModeSection.modes.admin.description'),
   },
   {
     value: 'none',
-    label: 'LIBRE',
+    label: t('validationModeSection.modes.none.label'),
     icon: 'fa-eye-slash',
-    badge: 'Libre',
-    description: 'Aucune validation requise. Les scores sont acceptés immédiatement. Contestation disponible 7 jours.',
+    badge: t('validationModeSection.modes.none.badge'),
+    description: t('validationModeSection.modes.none.description'),
   },
-]
+])
 </script>

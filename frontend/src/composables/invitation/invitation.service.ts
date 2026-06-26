@@ -1,10 +1,13 @@
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { invitationApi, type GenerateCodeInput } from "./invitation.api";
 
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 export function useInvitationService() {
+  const { t } = useI18n();
+
   async function validateCode(code: string) {
     loading.value = true;
     error.value = null;
@@ -82,7 +85,7 @@ export function useInvitationService() {
       const result = await invitationApi.joinOrganization(code);
       return result;
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Erreur lors de l'adhésion";
+      error.value = err instanceof Error ? err.message : t("invitationService.errors.joinFailed");
       throw err;
     } finally {
       loading.value = false;

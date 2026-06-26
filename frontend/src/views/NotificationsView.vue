@@ -4,7 +4,9 @@ import { useNotificationService } from '@/composables/notification/notification.
 import { useRouter } from 'vue-router'
 import { computed, onMounted } from 'vue'
 import { useAppToast } from '@/composables/useAppToast'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const { load, notifications, markAllAsRead, deleteAll } = useNotificationService()
 const router = useRouter()
 const toast = useAppToast()
@@ -23,18 +25,18 @@ function goBack() {
 async function handleMarkAllAsRead() {
   try {
     await markAllAsRead()
-    toast.add({ severity: 'success', summary: 'Toutes les notifications sont marquées comme lues', life: 2000 })
+    toast.add({ severity: 'success', summary: t('notificationsView.markAllReadSuccess'), life: 2000 })
   } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de marquer toutes les notifications comme lues', life: 3000 })
+    toast.add({ severity: 'error', summary: t('notificationsView.errorSummary'), detail: t('notificationsView.markAllReadError'), life: 3000 })
   }
 }
 
 async function handleDeleteAll() {
   try {
     await deleteAll()
-    toast.add({ severity: 'success', summary: 'Toutes les notifications ont été supprimées', life: 2000 })
+    toast.add({ severity: 'success', summary: t('notificationsView.deleteAllSuccess'), life: 2000 })
   } catch {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de supprimer toutes les notifications', life: 3000 })
+    toast.add({ severity: 'error', summary: t('notificationsView.errorSummary'), detail: t('notificationsView.deleteAllError'), life: 3000 })
   }
 }
 </script>
@@ -49,19 +51,19 @@ async function handleDeleteAll() {
           rounded
           severity="secondary"
           @click="goBack"
-          aria-label="Retour"
+          :aria-label="t('notificationsView.backAriaLabel')"
           class="sm:hidden"
         />
-        <h2 class="text-lg font-semibold">Notifications</h2>
+        <h2 class="text-lg font-semibold">{{ t('notificationsView.title') }}</h2>
       </div>
       <div v-if="notifications.length > 0" class="flex items-center gap-2">
         <Button text rounded size="small" :disabled="!hasUnreadNotifs" @click="handleMarkAllAsRead" class="flex items-center gap-1.5">
           <i class="fas fa-check-double text-sm"></i>
-          <span class="text-xs">Tout lire</span>
+          <span class="text-xs">{{ t('notificationsView.markAllRead') }}</span>
         </Button>
         <Button text rounded size="small" :disabled="!hasDeletableNotifs" @click="handleDeleteAll" class="flex items-center gap-1.5 text-red-500 hover:text-red-600">
           <i class="fas fa-trash text-sm"></i>
-          <span class="text-xs">Tout supprimer</span>
+          <span class="text-xs">{{ t('notificationsView.deleteAll') }}</span>
         </Button>
       </div>
     </div>

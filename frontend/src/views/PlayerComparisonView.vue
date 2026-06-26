@@ -4,19 +4,19 @@
     <div class="rounded-2xl bg-gray-800 px-4 py-4">
       <div class="flex items-center gap-2 mb-3">
         <Button icon="fa fa-arrow-left" severity="secondary" text @click="router.back()" />
-        <h1 class="text-lg font-black text-white">Comparaison</h1>
+        <h1 class="text-lg font-black text-white">{{ t('playerComparisonView.title') }}</h1>
       </div>
 
       <!-- Desktop: inline AutoComplete selects -->
       <template v-if="!isMobile">
         <div class="grid grid-cols-2 gap-3 mt-1">
           <div class="flex flex-col gap-1">
-            <label for="player-a-search" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Joueur A</label>
-            <PlayerSearchSelect input-id="player-a-search" v-model="selectedA" placeholder="Rechercher…" />
+            <label for="player-a-search" class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ t('playerComparisonView.playerA') }}</label>
+            <PlayerSearchSelect input-id="player-a-search" v-model="selectedA" :placeholder="t('playerComparisonView.searchPlaceholder')" />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="player-b-search" class="text-xs font-bold text-gray-400 uppercase tracking-wide">Joueur B</label>
-            <PlayerSearchSelect input-id="player-b-search" v-model="selectedB" placeholder="Rechercher…" />
+            <label for="player-b-search" class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ t('playerComparisonView.playerB') }}</label>
+            <PlayerSearchSelect input-id="player-b-search" v-model="selectedB" :placeholder="t('playerComparisonView.searchPlaceholder')" />
           </div>
         </div>
       </template>
@@ -30,9 +30,9 @@
           >
             <PlayerAvatar :name="selectedA?.displayName ?? '?'" size="md" shape="square" />
             <span class="text-sm font-bold text-white truncate max-w-full">{{
-              selectedA?.displayName ?? 'Joueur A'
+              selectedA?.displayName ?? t('playerComparisonView.playerA')
             }}</span>
-            <span class="text-xs text-gray-500"><i class="fa fa-pen mr-1"></i>Modifier</span>
+            <span class="text-xs text-gray-500"><i class="fa fa-pen mr-1"></i>{{ t('playerComparisonView.modify') }}</span>
           </button>
 
           <span class="text-gray-600 font-black text-lg shrink-0">VS</span>
@@ -48,9 +48,9 @@
           >
             <PlayerAvatar :name="selectedB?.displayName ?? '?'" size="md" shape="square" />
             <span class="text-sm font-bold text-white truncate max-w-full">{{
-              selectedB?.displayName ?? 'Choisir…'
+              selectedB?.displayName ?? t('playerComparisonView.choosePlaceholder')
             }}</span>
-            <span class="text-xs text-gray-500"><i class="fa fa-pen mr-1"></i>Modifier</span>
+            <span class="text-xs text-gray-500"><i class="fa fa-pen mr-1"></i>{{ t('playerComparisonView.modify') }}</span>
           </button>
         </div>
       </template>
@@ -73,7 +73,7 @@
           :options="tournamentOptions"
           option-label="label"
           option-value="value"
-          placeholder="Tous les tournois"
+          :placeholder="t('playerComparisonView.allTournaments')"
           show-clear
           class="w-full sm:w-auto"
           size="small"
@@ -93,7 +93,7 @@
     <!-- Mobile player picker (full-screen) -->
     <PlayerPickerDialog
       v-model:visible="pickerVisible"
-      :title="pickerSlot === 'a' ? 'Joueur A' : 'Joueur B'"
+      :title="pickerSlot === 'a' ? t('playerComparisonView.playerA') : t('playerComparisonView.playerB')"
       :search-fn="playerApi.search"
       :single="true"
       @select="onMobilePick"
@@ -112,7 +112,7 @@
       <!-- Confrontation directe -->
       <div class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide text-center mb-3">
-          <i class="fa fa-khanda mr-1"></i> Confrontation directe
+          <i class="fa fa-khanda mr-1"></i> {{ t('playerComparisonView.headToHeadTitle') }}
         </div>
         <div class="flex items-center justify-center gap-4 sm:gap-8">
           <div class="flex flex-col items-center gap-1 min-w-0">
@@ -150,7 +150,7 @@
             v-if="(headToHead?.solo?.matchesPlayed ?? 0) > 0"
             class="grid grid-cols-[4rem_1fr_4rem] items-center text-xs px-3 py-1.5 rounded-lg bg-gray-700/50"
           >
-            <span class="text-gray-400"><i class="fa fa-user mr-1"></i> 1v1</span>
+            <span class="text-gray-400"><i class="fa fa-user mr-1"></i> {{ t('playerComparisonView.solo') }}</span>
             <span class="tabular-nums font-bold text-center">
               <span class="text-green-400">{{ headToHead!.solo.playerAWins }}</span>
               <span class="text-gray-600 mx-1">-</span>
@@ -163,7 +163,7 @@
             v-if="(headToHead?.team?.matchesPlayed ?? 0) > 0"
             class="grid grid-cols-[4rem_1fr_4rem] items-center text-xs px-3 py-1.5 rounded-lg bg-gray-700/50"
           >
-            <span class="text-gray-400"><i class="fa fa-users mr-1"></i> Équipe</span>
+            <span class="text-gray-400"><i class="fa fa-users mr-1"></i> {{ t('playerComparisonView.teamLabel') }}</span>
             <span class="tabular-nums font-bold text-center">
               <span class="text-green-400">{{ headToHead!.team.playerAWins }}</span>
               <span class="text-gray-600 mx-1">-</span>
@@ -178,14 +178,14 @@
           v-if="(headToHead?.matchesPlayed ?? 0) === 0"
           class="text-center text-sm text-gray-500 mt-3"
         >
-          Ces deux joueurs ne se sont jamais affrontés.
+          {{ t('playerComparisonView.neverFaced') }}
         </p>
       </div>
 
       <!-- En équipe -->
       <div class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide text-center mb-3">
-          <i class="fa fa-people-group mr-1"></i> En équipe
+          <i class="fa fa-people-group mr-1"></i> {{ t('playerComparisonView.togetherTitle') }}
         </div>
         <div class="flex items-center justify-center gap-4">
           <div class="flex items-center gap-1 shrink-0">
@@ -214,21 +214,21 @@
           v-if="(together?.matchesPlayed ?? 0) === 0"
           class="text-center text-sm text-gray-500 mt-3"
         >
-          Ces deux joueurs n'ont jamais joué ensemble.
+          {{ t('playerComparisonView.neverPlayedTogether') }}
         </p>
       </div>
 
       <!-- Rivalités communes -->
       <div class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
-          <i class="fa fa-users-rectangle mr-1"></i> Rivalités communes
+          <i class="fa fa-users-rectangle mr-1"></i> {{ t('playerComparisonView.commonRivalries') }}
         </div>
-        <p class="text-xs text-gray-500 mb-2">Bilan de chacun face aux mêmes adversaires</p>
+        <p class="text-xs text-gray-500 mb-2">{{ t('playerComparisonView.commonRivalriesDesc') }}</p>
         <div
           class="grid grid-cols-3 items-center gap-2 pb-2 border-b border-gray-700 text-xs font-bold text-gray-400"
         >
           <span class="text-right truncate">{{ playerA.player.displayName }}</span>
-          <span class="text-center">Adversaire</span>
+          <span class="text-center">{{ t('playerComparisonView.opponent') }}</span>
           <span class="text-left truncate">{{ playerB.player.displayName }}</span>
         </div>
         <div
@@ -250,16 +250,16 @@
           </div>
         </div>
         <p v-if="commonRivalries.length === 0" class="text-center text-sm text-gray-500 py-3">
-          Aucun adversaire commun.
+          {{ t('playerComparisonView.noCommonRival') }}
         </p>
       </div>
 
       <!-- Spécialisation par type de résultat -->
       <div v-if="outcomeComparison.length" class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
-          <i class="fa fa-chart-pie mr-1"></i> Spécialisation par type de résultat
+          <i class="fa fa-chart-pie mr-1"></i> {{ t('playerComparisonView.outcomeSpecTitle') }}
         </div>
-        <p class="text-xs text-gray-500 mb-2">Winrate selon la façon dont le match se termine</p>
+        <p class="text-xs text-gray-500 mb-2">{{ t('playerComparisonView.outcomeSpecDesc') }}</p>
         <div
           class="grid grid-cols-3 items-center gap-2 py-2 border-b border-gray-700/40 last:border-0"
           v-for="row in outcomeComparison"
@@ -281,8 +281,8 @@
     <!-- Empty prompt -->
     <div v-else class="text-center py-12 text-gray-500">
       <i class="fa fa-people-arrows text-4xl mb-4 block opacity-30"></i>
-      <p v-if="!selectedDisciplineId && !selectedTournamentId">Choisissez une discipline ou un tournoi pour comparer.</p>
-      <p v-else>Choisissez deux joueurs pour comparer.</p>
+      <p v-if="!selectedDisciplineId && !selectedTournamentId">{{ t('playerComparisonView.chooseDisciplineOrTournament') }}</p>
+      <p v-else>{{ t('playerComparisonView.chooseTwoPlayers') }}</p>
     </div>
   </div>
 </template>
@@ -290,6 +290,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useViewport } from '@/composables/useViewport'
 import { usePlayerComparisonService } from '@/composables/player/player.comparison.service'
@@ -310,6 +311,7 @@ import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import ProgressSpinner from 'primevue/progressspinner'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { appUser } = useAuth()
@@ -329,14 +331,14 @@ const COMPARISON_VALID_MODES = new Set(['championship', 'ranked'])
 
 const tournamentOptions = computed(() => {
   const filtered = availableTournaments.value.filter(
-    (t) =>
-      t.teamMode === 'flex' &&
-      COMPARISON_VALID_MODES.has(t.mode) &&
-      (!selectedDisciplineId.value || t.disciplineId === selectedDisciplineId.value),
+    (tour) =>
+      tour.teamMode === 'flex' &&
+      COMPARISON_VALID_MODES.has(tour.mode) &&
+      (!selectedDisciplineId.value || tour.disciplineId === selectedDisciplineId.value),
   )
   return [
-    { label: 'Tous', value: undefined },
-    ...filtered.map((t) => ({ label: t.name, value: t.id })),
+    { label: t('playerComparisonView.all'), value: undefined },
+    ...filtered.map((tour) => ({ label: tour.name, value: tour.id })),
   ]
 })
 
@@ -353,11 +355,11 @@ function onMobilePick(player: { id: string; displayName: string; shortName?: str
   pickerSlot.value = null
 }
 
-const modeOptions = [
-  { label: 'Tous', value: undefined },
-  { label: 'Championnat', value: 'championship' },
-  { label: 'Ranked', value: 'ranked' },
-]
+const modeOptions = computed(() => [
+  { label: t('playerComparisonView.all'), value: undefined },
+  { label: t('playerComparisonView.championship'), value: 'championship' },
+  { label: t('playerComparisonView.ranked'), value: 'ranked' },
+])
 
 // Opponents both players have faced, with each player's record vs that opponent
 const commonRivalries = computed(() => {

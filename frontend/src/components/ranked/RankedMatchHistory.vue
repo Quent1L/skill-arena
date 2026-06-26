@@ -35,7 +35,7 @@
         class="text-center py-12 text-gray-500 dark:text-gray-400"
       >
         <i class="fa fa-clock text-4xl mb-4 block"></i>
-        <p>Aucun match dans l'historique</p>
+        <p>{{ t('rankedMatchHistory.emptyState') }}</p>
       </div>
 
       <!-- Match cards -->
@@ -101,7 +101,7 @@
                 v-if="getSides(entry).teammates.length > 0"
                 class="flex items-center gap-1.5 min-w-0"
               >
-                <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">Avec :</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ t('rankedMatchHistory.withLabel') }}</span>
                 <div class="flex items-center gap-1 flex-wrap">
                   <span
                     v-for="p in getSides(entry).teammates.slice(0, 2)"
@@ -125,7 +125,7 @@
                 v-if="getSides(entry).opponents.length > 0"
                 class="flex items-center gap-1.5 min-w-0"
               >
-                <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">Contre :</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ t('rankedMatchHistory.vsLabel') }}</span>
                 <div class="flex items-center gap-1 flex-wrap">
                   <span
                     v-for="p in getSides(entry).opponents.slice(0, 2)"
@@ -155,7 +155,7 @@
                 :to="`/matches/${entry.matchId}`"
                 class="ml-auto text-xs text-blue-500 hover:underline dark:text-blue-400 shrink-0"
               >
-                Voir le match
+                {{ t('rankedMatchHistory.seeMatch') }}
               </RouterLink>
             </div>
           </div>
@@ -172,9 +172,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useInfiniteScroll } from '@vueuse/core'
 import type { ClientMmrHistoryEntry } from '@skill-arena/shared/types/index'
 import { getMatchLabel } from '@/composables/ranked/ranked.service'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   history: ClientMmrHistoryEntry[]
@@ -193,14 +196,14 @@ const availableFilters = computed(() => {
   const filters: { value: OutcomeFilter; label: string; icon: string; activeClass: string }[] = [
     {
       value: 'WIN',
-      label: 'Victoire',
+      label: t('rankedMatchHistory.win'),
       icon: 'fa fa-trophy',
       activeClass:
         'bg-green-100 dark:bg-green-900/30 border-green-400 dark:border-green-600 text-green-700 dark:text-green-400',
     },
     {
       value: 'LOSS',
-      label: 'Défaite',
+      label: t('rankedMatchHistory.loss'),
       icon: 'fa fa-times',
       activeClass:
         'bg-red-100 dark:bg-red-900/30 border-red-400 dark:border-red-600 text-red-700 dark:text-red-400',
@@ -209,7 +212,7 @@ const availableFilters = computed(() => {
   if (props.allowDraw) {
     filters.push({
       value: 'DRAW',
-      label: 'Nul',
+      label: t('rankedMatchHistory.filterDraw'),
       icon: 'fa fa-minus',
       activeClass:
         'bg-gray-100 dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-300',
@@ -249,9 +252,9 @@ const filteredHistoryWithIndex = computed(() =>
 
 function outcomeLabel(entry: ClientMmrHistoryEntry) {
   const o = outcome(entry)
-  if (o === 'WIN') return 'Victoire'
-  if (o === 'LOSS') return 'Défaite'
-  return 'Égalité'
+  if (o === 'WIN') return t('rankedMatchHistory.win')
+  if (o === 'LOSS') return t('rankedMatchHistory.loss')
+  return t('rankedMatchHistory.draw')
 }
 
 function outcomeClass(entry: ClientMmrHistoryEntry) {
@@ -305,13 +308,13 @@ function statusSeverity(status?: string) {
 function statusLabel(status?: string) {
   switch (status) {
     case 'finalized':
-      return 'Finalisé'
+      return t('rankedMatchHistory.statusFinalized')
     case 'ongoing':
-      return 'En cours'
+      return t('rankedMatchHistory.statusOngoing')
     case 'contested':
-      return 'Contesté'
+      return t('rankedMatchHistory.statusContested')
     case 'cancelled':
-      return 'Annulé'
+      return t('rankedMatchHistory.statusCancelled')
     default:
       return status ?? '—'
   }

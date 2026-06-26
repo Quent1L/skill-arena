@@ -1,9 +1,9 @@
 <template>
   <div class="admin-view">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Administration</h1>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ t('adminView.title') }}</h1>
       <p class="text-gray-600 dark:text-gray-400">
-        Gérez les tournois et les disciplines de la plateforme
+        {{ t('adminView.subtitle') }}
       </p>
     </div>
 
@@ -16,13 +16,13 @@
               <i class="fa fa-trophy text-5xl text-blue-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Gestion des tournois
+              {{ t('adminView.tournamentsTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez, modifiez et gérez les tournois de la plateforme
+              {{ t('adminView.tournamentsDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-blue-600 hover:bg-blue-700"
               @click.stop="navigateToTournaments"
@@ -39,13 +39,13 @@
               <i class="fa fa-gamepad text-5xl text-purple-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Gestion des disciplines
+              {{ t('adminView.disciplinesTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez, modifiez et gérez les disciplines disponibles
+              {{ t('adminView.disciplinesDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-purple-600 hover:bg-purple-700"
               @click.stop="navigateToDisciplines"
@@ -63,13 +63,13 @@
               <i class="fa fa-gamepad text-5xl text-purple-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Gestion des invitations
+              {{ t('adminView.invitationsTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez, modifiez et gérez les codes d'invitations
+              {{ t('adminView.invitationsDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-purple-600 hover:bg-purple-700"
               @click.stop="navigateToInvitaionCode"
@@ -86,13 +86,13 @@
               <i class="fa fa-ranking-star text-5xl text-yellow-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Saisons Ranked
+              {{ t('adminView.rankedTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez et gérez les saisons de mode compétitif ranked
+              {{ t('adminView.rankedDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-yellow-600 hover:bg-yellow-700"
               @click.stop="navigateToRanked"
@@ -109,13 +109,13 @@
               <i class="fa fa-users text-5xl text-indigo-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Organisations
+              {{ t('adminView.organizationsTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez et gérez les groupes d'utilisateurs pour restreindre l'accès aux tournois
+              {{ t('adminView.organizationsDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-indigo-600 hover:bg-indigo-700"
               @click.stop="navigateToOrganizations"
@@ -132,13 +132,13 @@
               <i class="fa fa-scroll text-5xl text-green-600"></i>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-              Règles du jeu
+              {{ t('adminView.rulesTitle') }}
             </h2>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Créez et gérez les règlements associés aux tournois
+              {{ t('adminView.rulesDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-green-600 hover:bg-green-700"
               @click.stop="navigateToRules"
@@ -155,14 +155,14 @@
               <i class="fa fa-wand-magic-sparkles text-5xl text-purple-600"></i>
             </div>
             <div class="flex items-center justify-center gap-2 mb-3">
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Moteur de règles</h2>
-              <Tag value="Bêta" severity="warn" />
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('adminView.rulesEngineTitle') }}</h2>
+              <Tag :value="t('adminView.betaTag')" severity="warn" />
             </div>
             <p class="text-gray-600 dark:text-gray-400 mb-4">
-              Messages contextuels et badges configurables (saisie de match)
+              {{ t('adminView.rulesEngineDescription') }}
             </p>
             <Button
-              label="Accéder"
+              :label="t('adminView.access')"
               icon="fa fa-arrow-right"
               class="bg-purple-600 hover:bg-purple-700"
               @click.stop="navigateToRulesEngine"
@@ -176,7 +176,9 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const router = useRouter()
 
 function navigateToTournaments() {

@@ -1,21 +1,21 @@
 <template>
   <div class="p-6">
     <div class="mb-6">
-      <h1 class="text-3xl font-bold mb-2">Gestion des codes d'invitation</h1>
-      <p class="text-gray-600">Créez et gérez les codes d'invitation pour l'inscription des utilisateurs</p>
+      <h1 class="text-3xl font-bold mb-2">{{ t('adminInvitationsView.title') }}</h1>
+      <p class="text-gray-600">{{ t('adminInvitationsView.subtitle') }}</p>
     </div>
 
     <Card class="mb-6">
       <template #title>
         <div class="flex items-center gap-2">
           <i class="fa fa-plus-circle"></i>
-          Générer un nouveau code
+          {{ t('adminInvitationsView.generateNewCode') }}
         </div>
       </template>
       <template #content>
         <form @submit.prevent="handleGenerateCode" class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="flex flex-col gap-2">
-            <label for="maxUses" class="font-medium">Nombre d'utilisations</label>
+            <label for="maxUses" class="font-medium">{{ t('adminInvitationsView.maxUses') }}</label>
             <InputNumber
               id="maxUses"
               v-model="formData.maxUses"
@@ -28,7 +28,7 @@
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="expiresInDays" class="font-medium">Expiration (jours)</label>
+            <label for="expiresInDays" class="font-medium">{{ t('adminInvitationsView.expirationDays') }}</label>
             <InputNumber
               id="expiresInDays"
               v-model="formData.expiresInDays"
@@ -37,29 +37,29 @@
               show-buttons
               button-layout="horizontal"
               class="w-full"
-              placeholder="Pas d'expiration"
+              :placeholder="t('adminInvitationsView.noExpiration')"
             />
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="notes" class="font-medium">Notes (optionnel)</label>
+            <label for="notes" class="font-medium">{{ t('adminInvitationsView.notesOptional') }}</label>
             <InputText
               id="notes"
               v-model="formData.notes"
-              placeholder="Ex: Pour les nouveaux joueurs"
+              :placeholder="t('adminInvitationsView.notesPlaceholder')"
               class="w-full"
             />
           </div>
 
           <div class="flex flex-col gap-2">
-            <label for="organizationId" class="font-medium">Organisation (optionnel)</label>
+            <label for="organizationId" class="font-medium">{{ t('adminInvitationsView.organizationOptional') }}</label>
             <Select
               id="organizationId"
               v-model="formData.organizationId"
               :options="organizations"
               option-label="name"
               option-value="id"
-              placeholder="Accès général (aucun groupe)"
+              :placeholder="t('adminInvitationsView.generalAccess')"
               class="w-full"
               show-clear
             />
@@ -69,7 +69,7 @@
             <Button
               type="submit"
               :loading="isGenerating"
-              label="Générer le code"
+              :label="t('adminInvitationsView.generateCode')"
               icon="fa fa-plus"
               class="w-full md:w-auto"
             />
@@ -82,7 +82,7 @@
       <template #title>
         <div class="flex items-center gap-2">
           <i class="fa fa-list"></i>
-          Codes existants
+          {{ t('adminInvitationsView.existingCodes') }}
         </div>
       </template>
       <template #content>
@@ -99,11 +99,11 @@
         >
           <template #empty>
             <div class="text-center py-6 text-gray-500">
-              Aucun code d'invitation pour le moment
+              {{ t('adminInvitationsView.noCodes') }}
             </div>
           </template>
 
-          <Column field="code" header="Code" sortable>
+          <Column field="code" :header="t('adminInvitationsView.columnCode')" sortable>
             <template #body="{ data }">
               <div class="flex items-center gap-2">
                 <code class="px-2 py-1 rounded font-mono text-sm">
@@ -115,7 +115,7 @@
                   rounded
                   size="small"
                   @click="copyToClipboard(data.code)"
-                  v-tooltip="'Copier le code'"
+                  v-tooltip="t('adminInvitationsView.copyCode')"
                 />
                 <Button
                   icon="fa fa-link"
@@ -123,13 +123,13 @@
                   rounded
                   size="small"
                   @click="copySignupUrl(data.code)"
-                  v-tooltip="'Copier le lien d\'inscription'"
+                  v-tooltip="t('adminInvitationsView.copySignupLink')"
                 />
               </div>
             </template>
           </Column>
 
-          <Column field="usedCount" header="Utilisations" sortable>
+          <Column field="usedCount" :header="t('adminInvitationsView.columnUsages')" sortable>
             <template #body="{ data }">
               <Tag :severity="data.usedCount >= data.maxUses ? 'danger' : 'success'">
                 {{ data.usedCount }} / {{ data.maxUses }}
@@ -137,32 +137,32 @@
             </template>
           </Column>
 
-          <Column field="isActive" header="Statut" sortable>
+          <Column field="isActive" :header="t('common.status')" sortable>
             <template #body="{ data }">
               <Tag :severity="data.isActive ? 'success' : 'secondary'">
-                {{ data.isActive ? 'Actif' : 'Désactivé' }}
+                {{ data.isActive ? t('adminInvitationsView.statusActive') : t('adminInvitationsView.statusInactive') }}
               </Tag>
             </template>
           </Column>
 
-          <Column field="expiresAt" header="Expiration" sortable>
+          <Column field="expiresAt" :header="t('adminInvitationsView.columnExpiration')" sortable>
             <template #body="{ data }">
               <span v-if="data.expiresAt">
                 {{ formatDate(data.expiresAt) }}
               </span>
-              <span v-else class="text-gray-500">Aucune</span>
+              <span v-else class="text-gray-500">{{ t('adminInvitationsView.noExpirationValue') }}</span>
             </template>
           </Column>
 
-          <Column field="creator.displayName" header="Créateur" sortable />
+          <Column field="creator.displayName" :header="t('adminInvitationsView.columnCreator')" sortable />
 
-          <Column field="createdAt" header="Créé le" sortable>
+          <Column field="createdAt" :header="t('adminInvitationsView.columnCreatedAt')" sortable>
             <template #body="{ data }">
               {{ formatDate(data.createdAt) }}
             </template>
           </Column>
 
-          <Column field="notes" header="Notes">
+          <Column field="notes" :header="t('adminInvitationsView.columnNotes')">
             <template #body="{ data }">
               <span v-if="data.notes" class="text-sm text-gray-600">
                 {{ data.notes }}
@@ -171,7 +171,7 @@
             </template>
           </Column>
 
-          <Column header="Actions" :exportable="false">
+          <Column :header="t('common.actions')" :exportable="false">
             <template #body="{ data }">
               <Button
                 v-if="data.isActive"
@@ -181,7 +181,7 @@
                 severity="danger"
                 size="small"
                 @click="handleDeactivate(data)"
-                v-tooltip="'Désactiver'"
+                v-tooltip="t('adminInvitationsView.deactivate')"
               />
             </template>
           </Column>
@@ -193,12 +193,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useOrganizationService } from '@/composables/organization/organization.service'
 import type { InvitationCode } from '@/composables/invitation/invitation.api'
 import type { OrganizationWithMemberCount } from '@skill-arena/shared'
 
+const { t } = useI18n()
 const toast = useAppToast()
 const { generateCode, getAllCodes, deactivateCode } = useInvitationService()
 const { listOrganizations } = useOrganizationService()
@@ -234,8 +236,8 @@ async function loadCodes() {
   } catch (error: unknown) {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: (error as Error).message || 'Erreur lors du chargement des codes',
+      summary: t('adminInvitationsView.errorSummary'),
+      detail: (error as Error).message || t('adminInvitationsView.errorLoadCodes'),
       life: 3000,
     })
   } finally {
@@ -255,8 +257,8 @@ async function handleGenerateCode() {
 
     toast.add({
       severity: 'success',
-      summary: 'Code créé',
-      detail: `Le code ${newCode.code} a été créé avec succès`,
+      summary: t('adminInvitationsView.codeCreatedSummary'),
+      detail: t('adminInvitationsView.codeCreatedDetail', { code: newCode.code }),
       life: 5000,
     })
 
@@ -271,8 +273,8 @@ async function handleGenerateCode() {
   } catch (error: unknown) {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: (error as Error).message || 'Erreur lors de la génération du code',
+      summary: t('adminInvitationsView.errorSummary'),
+      detail: (error as Error).message || t('adminInvitationsView.errorGenerateCode'),
       life: 3000,
     })
   } finally {
@@ -285,16 +287,16 @@ async function handleDeactivate(code: InvitationCode) {
     await deactivateCode(code.id)
     toast.add({
       severity: 'success',
-      summary: 'Code désactivé',
-      detail: `Le code ${code.code} a été désactivé`,
+      summary: t('adminInvitationsView.codeDeactivatedSummary'),
+      detail: t('adminInvitationsView.codeDeactivatedDetail', { code: code.code }),
       life: 3000,
     })
     await loadCodes()
   } catch (error: unknown) {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: (error as Error).message || 'Erreur lors de la désactivation du code',
+      summary: t('adminInvitationsView.errorSummary'),
+      detail: (error as Error).message || t('adminInvitationsView.errorDeactivateCode'),
       life: 3000,
     })
   }
@@ -304,8 +306,8 @@ function copyToClipboard(code: string) {
   navigator.clipboard.writeText(code)
   toast.add({
     severity: 'success',
-    summary: 'Copié',
-    detail: 'Code copié dans le presse-papier',
+    summary: t('adminInvitationsView.copiedSummary'),
+    detail: t('adminInvitationsView.codeCopiedDetail'),
     life: 2000,
   })
 }
@@ -316,8 +318,8 @@ function copySignupUrl(code: string) {
   navigator.clipboard.writeText(url)
   toast.add({
     severity: 'success',
-    summary: 'Copié',
-    detail: 'Lien d\'inscription copié dans le presse-papier',
+    summary: t('adminInvitationsView.copiedSummary'),
+    detail: t('adminInvitationsView.signupLinkCopiedDetail'),
     life: 2000,
   })
 }

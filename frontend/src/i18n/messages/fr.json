@@ -1,88 +1,1849 @@
 {
+  "adminInvitationsView": {
+    "codeCopiedDetail": "Code copié dans le presse-papier",
+    "codeCreatedDetail": "Le code {code} a été créé avec succès",
+    "codeCreatedSummary": "Code créé",
+    "codeDeactivatedDetail": "Le code {code} a été désactivé",
+    "codeDeactivatedSummary": "Code désactivé",
+    "columnCode": "Code",
+    "columnCreatedAt": "Créé le",
+    "columnCreator": "Créateur",
+    "columnExpiration": "Expiration",
+    "columnNotes": "Notes",
+    "columnUsages": "Utilisations",
+    "copiedSummary": "Copié",
+    "copyCode": "Copier le code",
+    "copySignupLink": "Copier le lien d'inscription",
+    "deactivate": "Désactiver",
+    "errorDeactivateCode": "Erreur lors de la désactivation du code",
+    "errorGenerateCode": "Erreur lors de la génération du code",
+    "errorLoadCodes": "Erreur lors du chargement des codes",
+    "errorSummary": "Erreur",
+    "existingCodes": "Codes existants",
+    "expirationDays": "Expiration (jours)",
+    "generalAccess": "Accès général (aucun groupe)",
+    "generateCode": "Générer le code",
+    "generateNewCode": "Générer un nouveau code",
+    "maxUses": "Nombre d'utilisations",
+    "noCodes": "Aucun code d'invitation pour le moment",
+    "noExpiration": "Pas d'expiration",
+    "noExpirationValue": "Aucune",
+    "notesOptional": "Notes (optionnel)",
+    "notesPlaceholder": "Ex: Pour les nouveaux joueurs",
+    "organizationOptional": "Organisation (optionnel)",
+    "signupLinkCopiedDetail": "Lien d'inscription copié",
+    "statusActive": "Actif",
+    "statusInactive": "Inactif",
+    "subtitle": "Créez et gérez les codes d'invitation pour l'inscription des utilisateurs",
+    "title": "Gestion des codes d'invitation"
+  },
+  "adminView": {
+    "access": "Accéder",
+    "betaTag": "Bêta",
+    "disciplinesDescription": "Créez, modifiez et gérez les disciplines disponibles",
+    "disciplinesTitle": "Gestion des disciplines",
+    "invitationsDescription": "Créez, modifiez et gérez les codes d'invitations",
+    "invitationsTitle": "Gestion des invitations",
+    "organizationsDescription": "Créez et gérez les groupes d'utilisateurs pour restreindre l'accès aux tournois",
+    "organizationsTitle": "Organisations",
+    "rankedDescription": "Créez et gérez les saisons de mode compétitif ranked",
+    "rankedTitle": "Saisons Ranked",
+    "rulesDescription": "Créez et gérez les règlements associés aux tournois",
+    "rulesEngineDescription": "Messages contextuels et badges configurables (saisie de match)",
+    "rulesEngineTitle": "Moteur de règles",
+    "rulesTitle": "Règles du jeu",
+    "subtitle": "Gérez les tournois et les disciplines de la plateforme",
+    "title": "Administration",
+    "tournamentsDescription": "Créez, modifiez et gérez les tournois de la plateforme",
+    "tournamentsTitle": "Gestion des tournois"
+  },
+  "app": {
+    "errorSummary": "Erreur",
+    "unexpectedError": "Une erreur inattendue est survenue"
+  },
+  "appHeader": {
+    "menu": {
+      "comparePlayers": "Comparer des joueurs",
+      "logout": "Se déconnecter",
+      "myStats": "Mes stats",
+      "settings": "Paramètres"
+    },
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "userMenuAriaLabel": "Menu utilisateur",
+    "version": "Version {version}"
+  },
+  "appWrapper": {
+    "appTitle": "Skol - {title}",
+    "pageTitle": "Skol - {title}"
+  },
+  "auth": {
+    "errors": {
+      "login": "Erreur de connexion",
+      "loginGeneric": "Une erreur est survenue lors de la connexion",
+      "logoutGeneric": "Une erreur est survenue lors de la déconnexion",
+      "passwordChange": "Erreur lors du changement de mot de passe",
+      "passwordChangeGeneric": "Une erreur est survenue lors du changement de mot de passe",
+      "passwordReset": "Erreur lors de la réinitialisation du mot de passe",
+      "passwordResetGeneric": "Une erreur est survenue lors de la réinitialisation du mot de passe",
+      "passwordResetRequest": "Erreur lors de la demande de réinitialisation",
+      "passwordResetRequestGeneric": "Une erreur est survenue lors de la demande de réinitialisation",
+      "register": "Erreur lors de l'inscription",
+      "registerGeneric": "Une erreur est survenue lors de l'inscription",
+      "sessionFetch": "Erreur lors de la récupération de la session",
+      "sessionFetchGeneric": "Une erreur est survenue lors de la récupération de la session"
+    }
+  },
+  "authSchema": {
+    "validation": {
+      "currentPasswordRequired": "Le mot de passe actuel est requis",
+      "emailInvalid": "Adresse email invalide",
+      "emailRequired": "L'adresse email est requise",
+      "newPasswordRequired": "Le nouveau mot de passe est requis",
+      "passwordConfirmRequired": "La confirmation du mot de passe est requise",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+      "passwordRequired": "Le mot de passe est requis",
+      "passwordsMismatch": "Les mots de passe ne correspondent pas"
+    }
+  },
+  "availableBadgesCard": {
+    "subtitle": "Récompenses gagnables sur ce tournoi",
+    "title": "Badges à débloquer"
+  },
+  "badgeRevealAnimation": {
+    "continue": "Continuer",
+    "newBadge": "Nouveau badge"
+  },
+  "bracketMatchCard": {
+    "statusCancelled": "Annulé",
+    "statusContested": "Contesté",
+    "statusFinalized": "Validé",
+    "statusOngoing": "En cours",
+    "statusReported": "En attente",
+    "statusScheduled": "Planifié",
+    "unknown": "Inconnu",
+    "vs": "VS"
+  },
+  "bracketService": {
+    "errors": {
+      "participantsWithoutMatches": "Certains participants n'ont joué aucun match dans le championnat sélectionné",
+      "participantsWithoutMatchesNamed": "Ces participants n'ont joué aucun match dans le championnat : {names}"
+    },
+    "toast": {
+      "generateFailedSummary": "Génération impossible",
+      "regenerateSuccessDetail": "Le tournoi a été regénéré avec succès",
+      "regenerateSuccessSummary": "Bracket regénéré"
+    }
+  },
+  "bracketView": {
+    "deleteBracket": "Supprimer le bracket",
+    "deleteConfirmText": "Êtes-vous sûr de vouloir supprimer le bracket ? Cela supprimera tous les matchs et ne peut pas être annulé.",
+    "deleteDialogHeader": "Supprimer le bracket",
+    "deleteHint": "Vous pouvez regénérer le bracket ensuite si nécessaire.",
+    "generateBracket": "Générer le bracket",
+    "infoParticipants": "Participants",
+    "infoRounds": "Tours",
+    "infoSeeding": "Classement",
+    "infoType": "Type",
+    "noBracketDesc": "Le bracket du tournoi n'a pas encore été créé.",
+    "noBracketDescAdmin": "Cliquez sur le bouton ci-dessous pour générer le bracket.",
+    "noBracketDescUser": "Un administrateur doit générer le bracket.",
+    "noBracketTitle": "Aucun bracket généré",
+    "notBracketDesc": "Ce tournoi n'est pas configuré en mode bracket.",
+    "notBracketTitle": "Tournoi non compatible bracket",
+    "optimalCountWarning": "Pour un bracket optimal, il faut",
+    "refresh": "Actualiser",
+    "regenerate": "Regénérer"
+  },
+  "breadcrumbMenu": {
+    "home": "Accueil"
+  },
   "common": {
+    "actions": "Actions",
     "cancel": "Annuler",
-    "save": "Enregistrer",
     "close": "Fermer",
     "confirm": "Confirmer",
-    "join": "Rejoindre"
+    "create": "Créer",
+    "delete": "Supprimer",
+    "discipline": "Discipline",
+    "edit": "Modifier",
+    "error": "Erreur",
+    "join": "Rejoindre",
+    "name": "Nom",
+    "no": "Non",
+    "save": "Enregistrer",
+    "status": "Statut",
+    "success": "Succès",
+    "update": "Mettre à jour",
+    "yes": "Oui"
+  },
+  "compositionStep": {
+    "empty": "Vide",
+    "emptySideError": "Chaque équipe doit avoir au moins un joueur.",
+    "instruction": "Faites glisser les joueurs pour former les équipes.",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "teamA": "Équipe 1",
+    "teamB": "Équipe 2",
+    "title": "Composition"
+  },
+  "conditionGroup": {
+    "addCondition": "Condition",
+    "addGroup": "Sous-groupe",
+    "allTrue": "toutes les conditions doivent être vraies",
+    "anyTrue": "au moins une condition doit être vraie",
+    "emptyHint": "Glissez une condition ici, ou utilisez les boutons ci-dessus",
+    "operatorAnd": "ET",
+    "operatorOr": "OU"
+  },
+  "conditionPalette": {
+    "blocksLabel": "Blocs (glisser-déposer)"
+  },
+  "conditionRow": {
+    "booleanFalse": "Faux",
+    "booleanTrue": "Vrai",
+    "operatorContains": "contient",
+    "operatorDoesNotContain": "ne contient pas",
+    "operatorEqual": "=",
+    "operatorGreaterThan": ">",
+    "operatorGreaterThanInclusive": "≥",
+    "operatorIn": "dans la liste",
+    "operatorLessThan": "<",
+    "operatorLessThanInclusive": "≤",
+    "operatorNotEqual": "≠",
+    "operatorNotIn": "pas dans la liste",
+    "placeholderDay": "Jour",
+    "placeholderDays": "Jour",
+    "placeholderDisciplines": "Disciplines",
+    "placeholderListValues": "valeurs séparées par des virgules",
+    "placeholderOperator": "Opérateur",
+    "placeholderOrganisation": "Organisation",
+    "placeholderOrganisations": "Organisations",
+    "placeholderPlayer": "Joueur",
+    "placeholderPlayers": "Joueurs",
+    "placeholderValue": "valeur",
+    "placeholderVariable": "Variable",
+    "weekdayFriday": "Vendredi",
+    "weekdayMonday": "Lundi",
+    "weekdaySaturday": "Samedi",
+    "weekdaySunday": "Dimanche",
+    "weekdayThursday": "Jeudi",
+    "weekdayTuesday": "Mardi",
+    "weekdayWednesday": "Mercredi"
+  },
+  "createMatchView": {
+    "errorSummary": "Erreur",
+    "loadMatchError": "Impossible de charger le match"
+  },
+  "dateUtils": {
+    "day": "1 jour | {count} jours",
+    "month": "1 mois | {count} mois",
+    "week": "1 semaine | {count} semaines",
+    "weekAndDays": "{weeks} et {days}"
+  },
+  "disciplineFormView": {
+    "confirmDeleteOutcomeReasonHeader": "Supprimer la raison de résultat ?",
+    "confirmDeleteOutcomeReasonMessage": "Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.",
+    "confirmDeleteOutcomeTypeHeader": "Supprimer le type de résultat ?",
+    "confirmDeleteOutcomeTypeMessage": "Êtes-vous sûr de vouloir supprimer ce type de résultat ? Cette action est irréversible.",
+    "nameLabel": "Nom de la discipline",
+    "scoreInstructionsLabel": "Instructions de saisie du score",
+    "scoreInstructionsPlaceholder": "Indiquez comment saisir le score pour cette discipline...",
+    "sectionInfo": "Informations de la discipline",
+    "selectModePlaceholder": "Sélectionner un mode...",
+    "teamInteractionModeLabel": "Mode d'interaction d'équipe"
+  },
+  "disciplineList": {
+    "createFirst": "Créer votre première discipline",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette discipline ? Cette action est irréversible.",
+    "deleteDialogHeader": "Supprimer {name} ?",
+    "emptyState": "Aucune discipline trouvée",
+    "newDiscipline": "Nouvelle discipline",
+    "title": "Gestion des disciplines"
+  },
+  "disciplineService": {
+    "errors": {
+      "createFailed": "Erreur lors de la création de la discipline",
+      "deleteFailed": "Erreur lors de la suppression de la discipline",
+      "getFailed": "Erreur lors du chargement de la discipline",
+      "listFailed": "Erreur lors du chargement des disciplines",
+      "outcomeReasonCreateFailed": "Erreur lors de la création de la raison de résultat",
+      "outcomeReasonDeleteFailed": "Erreur lors de la suppression de la raison de résultat",
+      "outcomeReasonUpdateFailed": "Erreur lors de la mise à jour de la raison de résultat",
+      "outcomeTypeCreateFailed": "Erreur lors de la création du type de résultat",
+      "outcomeTypeDeleteFailed": "Erreur lors de la suppression du type de résultat",
+      "outcomeTypeUpdateFailed": "Erreur lors de la mise à jour du type de résultat",
+      "updateFailed": "Erreur lors de la mise à jour de la discipline"
+    },
+    "toast": {
+      "createSuccess": "Discipline créée avec succès",
+      "deleteSuccess": "Discipline supprimée avec succès",
+      "outcomeReasonCreateSuccess": "Raison de résultat créée avec succès",
+      "outcomeReasonDeleteSuccess": "Raison de résultat supprimée avec succès",
+      "outcomeReasonUpdateSuccess": "Raison de résultat mise à jour avec succès",
+      "outcomeTypeCreateSuccess": "Type de résultat créé avec succès",
+      "outcomeTypeDeleteSuccess": "Type de résultat supprimé avec succès",
+      "outcomeTypeUpdateSuccess": "Type de résultat mis à jour avec succès",
+      "updateSuccess": "Discipline mise à jour avec succès"
+    }
+  },
+  "dragDropDebugView": {
+    "listA": "Liste A ({count})",
+    "listB": "Liste B ({count})"
+  },
+  "emptyPage": {
+    "description": "Cette page n'a pas encore été implémentée.",
+    "title": "Page vide"
+  },
+  "errorService": {
+    "checkConsole": "Consultez la console pour plus de détails",
+    "locationPrefix": "Emplacement : {location}",
+    "summary": "Erreur",
+    "uncaughtJs": "Erreur JavaScript non capturée",
+    "unexpectedError": "Une erreur inattendue est survenue",
+    "unhandledRejection": "Promesse rejetée non capturée",
+    "unknownLocation": "Emplacement inconnu"
+  },
+  "fontAwesomeIconPicker": {
+    "chooseIcon": "Choisir une icône",
+    "clear": "Effacer",
+    "dialogHeader": "Choisir une icône",
+    "iconCount": "0 icône | {count} icône | {count} icônes",
+    "refineSearch": "({count} trouvés — affinez la recherche)",
+    "resultCount": "({count} trouvés — affinez la recherche)",
+    "searchPlaceholder": "Rechercher... (ex: fire, trophy, star)",
+    "tabPopular": "Populaire"
+  },
+  "forgotPasswordView": {
+    "backToLoginButton": "Retour à la connexion",
+    "backToLoginLink": "← Retour à la connexion",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "instructions": "Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.",
+    "spamNote": "Vérifiez également votre dossier spam si vous ne voyez pas l'email.",
+    "submitButton": "Envoyer le lien de réinitialisation",
+    "subtitle": "Réinitialisation de mot de passe",
+    "successMessage": "Si un compte existe avec cette adresse email, vous recevrez un lien de réinitialisation dans quelques instants.",
+    "successTitle": "Email envoyé !"
+  },
+  "gameRulesFormView": {
+    "contentLabel": "Contenu",
+    "editTitle": "Modifier le règlement",
+    "newTitle": "Nouveau règlement",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "Ex: Règlement officiel saison 2026"
+  },
+  "gameRulesList": {
+    "columnCreatedAt": "Créé le",
+    "columnTitle": "Titre",
+    "createFirst": "Créer votre premier règlement",
+    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer \"{title}\" ? Cette action est irréversible.",
+    "deleteDialogHeader": "Supprimer le règlement ?",
+    "emptyState": "Aucun règlement trouvé",
+    "newRule": "Nouveau règlement",
+    "title": "Gestion des règles du jeu"
+  },
+  "gameRulesService": {
+    "errors": {
+      "createFailed": "Erreur lors de la création du règlement",
+      "deleteFailed": "Erreur lors de la suppression du règlement",
+      "getFailed": "Erreur lors du chargement du règlement",
+      "listFailed": "Erreur lors du chargement des règles",
+      "updateFailed": "Erreur lors de la mise à jour du règlement"
+    }
+  },
+  "generalInfoSection": {
+    "fields": {
+      "allowDraw": "Autoriser les matchs nuls",
+      "description": "Description",
+      "discipline": "Discipline",
+      "endDate": "Date de fin",
+      "maxTeamSize": "Taille max équipe",
+      "minTeamSize": "Taille min équipe",
+      "name": "Nom",
+      "organization": "Organisation (optionnel)",
+      "rules": "Règles du jeu",
+      "startDate": "Date de début"
+    },
+    "placeholders": {
+      "discipline": "Sélectionner une discipline",
+      "noOrganization": "Accès général (aucun groupe)",
+      "noRules": "Aucun règlement"
+    },
+    "title": "Informations générales"
+  },
+  "generateBracketDialog": {
+    "bracketTypeLabel": "Type de bracket",
+    "bronzeMatchLabel": "Inclure le match pour la 3ème place",
+    "championshipDesc": "Basé sur le classement précédent",
+    "championshipTitle": "Championnat",
+    "doubleEliminationDesc": "Seconde chance via le tableau des perdants",
+    "doubleEliminationTitle": "Double élimination",
+    "generate": "Générer",
+    "headerGenerate": "Générer le bracket",
+    "headerRegenerate": "Regénérer le bracket",
+    "randomDesc": "Participants ordonnés aléatoirement",
+    "randomTitle": "Aléatoire",
+    "regenerate": "Regénérer",
+    "seedingTypeLabel": "Méthode de classement",
+    "singleEliminationDesc": "Une défaite et vous êtes éliminé",
+    "singleEliminationTitle": "Élimination simple",
+    "sourceTournamentHint": "Sélectionnez un tournoi terminé pour utiliser son classement",
+    "sourceTournamentLabel": "Tournoi source",
+    "sourceTournamentPlaceholder": "Sélectionner un tournoi source",
+    "warningDesc": "Tous les matchs du bracket seront supprimés et un nouveau bracket sera généré.",
+    "warningTitle": "Attention : cela supprimera tous les matchs existants !"
+  },
+  "h2hRivalries": {
+    "drawSuffix": "N",
+    "lossSuffix": "D",
+    "title": "Rivalités",
+    "tooltip": "Liste les adversaires les plus fréquents avec le bilan complet",
+    "winSuffix": "V"
+  },
+  "home": {
+    "title": "Home"
+  },
+  "homeView": {
+    "description": "Créez et gérez vos tournois en quelques clics. Championnat ou élimination directe, suivez les classements en temps réel.",
+    "tagline": "La chance ne suffira pas",
+    "viewTournaments": "Voir les tournois"
+  },
+  "invitationService": {
+    "errors": {
+      "joinFailed": "Erreur lors de l'adhésion"
+    }
+  },
+  "loginView": {
+    "backToHome": "← Retour à l'accueil",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "forgotPassword": "Mot de passe oublié ?",
+    "keycloakDefaultLabel": "Se connecter avec Keycloak",
+    "keycloakError": "Erreur lors de la connexion Keycloak",
+    "keycloakLoading": "Connexion...",
+    "loginButton": "Se connecter",
+    "noAccount": "Pas encore de compte ?",
+    "noAuthDescription": "Contactez l'administrateur système. La configuration de l'authentification est",
+    "noAuthTitle": "Aucune méthode d'authentification n'est disponible",
+    "oauthError": "Une erreur est survenue lors de la connexion",
+    "or": "Ou",
+    "passwordLabel": "Mot de passe",
+    "register": "S'inscrire",
+    "subtitle": "Connectez-vous à votre compte"
+  },
+  "matchCard": {
+    "draw": "Égalité",
+    "loss": "Défaite",
+    "statusCancelled": "Annulé",
+    "statusContested": "Contesté",
+    "statusFinalized": "Validé",
+    "statusOngoing": "En cours",
+    "statusReported": "En attente",
+    "statusScheduled": "Planifié",
+    "vs": "VS",
+    "win": "Victoire"
+  },
+  "matchConfirmation": {
+    "acceptBtn": "Accepter",
+    "alternativeScoreHint": "Pour proposer un score alternatif, utilisez l'option \"Saisir un score corrigé\" ci-dessous.",
+    "confirmAcceptanceBtn": "Confirmer l'acceptation",
+    "confirmationIrreversible": "Vous confirmez le résultat tel qu'il a été saisi. Cette action ne peut pas être annulée.",
+    "contestedScorePrefix": "Score contesté — correction proposée par",
+    "deadlineLabel": "Deadline de confirmation :",
+    "dialogAcceptTitle": "Accepter le résultat",
+    "dialogDisputeTitle": "Contester le résultat",
+    "disputeBtn": "Contester",
+    "disputeReasonLabel": "Raison de la contestation (optionnel)",
+    "disputeReasonPlaceholder": "Expliquez pourquoi vous contestez ce résultat...",
+    "enterCorrectedScoreBtn": "Saisir un score corrigé",
+    "expired": "(Expirée)",
+    "originalScore": "Score original",
+    "playerConfirmations": "Confirmations des joueurs ({confirmed}/{total})",
+    "proofInputLabel": "Preuve (optionnel)",
+    "proofInputPlaceholder": "Lien vers une capture d'écran, vidéo...",
+    "proofLabel": "Preuve :",
+    "proposedOutcomeReason": "Raison :",
+    "proposedOutcomeType": "Raison proposée :",
+    "proposedScore": "Score proposé",
+    "proposedScoreInline": "Score proposé :",
+    "proposedWinner": "Vainqueur proposé :",
+    "proposedWinnerTeam": "Type de résultat proposé :",
+    "questionAcceptProposal": "Accepter",
+    "questionConfirmResult": "Accepter",
+    "reasonLabel": "Raison :",
+    "reportedByPrefix": "Résultat saisi par",
+    "reportedBySuffix": "Résultat saisi par",
+    "score": "Score",
+    "sideA": "Équipe A",
+    "sideB": "Équipe B",
+    "submitDisputeBtn": "Soumettre la contestation",
+    "tagAccepted": "Accepté",
+    "tagContested": "Contesté",
+    "tagPending": "En attente",
+    "title": "Confirmation du résultat",
+    "unknownPlayer": "Score original",
+    "unknownPlayerName": "Joueur inconnu",
+    "unknownReporter": "Inconnu",
+    "userAccepted": "Vous avez accepté ce résultat",
+    "userDisputed": "Vous avez contesté ce résultat",
+    "validationAdmin": "Ce score doit être validé par un administrateur du tournoi.",
+    "validationAuto": "Ce score sera automatiquement validé dans {hours}h si non contesté.",
+    "validationNone": "Les scores sont validés immédiatement. Contestation possible dans les 7 jours.",
+    "validationStrict": "Ce score doit être confirmé par au moins un adversaire."
+  },
+  "matchDetailView": {
+    "adminActionsDescription": "En tant qu'administrateur, vous pouvez finaliser manuellement ce match.",
+    "adminActionsTitle": "Actions administrateur",
+    "back": "Retour",
+    "cancelConfirmation": "Êtes-vous sûr de vouloir annuler ce match ? Cette action ne peut pas être défaite.",
+    "cancelFinalizedWarning": "Ce match a déjà été finalisé automatiquement. L'annulation recalculera les points et le MMR associés.",
+    "cancelMatch": "Annuler le match",
+    "cancelNote": "Seul le joueur ayant saisi ce match ou un administrateur peut l'annuler.",
+    "completeMatch": "Compléter le match",
+    "confirmCancel": "Non, conserver",
+    "disputeButton": "Contester",
+    "disputeFinalizedDialogTitle": "Contester le résultat finalisé",
+    "disputeReasonLabel": "Raison de la contestation (optionnel)",
+    "disputeReasonPlaceholder": "Expliquez pourquoi vous contestez ce résultat...",
+    "disputeResultDescription": "Ce match a été finalisé automatiquement. Vous pouvez contester le résultat dans les 7 jours suivant la finalisation.",
+    "disputeResultTitle": "Contester ce résultat",
+    "disputed": "Contesté",
+    "enteredBy": "Saisi par :",
+    "expiresIn": "jours suivant la finalisation.",
+    "finalization": "Finalisation :",
+    "finalizationReason": {
+      "adminOverride": "Décision administrative",
+      "autoValidation": "Validation automatique",
+      "consensus": "Consensus",
+      "trustScore": "Trust Score"
+    },
+    "finalizeConsensus": "Finaliser (Consensus)",
+    "finalizeOverride": "Finaliser (Override admin)",
+    "finalizedAt": "Finalisé le :",
+    "keepMatch": "Non, conserver le match",
+    "loadError": "Erreur lors du chargement du match",
+    "matchDate": "Date du match :",
+    "matchHeading": "Match",
+    "outcomeReason": "Raison du résultat :",
+    "outcomeType": "Type de résultat :",
+    "overLimit": "hors limite",
+    "postDisputesTitle": "Contestations post-finalisation",
+    "proof": "Preuve :",
+    "reason": "Raison :",
+    "status": {
+      "cancelled": "Annulé",
+      "confirmed": "Confirmé",
+      "disputed": "Contesté",
+      "finalized": "Finalisé",
+      "pendingConfirmation": "Proposition de score",
+      "reported": "Résultat saisi",
+      "scheduled": "Planifié"
+    },
+    "submitDispute": "Soumettre la contestation",
+    "teamA": "Équipe A",
+    "teamB": "Équipe B",
+    "trustScoreBy": "Trust Score de {name}",
+    "unknown": "Inconnu",
+    "unknownPlayer": "Joueur inconnu",
+    "winner": "Vainqueur"
+  },
+  "matchFormStepperDesktop": {
+    "completeMatch": "Compléter le match",
+    "createMatch": "Créer un match",
+    "teamsStep": "Équipes"
+  },
+  "matchFormStepperMobile": {
+    "back": "Retour",
+    "next": "Suivant",
+    "proposeCorrection": "Proposer la correction",
+    "scheduleMatch": "Programmer le match",
+    "titleContest": "Proposer une correction",
+    "titleEdit": "Compléter le match",
+    "titleNew": "Nouveau Match"
+  },
+  "matchList": {
+    "filterByPlayerPlaceholder": "Filtrer par joueur...",
+    "filterByPlayerTitle": "Filtrer par joueur",
+    "filters": "Filtres",
+    "myMatches": "Mes matchs",
+    "noMatchFound": "Aucun match trouvé.",
+    "outcome": {
+      "draw": "Nul",
+      "loss": "Défaite",
+      "win": "Victoire"
+    },
+    "resetFilters": "Réinitialiser les filtres"
+  },
+  "matchOutcomeDistribution": {
+    "drawsCount": "{count} N",
+    "lossesCount": "{count} D",
+    "winsCount": "{count} V"
+  },
+  "matchService": {
+    "errors": {
+      "cancelFailed": "Erreur lors de l'annulation du match",
+      "confirmFailed": "Erreur lors de la confirmation",
+      "contestFailed": "Erreur lors de la contestation",
+      "createFailed": "Erreur lors de la création du match",
+      "finalizeFailed": "Erreur lors de la finalisation du match",
+      "respondFailed": "Erreur lors de la réponse",
+      "updateFailed": "Erreur lors de la mise à jour du match",
+      "validationFailed": "Erreur lors de la validation"
+    },
+    "toast": {
+      "agreeSuccessDetail": "Votre acceptation a été enregistrée avec succès",
+      "agreeSuccessSummary": "Acceptation enregistrée",
+      "cancelSuccessDetail": "Le match a été annulé avec succès",
+      "cancelSuccessSummary": "Match annulé",
+      "confirmSuccessDetail": "Votre confirmation a été enregistrée avec succès",
+      "confirmSuccessSummary": "Confirmation enregistrée",
+      "contestSuccessDetail": "Votre contestation a été enregistrée. Un administrateur examinera le cas.",
+      "contestSuccessSummary": "Contestation enregistrée",
+      "createSuccessDetail": "Match créé avec succès",
+      "finalizeSuccessDetail": "Le match a été finalisé avec succès",
+      "finalizeSuccessSummary": "Match finalisé",
+      "respondContestDetail": "Votre contestation a été enregistrée.",
+      "scoreProposedDetail": "Vous avez proposé le score {scoreA} - {scoreB}. Les autres joueurs doivent reconfirmer.",
+      "scoreProposedSummary": "Score proposé",
+      "updateSuccessDetail": "Match mis à jour avec succès"
+    },
+    "unknownPlayer": "Joueur {id}"
+  },
+  "mmrExplainerCard": {
+    "baseGainLoss": "Gain ou perte de base",
+    "baseGainLossDescPost": "qui détermine l'amplitude maximale de variation.",
+    "baseGainLossDescPre": "Le résultat réel (victoire, nul ou défaite) est comparé au score attendu. La différence est multipliée par un coefficient de sensibilité",
+    "expectedScore": "Score attendu",
+    "expectedScoreDesc": "Avant chaque match, le système estime votre probabilité de victoire à partir de l'écart de MMR entre vous et vos adversaires. Si les deux camps sont à égalité, la probabilité est de 50 %. Un écart de 400 points la fait passer à environ 24 % pour le camp le plus faible.",
+    "gainLoss": "Gain / Perte",
+    "gainLossDesc": "Chaque résultat modifie votre score en fonction de l'écart de niveau avec vos adversaires.",
+    "individualTeamAdjustment": "Ajustement individuel en équipe",
+    "opponentFactor": "Facteur adversaire",
+    "opponentFactorDesc": "Battre un joueur plus fort rapporte plus. Perdre contre un joueur plus faible coûte plus.",
+    "placementDetailMid": "premiers matchs",
+    "placementDetailPost": ", le coefficient de sensibilité est doublé. Votre MMR évolue donc deux fois plus vite pour rejoindre rapidement votre vrai niveau.",
+    "placementDetailPre": "Pendant vos",
+    "placementMatches": "Matchs de placement",
+    "placementMatchesMid": "premiers matchs",
+    "placementMatchesPost": "servent à calibrer votre niveau — les gains et pertes sont doublés.",
+    "placementMatchesPre": "Vos",
+    "points": "points",
+    "seeCalculationDetail": "Voir le détail du calcul",
+    "startingMmr": "MMR de départ",
+    "startingMmrPre": "Vous commencez à",
+    "subtitle": "Système de classement par points",
+    "teamDistribution": "Répartition en équipe —",
+    "teamMode": {
+      "collaborative": "Collaboratif",
+      "individual": "Individuel",
+      "sharedResource": "Ressource partagée"
+    },
+    "teamModeDesc": {
+      "collaborative": "Tous les membres de l'équipe reçoivent le même gain ou la même perte de points.",
+      "individual": "Chaque joueur est évalué selon l'écart entre son propre MMR et celui de ses adversaires.",
+      "sharedResource": "Battre une équipe plus forte rapporte plus à chaque membre ; perdre contre une équipe plus faible coûte plus."
+    },
+    "teamModeDetail": {
+      "collaborative": "Tous les membres de l'équipe reçoivent exactement le même delta de MMR, calculé à partir du MMR moyen de l'équipe face au MMR moyen de l'équipe adverse.",
+      "individual": "Le gain ou la perte calculé est ajusté pour chaque joueur en fonction du ratio entre son MMR personnel et le MMR moyen des adversaires. Un joueur plus fort que ses adversaires gagne moins en cas de victoire et perd plus en cas de défaite.",
+      "sharedResource": "La distribution est inversée par rapport au mode individuel : les membres dont le MMR est proche de celui des adversaires bénéficient d'un ajustement plus équilibré. Affronter une équipe bien au-dessus de votre niveau amplifie les gains en cas de victoire."
+    },
+    "title": "Comment fonctionne le MMR ?"
+  },
+  "mmrRecapCard": {
+    "newMatchesPlural": "{count} nouveaux matchs",
+    "newMatchesSingular": "{count} nouveau match",
+    "recalcMatchesPlural": "{count} matchs recalculés",
+    "recalcMatchesSingular": "{count} match recalculé",
+    "recalculated": "recalculé",
+    "title": "Récap MMR"
+  },
+  "mmrRevealAnimation": {
+    "continue": "Continuer",
+    "matchCancelled": "Match annulé",
+    "mmrRecalculation": "Recalcul MMR",
+    "rankDown": "Descente en rang !",
+    "rankUp": "Montée en rang !"
+  },
+  "mobileBottomNav": {
+    "bracket": "Bracket",
+    "detail": "Détail",
+    "info": "Info",
+    "matches": "Matchs",
+    "standings": "Classement",
+    "stats": "Stats",
+    "teams": "Équipes"
+  },
+  "notFoundView": {
+    "administration": "Administration",
+    "description": "Désolé, la page que vous recherchez n'existe pas ou a été déplacée. Vérifiez l'URL ou",
+    "goBack": "Retour en arrière",
+    "goHome": "Retour à l'accueil",
+    "login": "Se connecter",
+    "notLoggedIn": "Vous n'êtes pas connecté",
+    "quickLinks": "Ou essayez ces liens :",
+    "register": "S'inscrire",
+    "title": "Page introuvable",
+    "tournaments": "Tournois"
+  },
+  "notificationBell": {
+    "ariaLabel": "Notifications"
+  },
+  "notificationDropdown": {
+    "actionNotifsCantDelete": "Les notifications d'action ne peuvent pas être supprimées",
+    "allAlreadyRead": "Notifications",
+    "deleteAll": "Tout supprimer",
+    "markAllAsRead": "Tout marquer comme lu",
+    "title": "Notifications",
+    "toast": {
+      "deleteAllError": "Impossible de supprimer toutes les notifications",
+      "deleteAllSuccess": "Toutes les notifications ont été supprimées",
+      "error": "Erreur",
+      "markAllError": "Impossible de marquer toutes les notifications comme lues",
+      "markAllSuccess": "Toutes les notifications sont marquées comme lues"
+    },
+    "viewAll": "Tout voir"
+  },
+  "notificationItem": {
+    "actionLabel": "Action",
+    "date": {
+      "daysAgo": "Il y a {days}j",
+      "hoursAgo": "Il y a {hours}h",
+      "justNow": "À l'instant",
+      "minutesAgo": "Il y a {minutes} min"
+    },
+    "deleteTitle": "Supprimer la notification",
+    "toast": {
+      "deleteError": "Erreur lors de la suppression de la notification",
+      "deleted": "Notification supprimée",
+      "error": "Erreur"
+    }
+  },
+  "notificationList": {
+    "empty": "Aucune notification"
+  },
+  "notificationsView": {
+    "backAriaLabel": "Retour",
+    "deleteAll": "Tout supprimer",
+    "deleteAllError": "Impossible de supprimer toutes les notifications",
+    "deleteAllSuccess": "Toutes les notifications ont été supprimées",
+    "errorSummary": "Erreur",
+    "markAllRead": "Tout lire",
+    "markAllReadError": "Impossible de marquer toutes les notifications comme lues",
+    "markAllReadSuccess": "Toutes les notifications sont marquées comme lues",
+    "title": "Notifications"
+  },
+  "offlineView": {
+    "checking": "Vérification…",
+    "description": "Vérifiez votre connexion internet et réessayez.",
+    "retry": "Réessayer",
+    "title": "Vous êtes hors ligne"
+  },
+  "organizationService": {
+    "errors": {
+      "addMemberFailed": "Erreur lors de l'ajout du membre",
+      "createFailed": "Erreur lors de la création de l'organisation",
+      "getMembersFailed": "Erreur lors du chargement des membres",
+      "listFailed": "Erreur lors du chargement des organisations",
+      "removeMemberFailed": "Erreur lors du retrait du membre",
+      "renameFailed": "Erreur lors du renommage de l'organisation"
+    }
+  },
+  "organizationsView": {
+    "add": "Ajouter",
+    "addMemberButton": "Ajouter",
+    "addMembersDialogHeader": "Ajouter des membres",
+    "addedAt": "Ajouté le {date}",
+    "columnActions": "Actions",
+    "columnCreatedAt": "Créée le",
+    "columnMembers": "Membres",
+    "createOrganization": "Créer une organisation",
+    "errorCreating": "Le nom est requis",
+    "errorGeneric": "Une erreur est survenue",
+    "errorLoading": "Erreur lors du chargement des organisations",
+    "errorRenaming": "Renommée",
+    "errorSummary": "Erreur",
+    "existingOrgs": "Organisations existantes",
+    "manage": "Gérer",
+    "manageDialogHeader": "Gérer : {name}",
+    "memberCount": "{count} membre(s)",
+    "memberRemovedSummary": "Membre retiré",
+    "membersAddedSummary": "Membres ajoutés",
+    "membersSection": "Membres",
+    "nameRequired": "Le nom est requis",
+    "noMembers": "Aucun membre",
+    "noOrgs": "Aucune organisation pour le moment",
+    "orgCreatedDetail": "L'organisation \"{name}\" a été créée",
+    "orgCreatedSummary": "Organisation créée",
+    "orgNameLabel": "Nom de l'organisation",
+    "orgNamePlaceholder": "Ex: Club de tennis",
+    "orgNameRenamePlaceholder": "Nom de l'organisation",
+    "orgNameSectionTitle": "Nom de l'organisation",
+    "removeMemberTooltip": "Retirer",
+    "renamedDetail": "Organisation renommée en \"{name}\"",
+    "renamedSummary": "Renommée",
+    "roleMember": "Membre",
+    "roleOwner": "Propriétaire",
+    "selectUsersLabel": "Sélectionner des utilisateurs",
+    "selectUsersPlaceholder": "Choisir un ou plusieurs utilisateurs",
+    "subtitle": "Créez et gérez les groupes d'utilisateurs pour restreindre l'accès aux tournois",
+    "title": "Gestion des organisations"
+  },
+  "outcomeSelector": {
+    "draw": "Match nul",
+    "outcomeReasonLabel": "Raison du résultat",
+    "outcomeReasonPlaceholder": "Sélectionner une raison",
+    "outcomeTypeLabel": "Type de résultat",
+    "outcomeTypePlaceholder": "Sélectionner un type",
+    "teamA": "Équipe A",
+    "teamB": "Équipe B",
+    "winnerLabel": "Vainqueur"
+  },
+  "outcomeTypeStats": {
+    "drawSuffix": "N",
+    "lossSuffix": "D",
+    "title": "Spécialisation par type de résultat",
+    "winSuffix": "V"
+  },
+  "participantService": {
+    "errors": {
+      "addFailed": "Erreur lors de l'ajout du participant",
+      "batchAddFailed": "Erreur lors de l'ajout des participants",
+      "joinFailed": "Erreur lors de l'inscription",
+      "leaveFailed": "Erreur lors de la désinscription",
+      "listFailed": "Erreur lors du chargement des participants",
+      "removeFailed": "Erreur lors du retrait du participant"
+    },
+    "toast": {
+      "addErrorSummary": "Erreur d'ajout",
+      "addSuccessDetail": "Le participant a été ajouté avec succès",
+      "addSuccessSummary": "Participant ajouté",
+      "batchAddSuccessDetail": "{count} participant(s) ajouté(s) avec succès",
+      "batchAddSuccessSummary": "Participants ajoutés",
+      "joinErrorSummary": "Erreur d'inscription",
+      "joinSuccessDetail": "Vous êtes maintenant inscrit au tournoi",
+      "joinSuccessSummary": "Inscription réussie",
+      "leaveErrorSummary": "Erreur de désinscription",
+      "leaveSuccessDetail": "Vous avez quitté le tournoi",
+      "leaveSuccessSummary": "Désinscription réussie",
+      "removeErrorSummary": "Erreur de retrait",
+      "removeSuccessDetail": "Le participant a été retiré du tournoi",
+      "removeSuccessSummary": "Participant retiré"
+    }
+  },
+  "participantsStep": {
+    "addPlayers": "Ajouter des joueurs",
+    "next": "Suivant",
+    "pickerTitle": "Sélectionner les joueurs",
+    "previous": "Précédent",
+    "searchPlaceholder": "Rechercher un joueur...",
+    "selectedParticipants": "Participants sélectionnés",
+    "title": "Participants"
+  },
+  "playerBadges": {
+    "title": "Badges"
+  },
+  "playerComparisonView": {
+    "all": "Tous",
+    "allTournaments": "Tous les tournois",
+    "championship": "Championnat",
+    "chooseDisciplineOrTournament": "Choisissez une discipline ou un tournoi pour comparer.",
+    "choosePlaceholder": "Choisir…",
+    "chooseTwoPlayers": "Choisissez deux joueurs pour comparer.",
+    "commonRivalries": "Bilan de chacun face aux mêmes adversaires",
+    "commonRivalriesDesc": "Adversaire",
+    "headToHeadTitle": "Confrontation directe",
+    "modify": "Modifier",
+    "neverFaced": "Ces deux joueurs ne se sont jamais affrontés.",
+    "neverPlayedTogether": "Ces deux joueurs n'ont jamais joué ensemble.",
+    "noCommonRival": "Aucun adversaire commun.",
+    "opponent": "Adversaire",
+    "outcomeSpecDesc": "Taux de victoire par type de résultat",
+    "outcomeSpecTitle": "Winrate selon la façon dont le match se termine",
+    "playerA": "Joueur A",
+    "playerB": "Joueur B",
+    "ranked": "Ranked",
+    "searchPlaceholder": "Rechercher…",
+    "solo": "1v1",
+    "teamLabel": "Équipe",
+    "title": "Comparaison",
+    "togetherTitle": "Ensemble"
+  },
+  "playerDetailView": {
+    "allDisciplines": "Toutes disciplines",
+    "allDisciplinesOption": "Toutes",
+    "allOption": "Tous",
+    "allTournaments": "Tous les tournois",
+    "apply": "Appliquer",
+    "avgScore": "Score moyen",
+    "back": "Retour",
+    "bracket": "Bracket",
+    "championship": "Championnat",
+    "compare": "Se comparer",
+    "discipline": "Discipline",
+    "filters": "Filtres",
+    "last10Matches": "Historique des 10 derniers matchs",
+    "matches": "Matchs",
+    "matchesPlayedAbbr": "MJ",
+    "mode": "Mode",
+    "noStats": "Pas encore de statistique…",
+    "notInRankedSeason": "Ce joueur ne participe pas à cette saison ranked.",
+    "ranked": "Ranked",
+    "reset": "Réinitialiser",
+    "tournament": "Tournoi",
+    "wdLabel": "V / D",
+    "winrate": "Winrate",
+    "wldLabel": "V / N / D"
+  },
+  "playerMmrProfile": {
+    "bestStreak": "Meilleure série",
+    "currentRank": "Rang actuel",
+    "currentStreak": "Série en cours",
+    "lossesShort": "D",
+    "matchesCount": "Proches",
+    "matchesLabel": "Matchs",
+    "mmrLabel": "MMR",
+    "mmrProgression": "Progression MMR",
+    "opponentLevelTooltip": "Basé sur l'écart de MMR :<br>Forts = +100<br>Proches = ±100<br>Faibles = −100",
+    "outcomeDistribution": "Répartition des fins de match",
+    "vsEqual": "Proches",
+    "vsStronger": "Plus forts",
+    "vsWeaker": "Plus faibles",
+    "winrateByOpponentLevel": "Win rate par niveau d'adversaire",
+    "winrateLabel": "Winrate",
+    "winsLosses": "Victoires / Défaites",
+    "winsShort": "V",
+    "worstStreak": "Pire série"
+  },
+  "playerPickerDialog": {
+    "defaultTitle": "Sélectionner des joueurs",
+    "done": "Terminer",
+    "noResults": "Aucun joueur trouvé",
+    "searchPlaceholder": "Rechercher un joueur..."
+  },
+  "playerRelationStats": {
+    "bestPartners": "Meilleurs partenaires",
+    "frequentPartners": "Partenaires fréquents",
+    "lossCount": "{count} défaite | {count} défaites",
+    "matchCount": "{count} match | {count} matchs",
+    "toughOpponents": "Adversaires difficiles",
+    "winRateSuffix": "% V"
+  },
+  "publicHomeView": {
+    "description": "Créez et gérez vos tournois en quelques clics. Championnat ou élimination directe, suivez les classements en temps réel.",
+    "enterApp": "Accéder à l'application",
+    "tagline": "La chance ne suffira pas"
+  },
+  "pwaInstallBanner": {
+    "installButton": "Installer",
+    "iosInstruction": {
+      "addToHomeScreen": "puis Sur l'écran d'accueil",
+      "tapOn": "Appuyez sur",
+      "then": "Sur l'écran d'accueil"
+    },
+    "subtitle": "Accès rapide depuis l'écran d'accueil",
+    "title": "Installer Skol"
+  },
+  "rankedLeaderboard": {
+    "matchPlural": "{number} matchs",
+    "matchSingular": "{number} match",
+    "modeOfficial": "Officiel",
+    "modeProvisional": "Provisoire (Live)",
+    "noTiers": "Aucun rang configuré pour cette saison",
+    "recalculating": "Recalcul MMR en cours…",
+    "unknownPlayer": "Inconnu",
+    "you": "Vous"
+  },
+  "rankedMatchHistory": {
+    "draw": "Égalité",
+    "emptyState": "Aucun match dans l'historique",
+    "filterDraw": "Nul",
+    "loss": "Défaite",
+    "seeMatch": "Voir le match",
+    "statusCancelled": "Annulé",
+    "statusContested": "Contesté",
+    "statusFinalized": "Finalisé",
+    "statusOngoing": "En cours",
+    "vsLabel": "Contre :",
+    "win": "Victoire",
+    "withLabel": "Avec :"
+  },
+  "rankedSeasonFormView": {
+    "createSeason": "Créer la saison",
+    "descriptionPlaceholder": "Description optionnelle de la saison",
+    "editTitle": "Modifier la saison ranked",
+    "eloConfigTitle": "Configuration Elo",
+    "fieldDisciplineId": "Discipline",
+    "fieldEndDate": "Date de fin",
+    "fieldMaxScore": "Score maximum",
+    "fieldMaxTeamSize": "Taille max équipe",
+    "fieldMinScore": "Score minimum",
+    "fieldMinTeamSize": "Taille min équipe",
+    "fieldName": "Nom",
+    "fieldStartDate": "Date de début",
+    "fieldValidationMode": "Mode de validation",
+    "helpSourceTierSeasonId": "La structure des rangs sera copiée au démarrage de la saison. Les seuils MMR seront",
+    "invalidFieldsTitle": "Champs invalides",
+    "labelAllowAsymmetricMatches": "Autoriser les matchs asymétriques (équipes de tailles différentes)",
+    "labelBaseMmr": "MMR de base",
+    "labelKFactor": "Facteur K",
+    "labelPlacementMatches": "Matchs de placement",
+    "labelSourceTierSeasonId": "Copier les rangs depuis une saison terminée (optionnel)",
+    "labelUsePreviousMmr": "Reprendre le MMR de la saison précédente (soft reset)",
+    "namePlaceholder": "Ex: Saison 1 - Billard 2026",
+    "newTitle": "Nouvelle saison ranked",
+    "placeholderSourceTierSeasonId": "Utiliser les rangs par défaut"
+  },
+  "rankedSeasonsList": {
+    "colEnd": "Fin",
+    "colStart": "Début",
+    "createSeason": "Créer une saison",
+    "empty": "Aucune saison ranked trouvée",
+    "end": "Terminer",
+    "endDialogConfirm": "Êtes-vous sûr de vouloir terminer la saison",
+    "endDialogHeader": "Terminer la saison ?",
+    "newSeason": "Nouvelle saison",
+    "statusCancelled": "Annulé",
+    "statusDraft": "Brouillon",
+    "statusFinished": "Terminé",
+    "statusOngoing": "En cours",
+    "statusOpen": "Ouvert",
+    "title": "Saisons Ranked",
+    "tooltipEnd": "Terminer",
+    "tooltipManageRanks": "Gérer les rangs",
+    "tooltipStart": "Démarrer",
+    "tooltipView": "Voir"
+  },
+  "rankedService": {
+    "errors": {
+      "createSeasonFailed": "Erreur lors de la création de la saison",
+      "createTierFailed": "Erreur lors de la création du rang",
+      "deleteTierFailed": "Erreur lors de la suppression du rang",
+      "endSeasonFailed": "Erreur lors de la clôture de la saison",
+      "loadFinishedSeasonsFailed": "Erreur lors du chargement des saisons terminées",
+      "loadHistoryFailed": "Erreur lors du chargement de l'historique",
+      "loadLeaderboardFailed": "Erreur lors du chargement du classement",
+      "loadProvisionalLeaderboardFailed": "Erreur lors du chargement du classement provisoire",
+      "loadSeasonFailed": "Erreur lors du chargement de la saison",
+      "loadSeasonsFailed": "Erreur lors du chargement des saisons",
+      "loadTiersFailed": "Erreur lors du chargement des rangs",
+      "recalculateTiersFailed": "Erreur lors du recalcul des rangs",
+      "startSeasonFailed": "Erreur lors du démarrage de la saison",
+      "updateSeasonFailed": "Erreur lors de la mise à jour de la saison",
+      "updateTierFailed": "Erreur lors de la mise à jour du rang"
+    },
+    "matchLabel": {
+      "exploit": "Exploit 🚀",
+      "favorite": "Statut Favori ⚖️",
+      "rookieProtection": "Protection Rookie 🛡️"
+    }
+  },
+  "rankedTiersView": {
+    "addDialogTitle": "Ajouter un rang",
+    "addRank": "Ajouter un rang",
+    "colCalculatedAt": "Calculé le",
+    "colLevel": "Niveau",
+    "colMinMmr": "MMR min",
+    "colPercentile": "Percentile",
+    "colSubRanks": "Sous-rangs",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer le rang \"{name}\" ?",
+    "deleteDialogTitle": "Supprimer le rang ?",
+    "editDialogTitle": "Modifier le rang",
+    "empty": "Aucun rang défini pour cette saison",
+    "formLevel": "Niveau",
+    "formMinMmr": "MMR minimum",
+    "formName": "Nom",
+    "formNamePlaceholder": "Ex: Légende",
+    "formPercentile": "Percentile (0 à 1)",
+    "formPercentileHelp": "Seuil de MMR basé sur la distribution des joueurs",
+    "formSubRanks": "Sous-rangs",
+    "formSubRanksHelp": "1 = pas de sous-rang. Ex: 5 → Silver 5, Silver 4, ..., Silver 1",
+    "recalcConfirm": "Les valeurs MMR minimum de chaque rang seront recalculées selon les percentiles et la distribution MMR actuelle des joueurs.",
+    "recalcDialogTitle": "Recalculer les seuils MMR ?",
+    "recalculate": "Recalculer",
+    "recalculateThresholds": "Recalculer les seuils MMR",
+    "statusCancelled": "Annulé",
+    "statusDraft": "Brouillon",
+    "statusFinished": "Terminé",
+    "statusOngoing": "En cours",
+    "statusOpen": "Ouvert",
+    "title": "Gestion des rangs",
+    "tooltipBack": "Retour à la liste"
+  },
+  "recentFormSection": {
+    "title": "Forme récente",
+    "tooltip": "Du plus ancien au plus récent"
+  },
+  "registerView": {
+    "alreadyHaveAccount": "Déjà un compte ?",
+    "backToHome": "← Retour à l'accueil",
+    "createAccount": "Créer mon compte",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "vous@exemple.com",
+    "infoMessage": "En créant un compte, vous pourrez participer aux tournois et suivre vos statistiques.",
+    "login": "Se connecter",
+    "nameLabel": "Nom complet (optionnel)",
+    "passwordConfirmLabel": "Confirmer le mot de passe",
+    "passwordLabel": "Mot de passe",
+    "subtitle": "Créez votre compte"
+  },
+  "resetPasswordView": {
+    "confirmPasswordLabel": "Confirmer le mot de passe",
+    "instructions": "Choisissez un nouveau mot de passe sécurisé.",
+    "invalidLink": "Le lien de réinitialisation est invalide ou a expiré.",
+    "login": "avec votre nouveau mot de passe.",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "requestNewLink": "Demander un nouveau lien",
+    "resetButton": "Réinitialiser le mot de passe",
+    "subtitle": "Nouveau mot de passe",
+    "successMessage": "Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter",
+    "successTitle": "Mot de passe réinitialisé !"
+  },
+  "resultStep": {
+    "create": "Créer le match",
+    "draw": "Match nul",
+    "outcomeType": "Type de résultat",
+    "previous": "Précédent",
+    "reason": "Raison",
+    "score": "Score",
+    "selectOutcomeType": "Sélectionner un type",
+    "selectReason": "Sélectionner une raison",
+    "selectWinner": "Sélectionnez le vainqueur",
+    "selectWinnerOnly": "Sélectionnez un vainqueur.",
+    "selectWinnerOrDraw": "Sélectionnez un vainqueur ou match nul.",
+    "team": "Score",
+    "title": "Résultat"
+  },
+  "richTextEditor": {
+    "image": {
+      "placeholder": "https://exemple.com/image.png"
+    },
+    "insert": "Insérer",
+    "link": {
+      "placeholder": "https://exemple.com"
+    },
+    "toolbar": {
+      "alignCenter": "Centrer",
+      "alignLeft": "Aligner à gauche",
+      "alignRight": "Aligner à droite",
+      "bold": "Gras",
+      "bulletList": "Liste à puces",
+      "headingH2": "Titre H2",
+      "headingH3": "Titre H3",
+      "insertImage": "Insérer une image",
+      "insertLink": "Insérer un lien",
+      "italic": "Italique",
+      "orderedList": "Liste numérotée",
+      "redo": "Rétablir",
+      "underline": "Souligné",
+      "undo": "Annuler"
+    }
+  },
+  "routes": {
+    "admin": "Administration",
+    "adminDisciplineEdit": "Modifier la discipline",
+    "adminDisciplines": "Gestion des disciplines",
+    "adminGameRules": "Gestion des règles du jeu",
+    "adminGameRulesBreadcrumb": "Règles du jeu",
+    "adminGameRulesEdit": "Modifier le règlement",
+    "adminGameRulesNew": "Nouveau règlement",
+    "adminInvitations": "Gestion des codes d'invitation",
+    "adminInvitationsBreadcrumb": "Codes d'invitation",
+    "adminOrganizations": "Gestion des organisations",
+    "adminOrganizationsBreadcrumb": "Organisations",
+    "adminRanked": "Gestion des saisons ranked",
+    "adminRankedBreadcrumb": "Saisons Ranked",
+    "adminRankedEdit": "Modifier la saison ranked",
+    "adminRankedEditBreadcrumb": "Modifier la saison",
+    "adminRankedNew": "Nouvelle saison ranked",
+    "adminRankedNewBreadcrumb": "Nouvelle saison",
+    "adminRankedTiers": "Gestion des rangs",
+    "adminRankedTiersBreadcrumb": "Rangs",
+    "adminRulesEngine": "Moteur de règles",
+    "adminRulesEngineEdit": "Modifier la règle",
+    "adminRulesEngineNew": "Nouvelle règle",
+    "adminTournamentEdit": "Modifier le tournoi",
+    "adminTournaments": "Gestion des tournois",
+    "createMatch": "Créer un match",
+    "editBreadcrumb": "Modifier",
+    "forgotPassword": "Mot de passe oublié",
+    "home": "Accueil",
+    "invitationCode": "Code d'invitation",
+    "login": "Connexion",
+    "matchDetail": "Détails du match",
+    "notFound": "Page introuvable",
+    "notifications": "Notifications",
+    "offline": "Hors ligne",
+    "playerCompare": "Comparer des joueurs",
+    "playerDetail": "Profil du joueur",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "rules": "Règlement",
+    "settings": "Paramètres",
+    "signup": "Inscription",
+    "tournamentDetail": "Détails du tournoi",
+    "tournaments": "Évènements compétitifs"
+  },
+  "rulesContent": {
+    "noRules": "Aucun règlement disponible."
+  },
+  "rulesEngineFormView": {
+    "addVariant": "Ajouter une variante",
+    "betaTag": "Bêta",
+    "betaWarning": "Cette fonctionnalité est en bêta. Des comportements inattendus peuvent survenir — signalez tout bug rencontré.",
+    "boolFalse": "Faux",
+    "boolTrue": "Vrai",
+    "closeButton": "Fermer",
+    "conditionsTitle": "Conditions",
+    "editTitle": "Modifier la règle",
+    "labelBadgeDescription": "Description",
+    "labelBadgeLabel": "Label",
+    "labelDescription": "Description",
+    "labelIcon": "Icône",
+    "labelIsActive": "Règle active",
+    "labelName": "Nom",
+    "labelPriority": "Priorité",
+    "labelScope": "Portée",
+    "labelTriggerEvent": "Événement déclencheur",
+    "labelType": "Type",
+    "metadataTitle": "Métadonnées",
+    "newTitle": "Nouvelle règle",
+    "placeholderBadgeDescription": "5 victoires consécutives",
+    "placeholderBadgeLabel": "Inarrêtable",
+    "placeholderDiscipline": "Choisir une discipline",
+    "placeholderPlayer": "Joueur",
+    "previewLabel": "Prévisualisation",
+    "previewPlayerFallback": "Joueur",
+    "ruleCreated": "Succès",
+    "ruleUpdated": "Règle mise à jour",
+    "runTestButton": "Lancer le test",
+    "saveButton": "Sauvegarder",
+    "scopeGlobal": "Global",
+    "successSummary": "Succès",
+    "testButton": "Tester",
+    "testDialogTitle": "Tester la règle",
+    "testMatched": "✓ La règle matche",
+    "testNotMatched": "✗ La règle ne matche pas",
+    "triggerMatchSubmitted": "Saisie de match",
+    "typeBadge": "Badge",
+    "typeMessage": "Message",
+    "validationBadgeRequired": "Tous les champs du badge sont requis",
+    "validationConditionRequired": "Au moins une condition complète est requise",
+    "validationDisciplineRequired": "Une discipline est requise pour la portée discipline",
+    "validationMessageRequired": "Au moins une variante de message est requise",
+    "validationNameRequired": "Le nom est requis",
+    "validationSummary": "Validation",
+    "variablesLabel": "Variables (cliquer pour insérer)"
+  },
+  "rulesEngineList": {
+    "badgeHolderWarning": "{count} joueur(s) possèdent actuellement ce badge. Si vous continuez, il leur sera définitivement retiré.",
+    "betaTag": "Bêta",
+    "betaWarning": "Cette fonctionnalité est en bêta. Des comportements inattendus peuvent survenir, signalez tout bug rencontré.",
+    "colActive": "Actif",
+    "colEvent": "Événement",
+    "colPriority": "Priorité",
+    "colScope": "Portée",
+    "colType": "Type",
+    "copyName": "{name} (copie)",
+    "createRule": "Créer une règle",
+    "deleteConfirm": "Supprimer la règle \"{name}\" ? Cette action est irréversible.",
+    "deleteDialogTitle": "Supprimer la règle ?",
+    "dirtyWarning": "Des badges ont été modifiés depuis le dernier recalcul. Le recalcul tournera automatiquement cette nuit, ou lancez-le maintenant.",
+    "empty": "Aucune règle trouvée",
+    "errorSummary": "Erreur",
+    "filterScope": "Portée",
+    "filterType": "Type",
+    "lastRun": "Dernier recalcul des badges : {date}",
+    "newRule": "Nouvelle règle",
+    "no": "Non",
+    "recalcDetail": "Le recalcul des badges a été mis en file. Il s'exécute en arrière-plan.",
+    "recalcErrorDetail": "Impossible de lancer le recalcul.",
+    "recalcLaunchedSummary": "Recalcul lancé",
+    "recalculateBadges": "Recalculer les badges",
+    "recalculateBadgesTooltip": "Lance immédiatement un recalcul complet des badges (sinon exécuté chaque nuit)",
+    "scopeGlobal": "Global",
+    "statusActive": "Actif",
+    "statusInactive": "Inactif",
+    "title": "Moteur de règles",
+    "tooltipDuplicate": "Dupliquer",
+    "typeBadge": "Badge",
+    "typeMessage": "Message",
+    "yes": "Oui"
+  },
+  "rulesService": {
+    "errors": {
+      "createFailed": "Erreur lors de la création de la règle",
+      "deleteFailed": "Erreur lors de la suppression de la règle",
+      "getFailed": "Erreur lors du chargement de la règle",
+      "listFailed": "Erreur lors du chargement des règles",
+      "loadCatalogFailed": "Erreur lors du chargement du catalogue",
+      "testFailed": "Erreur lors du test de la règle",
+      "triggerReconciliationFailed": "Erreur lors du déclenchement de la réconciliation",
+      "updateFailed": "Erreur lors de la mise à jour de la règle"
+    }
+  },
+  "rulesView": {
+    "defaultTitle": "Règlement"
+  },
+  "scoreConstraintsSection": {
+    "fields": {
+      "maxScore": "Score maximum",
+      "minScore": "Score minimum",
+      "scoreEnabled": "Saisie des scores activée"
+    },
+    "placeholders": {
+      "noLimit": "Aucune limite"
+    },
+    "title": "Contraintes de score"
+  },
+  "scoreInput": {
+    "enterScore": "Saisir le score",
+    "matchDateTime": "Date et heure du match",
+    "schedule": "Programmer",
+    "scoreA": "Score A",
+    "scoreB": "Score B",
+    "vs": "VS"
   },
   "settings": {
-    "title": "Paramètres",
+    "account": {
+      "changePassword": "Changer le mot de passe",
+      "title": "Compte"
+    },
     "appearance": {
-      "title": "Apparence",
       "darkMode": "Mode sombre",
-      "darkModeDesc": "Activer le thème sombre pour l'interface"
-    },
-    "language": {
-      "title": "Langue",
-      "label": "Langue de l'interface",
-      "desc": "Choisissez la langue d'affichage de l'application"
-    },
-    "profile": {
-      "title": "Profil",
-      "updateSuccess": "Profil mis à jour avec succès.",
-      "displayName": "Nom complet",
-      "shortName": "Nom court (affichage réduit)",
-      "shortNameHint": "Jusqu'à 8 caractères, affiché lorsque la place disponible est réduite.",
-      "updateError": "Une erreur est survenue lors de la mise à jour.",
-      "loadError": "Impossible de charger le profil."
+      "darkModeDesc": "Activer le thème sombre pour l'interface",
+      "title": "Apparence"
     },
     "application": {
-      "title": "Application",
-      "installed": "L'application est déjà installée sur cet appareil.",
       "install": "Installer l'application",
-      "installDesc": "Accès rapide depuis l'écran d'accueil",
       "installBtn": "Installer",
+      "installDesc": "Accès rapide depuis l'écran d'accueil",
+      "installed": "L'application est déjà installée sur cet appareil.",
+      "iosAddToHome": "Sur l'écran d'accueil",
       "iosTap": "Appuyez sur",
       "iosThen": "puis",
-      "iosAddToHome": "Sur l'écran d'accueil",
-      "notAvailable": "L'installation n'est pas disponible sur ce navigateur."
-    },
-    "notifications": {
-      "title": "Notifications",
-      "push": "Notifications push",
-      "pushDesc": "Recevoir des notifications sur cet appareil",
-      "unsupported": "Les notifications push ne sont pas supportées par votre navigateur"
-    },
-    "account": {
-      "title": "Compte",
-      "changePassword": "Changer le mot de passe"
+      "notAvailable": "L'installation n'est pas disponible sur ce navigateur.",
+      "title": "Application"
     },
     "groups": {
-      "title": "Groupes",
+      "codePlaceholder": "ex: tigre-riviere-soleil-lune",
+      "codeValidPrefix": "Code valide — groupe :",
+      "invalidCode": "Code invalide",
+      "invitationCode": "Code d'invitation",
       "join": "Rejoindre un groupe",
       "joinDesc": "Accéder aux tournois privés d'un groupe",
+      "joinError": "Erreur lors de l'adhésion au groupe.",
       "joinedPrefix": "Vous avez rejoint",
-      "invitationCode": "Code d'invitation",
-      "codePlaceholder": "ex: tigre-riviere-soleil-lune",
-      "validating": "Validation en cours...",
-      "codeValidPrefix": "Code valide — groupe :",
       "notGroupCode": "Ce code n'est pas un code de groupe.",
-      "invalidCode": "Code invalide",
-      "joinError": "Erreur lors de l'adhésion au groupe."
+      "title": "Groupes",
+      "validating": "Validation en cours..."
     },
     "kiosk": {
-      "title": "Mode kiosque",
-      "warning": "En verrouillant les paramètres, vous ne pourrez plus y accéder tant que l'utilisateur ne se sera pas reconnecté sur cet appareil.",
-      "lock": "Verrouiller les paramètres",
-      "dialogTitle": "Verrouiller les paramètres ?",
       "attention": "Attention :",
-      "dialogWarningBody": "Cette action verrouillera l'accès aux paramètres. Pour y accéder à nouveau, vous devrez vous déconnecter et vous reconnecter.",
       "dialogNote": "Cette fonctionnalité est conçue pour les appareils partagés en accès public.",
-      "lockShort": "Verrouiller"
+      "dialogTitle": "Verrouiller les paramètres ?",
+      "dialogWarningBody": "Cette action verrouillera l'accès aux paramètres. Pour y accéder à nouveau, vous devrez vous déconnecter et vous reconnecter.",
+      "lock": "Verrouiller les paramètres",
+      "lockShort": "Verrouiller",
+      "title": "Mode kiosque",
+      "warning": "En verrouillant les paramètres, vous ne pourrez plus y accéder tant que l'utilisateur ne se sera pas reconnecté sur cet appareil."
+    },
+    "language": {
+      "desc": "Choisissez la langue d'affichage de l'application",
+      "label": "Langue de l'interface",
+      "title": "Langue"
+    },
+    "notifications": {
+      "push": "Notifications push",
+      "pushDesc": "Recevoir des notifications sur cet appareil",
+      "title": "Notifications",
+      "unsupported": "Les notifications push ne sont pas supportées par votre navigateur"
     },
     "password": {
-      "title": "Changer le mot de passe",
-      "success": "Mot de passe modifié avec succès.",
+      "confirm": "Confirmer le nouveau mot de passe",
       "current": "Mot de passe actuel",
       "new": "Nouveau mot de passe",
-      "confirm": "Confirmer le nouveau mot de passe"
+      "success": "Mot de passe modifié avec succès.",
+      "title": "Changer le mot de passe"
     },
+    "profile": {
+      "displayName": "Nom complet",
+      "loadError": "Impossible de charger le profil.",
+      "shortName": "Nom court (affichage réduit)",
+      "shortNameHint": "Jusqu'à 8 caractères, affiché lorsque la place disponible est réduite.",
+      "title": "Profil",
+      "updateError": "Une erreur est survenue lors de la mise à jour.",
+      "updateSuccess": "Profil mis à jour avec succès."
+    },
+    "title": "Paramètres",
     "validation": {
-      "min3": "Minimum 3 caractères",
       "displayNameMax": "Maximum 50 caractères",
-      "shortNameMax": "Maximum 8 caractères",
-      "nameRegex": "Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots"
+      "min3": "Minimum 3 caractères",
+      "nameRegex": "Au moins 2 lettres/chiffres requis, tirets et underscores autorisés, un seul espace entre les mots",
+      "shortNameMax": "Maximum 8 caractères"
     }
+  },
+  "signupView": {
+    "backToLogin": "← Retour à la connexion",
+    "chooseMethod": "Choisissez votre méthode d'inscription ",
+    "codeInvalid": "Code invalide",
+    "codeValidMessage": "Code valide ({count} utilisation(s) restante(s))",
+    "emailPasswordButton": "Créer un compte Email / Mot de passe",
+    "enterCodePrompt": "Veuillez entrer votre code d'invitation pour continuer.",
+    "errorSummary": "Erreur d'inscription",
+    "invalidFormat": "Format invalide (ex: tigre-riviere-soleil-ocean)",
+    "invitationCodeLabel": "Code d'invitation",
+    "invitationCodePlaceholder": "Code d'invitation",
+    "invitationRequired": "Code d'invitation requis",
+    "keycloakLabel": "S'inscrire avec Keycloak (SSO)",
+    "noAuthMethodDesc": "Contactez l'administrateur système. La configuration de l'authentification est",
+    "noAuthMethodTitle": "Aucune méthode d'authentification n'est disponible",
+    "oauthError": "Une erreur est survenue lors de l'inscription",
+    "signingIn": "Connexion en cours...",
+    "subtitle": "Créer un compte",
+    "validating": "Validation en cours...",
+    "validationError": "Erreur lors de la validation"
+  },
+  "skolLogo": {
+    "ariaLabel": "SKOL - Skill Kills Our Luck"
+  },
+  "standingsService": {
+    "errors": {
+      "loadFailed": "Erreur lors du chargement du classement"
+    }
+  },
+  "standingsTable": {
+    "buchholzDesc": "Score Buchholz — indicateur de difficulté du parcours.",
+    "buchholzExplanationLine1": "Il correspond à la somme des points des adversaires affrontés.",
+    "buchholzExplanationLine2": "Pour les matchs en équipe (2v2, 3v3, etc.), on prend la moyenne des points des joueurs adverses pour chaque match. Un Buchholz élevé signifie que vous avez affronté des joueurs mieux classés.",
+    "columnBuchholz": "Buch.",
+    "columnDiff": "Diff",
+    "columnDraws": "N",
+    "columnLosses": "D",
+    "columnMatchesPlayed": "MJ",
+    "columnPoints": "Pts",
+    "columnVictoryQuality": "Qual.",
+    "columnWinLossRatio": "V/D",
+    "columnWinRate": "Win%",
+    "columnWins": "V",
+    "criteriaPoints": "Points totaux",
+    "criteriaWinLossRatio": "Ratio victoires / défaites",
+    "criteriaWins": "Nombre de victoires",
+    "defaultPoints": "3 pts par résultat par défaut",
+    "directConfrontationsPlayers": "résultats entre les joueurs à égalité",
+    "directConfrontationsTeams": "résultats entre les équipes à égalité",
+    "draw": "Match nul",
+    "howRankingTooltip": "Comment est calculé le classement ?",
+    "loss": "Défaite",
+    "noMatchesPlayed": "Aucun match joué",
+    "noStandings": "Aucun classement disponible pour le moment",
+    "official": "Officiel",
+    "officialDesc": "uniquement les matchs validés",
+    "officialVsProvisional": "Classement officiel vs provisoire",
+    "pointsAwarded": "Points attribués",
+    "provisional": "Provisoire",
+    "provisionalDesc": "matchs validés + matchs en attente de validation",
+    "ptPerResult": "pt/rés.",
+    "ptUnit": "pt",
+    "ptsUnit": "pts",
+    "rankFirst": "Premier",
+    "rankSecond": "Deuxième",
+    "rankThird": "Troisième",
+    "rankingCriteria": "Critères de classement",
+    "rankingCriteriaSubtitle": "Appliqués dans cet ordre en cas d'égalité :",
+    "tiebreakerBuchholz": "Buchholz",
+    "tiebreakerCriteria": "Critères de départage",
+    "tiebreakerDetails": "Détails départage {name}",
+    "tiebreakerQuality": "Qual. résultats",
+    "tiebreakerWinLossRatio": "Ratio V/D",
+    "tiebreakerWinRate": "Win rate",
+    "tooltipBuchholz": "Buchholz - Score basé sur les adversaires rencontrés",
+    "tooltipVictoryQuality": "Qualité des résultats - Score basé sur le type de victoire/défaite",
+    "total": "Total",
+    "victoryQualityDesc": "Mesure la manière dont les matchs sont gagnés ou perdus. Une victoire rapporte des points, une défaite en retire, avec un poids selon le type de fin de partie",
+    "victoryQualityLabel": "Qualité des résultats",
+    "win": "Victoire",
+    "winRateCriteria": "Taux de victoire"
+  },
+  "submitInvitationView": {
+    "codeInvalid": "Code invalide",
+    "codeLabel": "Code d'invitation",
+    "codePlaceholder": "Code d'invitation",
+    "codeValid": "Code valide ({count} utilisation(s) restante(s))",
+    "enterCodePrompt": "Veuillez entrer votre code d'invitation pour continuer.",
+    "hint": "Soumettez votre code d'invitation",
+    "infoDesc": "Votre compte a été créé avec succès, mais vous devez soumettre un code d'invitation pour accéder à l'application.",
+    "infoTitle": "Code d'invitation requis",
+    "logout": "Se déconnecter",
+    "submit": "Soumettre le code",
+    "submitError": "Erreur lors de la soumission du code",
+    "submitting": "Soumission...",
+    "subtitle": "Activation du compte",
+    "validating": "Validation en cours..."
+  },
+  "teamManagementPanel": {
+    "addButton": "Ajouter",
+    "addPlayerDescription": "Sélectionnez un participant à ajouter dans",
+    "addPlayerTitle": "Ajouter un joueur",
+    "alreadyInTeam": "Vous êtes déjà membre d'une équipe pour ce tournoi.",
+    "choosePlayerPlaceholder": "Choisir un joueur…",
+    "joinButton": "Rejoindre",
+    "leaveButton": "Quitter",
+    "noMembers": "Aucun membre",
+    "noTeams": "Aucune équipe créée pour ce tournoi.",
+    "teamLockedTitle": "Équipe verrouillée (Un ou plusieurs matchs ont déjà été saisies)",
+    "teamNamePlaceholder": "Nom de l'équipe",
+    "teamsLocked": "Les équipes sont verrouillées (tournoi en cours ou terminé)."
+  },
+  "teamPreview": {
+    "noPlayersSelected": "Aucun joueur sélectionné",
+    "teamA": "Équipe A",
+    "teamB": "Équipe B"
+  },
+  "teamSelector": {
+    "playerFallback": "Joueur {playerId}",
+    "searchPlaceholder": "Rechercher un joueur...",
+    "selectedPlayers": "Joueurs sélectionnés"
+  },
+  "teamService": {
+    "errors": {
+      "createFailed": "Erreur",
+      "deleteFailed": "Erreur",
+      "joinFailed": "Erreur",
+      "leaveFailed": "Erreur",
+      "listFailed": "Erreur lors du chargement des équipes"
+    },
+    "toast": {
+      "createSuccess": "Équipe créée",
+      "deleteSuccess": "Équipe supprimée",
+      "joinSuccess": "Équipe rejointe",
+      "leaveSuccess": "Équipe quittée"
+    }
+  },
+  "teamsStep": {
+    "next": "Suivant",
+    "previous": "Précédent",
+    "selectTeam": "Sélectionner une équipe",
+    "team": "Équipe {number}"
+  },
+  "tournamentBadgesTab": {
+    "availableCount": "{count} badge disponible | {count} badges disponibles",
+    "earnedCount": "Badges du tournoi",
+    "emptyState": "Aucun badge disponible",
+    "title": "Badges du tournoi"
+  },
+  "tournamentBracket": {
+    "bronzeMatch": "Match pour la 3ème place",
+    "losersBracket": "Tableau de la seconde chance",
+    "mainBracket": "Tableau principal"
+  },
+  "tournamentCard": {
+    "mode": {
+      "bracket": "Bracket",
+      "championship": "Championnat",
+      "ranked": "Ranked"
+    },
+    "period": {
+      "daysLeft": "{days} j restants",
+      "endingSoon": "Fin imminente",
+      "finished": "Terminé",
+      "label": "Période",
+      "registrationsOpen": "Inscriptions ouvertes",
+      "soon": "Bientôt",
+      "startsIn": "Commence dans {days} j"
+    },
+    "status": {
+      "draft": "Brouillon",
+      "finished": "Terminé",
+      "ongoing": "En cours",
+      "open": "Ouvert"
+    }
+  },
+  "tournamentDetailMobile": {
+    "declareFirstMatch": "Déclarez votre premier match pour rejoindre le classement !",
+    "globalStats": "Stats globales",
+    "myProfile": "Mon profil",
+    "noMmrYet": "Vous n'avez pas encore de MMR pour cette saison."
+  },
+  "tournamentDetailView": {
+    "accessDenied": {
+      "detail": "Vous n'avez pas accès à ce tournoi",
+      "summary": "Accès refusé"
+    },
+    "backToHome": "Retour à l'accueil",
+    "createMatchBtn": "Créer un match",
+    "joinBtn": "Participer",
+    "mode": {
+      "bracket": "Bracket",
+      "championship": "Championnat",
+      "ranked": "Ranked"
+    },
+    "notFound": {
+      "backBtn": "Retour aux tournois",
+      "description": "Le tournoi que vous cherchez n'existe pas ou n'est plus disponible.",
+      "title": "Tournoi introuvable"
+    },
+    "registered": "Inscrit",
+    "status": {
+      "cancelled": "Annulé",
+      "draft": "Brouillon",
+      "finished": "Terminé",
+      "ongoing": "En cours",
+      "open": "Ouvert"
+    },
+    "tabs": {
+      "bracket": "Bracket",
+      "infos": "Infos",
+      "matches": "Matchs",
+      "standings": "Classement",
+      "stats": "Stats",
+      "teams": "Équipes"
+    }
+  },
+  "tournamentFormView": {
+    "championshipRulesTitle": "Règles du championnat",
+    "errorDateRange": "La date de début doit être antérieure à la date de fin",
+    "errorTeamSize": "La taille maximale doit être supérieure ou égale à la taille minimale",
+    "labelMaxMatchesPerPlayer": "Matchs max par joueur",
+    "labelMaxTimesWithSameOpponent": "Max contre même adversaire",
+    "labelMaxTimesWithSamePartner": "Max avec même partenaire",
+    "labelMode": "Mode",
+    "labelPointPerDraw": "Points par match nul",
+    "labelPointPerLoss": "Points par défaite",
+    "labelPointPerVictory": "Points par victoire",
+    "labelTeamMode": "Formation d'équipe",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championnat",
+    "statusDraft": "Brouillon",
+    "statusFinished": "Terminé",
+    "statusOngoing": "En cours",
+    "statusOpen": "Ouvert aux inscriptions",
+    "teamModeFlex": "Flexible",
+    "teamModeStatic": "Statique",
+    "undefinedDiscipline": "Non définie"
+  },
+  "tournamentHeader": {
+    "alreadyRegistered": "Déjà inscrit",
+    "createMatch": "Créer un match",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championnat",
+    "modeRanked": "Ranked",
+    "participate": "Participer",
+    "statusCancelled": "Annulé",
+    "statusDraft": "Brouillon",
+    "statusFinished": "Terminé",
+    "statusOngoing": "En cours",
+    "statusOpen": "Ouvert"
+  },
+  "tournamentInfoGrid": {
+    "allowed": "Autorisés",
+    "drawLabel": "Match nul :",
+    "drawsAllowedLabel": "Match nuls :",
+    "durationLabel": "Durée :",
+    "endLabel": "Fin :",
+    "forbidden": "Interdits",
+    "generalInfo": "Informations générales",
+    "hideDetails": "Masquer les détails",
+    "lossLabel": "Défaite :",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championnat",
+    "modeLabel": "Mode :",
+    "modeRanked": "Ranked",
+    "playersUnit": "joueurs",
+    "pointSystem": "Système de points",
+    "ptsUnit": "pts",
+    "schedule": "Calendrier",
+    "showDetails": "Voir les détails",
+    "startLabel": "Début :",
+    "teamModeFlex": "Flexible",
+    "teamModeLabel": "Mode équipe :",
+    "teamModeStatic": "Statique",
+    "teamSizeLabel": "Taille équipe :",
+    "victoryLabel": "Victoire :"
+  },
+  "tournamentInfosTab": {
+    "badges": {
+      "subtitle": "Badges à débloquer",
+      "title": "Badges"
+    },
+    "participants": {
+      "subtitle": "Voir les joueurs inscrits",
+      "title": "Participants"
+    },
+    "rules": {
+      "subtitle": "Consulter les règles",
+      "title": "Règles"
+    },
+    "teams": {
+      "subtitle": "Gérer les équipes",
+      "title": "Équipes"
+    }
+  },
+  "tournamentList": {
+    "allModes": "Tous les modes",
+    "allStatuses": "Tous les statuts",
+    "colEnd": "Fin",
+    "colMode": "Mode",
+    "colStart": "Début",
+    "colStatus": "Statut",
+    "colTeams": "Équipes",
+    "createFirst": "Créer votre premier tournoi",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer ce tournoi ? Cette action est irréversible.",
+    "deleteDialogTitle": "Supprimer {name} ?",
+    "empty": "Aucun tournoi trouvé",
+    "modeBracket": "Bracket",
+    "modeChampionship": "Championnat",
+    "newTournament": "Nouveau tournoi",
+    "statusDraft": "Brouillon",
+    "statusFinished": "Terminé",
+    "statusOngoing": "En cours",
+    "statusOpen": "Ouvert",
+    "teamModeFlex": "Flexible",
+    "teamModeStatic": "Statique",
+    "title": "Gestion des tournois"
+  },
+  "tournamentParticipantsList": {
+    "addButton": "Ajouter",
+    "addParticipant": "Ajouter un participant",
+    "addParticipantsTitle": "Ajouter des participants",
+    "matchCount": "{count} match joué | {count} matchs joués",
+    "noParticipants": "Aucun participant pour le moment",
+    "registeredOn": "Inscrit le {date}",
+    "selectUsersLabel": "Sélectionner des utilisateurs",
+    "selectUsersPlaceholder": "Choisir un ou plusieurs utilisateurs"
+  },
+  "tournamentParticipantsTab": {
+    "title": "Participants"
+  },
+  "tournamentProfileTab": {
+    "noMmr": "Vous n'avez pas encore de MMR pour cette saison.",
+    "noMmrHint": "Déclarez votre premier match pour rejoindre le classement !"
+  },
+  "tournamentRulesView": {
+    "defaultTitle": "Règlement"
+  },
+  "tournamentService": {
+    "errors": {
+      "createFailed": "Erreur lors de la création",
+      "deleteFailed": "Erreur lors de la suppression",
+      "loadFailed": "Erreur lors du chargement",
+      "noCreatePermission": "Vous n'avez pas les droits pour créer un tournoi",
+      "statusChangeFailed": "Erreur lors du changement de statut",
+      "updateFailed": "Erreur lors de la mise à jour"
+    }
+  },
+  "tournamentStatsCombinedTab": {
+    "nav": {
+      "global": "Global",
+      "myProfile": "Mon profil"
+    },
+    "noMmr": "Vous n'avez pas encore de MMR pour cette saison.",
+    "noMmrHint": "Déclarez votre premier match pour rejoindre le classement !"
+  },
+  "tournamentStatsTab": {
+    "activity": {
+      "empty": "Aucune donnée disponible.",
+      "title": "Activité du tournoi"
+    },
+    "bestAsymmetricSolo": {
+      "title": "Meilleurs joueurs seuls contre tous"
+    },
+    "bestDuo": {
+      "title": "Meilleurs joueurs 2v2"
+    },
+    "bestSolo": {
+      "title": "Meilleurs joueurs 1v1"
+    },
+    "bestTeams": {
+      "title": "Meilleures équipes"
+    },
+    "chartLabel": "Matchs",
+    "emptyStats": "Les statistiques s'afficheront une fois les premiers matchs finalisés.",
+    "invincibleStreaks": {
+      "title": "Meilleures séries d'invincibilité",
+      "unbeatenMatches": "matchs sans défaite"
+    },
+    "lossStreaks": {
+      "consecutiveLosses": "défaites consécutives",
+      "title": "Séries de défaites en cours"
+    },
+    "outcomeDistribution": {
+      "empty": "Aucun match finalisé pour le moment.",
+      "title": "Répartition des fins de match"
+    },
+    "outcomeTypeFunStats": {
+      "king": "Roi de {name}",
+      "times": "{count} fois",
+      "title": "Stats par type de résultat",
+      "victim": "Victime de {name}"
+    },
+    "winStreaks": {
+      "consecutiveWins": "victoires consécutives",
+      "title": "Séries de victoires en cours"
+    }
+  },
+  "tournamentTabView": {
+    "tabNotFound": "Onglet introuvable."
+  },
+  "tournamentsView": {
+    "adminTooltip": "Administration",
+    "clearFilters": "Effacer les filtres",
+    "empty": {
+      "noFilters": "Il n'y a actuellement aucun évènement disponible.",
+      "title": "Aucun évènement trouvé",
+      "withFilters": "Aucun évènement ne correspond à vos filtres."
+    },
+    "showFinished": "Terminés",
+    "subtitle": "Découvrez et participez aux évènements en cours",
+    "tags": {
+      "bracket": "Bracket",
+      "championship": "Championnat",
+      "ranked": "Ranked"
+    },
+    "title": "Évènements compétitifs"
+  },
+  "updateOverlay": {
+    "subtitle": "Rechargement en cours...",
+    "title": "Nouvelle version disponible"
+  },
+  "validationModeSection": {
+    "autoValidationHelp": "Si aucun adversaire ne conteste dans ce délai, le score est validé automatiquement.",
+    "fields": {
+      "validationTimerHours": "Délai d'auto-validation (heures)"
+    },
+    "modes": {
+      "admin": {
+        "badge": "Officiel",
+        "description": "Seul un administrateur peut valider les scores. Contrôle total.",
+        "label": "ADMIN"
+      },
+      "auto": {
+        "badge": "Détente",
+        "description": "Validation automatique après un délai. Trust Score actif : les joueurs fiables valident immédiatement.",
+        "label": "AUTO"
+      },
+      "none": {
+        "badge": "Libre",
+        "description": "Aucune validation requise. Les scores sont acceptés immédiatement. Contestation disponible 7 jours.",
+        "label": "LIBRE"
+      },
+      "strict": {
+        "badge": "Compétition",
+        "description": "Un adversaire doit confirmer le score pour valider. Pas d'auto-validation.",
+        "label": "STRICT"
+      }
+    },
+    "title": "Mode de validation des scores"
+  },
+  "whenStep": {
+    "clearButton": "Effacer",
+    "custom": "Personnaliser",
+    "dateTimeLabel": "Date et heure",
+    "minus10": "Il y a 10 min",
+    "minus5": "Il y a 5 min",
+    "next": "Suivant",
+    "now": "Maintenant",
+    "title": "Date du match"
   }
 }

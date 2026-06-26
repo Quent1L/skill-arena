@@ -17,6 +17,10 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
+vi.mock('vue-i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vue-i18n')>()
+  return { ...actual, useI18n: () => ({ t: (key: string) => key }) }
+})
 vi.mock('../tournament/tournament.api')
 vi.mock('../useAuth')
 
@@ -182,7 +186,7 @@ describe('useTournamentService', () => {
       } as CreateTournamentFormData
 
       await expect(createTournament(formData)).rejects.toThrow(
-        "Vous n'avez pas les droits pour créer un tournoi",
+        'tournamentService.errors.noCreatePermission',
       )
     })
   })

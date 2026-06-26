@@ -1,10 +1,12 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { teamApi } from './team.api'
 import type { ClientTeam } from '@skill-arena/shared/types/index'
 
 export function useTeamService() {
   const toast = useAppToast()
+  const { t } = useI18n()
   const teams = ref<ClientTeam[]>([])
   const loading = ref(false)
 
@@ -13,8 +15,8 @@ export function useTeamService() {
     try {
       teams.value = await teamApi.list(tournamentId)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des équipes'
-      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 4000 })
+      const message = err instanceof Error ? err.message : t('teamService.errors.listFailed')
+      toast.add({ severity: 'error', summary: t('common.error'), detail: message, life: 4000 })
     } finally {
       loading.value = false
     }
@@ -24,10 +26,10 @@ export function useTeamService() {
     loading.value = true
     try {
       await teamApi.create(tournamentId, { name })
-      toast.add({ severity: 'success', summary: 'Succès', detail: 'Équipe créée', life: 3000 })
+      toast.add({ severity: 'success', summary: t('common.success'), detail: t('teamService.toast.createSuccess'), life: 3000 })
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la création de l'équipe"
-      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 4000 })
+      const message = err instanceof Error ? err.message : t('teamService.errors.createFailed')
+      toast.add({ severity: 'error', summary: t('common.error'), detail: message, life: 4000 })
       throw err
     } finally {
       loading.value = false
@@ -42,10 +44,10 @@ export function useTeamService() {
         const idx = teams.value.findIndex((t) => t.id === teamId)
         if (idx !== -1) teams.value[idx] = updated
       }
-      toast.add({ severity: 'success', summary: 'Succès', detail: 'Équipe rejointe', life: 3000 })
+      toast.add({ severity: 'success', summary: t('common.success'), detail: t('teamService.toast.joinSuccess'), life: 3000 })
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'adhésion"
-      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 4000 })
+      const message = err instanceof Error ? err.message : t('teamService.errors.joinFailed')
+      toast.add({ severity: 'error', summary: t('common.error'), detail: message, life: 4000 })
       throw err
     } finally {
       loading.value = false
@@ -57,10 +59,10 @@ export function useTeamService() {
     try {
       await teamApi.leave(tournamentId, teamId)
       await loadTeams(tournamentId)
-      toast.add({ severity: 'info', summary: 'Succès', detail: 'Équipe quittée', life: 3000 })
+      toast.add({ severity: 'info', summary: t('common.success'), detail: t('teamService.toast.leaveSuccess'), life: 3000 })
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors du départ"
-      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 4000 })
+      const message = err instanceof Error ? err.message : t('teamService.errors.leaveFailed')
+      toast.add({ severity: 'error', summary: t('common.error'), detail: message, life: 4000 })
       throw err
     } finally {
       loading.value = false
@@ -72,10 +74,10 @@ export function useTeamService() {
     try {
       await teamApi.delete(tournamentId, teamId)
       teams.value = teams.value.filter((t) => t.id !== teamId)
-      toast.add({ severity: 'success', summary: 'Succès', detail: 'Équipe supprimée', life: 3000 })
+      toast.add({ severity: 'success', summary: t('common.success'), detail: t('teamService.toast.deleteSuccess'), life: 3000 })
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de la suppression"
-      toast.add({ severity: 'error', summary: 'Erreur', detail: message, life: 4000 })
+      const message = err instanceof Error ? err.message : t('teamService.errors.deleteFailed')
+      toast.add({ severity: 'error', summary: t('common.error'), detail: message, life: 4000 })
       throw err
     } finally {
       loading.value = false

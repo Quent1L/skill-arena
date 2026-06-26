@@ -3,26 +3,26 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Nouveau mot de passe</p>
+        <p class="mt-2">{{ t('resetPasswordView.subtitle') }}</p>
       </div>
 
       <Card>
         <template #content>
           <div v-if="!tokenValid">
             <Message severity="error" :closable="false">
-              Le lien de réinitialisation est invalide ou a expiré.
+              {{ t('resetPasswordView.invalidLink') }}
             </Message>
             <div class="text-center mt-4">
-              <Button label="Demander un nouveau lien" @click="router.push('/forgot-password')" />
+              <Button :label="t('resetPasswordView.requestNewLink')" @click="router.push('/forgot-password')" />
             </div>
           </div>
 
           <div v-else-if="!resetSuccess">
-            <p class="text-gray-700 mb-6">Choisissez un nouveau mot de passe sécurisé.</p>
+            <p class="text-gray-700 mb-6">{{ t('resetPasswordView.instructions') }}</p>
 
             <form @submit="onSubmit" class="space-y-6">
               <div class="flex flex-col gap-2">
-                <label for="password" class="font-medium">Nouveau mot de passe</label>
+                <label for="password" class="font-medium">{{ t('resetPasswordView.newPasswordLabel') }}</label>
                 <Password
                   id="password"
                   v-model="password"
@@ -39,7 +39,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label for="passwordConfirm" class="font-medium"> Confirmer le mot de passe </label>
+                <label for="passwordConfirm" class="font-medium"> {{ t('resetPasswordView.confirmPasswordLabel') }} </label>
                 <Password
                   id="passwordConfirm"
                   v-model="passwordConfirm"
@@ -62,7 +62,7 @@
               <Button
                 type="submit"
                 :loading="loading"
-                label="Réinitialiser le mot de passe"
+                :label="t('resetPasswordView.resetButton')"
                 class="w-full"
                 :disabled="loading"
               />
@@ -71,12 +71,11 @@
 
           <div v-else class="text-center py-4">
             <i class="fa fa-check-circle text-green-500 text-5xl mb-4"></i>
-            <h3 class="text-xl font-semibold mb-2">Mot de passe réinitialisé !</h3>
+            <h3 class="text-xl font-semibold mb-2">{{ t('resetPasswordView.successTitle') }}</h3>
             <p class="text-gray-700 mb-6">
-              Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter
-              avec votre nouveau mot de passe.
+              {{ t('resetPasswordView.successMessage') }}
             </p>
-            <Button label="Se connecter" @click="router.push('/login')" />
+            <Button :label="t('resetPasswordView.login')" @click="router.push('/login')" />
           </div>
         </template>
       </Card>
@@ -87,11 +86,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { resetPasswordSchema } from '@/schemas/auth.schema'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { resetPassword, loading, error } = useAuth()

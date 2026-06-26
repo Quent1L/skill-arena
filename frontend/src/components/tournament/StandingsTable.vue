@@ -15,7 +15,7 @@
       <div>
         <button
           class="flex items-center gap-2 px-2 py-1 text-gray-400 hover:text-blue-500 transition-colors duration-200 cursor-pointer text-xs"
-          v-tooltip.top="isMobile ? null : 'Comment est calculé le classement ?'"
+          v-tooltip.top="isMobile ? null : t('standingsTable.howRankingTooltip')"
           @click="infoVisible = true"
         >
           <i class="fa fa-circle-question text-sm" />
@@ -26,92 +26,88 @@
     <Dialog
       v-model:visible="infoVisible"
       modal
-      header="Comment est calculé le classement ?"
+      :header="t('standingsTable.howRankingTooltip')"
       :style="{ width: '90vw', maxWidth: '700px' }"
       :draggable="false"
     >
       <div class="space-y-5 text-sm text-gray-700 dark:text-gray-300">
         <section>
-          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Points attribués</h3>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ t('standingsTable.pointsAwarded') }}</h3>
           <ul class="space-y-1">
             <li class="flex justify-between">
-              <span>Victoire</span>
+              <span>{{ t('standingsTable.win') }}</span>
               <span class="font-medium text-green-600 dark:text-green-400"
-                >{{ tournamentConfig?.pointPerVictory ?? 3 }} pts</span
+                >{{ tournamentConfig?.pointPerVictory ?? 3 }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
             <li v-if="allowDraw" class="flex justify-between">
-              <span>Match nul</span>
+              <span>{{ t('standingsTable.draw') }}</span>
               <span class="font-medium text-gray-600 dark:text-gray-400"
-                >{{ tournamentConfig?.pointPerDraw ?? 1 }} pts</span
+                >{{ tournamentConfig?.pointPerDraw ?? 1 }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
             <li class="flex justify-between">
-              <span>Défaite</span>
+              <span>{{ t('standingsTable.loss') }}</span>
               <span class="font-medium text-red-600 dark:text-red-400"
-                >{{ tournamentConfig?.pointPerLoss ?? 0 }} pts</span
+                >{{ tournamentConfig?.pointPerLoss ?? 0 }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
           </ul>
         </section>
 
         <section>
-          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Critères de classement</h3>
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-2">{{ t('standingsTable.rankingCriteria') }}</h3>
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Appliqués dans cet ordre en cas d'égalité :
+            {{ t('standingsTable.rankingCriteriaSubtitle') }}
           </p>
           <ol class="space-y-1.5 list-decimal list-inside">
-            <li>Points totaux</li>
-            <li>Nombre de victoires</li>
-            <li v-if="allowDraw">Ratio victoires / défaites</li>
+            <li>{{ t('standingsTable.criteriaPoints') }}</li>
+            <li>{{ t('standingsTable.criteriaWins') }}</li>
+            <li v-if="allowDraw">{{ t('standingsTable.criteriaWinLossRatio') }}</li>
             <li>
-              Score Buchholz — indicateur de difficulté du parcours.
+              {{ t('standingsTable.buchholzDesc') }}
               <div class="text-xs text-gray-500 dark:text-gray-400 ml-4">
-                Il correspond à la somme des points des adversaires affrontés.<br />
-                Pour les matchs en équipe (2v2, 3v3, etc.), on prend la moyenne des points des
-                joueurs adverses pour chaque match. Un Buchholz élevé signifie que vous avez
-                affronté des joueurs mieux classés.
+                {{ t('standingsTable.buchholzExplanationLine1') }}<br />
+                {{ t('standingsTable.buchholzExplanationLine2') }}
               </div>
             </li>
             <li>
-              Confrontations directes —
               {{
                 teamMode === 'flex'
-                  ? 'résultats entre les joueurs à égalité'
-                  : 'résultats entre les équipes à égalité'
+                  ? t('standingsTable.directConfrontationsPlayers')
+                  : t('standingsTable.directConfrontationsTeams')
               }}
             </li>
             <li>
-              <span>Qualité des résultats</span>
+              <span>{{ t('standingsTable.victoryQualityLabel') }}</span>
               <div class="mt-1 ml-4 space-y-0.5">
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  Mesure la manière dont les matchs sont gagnés ou perdus. Une victoire rapporte des
-                  points, une défaite en retire, avec un poids selon le type de fin de partie
+                  {{ t('standingsTable.victoryQualityDesc') }}
                 </p>
                 <template v-if="outcomeTypes.length > 0">
                   <ul class="text-xs space-y-0.5">
                     <li v-for="ot in outcomeTypes" :key="ot.id" class="flex justify-between gap-4">
                       <span class="text-gray-600 dark:text-gray-400">{{ ot.name }}</span>
-                      <span class="font-medium">{{ ot.points }} pt</span>
+                      <span class="font-medium">{{ ot.points }} {{ t('standingsTable.ptUnit') }}</span>
                     </li>
                   </ul>
                 </template>
                 <p v-else class="text-xs text-gray-500 dark:text-gray-400">
-                  3 pts par résultat par défaut
+                  {{ t('standingsTable.defaultPoints') }}
                 </p>
               </div>
             </li>
-            <li>Taux de victoire</li>
+            <li>{{ t('standingsTable.winRateCriteria') }}</li>
           </ol>
         </section>
 
         <section>
           <h3 class="font-semibold text-gray-900 dark:text-white mb-2">
-            Classement officiel vs provisoire
+            {{ t('standingsTable.officialVsProvisional') }}
           </h3>
           <ul class="space-y-1 text-xs">
-            <li><span>Officiel</span> — uniquement les matchs validés</li>
-            <li><span>Provisoire</span> — matchs validés + matchs en attente de validation</li>
+            <li><span>{{ t('standingsTable.official') }}</span> — {{ t('standingsTable.officialDesc') }}</li>
+            <li><span>{{ t('standingsTable.provisional') }}</span> — {{ t('standingsTable.provisionalDesc') }}</li>
           </ul>
         </section>
       </div>
@@ -125,7 +121,7 @@
       v-if="standings.length === 0 && !loading"
       class="text-center py-8 text-gray-500 dark:text-gray-400"
     >
-      Aucun classement disponible pour le moment
+      {{ t('standingsTable.noStandings') }}
     </div>
 
     <div class="standings-container">
@@ -135,9 +131,9 @@
             <Column field="rank" header="#" style="width: 4rem">
               <template #body="{ index }">
                 <div class="flex items-center justify-center">
-                  <i v-if="index === 0" class="fa fa-trophy text-yellow-500" title="Premier"></i>
-                  <i v-if="index === 1" class="fa fa-medal text-gray-400" title="Deuxième"></i>
-                  <i v-if="index === 2" class="fa fa-medal text-orange-600" title="Troisième"></i>
+                  <i v-if="index === 0" class="fa fa-trophy text-yellow-500" :title="t('standingsTable.rankFirst')"></i>
+                  <i v-if="index === 1" class="fa fa-medal text-gray-400" :title="t('standingsTable.rankSecond')"></i>
+                  <i v-if="index === 2" class="fa fa-medal text-orange-600" :title="t('standingsTable.rankThird')"></i>
                   <span
                     :class="[
                       'font-semibold',
@@ -154,7 +150,7 @@
               </template>
             </Column>
 
-            <Column field="name" header="Nom">
+            <Column field="name" :header="t('common.name')">
               <template #body="{ data }">
                 <RouterLink
                   v-if="teamMode === 'flex'"
@@ -172,7 +168,7 @@
               </template>
             </Column>
 
-            <Column field="points" header="Pts">
+            <Column field="points" :header="t('standingsTable.columnPoints')">
               <template #body="{ data }">
                 <div class="font-semibold text-blue-600 dark:text-blue-400">
                   {{ data.points }}
@@ -180,13 +176,13 @@
               </template>
             </Column>
 
-            <Column field="matchesPlayed" header="MJ">
+            <Column field="matchesPlayed" :header="t('standingsTable.columnMatchesPlayed')">
               <template #body="{ data }">
                 {{ data.matchesPlayed }}
               </template>
             </Column>
 
-            <Column field="wins" header="V">
+            <Column field="wins" :header="t('standingsTable.columnWins')">
               <template #body="{ data }">
                 <span class="text-green-600 dark:text-green-400 font-medium">
                   {{ data.wins }}
@@ -194,7 +190,7 @@
               </template>
             </Column>
 
-            <Column v-if="allowDraw" field="draws" header="N">
+            <Column v-if="allowDraw" field="draws" :header="t('standingsTable.columnDraws')">
               <template #body="{ data }">
                 <span class="text-gray-600 dark:text-gray-400 font-medium">
                   {{ data.draws }}
@@ -202,7 +198,7 @@
               </template>
             </Column>
 
-            <Column field="losses" header="D">
+            <Column field="losses" :header="t('standingsTable.columnLosses')">
               <template #body="{ data }">
                 <span class="text-red-600 dark:text-red-400 font-medium">
                   {{ data.losses }}
@@ -210,7 +206,7 @@
               </template>
             </Column>
 
-            <Column v-if="scoreEnabled" field="scoreDiff" header="Diff">
+            <Column v-if="scoreEnabled" field="scoreDiff" :header="t('standingsTable.columnDiff')">
               <template #body="{ data }">
                 <span
                   :class="[
@@ -227,7 +223,7 @@
               </template>
             </Column>
 
-            <Column v-if="allowDraw && !isMobile" field="winLossRatio" header="V/D">
+            <Column v-if="allowDraw && !isMobile" field="winLossRatio" :header="t('standingsTable.columnWinLossRatio')">
               <template #body="{ data }">
                 <span class="text-gray-600 dark:text-gray-400">{{
                   formatRatio(data.winLossRatio)
@@ -242,10 +238,10 @@
             >
               <template #header>
                 <span class="flex items-center gap-1">
-                  Buch.
+                  {{ t('standingsTable.columnBuchholz') }}
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="'Buchholz - Score basé sur les adversaires rencontrés'"
+                    v-tooltip.top="t('standingsTable.tooltipBuchholz')"
                   />
                 </span>
               </template>
@@ -261,12 +257,10 @@
             >
               <template #header>
                 <span class="flex items-center gap-1">
-                  Qual.
+                  {{ t('standingsTable.columnVictoryQuality') }}
                   <i
                     class="fa fa-circle-question text-xs text-gray-400 cursor-help"
-                    v-tooltip.top="
-                      'Qualité des résultats - Score basé sur le type de victoire/défaite'
-                    "
+                    v-tooltip.top="t('standingsTable.tooltipVictoryQuality')"
                   />
                 </span>
               </template>
@@ -282,7 +276,7 @@
 
             <Column
               field="winRate"
-              header="Win%"
+              :header="t('standingsTable.columnWinRate')"
               class="hidden md:table-cell"
               header-class="hidden md:table-cell"
             >
@@ -301,7 +295,7 @@
                   rounded
                   size="small"
                   class="text-gray-400 hover:text-blue-500"
-                  :aria-label="`Détails départage ${data.name}`"
+                  :aria-label="t('standingsTable.tiebreakerDetails', { name: data.name })"
                   @click="(e) => toggleTiebreakerPanel(e, data)"
                 />
               </template>
@@ -314,17 +308,17 @@
     <Popover ref="tiebreakerPanel">
       <div v-if="selectedEntry" class="p-3 min-w-[220px]">
         <p class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
-          {{ selectedEntry.name }} — Critères de départage
+          {{ selectedEntry.name }} — {{ t('standingsTable.tiebreakerCriteria') }}
         </p>
         <ul class="text-sm space-y-1 text-gray-700 dark:text-gray-300">
           <li v-if="allowDraw" class="flex items-center gap-4">
-            <span class="flex-1">Ratio V/D</span>
+            <span class="flex-1">{{ t('standingsTable.tiebreakerWinLossRatio') }}</span>
             <span class="font-medium">{{ formatRatio(selectedEntry.winLossRatio) }}</span>
             <span class="w-4 shrink-0" />
           </li>
           <li class="flex items-center gap-4">
-            <span class="flex-1">Buchholz</span>
-            <span class="font-medium">{{ selectedEntry.buchholzScore }} pts</span>
+            <span class="flex-1">{{ t('standingsTable.tiebreakerBuchholz') }}</span>
+            <span class="font-medium">{{ selectedEntry.buchholzScore }} {{ t('standingsTable.ptsUnit') }}</span>
             <span class="w-4 shrink-0" />
           </li>
           <li>
@@ -332,8 +326,8 @@
               class="flex items-center gap-4 w-full text-left"
               @click="qualityExpanded = !qualityExpanded"
             >
-              <span class="flex-1">Qual. résultats</span>
-              <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} pts</span>
+              <span class="flex-1">{{ t('standingsTable.tiebreakerQuality') }}</span>
+              <span class="font-medium">{{ selectedEntry.victoryQuality.toFixed(1) }} {{ t('standingsTable.ptsUnit') }}</span>
               <span class="w-4 shrink-0 text-center">
                 <i
                   class="fa text-xs text-gray-400"
@@ -355,14 +349,14 @@
               >
                 <span
                   >{{ detail.outcomeTypeName }}
-                  <span class="text-gray-400">({{ detail.points }} pt/rés.)</span></span
+                  <span class="text-gray-400">({{ detail.points }} {{ t('standingsTable.ptPerResult') }})</span></span
                 >
                 <span class="flex gap-1 items-center">
                   <span v-if="detail.wins > 0" class="text-green-600 dark:text-green-400"
-                    >{{ detail.wins }}V</span
+                    >{{ detail.wins }}{{ t('standingsTable.columnWins') }}</span
                   >
                   <span v-if="detail.losses > 0" class="text-red-600 dark:text-red-400"
-                    >{{ detail.losses }}D</span
+                    >{{ detail.losses }}{{ t('standingsTable.columnLosses') }}</span
                   >
                   <span
                     class="font-medium"
@@ -379,7 +373,7 @@
               <li
                 class="flex justify-between gap-3 border-t border-gray-200 dark:border-gray-600 pt-1 font-semibold"
               >
-                <span>Total</span>
+                <span>{{ t('standingsTable.total') }}</span>
                 <span
                   :class="
                     selectedEntry.victoryQuality >= 0
@@ -394,7 +388,7 @@
             </ul>
           </li>
           <li class="flex items-center gap-4">
-            <span class="flex-1">Win rate</span>
+            <span class="flex-1">{{ t('standingsTable.tiebreakerWinRate') }}</span>
             <span class="font-medium">{{ formatPercent(selectedEntry.winRate) }}</span>
             <span class="w-4 shrink-0" />
           </li>
@@ -405,7 +399,7 @@
     <Popover ref="qualityDetailPanel">
       <div v-if="selectedQualityEntry" class="p-3 min-w-[260px]">
         <p class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-100">
-          {{ selectedQualityEntry.name }} — Qualité des résultats
+          {{ selectedQualityEntry.name }} — {{ t('standingsTable.victoryQualityLabel') }}
         </p>
         <div
           v-if="selectedQualityEntry.victoryQualityBreakdown.length > 0"
@@ -418,14 +412,14 @@
           >
             <span class="text-gray-600 dark:text-gray-400">
               {{ detail.outcomeTypeName }}
-              <span class="text-xs text-gray-400">({{ detail.points }} pt/rés.)</span>
+              <span class="text-xs text-gray-400">({{ detail.points }} {{ t('standingsTable.ptPerResult') }})</span>
             </span>
             <span class="flex gap-2 items-center">
               <span v-if="detail.wins > 0" class="text-green-600 dark:text-green-400"
-                >{{ detail.wins }}V</span
+                >{{ detail.wins }}{{ t('standingsTable.columnWins') }}</span
               >
               <span v-if="detail.losses > 0" class="text-red-600 dark:text-red-400"
-                >{{ detail.losses }}D</span
+                >{{ detail.losses }}{{ t('standingsTable.columnLosses') }}</span
               >
               <span
                 class="font-medium"
@@ -442,7 +436,7 @@
           <div
             class="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2 flex justify-between font-semibold text-sm"
           >
-            <span>Total</span>
+            <span>{{ t('standingsTable.total') }}</span>
             <span
               :class="
                 selectedQualityEntry.victoryQuality >= 0
@@ -455,7 +449,7 @@
             </span>
           </div>
         </div>
-        <p v-else class="text-sm text-gray-500 dark:text-gray-400">Aucun match joué</p>
+        <p v-else class="text-sm text-gray-500 dark:text-gray-400">{{ t('standingsTable.noMatchesPlayed') }}</p>
       </div>
     </Popover>
   </div>
@@ -463,6 +457,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SelectButton from 'primevue/selectbutton'
 import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
@@ -509,6 +504,8 @@ const emit = defineEmits<{
   (e: 'update:standingsType', value: 'official' | 'provisional'): void
 }>()
 
+const { t } = useI18n()
+
 const { standings, loading, error, loadOfficialStandings, loadProvisionalStandings } =
   useStandingsService()
 const { isMobile } = useViewport()
@@ -537,10 +534,10 @@ const standingsType = computed({
   },
 })
 
-const standingsTypeOptions = [
-  { label: 'Officiel', value: 'official' },
-  { label: 'Provisoire', value: 'provisional' },
-]
+const standingsTypeOptions = computed(() => [
+  { label: t('standingsTable.official'), value: 'official' },
+  { label: t('standingsTable.provisional'), value: 'provisional' },
+])
 
 function toggleTiebreakerPanel(event: Event, entry: StandingsEntry) {
   selectedEntry.value = entry

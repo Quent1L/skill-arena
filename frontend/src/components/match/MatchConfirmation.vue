@@ -3,7 +3,7 @@
     <template #header>
       <div class="flex items-center gap-3">
         <i class="fa fa-check-circle text-2xl text-primary"></i>
-        <h3 class="text-xl font-semibold">Confirmation du résultat</h3>
+        <h3 class="text-xl font-semibold">{{ t('matchConfirmation.title') }}</h3>
       </div>
     </template>
 
@@ -22,9 +22,9 @@
         <!-- Infos de saisie -->
         <div class="bg-surface-50 dark:bg-surface-800 p-3 rounded-lg text-center text-sm text-surface-500 dark:text-surface-400">
           <p>
-            Résultat saisi par
-            <span class="font-semibold">{{ match.result?.reporter?.displayName || 'Inconnu' }}</span>
-            le {{ formatDate(match.result?.reportedAt) }}
+            {{ t('matchConfirmation.reportedByPrefix') }}
+            <span class="font-semibold">{{ match.result?.reporter?.displayName || t('matchConfirmation.unknownReporter') }}</span>
+            {{ t('matchConfirmation.reportedBySuffix') }} {{ formatDate(match.result?.reportedAt) }}
           </p>
         </div>
 
@@ -35,13 +35,13 @@
         >
           <div class="flex items-center gap-2 text-warn-700 dark:text-warn-300 text-sm font-semibold">
             <i class="fa fa-exclamation-triangle"></i>
-            Score contesté — correction proposée par
-            <span class="font-bold">{{ activeProposal.player?.displayName || 'un joueur' }}</span>
+            {{ t('matchConfirmation.contestedScorePrefix') }}
+            <span class="font-bold">{{ activeProposal.player?.displayName || t('matchConfirmation.unknownPlayer') }}</span>
           </div>
 
           <div v-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-6">
             <div class="text-center">
-              <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score original</p>
+              <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">{{ t('matchConfirmation.originalScore') }}</p>
               <p class="text-2xl font-bold text-surface-400 dark:text-surface-500 line-through">
                 {{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}
               </p>
@@ -50,7 +50,7 @@
             <i class="fa fa-arrow-right text-warn-500 text-xl"></i>
 
             <div class="text-center">
-              <p class="text-xs text-warn-600 dark:text-warn-400 mb-1 uppercase tracking-wide font-semibold">Score proposé</p>
+              <p class="text-xs text-warn-600 dark:text-warn-400 mb-1 uppercase tracking-wide font-semibold">{{ t('matchConfirmation.proposedScore') }}</p>
               <p class="text-3xl font-bold text-warn-700 dark:text-warn-300">
                 {{ activeProposal.proposedScoreA }} - {{ activeProposal.proposedScoreB }}
               </p>
@@ -58,18 +58,18 @@
           </div>
 
           <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold">Raison :</span> {{ activeProposal.contestationReason }}
+            <span class="font-semibold">{{ t('matchConfirmation.reasonLabel') }}</span> {{ activeProposal.contestationReason }}
           </div>
           <div v-if="activeProposal.proposedWinnerPosition" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">Vainqueur proposé :</span>
-            <span class="ml-2 font-bold">Équipe {{ activeProposal.proposedWinnerPosition }}</span>
+            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedWinner') }}</span>
+            <span class="ml-2 font-bold">{{ t('matchConfirmation.proposedWinnerTeam', { position: activeProposal.proposedWinnerPosition }) }}</span>
           </div>
           <div v-if="activeProposal.proposedOutcomeType" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">Type de résultat proposé :</span>
+            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedOutcomeType') }}</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeType.name }}</span>
           </div>
           <div v-if="activeProposal.proposedOutcomeReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">Raison proposée :</span>
+            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedOutcomeReason') }}</span>
             <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeReason.name }}</span>
           </div>
         </div>
@@ -77,7 +77,7 @@
         <!-- Score normal -->
         <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
           <div class="text-center">
-            <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">Score</p>
+            <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">{{ t('matchConfirmation.score') }}</p>
             <p class="text-3xl font-bold text-primary">{{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}</p>
           </div>
         </div>
@@ -85,7 +85,7 @@
         <!-- Statut des confirmations par side -->
         <div v-if="playersWithStatus && playersWithStatus.length > 0" class="space-y-3">
           <h4 class="font-semibold text-surface-700 dark:text-surface-300">
-            Confirmations des joueurs ({{ confirmedCount }}/{{ totalPlayers }})
+            {{ t('matchConfirmation.playerConfirmations', { confirmed: confirmedCount, total: totalPlayers }) }}
           </h4>
 
           <div class="space-y-2">
@@ -105,7 +105,7 @@
                     ]"
                   ></i>
                   <div>
-                    <span class="font-medium">{{ player.displayName || 'Joueur inconnu' }}</span>
+                    <span class="font-medium">{{ player.displayName }}</span>
                     <span v-if="player.sideLabel" class="ml-2 text-xs text-surface-400 dark:text-surface-500">
                       ({{ player.sideLabel }})
                     </span>
@@ -115,17 +115,17 @@
                 <Tag
                   v-if="player.status === 'confirmed'"
                   severity="success"
-                  value="Accepté"
+                  :value="t('matchConfirmation.tagAccepted')"
                 />
                 <Tag
                   v-else-if="player.status === 'contested'"
                   severity="danger"
-                  value="Contesté"
+                  :value="t('matchConfirmation.tagContested')"
                 />
                 <Tag
                   v-else
                   severity="warn"
-                  value="En attente"
+                  :value="t('matchConfirmation.tagPending')"
                 />
               </div>
 
@@ -134,17 +134,17 @@
                 class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
               >
                 <div v-if="player.hasProposal && match.tournament?.scoreEnabled !== false" class="text-sm">
-                  <span class="font-semibold text-warn-600 dark:text-warn-400">Score proposé :</span>
+                  <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedScoreInline') }}</span>
                   <span class="ml-2 font-bold">{{ player.proposedScoreA }} - {{ player.proposedScoreB }}</span>
                 </div>
                 <div v-if="player.contestationReason" class="text-sm">
-                  <span class="font-semibold text-surface-700 dark:text-surface-300">Raison :</span>
+                  <span class="font-semibold text-surface-700 dark:text-surface-300">{{ t('matchConfirmation.reasonLabel') }}</span>
                   <p class="text-surface-600 dark:text-surface-400 mt-1 whitespace-pre-wrap">
                     {{ player.contestationReason }}
                   </p>
                 </div>
                 <div v-if="player.contestationProof" class="text-sm">
-                  <span class="font-semibold text-surface-700 dark:text-surface-300">Preuve :</span>
+                  <span class="font-semibold text-surface-700 dark:text-surface-300">{{ t('matchConfirmation.proofLabel') }}</span>
                   <p class="text-surface-600 dark:text-surface-400 mt-1">
                     <a
                       v-if="isUrl(player.contestationProof)"
@@ -168,12 +168,12 @@
           <div class="flex items-center gap-2 text-sm">
             <i class="fa fa-clock text-warn-600 dark:text-warn-400"></i>
             <span class="text-surface-700 dark:text-surface-300">
-              Deadline de confirmation : {{ formatDate(match.confirmationDeadline) }}
+              {{ t('matchConfirmation.deadlineLabel') }} {{ formatDate(match.confirmationDeadline) }}
               <span v-if="!isExpired" class="text-warn-600 dark:text-warn-400 font-semibold">
                 ({{ timeRemaining }})
               </span>
               <span v-else class="text-red-600 dark:text-red-400 font-semibold">
-                (Expirée)
+                {{ t('matchConfirmation.expired') }}
               </span>
             </span>
           </div>
@@ -185,12 +185,12 @@
 
           <div v-if="!userResponse">
             <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
-              {{ activeProposal ? 'Acceptez-vous le score corrigé proposé ?' : 'Confirmez-vous ce résultat ?' }}
+              {{ activeProposal ? t('matchConfirmation.questionAcceptProposal') : t('matchConfirmation.questionConfirmResult') }}
             </p>
 
             <div class="flex gap-3">
               <Button
-                label="Accepter"
+                :label="t('matchConfirmation.acceptBtn')"
                 icon="fa fa-check"
                 severity="success"
                 :loading="responding && responseIntent === 'agree'"
@@ -199,7 +199,7 @@
                 class="flex-1"
               />
               <Button
-                label="Contester"
+                :label="t('matchConfirmation.disputeBtn')"
                 icon="fa fa-times"
                 severity="danger"
                 :loading="responding && responseIntent === 'dispute'"
@@ -220,7 +220,7 @@
                 ]"
               ></i>
               <span class="text-sm text-surface-700 dark:text-surface-300">
-                Vous avez {{ userResponse.isConfirmed ? 'accepté' : 'contesté' }} ce résultat
+                {{ userResponse.isConfirmed ? t('matchConfirmation.userAccepted') : t('matchConfirmation.userDisputed') }}
               </span>
             </div>
           </div>
@@ -232,7 +232,7 @@
   <!-- Dialog de réponse -->
   <Dialog
     v-model:visible="responseDialogVisible"
-    :header="responseIntent === 'agree' ? 'Accepter le résultat' : 'Contester le résultat'"
+    :header="responseIntent === 'agree' ? t('matchConfirmation.dialogAcceptTitle') : t('matchConfirmation.dialogDisputeTitle')"
     :modal="true"
     :style="{ width: '480px' }"
   >
@@ -240,55 +240,55 @@
       <div v-if="responseIntent === 'dispute'" class="space-y-4">
         <div>
           <label for="disputeReason" class="block text-sm font-medium mb-2">
-            Raison de la contestation (optionnel)
+            {{ t('matchConfirmation.disputeReasonLabel') }}
           </label>
           <Textarea
             id="disputeReason"
             v-model="disputeReason"
             rows="3"
-            placeholder="Expliquez pourquoi vous contestez ce résultat..."
+            :placeholder="t('matchConfirmation.disputeReasonPlaceholder')"
             class="w-full"
           />
         </div>
 
         <div>
           <label for="disputeProof" class="block text-sm font-medium mb-2">
-            Preuve (optionnel)
+            {{ t('matchConfirmation.proofInputLabel') }}
           </label>
           <InputText
             id="disputeProof"
             v-model="disputeProof"
-            placeholder="Lien vers une capture d'écran, vidéo..."
+            :placeholder="t('matchConfirmation.proofInputPlaceholder')"
             class="w-full"
           />
         </div>
 
         <div class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm text-surface-600 dark:text-surface-400">
           <i class="fa fa-info-circle mr-2"></i>
-          Pour proposer un score alternatif, utilisez l'option "Saisir un score corrigé" ci-dessous.
+          {{ t('matchConfirmation.alternativeScoreHint') }}
         </div>
       </div>
 
       <div v-else class="text-sm text-surface-600 dark:text-surface-400">
-        Vous confirmez le résultat tel qu'il a été saisi. Cette action ne peut pas être annulée.
+        {{ t('matchConfirmation.confirmationIrreversible') }}
       </div>
     </div>
 
     <template #footer>
       <Button
-        label="Annuler"
+        :label="t('common.cancel')"
         severity="secondary"
         @click="responseDialogVisible = false"
       />
       <Button
         v-if="responseIntent === 'dispute'"
-        label="Saisir un score corrigé"
+        :label="t('matchConfirmation.enterCorrectedScoreBtn')"
         severity="warn"
         icon="fa fa-edit"
         @click="redirectToScoreForm"
       />
       <Button
-        :label="responseIntent === 'agree' ? 'Confirmer l\'acceptation' : 'Soumettre la contestation'"
+        :label="responseIntent === 'agree' ? t('matchConfirmation.confirmAcceptanceBtn') : t('matchConfirmation.submitDisputeBtn')"
         :severity="responseIntent === 'agree' ? 'success' : 'danger'"
         :icon="responseIntent === 'agree' ? 'fa fa-check' : 'fa fa-flag'"
         :loading="responding"
@@ -300,6 +300,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { type ClientMatchDetail } from '@skill-arena/shared';
 import Card from 'primevue/card';
 import Divider from 'primevue/divider';
@@ -319,6 +320,8 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const { t } = useI18n();
 
 const responseDialogVisible = ref(false);
 const responseIntent = ref<'agree' | 'dispute'>('agree');
@@ -373,12 +376,12 @@ const playersWithStatus = computed(() => {
 
     const sidePosition = confirmation?.sidePosition ?? participant.sidePosition;
     let sideLabel: string | null = null;
-    if (sidePosition === 1) sideLabel = 'Équipe A';
-    else if (sidePosition === 2) sideLabel = 'Équipe B';
+    if (sidePosition === 1) sideLabel = t('matchConfirmation.sideA');
+    else if (sidePosition === 2) sideLabel = t('matchConfirmation.sideB');
 
     return {
       playerId: participant.playerId,
-      displayName: participant.displayName || 'Joueur inconnu',
+      displayName: participant.displayName || t('matchConfirmation.unknownPlayerName'),
       status,
       sideLabel,
       contestationReason: confirmation?.contestationReason,
@@ -420,10 +423,10 @@ const validationModeMessage = computed(() => {
   const mode = props.match.tournament?.validationMode
   const hours = props.match.tournament?.validationTimerHours ?? 24
   if (mode === 'auto')
-    return `Ce score sera automatiquement validé dans ${hours}h si non contesté. Trust Score actif.`
-  if (mode === 'strict') return "Ce score doit être confirmé par au moins un adversaire."
-  if (mode === 'admin') return "Ce score doit être validé par un administrateur du tournoi."
-  if (mode === 'none') return "Les scores sont validés immédiatement. Contestation possible dans les 7 jours."
+    return t('matchConfirmation.validationAuto', { hours })
+  if (mode === 'strict') return t('matchConfirmation.validationStrict')
+  if (mode === 'admin') return t('matchConfirmation.validationAdmin')
+  if (mode === 'none') return t('matchConfirmation.validationNone')
   return ''
 });
 

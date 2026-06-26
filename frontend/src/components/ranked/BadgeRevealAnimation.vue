@@ -4,7 +4,7 @@
       <div class="w-full max-w-sm rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
         <div class="flex flex-col items-center gap-4 py-8 px-6">
           <div class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/20 text-amber-400">
-            Nouveau badge
+            {{ t('badgeRevealAnimation.newBadge') }}
           </div>
 
           <Transition name="badge-pop" appear>
@@ -29,7 +29,7 @@
               class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
               @click="$emit('close')"
             >
-              Continuer
+              {{ t('badgeRevealAnimation.continue') }}
             </button>
           </Transition>
         </div>
@@ -40,7 +40,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { BadgeAnimationResponse } from '@skill-arena/shared'
+
+const { t } = useI18n()
 
 defineProps<{ badge: BadgeAnimationResponse }>()
 defineEmits<{ (e: 'close'): void }>()

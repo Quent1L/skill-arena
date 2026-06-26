@@ -3,6 +3,7 @@
  */
 
 import type { ToastServiceMethods } from 'primevue/toastservice'
+import { i18n } from '@/i18n'
 
 // Singleton pour accéder au ToastService
 let toastInstance: ToastServiceMethods | null = null
@@ -21,7 +22,7 @@ export function initErrorService(toast: ToastServiceMethods) {
  */
 function showError(error: Error | string, detail?: string) {
   const errorMessage = typeof error === 'string' ? error : error.message
-  const errorDetail = detail || (typeof error === 'object' && error.stack ? 'Consultez la console pour plus de détails' : undefined)
+  const errorDetail = detail || (typeof error === 'object' && error.stack ? i18n.global.t('errorService.checkConsole') : undefined)
 
   console.error('[Global Error Handler]', error)
 
@@ -33,8 +34,8 @@ function showError(error: Error | string, detail?: string) {
 
   toastInstance.add({
     severity: 'error',
-    summary: 'Erreur',
-    detail: errorMessage || errorDetail || 'Une erreur inattendue est survenue',
+    summary: i18n.global.t('errorService.summary'),
+    detail: errorMessage || errorDetail || i18n.global.t('errorService.unexpectedError'),
     life: 8000,
   })
 }
@@ -45,8 +46,8 @@ function showError(error: Error | string, detail?: string) {
 function handleError(event: ErrorEvent) {
   event.preventDefault()
 
-  const errorMessage = event.message || 'Erreur JavaScript non capturée'
-  const location = event.filename ? `${event.filename}:${event.lineno}:${event.colno}` : 'Emplacement inconnu'
+  const errorMessage = event.message || i18n.global.t('errorService.uncaughtJs')
+  const location = event.filename ? `${event.filename}:${event.lineno}:${event.colno}` : i18n.global.t('errorService.unknownLocation')
 
   console.error('[Uncaught Error]', {
     message: event.message,
@@ -58,7 +59,7 @@ function handleError(event: ErrorEvent) {
 
   showError(
     errorMessage,
-    `Emplacement: ${location}`
+    i18n.global.t('errorService.locationPrefix', { location })
   )
 }
 
@@ -69,7 +70,7 @@ function handleUnhandledRejection(event: PromiseRejectionEvent) {
   event.preventDefault()
 
   const reason = event.reason
-  let errorMessage = 'Promesse rejetée non capturée'
+  let errorMessage = i18n.global.t('errorService.unhandledRejection')
   let errorDetail: string | undefined
 
   if (reason instanceof Error) {

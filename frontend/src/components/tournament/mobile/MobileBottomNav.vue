@@ -32,7 +32,7 @@
       >
         <div class="w-16 h-16 rounded-full bg-primary-500 flex flex-col items-center justify-center shadow-lg">
           <i class="fas fa-plus text-white  text-xl mb-1 font-bold" />
-          <span class="text-white text-[10px] font-bold uppercase tracking-wide">Créer</span>
+          <span class="text-white text-[10px] font-bold uppercase tracking-wide">{{ t('common.create') }}</span>
         </div>
       </button>
 
@@ -91,6 +91,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 interface NavTab {
   id: string
@@ -114,32 +117,32 @@ const emit = defineEmits<{
 const tabs = computed<NavTab[]>(() => {
   if (props.tournamentMode === 'ranked') {
     return [
-      { id: 'infos', label: 'Détail', icon: 'fas fa-info-circle' },
-      { id: 'standings', label: 'Classement', icon: 'fas fa-trophy' },
-      { id: 'matches', label: 'Matchs', icon: 'fas fa-gamepad' },
-      { id: 'stats', label: 'Stats', icon: 'fas fa-chart-pie' },
+      { id: 'infos', label: t('mobileBottomNav.detail'), icon: 'fas fa-info-circle' },
+      { id: 'standings', label: t('mobileBottomNav.standings'), icon: 'fas fa-trophy' },
+      { id: 'matches', label: t('mobileBottomNav.matches'), icon: 'fas fa-gamepad' },
+      { id: 'stats', label: t('mobileBottomNav.stats'), icon: 'fas fa-chart-pie' },
     ]
   }
 
   if (props.tournamentMode === 'bracket') {
     return [
-      { id: 'infos', label: 'Info', icon: 'fas fa-info-circle' },
-      { id: 'bracket', label: 'Bracket', icon: 'fas fa-sitemap' },
-      { id: 'matches', label: 'Matchs', icon: 'fas fa-gamepad' },
-      { id: 'stats', label: 'Stats', icon: 'fas fa-chart-pie' },
+      { id: 'infos', label: t('mobileBottomNav.info'), icon: 'fas fa-info-circle' },
+      { id: 'bracket', label: t('mobileBottomNav.bracket'), icon: 'fas fa-sitemap' },
+      { id: 'matches', label: t('mobileBottomNav.matches'), icon: 'fas fa-gamepad' },
+      { id: 'stats', label: t('mobileBottomNav.stats'), icon: 'fas fa-chart-pie' },
       ...(props.teamMode === 'static'
-        ? [{ id: 'teams', label: 'Équipes', icon: 'fas fa-users' }]
+        ? [{ id: 'teams', label: t('mobileBottomNav.teams'), icon: 'fas fa-users' }]
         : []),
     ]
   }
 
   return [
-    { id: 'infos', label: 'Info', icon: 'fas fa-info-circle' },
-    { id: 'standings', label: 'Classement', icon: 'fas fa-trophy' },
-    { id: 'matches', label: 'Matchs', icon: 'fas fa-gamepad' },
-    { id: 'stats', label: 'Stats', icon: 'fas fa-chart-pie' },
+    { id: 'infos', label: t('mobileBottomNav.info'), icon: 'fas fa-info-circle' },
+    { id: 'standings', label: t('mobileBottomNav.standings'), icon: 'fas fa-trophy' },
+    { id: 'matches', label: t('mobileBottomNav.matches'), icon: 'fas fa-gamepad' },
+    { id: 'stats', label: t('mobileBottomNav.stats'), icon: 'fas fa-chart-pie' },
     ...(props.teamMode === 'static'
-      ? [{ id: 'teams', label: 'Équipes', icon: 'fas fa-users' }]
+      ? [{ id: 'teams', label: t('mobileBottomNav.teams'), icon: 'fas fa-users' }]
       : []),
   ]
 })

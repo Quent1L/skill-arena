@@ -3,7 +3,7 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Connectez-vous à votre compte</p>
+        <p class="mt-2">{{ t('loginView.subtitle') }}</p>
       </div>
 
       <Card>
@@ -13,11 +13,10 @@
             <div class="space-y-2">
               <p class="font-semibold">
                 <i class="fa fa-exclamation-triangle mr-2"></i>
-                Aucune méthode d'authentification n'est disponible
+                {{ t('loginView.noAuthTitle') }}
               </p>
               <p class="text-sm">
-                Contactez l'administrateur système. La configuration de l'authentification est
-                incorrecte.
+                {{ t('loginView.noAuthDescription') }}
               </p>
             </div>
           </Message>
@@ -26,12 +25,12 @@
             <!-- Formulaire Email/Password (seulement si activé ou ?native=true) -->
             <template v-if="showEmailPassword">
               <div class="flex flex-col gap-2">
-                <label for="email" class="font-medium">Adresse email</label>
+                <label for="email" class="font-medium">{{ t('loginView.emailLabel') }}</label>
                 <InputText
                   id="email"
                   v-model="email"
                   type="email"
-                  placeholder="vous@exemple.com"
+                  :placeholder="t('loginView.emailPlaceholder')"
                   :disabled="loading"
                   :invalid="!!errors.email"
                   class="w-full"
@@ -42,7 +41,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label for="password" class="font-medium">Mot de passe</label>
+                <label for="password" class="font-medium">{{ t('loginView.passwordLabel') }}</label>
                 <Password
                   id="password"
                   v-model="password"
@@ -59,7 +58,7 @@
                 <div class="text-right">
                   <Button
                     link
-                    label="Mot de passe oublié ?"
+                    :label="t('loginView.forgotPassword')"
                     @click="router.push('/forgot-password')"
                     class="text-sm text-blue-600 hover:text-blue-700 p-0"
                     type="button"
@@ -74,7 +73,7 @@
               <Button
                 type="submit"
                 :loading="loading"
-                label="Se connecter"
+                :label="t('loginView.loginButton')"
                 class="w-full"
                 :disabled="loading"
               />
@@ -85,7 +84,7 @@
                   <div class="w-full border-t border-gray-300"></div>
                 </div>
                 <div class="relative flex justify-center text-sm">
-                  <span class="px-2 bg-white text-gray-500">Ou</span>
+                  <span class="px-2 bg-white text-gray-500">{{ t('loginView.or') }}</span>
                 </div>
               </div>
             </template>
@@ -102,15 +101,15 @@
               type="button"
             >
               <i class="fa fa-building mr-2"></i>
-              {{ isKeycloakLoading ? 'Connexion...' : keycloakLoginLabel }}
+              {{ isKeycloakLoading ? t('loginView.keycloakLoading') : keycloakLoginLabel }}
             </Button>
 
             <!-- Lien d'inscription -->
             <div class="text-center text-sm">
-              <span class="text-gray-600">Pas encore de compte ?</span>
+              <span class="text-gray-600">{{ t('loginView.noAccount') }}</span>
               <Button
                 link
-                label="S'inscrire"
+                :label="t('loginView.register')"
                 @click="router.push('/signup')"
                 class="ml-1 p-0"
                 type="button"
@@ -121,7 +120,7 @@
             <div class="text-center">
               <Button
                 link
-                label="← Retour à l'accueil"
+                :label="t('loginView.backToHome')"
                 @click="router.push('/public')"
                 class="text-sm text-gray-600"
                 type="button"
@@ -137,6 +136,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
 import { useConfigService } from '@/composables/config/config.service'
 import { authClient } from '@/lib/auth-client'
@@ -144,6 +144,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { loginSchema } from '@/schemas/auth.schema'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { login, loading, error } = useAuth()
@@ -153,7 +154,7 @@ const isKeycloakLoading = ref(false)
 const emailPasswordEnabled = computed(() => config.value?.auth?.emailPassword?.enabled ?? true)
 const keycloakEnabled = computed(() => config.value?.auth?.keycloak?.enabled ?? false)
 const keycloakLoginLabel = computed(
-  () => config.value?.auth?.keycloak?.loginLabel ?? 'Se connecter avec Keycloak',
+  () => config.value?.auth?.keycloak?.loginLabel ?? t('loginView.keycloakDefaultLabel'),
 )
 const forceNative = computed(() => route.query.native === 'true')
 const showEmailPassword = computed(() => emailPasswordEnabled.value || forceNative.value)
@@ -162,7 +163,7 @@ const noAuthMethodAvailable = computed(() => !showEmailPassword.value && !keyclo
 // Détecter les erreurs OAuth dans l'URL (redirection depuis Better Auth)
 if (route.query.error) {
   const errorDescription = route.query.error_description as string
-  error.value = errorDescription || 'Une erreur est survenue lors de la connexion'
+  error.value = errorDescription || t('loginView.oauthError')
 
   // Nettoyer l'URL
   router.replace({ query: {} })
@@ -206,7 +207,7 @@ async function loginWithKeycloak() {
     })
   } catch (err: unknown) {
     isKeycloakLoading.value = false
-    error.value = err instanceof Error ? err.message : 'Erreur lors de la connexion Keycloak'
+    error.value = err instanceof Error ? err.message : t('loginView.keycloakError')
     console.error('Keycloak sign-in error:', err)
   }
 }

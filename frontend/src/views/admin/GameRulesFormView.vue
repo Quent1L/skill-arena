@@ -3,7 +3,7 @@
     <div class="flex items-center gap-3 mb-6">
       <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/rules')" />
       <h1 class="text-2xl font-bold">
-        {{ isEditMode ? 'Modifier le règlement' : 'Nouveau règlement' }}
+        {{ isEditMode ? t('gameRulesFormView.editTitle') : t('gameRulesFormView.newTitle') }}
       </h1>
     </div>
 
@@ -18,14 +18,14 @@
             <!-- Titre -->
             <div>
               <label for="title" class="block text-sm font-medium mb-2">
-                Titre <span class="text-red-500">*</span>
+                {{ t('gameRulesFormView.titleLabel') }} <span class="text-red-500">*</span>
               </label>
               <InputText
                 id="title"
                 v-model="title"
                 class="w-full"
                 :class="{ 'p-invalid': errors.title }"
-                placeholder="Ex: Règlement officiel saison 2026"
+                :placeholder="t('gameRulesFormView.titlePlaceholder')"
               />
               <small class="p-error">{{ errors.title }}</small>
             </div>
@@ -33,7 +33,7 @@
             <!-- Contenu WYSIWYG -->
             <div>
               <span class="block text-sm font-medium mb-2">
-                Contenu <span class="text-red-500">*</span>
+                {{ t('gameRulesFormView.contentLabel') }} <span class="text-red-500">*</span>
               </span>
               <RichTextEditor v-model="content" />
               <small class="p-error">{{ errors.content }}</small>
@@ -42,7 +42,7 @@
             <!-- Actions -->
             <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
               <Button
-                label="Annuler"
+                :label="t('common.cancel')"
                 severity="secondary"
                 @click="router.push('/admin/rules')"
                 :disabled="loading"
@@ -50,7 +50,7 @@
               />
               <Button
                 type="submit"
-                :label="isEditMode ? 'Mettre à jour' : 'Créer'"
+                :label="isEditMode ? t('common.update') : t('common.create')"
                 icon="fa fa-check"
                 :loading="loading"
                 class="w-full sm:w-auto"
@@ -66,12 +66,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { createGameRuleSchema, updateGameRuleSchema } from '@skill-arena/shared/types/index'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { currentRule, loading, error, loadRuleById, createRule, updateRule } = useGameRulesService()

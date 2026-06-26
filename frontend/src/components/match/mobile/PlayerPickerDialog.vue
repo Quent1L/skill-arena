@@ -21,7 +21,7 @@
       <!-- Search -->
       <div class="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <IconField>
-          <InputText v-model="searchQuery" placeholder="Rechercher un joueur..." class="w-full" />
+          <InputText v-model="searchQuery" :placeholder="t('playerPickerDialog.searchPlaceholder')" class="w-full" />
           <InputIcon :class="inputFilterIcon" @click="searchQuery = ''" />
         </IconField>
       </div>
@@ -32,7 +32,7 @@
           <ProgressSpinner style="width: 32px; height: 32px" />
         </div>
         <div v-else-if="displayedPlayers.length === 0" class="text-center p-8 text-gray-500">
-          Aucun joueur trouvé
+          {{ t('playerPickerDialog.noResults') }}
         </div>
         <div
           v-for="player in displayedPlayers"
@@ -64,7 +64,7 @@
 
       <!-- Footer (multi-select only) -->
       <div v-if="!single" class="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-900">
-        <Button label="Terminer" class="w-full" @click="close" />
+        <Button :label="t('playerPickerDialog.done')" class="w-full" @click="close" />
       </div>
     </div>
   </Dialog>
@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 
@@ -90,12 +91,15 @@ interface Props {
   searchFn?: (query: string) => Promise<Player[]>
 }
 
+const { t } = useI18n()
+
 const props = withDefaults(defineProps<Props>(), {
-  title: 'Sélectionner des joueurs',
   players: () => [],
   selectedIds: () => [],
   single: false,
 })
+
+const title = computed(() => props.title ?? t('playerPickerDialog.defaultTitle'))
 
 const emit = defineEmits<{
   'update:selectedIds': [ids: string[]]

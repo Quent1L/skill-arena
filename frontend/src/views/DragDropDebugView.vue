@@ -1,7 +1,7 @@
 <template>
   <div class="p-8 flex gap-8">
     <div>
-      <p class="mb-2 font-semibold">Liste A ({{ files1.length }})</p>
+      <p class="mb-2 font-semibold">{{ t('dragDropDebugView.listA', { count: files1.length }) }}</p>
       <VueDraggable
         v-model="files1"
         tag="ul"
@@ -19,7 +19,7 @@
     </div>
 
     <div>
-      <p class="mb-2 font-semibold">Liste B ({{ files2.length }})</p>
+      <p class="mb-2 font-semibold">{{ t('dragDropDebugView.listB', { count: files2.length }) }}</p>
       <VueDraggable
         v-model="files2"
         tag="ul"
@@ -45,7 +45,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VueDraggable } from 'vue-draggable-plus'
+
+const { t } = useI18n()
 
 const files1 = ref([
   'dungeon_master.exe',

@@ -14,7 +14,7 @@
         />
         <div class="flex-1 min-w-0">
           <h1 class="text-lg font-bold text-gray-900 dark:text-white truncate">
-            {{ currentRule?.title || 'Règlement' }}
+            {{ currentRule?.title || t('rulesView.defaultTitle') }}
           </h1>
         </div>
       </div>
@@ -30,9 +30,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useGameRulesService } from '@/composables/game-rules/game-rules.service'
 import RulesContent from '@/components/rules/RulesContent.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { currentRule, loading, error, loadRuleById } = useGameRulesService()

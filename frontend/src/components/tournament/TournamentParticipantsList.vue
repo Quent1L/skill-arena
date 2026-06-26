@@ -2,7 +2,7 @@
   <div>
     <div v-if="canAddParticipants" class="mb-4 flex justify-end">
       <Button
-        label="Ajouter un participant"
+        :label="t('tournamentParticipantsList.addParticipant')"
         icon="fa fa-user-plus"
         @click="showAddParticipantDialog = true"
         size="small"
@@ -32,11 +32,11 @@
               {{ participant.user.displayName }}
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">
-              Inscrit le {{ formatDate(participant.joinedAt) }}
+              {{ t('tournamentParticipantsList.registeredOn', { date: formatDate(participant.joinedAt) }) }}
             </div>
           </div>
           <div v-if="participant.matchesPlayed > 0" class="text-sm text-gray-500 shrink-0">
-            {{ participant.matchesPlayed }} matchs
+            {{ t('tournamentParticipantsList.matchCount', { count: participant.matchesPlayed }) }}
           </div>
           <i class="fa fa-chevron-right text-gray-400 text-xs shrink-0"></i>
         </RouterLink>
@@ -53,12 +53,12 @@
     </div>
 
     <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
-      Aucun participant pour le moment
+      {{ t('tournamentParticipantsList.noParticipants') }}
     </div>
 
     <Dialog
       v-model:visible="showAddParticipantDialog"
-      header="Ajouter des participants"
+      :header="t('tournamentParticipantsList.addParticipantsTitle')"
       :modal="true"
       :style="{ width: '600px' }"
     >
@@ -67,14 +67,14 @@
           <ProgressSpinner />
         </div>
         <div v-else>
-          <label for="participants-user-select" class="block text-sm font-medium mb-2">Sélectionner des utilisateurs</label>
+          <label for="participants-user-select" class="block text-sm font-medium mb-2">{{ t('tournamentParticipantsList.selectUsersLabel') }}</label>
           <MultiSelect
             v-model="selectedUserIds"
             input-id="participants-user-select"
             :options="availableUsers"
             option-label="displayName"
             option-value="id"
-            placeholder="Choisir un ou plusieurs utilisateurs"
+            :placeholder="t('tournamentParticipantsList.selectUsersPlaceholder')"
             class="w-full"
             filter
             display="chip"
@@ -84,13 +84,13 @@
       </div>
       <template #footer>
         <Button
-          label="Annuler"
+          :label="t('common.cancel')"
           severity="secondary"
           @click="showAddParticipantDialog = false"
           :disabled="addingParticipant"
         />
         <Button
-          label="Ajouter"
+          :label="t('tournamentParticipantsList.addButton')"
           icon="fa fa-check"
           @click="handleAddParticipant"
           :disabled="selectedUserIds.length === 0 || addingParticipant"
@@ -103,6 +103,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatDate } from '@/utils/DateUtils'
 import type { ParticipantListItem } from '@skill-arena/shared'
 import { useAuth } from '@/composables/useAuth'
@@ -121,6 +122,7 @@ const emit = defineEmits<{
   participantAdded: []
 }>()
 
+const { t } = useI18n()
 const { isAdmin } = useAuth()
 const { users, loading: loadingUsers, listUsers } = useUserService()
 const participantService = useParticipantService()

@@ -1,7 +1,7 @@
 <template>
   <div class="rounded-2xl bg-gray-800 p-4">
     <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-      Spécialisation par type de résultat
+      {{ t('outcomeTypeStats.title') }}
     </div>
     <div class="space-y-2">
       <div
@@ -11,9 +11,9 @@
       >
         <span class="text-sm text-gray-200">{{ s.outcomeTypeName }}</span>
         <div class="flex items-center gap-2 text-xs shrink-0">
-          <span class="text-green-400">{{ s.wins }}V</span>
-          <span v-if="s.draws" class="text-gray-400">{{ s.draws }}N</span>
-          <span class="text-red-400">{{ s.losses }}D</span>
+          <span class="text-green-400">{{ s.wins }}{{ t('outcomeTypeStats.winSuffix') }}</span>
+          <span v-if="s.draws" class="text-gray-400">{{ s.draws }}{{ t('outcomeTypeStats.drawSuffix') }}</span>
+          <span class="text-red-400">{{ s.losses }}{{ t('outcomeTypeStats.lossSuffix') }}</span>
           <span class="text-gray-500 tabular-nums w-10 text-right">{{ s.winRate }}%</span>
         </div>
       </div>
@@ -22,9 +22,12 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { PlayerOutcomeTypeStat } from '@skill-arena/shared/types/index'
 
 defineProps<{
   stats: PlayerOutcomeTypeStat[]
 }>()
+
+const { t } = useI18n()
 </script>

@@ -1,4 +1,5 @@
 import { format } from 'date-fns'
+import { i18n } from '@/i18n'
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?([+-]\d{2}:?\d{2}|Z)$/
 const localDateRegex = /^\d{4}-\d{2}-\d{2}$/
@@ -69,23 +70,23 @@ export function formatDate(dateString: string | Date): string {
 }
 
 function formatDaysDuration(diffDays: number): string {
-  return diffDays === 1 ? '1 jour' : `${diffDays} jours`
+  return i18n.global.t('dateUtils.day', diffDays)
 }
 
 function formatWeeksDuration(diffDays: number): string {
   const weeks = Math.floor(diffDays / 7)
   const remainingDays = diffDays % 7
   if (remainingDays === 0) {
-    return weeks === 1 ? '1 semaine' : `${weeks} semaines`
+    return i18n.global.t('dateUtils.week', weeks)
   }
-  const weekLabel = `${weeks} semaine${weeks > 1 ? 's' : ''}`
-  const dayLabel = `${remainingDays} jour${remainingDays > 1 ? 's' : ''}`
-  return `${weekLabel} et ${dayLabel}`
+  const weekLabel = i18n.global.t('dateUtils.week', weeks)
+  const dayLabel = i18n.global.t('dateUtils.day', remainingDays)
+  return i18n.global.t('dateUtils.weekAndDays', { weeks: weekLabel, days: dayLabel })
 }
 
 function formatMonthsDuration(diffDays: number): string {
   const months = Math.floor(diffDays / 30)
-  return months === 1 ? '1 mois' : `${months} mois`
+  return i18n.global.t('dateUtils.month', months)
 }
 
 export function calculateDuration(startDate: string | Date, endDate: string | Date): string {

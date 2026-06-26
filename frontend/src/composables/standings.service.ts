@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { standingsApi } from './standings.api'
 import type { StandingsEntry } from '@skill-arena/shared/types/index'
 
@@ -6,6 +7,7 @@ import type { StandingsEntry } from '@skill-arena/shared/types/index'
  * Standings service - Business logic and state management
  */
 export function useStandingsService() {
+  const { t } = useI18n()
   const standings = ref<StandingsEntry[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -24,7 +26,7 @@ export function useStandingsService() {
       const result = await standingsApi.getOfficial(tournamentId)
       standings.value = result.standings
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du classement'
+      error.value = err instanceof Error ? err.message : t('standingsService.errors.loadFailed')
       // En cas d'erreur, garder les anciennes données si disponibles
       if (previousStandings.length === 0) {
         standings.value = []
@@ -49,7 +51,7 @@ export function useStandingsService() {
       const result = await standingsApi.getProvisional(tournamentId)
       standings.value = result.standings
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du classement'
+      error.value = err instanceof Error ? err.message : t('standingsService.errors.loadFailed')
       // En cas d'erreur, garder les anciennes données si disponibles
       if (previousStandings.length === 0) {
         standings.value = []
@@ -68,4 +70,3 @@ export function useStandingsService() {
     loadProvisionalStandings,
   }
 }
-

@@ -13,6 +13,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from './composables/useAppToast'
 import { useAuth } from './composables/useAuth'
 import { useConfigService } from './composables/config/config.service'
@@ -23,6 +24,7 @@ import AppWrapper from './AppWrapper.vue'
 import SplashLoader from './components/SplashLoader.vue'
 import UpdateOverlay from './components/UpdateOverlay.vue'
 
+const { t } = useI18n()
 const { initialize, isAuthenticated } = useAuth()
 const { loadConfig } = useConfigService()
 const errorService = useErrorService()
@@ -59,8 +61,8 @@ onMounted(async () => {
     console.error("Erreur lors de l'initialisation de la session:", error)
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: 'Une erreur inattendue est survenue',
+      summary: t('app.errorSummary'),
+      detail: t('app.unexpectedError'),
       life: 8000,
     })
   }

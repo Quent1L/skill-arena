@@ -2,8 +2,11 @@
 import NotificationList from './NotificationList.vue'
 import { useTemplateRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useNotificationService } from '@/composables/notification/notification.service'
 import { useAppToast } from '@/composables/useAppToast'
+
+const { t } = useI18n()
 
 const popover = useTemplateRef('popover')
 const router = useRouter()
@@ -32,14 +35,14 @@ async function handleMarkAllAsRead() {
     await markAllAsRead()
     toast.add({
       severity: 'success',
-      summary: 'Toutes les notifications sont marquées comme lues',
+      summary: t('notificationDropdown.toast.markAllSuccess'),
       life: 2000,
     })
   } catch {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: 'Impossible de marquer toutes les notifications comme lues',
+      summary: t('notificationDropdown.toast.error'),
+      detail: t('notificationDropdown.toast.markAllError'),
       life: 3000,
     })
   }
@@ -50,14 +53,14 @@ async function handleDeleteAll() {
     await deleteAll()
     toast.add({
       severity: 'success',
-      summary: 'Toutes les notifications ont été supprimées',
+      summary: t('notificationDropdown.toast.deleteAllSuccess'),
       life: 2000,
     })
   } catch {
     toast.add({
       severity: 'error',
-      summary: 'Erreur',
-      detail: 'Impossible de supprimer toutes les notifications',
+      summary: t('notificationDropdown.toast.error'),
+      detail: t('notificationDropdown.toast.deleteAllError'),
       life: 3000,
     })
   }
@@ -70,10 +73,10 @@ defineExpose({ toggle })
   <Popover ref="popover" :dismissable="true">
     <div class="w-[90vw] sm:w-96">
       <div class="flex justify-between items-center pb-3 border-b">
-        <h3 class="font-semibold">Notifications</h3>
+        <h3 class="font-semibold">{{ t('notificationDropdown.title') }}</h3>
         <div v-if="hasNotifications" class="flex items-center gap-1">
           <span
-            v-tooltip.bottom="hasUnreadNotifs ? 'Tout marquer comme lu' : 'Toutes les notifications ont déjà été lues'"
+            v-tooltip.bottom="hasUnreadNotifs ? t('notificationDropdown.markAllAsRead') : t('notificationDropdown.allAlreadyRead')"
             class="inline-flex"
           >
             <Button
@@ -88,7 +91,7 @@ defineExpose({ toggle })
             </Button>
           </span>
           <span
-            v-tooltip.bottom="hasDeletableNotifs ? 'Tout supprimer' : 'Les notifications de type action ne peuvent pas être supprimées'"
+            v-tooltip.bottom="hasDeletableNotifs ? t('notificationDropdown.deleteAll') : t('notificationDropdown.actionNotifsCantDelete')"
             class="inline-flex"
           >
             <Button
@@ -103,7 +106,7 @@ defineExpose({ toggle })
               <i class="fas fa-trash text-sm"></i>
             </Button>
           </span>
-          <Button text size="small" label="Tout voir" @click="viewAll" />
+          <Button text size="small" :label="t('notificationDropdown.viewAll')" @click="viewAll" />
         </div>
       </div>
       <NotificationList :constrained="true" @close="close" />

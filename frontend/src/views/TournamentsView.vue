@@ -3,16 +3,16 @@
     <div class="flex justify-between items-center mb-6">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Évènements compétitifs
+          {{ t('tournamentsView.title') }}
         </h1>
         <p class="text-gray-600 dark:text-gray-400">
-          Découvrez et participez aux évènements en cours
+          {{ t('tournamentsView.subtitle') }}
         </p>
       </div>
       <Button
         v-if="canManageTournaments"
         icon="fas fa-gears"
-        v-tooltip.top="'Administration'"
+        v-tooltip.top="t('tournamentsView.adminTooltip')"
         @click="router.push('/admin')"
       />
     </div>
@@ -33,7 +33,7 @@
       />
 
       <div v-if="hasFinishedEvents" class="flex items-center gap-2 ml-auto">
-        <label for="show-finished" class="text-sm text-gray-600 dark:text-gray-400">Terminés</label>
+        <label for="show-finished" class="text-sm text-gray-600 dark:text-gray-400">{{ t('tournamentsView.showFinished') }}</label>
         <ToggleSwitch v-model="showFinished" input-id="show-finished" />
       </div>
     </div>
@@ -59,18 +59,18 @@
         <div class="space-y-4">
           <i class="pi pi-trophy text-4xl text-gray-400"></i>
           <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300">
-            Aucun évènement trouvé
+            {{ t('tournamentsView.empty.title') }}
           </h3>
           <p class="text-gray-500 dark:text-gray-400">
             {{
               selectedTags.length > 0
-                ? 'Aucun évènement ne correspond à vos filtres.'
-                : "Il n'y a actuellement aucun évènement disponible."
+                ? t('tournamentsView.empty.withFilters')
+                : t('tournamentsView.empty.noFilters')
             }}
           </p>
           <div v-if="selectedTags.length > 0">
             <Button
-              label="Effacer les filtres"
+              :label="t('tournamentsView.clearFilters')"
               text
               @click="selectedTags = []"
               class="text-blue-600"
@@ -85,6 +85,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useAuth } from '@/composables/useAuth'
@@ -92,6 +93,7 @@ import TournamentCard from '@/components/TournamentCard.vue'
 import type { ClientTournamentSummary } from '@skill-arena/shared'
 
 const router = useRouter()
+const { t } = useI18n()
 const { tournaments, loading, error, listTournaments } = useTournamentService()
 const { seasons, loadSeasons } = useRankedService()
 const { isSuperAdmin, isAuthenticated } = useAuth()
@@ -120,10 +122,10 @@ const hasFinishedEvents = computed(() => allEvents.value.some((e) => e.status ==
 const availableTags = computed(() => {
   const modes = new Set(activeEvents.value.map((e) => e.mode))
   return [
-    { key: 'ranked', label: 'Ranked', icon: 'fa fa-ranking-star' },
-    { key: 'championship', label: 'Championnat', icon: 'fa fa-trophy' },
-    { key: 'bracket', label: 'Bracket', icon: 'fa fa-sitemap' },
-  ].filter((t) => modes.has(t.key as ClientTournamentSummary['mode']))
+    { key: 'ranked', label: t('tournamentsView.tags.ranked'), icon: 'fa fa-ranking-star' },
+    { key: 'championship', label: t('tournamentsView.tags.championship'), icon: 'fa fa-trophy' },
+    { key: 'bracket', label: t('tournamentsView.tags.bracket'), icon: 'fa fa-sitemap' },
+  ].filter((tag) => modes.has(tag.key as ClientTournamentSummary['mode']))
 })
 
 const displayedEvents = computed(() => {

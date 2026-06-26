@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-6 pt-4">
-    <h3 class="text-base font-semibold">Participants</h3>
+    <h3 class="text-base font-semibold">{{ t('participantsStep.title') }}</h3>
 
     <div>
       <!-- Desktop: AutoComplete -->
@@ -9,7 +9,7 @@
         v-model="searchQuery"
         :suggestions="filteredPlayers"
         option-label="displayName"
-        placeholder="Rechercher un joueur..."
+        :placeholder="t('participantsStep.searchPlaceholder')"
         class="w-full"
         :disabled="loadingPlayers"
         dropdown
@@ -20,7 +20,7 @@
       <!-- Mobile: open picker dialog -->
       <Button
         v-else
-        label="Ajouter des joueurs"
+        :label="t('participantsStep.addPlayers')"
         icon="fas fa-user-plus"
         outlined
         class="w-full"
@@ -30,7 +30,7 @@
     </div>
 
     <div v-if="allPlayerIdsModel.length > 0">
-      <div class="text-sm font-medium mb-2">Participants sélectionnés</div>
+      <div class="text-sm font-medium mb-2">{{ t('participantsStep.selectedParticipants') }}</div>
       <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
         <div
           v-for="playerId in allPlayerIdsModel"
@@ -64,13 +64,13 @@
 
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
       <Button
-        label="Précédent"
+        :label="t('participantsStep.previous')"
         severity="secondary"
         icon="fas fa-arrow-left"
         @click="emit('previous')"
       />
       <Button
-        :label="props.nextLabel ?? 'Suivant'"
+        :label="props.nextLabel ?? t('participantsStep.next')"
         :icon="props.nextLabel ? 'fas fa-calendar-check' : 'fas fa-arrow-right'"
         :icon-pos="props.nextLabel ? undefined : 'right'"
         :class="props.nextLabel ? 'bg-green-600 hover:bg-green-700' : ''"
@@ -82,7 +82,7 @@
 
     <PlayerPickerDialog
       v-model:visible="pickerVisible"
-      title="Sélectionner les joueurs"
+      :title="t('participantsStep.pickerTitle')"
       :players="allPlayers"
       :selected-ids="allPlayerIdsModel"
       @update:selected-ids="allPlayerIdsModel = $event"
@@ -92,6 +92,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import AutoComplete from 'primevue/autocomplete'
 import Message from 'primevue/message'
@@ -123,6 +124,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const { t } = useI18n()
 
 const allPlayerIdsModel = defineModel<string[]>('allPlayerIds', { required: true })
 

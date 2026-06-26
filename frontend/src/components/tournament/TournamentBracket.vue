@@ -1,7 +1,7 @@
 <template>
   <div class="tournament-bracket-root">
     <BracketCanvas
-      title="Tableau principal"
+      :title="t('tournamentBracket.mainBracket')"
       :rounds="winnersRounds"
       :all-matches="bracketData.matches"
       :seeds="bracketData.seeds"
@@ -12,7 +12,7 @@
 
     <BracketCanvas
       v-if="bronzeRound"
-      title="Match pour la 3ème place"
+      :title="t('tournamentBracket.bronzeMatch')"
       :rounds="[bronzeRound]"
       :all-matches="bracketData.matches"
       :seeds="bracketData.seeds"
@@ -22,7 +22,7 @@
 
     <BracketCanvas
       v-if="losersRounds.length > 0"
-      title="Tableau de la seconde chance"
+      :title="t('tournamentBracket.losersBracket')"
       :rounds="losersRounds"
       :all-matches="bracketData.matches"
       :seeds="bracketData.seeds"
@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import type { ClientBracketData } from '@skill-arena/shared'
 import BracketCanvas from '@/components/bracket/BracketCanvas.vue'
@@ -44,6 +45,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const { t } = useI18n()
 
 const winnersRounds = computed(() =>
   props.bracketData.rounds

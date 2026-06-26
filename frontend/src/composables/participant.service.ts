@@ -1,10 +1,12 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { participantApi } from './participant.api'
 import { useAppToast } from '@/composables/useAppToast'
 import type { JoinTournamentResponse, ParticipantListItem } from '@skill-arena/shared'
 
 export function useParticipantService() {
   const toast = useAppToast()
+  const { t } = useI18n()
 
   // State
   const participants = ref<ParticipantListItem[]>([])
@@ -21,19 +23,19 @@ export function useParticipantService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Inscription réussie',
-        detail: 'Vous êtes maintenant inscrit au tournoi',
+        summary: t('participantService.toast.joinSuccessSummary'),
+        detail: t('participantService.toast.joinSuccessDetail'),
         life: 3000,
       })
 
       return result
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'inscription"
+      const message = err instanceof Error ? err.message : t('participantService.errors.joinFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: "Erreur d'inscription",
+        summary: t('participantService.toast.joinErrorSummary'),
         detail: message,
         life: 5000,
       })
@@ -53,19 +55,19 @@ export function useParticipantService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Désinscription réussie',
-        detail: 'Vous avez quitté le tournoi',
+        summary: t('participantService.toast.leaveSuccessSummary'),
+        detail: t('participantService.toast.leaveSuccessDetail'),
         life: 3000,
       })
 
       return true
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la désinscription'
+      const message = err instanceof Error ? err.message : t('participantService.errors.leaveFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: 'Erreur de désinscription',
+        summary: t('participantService.toast.leaveErrorSummary'),
         detail: message,
         life: 5000,
       })
@@ -87,7 +89,7 @@ export function useParticipantService() {
       return result
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors du chargement des participants'
+        err instanceof Error ? err.message : t('participantService.errors.listFailed')
       error.value = message
 
       console.error('Erreur lors du chargement des participants:', err)
@@ -149,19 +151,19 @@ export function useParticipantService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Participant ajouté',
-        detail: 'Le participant a été ajouté avec succès',
+        summary: t('participantService.toast.addSuccessSummary'),
+        detail: t('participantService.toast.addSuccessDetail'),
         life: 3000,
       })
 
       return result
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout du participant"
+      const message = err instanceof Error ? err.message : t('participantService.errors.addFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: "Erreur d'ajout",
+        summary: t('participantService.toast.addErrorSummary'),
         detail: message,
         life: 5000,
       })
@@ -202,8 +204,8 @@ export function useParticipantService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Participant retiré',
-        detail: 'Le participant a été retiré du tournoi',
+        summary: t('participantService.toast.removeSuccessSummary'),
+        detail: t('participantService.toast.removeSuccessDetail'),
         life: 3000,
       })
 
@@ -211,12 +213,12 @@ export function useParticipantService() {
       return true
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Erreur lors du retrait du participant'
+        err instanceof Error ? err.message : t('participantService.errors.removeFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: 'Erreur de retrait',
+        summary: t('participantService.toast.removeErrorSummary'),
         detail: message,
         life: 5000,
       })
@@ -244,20 +246,20 @@ export function useParticipantService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Participants ajoutés',
-        detail: `${userIds.length} participant${userIds.length > 1 ? 's' : ''} ajouté${userIds.length > 1 ? 's' : ''} avec succès`,
+        summary: t('participantService.toast.batchAddSuccessSummary'),
+        detail: t('participantService.toast.batchAddSuccessDetail', { count: userIds.length }),
         life: 3000,
       })
 
       await getTournamentParticipants(tournamentId)
       return true
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout des participants"
+      const message = err instanceof Error ? err.message : t('participantService.errors.batchAddFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: "Erreur d'ajout",
+        summary: t('participantService.toast.addErrorSummary'),
         detail: message,
         life: 5000,
       })

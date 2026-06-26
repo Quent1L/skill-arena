@@ -1,6 +1,6 @@
 <template>
   <div class="condition-palette">
-    <p class="text-xs font-semibold text-surface-500 mb-2">Blocs (glisser-déposer)</p>
+    <p class="text-xs font-semibold text-surface-500 mb-2">{{ t('conditionPalette.blocksLabel') }}</p>
     <VueDraggable
       v-model="items"
       :group="{ name: 'cond', pull: 'clone', put: false }"
@@ -22,8 +22,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VueDraggable } from 'vue-draggable-plus'
 import { PALETTE_ITEMS, nodeFromPalette, type BuilderNode, type PaletteItem } from './condition-tree'
+
+const { t } = useI18n()
 
 const items = ref<PaletteItem[]>([...PALETTE_ITEMS])
 

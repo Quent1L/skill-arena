@@ -1,12 +1,12 @@
 <template>
   <div class="general-info-section">
-    <h2 class="text-xl font-semibold mb-4">Informations générales</h2>
+    <h2 class="text-xl font-semibold mb-4">{{ t('generalInfoSection.title') }}</h2>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Nom -->
       <div>
         <label for="name" class="block text-sm font-medium mb-2">
-          Nom <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.name') }} <span class="text-red-500">*</span>
         </label>
         <InputText
           id="name"
@@ -22,7 +22,7 @@
       <!-- Discipline -->
       <div>
         <label for="disciplineId" class="block text-sm font-medium mb-2">
-          Discipline <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.discipline') }} <span class="text-red-500">*</span>
         </label>
         <Select
           v-if="!disciplineLocked"
@@ -31,7 +31,7 @@
           :options="disciplineOptions"
           option-label="label"
           option-value="value"
-          placeholder="Sélectionner une discipline"
+          :placeholder="t('generalInfoSection.placeholders.discipline')"
           class="w-full"
           :class="{ 'p-invalid': errors.disciplineId }"
         />
@@ -50,14 +50,14 @@
 
       <!-- Règles du jeu -->
       <div>
-        <label for="rulesId" class="block text-sm font-medium mb-2">Règles du jeu</label>
+        <label for="rulesId" class="block text-sm font-medium mb-2">{{ t('generalInfoSection.fields.rules') }}</label>
         <Select
           id="rulesId"
           v-model="rulesId"
           :options="rulesOptions"
           option-label="label"
           option-value="value"
-          placeholder="Aucun règlement"
+          :placeholder="t('generalInfoSection.placeholders.noRules')"
           :show-clear="true"
           class="w-full"
         />
@@ -66,7 +66,7 @@
       <!-- Organisation (super admin) -->
       <div v-if="isSuperAdmin">
         <label for="organizationId" class="block text-sm font-medium mb-2">
-          Organisation (optionnel)
+          {{ t('generalInfoSection.fields.organization') }}
         </label>
         <Select
           id="organizationId"
@@ -74,7 +74,7 @@
           :options="organizations"
           option-label="name"
           option-value="id"
-          placeholder="Accès général (aucun groupe)"
+          :placeholder="t('generalInfoSection.placeholders.noOrganization')"
           class="w-full"
           show-clear
         />
@@ -82,7 +82,7 @@
 
       <!-- Description -->
       <div class="lg:col-span-2">
-        <label for="description" class="block text-sm font-medium mb-2">Description</label>
+        <label for="description" class="block text-sm font-medium mb-2">{{ t('generalInfoSection.fields.description') }}</label>
         <RichTextEditor
           :model-value="description ?? ''"
           @update:model-value="description = $event"
@@ -97,7 +97,7 @@
       <!-- Min Team Size -->
       <div>
         <label for="minTeamSize" class="block text-sm font-medium mb-2">
-          Taille min équipe <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.minTeamSize') }} <span class="text-red-500">*</span>
         </label>
         <InputNumber
           id="minTeamSize"
@@ -114,7 +114,7 @@
       <!-- Max Team Size -->
       <div>
         <label for="maxTeamSize" class="block text-sm font-medium mb-2">
-          Taille max équipe <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.maxTeamSize') }} <span class="text-red-500">*</span>
         </label>
         <InputNumber
           id="maxTeamSize"
@@ -131,7 +131,7 @@
       <!-- Date de début -->
       <div>
         <label for="startDate" class="block text-sm font-medium mb-2">
-          Date de début <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.startDate') }} <span class="text-red-500">*</span>
         </label>
         <DatePicker
           id="startDate"
@@ -147,7 +147,7 @@
       <!-- Date de fin -->
       <div>
         <label for="endDate" class="block text-sm font-medium mb-2">
-          Date de fin <span class="text-red-500">*</span>
+          {{ t('generalInfoSection.fields.endDate') }} <span class="text-red-500">*</span>
         </label>
         <DatePicker
           id="endDate"
@@ -169,7 +169,7 @@
         :binary="true"
         :disabled="!canEdit('allowDraw')"
       />
-      <label for="allowDraw" class="ml-2">Autoriser les matchs nuls</label>
+      <label for="allowDraw" class="ml-2">{{ t('generalInfoSection.fields.allowDraw') }}</label>
     </div>
 
     <!-- Slot pour des champs supplémentaires en bas -->
@@ -179,9 +179,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
 import type { OrganizationWithMemberCount } from '@skill-arena/shared'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
+
+const { t } = useI18n()
 
 interface SelectOption {
   label: string

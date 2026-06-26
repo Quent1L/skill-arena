@@ -68,7 +68,7 @@
           {{ match.status === 'scheduled' ? '-' : (sideB?.score ?? '-') }}
         </span>
       </div>
-      <div v-else class="font-headline font-black text-muted-color/40 text-xs shrink-0">VS</div>
+      <div v-else class="font-headline font-black text-muted-color/40 text-xs shrink-0">{{ t('bracketMatchCard.vs') }}</div>
 
       <!-- Side B -->
       <div class="flex-1 flex flex-col items-center gap-1 relative">
@@ -96,6 +96,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ClientMatchModel, MatchSideModel, ClientBracketSeed } from '@skill-arena/shared'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
@@ -110,6 +111,8 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{ click: [matchId: string] }>()
 
+const { t } = useI18n()
+
 const isClickable = computed(() => (props.match.sides?.length ?? 0) >= 2)
 
 const sideA = computed(() => props.match.sides?.find((s) => s.position === 1) ?? null)
@@ -117,7 +120,7 @@ const sideB = computed(() => props.match.sides?.find((s) => s.position === 2) ??
 
 function getEntryName(entryId: string): string {
   const seed = props.seeds.find((s) => s.entryId === entryId)
-  if (!seed?.entry) return 'Inconnu'
+  if (!seed?.entry) return t('bracketMatchCard.unknown')
 
   if (seed.entry.entryType === 'TEAM' && seed.entry.team) {
     return seed.entry.team.name
@@ -127,7 +130,7 @@ function getEntryName(entryId: string): string {
     return seed.entry.players[0].player.shortName
   }
 
-  return 'Inconnu'
+  return t('bracketMatchCard.unknown')
 }
 
 function getEntryCode(entryId: string): string {
@@ -181,17 +184,17 @@ function statusTextClass(status: string): string {
 function statusLabel(status: string): string {
   switch (status) {
     case 'finalized':
-      return 'Validé'
+      return t('bracketMatchCard.statusFinalized')
     case 'ongoing':
-      return 'En cours'
+      return t('bracketMatchCard.statusOngoing')
     case 'contested':
-      return 'Contesté'
+      return t('bracketMatchCard.statusContested')
     case 'cancelled':
-      return 'Annulé'
+      return t('bracketMatchCard.statusCancelled')
     case 'reported':
-      return 'En attente'
+      return t('bracketMatchCard.statusReported')
     case 'scheduled':
-      return 'Planifié'
+      return t('bracketMatchCard.statusScheduled')
     default:
       return status
   }

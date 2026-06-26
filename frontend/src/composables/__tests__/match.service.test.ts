@@ -22,6 +22,9 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
 vi.mock('../match/match.api')
 vi.mock('vue-router')
 vi.mock('@/composables/useAppToast')

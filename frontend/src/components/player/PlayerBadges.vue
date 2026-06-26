@@ -1,6 +1,6 @@
 <template>
   <div v-if="badges.length > 0" class="rounded-2xl p-4">
-    <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Badges</div>
+    <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">{{ t('playerBadges.title') }}</div>
     <div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
       <div
         v-for="badge in badges"
@@ -30,12 +30,15 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { rulesApi } from '@/composables/rules/rules.api'
 import { onWsEvent } from '@/composables/notification/notification.socket'
 import type { ClientPlayerBadge } from '@skill-arena/shared/types/index'
 import Popover from 'primevue/popover'
 
 const props = defineProps<{ playerId: string }>()
+
+const { t } = useI18n()
 
 const badges = ref<ClientPlayerBadge[]>([])
 const popover = ref()

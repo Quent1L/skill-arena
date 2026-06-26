@@ -1,11 +1,11 @@
 <template>
   <div class="flex flex-col gap-6 pt-4">
-    <h3 class="text-base font-semibold">Résultat</h3>
+    <h3 class="text-base font-semibold">{{ t('resultStep.title') }}</h3>
 
     <!-- Side previews — click to pick winner -->
     <div class="flex flex-col gap-2">
       <span class="text-sm font-medium"
-        >Sélectionnez le vainqueur <span class="text-red-500">*</span></span
+        >{{ t('resultStep.selectWinner') }} <span class="text-red-500">*</span></span
       >
       <div class="grid gap-3 grid-cols-2">
         <button
@@ -21,7 +21,7 @@
           @click="winnerModel = side.position"
         >
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-surface-500">Équipe {{ idx + 1 }}</span>
+            <span class="text-xs font-semibold text-surface-500">{{ t('resultStep.team', { number: idx + 1 }) }}</span>
             <i v-if="winnerModel === side.position" class="fa fa-trophy text-green-500 text-xs" />
           </div>
           <div class="flex flex-col gap-1">
@@ -50,21 +50,21 @@
             class="fa fa-handshake text-surface-400"
             :class="winnerModel === 0 ? 'text-yellow-500' : ''"
           />
-          <span class="text-xs font-semibold text-surface-500">Match nul</span>
+          <span class="text-xs font-semibold text-surface-500">{{ t('resultStep.draw') }}</span>
         </button>
       </div>
     </div>
 
     <!-- Outcome type -->
     <div class="flex flex-col gap-2">
-      <label for="result-outcome-type" class="text-sm font-medium">Type de résultat</label>
+      <label for="result-outcome-type" class="text-sm font-medium">{{ t('resultStep.outcomeType') }}</label>
       <Select
         v-model="outcomeTypeIdModel"
         input-id="result-outcome-type"
         :options="outcomeTypes"
         option-label="name"
         option-value="id"
-        placeholder="Sélectionner un type"
+        :placeholder="t('resultStep.selectOutcomeType')"
         class="w-full"
         :loading="loadingOutcomeTypes"
         @change="onOutcomeTypeChange"
@@ -73,14 +73,14 @@
 
     <!-- Outcome reason -->
     <div v-if="showReasonSelect" class="flex flex-col gap-2">
-      <label for="result-outcome-reason" class="text-sm font-medium">Raison</label>
+      <label for="result-outcome-reason" class="text-sm font-medium">{{ t('resultStep.reason') }}</label>
       <Select
         v-model="outcomeReasonIdModel"
         input-id="result-outcome-reason"
         :options="filteredOutcomeReasons"
         option-label="name"
         option-value="id"
-        placeholder="Sélectionner une raison"
+        :placeholder="t('resultStep.selectReason')"
         class="w-full"
         :loading="loadingOutcomeReasons"
       />
@@ -88,13 +88,13 @@
 
     <!-- Score -->
     <div v-if="scoreEnabled !== false" class="flex flex-col gap-2">
-      <span class="text-sm font-medium">Score <span class="text-red-500">*</span></span>
+      <span class="text-sm font-medium">{{ t('resultStep.score') }} <span class="text-red-500">*</span></span>
       <Message v-if="scoreInstructions" severity="info" :closable="false">{{
         scoreInstructions
       }}</Message>
       <div class="flex items-center justify-center gap-8">
         <div v-for="(side, idx) in sidesModel" :key="side.position" class="text-center">
-          <div class="text-xs text-surface-500 mb-2">Équipe {{ idx + 1 }}</div>
+          <div class="text-xs text-surface-500 mb-2">{{ t('resultStep.team', { number: idx + 1 }) }}</div>
           <InputNumber
             :model-value="scorePerSideModel[side.position] ?? 0"
             :min="minScore ?? 0"
@@ -114,13 +114,13 @@
 
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
       <Button
-        label="Précédent"
+        :label="t('resultStep.previous')"
         severity="secondary"
         icon="fas fa-arrow-left"
         @click="emit('previous')"
       />
       <Button
-        :label="submitLabel || 'Créer le match'"
+        :label="submitLabel || t('resultStep.create')"
         icon="fas fa-check"
         :loading="loading"
         :disabled="!canCreate"
@@ -133,6 +133,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import Select from 'primevue/select'
@@ -166,6 +167,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const { t } = useI18n()
 
 const sidesModel = defineModel<MatchSideInput[]>('sides', { required: true })
 const winnerModel = defineModel<number | null>('winner', { default: null })
@@ -213,7 +215,7 @@ const validationMessages = computed<string[]>(() => {
   const msgs: string[] = []
   if (winnerModel.value === null)
     msgs.push(
-      props.allowDraw ? 'Sélectionnez un vainqueur ou match nul.' : 'Sélectionnez un vainqueur.',
+      props.allowDraw ? t('resultStep.selectWinnerOrDraw') : t('resultStep.selectWinnerOnly'),
     )
   return msgs
 })

@@ -1,8 +1,10 @@
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { organizationApi } from './organization.api'
 import type { OrganizationWithMemberCount, OrganizationMemberWithUser } from '@skill-arena/shared'
 
 export function useOrganizationService() {
+  const { t } = useI18n()
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -12,7 +14,7 @@ export function useOrganizationService() {
     try {
       return await organizationApi.list()
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des organisations'
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.listFailed')
       throw err
     } finally {
       loading.value = false
@@ -25,7 +27,7 @@ export function useOrganizationService() {
     try {
       return await organizationApi.create(name)
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Erreur lors de la création de l'organisation"
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.createFailed')
       throw err
     } finally {
       loading.value = false
@@ -38,7 +40,7 @@ export function useOrganizationService() {
     try {
       return await organizationApi.getMembers(orgId)
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement des membres'
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.getMembersFailed')
       throw err
     } finally {
       loading.value = false
@@ -51,7 +53,7 @@ export function useOrganizationService() {
     try {
       await organizationApi.addMember(orgId, userId)
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Erreur lors de l'ajout du membre"
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.addMemberFailed')
       throw err
     } finally {
       loading.value = false
@@ -64,7 +66,7 @@ export function useOrganizationService() {
     try {
       await organizationApi.removeMember(orgId, userId)
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du retrait du membre'
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.removeMemberFailed')
       throw err
     } finally {
       loading.value = false
@@ -77,7 +79,7 @@ export function useOrganizationService() {
     try {
       return await organizationApi.rename(orgId, name)
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Erreur lors du renommage de l'organisation"
+      error.value = err instanceof Error ? err.message : t('organizationService.errors.renameFailed')
       throw err
     } finally {
       loading.value = false

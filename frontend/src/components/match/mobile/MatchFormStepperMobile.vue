@@ -6,7 +6,7 @@
     >
       <Button icon="fas fa-arrow-left" text rounded class="mr-2" @click="goBack" />
       <h1 class="text-lg font-bold">
-        {{ isContestMode ? 'Proposer une correction' : isEditMode ? 'Compléter le match' : 'Nouveau Match' }}
+        {{ isContestMode ? t('matchFormStepperMobile.titleContest') : isEditMode ? t('matchFormStepperMobile.titleEdit') : t('matchFormStepperMobile.titleNew') }}
       </h1>
     </div>
 
@@ -123,7 +123,7 @@
           />
           <Button
             v-if="isFutureDate && canSchedule && isLastStepBeforeResult"
-            label="Programmer le match"
+            :label="t('matchFormStepperMobile.scheduleMatch')"
             icon="fas fa-calendar-check"
             :loading="matchLoading"
             class="flex-1"
@@ -131,7 +131,7 @@
           />
           <Button
             v-else
-            label="Suivant"
+            :label="t('matchFormStepperMobile.next')"
             icon="fas fa-arrow-right"
             icon-pos="right"
             :disabled="!canProceedStep"
@@ -145,14 +145,14 @@
       <template v-else>
         <div v-if="!isContestMode" class="flex gap-3">
           <Button
-            label="Retour"
+            :label="t('matchFormStepperMobile.back')"
             severity="secondary"
             icon="fas fa-arrow-left"
             class="flex-1"
             @click="goBackFromResult"
           />
           <Button
-            :label="isEditMode ? 'Mettre à jour' : 'Enregistrer'"
+            :label="isEditMode ? t('common.update') : t('common.save')"
             icon="fas fa-check"
             :disabled="!canSubmit"
             :loading="matchLoading"
@@ -162,7 +162,7 @@
         </div>
         <Button
           v-else
-          label="Proposer la correction"
+          :label="t('matchFormStepperMobile.proposeCorrection')"
           icon="fas fa-check"
           :disabled="!canSubmit"
           :loading="matchLoading"
@@ -177,6 +177,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
 import WhenStep from '@/components/match/steps/WhenStep.vue'
@@ -199,6 +200,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const { t } = useI18n()
 
 const {
   loading: matchLoading,

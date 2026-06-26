@@ -47,7 +47,7 @@
             "
             @click="setStatsSubTab('profile')"
           >
-            Mon profil
+            {{ t('tournamentDetailMobile.myProfile') }}
           </button>
           <button
             class="flex-1 py-2 text-sm font-semibold transition-colors"
@@ -58,7 +58,7 @@
             "
             @click="setStatsSubTab('global')"
           >
-            Stats globales
+            {{ t('tournamentDetailMobile.globalStats') }}
           </button>
         </div>
 
@@ -88,9 +88,9 @@
                 class="text-center py-12 text-gray-500 dark:text-gray-400"
               >
                 <i class="fa fa-user-slash text-4xl mb-4 block"></i>
-                <p>Vous n'avez pas encore de MMR pour cette saison.</p>
+                <p>{{ t('tournamentDetailMobile.noMmrYet') }}</p>
                 <p class="text-sm mt-2">
-                  Déclarez votre premier match pour rejoindre le classement !
+                  {{ t('tournamentDetailMobile.declareFirstMatch') }}
                 </p>
               </div>
               <div v-else class="p-4 space-y-3">
@@ -200,6 +200,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSwipe } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
@@ -211,6 +212,8 @@ import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentPartici
 import TournamentStatsTab from '@/views/tournament/tabs/TournamentStatsTab.vue'
 import TournamentInfosTab from '@/views/tournament/tabs/TournamentInfosTab.vue'
 import MobileBottomNav from '@/components/tournament/mobile/MobileBottomNav.vue'
+
+const { t } = useI18n()
 
 const route = useRoute()
 const router = useRouter()

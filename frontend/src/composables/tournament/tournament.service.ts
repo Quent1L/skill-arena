@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   tournamentApi,
   type TournamentResponse,
@@ -42,6 +43,7 @@ function getAvailableStatusTransitions(currentStatus: TournamentStatus): Tournam
  */
 export function useTournamentService() {
   const { currentUser, isSuperAdmin } = useAuth()
+  const { t } = useI18n()
 
   const tournaments = ref<TournamentListResponse[]>([])
   const currentTournament = ref<TournamentResponse | null>(null)
@@ -121,7 +123,7 @@ export function useTournamentService() {
       tournaments.value = await tournamentApi.list(filters)
       return tournaments.value
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.loadFailed')
       throw err
     } finally {
       loading.value = false
@@ -139,7 +141,7 @@ export function useTournamentService() {
       currentTournament.value = await tournamentApi.getById(id)
       return currentTournament.value
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du chargement'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.loadFailed')
       throw err
     } finally {
       loading.value = false
@@ -151,7 +153,7 @@ export function useTournamentService() {
    */
   async function createTournament(formData: CreateTournamentFormData) {
     if (!canCreateTournament.value) {
-      throw new Error("Vous n'avez pas les droits pour créer un tournoi")
+      throw new Error(t('tournamentService.errors.noCreatePermission'))
     }
 
     loading.value = true
@@ -165,7 +167,7 @@ export function useTournamentService() {
 
       return tournament
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la création'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.createFailed')
       throw err
     } finally {
       loading.value = false
@@ -196,7 +198,7 @@ export function useTournamentService() {
 
       return tournament
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la mise à jour'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.updateFailed')
       throw err
     } finally {
       loading.value = false
@@ -226,7 +228,7 @@ export function useTournamentService() {
 
       return tournament
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors du changement de statut'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.statusChangeFailed')
       throw err
     } finally {
       loading.value = false
@@ -253,7 +255,7 @@ export function useTournamentService() {
 
       return true
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : 'Erreur lors de la suppression'
+      error.value = err instanceof Error ? err.message : t('tournamentService.errors.deleteFailed')
       throw err
     } finally {
       loading.value = false

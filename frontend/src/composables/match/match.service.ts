@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { matchApi } from './match.api'
 import { useParticipantService } from '../participant.service'
@@ -30,6 +31,7 @@ interface ValidationResult {
 export function useMatchService() {
   const router = useRouter()
   const toast = useAppToast()
+  const { t } = useI18n()
   const { getTournamentParticipants } = useParticipantService()
 
   const validationResult = ref<ValidationResult | null>(null)
@@ -74,7 +76,7 @@ export function useMatchService() {
     } catch {
       const errorResult: ValidationResult = {
         valid: false,
-        errors: ['Erreur lors de la validation'],
+        errors: [t('matchService.errors.validationFailed')],
         warnings: [],
       }
       validationResult.value = errorResult
@@ -104,7 +106,7 @@ export function useMatchService() {
     } catch {
       const errorResult: ValidationResult = {
         valid: false,
-        errors: ['Erreur lors de la validation'],
+        errors: [t('matchService.errors.validationFailed')],
         warnings: [],
       }
       validationResult.value = errorResult
@@ -159,20 +161,20 @@ export function useMatchService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Match créé avec succès',
+        summary: t('common.success'),
+        detail: t('matchService.toast.createSuccessDetail'),
         life: 3000,
       })
 
       await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
       return match
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la création du match'
+      const message = err instanceof Error ? err.message : t('matchService.errors.createFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -199,20 +201,20 @@ export function useMatchService() {
 
       toast.add({
         severity: 'success',
-        summary: 'Succès',
-        detail: 'Match mis à jour avec succès',
+        summary: t('common.success'),
+        detail: t('matchService.toast.updateSuccessDetail'),
         life: 3000,
       })
 
       await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
       return match
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour du match'
+      const message = err instanceof Error ? err.message : t('matchService.errors.updateFailed')
       error.value = message
 
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: message,
         life: 5000,
       })
@@ -227,7 +229,7 @@ export function useMatchService() {
    * Get team players names from IDs
    */
   function getTeamPlayersNames(playerIds: string[]): string[] {
-    return playerIds.map((id) => playersMap.value[id] ?? `Joueur ${id}`)
+    return playerIds.map((id) => playersMap.value[id] ?? t('matchService.unknownPlayer', { id }))
   }
 
   // Basic API methods
@@ -269,16 +271,16 @@ export function useMatchService() {
       const match = await matchApi.confirmResult(id, data)
       toast.add({
         severity: 'success',
-        summary: 'Confirmation enregistrée',
-        detail: 'Votre confirmation a été enregistrée avec succès',
+        summary: t('matchService.toast.confirmSuccessSummary'),
+        detail: t('matchService.toast.confirmSuccessDetail'),
         life: 3000,
       })
       return match
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la confirmation'
+      const errorMessage = err instanceof Error ? err.message : t('matchService.errors.confirmFailed')
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: errorMessage,
         life: 5000,
       })
@@ -295,18 +297,18 @@ export function useMatchService() {
       const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
       toast.add({
         severity: 'warn',
-        summary: hasProposal ? 'Score proposé' : 'Contestation enregistrée',
+        summary: hasProposal ? t('matchService.toast.scoreProposedSummary') : t('matchService.toast.contestSuccessSummary'),
         detail: hasProposal
-          ? `Vous avez proposé le score ${data.proposedScoreA} - ${data.proposedScoreB}. Les autres joueurs doivent reconfirmer.`
-          : 'Votre contestation a été enregistrée. Un administrateur examinera le cas.',
+          ? t('matchService.toast.scoreProposedDetail', { scoreA: data.proposedScoreA, scoreB: data.proposedScoreB })
+          : t('matchService.toast.contestSuccessDetail'),
         life: 6000,
       })
       return match
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la contestation'
+      const errorMessage = err instanceof Error ? err.message : t('matchService.errors.contestFailed')
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: errorMessage,
         life: 5000,
       })
@@ -323,27 +325,27 @@ export function useMatchService() {
       if (data.type === 'agree') {
         toast.add({
           severity: 'success',
-          summary: 'Acceptation enregistrée',
-          detail: 'Votre acceptation a été enregistrée avec succès',
+          summary: t('matchService.toast.agreeSuccessSummary'),
+          detail: t('matchService.toast.agreeSuccessDetail'),
           life: 3000,
         })
       } else {
         const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
         toast.add({
           severity: 'warn',
-          summary: hasProposal ? 'Score proposé' : 'Contestation enregistrée',
+          summary: hasProposal ? t('matchService.toast.scoreProposedSummary') : t('matchService.toast.contestSuccessSummary'),
           detail: hasProposal
-            ? `Vous avez proposé le score ${data.proposedScoreA} - ${data.proposedScoreB}. Les autres joueurs doivent reconfirmer.`
-            : 'Votre contestation a été enregistrée.',
+            ? t('matchService.toast.scoreProposedDetail', { scoreA: data.proposedScoreA, scoreB: data.proposedScoreB })
+            : t('matchService.toast.respondContestDetail'),
           life: 6000,
         })
       }
       return match
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la réponse'
+      const errorMessage = err instanceof Error ? err.message : t('matchService.errors.respondFailed')
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: errorMessage,
         life: 5000,
       })
@@ -356,16 +358,16 @@ export function useMatchService() {
       const match = await matchApi.cancel(id)
       toast.add({
         severity: 'info',
-        summary: 'Match annulé',
-        detail: 'Le match a été annulé avec succès',
+        summary: t('matchService.toast.cancelSuccessSummary'),
+        detail: t('matchService.toast.cancelSuccessDetail'),
         life: 3000,
       })
       return match
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors de l'annulation"
+      const errorMessage = err instanceof Error ? err.message : t('matchService.errors.cancelFailed')
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: errorMessage,
         life: 5000,
       })
@@ -381,16 +383,16 @@ export function useMatchService() {
       const match = await matchApi.finalize(id, data)
       toast.add({
         severity: 'success',
-        summary: 'Match finalisé',
-        detail: 'Le match a été finalisé avec succès',
+        summary: t('matchService.toast.finalizeSuccessSummary'),
+        detail: t('matchService.toast.finalizeSuccessDetail'),
         life: 3000,
       })
       return match
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la finalisation'
+      const errorMessage = err instanceof Error ? err.message : t('matchService.errors.finalizeFailed')
       toast.add({
         severity: 'error',
-        summary: 'Erreur',
+        summary: t('common.error'),
         detail: errorMessage,
         life: 5000,
       })

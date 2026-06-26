@@ -4,7 +4,7 @@
     <div class="flex items-center gap-3 mb-6">
       <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/ranked')" />
       <h1 class="text-2xl font-bold">
-        {{ isEditMode ? 'Modifier la saison ranked' : 'Nouvelle saison ranked' }}
+        {{ isEditMode ? t('rankedSeasonFormView.editTitle') : t('rankedSeasonFormView.newTitle') }}
       </h1>
     </div>
 
@@ -24,18 +24,18 @@
               :is-super-admin="isSuperAdmin"
               :discipline-locked="isEditMode"
               :locked-discipline-name="currentSeason?.discipline?.name ?? ''"
-              description-placeholder="Description optionnelle de la saison"
-              name-placeholder="Ex: Saison 1 - Billard 2026"
+              :description-placeholder="t('rankedSeasonFormView.descriptionPlaceholder')"
+              :name-placeholder="t('rankedSeasonFormView.namePlaceholder')"
             />
           </div>
 
           <!-- Configuration Elo -->
           <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">Configuration Elo</h2>
+            <h2 class="text-xl font-semibold mb-4">{{ t('rankedSeasonFormView.eloConfigTitle') }}</h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label for="baseMmr" class="block text-sm font-medium mb-2">MMR de base</label>
+                <label for="baseMmr" class="block text-sm font-medium mb-2">{{ t('rankedSeasonFormView.labelBaseMmr') }}</label>
                 <InputNumber
                   id="baseMmr"
                   v-model="baseMmr"
@@ -48,7 +48,7 @@
               </div>
 
               <div>
-                <label for="kFactor" class="block text-sm font-medium mb-2">Facteur K</label>
+                <label for="kFactor" class="block text-sm font-medium mb-2">{{ t('rankedSeasonFormView.labelKFactor') }}</label>
                 <InputNumber
                   id="kFactor"
                   v-model="kFactor"
@@ -62,7 +62,7 @@
 
               <div>
                 <label for="placementMatches" class="block text-sm font-medium mb-2">
-                  Matchs de placement
+                  {{ t('rankedSeasonFormView.labelPlacementMatches') }}
                 </label>
                 <InputNumber
                   id="placementMatches"
@@ -80,7 +80,7 @@
               <div class="flex items-center gap-2">
                 <Checkbox id="usePreviousMmr" v-model="usePreviousMmr" :binary="true" />
                 <label for="usePreviousMmr" class="text-sm">
-                  Reprendre le MMR de la saison précédente (soft reset)
+                  {{ t('rankedSeasonFormView.labelUsePreviousMmr') }}
                 </label>
               </div>
               <div class="flex items-center gap-2">
@@ -90,14 +90,14 @@
                   :binary="true"
                 />
                 <label for="allowAsymmetricMatches" class="text-sm">
-                  Autoriser les matchs asymétriques (équipes de tailles différentes)
+                  {{ t('rankedSeasonFormView.labelAllowAsymmetricMatches') }}
                 </label>
               </div>
             </div>
 
             <div class="mt-4">
               <label for="sourceTierSeasonId" class="block text-sm font-medium mb-2">
-                Copier les rangs depuis une saison terminée (optionnel)
+                {{ t('rankedSeasonFormView.labelSourceTierSeasonId') }}
               </label>
               <Select
                 id="sourceTierSeasonId"
@@ -105,13 +105,12 @@
                 :options="sourceTierOptions"
                 option-label="label"
                 option-value="value"
-                placeholder="Utiliser les rangs par défaut"
+                :placeholder="t('rankedSeasonFormView.placeholderSourceTierSeasonId')"
                 class="w-full"
                 show-clear
               />
               <small class="text-surface-400">
-                La structure des rangs sera copiée au démarrage de la saison. Les seuils MMR seront
-                recalculés.
+                {{ t('rankedSeasonFormView.helpSourceTierSeasonId') }}
               </small>
             </div>
           </div>
@@ -129,7 +128,7 @@
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
-              label="Annuler"
+              :label="t('common.cancel')"
               severity="secondary"
               @click="router.push('/admin/ranked')"
               :disabled="loading"
@@ -137,7 +136,7 @@
             />
             <Button
               type="submit"
-              :label="isEditMode ? 'Mettre à jour' : 'Créer la saison'"
+              :label="isEditMode ? t('common.update') : t('rankedSeasonFormView.createSeason')"
               icon="fa fa-check"
               :loading="loading"
               class="w-full sm:w-auto"
@@ -154,6 +153,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import {
   type CreateRankedSeasonFormData,
@@ -170,6 +170,7 @@ import ValidationModeSection from '@/components/forms/sections/ValidationModeSec
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 
 const {
   currentSeason,
@@ -218,18 +219,18 @@ const sourceTierOptions = computed(() =>
 )
 
 const fieldLabels: Record<string, string> = {
-  name: 'Nom',
-  disciplineId: 'Discipline',
-  startDate: 'Date de début',
-  endDate: 'Date de fin',
-  minTeamSize: 'Taille min équipe',
-  maxTeamSize: 'Taille max équipe',
-  baseMmr: 'MMR de base',
-  kFactor: 'Facteur K',
-  placementMatches: 'Matchs de placement',
-  minScore: 'Score minimum',
-  maxScore: 'Score maximum',
-  validationMode: 'Mode de validation',
+  name: t('rankedSeasonFormView.fieldName'),
+  disciplineId: t('rankedSeasonFormView.fieldDisciplineId'),
+  startDate: t('rankedSeasonFormView.fieldStartDate'),
+  endDate: t('rankedSeasonFormView.fieldEndDate'),
+  minTeamSize: t('rankedSeasonFormView.fieldMinTeamSize'),
+  maxTeamSize: t('rankedSeasonFormView.fieldMaxTeamSize'),
+  baseMmr: t('rankedSeasonFormView.labelBaseMmr'),
+  kFactor: t('rankedSeasonFormView.labelKFactor'),
+  placementMatches: t('rankedSeasonFormView.labelPlacementMatches'),
+  minScore: t('rankedSeasonFormView.fieldMinScore'),
+  maxScore: t('rankedSeasonFormView.fieldMaxScore'),
+  validationMode: t('rankedSeasonFormView.fieldValidationMode'),
 }
 
 const onSubmit = handleSubmit(
@@ -248,7 +249,7 @@ const onSubmit = handleSubmit(
     const detail = Object.keys(errs)
       .map((k) => `• ${fieldLabels[k] ?? k}: ${errs[k]}`)
       .join('\n')
-    toast.add({ severity: 'error', summary: 'Champs invalides', detail, life: 8000 })
+    toast.add({ severity: 'error', summary: t('rankedSeasonFormView.invalidFieldsTitle'), detail, life: 8000 })
   },
 )
 

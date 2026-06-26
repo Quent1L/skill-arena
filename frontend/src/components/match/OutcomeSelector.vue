@@ -2,14 +2,14 @@
   <div class="outcome-selector flex flex-col gap-4">
     <!-- Outcome Type Selection -->
     <div class="flex flex-col gap-2">
-      <label for="outcome-type" class="text-xs text-gray-500">Type de résultat</label>
+      <label for="outcome-type" class="text-xs text-gray-500">{{ t('outcomeSelector.outcomeTypeLabel') }}</label>
       <Select
         id="outcome-type"
         v-model="outcomeTypeIdModel"
         :options="outcomeTypes"
         option-label="name"
         option-value="id"
-        placeholder="Sélectionner un type"
+        :placeholder="t('outcomeSelector.outcomeTypePlaceholder')"
         class="w-full"
         :loading="loadingOutcomeTypes"
         @change="onOutcomeTypeChange"
@@ -21,14 +21,14 @@
       v-if="outcomeTypeIdModel && showOutcomeReasonSelection && filteredOutcomeReasons.length > 0"
       class="flex flex-col gap-2"
     >
-      <label for="outcome-reason" class="text-xs text-gray-500">Raison du résultat</label>
+      <label for="outcome-reason" class="text-xs text-gray-500">{{ t('outcomeSelector.outcomeReasonLabel') }}</label>
       <Select
         id="outcome-reason"
         v-model="outcomeReasonIdModel"
         :options="filteredOutcomeReasons"
         option-label="name"
         option-value="id"
-        placeholder="Sélectionner une raison"
+        :placeholder="t('outcomeSelector.outcomeReasonPlaceholder')"
         class="w-full"
         :loading="loadingOutcomeReasons"
       />
@@ -39,7 +39,7 @@
       v-if="outcomeTypeIdModel && showWinnerSelection && showWinnerSelectionField"
       class="flex flex-col gap-2"
     >
-      <span class="text-xs text-gray-500">Vainqueur</span>
+      <span class="text-xs text-gray-500">{{ t('outcomeSelector.winnerLabel') }}</span>
       <SelectButton
         v-model="winnerModel"
         :options="filteredWinnerOptions"
@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
@@ -92,16 +93,18 @@ const emit = defineEmits<{
   'update:winner': [value: 'teamA' | 'teamB' | null]
 }>()
 
+const { t } = useI18n()
+
 const outcomeTypes = ref<OutcomeType[]>([])
 const outcomeReasons = ref<OutcomeReason[]>([])
 const loadingOutcomeTypes = ref(false)
 const loadingOutcomeReasons = ref(false)
 
-const baseWinnerOptions = [
-  { label: 'Équipe A', value: 'teamA' },
-  { label: 'Équipe B', value: 'teamB' },
-  { label: 'Match nul', value: null },
-]
+const baseWinnerOptions = computed(() => [
+  { label: t('outcomeSelector.teamA'), value: 'teamA' },
+  { label: t('outcomeSelector.teamB'), value: 'teamB' },
+  { label: t('outcomeSelector.draw'), value: null },
+])
 
 const outcomeTypeIdModel = computed({
   get: () => props.outcomeTypeId,
@@ -147,9 +150,9 @@ const showWinnerSelectionField = computed(() => {
 
 const filteredWinnerOptions = computed(() => {
   if (props.allowDraw) {
-    return baseWinnerOptions
+    return baseWinnerOptions.value
   }
-  return baseWinnerOptions.filter((option) => option.value !== null)
+  return baseWinnerOptions.value.filter((option) => option.value !== null)
 })
 
 async function loadOutcomeTypes() {

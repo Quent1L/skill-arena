@@ -15,7 +15,7 @@
           "
         >
           <i class="fa fa-user text-xs"></i>
-          <span class="font-label text-xs font-bold uppercase tracking-wider">Mes matchs</span>
+          <span class="font-label text-xs font-bold uppercase tracking-wider">{{ t('matchList.myMatches') }}</span>
         </button>
 
         <template v-if="myMatchesActive || props.playerMode">
@@ -39,7 +39,7 @@
           v-if="isAnyFilterActive"
           @click="resetFilters"
           class="flex items-center justify-center w-8 h-8 rounded-full border bg-surface-800 border-surface-700/20 text-muted-color hover:text-red-400 transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
-          title="Réinitialiser les filtres"
+          :title="t('matchList.resetFilters')"
         >
           <i class="fa fa-filter-circle-xmark text-xs"></i>
         </button>
@@ -54,7 +54,7 @@
             :suggestions="suggestions"
             option-label="displayName"
             multiple
-            placeholder="Filtrer par joueur..."
+            :placeholder="t('matchList.filterByPlayerPlaceholder')"
             @complete="onSearch"
           />
         </div>
@@ -63,7 +63,7 @@
         <div v-else>
           <Button text severity="secondary" size="small" @click="showMobileDialog = true">
             <i class="fa fa-filter mr-2" />
-            Filtres
+            {{ t('matchList.filters') }}
             <span
               v-if="selectedPlayers.length > 0"
               class="ml-2 bg-primary text-primary-contrast rounded-full text-xs w-5 h-5 flex items-center justify-center"
@@ -73,7 +73,7 @@
           </Button>
           <PlayerPickerDialog
             v-model:visible="showMobileDialog"
-            title="Filtrer par joueur"
+            :title="t('matchList.filterByPlayerTitle')"
             :players="props.players"
             :selected-ids="selectedPlayers.map((p) => p.id)"
             @update:selected-ids="onMobileSelection"
@@ -90,7 +90,7 @@
     <div v-else>
       <div v-if="displayedMatches.length === 0" class="text-center py-6 text-muted-color">
         <i class="fa fa-clock text-4xl mb-4 block"></i>
-        <p class="font-label text-sm">Aucun match trouvé.</p>
+        <p class="font-label text-sm">{{ t('matchList.noMatchFound') }}</p>
       </div>
 
       <!-- Match cards grid -->
@@ -121,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useI18n } from 'vue-i18n'
 import { useInfiniteScroll } from '@vueuse/core'
 import { matchApi } from '@/composables/match/match.api'
 import type { ClientMatchCard, MatchCardSide } from '@skill-arena/shared/types/index'
@@ -128,6 +129,8 @@ import { useViewport } from '@/composables/useViewport'
 import { useMatchListFiltersStore } from '@/stores/matchListFilters.store'
 import MatchCard from './match/MatchCard.vue'
 import PlayerPickerDialog from './match/mobile/PlayerPickerDialog.vue'
+
+const { t } = useI18n()
 
 interface Player {
   id: string
@@ -171,11 +174,11 @@ const showMobileDialog = ref(false)
 
 const outcomeFilters = computed(() => {
   const filters = [
-    { value: 'WIN' as OutcomeFilter, label: 'Victoire', icon: 'fa fa-trophy' },
-    { value: 'LOSS' as OutcomeFilter, label: 'Défaite', icon: 'fa fa-times' },
+    { value: 'WIN' as OutcomeFilter, label: t('matchList.outcome.win'), icon: 'fa fa-trophy' },
+    { value: 'LOSS' as OutcomeFilter, label: t('matchList.outcome.loss'), icon: 'fa fa-times' },
   ]
   if (props.allowDraw !== false) {
-    filters.push({ value: 'DRAW' as OutcomeFilter, label: 'Nul', icon: 'fa fa-minus' })
+    filters.push({ value: 'DRAW' as OutcomeFilter, label: t('matchList.outcome.draw'), icon: 'fa fa-minus' })
   }
   return filters
 })

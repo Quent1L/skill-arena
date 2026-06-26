@@ -9,7 +9,7 @@
           <span
             class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-700 text-gray-300"
           >
-            Récap MMR
+            {{ t('mmrRecapCard.title') }}
           </span>
         </div>
 
@@ -22,19 +22,7 @@
             {{ netDelta >= 0 ? '+' : '' }}{{ netDelta }}
           </div>
           <div class="text-gray-400 text-sm mt-1">
-            <template v-if="newCount > 0 && recalcCount > 0">
-              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{
-                newCount > 1 ? 's' : ''
-              }}, {{ recalcCount }} recalculé{{ recalcCount > 1 ? 's' : '' }}
-            </template>
-            <template v-else-if="recalcCount > 0">
-              {{ recalcCount }} match{{ recalcCount > 1 ? 's' : '' }} recalculé{{
-                recalcCount > 1 ? 's' : ''
-              }}
-            </template>
-            <template v-else>
-              {{ newCount }} nouveau{{ newCount > 1 ? 'x' : '' }} match{{ newCount > 1 ? 's' : '' }}
-            </template>
+            {{ summaryText }}
           </div>
         </div>
 
@@ -74,7 +62,7 @@
                 {{ event.tierAfterName }}
               </div>
               <div v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
-                <i class="fa-solid fa-rotate"></i> recalculé
+                <i class="fa-solid fa-rotate"></i> {{ t('mmrRecapCard.recalculated') }}
               </div>
             </div>
             <!-- Date -->
@@ -97,7 +85,7 @@
             class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
             @click="$emit('close')"
           >
-            Fermer
+            {{ t('common.close') }}
           </button>
         </div>
       </div>
@@ -107,9 +95,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { format } from 'date-fns'
 import type { MmrAnimationEventResponse } from '@skill-arena/shared'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   events: MmrAnimationEventResponse[]
@@ -120,6 +111,28 @@ defineEmits<{ (e: 'close'): void }>()
 const netDelta = computed(() => props.events.reduce((acc, e) => acc + e.mmrDelta, 0))
 const recalcCount = computed(() => props.events.filter((e) => e.reason === 'recalculated').length)
 const newCount = computed(() => props.events.length - recalcCount.value)
+
+const newMatchesText = computed(() =>
+  newCount.value > 1
+    ? t('mmrRecapCard.newMatchesPlural', { count: newCount.value })
+    : t('mmrRecapCard.newMatchesSingular', { count: newCount.value }),
+)
+
+const recalcMatchesText = computed(() =>
+  recalcCount.value > 1
+    ? t('mmrRecapCard.recalcMatchesPlural', { count: recalcCount.value })
+    : t('mmrRecapCard.recalcMatchesSingular', { count: recalcCount.value }),
+)
+
+const summaryText = computed(() => {
+  if (newCount.value > 0 && recalcCount.value > 0) {
+    return `${newMatchesText.value}, ${recalcMatchesText.value}`
+  }
+  if (recalcCount.value > 0) {
+    return recalcMatchesText.value
+  }
+  return newMatchesText.value
+})
 
 function formatMatchDate(date: Date) {
   return format(date, 'dd/MM HH:mm')

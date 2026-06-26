@@ -44,7 +44,7 @@
       <!-- Progress bar section -->
       <div class="space-y-1.5">
         <div class="flex items-center justify-between text-xs">
-          <span class="text-gray-400 uppercase tracking-wider font-semibold">Période</span>
+          <span class="text-gray-400 uppercase tracking-wider font-semibold">{{ t('tournamentCard.period.label') }}</span>
           <span class="font-semibold" :class="periodLabelClass">{{ periodLabel }}</span>
         </div>
         <div class="progress-track h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -69,7 +69,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ClientTournamentSummary } from '@skill-arena/shared/types/index'
+
+const { t } = useI18n()
 
 interface Props {
   tournament: ClientTournamentSummary
@@ -82,25 +85,28 @@ defineEmits<{
 }>()
 
 // Status pill
-const statusConfig: Record<string, { label: string; pillClass: string }> = {
+const statusConfig: Record<string, { pillClass: string }> = {
   draft: {
-    label: 'Brouillon',
     pillClass: 'bg-gray-500/20 text-gray-400 border border-gray-500/30',
   },
-  open: { label: 'Ouvert', pillClass: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
+  open: { pillClass: 'bg-blue-500/20 text-blue-400 border border-blue-500/30' },
   ongoing: {
-    label: 'En cours',
     pillClass: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
   },
   finished: {
-    label: 'Terminé',
     pillClass: 'bg-gray-500/20 text-gray-500 border border-gray-500/30',
   },
 }
 
-const statusLabel = computed(
-  () => statusConfig[props.tournament.status]?.label ?? props.tournament.status,
-)
+const statusLabel = computed(() => {
+  const labels: Record<string, string> = {
+    draft: t('tournamentCard.status.draft'),
+    open: t('tournamentCard.status.open'),
+    ongoing: t('tournamentCard.status.ongoing'),
+    finished: t('tournamentCard.status.finished'),
+  }
+  return labels[props.tournament.status] ?? props.tournament.status
+})
 const statusPillClass = computed(
   () => statusConfig[props.tournament.status]?.pillClass ?? statusConfig.draft.pillClass,
 )
@@ -109,7 +115,6 @@ const statusPillClass = computed(
 const modeConfig: Record<
   string,
   {
-    label: string
     icon: string
     accentClass: string
     iconColorClass: string
@@ -118,7 +123,6 @@ const modeConfig: Record<
   }
 > = {
   championship: {
-    label: 'Championnat',
     icon: 'fa fa-trophy',
     accentClass: 'mode-championship',
     iconColorClass: 'text-blue-400',
@@ -126,7 +130,6 @@ const modeConfig: Record<
     progressClass: 'bg-blue-500',
   },
   bracket: {
-    label: 'Bracket',
     icon: 'fa fa-sitemap',
     accentClass: 'mode-bracket',
     iconColorClass: 'text-gray-400',
@@ -134,7 +137,6 @@ const modeConfig: Record<
     progressClass: 'bg-gray-400',
   },
   ranked: {
-    label: 'Ranked',
     icon: 'fa fa-ranking-star',
     accentClass: 'mode-ranked',
     iconColorClass: 'text-amber-400',
@@ -143,7 +145,14 @@ const modeConfig: Record<
   },
 }
 
-const modeLabel = computed(() => modeConfig[props.tournament.mode]?.label ?? props.tournament.mode)
+const modeLabel = computed(() => {
+  const labels: Record<string, string> = {
+    championship: t('tournamentCard.mode.championship'),
+    bracket: t('tournamentCard.mode.bracket'),
+    ranked: t('tournamentCard.mode.ranked'),
+  }
+  return labels[props.tournament.mode] ?? props.tournament.mode
+})
 const modeIcon = computed(() => modeConfig[props.tournament.mode]?.icon ?? 'fa fa-trophy')
 const modeAccentClass = computed(() => modeConfig[props.tournament.mode]?.accentClass ?? '')
 const modeIconColorClass = computed(
@@ -173,23 +182,23 @@ const isProgressPulsing = computed(() => props.tournament.status === 'open')
 const periodLabel = computed(() => {
   const { status, startDate, endDate } = props.tournament
   const now = Date.now()
-  if (status === 'finished') return 'Terminé'
+  if (status === 'finished') return t('tournamentCard.period.finished')
   if (status === 'draft') {
     const daysUntil = Math.ceil((new Date(startDate).getTime() - now) / 86_400_000)
-    if (daysUntil <= 0) return 'Bientôt'
-    return `Commence dans ${daysUntil} j`
+    if (daysUntil <= 0) return t('tournamentCard.period.soon')
+    return t('tournamentCard.period.startsIn', { days: daysUntil })
   }
   if (status === 'open') {
     const daysUntil = Math.ceil((new Date(startDate).getTime() - now) / 86_400_000)
     const daysLeft = Math.ceil((new Date(endDate).getTime() - now) / 86_400_000)
-    if (daysLeft <= 0) return 'Fin imminente'
-    if (daysUntil <= 0) return 'Inscriptions ouvertes'
-    return `Commence dans ${daysUntil} j`
+    if (daysLeft <= 0) return t('tournamentCard.period.endingSoon')
+    if (daysUntil <= 0) return t('tournamentCard.period.registrationsOpen')
+    return t('tournamentCard.period.startsIn', { days: daysUntil })
   }
   if (status === 'ongoing') {
     const daysLeft = Math.ceil((new Date(endDate).getTime() - now) / 86_400_000)
-    if (daysLeft <= 0) return 'Fin imminente'
-    return `${daysLeft} j restants`
+    if (daysLeft <= 0) return t('tournamentCard.period.endingSoon')
+    return t('tournamentCard.period.daysLeft', { days: daysLeft })
   }
   return '–'
 })

@@ -17,7 +17,7 @@
     <Card v-else>
       <template #content>
         <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-          Aucun règlement disponible.
+          {{ t('rulesContent.noRules') }}
         </div>
       </template>
     </Card>
@@ -25,7 +25,10 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { ClientGameRule } from '@skill-arena/shared/types/index'
+
+const { t } = useI18n()
 
 defineProps<{
   rule: ClientGameRule | null

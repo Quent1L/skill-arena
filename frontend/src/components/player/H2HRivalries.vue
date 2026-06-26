@@ -1,7 +1,7 @@
 <template>
   <div class="rounded-2xl bg-gray-800 p-4">
     <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center">
-      Rivalités
+      {{ t('h2hRivalries.title') }}
       <InfoTooltip v-if="tooltip" :text="tooltip" class="ml-1 shrink-0" />
     </div>
     <div class="space-y-1.5">
@@ -17,9 +17,9 @@
           <span class="truncate">{{ h.displayName }}</span>
         </RouterLink>
         <div class="flex items-center gap-2 text-xs shrink-0">
-          <span class="text-green-400">{{ h.wins }}V</span>
-          <span v-if="h.draws" class="text-gray-400">{{ h.draws }}N</span>
-          <span class="text-red-400">{{ h.losses }}D</span>
+          <span class="text-green-400">{{ h.wins }}{{ t('h2hRivalries.winSuffix') }}</span>
+          <span v-if="h.draws" class="text-gray-400">{{ h.draws }}{{ t('h2hRivalries.drawSuffix') }}</span>
+          <span class="text-red-400">{{ h.losses }}{{ t('h2hRivalries.lossSuffix') }}</span>
           <span
             class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold"
             :class="
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import type { PlayerH2HStat } from '@skill-arena/shared/types/index'
@@ -48,4 +49,6 @@ defineProps<{
   tooltip?: string
   tournamentId?: string
 }>()
+
+const { t } = useI18n()
 </script>

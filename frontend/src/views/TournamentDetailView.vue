@@ -50,7 +50,7 @@
               class="mr-2 !w-10 !h-10 text-gray-700 dark:text-gray-200"
             />
             <h1 class="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
-              {{ mobileSubTabTitles[activeTabName ?? ''] }}
+              {{ t('tournamentDetailView.tabs.' + (activeTabName ?? '')) }}
             </h1>
           </div>
           <div class="flex-1 overflow-y-auto p-4">
@@ -72,7 +72,7 @@
                 rounded
                 @click="router.push('/')"
                 class="shrink-0 mt-0.5! text-gray-500 dark:text-gray-400"
-                v-tooltip.bottom="'Retour à l\'accueil'"
+                v-tooltip.bottom="t('tournamentDetailView.backToHome')"
               />
               <div class="flex-1 min-w-0">
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight truncate">
@@ -89,26 +89,26 @@
                       ></span>
                       <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                     </span>
-                    En cours
+                    {{ t('tournamentDetailView.status.ongoing') }}
                   </span>
                   <span
                     v-else
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
                     :class="statusClasses[store.tournament.status]"
                   >
-                    {{ statusLabels[store.tournament.status] }}
+                    {{ t('tournamentDetailView.status.' + store.tournament.status) }}
                   </span>
                   <span
                     class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-semibold"
                   >
-                    {{ modeLabels[store.tournament.mode] }}
+                    {{ t('tournamentDetailView.mode.' + store.tournament.mode) }}
                   </span>
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <Button
                   v-if="store.isAuthenticated && !store.isParticipant && store.canJoinTournament"
-                  label="Participer"
+                  :label="t('tournamentDetailView.joinBtn')"
                   icon="fa fa-user-plus"
                   @click="store.joinTournament()"
                   :loading="store.joining"
@@ -119,11 +119,11 @@
                   class="flex items-center gap-2 text-green-600 text-sm font-medium"
                 >
                   <i class="fa fa-check-circle"></i>
-                  <span>Inscrit</span>
+                  <span>{{ t('tournamentDetailView.registered') }}</span>
                 </div>
                 <Button
                   v-if="store.canCreateMatch"
-                  label="Créer un match"
+                  :label="t('tournamentDetailView.createMatchBtn')"
                   icon="fa fa-plus"
                   @click="router.push(`/tournaments/${store.tournamentId}/create-match`)"
                   class="bg-blue-600 hover:bg-blue-700"
@@ -181,13 +181,13 @@
           <div class="space-y-4">
             <i class="pi pi-exclamation-triangle text-4xl text-orange-400"></i>
             <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300">
-              Tournoi introuvable
+              {{ t('tournamentDetailView.notFound.title') }}
             </h3>
             <p class="text-gray-500 dark:text-gray-400">
-              Le tournoi que vous cherchez n'existe pas ou n'est plus disponible.
+              {{ t('tournamentDetailView.notFound.description') }}
             </p>
             <div>
-              <Button label="Retour aux tournois" @click="router.push('/')" class="text-blue-600" />
+              <Button :label="t('tournamentDetailView.notFound.backBtn')" @click="router.push('/')" class="text-blue-600" />
             </div>
           </div>
         </template>
@@ -217,12 +217,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
-import type { TournamentMode, MmrAnimationWsPayload, BadgeAnimationWsPayload } from '@skill-arena/shared'
+import type { MmrAnimationWsPayload, BadgeAnimationWsPayload } from '@skill-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 import { onWsEvent, onWsOpen, sendWsMessage, useNotificationSocket } from '@/composables/notification/notification.socket'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
@@ -232,6 +233,7 @@ import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const toast = useAppToast()
 const { isMobile } = useViewport()
 const { y: scrollY } = useWindowScroll()
@@ -255,37 +257,22 @@ const statusClasses: Record<string, string> = {
   finished: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
   cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
 }
-const statusLabels: Record<string, string> = {
-  draft: 'Brouillon',
-  open: 'Ouvert',
-  ongoing: 'En cours',
-  finished: 'Terminé',
-  cancelled: 'Annulé',
-}
-const modeLabels: Record<TournamentMode, string> = {
-  championship: 'Championnat',
-  bracket: 'Bracket',
-  ranked: 'Ranked',
-}
 
 const MOBILE_SUB_TABS = ['teams']
-const mobileSubTabTitles: Record<string, string> = {
-  teams: 'Équipes',
-}
 const isMobileSubTab = computed(() => MOBILE_SUB_TABS.includes(activeTabName.value ?? ''))
 
 const visibleTabs = computed(() => {
   const mode = store.tournament?.mode
   const teamMode = store.tournament?.teamMode
   const tabs: { value: string; label: string; badge?: number }[] = [
-    { value: 'infos', label: 'Infos' },
+    { value: 'infos', label: t('tournamentDetailView.tabs.infos') },
   ]
-  if (teamMode === 'static') tabs.push({ value: 'teams', label: 'Équipes' })
-  if (mode === 'championship') tabs.push({ value: 'standings', label: 'Classement' })
-  if (mode === 'bracket') tabs.push({ value: 'bracket', label: 'Bracket' })
-  if (mode === 'ranked') tabs.push({ value: 'standings', label: 'Classement' })
-  tabs.push({ value: 'matches', label: 'Matchs' })
-  tabs.push({ value: 'stats', label: 'Stats' })
+  if (teamMode === 'static') tabs.push({ value: 'teams', label: t('tournamentDetailView.tabs.teams') })
+  if (mode === 'championship') tabs.push({ value: 'standings', label: t('tournamentDetailView.tabs.standings') })
+  if (mode === 'bracket') tabs.push({ value: 'bracket', label: t('tournamentDetailView.tabs.bracket') })
+  if (mode === 'ranked') tabs.push({ value: 'standings', label: t('tournamentDetailView.tabs.standings') })
+  tabs.push({ value: 'matches', label: t('tournamentDetailView.tabs.matches') })
+  tabs.push({ value: 'stats', label: t('tournamentDetailView.tabs.stats') })
   return tabs
 })
 
@@ -328,8 +315,8 @@ onMounted(async () => {
     if (err instanceof Error && err.cause === 'ORGANIZATION_ACCESS_DENIED') {
       toast.add({
         severity: 'error',
-        summary: 'Accès refusé',
-        detail: "Vous n'avez pas accès à ce tournoi.",
+        summary: t('tournamentDetailView.accessDenied.summary'),
+        detail: t('tournamentDetailView.accessDenied.detail'),
         life: 4000,
       })
       router.replace('/')

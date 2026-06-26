@@ -10,7 +10,7 @@
         <div class="flex items-center gap-3">
           <Button
             v-if="isAuthenticated && !isParticipant && canJoin"
-            label="Participer"
+            :label="t('tournamentHeader.participate')"
             icon="fa fa-user-plus"
             @click="$emit('join')"
             :loading="joining"
@@ -22,12 +22,12 @@
             class="flex items-center gap-2 text-green-600"
           >
             <i class="fa fa-check-circle"></i>
-            <span class="font-medium">Déjà inscrit</span>
+            <span class="font-medium">{{ t('tournamentHeader.alreadyRegistered') }}</span>
           </div>
 
           <Button
             v-if="canCreateMatch"
-            label="Créer un match"
+            :label="t('tournamentHeader.createMatch')"
             icon="fa fa-plus"
             @click="emit('create-match')"
             class="bg-blue-600 hover:bg-blue-700 hidden md:flex"
@@ -44,6 +44,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { TournamentStatus, TournamentMode } from '@skill-arena/shared'
 import type { MenuItem } from 'primevue/menuitem'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
@@ -70,13 +72,15 @@ const emit = defineEmits<{
   'create-match': []
 }>()
 
-const statusLabels: Record<string, string> = {
-  draft: 'Brouillon',
-  open: 'Ouvert',
-  ongoing: 'En cours',
-  finished: 'Terminé',
-  cancelled: 'Annulé',
-}
+const { t } = useI18n()
+
+const statusLabels = computed<Record<string, string>>(() => ({
+  draft: t('tournamentHeader.statusDraft'),
+  open: t('tournamentHeader.statusOpen'),
+  ongoing: t('tournamentHeader.statusOngoing'),
+  finished: t('tournamentHeader.statusFinished'),
+  cancelled: t('tournamentHeader.statusCancelled'),
+}))
 
 const statusSeverities: Record<string, 'secondary' | 'success' | 'warn' | 'info' | 'danger'> = {
   draft: 'secondary',
@@ -86,9 +90,9 @@ const statusSeverities: Record<string, 'secondary' | 'success' | 'warn' | 'info'
   cancelled: 'danger',
 }
 
-const modeLabels: Record<TournamentMode, string> = {
-  championship: 'Championnat',
-  bracket: 'Bracket',
-  ranked: 'Ranked',
-}
+const modeLabels = computed<Record<TournamentMode, string>>(() => ({
+  championship: t('tournamentHeader.modeChampionship'),
+  bracket: t('tournamentHeader.modeBracket'),
+  ranked: t('tournamentHeader.modeRanked'),
+}))
 </script>

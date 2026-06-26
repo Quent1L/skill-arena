@@ -21,7 +21,7 @@
               <template #after-discipline>
                 <!-- Status (mode édition uniquement) -->
                 <div v-if="isEditMode">
-                  <label for="status" class="block text-sm font-medium mb-2">Statut</label>
+                  <label for="status" class="block text-sm font-medium mb-2">{{ t('common.status') }}</label>
                   <Select
                     id="status"
                     v-model="status"
@@ -40,7 +40,7 @@
                 <!-- Mode -->
                 <div>
                   <label for="mode" class="block text-sm font-medium mb-2">
-                    Mode <span class="text-red-500">*</span>
+                    {{ t('tournamentFormView.labelMode') }} <span class="text-red-500">*</span>
                   </label>
                   <Select
                     id="mode"
@@ -58,7 +58,7 @@
                 <!-- Team Mode -->
                 <div>
                   <label for="teamMode" class="block text-sm font-medium mb-2">
-                    Formation d'équipe <span class="text-red-500">*</span>
+                    {{ t('tournamentFormView.labelTeamMode') }} <span class="text-red-500">*</span>
                   </label>
                   <Select
                     id="teamMode"
@@ -78,12 +78,12 @@
 
           <!-- Règles du championnat -->
           <div v-if="mode === 'championship'" class="mb-6">
-            <h2 class="text-xl font-semibold mb-4">Règles du championnat</h2>
+            <h2 class="text-xl font-semibold mb-4">{{ t('tournamentFormView.championshipRulesTitle') }}</h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label for="maxMatchesPerPlayer" class="block text-sm font-medium mb-2">
-                  Matchs max par joueur
+                  {{ t('tournamentFormView.labelMaxMatchesPerPlayer') }}
                 </label>
                 <InputNumber
                   id="maxMatchesPerPlayer"
@@ -97,7 +97,7 @@
 
               <div>
                 <label for="maxTimesWithSamePartner" class="block text-sm font-medium mb-2">
-                  Max avec même partenaire
+                  {{ t('tournamentFormView.labelMaxTimesWithSamePartner') }}
                 </label>
                 <InputNumber
                   id="maxTimesWithSamePartner"
@@ -111,7 +111,7 @@
 
               <div>
                 <label for="maxTimesWithSameOpponent" class="block text-sm font-medium mb-2">
-                  Max contre même adversaire
+                  {{ t('tournamentFormView.labelMaxTimesWithSameOpponent') }}
                 </label>
                 <InputNumber
                   id="maxTimesWithSameOpponent"
@@ -125,7 +125,7 @@
 
               <div>
                 <label for="pointPerVictory" class="block text-sm font-medium mb-2">
-                  Points par victoire
+                  {{ t('tournamentFormView.labelPointPerVictory') }}
                 </label>
                 <InputNumber
                   id="pointPerVictory"
@@ -138,7 +138,7 @@
 
               <div>
                 <label for="pointPerDraw" class="block text-sm font-medium mb-2">
-                  Points par match nul
+                  {{ t('tournamentFormView.labelPointPerDraw') }}
                 </label>
                 <InputNumber
                   id="pointPerDraw"
@@ -151,7 +151,7 @@
 
               <div>
                 <label for="pointPerLoss" class="block text-sm font-medium mb-2">
-                  Points par défaite
+                  {{ t('tournamentFormView.labelPointPerLoss') }}
                 </label>
                 <InputNumber
                   id="pointPerLoss"
@@ -177,7 +177,7 @@
           <!-- Actions -->
           <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
             <Button
-              label="Annuler"
+              :label="t('common.cancel')"
               severity="secondary"
               @click="router.back()"
               :disabled="loading"
@@ -185,7 +185,7 @@
             />
             <Button
               type="submit"
-              :label="isEditMode ? 'Mettre à jour' : 'Créer'"
+              :label="isEditMode ? t('common.update') : t('common.create')"
               icon="fa fa-check"
               :loading="loading"
               class="w-full sm:w-auto"
@@ -202,6 +202,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useI18n } from 'vue-i18n'
 import {
   type CreateTournamentFormData,
   type UpdateTournamentFormData,
@@ -217,6 +218,7 @@ import ValidationModeSection from '@/components/forms/sections/ValidationModeSec
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const {
   currentTournament,
   loading,
@@ -239,24 +241,24 @@ const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id
 const editableFields = ref<string[]>(['all'])
 
 const currentDisciplineName = computed(
-  () => currentTournament.value?.discipline?.name || 'Non définie',
+  () => currentTournament.value?.discipline?.name || t('tournamentFormView.undefinedDiscipline'),
 )
 
 const modeOptions = [
-  { label: 'Championnat', value: 'championship' },
-  { label: 'Bracket', value: 'bracket' },
+  { label: t('tournamentFormView.modeChampionship'), value: 'championship' },
+  { label: t('tournamentFormView.modeBracket'), value: 'bracket' },
 ]
 
 const teamModeOptions = [
-  { label: 'Statique', value: 'static' },
-  { label: 'Flexible', value: 'flex' },
+  { label: t('tournamentFormView.teamModeStatic'), value: 'static' },
+  { label: t('tournamentFormView.teamModeFlex'), value: 'flex' },
 ]
 
 const statusOptions = [
-  { label: 'Brouillon', value: 'draft' },
-  { label: 'Ouvert aux inscriptions', value: 'open' },
-  { label: 'En cours', value: 'ongoing' },
-  { label: 'Terminé', value: 'finished' },
+  { label: t('tournamentFormView.statusDraft'), value: 'draft' },
+  { label: t('tournamentFormView.statusOpen'), value: 'open' },
+  { label: t('tournamentFormView.statusOngoing'), value: 'ongoing' },
+  { label: t('tournamentFormView.statusFinished'), value: 'finished' },
 ]
 
 const { handleSubmit, defineField, errors, setValues } = useForm({
@@ -287,7 +289,7 @@ const onSubmit = handleSubmit(async (values) => {
     const formData = values as CreateTournamentFormData & UpdateTournamentFormData
 
     if (formData.startDate && formData.endDate && formData.startDate >= formData.endDate) {
-      throw new Error('La date de début doit être antérieure à la date de fin')
+      throw new Error(t('tournamentFormView.errorDateRange'))
     }
 
     if (
@@ -295,7 +297,7 @@ const onSubmit = handleSubmit(async (values) => {
       formData.maxTeamSize &&
       formData.maxTeamSize < formData.minTeamSize
     ) {
-      throw new Error('La taille maximale doit être supérieure ou égale à la taille minimale')
+      throw new Error(t('tournamentFormView.errorTeamSize'))
     }
 
     if (isEditMode.value && route.params.id) {

@@ -11,10 +11,10 @@
       </div>
       <div>
         <div class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">
-          Comment fonctionne le MMR ?
+          {{ t('mmrExplainerCard.title') }}
         </div>
         <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-          Système de classement par points
+          {{ t('mmrExplainerCard.subtitle') }}
         </div>
       </div>
     </div>
@@ -32,11 +32,11 @@
       <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
         <i class="fa fa-star text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
-          <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">MMR de départ</span>
+          <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">{{ t('mmrExplainerCard.startingMmr') }}</span>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Vous commencez à
+            {{ t('mmrExplainerCard.startingMmrPre') }}
             <span class="font-semibold text-gray-700 dark:text-gray-300"
-              >{{ rankedConfig?.baseMmr ?? '—' }} points</span
+              >{{ rankedConfig?.baseMmr ?? '—' }} {{ t('mmrExplainerCard.points') }}</span
             >.
           </p>
         </div>
@@ -50,14 +50,14 @@
         <i class="fa fa-flag-checkered text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm"
-            >Matchs de placement</span
+            >{{ t('mmrExplainerCard.placementMatches') }}</span
           >
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Vos
+            {{ t('mmrExplainerCard.placementMatchesPre') }}
             <span class="font-semibold text-gray-700 dark:text-gray-300"
-              >{{ rankedConfig?.placementMatches ?? '—' }} premiers matchs</span
+              >{{ rankedConfig?.placementMatches ?? '—' }} {{ t('mmrExplainerCard.placementMatchesMid') }}</span
             >
-            servent à calibrer votre niveau — les gains et pertes sont doublés.
+            {{ t('mmrExplainerCard.placementMatchesPost') }}
           </p>
         </div>
       </div>
@@ -66,10 +66,9 @@
       <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
         <i class="fa fa-arrows-up-down text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
-          <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">Gain / Perte</span>
+          <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">{{ t('mmrExplainerCard.gainLoss') }}</span>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Chaque résultat modifie votre score en fonction de l'écart de niveau avec vos
-            adversaires.
+            {{ t('mmrExplainerCard.gainLossDesc') }}
           </p>
         </div>
       </div>
@@ -79,11 +78,10 @@
         <i class="fa fa-scale-balanced text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm"
-            >Facteur adversaire</span
+            >{{ t('mmrExplainerCard.opponentFactor') }}</span
           >
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Battre un joueur plus fort rapporte plus. Perdre contre un joueur plus faible coûte
-            plus.
+            {{ t('mmrExplainerCard.opponentFactorDesc') }}
           </p>
         </div>
       </div>
@@ -96,7 +94,7 @@
         <i class="fa fa-users text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">
-            Répartition en équipe —
+            {{ t('mmrExplainerCard.teamDistribution') }}
             <span class="text-violet-600 dark:text-violet-400">{{ teamModeLabel }}</span>
           </span>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ teamModeDescription }}</p>
@@ -110,7 +108,7 @@
         <summary
           class="flex items-center justify-between px-4 py-3 cursor-pointer bg-gray-50 dark:bg-gray-700/40 select-none hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 list-none"
         >
-          <span>Voir le détail du calcul</span>
+          <span>{{ t('mmrExplainerCard.seeCalculationDetail') }}</span>
           <i
             class="fa fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"
           />
@@ -118,24 +116,20 @@
 
         <div class="px-4 py-4 space-y-3 text-sm text-gray-600 dark:text-gray-400">
           <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3">
-            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">Score attendu</p>
+            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('mmrExplainerCard.expectedScore') }}</p>
             <p class="text-xs leading-relaxed">
-              Avant chaque match, le système estime votre probabilité de victoire à partir de
-              l'écart de MMR entre vous et vos adversaires. Si les deux camps sont à égalité, la
-              probabilité est de 50 %. Un écart de 400 points la fait passer à environ 24 % pour le
-              camp le plus faible.
+              {{ t('mmrExplainerCard.expectedScoreDesc') }}
             </p>
           </div>
 
           <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3">
-            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">Gain ou perte de base</p>
+            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('mmrExplainerCard.baseGainLoss') }}</p>
             <p class="text-xs leading-relaxed">
-              Le résultat réel (victoire, nul ou défaite) est comparé au score attendu. La
-              différence est multipliée par un coefficient de sensibilité
+              {{ t('mmrExplainerCard.baseGainLossDescPre') }}
               <span class="font-semibold text-gray-700 dark:text-gray-300"
                 >({{ rankedConfig?.kFactor ?? '?' }})</span
               >
-              qui détermine l'amplitude maximale de variation.
+              {{ t('mmrExplainerCard.baseGainLossDescPost') }}
             </p>
           </div>
 
@@ -143,19 +137,18 @@
             v-if="(rankedConfig?.placementMatches ?? 0) > 0"
             class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3"
           >
-            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">Matchs de placement</p>
+            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('mmrExplainerCard.placementMatches') }}</p>
             <p class="text-xs leading-relaxed">
-              Pendant vos
+              {{ t('mmrExplainerCard.placementDetailPre') }}
               <span class="font-semibold text-gray-700 dark:text-gray-300"
-                >{{ rankedConfig?.placementMatches ?? '?' }} premiers matchs</span
-              >, le coefficient de sensibilité est doublé. Votre MMR évolue donc deux fois plus vite
-              pour rejoindre rapidement votre vrai niveau.
+                >{{ rankedConfig?.placementMatches ?? '?' }} {{ t('mmrExplainerCard.placementDetailMid') }}</span
+              >{{ t('mmrExplainerCard.placementDetailPost') }}
             </p>
           </div>
 
           <div v-if="hasTeamMode" class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3">
             <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Ajustement individuel en équipe
+              {{ t('mmrExplainerCard.individualTeamAdjustment') }}
             </p>
             <p class="text-xs leading-relaxed">{{ teamModeDetailDescription }}</p>
           </div>
@@ -167,8 +160,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import type { RankedSeason } from '@/composables/ranked/ranked.api'
+
+const { t } = useI18n()
 
 type SeasonWithFullDiscipline = RankedSeason & {
   discipline?: { id: string; name: string; teamInteractionMode?: string | null } | null
@@ -195,35 +191,29 @@ onMounted(async () => {
 const hasTeamMode = computed(() => !!teamInteractionMode.value)
 
 const teamModeLabel = computed(() => {
-  const labels: Record<string, string> = {
-    INDIVIDUAL: 'Individuel',
-    SHARED_RESOURCE: 'Ressource partagée',
-    COLLABORATIVE: 'Collaboratif',
+  switch (teamInteractionMode.value) {
+    case 'INDIVIDUAL': return t('mmrExplainerCard.teamMode.individual')
+    case 'SHARED_RESOURCE': return t('mmrExplainerCard.teamMode.sharedResource')
+    case 'COLLABORATIVE': return t('mmrExplainerCard.teamMode.collaborative')
+    default: return ''
   }
-  return labels[teamInteractionMode.value ?? ''] ?? ''
 })
 
 const teamModeDescription = computed(() => {
-  const descs: Record<string, string> = {
-    INDIVIDUAL:
-      "Chaque joueur est évalué selon l'écart entre son propre MMR et celui de ses adversaires.",
-    SHARED_RESOURCE:
-      'Battre une équipe plus forte rapporte plus à chaque membre ; perdre contre une équipe plus faible coûte plus.',
-    COLLABORATIVE:
-      "Tous les membres de l'équipe reçoivent le même gain ou la même perte de points.",
+  switch (teamInteractionMode.value) {
+    case 'INDIVIDUAL': return t('mmrExplainerCard.teamModeDesc.individual')
+    case 'SHARED_RESOURCE': return t('mmrExplainerCard.teamModeDesc.sharedResource')
+    case 'COLLABORATIVE': return t('mmrExplainerCard.teamModeDesc.collaborative')
+    default: return ''
   }
-  return descs[teamInteractionMode.value ?? ''] ?? ''
 })
 
 const teamModeDetailDescription = computed(() => {
-  const descs: Record<string, string> = {
-    INDIVIDUAL:
-      'Le gain ou la perte calculé est ajusté pour chaque joueur en fonction du ratio entre son MMR personnel et le MMR moyen des adversaires. Un joueur plus fort que ses adversaires gagne moins en cas de victoire et perd plus en cas de défaite.',
-    SHARED_RESOURCE:
-      "La distribution est inversée par rapport au mode individuel : les membres dont le MMR est proche de celui des adversaires bénéficient d'un ajustement plus équilibré. Affronter une équipe bien au-dessus de votre niveau amplifie les gains en cas de victoire.",
-    COLLABORATIVE:
-      "Tous les membres de l'équipe reçoivent exactement le même delta de MMR, calculé à partir du MMR moyen de l'équipe face au MMR moyen de l'équipe adverse.",
+  switch (teamInteractionMode.value) {
+    case 'INDIVIDUAL': return t('mmrExplainerCard.teamModeDetail.individual')
+    case 'SHARED_RESOURCE': return t('mmrExplainerCard.teamModeDetail.sharedResource')
+    case 'COLLABORATIVE': return t('mmrExplainerCard.teamModeDetail.collaborative')
+    default: return ''
   }
-  return descs[teamInteractionMode.value ?? ''] ?? ''
 })
 </script>

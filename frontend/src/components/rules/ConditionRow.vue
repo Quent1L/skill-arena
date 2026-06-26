@@ -7,7 +7,7 @@
       :options="facts"
       option-label="label"
       option-value="key"
-      placeholder="Variable"
+      :placeholder="t('conditionRow.placeholderVariable')"
       filter
       class="w-52"
       @change="onFactChange"
@@ -18,7 +18,7 @@
       :options="operatorOptions"
       option-label="label"
       option-value="value"
-      placeholder="Opérateur"
+      :placeholder="t('conditionRow.placeholderOperator')"
       class="w-44"
     />
 
@@ -37,7 +37,7 @@
         :options="players"
         option-label="displayName"
         option-value="id"
-        placeholder="Joueur"
+        :placeholder="t('conditionRow.placeholderPlayer')"
         filter
         class="w-56"
       />
@@ -47,7 +47,7 @@
         :options="players"
         option-label="displayName"
         option-value="id"
-        placeholder="Joueurs"
+        :placeholder="t('conditionRow.placeholderPlayers')"
         filter
         display="chip"
         class="w-72"
@@ -71,7 +71,7 @@
         :options="disciplines"
         option-label="name"
         option-value="id"
-        placeholder="Discipline"
+        :placeholder="t('common.discipline')"
         filter
         class="w-52"
       />
@@ -81,7 +81,7 @@
         :options="disciplines"
         option-label="name"
         option-value="id"
-        placeholder="Disciplines"
+        :placeholder="t('conditionRow.placeholderDisciplines')"
         display="chip"
         class="w-72"
       />
@@ -91,7 +91,7 @@
         :options="organisations"
         option-label="name"
         option-value="id"
-        placeholder="Organisation"
+        :placeholder="t('conditionRow.placeholderOrganisation')"
         filter
         class="w-52"
       />
@@ -101,26 +101,26 @@
         :options="organisations"
         option-label="name"
         option-value="id"
-        placeholder="Organisations"
+        :placeholder="t('conditionRow.placeholderOrganisations')"
         display="chip"
         class="w-72"
       />
       <Select
         v-else-if="isWeekdayFact && !isListOperator"
         v-model="node.value"
-        :options="WEEKDAY_OPTIONS"
+        :options="weekdayOptions"
         option-label="label"
         option-value="value"
-        placeholder="Jour"
+        :placeholder="t('conditionRow.placeholderDay')"
         class="w-40"
       />
       <MultiSelect
         v-else-if="isWeekdayFact && isListOperator"
         v-model="weekdayListValue"
-        :options="WEEKDAY_OPTIONS"
+        :options="weekdayOptions"
         option-label="label"
         option-value="value"
-        placeholder="Jours"
+        :placeholder="t('conditionRow.placeholderDays')"
         display="chip"
         class="w-64"
       />
@@ -133,7 +133,7 @@
       <InputText
         v-else
         :model-value="stringValue"
-        :placeholder="isListOperator ? 'valeurs séparées par des virgules' : 'valeur'"
+        :placeholder="isListOperator ? t('conditionRow.placeholderListValues') : t('conditionRow.placeholderValue')"
         class="w-52"
         @update:model-value="onTextValue"
       />
@@ -145,9 +145,12 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { BuilderNode, PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
 import type { Discipline, OrganizationWithMemberCount } from '@skill-arena/shared/types/index'
+
+const { t } = useI18n()
 
 const node = defineModel<Extract<BuilderNode, { kind: 'leaf' }>>({ required: true })
 const props = defineProps<{ facts: CatalogFact[]; players: PlayerOption[] }>()
@@ -156,23 +159,26 @@ defineEmits<{ remove: [] }>()
 const disciplines = inject<Ref<Discipline[]>>('disciplines', ref([]))
 const organisations = inject<Ref<OrganizationWithMemberCount[]>>('organisations', ref([]))
 
-const OPERATOR_LABELS: Record<string, string> = {
-  equal: '=',
-  notEqual: '≠',
-  greaterThan: '>',
-  greaterThanInclusive: '≥',
-  lessThan: '<',
-  lessThanInclusive: '≤',
-  in: 'dans la liste',
-  notIn: 'pas dans la liste',
-  contains: 'contient',
-  doesNotContain: 'ne contient pas',
+function getOperatorLabel(op: string): string {
+  const map: Record<string, string> = {
+    equal: t('conditionRow.operatorEqual'),
+    notEqual: t('conditionRow.operatorNotEqual'),
+    greaterThan: t('conditionRow.operatorGreaterThan'),
+    greaterThanInclusive: t('conditionRow.operatorGreaterThanInclusive'),
+    lessThan: t('conditionRow.operatorLessThan'),
+    lessThanInclusive: t('conditionRow.operatorLessThanInclusive'),
+    in: t('conditionRow.operatorIn'),
+    notIn: t('conditionRow.operatorNotIn'),
+    contains: t('conditionRow.operatorContains'),
+    doesNotContain: t('conditionRow.operatorDoesNotContain'),
+  }
+  return map[op] ?? op
 }
 
 const selectedFact = computed(() => props.facts.find((f) => f.key === node.value.fact))
 
 const operatorOptions = computed(() =>
-  (selectedFact.value?.operators ?? []).map((op) => ({ label: OPERATOR_LABELS[op] ?? op, value: op })),
+  (selectedFact.value?.operators ?? []).map((op) => ({ label: getOperatorLabel(op), value: op })),
 )
 
 const isListOperator = computed(() => node.value.operator === 'in' || node.value.operator === 'notIn')
@@ -187,15 +193,15 @@ const isDisciplineFact = computed(() => selectedFact.value?.ref === 'discipline'
 const isSiteFact = computed(() => selectedFact.value?.ref === 'site')
 const isWeekdayFact = computed(() => selectedFact.value?.ref === 'weekday')
 
-const WEEKDAY_OPTIONS = [
-  { label: 'Lundi', value: 1 },
-  { label: 'Mardi', value: 2 },
-  { label: 'Mercredi', value: 3 },
-  { label: 'Jeudi', value: 4 },
-  { label: 'Vendredi', value: 5 },
-  { label: 'Samedi', value: 6 },
-  { label: 'Dimanche', value: 7 },
-]
+const weekdayOptions = computed(() => [
+  { label: t('conditionRow.weekdayMonday'), value: 1 },
+  { label: t('conditionRow.weekdayTuesday'), value: 2 },
+  { label: t('conditionRow.weekdayWednesday'), value: 3 },
+  { label: t('conditionRow.weekdayThursday'), value: 4 },
+  { label: t('conditionRow.weekdayFriday'), value: 5 },
+  { label: t('conditionRow.weekdaySaturday'), value: 6 },
+  { label: t('conditionRow.weekdaySunday'), value: 7 },
+])
 
 const weekdayListValue = computed<number[]>({
   get: () => (Array.isArray(node.value.value) ? (node.value.value as number[]) : []),
@@ -240,10 +246,10 @@ const playerListValue = computed<string[]>({
   },
 })
 
-const booleanOptions = [
-  { label: 'Vrai', value: true },
-  { label: 'Faux', value: false },
-]
+const booleanOptions = computed(() => [
+  { label: t('conditionRow.booleanTrue'), value: true },
+  { label: t('conditionRow.booleanFalse'), value: false },
+])
 
 const stringValue = computed(() =>
   Array.isArray(node.value.value) ? (node.value.value as unknown[]).join(', ') : String(node.value.value ?? ''),

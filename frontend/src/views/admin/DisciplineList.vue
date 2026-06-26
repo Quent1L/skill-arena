@@ -1,9 +1,9 @@
 <template>
   <div class="discipline-list-view p-4">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Gestion des disciplines</h1>
+      <h1 class="text-2xl font-bold">{{ t('disciplineList.title') }}</h1>
       <Button
-        label="Nouvelle discipline"
+        :label="t('disciplineList.newDiscipline')"
         icon="fa fa-plus"
         @click="router.push('/admin/disciplines/new')"
       />
@@ -23,7 +23,7 @@
       responsive-layout="scroll"
       class="p-datatable-sm"
     >
-      <Column field="name" header="Nom" sortable>
+      <Column field="name" :header="t('common.name')" sortable>
         <template #body="{ data }">
           <router-link
             :to="`/admin/disciplines/${data.id}`"
@@ -34,7 +34,7 @@
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 12rem">
+      <Column :header="t('common.actions')" style="width: 12rem">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
@@ -43,7 +43,7 @@
               text
               rounded
               @click="router.push(`/admin/disciplines/${data.id}`)"
-              v-tooltip.top="'Modifier'"
+              v-tooltip.top="t('common.edit')"
             />
             <Button
               icon="fa fa-trash"
@@ -52,7 +52,7 @@
               text
               rounded
               @click="confirmDelete(data)"
-              v-tooltip.top="'Supprimer'"
+              v-tooltip.top="t('common.delete')"
             />
           </div>
         </template>
@@ -60,9 +60,9 @@
 
       <template #empty>
         <div class="text-center py-8">
-          <p class="text-gray-500 mb-4">Aucune discipline trouvée</p>
+          <p class="text-gray-500 mb-4">{{ t('disciplineList.emptyState') }}</p>
           <Button
-            label="Créer votre première discipline"
+            :label="t('disciplineList.createFirst')"
             icon="fa fa-plus"
             @click="router.push('/admin/disciplines/new')"
           />
@@ -72,20 +72,20 @@
 
     <Dialog
       v-model:visible="deleteDialogVisible"
-      :header="`Supprimer ${disciplineToDelete?.name}?`"
+      :header="t('disciplineList.deleteDialogHeader', { name: disciplineToDelete?.name })"
       :modal="true"
       :style="{ width: '450px' }"
     >
       <div class="flex items-center gap-3 mb-4">
         <i class="pi pi-exclamation-triangle text-3xl text-red-500"></i>
         <span>
-          Êtes-vous sûr de vouloir supprimer cette discipline ? Cette action est irréversible.
+          {{ t('disciplineList.deleteConfirmMessage') }}
         </span>
       </div>
       <template #footer>
-        <Button label="Annuler" icon="pi pi-times" @click="deleteDialogVisible = false" text />
+        <Button :label="t('common.cancel')" icon="pi pi-times" @click="deleteDialogVisible = false" text />
         <Button
-          label="Supprimer"
+          :label="t('common.delete')"
           icon="pi pi-check"
           @click="handleDelete"
           severity="danger"
@@ -99,9 +99,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
 import type { Discipline } from '@skill-arena/shared/types/discipline'
 
+const { t } = useI18n()
 const router = useRouter()
 const { disciplines, loading, error, listDisciplines, deleteDiscipline } = useDisciplineService()
 

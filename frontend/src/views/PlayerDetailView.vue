@@ -4,7 +4,7 @@
     <div v-if="error && !player" class="text-center py-8">
       <p class="text-red-400">{{ error }}</p>
       <Button
-        label="Retour"
+        :label="t('playerDetailView.back')"
         icon="fa fa-arrow-left"
         severity="secondary"
         class="mt-4"
@@ -37,7 +37,7 @@
         <div class="ml-auto shrink-0 flex items-center gap-2">
           <div v-if="canCompare" class="hidden md:block">
             <Button
-              label="Se comparer"
+              :label="t('playerDetailView.compare')"
               icon="fa fa-scale-balanced"
               outlined
               severity="info"
@@ -66,16 +66,16 @@
             <label
               for="filter-discipline"
               class="text-xs font-bold text-gray-400 uppercase tracking-wide"
-              >Discipline</label
+              >{{ t('playerDetailView.discipline') }}</label
             >
             <Select
               v-model="selectedDisciplineId"
               input-id="filter-discipline"
-              aria-label="Discipline"
+              :aria-label="t('playerDetailView.discipline')"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
-              placeholder="Toutes"
+              :placeholder="t('playerDetailView.allDisciplinesOption')"
               show-clear
               class="w-40"
             />
@@ -86,16 +86,16 @@
           <label
             for="filter-tournament"
             class="text-xs font-bold text-gray-400 uppercase tracking-wide"
-            >Tournoi</label
+            >{{ t('playerDetailView.tournament') }}</label
           >
           <Select
             v-model="selectedTournamentId"
             input-id="filter-tournament"
-            aria-label="Tournoi"
+            :aria-label="t('playerDetailView.tournament')"
             :options="tournamentOptions"
             option-label="label"
             option-value="value"
-            placeholder="Tous"
+            :placeholder="t('playerDetailView.allOption')"
             class="max-w-[60rem]"
             show-clear
           >
@@ -113,7 +113,7 @@
           </Select>
         </div>
         <div class="flex flex-col gap-1">
-          <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">Mode</span>
+          <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ t('playerDetailView.mode') }}</span>
           <SelectButton
             v-model="selectedMode"
             :options="modeOptions"
@@ -124,7 +124,7 @@
         </div>
         <div class="mt-3 flex justify-end">
           <Button
-            label="Réinitialiser"
+            :label="t('playerDetailView.reset')"
             severity="secondary"
             icon="fa fa-rotate-left"
             size="small"
@@ -138,33 +138,33 @@
         v-model:visible="showFilterDrawer"
         position="bottom"
         :style="{ height: 'auto', maxHeight: '85vh', borderRadius: '1rem 1rem 0 0' }"
-        header="Filtres"
+        :header="t('playerDetailView.filters')"
       >
         <div class="flex flex-col gap-5 pb-2">
           <div v-if="hasMultipleDisciplines" class="flex flex-col gap-1">
-            <label for="filter-discipline-mobile" class="text-sm font-medium">Discipline</label>
+            <label for="filter-discipline-mobile" class="text-sm font-medium">{{ t('playerDetailView.discipline') }}</label>
             <Select
               v-model="draftDisciplineId"
               input-id="filter-discipline-mobile"
-              aria-label="Discipline"
+              :aria-label="t('playerDetailView.discipline')"
               :options="disciplineOptions"
               option-label="label"
               option-value="value"
-              placeholder="Toutes disciplines"
+              :placeholder="t('playerDetailView.allDisciplines')"
               class="w-full"
               show-clear
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="filter-tournament-mobile" class="text-sm font-medium">Tournoi</label>
+            <label for="filter-tournament-mobile" class="text-sm font-medium">{{ t('playerDetailView.tournament') }}</label>
             <Select
               v-model="draftTournamentId"
               input-id="filter-tournament-mobile"
-              aria-label="Tournoi"
+              :aria-label="t('playerDetailView.tournament')"
               :options="tournamentOptions"
               option-label="label"
               option-value="value"
-              placeholder="Tous les tournois"
+              :placeholder="t('playerDetailView.allTournaments')"
               class="w-full"
               show-clear
             >
@@ -182,7 +182,7 @@
             </Select>
           </div>
           <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium">Mode</span>
+            <span class="text-sm font-medium">{{ t('playerDetailView.mode') }}</span>
             <SelectButton
               v-model="draftMode"
               :options="modeOptions"
@@ -195,14 +195,14 @@
         <template #footer>
           <div class="flex gap-3 pt-2">
             <Button
-              label="Réinitialiser"
+              :label="t('playerDetailView.reset')"
               severity="secondary"
               icon="fa fa-rotate-left"
               class="flex-1"
               @click="resetMobileFilters"
             />
             <Button
-              label="Appliquer"
+              :label="t('playerDetailView.apply')"
               icon="fa fa-check"
               class="flex-1"
               @click="applyMobileFilters"
@@ -233,7 +233,7 @@
           />
           <div class="rounded-2xl p-4">
             <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-              Historique des 10 derniers matchs
+              {{ t('playerDetailView.last10Matches') }}
             </div>
             <MatchList
               :tournament-id="selectedTournamentId"
@@ -255,7 +255,7 @@
         class="text-center py-12 text-gray-500"
       >
         <i class="fa fa-user-slash text-4xl mb-4 block opacity-30"></i>
-        <p>Ce joueur ne participe pas à cette saison ranked.</p>
+        <p>{{ t('playerDetailView.notInRankedSeason') }}</p>
       </div>
 
       <!-- FILTERED TOURNAMENT VIEW (non-ranked) -->
@@ -266,11 +266,11 @@
             <div class="grid grid-cols-3 gap-3">
               <div class="rounded-xl p-3 text-center bg-gray-800">
                 <div class="text-xl font-black text-white">{{ stats.totalMatches }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">Matchs</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.matches') }}</div>
               </div>
               <div class="rounded-xl p-3 text-center bg-gray-800">
                 <div class="text-xl font-black text-white">{{ stats.winRate }}%</div>
-                <div class="text-xs text-gray-400 mt-0.5">Winrate</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.winrate') }}</div>
               </div>
               <div class="rounded-xl p-3 text-center bg-gray-800">
                 <div class="text-xl font-black">
@@ -280,12 +280,12 @@
                   <span class="text-gray-600 text-base mx-0.5">/</span>
                   <span class="text-red-400">{{ stats.losses }}</span>
                 </div>
-                <div class="text-xs text-gray-400 mt-0.5">V / N / D</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.wldLabel') }}</div>
               </div>
             </div>
             <div v-if="stats.averageScore > 0" class="rounded-xl p-3 text-center bg-gray-800">
               <div class="text-xl font-black text-white">{{ stats.averageScore }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">Score moyen</div>
+              <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.avgScore') }}</div>
             </div>
           </div>
 
@@ -315,7 +315,7 @@
         <!-- Match history -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-            Historique des 10 derniers matchs
+            {{ t('playerDetailView.last10Matches') }}
           </div>
           <MatchList
             :player-id="playerId"
@@ -333,7 +333,7 @@
             <!-- Group header -->
             <div class="flex items-center gap-2 mb-4">
               <span class="text-sm font-black text-white">{{
-                group.discipline ?? 'Toutes disciplines'
+                group.discipline ?? t('playerDetailView.allDisciplines')
               }}</span>
               <span class="text-gray-600">·</span>
               <span
@@ -349,11 +349,11 @@
             <div class="grid grid-cols-3 gap-3 mb-3">
               <div class="rounded-xl bg-gray-700/50 p-3 text-center">
                 <div class="text-xl font-black text-white">{{ group.totalMatches }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">Matchs</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.matches') }}</div>
               </div>
               <div class="rounded-xl bg-gray-700/50 p-3 text-center">
                 <div class="text-xl font-black text-white">{{ group.winRate }}%</div>
-                <div class="text-xs text-gray-400 mt-0.5">Winrate</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.winrate') }}</div>
               </div>
               <div class="rounded-xl bg-gray-700/50 p-3 text-center">
                 <div class="text-lg font-black">
@@ -361,7 +361,7 @@
                   <span class="text-gray-600 text-sm mx-0.5">/</span>
                   <span class="text-red-400">{{ group.losses }}D</span>
                 </div>
-                <div class="text-xs text-gray-400 mt-0.5">V / D</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.wdLabel') }}</div>
               </div>
             </div>
 
@@ -377,7 +377,7 @@
                   entry.tournamentName
                 }}</span>
                 <span class="text-xs text-gray-400 shrink-0 ml-3 tabular-nums">
-                  {{ entry.matchesPlayed }} MJ &nbsp;·&nbsp;
+                  {{ entry.matchesPlayed }} {{ t('playerDetailView.matchesPlayedAbbr') }} &nbsp;·&nbsp;
                   <span class="text-green-400">{{ entry.wins }}V</span>
                   <span class="text-gray-600"> / </span>
                   <span class="text-red-400">{{ entry.losses }}D</span>
@@ -411,7 +411,7 @@
         <H2HRivalries
           v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.h2hStats?.length"
           :stats="stats!.h2hStats"
-          tooltip="Liste les adversaires les plus fréquents avec le bilan complet"
+          :tooltip="t('h2hRivalries.tooltip')"
           :tournament-id="selectedTournamentId"
         />
 
@@ -421,7 +421,7 @@
         <!-- All matches -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-            Historique des 10 derniers matchs
+            {{ t('playerDetailView.last10Matches') }}
           </div>
           <MatchList :player-id="playerId" :page-size="10" :no-scroll="true" />
         </div>
@@ -430,7 +430,7 @@
       <!-- Empty state -->
       <div v-else-if="!loading && !rankedLoading" class="text-center py-12 text-gray-500">
         <i class="fa fa-chart-bar text-4xl mb-4 block opacity-30"></i>
-        <p>Pas encore de statistique…</p>
+        <p>{{ t('playerDetailView.noStats') }}</p>
       </div>
     </template>
   </div>
@@ -439,6 +439,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { usePlayerService } from '@/composables/player/player.service'
 import { useAuth } from '@/composables/useAuth'
 import { rankedApi } from '@/composables/ranked/ranked.api'
@@ -465,6 +466,7 @@ import SelectButton from 'primevue/selectbutton'
 import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { appUser } = useAuth()
@@ -495,7 +497,7 @@ const showFilterDrawer = ref(false)
 const isRankedTournament = computed(() => {
   if (!selectedTournamentId.value) return false
   return (
-    availableTournaments.value.find((t) => t.id === selectedTournamentId.value)?.mode === 'ranked'
+    availableTournaments.value.find((tour) => tour.id === selectedTournamentId.value)?.mode === 'ranked'
   )
 })
 
@@ -570,21 +572,21 @@ const groupedStats = computed(() => {
 })
 
 const tournamentOptions = computed(() => [
-  { label: 'Tous', value: undefined, mode: undefined },
-  ...availableTournaments.value.map((t) => ({ label: t.name, value: t.id, mode: t.mode })),
+  { label: t('playerDetailView.allOption'), value: undefined, mode: undefined },
+  ...availableTournaments.value.map((tour) => ({ label: tour.name, value: tour.id, mode: tour.mode })),
 ])
 
-const modeOptions = [
-  { label: 'Tous', value: undefined },
-  { label: 'Championnat', value: 'championship' },
-  { label: 'Bracket', value: 'bracket' },
-  { label: 'Ranked', value: 'ranked' },
-]
+const modeOptions = computed(() => [
+  { label: t('playerDetailView.allOption'), value: undefined },
+  { label: t('playerDetailView.championship'), value: 'championship' },
+  { label: t('playerDetailView.bracket'), value: 'bracket' },
+  { label: t('playerDetailView.ranked'), value: 'ranked' },
+])
 
 function modeLabel(mode: string): string {
-  if (mode === 'championship') return 'Championnat'
-  if (mode === 'bracket') return 'Bracket'
-  if (mode === 'ranked') return 'Ranked'
+  if (mode === 'championship') return t('playerDetailView.championship')
+  if (mode === 'bracket') return t('playerDetailView.bracket')
+  if (mode === 'ranked') return t('playerDetailView.ranked')
   return mode
 }
 
@@ -598,12 +600,12 @@ function modeSeverity(mode: string): string {
 const disciplineOptions = computed(() => {
   const seen = new Set<string>()
   const opts: { label: string; value: string | undefined }[] = [
-    { label: 'Toutes', value: undefined },
+    { label: t('playerDetailView.allDisciplinesOption'), value: undefined },
   ]
-  for (const t of availableTournaments.value) {
-    if (t.disciplineId && !seen.has(t.disciplineId)) {
-      seen.add(t.disciplineId)
-      opts.push({ label: t.disciplineName ?? t.disciplineId, value: t.disciplineId })
+  for (const tour of availableTournaments.value) {
+    if (tour.disciplineId && !seen.has(tour.disciplineId)) {
+      seen.add(tour.disciplineId)
+      opts.push({ label: tour.disciplineName ?? tour.disciplineId, value: tour.disciplineId })
     }
   }
   return opts

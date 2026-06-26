@@ -76,7 +76,7 @@
           v-else
           class="font-headline text-2xl text-muted-color/40 tracking-tighter flex items-center gap-1.5 shrink-0"
         >
-          VS
+          {{ t('matchCard.vs') }}
         </div>
 
         <!-- Right side (opponent when player mode, side B when neutral) -->
@@ -140,6 +140,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import type { ClientMatchCard } from '@skill-arena/shared/types/index'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 
@@ -149,6 +150,7 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const { t } = useI18n()
 
 // Determine left/right sides
 // Player mode: left = my side, right = opponent side
@@ -180,9 +182,9 @@ const outcome = computed((): 'WIN' | 'LOSS' | 'DRAW' => {
 })
 
 const outcomeLabel = computed(() => {
-  if (outcome.value === 'WIN') return 'Victoire'
-  if (outcome.value === 'LOSS') return 'Défaite'
-  return 'Égalité'
+  if (outcome.value === 'WIN') return t('matchCard.win')
+  if (outcome.value === 'LOSS') return t('matchCard.loss')
+  return t('matchCard.draw')
 })
 
 const resultBadgeClass = computed(() => {
@@ -259,17 +261,17 @@ function statusTextClass(status: string) {
 function statusLabel(status: string) {
   switch (status) {
     case 'finalized':
-      return 'Validé'
+      return t('matchCard.statusFinalized')
     case 'ongoing':
-      return 'En cours'
+      return t('matchCard.statusOngoing')
     case 'contested':
-      return 'Contesté'
+      return t('matchCard.statusContested')
     case 'cancelled':
-      return 'Annulé'
+      return t('matchCard.statusCancelled')
     case 'reported':
-      return 'En attente'
+      return t('matchCard.statusReported')
     case 'scheduled':
-      return 'Planifié'
+      return t('matchCard.statusScheduled')
     default:
       return status
   }

@@ -7,10 +7,10 @@
     >
       <i class="fa fa-exclamation-triangle text-6xl text-orange-400 mb-4" />
       <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Tournoi non compatible bracket
+        {{ t('bracketView.notBracketTitle') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400">
-        Ce tournoi n'est pas configuré en mode bracket.
+        {{ t('bracketView.notBracketDesc') }}
       </p>
     </div>
 
@@ -21,20 +21,14 @@
         class="mb-4 px-4 py-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-lg text-sm text-orange-700 dark:text-orange-300 flex items-start gap-2"
       >
         <i class="fa fa-exclamation-triangle mt-0.5 shrink-0" />
-        <span>
-          Pour un bracket optimal, il faut
-          <strong>{{ nearestPowersOf2(currentParticipants)[0] }}</strong> ou
-          <strong>{{ nearestPowersOf2(currentParticipants)[1] }}</strong>
-          joueurs. Actuellement <strong>{{ currentParticipants }}</strong> inscrits —
-          la génération du bracket est bloquée.
-        </span>
+        <span>{{ t('bracketView.optimalCountWarning', { lower: nearestPowersOf2(currentParticipants)[0], upper: nearestPowersOf2(currentParticipants)[1], count: currentParticipants }) }}</span>
       </div>
 
       <!-- Admin Controls -->
       <div v-if="canManage" class="mb-6 flex gap-3 items-center flex-wrap">
       <Button
         v-if="!hasBracket"
-        label="Générer le bracket"
+        :label="t('bracketView.generateBracket')"
         icon="fa fa-sitemap"
         :disabled="!isOptimalCount"
         @click="showGenerateDialog = true"
@@ -42,14 +36,14 @@
 
       <template v-else>
         <Button
-          label="Regénérer"
+          :label="t('bracketView.regenerate')"
           icon="fa fa-redo"
           severity="warning"
           outlined
           @click="handleRegenerate"
         />
         <Button
-          label="Supprimer le bracket"
+          :label="t('bracketView.deleteBracket')"
           icon="fa fa-trash"
           severity="danger"
           outlined
@@ -58,7 +52,7 @@
       </template>
 
       <Button
-        label="Actualiser"
+        :label="t('bracketView.refresh')"
         icon="fa fa-sync"
         severity="secondary"
         outlined
@@ -79,21 +73,21 @@
     >
       <i class="fa fa-sitemap text-6xl text-gray-300 dark:text-gray-600 mb-4" />
       <h3 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Aucun bracket généré
+        {{ t('bracketView.noBracketTitle') }}
       </h3>
       <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
-        Le bracket du tournoi n'a pas encore été créé.
+        {{ t('bracketView.noBracketDesc') }}
         <template v-if="canManage">
-          Cliquez sur le bouton ci-dessous pour générer le bracket.
+          {{ t('bracketView.noBracketDescAdmin') }}
         </template>
         <template v-else>
-          Un administrateur doit générer le bracket.
+          {{ t('bracketView.noBracketDescUser') }}
         </template>
       </p>
 
       <Button
         v-if="canManage"
-        label="Générer le bracket"
+        :label="t('bracketView.generateBracket')"
         icon="fa fa-sitemap"
         size="large"
         :disabled="!isOptimalCount"
@@ -107,23 +101,23 @@
       <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Type</div>
+            <div class="text-gray-600 dark:text-gray-400">{{ t('bracketView.infoType') }}</div>
             <div class="font-semibold capitalize">
               {{ bracketData.config.bracketType.replace('_', ' ') }}
             </div>
           </div>
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Classement</div>
+            <div class="text-gray-600 dark:text-gray-400">{{ t('bracketView.infoSeeding') }}</div>
             <div class="font-semibold capitalize">
               {{ bracketData.config.seedingType.replace('_', ' ') }}
             </div>
           </div>
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Participants</div>
+            <div class="text-gray-600 dark:text-gray-400">{{ t('bracketView.infoParticipants') }}</div>
             <div class="font-semibold">{{ bracketData.config.totalParticipants }}</div>
           </div>
           <div>
-            <div class="text-gray-600 dark:text-gray-400">Tours</div>
+            <div class="text-gray-600 dark:text-gray-400">{{ t('bracketView.infoRounds') }}</div>
             <div class="font-semibold">{{ bracketData.config.roundsCount }}</div>
           </div>
         </div>
@@ -144,7 +138,7 @@
       <!-- Delete Confirmation Dialog -->
       <Dialog
         v-model:visible="showDeleteDialog"
-        header="Supprimer le bracket"
+        :header="t('bracketView.deleteDialogHeader')"
         :modal="true"
         :style="{ width: '450px' }"
       >
@@ -152,19 +146,19 @@
         <i class="fa fa-exclamation-triangle text-4xl text-orange-500" />
         <div>
           <p class="mb-3">
-            Êtes-vous sûr de vouloir supprimer le bracket ? Cela supprimera tous les matchs et ne peut pas être annulé.
+            {{ t('bracketView.deleteConfirmText') }}
           </p>
           <p class="text-sm text-gray-600 dark:text-gray-400">
-            Vous pouvez regénérer le bracket ensuite si nécessaire.
+            {{ t('bracketView.deleteHint') }}
           </p>
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Annuler" severity="secondary" @click="showDeleteDialog = false" />
+          <Button :label="t('common.cancel')" severity="secondary" @click="showDeleteDialog = false" />
           <Button
-            label="Supprimer"
+            :label="t('common.delete')"
             severity="danger"
             :loading="deleting"
             @click="handleDeleteBracket"
@@ -178,6 +172,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 function nearestPowersOf2(n: number): [number, number] {
   if (n <= 1) return [1, 2]
@@ -202,6 +197,8 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+const { t } = useI18n()
 
 const {
   bracketData,

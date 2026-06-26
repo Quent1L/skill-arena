@@ -5,7 +5,7 @@
   >
     <div v-if="mostFrequentPartners?.length" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Partenaires fréquents
+        {{ t('playerRelationStats.frequentPartners') }}
       </div>
       <div
         v-for="p in mostFrequentPartners"
@@ -19,13 +19,13 @@
           <PlayerAvatar :name="p.displayName" size="xs" shape="square" class="shrink-0" />
           <span class="truncate">{{ p.displayName }}</span>
         </RouterLink>
-        <span class="text-xs text-gray-500">{{ p.count }} matchs</span>
+        <span class="text-xs text-gray-500">{{ t('playerRelationStats.matchCount', { count: p.count }) }}</span>
       </div>
     </div>
 
     <div v-if="bestPartners?.length" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Meilleurs partenaires
+        {{ t('playerRelationStats.bestPartners') }}
       </div>
       <div
         v-for="p in bestPartners"
@@ -42,9 +42,9 @@
           </div>
         </RouterLink>
         <div class="flex items-center gap-3">
-          <span class="text-[10px] text-gray-500">{{ p.count }} matchs</span>
+          <span class="text-[10px] text-gray-500">{{ t('playerRelationStats.matchCount', { count: p.count }) }}</span>
           <div class="text-right">
-            <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}% V</div>
+            <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}{{ t('playerRelationStats.winRateSuffix') }}</div>
             <div
               v-if="p.chemistryDelta !== undefined"
               class="text-[10px]"
@@ -57,7 +57,7 @@
 
     <div v-if="nemeses?.length" class="rounded-xl p-4 bg-gray-800">
       <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        Adversaires difficiles
+        {{ t('playerRelationStats.toughOpponents') }}
       </div>
       <div
         v-for="p in nemeses"
@@ -71,13 +71,14 @@
           <PlayerAvatar :name="p.displayName" size="xs" shape="square" class="shrink-0" />
           <span class="truncate">{{ p.displayName }}</span>
         </RouterLink>
-        <span class="text-xs text-red-400">{{ p.losses }} défaites</span>
+        <span class="text-xs text-red-400">{{ t('playerRelationStats.lossCount', { count: p.losses }) }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { PlayerRelationStat } from '@skill-arena/shared/types/index'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { playerLink } from '@/utils/player-link'
@@ -88,4 +89,6 @@ defineProps<{
   nemeses?: PlayerRelationStat[]
   tournamentId?: string | null
 }>()
+
+const { t } = useI18n()
 </script>

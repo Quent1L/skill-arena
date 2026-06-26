@@ -12,9 +12,9 @@
         <div class="flex items-center gap-3 tabular-nums">
           <span class="text-gray-400 text-right">{{ pct(item.count) }}%</span>
           <template v-if="item.wins !== undefined">
-            <span class="text-green-400 text-xs">{{ item.wins }}V</span>
-            <span v-if="item.draws" class="text-gray-400 text-xs">{{ item.draws }}N</span>
-            <span class="text-red-400 text-xs">{{ item.losses ?? 0 }}D</span>
+            <span class="text-green-400 text-xs">{{ t('matchOutcomeDistribution.winsCount', { count: item.wins }) }}</span>
+            <span v-if="item.draws" class="text-gray-400 text-xs">{{ t('matchOutcomeDistribution.drawsCount', { count: item.draws }) }}</span>
+            <span class="text-red-400 text-xs">{{ t('matchOutcomeDistribution.lossesCount', { count: item.losses ?? 0 }) }}</span>
           </template>
           <template v-else>
             <span class="text-gray-400 text-xs">({{ item.count }})</span>
@@ -44,6 +44,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const PIE_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316']
 

@@ -3,8 +3,8 @@
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
         <h1 class="text-4xl font-bold">Skol</h1>
-        <p class="mt-2">Créer un compte</p>
-        <p class="mt-1 text-sm text-gray-300">Code d'invitation requis</p>
+        <p class="mt-2">{{ t('signupView.subtitle') }}</p>
+        <p class="mt-1 text-sm text-gray-300">{{ t('signupView.invitationRequired') }}</p>
       </div>
 
       <Card>
@@ -14,22 +14,21 @@
             <div class="space-y-2">
               <p class="font-semibold">
                 <i class="fa fa-exclamation-triangle mr-2"></i>
-                Aucune méthode d'authentification n'est disponible
+                {{ t('signupView.noAuthMethodTitle') }}
               </p>
               <p class="text-sm">
-                Contactez l'administrateur système. La configuration de l'authentification est
-                incorrecte.
+                {{ t('signupView.noAuthMethodDesc') }}
               </p>
             </div>
           </Message>
 
           <div v-if="!noAuthMethodAvailable" class="space-y-6">
             <div class="flex flex-col gap-2">
-              <label for="code" class="font-medium">Code d'invitation</label>
+              <label for="code" class="font-medium">{{ t('signupView.invitationCodeLabel') }}</label>
               <InputText
                 id="code"
                 v-model="invitationCode"
-                placeholder="Entrez votre code d'invitation (ex: tigre-riviere-soleil-ocean)"
+                :placeholder="t('signupView.invitationCodePlaceholder')"
                 :disabled="isValidating || codeValid"
                 class="w-full"
                 @input="debouncedValidate"
@@ -37,7 +36,7 @@
 
               <div v-if="isValidating" class="flex items-center gap-2 text-blue-600">
                 <i class="fa fa-spinner fa-spin"></i>
-                <span class="text-sm">Validation en cours...</span>
+                <span class="text-sm">{{ t('signupView.validating') }}</span>
               </div>
 
               <Message v-else-if="codeError" severity="error" :closable="false">
@@ -47,14 +46,14 @@
 
               <Message v-else-if="codeValid" severity="success" :closable="false">
                 <i class="fa fa-check-circle mr-2"></i>
-                Code valide ({{ remainingUses }} utilisation(s) restante(s))
+                {{ t('signupView.codeValidMessage', { count: remainingUses }) }}
               </Message>
             </div>
 
             <div v-if="codeValid" class="space-y-4">
               <div class="text-center">
                 <p class="text-sm text-gray-600 font-medium">
-                  Choisissez votre méthode d'inscription :
+                  {{ t('signupView.chooseMethod') }}
                 </p>
               </div>
 
@@ -66,7 +65,7 @@
                 outlined
               >
                 <i class="fa fa-envelope mr-2"></i>
-                Créer un compte Email / Mot de passe
+                {{ t('signupView.emailPasswordButton') }}
               </Button>
 
               <Button
@@ -78,18 +77,18 @@
                 severity="secondary"
               >
                 <i class="fa fa-building mr-2"></i>
-                {{ isSigningIn ? 'Connexion...' : keycloakLoginLabel }}
+                {{ isSigningIn ? t('signupView.signingIn') : keycloakLoginLabel }}
               </Button>
             </div>
 
             <Message v-else-if="!codeError" severity="info" :closable="false">
-              Veuillez entrer votre code d'invitation pour continuer.
+              {{ t('signupView.enterCodePrompt') }}
             </Message>
 
             <div class="text-center">
               <Button
                 link
-                label="← Retour à la connexion"
+                :label="t('signupView.backToLogin')"
                 @click="router.push('/login')"
                 class="text-sm text-gray-600"
                 type="button"
@@ -105,12 +104,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { authClient } from '@/lib/auth-client'
 import { useInvitationService } from '@/composables/invitation/invitation.service'
 import { useConfigService } from '@/composables/config/config.service'
 import { useAppToast } from '@/composables/useAppToast'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useAppToast()
@@ -128,7 +129,7 @@ const emailPasswordEnabled = computed(() => config.value?.auth?.emailPassword?.e
 const keycloakEnabled = computed(() => config.value?.auth?.keycloak?.enabled ?? false)
 const noAuthMethodAvailable = computed(() => !emailPasswordEnabled.value && !keycloakEnabled.value)
 const keycloakLoginLabel = computed(
-  () => config.value?.auth?.keycloak?.loginLabel ?? "S'inscrire avec Keycloak (SSO)"
+  () => config.value?.auth?.keycloak?.loginLabel ?? t('signupView.keycloakLabel')
 )
 
 onMounted(() => {
@@ -137,12 +138,12 @@ onMounted(() => {
   const errorDescription = route.query.error_description as string
 
   if (error) {
-    const errorMessage = errorDescription || "Une erreur est survenue lors de l'inscription"
+    const errorMessage = errorDescription || t('signupView.oauthError')
 
     // Afficher l'erreur à l'utilisateur
     toast.add({
       severity: 'error',
-      summary: "Erreur d'inscription",
+      summary: t('signupView.errorSummary'),
       detail: errorMessage,
       life: 8000,
     })
@@ -167,7 +168,7 @@ async function validateCode() {
 
   if (!/^[a-z]+-[a-z]+-[a-z]+-[a-z]+$/.test(invitationCode.value)) {
     codeValid.value = false
-    codeError.value = 'Format invalide (ex: tigre-riviere-soleil-ocean)'
+    codeError.value = t('signupView.invalidFormat')
     return
   }
 
@@ -182,11 +183,11 @@ async function validateCode() {
       remainingUses.value = result.remainingUses
     } else {
       codeValid.value = false
-      codeError.value = 'Code invalide'
+      codeError.value = t('signupView.codeInvalid')
     }
   } catch (error: unknown) {
     codeValid.value = false
-    codeError.value = (error as Error).message || 'Erreur lors de la validation'
+    codeError.value = (error as Error).message || t('signupView.validationError')
   } finally {
     isValidating.value = false
   }
@@ -219,7 +220,7 @@ async function proceedToKeycloakRegistration() {
     })
   } catch (error: unknown) {
     isSigningIn.value = false
-    codeError.value = (error as Error).message || 'Erreur lors de la connexion Keycloak'
+    codeError.value = (error as Error).message || t('signupView.validationError')
     console.error('Keycloak sign-in error:', error)
   }
 }
