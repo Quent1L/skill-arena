@@ -1,143 +1,147 @@
 # Skol - Tournament Management App
 
-Une application de gestion de tournois avec un backend Hono/Bun et un frontend Vue 3.
+Tournament management application with a Hono/Bun backend and a Vue 3 frontend.
 
-## 🚀 Démarrage rapide
+## Quick Start
 
-### Prérequis
+### Prerequisites
 
 - [Bun](https://bun.sh) (v1.0+)
 
 ### Installation
 
 ```bash
-# Installer toutes les dépendances
-bun run install:all
+bun install
 ```
 
-### Développement
+### Development
 
 ```bash
-# 🎯 Commande principale - Lance TOUT en une fois :
-# - Compilation des types partagés en mode watch
-# - Backend en mode développement (hot reload)
-# - Frontend en mode développement (hot reload)
+# Launches everything concurrently:
+# - Shared types in watch mode
+# - Backend with hot reload
+# - Frontend with hot reload
 bun run dev
 ```
 
-Cette commande unique lance :
-
-- **Shared** (TypeScript en mode watch) → Port interne (compilation)
+- **Shared** (TypeScript watch) → internal compilation
 - **Backend** (Hono + Bun) → http://localhost:3000
 - **Frontend** (Vue + Vite) → http://localhost:5173
 
-## 📦 Structure du projet
+## Project Structure
 
 ```
 skill-arena/
-├── shared/          # 📦 Package TypeScript partagé
-│   ├── src/         # Types, interfaces, schemas Zod
-│   └── dist/        # Code compilé
-├── backend/         # 🛠️ API Backend (Hono + Bun)
-│   └── src/         # Services, routes, repositories
-└── frontend/        # 🎨 Interface utilisateur (Vue 3)
-    └── src/         # Components, views, composables
+├── shared/          # @skill-arena/shared — TypeScript types + Zod schemas
+├── backend/         # Hono API server
+└── frontend/        # Vue 3 SPA
 ```
 
-## 🛠️ Commandes disponibles
+## Available Commands
 
-### Développement
+### Development
 
-- `bun run dev` - **Lance tout en mode développement** ⭐
-- `bun run dev:shared` - Types partagés en mode watch
-- `bun run dev:backend` - Backend uniquement
-- `bun run dev:frontend` - Frontend uniquement
+| Command | Description |
+|---------|-------------|
+| `bun run dev` | **Start everything** ⭐ |
+| `bun run dev:shared` | Shared types in watch mode only |
+| `bun run dev:backend` | Backend only |
+| `bun run dev:frontend` | Frontend only |
 
 ### Build
 
-- `bun run build` - Build complet pour production
-- `bun run build:shared` - Compile les types partagés
-- `bun run build:frontend` - Build frontend pour production
+| Command | Description |
+|---------|-------------|
+| `bun run build` | Full production build (shared + frontend + backend) |
+| `bun run build:shared` | Compile shared types only |
+| `bun run build:frontend` | Frontend production build |
 
-### Qualité de code
+### Quality
 
-- `bun run type-check` - Vérification TypeScript complète
-- `bun run lint` - Lint du frontend
-- `bun run format` - Format du frontend
+| Command | Description |
+|---------|-------------|
+| `bun run type-check` | TypeScript check across all workspaces |
+| `bun run lint` | Lint all workspaces |
+| `bun run test:unit` | Run all unit tests |
 
-### Utilitaires
+### Database
 
-- `bun run install:all` - Install toutes les dépendances
-- `bun run clean` - Nettoie les dossiers de build
+| Command | Description |
+|---------|-------------|
+| `bun run setup:db` | Initialize DB schema (first-time setup) |
 
-## 🔄 Package partagé
+> Migrations in `backend/drizzle/` are applied automatically at server startup — no manual migrate command needed. To create a new migration: run `bun run db:generate` in the backend, then restart the server.
 
-Le dossier `shared/` contient tous les types TypeScript partagés entre frontend et backend :
+### Utilities
 
-- **Enums** : UserRole, TournamentMode, TournamentStatus, etc.
-- **Interfaces** : Tournament, User, Match, Team, etc.
-- **Schémas Zod** : Validation partagée pour les API
+| Command | Description |
+|---------|-------------|
+| `bun run clean` | Clean all build directories |
+| `bun run release` | Cut a release with changelog |
 
-### Avantages
+## Architecture
 
-- ✅ Pas de duplication de types
-- ✅ Cohérence garantie entre front/back
-- ✅ Type safety complet
-- ✅ Hot reload des types en développement
+### Backend: Routes → Services → Repositories
 
-## 🌐 URLs en développement
+- **Routes** (`backend/src/routes/`): HTTP handling only, validated with `@hono/zod-validator`
+- **Services** (`backend/src/services/`): Business logic, no HTTP concerns
+- **Repositories** (`backend/src/repository/`): Drizzle ORM queries only
+- Error messages use i18n keys (e.g. `throw new ValidationError('INVALID_EMAIL_FORMAT')`)
 
-- **Frontend** : http://localhost:5173
-- **Backend** : http://localhost:3000
-- **API Docs** : http://localhost:3000/doc (si configuré)
+### Frontend: Views → Components → Composables
 
-## 🔧 Technologies
+- **Views** (`frontend/src/views/`): Page-level components
+- **Components** (`frontend/src/components/`): Reusable UI — consume services, never API directly
+- **Composables** (`frontend/src/composables/`): Split into two layers:
+  - `*.api.ts` — 1:1 mirror of backend routes, no logic or try-catch
+  - `*.service.ts` — state management and error handling
+- xior handles automatic date conversion via `convertStringDatesToJS`
 
-- **Frontend** : Vue 3, TypeScript, Vite, TailwindCSS, PrimeVue
-- **Backend** : Hono, Bun, DrizzleORM, PostgreSQL, Better Auth
-- **Shared** : TypeScript, Zod
-- **DevTools** : Bun, Concurrently, ESLint, Prettier
+### Shared Package
 
+Import types from `@skill-arena/shared`, never duplicate locally.
+If you get `Cannot find module '@skill-arena/shared'`: run `cd shared && bun run build`.
 
+## Stack
+
+- **Frontend**: Vue 3, TypeScript, Vite, TailwindCSS, PrimeVue, vue-i18n (FR/EN), xior
+- **Backend**: Hono, Bun, Drizzle ORM, PostgreSQL, Better Auth
+- **Shared**: TypeScript, Zod
+- **Tooling**: Bun workspaces, Concurrently, ESLint, Prettier, Husky, commitlint, release-it
 
 ---
 
 ## Git Hooks & Conventional Commits
 
-Ce projet utilise [Husky](https://typicode.github.io/husky/) pour gérer les hooks Git et [commitlint](https://commitlint.js.org/) pour valider les messages de commit selon la convention [Conventional Commits](https://www.conventionalcommits.org/).
+This project uses [Husky](https://typicode.github.io/husky/) for Git hooks and [commitlint](https://commitlint.js.org/) to enforce [Conventional Commits](https://www.conventionalcommits.org/). Hooks are installed automatically on `bun install` via the `prepare` script.
 
-Les hooks sont installés automatiquement lors d'un `bun install` grâce au script `prepare` dans `package.json`.
-
-### Format des commits
+### Commit format
 
 ```
 type(scope): description
 
-# Exemples
+# Examples
 feat(ranked): add MMR recalculation
 fix(bracket): correct seeding order
 docs: update setup instructions
 ```
 
-Types acceptés : `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `revert`.
+Accepted types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `revert`.
 
-### Résolution d'un problème PATH avec Bun (Linux/macOS)
+### Bun PATH issue (Linux/macOS)
 
-Husky exécute les hooks dans un shell restreint qui ne charge pas le profil utilisateur. Si Bun n'est pas trouvé dans le PATH au moment du commit, tu obtiendras une erreur du type :
+Husky runs hooks in a restricted shell that doesn't load your user profile. If Bun isn't on the PATH at commit time, you'll get:
 
 ```
 .husky/commit-msg: bun: not found
 husky - commit-msg script failed (code 127)
 ```
 
-Husky source le fichier `~/.config/husky/init.sh` avant chaque hook Git. C'est l'endroit prévu pour configurer le PATH ou initialiser un gestionnaire de versions. Pour corriger le problème, crée ce fichier en y ajoutant le chemin vers Bun :
+Fix: add Bun to `~/.config/husky/init.sh` (Husky sources this file before every hook):
 
 ```bash
 mkdir -p ~/.config/husky
 echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.config/husky/init.sh
 ```
 
-> **Note :** ce fichier est propre à ta machine et ne doit pas être commité. Chaque contributeur utilisant Bun devra effectuer cette manipulation une seule fois sur son poste.
-
-Pour vérifier le chemin exact de Bun sur ta machine : `which bun`.
-
+> This file is machine-local and should not be committed. Each contributor using Bun needs to do this once.
