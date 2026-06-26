@@ -8,9 +8,9 @@
       "preset": {
         "name": "conventionalcommits",
         "types": [
-          { "type": "feat", "section": "✨ Nouvelles fonctionnalités" },
-          { "type": "fix", "section": "🐛 Correctifs" },
-          { "type": "perf", "section": "⚡ Performances" },
+          { "type": "feat", "section": "✨ New Features" },
+          { "type": "fix", "section": "🐛 Bug Fixes" },
+          { "type": "perf", "section": "⚡ Performance" },
           { "type": "refactor", "section": "♻️ Refactoring" },
           { "type": "docs", "section": "📝 Documentation" },
           { "type": "chore", "section": "🔧 Maintenance"},
