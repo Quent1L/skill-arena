@@ -29,6 +29,8 @@ export class StandingsRepository {
         pointPerVictory: true,
         pointPerDraw: true,
         pointPerLoss: true,
+        standingsPointsSource: true,
+        rankPoints: true,
         allowDraw: true,
         scoreEnabled: true,
         maxMatchesPerPlayer: true,
@@ -110,7 +112,7 @@ export class StandingsRepository {
           },
         },
         sides: {
-          columns: { position: true, score: true, entryId: true },
+          columns: { position: true, score: true, rank: true, entryId: true },
           with: {
             entry: {
               columns: { id: true },

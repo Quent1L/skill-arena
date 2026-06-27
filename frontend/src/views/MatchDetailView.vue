@@ -56,8 +56,54 @@
 
         <div class="p-1 sm:p-4">
           <div class="space-y-6">
-            <!-- Scores et Vainqueur -->
+            <!-- N-way: ranked list of all sides -->
+            <div v-if="isNway" class="flex flex-col gap-2 py-3 px-1 sm:p-6 bg-surface-50 dark:bg-surface-900 rounded-lg">
+              <div
+                v-for="(side, idx) in sortedSides"
+                :key="side.position"
+                class="flex items-center gap-3 rounded-lg px-3 py-2"
+                :class="side.isWinner ? 'bg-green-50 dark:bg-green-900/20' : 'bg-surface-100 dark:bg-surface-800'"
+              >
+                <div class="font-bold text-2xl w-8 text-center tabular-nums"
+                  :class="side.isWinner ? 'text-green-600' : 'text-surface-400'"
+                >{{ side.rank ?? idx + 1 }}</div>
+                <PlayerAvatarStack v-if="side.players" :players="side.players" size="sm" />
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                    {{ side.entryName ?? t('matchDetailView.teamA') }}
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-sm">
+                    <div v-for="p in side.players" :key="p.id" class="flex items-center gap-1.5">
+                      <RouterLink
+                        v-if="p.id"
+                        :to="{ path: `/players/${p.id}`, query: match.tournamentId ? { tournamentId: match.tournamentId } : {} }"
+                        class="hover:underline text-blue-600 dark:text-blue-400"
+                      >{{ p.displayName }}</RouterLink>
+                      <span v-else>{{ p.displayName }}</span>
+                      <span
+                        v-if="match.status === 'finalized' && match.tournament?.mode === 'championship' && p.effectivePointsAwarded !== undefined && !p.exceededMatchLimit"
+                        class="font-semibold text-green-600 dark:text-green-400 text-xs"
+                      >+{{ p.effectivePointsAwarded }}</span>
+                      <span
+                        v-else-if="match.status === 'finalized' && match.tournament?.mode === 'ranked' && p.mmrDelta !== undefined"
+                        class="font-semibold text-xs"
+                        :class="p.mmrDelta && p.mmrDelta > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                      >{{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  v-if="match.tournament?.scoreEnabled !== false && side.score != null"
+                  class="text-2xl sm:text-3xl font-bold"
+                  :class="side.isWinner ? 'text-green-600' : 'text-primary'"
+                >{{ side.score }}</div>
+                <i v-if="side.isWinner" class="fa fa-trophy text-yellow-500" />
+              </div>
+            </div>
+
+            <!-- Scores et Vainqueur (2 camps) -->
             <div
+              v-else
               class="flex justify-center items-start gap-3 py-3 px-1 sm:gap-8 sm:p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
             >
               <div class="text-center flex-1" :class="{ 'opacity-50': sideB?.isWinner }">
@@ -553,6 +599,11 @@ const currentUser = computed(() => appUser.value)
 
 const sideA = computed(() => match.value?.sides.find((s) => s.position === 1))
 const sideB = computed(() => match.value?.sides.find((s) => s.position === 2))
+
+const isNway = computed(() => (match.value?.sides.length ?? 0) > 2)
+const sortedSides = computed(() =>
+  [...(match.value?.sides ?? [])].sort((a, b) => (a.rank ?? a.position) - (b.rank ?? b.position)),
+)
 
 const canManageMatch = computed(() => {
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'

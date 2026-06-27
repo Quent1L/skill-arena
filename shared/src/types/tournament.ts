@@ -4,11 +4,17 @@ import {
   type TeamMode,
   type TournamentStatus,
   type ValidationMode,
+  type StandingsPointsSource,
   tournamentModeSchema,
   teamModeSchema,
   tournamentStatusSchema,
   validationModeSchema,
+  standingsPointsSourceSchema,
 } from "./enums";
+
+// Réglages N-way (matchs à N camps : 1v1v1, 2v2v2, …) réutilisés par les schémas
+const maxSidesPerMatchSchema = z.number().int().min(2).max(8);
+const rankPointsSchema = z.array(z.number().int().min(0)).nullable();
 import {
   baseSeasonFormSchema,
   baseSeasonUpdateFormSchema,
@@ -32,6 +38,9 @@ export interface BaseTournament {
   teamMode: TeamMode;
   minTeamSize: number;
   maxTeamSize: number;
+  maxSidesPerMatch: number;
+  standingsPointsSource: StandingsPointsSource;
+  rankPoints?: number[] | null;
   maxMatchesPerPlayer: number;
   maxTimesWithSamePartner: number;
   maxTimesWithSameOpponent: number;
@@ -70,6 +79,9 @@ export interface CreateTournamentInput {
   teamMode: TeamMode;
   minTeamSize: number;
   maxTeamSize: number;
+  maxSidesPerMatch?: number;
+  standingsPointsSource?: StandingsPointsSource;
+  rankPoints?: number[] | null;
   maxMatchesPerPlayer?: number;
   maxTimesWithSamePartner?: number;
   maxTimesWithSameOpponent?: number;
@@ -95,6 +107,9 @@ export interface UpdateTournamentInput {
   teamMode?: TeamMode;
   minTeamSize?: number;
   maxTeamSize?: number;
+  maxSidesPerMatch?: number;
+  standingsPointsSource?: StandingsPointsSource;
+  rankPoints?: number[] | null;
   maxMatchesPerPlayer?: number;
   maxTimesWithSamePartner?: number;
   maxTimesWithSameOpponent?: number;
@@ -140,6 +155,9 @@ export interface TournamentWithStats extends BaseTournament {
 export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
+  maxSidesPerMatch: maxSidesPerMatchSchema.optional(),
+  standingsPointsSource: standingsPointsSourceSchema.optional(),
+  rankPoints: rankPointsSchema.optional(),
   maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
   maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
   maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
@@ -155,6 +173,9 @@ export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
   {
     mode: tournamentModeSchema.optional(),
     teamMode: teamModeSchema.optional(),
+    maxSidesPerMatch: maxSidesPerMatchSchema.optional(),
+    standingsPointsSource: standingsPointsSourceSchema.optional(),
+    rankPoints: rankPointsSchema.optional(),
     maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
     maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
     maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
@@ -190,6 +211,9 @@ const baseTournamentDataSchema = z.object({
     .number({ message: "La taille maximale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
+  maxSidesPerMatch: maxSidesPerMatchSchema.default(2).optional(),
+  standingsPointsSource: standingsPointsSourceSchema.default("match_result").optional(),
+  rankPoints: rankPointsSchema.optional(),
   maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),
   maxTimesWithSamePartner: z
     .number()
@@ -258,6 +282,9 @@ export const updateTournamentSchema = z
     teamMode: teamModeSchema.optional(),
     minTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
     maxTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
+    maxSidesPerMatch: maxSidesPerMatchSchema.optional(),
+    standingsPointsSource: standingsPointsSourceSchema.optional(),
+    rankPoints: rankPointsSchema.optional(),
     maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
     maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
     maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),

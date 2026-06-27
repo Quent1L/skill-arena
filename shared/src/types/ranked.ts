@@ -110,6 +110,7 @@ export interface HistoryMatchSidePlayer {
 
 export interface HistoryMatchSide {
   position: number;
+  rank?: number | null;
   players: HistoryMatchSidePlayer[];
 }
 

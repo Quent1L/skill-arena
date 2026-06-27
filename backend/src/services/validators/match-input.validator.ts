@@ -23,10 +23,35 @@ export class MatchInputValidator {
             );
         }
 
+        const maxSides = tournament.maxSidesPerMatch ?? 2;
+        if (sides.length > maxSides) {
+            throw new BadRequestError(ErrorCode.MATCH_INVALID_TEAMS);
+        }
+
         if (tournament.teamMode === "static") {
             await this.validateStaticSides(sides, tournament);
         } else {
             await this.validateFlexSides(sides, input.tournamentId);
+        }
+
+        this.validateSideScores(sides, tournament.minScore, tournament.maxScore);
+    }
+
+    /** Validate each provided per-side score against the tournament's min/max range. */
+    private validateSideScores(
+        sides: MatchSideInput[],
+        minScore: number | null | undefined,
+        maxScore: number | null | undefined
+    ): void {
+        for (const side of sides) {
+            if (side.score == null) continue;
+            if (side.score < 0) throw new BadRequestError(ErrorCode.MATCH_INVALID_SCORE);
+            if (minScore != null && side.score < minScore) {
+                throw new BadRequestError(ErrorCode.MATCH_SCORE_OUT_OF_RANGE);
+            }
+            if (maxScore != null && side.score > maxScore) {
+                throw new BadRequestError(ErrorCode.MATCH_SCORE_OUT_OF_RANGE);
+            }
         }
     }
 
@@ -164,12 +189,14 @@ export class MatchInputValidator {
         tournament: NonNullable<TournamentFromRepository>,
         errors: string[]
     ): Promise<void> {
+        const maxSides = tournament.maxSidesPerMatch ?? 2;
         const min = tournament.minTeamSize * 2;
-        const max = tournament.maxTeamSize * 2;
+        const max = tournament.maxTeamSize * maxSides;
         if (allPlayerIds.length < min || allPlayerIds.length > max) {
             errors.push(
                 `Le match nécessite entre ${min} et ${max} joueurs ` +
-                `(${tournament.minTeamSize}-${tournament.maxTeamSize} par équipe), ` +
+                `(${tournament.minTeamSize}-${tournament.maxTeamSize} par camp, ` +
+                `2-${maxSides} camps), ` +
                 `${allPlayerIds.length} sélectionné(s)`
             );
             return;

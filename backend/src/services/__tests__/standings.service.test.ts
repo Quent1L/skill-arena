@@ -98,7 +98,7 @@ const mockRepo = {
   getPlayerPointsForStandings: mock((_id: string, _statuses: string[]) => Promise.resolve([] as any[])),
   getTournamentTeams: mock(() => Promise.resolve([TEAM_A, TEAM_B] as any[])),
   getTournamentEntries: mock(() => Promise.resolve([] as any[])),
-  // Legacy — still used by recalculatePoints
+  // Still used by recalculatePoints
   getMatchesForStandings: mock(() => Promise.resolve([] as any[])),
   getMatchSides: mock(() => Promise.resolve([] as any[])),
   deletePlayerPointsForTournament: mock(() => Promise.resolve()),

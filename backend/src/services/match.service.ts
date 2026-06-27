@@ -17,6 +17,7 @@ import {
   type MatchStatus,
   type ListMatchCardsQuery,
   type ClientMatchCard,
+  type MatchCardSide,
   type PaginatedMatchCards,
 } from '@skol-arena/shared/types/index'
 import {
@@ -229,16 +230,21 @@ export class MatchService {
       playedAt: input.playedAt ? new Date(input.playedAt) : undefined,
     }
 
-    if (input.status === 'reported' && input.scoreA !== undefined && input.scoreB !== undefined) {
-      matchData.scoreA = input.scoreA
-      matchData.scoreB = input.scoreB
+    if (input.status === 'reported') {
+      // Per-side rank/score (input.sides) is the N-way source of truth; scoreA/scoreB kept for 2-side compat.
+      if (input.scoreA !== undefined) matchData.scoreA = input.scoreA
+      if (input.scoreB !== undefined) matchData.scoreB = input.scoreB
       matchData.reportProof = input.reportProof
       matchData.outcomeTypeId = input.outcomeTypeId
       matchData.outcomeReasonId = input.outcomeReasonId
       matchData.reportedBy = createdBy
       matchData.confirmationDeadline = this.getDeadlineForTournament(tournament) ?? undefined
-      const winnerPosition = this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winnerPosition)
-      if (winnerPosition !== undefined) matchData.winnerPosition = winnerPosition
+      if (input.scoreA != null && input.scoreB != null) {
+        const winnerPosition = this.deriveWinnerFromScores(input.scoreA, input.scoreB, input.winnerPosition)
+        if (winnerPosition !== undefined) matchData.winnerPosition = winnerPosition
+      } else if (input.winnerPosition !== undefined) {
+        matchData.winnerPosition = input.winnerPosition
+      }
     }
 
     return await matchRepository.create(matchData)
@@ -291,16 +297,7 @@ export class MatchService {
         mode: row.tournamentMode,
         scoreEnabled: row.tournamentScoreEnabled,
       },
-      sides: (sidesByMatch.get(row.matchId) ?? []).map((s) => ({
-        position: s.position,
-        score: s.score,
-        isWinner: row.winnerSide === (s.position === 1 ? 'A' : 'B'),
-        players: s.entry.players.map((p) => ({
-          id: p.player.id,
-          displayName: p.player.displayName,
-          shortName: p.player.shortName ?? p.player.displayName.slice(0, 8),
-        })),
-      })),
+      sides: this.buildCardSides(sidesByMatch.get(row.matchId) ?? [], row.winnerSide),
       outcomeType: row.outcomeTypeId
         ? { id: row.outcomeTypeId, name: row.outcomeTypeName ?? '' }
         : null,
@@ -316,6 +313,28 @@ export class MatchService {
       total,
       hasMore: filters.offset + filters.limit < total,
     }
+  }
+
+  // N-way aware card sides: rank is source of truth; sole rank-1 side wins. Falls back to winnerSide.
+  private buildCardSides(
+    sides: Array<{ position: number; score: number | null; rank: number | null; entry: { players: Array<{ player: { id: string; displayName: string; shortName: string | null } }> } }>,
+    winnerSide: string | null,
+  ): MatchCardSide[] {
+    const rank1Count = sides.filter((s) => s.rank === 1).length
+    return sides.map((s) => ({
+      position: s.position,
+      score: s.score,
+      rank: s.rank ?? null,
+      isWinner:
+        s.rank != null
+          ? s.rank === 1 && rank1Count === 1
+          : winnerSide === (s.position === 1 ? 'A' : 'B'),
+      players: s.entry.players.map((p) => ({
+        id: p.player.id,
+        displayName: p.player.displayName,
+        shortName: p.player.shortName ?? p.player.displayName.slice(0, 8),
+      })),
+    }))
   }
 
   async updateMatch(id: string, input: UpdateMatchInput, updatedBy: string) {

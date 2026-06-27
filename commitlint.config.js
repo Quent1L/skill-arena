@@ -9,5 +9,6 @@ export default {
     'subject-case': [2, 'never', ['start-case', 'pascal-case', 'upper-case']],
     'subject-empty': [2, 'never'],
     'type-empty': [2, 'never'],
+    'body-max-line-length': [2, 'always', 400],
   },
 }

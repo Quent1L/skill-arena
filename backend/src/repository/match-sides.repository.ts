@@ -10,6 +10,7 @@ export type CreateSideData = {
   entryId: string;
   position: number;
   score: number | null;
+  rank?: number | null;
   pointsAwarded?: number;
 };
 
@@ -82,6 +83,7 @@ export class MatchSidesRepository {
       entryId: side.entryId,
       position: side.position,
       score: side.score,
+      rank: side.rank ?? null,
       pointsAwarded: side.pointsAwarded ?? 0,
     }));
 
@@ -117,16 +119,17 @@ export class MatchSidesRepository {
   }
 
   /**
-   * Update points awarded for a specific side
+   * Update points awarded (and optionally rank) for a specific side
    */
   async updatePointsAwarded(
     matchId: string,
     entryId: string,
-    pointsAwarded: number
+    pointsAwarded: number,
+    rank?: number | null,
   ) {
     const [updated] = await db
       .update(matchSides)
-      .set({ pointsAwarded })
+      .set(rank === undefined ? { pointsAwarded } : { pointsAwarded, rank })
       .where(
         and(eq(matchSides.matchId, matchId), eq(matchSides.entryId, entryId))
       )

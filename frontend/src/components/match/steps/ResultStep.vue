@@ -2,8 +2,51 @@
   <div class="flex flex-col gap-6 pt-4">
     <h3 class="text-base font-semibold">{{ t('resultStep.title') }}</h3>
 
+    <!-- N-way: drag sides to rank them (top = 1st) + optional per-side score -->
+    <div v-if="isNway" class="flex flex-col gap-2">
+      <span class="text-sm font-medium">{{ t('resultStep.rankSides') }} <span class="text-red-500">*</span></span>
+      <p class="text-xs text-surface-500">{{ t('resultStep.rankHint') }}</p>
+      <Message v-if="scoreEnabled !== false && scoreInstructions" severity="info" :closable="false">{{
+        scoreInstructions
+      }}</Message>
+      <VueDraggable
+        v-model="rankedSides"
+        tag="div"
+        class="flex flex-col gap-2"
+        handle=".rank-grip"
+        @end="applyRanks"
+      >
+        <div
+          v-for="(side, idx) in rankedSides"
+          :key="side.position"
+          class="flex items-center gap-3 rounded-lg border border-surface-200 dark:border-surface-700 p-3"
+        >
+          <i class="fas fa-grip-vertical rank-grip text-surface-400 cursor-grab" />
+          <span class="font-bold w-6 text-center text-primary">{{ idx + 1 }}</span>
+          <div class="flex flex-col gap-1 flex-1">
+            <div
+              v-for="name in sidePlayerNames(side)"
+              :key="name"
+              class="flex items-center gap-2 text-sm"
+            >
+              <PlayerAvatar :name="name" size="xs" />
+              {{ name }}
+            </div>
+          </div>
+          <InputNumber
+            v-if="scoreEnabled !== false"
+            :model-value="scorePerSideModel[side.position] ?? 0"
+            :min="minScore ?? 0"
+            :max="maxScore ?? undefined"
+            input-class="w-20 text-center"
+            @update:model-value="(v) => setScore(side.position, v ?? 0)"
+          />
+        </div>
+      </VueDraggable>
+    </div>
+
     <!-- Side previews — click to pick winner -->
-    <div class="flex flex-col gap-2">
+    <div v-else class="flex flex-col gap-2">
       <span class="text-sm font-medium"
         >{{ t('resultStep.selectWinner') }} <span class="text-red-500">*</span></span
       >
@@ -86,8 +129,8 @@
       />
     </div>
 
-    <!-- Score -->
-    <div v-if="scoreEnabled !== false" class="flex flex-col gap-2">
+    <!-- Score (2-side only; N-way scores live in the ranked list above) -->
+    <div v-if="scoreEnabled !== false && !isNway" class="flex flex-col gap-2">
       <span class="text-sm font-medium">{{ t('resultStep.score') }} <span class="text-red-500">*</span></span>
       <Message v-if="scoreInstructions" severity="info" :closable="false">{{
         scoreInstructions
@@ -139,6 +182,7 @@ import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import Select from 'primevue/select'
 import InputNumber from 'primevue/inputnumber'
 import Message from 'primevue/message'
+import { VueDraggable } from 'vue-draggable-plus'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
@@ -202,18 +246,47 @@ function setScore(position: number, value: number) {
   scorePerSideModel.value = { ...scorePerSideModel.value, [position]: value }
 }
 
-const canCreate = computed(() => {
-  if (winnerModel.value === null) return false
-  if (props.scoreEnabled === false) return true
-  const inRange = (v: number) =>
+// N-way (≥3 sides): rank by drag-and-drop instead of a single winner.
+const isNway = computed(() => sidesModel.value.length > 2)
+const rankedSides = ref<MatchSideInput[]>([])
+
+function initRankedSides() {
+  // Order by existing rank if present, otherwise by position.
+  rankedSides.value = [...sidesModel.value].sort(
+    (a, b) => (a.rank ?? a.position) - (b.rank ?? b.position),
+  )
+  applyRanks()
+}
+
+function applyRanks() {
+  const rankByPos = new Map(rankedSides.value.map((s, i) => [s.position, i + 1]))
+  sidesModel.value = sidesModel.value.map((s) => ({ ...s, rank: rankByPos.get(s.position) ?? null }))
+}
+
+watch(sidesModel, (sides) => {
+  if (isNway.value && sides.length !== rankedSides.value.length) initRankedSides()
+})
+
+function inScoreRange(v: number): boolean {
+  return (
     (props.minScore == null || v >= props.minScore) &&
     (props.maxScore == null || v <= props.maxScore)
-  return sidesModel.value.every((s) => inRange(scorePerSideModel.value[s.position] ?? 0))
+  )
+}
+
+const canCreate = computed(() => {
+  if (isNway.value) {
+    if (props.scoreEnabled === false) return true
+    return sidesModel.value.every((s) => inScoreRange(scorePerSideModel.value[s.position] ?? 0))
+  }
+  if (winnerModel.value === null) return false
+  if (props.scoreEnabled === false) return true
+  return sidesModel.value.every((s) => inScoreRange(scorePerSideModel.value[s.position] ?? 0))
 })
 
 const validationMessages = computed<string[]>(() => {
   const msgs: string[] = []
-  if (winnerModel.value === null)
+  if (!isNway.value && winnerModel.value === null)
     msgs.push(
       props.allowDraw ? t('resultStep.selectWinnerOrDraw') : t('resultStep.selectWinnerOnly'),
     )
@@ -284,6 +357,7 @@ watch(outcomeTypeIdModel, (val) => {
 })
 
 onMounted(async () => {
+  if (isNway.value) initRankedSides()
   if (props.initialOutcomeTypes === undefined) {
     await loadOutcomeTypes()
   }

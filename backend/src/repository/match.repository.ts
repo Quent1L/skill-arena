@@ -23,6 +23,11 @@ import {
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
 import { matchResultRepository } from "./match-result.repository";
+import {
+  computeMatchOutcome,
+  type PointsConfig,
+  type SideOutcomeInput,
+} from "../services/match-outcome.util";
 
 // Type for synthetic team object
 type AppUser = typeof appUsers.$inferSelect;
@@ -41,6 +46,8 @@ export interface CreateMatchSideData {
   position: number;
   playerIds?: string[];
   teamId?: string;
+  rank?: number | null;
+  score?: number | null;
 }
 
 export interface CreateMatchData {
@@ -83,30 +90,14 @@ export interface MatchFilters {
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-type MatchOutcome = { isDraw: boolean; isAWinner: boolean; winnerSide: "A" | "B" | null };
-
-function resolveMatchOutcome(
-  data: { winnerPosition?: number | null },
-  scoreA: number,
-  scoreB: number,
-): MatchOutcome {
-  const hasExplicitWinner = data.winnerPosition !== undefined;
-  const isDraw = hasExplicitWinner ? data.winnerPosition === null : scoreA === scoreB;
-  const isAWinner = hasExplicitWinner ? data.winnerPosition === 1 : scoreA > scoreB;
-  let winnerSide: "A" | "B" | null = null;
-  if (!isDraw) winnerSide = isAWinner ? "A" : "B";
-  return { isDraw, isAWinner, winnerSide };
-}
-
-function computeSidePoints(
-  tournament: typeof tournaments.$inferSelect,
-  outcome: MatchOutcome,
-): { a: number; b: number } {
-  const win = tournament.pointPerVictory ?? 3;
-  const loss = tournament.pointPerLoss ?? 0;
-  const draw = tournament.pointPerDraw ?? 1;
-  if (outcome.isDraw) return { a: draw, b: draw };
-  return outcome.isAWinner ? { a: win, b: loss } : { a: loss, b: win };
+function pointsConfigFor(tournament: typeof tournaments.$inferSelect): PointsConfig {
+  return {
+    pointPerVictory: tournament.pointPerVictory,
+    pointPerDraw: tournament.pointPerDraw,
+    pointPerLoss: tournament.pointPerLoss,
+    standingsPointsSource: tournament.standingsPointsSource,
+    rankPoints: tournament.rankPoints,
+  };
 }
 
 export class MatchRepository {
@@ -151,29 +142,41 @@ export class MatchRepository {
         })
       );
 
-      // 4. Determine winner and calculate points (sides model: winnerPosition = winning side's position)
-      const calcScoreA = data.scoreA ?? 0;
-      const calcScoreB = data.scoreB ?? 0;
-      const outcome = resolveMatchOutcome(data, calcScoreA, calcScoreB);
+      // 4. Resolve per-side score (prefer per-side input, fall back to the 2-side scoreA/scoreB)
+      const scoreByPosition: Record<number, number | null | undefined> = {
+        1: data.scoreA,
+        2: data.scoreB,
+      };
+      const outcomeInputs: SideOutcomeInput[] = resolvedSides.map((rs) => ({
+        position: rs.position,
+        score: rs.score ?? scoreByPosition[rs.position] ?? null,
+        rank: rs.rank ?? null,
+      }));
+
+      // 5. Compute ranks, points and winnerSide (with 2 sides this yields a single A/B winner)
+      const outcome = computeMatchOutcome(outcomeInputs, pointsConfigFor(tournament), data.winnerPosition);
+      const resultByPosition = new Map(outcome.sides.map((s) => [s.position, s]));
 
       await tx
         .update(matches)
         .set({ winnerSide: outcome.winnerSide })
         .where(eq(matches.id, match.id));
 
-      const scoreByPosition: Record<number, number> = {
-        1: data.scoreA ?? 0,
-        2: data.scoreB ?? 0,
-      };
-
-      // 5. Create match_sides for all sides
-      const points = computeSidePoints(tournament, outcome);
-      const sidesData = resolvedSides.map((rs) => ({
-        entryId: rs.entry.id,
-        position: rs.position,
-        score: scoreByPosition[rs.position] ?? 0,
-        pointsAwarded: rs.position === 1 ? points.a : points.b,
-      }));
+      // Only persist rank once the match has a result. A scheduled (resultless) match has
+      // no winner yet, so storing a rank here would make the later report/edit reuse it as
+      // the source of truth (resolveRanks prefers stored ranks) and ignore winnerPosition.
+      const hasResult =
+        !!data.status && ["reported", "confirmed", "finalized"].includes(data.status);
+      const sidesData = resolvedSides.map((rs) => {
+        const r = resultByPosition.get(rs.position);
+        return {
+          entryId: rs.entry.id,
+          position: rs.position,
+          score: r?.score ?? 0,
+          rank: hasResult ? r?.rank ?? null : null,
+          pointsAwarded: r?.pointsAwarded ?? 0,
+        };
+      });
       await matchSidesRepository.createSides(match.id, sidesData, tx);
 
       // 6. Create match_results if reported
@@ -241,10 +244,14 @@ export class MatchRepository {
       playerMmrMap = new Map(rows.map((r) => [r.playerId, r.mmrDelta]));
     }
 
+    const rank1Count = sides.filter((s) => s.rank === 1).length;
     const builtSides: MatchDetailSide[] = sides.map((side) => {
+      // Sole leader (rank 1, not tied) wins; derive from the stored A/B winner when rank is absent.
       const isWinner =
-        (match.winnerSide === "A" && side.position === 1) ||
-        (match.winnerSide === "B" && side.position === 2);
+        side.rank != null
+          ? side.rank === 1 && rank1Count === 1
+          : (match.winnerSide === "A" && side.position === 1) ||
+            (match.winnerSide === "B" && side.position === 2);
       const entry = side.entry;
       const entryName = entry?.team?.name ?? null;
       const standardPoints = side.pointsAwarded ?? 0;
@@ -274,6 +281,7 @@ export class MatchRepository {
       return {
         position: side.position,
         score: side.score,
+        rank: side.rank ?? null,
         pointsAwarded: standardPoints,
         isWinner,
         entryId: entry?.id ?? "",
@@ -621,21 +629,33 @@ export class MatchRepository {
     const tournament = await this.getTournament(tournamentId);
     if (!tournament) return;
 
-    const scoreA = data.scoreA ?? sides[0]?.score ?? 0;
-    const scoreB = data.scoreB ?? sides[1]?.score ?? 0;
-    const outcome = resolveMatchOutcome(data, scoreA, scoreB);
+    // Build per-side inputs: apply score updates by position.
+    // A fresh 2-side winner selection (explicit winnerPosition) is authoritative and replaces
+    // any stored rank — otherwise resolveRanks would reuse the stale stored rank and the edited
+    // winner would be ignored. Matches with >2 sides carry no re-rank input on this path, so
+    // their stored ranks remain the source of truth.
+    const scoreByPosition: Record<number, number | null | undefined> = {
+      1: data.scoreA,
+      2: data.scoreB,
+    };
+    const replaceRanksWithWinner = sides.length === 2 && data.winnerPosition !== undefined;
+    const outcomeInputs: SideOutcomeInput[] = sides.map((s) => ({
+      position: s.position,
+      score: scoreByPosition[s.position] ?? s.score ?? null,
+      rank: replaceRanksWithWinner ? null : s.rank ?? null,
+    }));
+
+    const outcome = computeMatchOutcome(outcomeInputs, pointsConfigFor(tournament), data.winnerPosition);
+    const resultByPosition = new Map(outcome.sides.map((r) => [r.position, r]));
 
     await tx
       .update(matches)
       .set({ winnerSide: outcome.winnerSide })
       .where(eq(matches.id, id));
 
-    const points = computeSidePoints(tournament, outcome);
-    if (sides[0]) {
-      await matchSidesRepository.updatePointsAwarded(id, sides[0].entryId, points.a);
-    }
-    if (sides[1]) {
-      await matchSidesRepository.updatePointsAwarded(id, sides[1].entryId, points.b);
+    for (const side of sides) {
+      const r = resultByPosition.get(side.position);
+      if (r) await matchSidesRepository.updatePointsAwarded(id, side.entryId, r.pointsAwarded, r.rank);
     }
   }
 

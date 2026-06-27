@@ -76,6 +76,7 @@
               v-model:sides="formState.sides"
               v-model:all-player-ids="formState.allPlayerIds"
               :player-names="playersMap"
+              :max-sides="tournament?.maxSidesPerMatch ?? 2"
               :next-label="isFutureDate ? 'Programmer le match' : undefined"
               @previous="activeStep = 'participants'"
               @next="goToStepAfterComposition"
@@ -249,9 +250,16 @@ function goBackFromResult() {
 async function submitMatch() {
   const isScheduled = isFutureDate.value
 
+  // Attach per-side score (and any rank set by the ranked result step) so the backend
+  // can resolve N-way outcomes; scoreA/scoreB + winnerPosition kept for 2-side compat.
+  const sides = formState.value.sides.map((s) => ({
+    ...s,
+    score: isScheduled ? null : (formState.value.scorePerSide[s.position] ?? null),
+  }))
+
   const payload: ClientCreateMatchRequest = {
     tournamentId: props.tournamentId,
-    sides: formState.value.sides,
+    sides,
     playedAt: formState.value.playedAt ?? new Date(),
     status: isScheduled ? 'scheduled' : 'reported',
     scoreA: isScheduled ? 0 : (formState.value.scorePerSide[1] ?? 0),

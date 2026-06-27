@@ -77,6 +77,7 @@
           v-model:sides="formState.sides"
           v-model:all-player-ids="formState.allPlayerIds"
           :player-names="playersMap"
+          :max-sides="tournament?.maxSidesPerMatch ?? 2"
           hide-navigation
           @previous="activeStep = 'participants'"
           @next="goToStepAfterComposition"
@@ -388,9 +389,13 @@ async function submitMatch() {
   }
 
   const isScheduled = isFutureDate.value
+  const sides = formState.value.sides.map((s) => ({
+    ...s,
+    score: isScheduled ? null : (formState.value.scorePerSide[s.position] ?? null),
+  }))
   const payload: ClientCreateMatchRequest = {
     tournamentId: props.tournamentId,
-    sides: formState.value.sides,
+    sides,
     playedAt: formState.value.playedAt ?? new Date(),
     status: isScheduled ? 'scheduled' : 'reported',
     scoreA: isScheduled ? 0 : (formState.value.scorePerSide[1] ?? 0),

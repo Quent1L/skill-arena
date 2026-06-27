@@ -39,8 +39,27 @@
         </div>
       </div>
 
+      <!-- Center (N-way): ranked list of sides -->
+      <div v-if="isNway" class="flex flex-col gap-1.5 pt-2 flex-1">
+        <div
+          v-for="(side, idx) in sortedByRank"
+          :key="side.position"
+          class="flex items-center gap-2 rounded-lg bg-surface-700/30 px-2 py-1"
+        >
+          <span class="font-headline font-black text-sm w-5 text-center tabular-nums"
+            :class="side.isWinner ? 'text-yellow-500' : 'text-muted-color'"
+          >{{ side.rank ?? idx + 1 }}</span>
+          <PlayerAvatarStack :players="side.players" size="sm" />
+          <span class="flex-1 font-label text-xs truncate text-color/70">
+            {{ side.players.map((p) => p.displayName).join(', ') }}
+          </span>
+          <span v-if="entry.tournament.scoreEnabled && side.score != null"
+            class="font-headline font-black text-sm tabular-nums text-color">{{ side.score }}</span>
+        </div>
+      </div>
+
       <!-- Center: left side | score | right side -->
-      <div class="flex items-center gap-2 pt-3 flex-1 justify-center">
+      <div v-else class="flex items-center gap-2 pt-3 flex-1 justify-center">
         <!-- Left side (my side when player mode, side A when neutral) -->
         <div class="flex-1 flex flex-col items-center gap-1 relative">
           <div
@@ -218,7 +237,20 @@ const scoreColorClass = computed(() => {
   return 'text-match-neutral'
 })
 
+const isNway = computed(() => props.entry.sides.length > 2)
+
+// Sides ordered by final rank (1 = first); falls back to position.
+const sortedByRank = computed(() =>
+  [...props.entry.sides].sort((a, b) => (a.rank ?? a.position) - (b.rank ?? b.position)),
+)
+
 const formatBadge = computed(() => {
+  if (isNway.value) {
+    return [...props.entry.sides]
+      .sort((a, b) => a.position - b.position)
+      .map((s) => s.players.length)
+      .join('v')
+  }
   const a = leftSide.value?.players.length ?? '?'
   const b = rightSide.value?.players.length ?? '?'
   return `${a}v${b}`

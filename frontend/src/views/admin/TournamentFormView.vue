@@ -72,6 +72,22 @@
                   />
                   <small class="p-error">{{ errors.teamMode }}</small>
                 </div>
+
+                <!-- Max sides per match (N-way: 1v1v1, 2v2v2, …) -->
+                <div>
+                  <label for="maxSidesPerMatch" class="block text-sm font-medium mb-2">
+                    {{ t('tournamentFormView.labelMaxSidesPerMatch') }}
+                  </label>
+                  <InputNumber
+                    id="maxSidesPerMatch"
+                    v-model="maxSidesPerMatch"
+                    :min="2"
+                    :max="8"
+                    :disabled="!isFieldEditable('maxSidesPerMatch')"
+                    class="w-full"
+                  />
+                  <small class="text-surface-500">{{ t('tournamentFormView.hintMaxSidesPerMatch') }}</small>
+                </div>
               </template>
             </GeneralInfoSection>
           </div>
@@ -160,6 +176,45 @@
                   :disabled="!isFieldEditable('pointPerLoss')"
                   class="w-full"
                 />
+              </div>
+
+              <!-- Source des points au classement (rang / score / résultat) -->
+              <div>
+                <label for="standingsPointsSource" class="block text-sm font-medium mb-2">
+                  {{ t('tournamentFormView.labelPointsSource') }}
+                </label>
+                <Select
+                  id="standingsPointsSource"
+                  v-model="standingsPointsSource"
+                  :options="standingsPointsSourceOptions"
+                  option-label="label"
+                  option-value="value"
+                  :disabled="!isFieldEditable('standingsPointsSource')"
+                  class="w-full"
+                />
+                <small class="text-surface-500">{{ t('tournamentFormView.hintPointsSource') }}</small>
+              </div>
+            </div>
+
+            <!-- Table rang → points (visible si source = rang) -->
+            <div v-if="standingsPointsSource === 'rank'" class="mt-4">
+              <label class="block text-sm font-medium mb-2">
+                {{ t('tournamentFormView.labelRankPoints') }}
+              </label>
+              <div class="flex flex-wrap gap-3">
+                <div v-for="(pts, i) in rankPointsList" :key="i" class="flex flex-col items-center">
+                  <span class="text-xs text-surface-500 mb-1">
+                    {{ t('tournamentFormView.rankLabel', { rank: i + 1 }) }}
+                  </span>
+                  <InputNumber
+                    :model-value="pts"
+                    :min="0"
+                    :disabled="!isFieldEditable('rankPoints')"
+                    class="w-20"
+                    input-class="w-20"
+                    @update:model-value="updateRankPoint(i, $event)"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -276,7 +331,34 @@ const [maxTimesWithSameOpponent] = defineField('maxTimesWithSameOpponent')
 const [pointPerVictory] = defineField('pointPerVictory')
 const [pointPerDraw] = defineField('pointPerDraw')
 const [pointPerLoss] = defineField('pointPerLoss')
+const [maxSidesPerMatch] = defineField('maxSidesPerMatch')
+const [standingsPointsSource] = defineField('standingsPointsSource')
+const [rankPoints] = defineField('rankPoints')
 const [organizationId] = defineField('organizationId')
+
+const standingsPointsSourceOptions = [
+  { label: t('tournamentFormView.pointsSourceMatchResult'), value: 'match_result' },
+  { label: t('tournamentFormView.pointsSourceRank'), value: 'rank' },
+  { label: t('tournamentFormView.pointsSourceScore'), value: 'score' },
+]
+
+// rankPoints is an array sized to the number of sides; keep it in sync with maxSidesPerMatch.
+const rankPointsList = computed<number[]>({
+  get: () => {
+    const n = (maxSidesPerMatch.value as number) ?? 2
+    const current = (rankPoints.value as number[] | null) ?? []
+    return Array.from({ length: n }, (_, i) => current[i] ?? Math.max(0, n - 1 - i))
+  },
+  set: (list) => {
+    rankPoints.value = list
+  },
+})
+
+function updateRankPoint(index: number, value: number) {
+  const next = [...rankPointsList.value]
+  next[index] = value ?? 0
+  rankPoints.value = next
+}
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
@@ -359,6 +441,9 @@ onMounted(async () => {
         pointPerVictory: currentTournament.value.pointPerVictory ?? 3,
         pointPerDraw: currentTournament.value.pointPerDraw ?? 1,
         pointPerLoss: currentTournament.value.pointPerLoss ?? 0,
+        maxSidesPerMatch: currentTournament.value.maxSidesPerMatch ?? 2,
+        standingsPointsSource: currentTournament.value.standingsPointsSource ?? 'match_result',
+        rankPoints: currentTournament.value.rankPoints ?? null,
         allowDraw: currentTournament.value.allowDraw ?? true,
         startDate: currentTournament.value.startDate,
         endDate: currentTournament.value.endDate,

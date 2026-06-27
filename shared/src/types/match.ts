@@ -162,6 +162,10 @@ export interface MatchSideInput {
   position: number;
   playerIds?: string[];
   teamId?: string;
+  /** Final placement (1 = first). Source of truth for N-way results. */
+  rank?: number;
+  /** Optional per-side score (used when scoreEnabled). */
+  score?: number | null;
 }
 
 export interface CreateMatchInput {
@@ -224,6 +228,8 @@ export const matchSideInputSchema = z.object({
   position: z.number().int().min(1),
   playerIds: z.array(z.string().uuid()).optional(),
   teamId: z.string().uuid().optional(),
+  rank: z.number().int().min(1).optional(),
+  score: z.number().int().min(0).nullable().optional(),
 });
 
 export const createMatchSchema = z.object({
@@ -524,6 +530,7 @@ export interface ClientMatchHistoryEntry {
 export interface MatchCardSide {
   position: number;
   score: number | null;
+  rank: number | null;
   isWinner: boolean;
   players: { id: string; displayName: string; shortName: string }[];
 }
@@ -558,6 +565,7 @@ export interface MatchDetailPlayer {
 export interface MatchDetailSide {
   position: number;
   score: number | null;
+  rank: number | null;
   pointsAwarded: number;
   isWinner: boolean;
   entryId: string;

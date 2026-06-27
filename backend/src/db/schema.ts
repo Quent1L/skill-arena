@@ -176,6 +176,12 @@ export const teamInteractionModeEnum = pgEnum("team_interaction_mode", ["INDIVID
 
 export const matchTeamSideEnum = pgEnum("match_team_side", ["A", "B"]);
 
+export const standingsPointsSourceEnum = pgEnum("standings_points_source", [
+  "match_result",
+  "rank",
+  "score",
+]);
+
 export const ruleTypeEnum = pgEnum("rule_type", ["message", "badge"]);
 
 export const ruleScopeEnum = pgEnum("rule_scope", ["global", "discipline"]);
@@ -283,6 +289,11 @@ export const tournaments = pgTable("tournaments", {
   teamMode: teamModeEnum("team_mode").notNull(),
   minTeamSize: integer("min_team_size").notNull(),
   maxTeamSize: integer("max_team_size").notNull(),
+  maxSidesPerMatch: integer("max_sides_per_match").notNull().default(2),
+  standingsPointsSource: standingsPointsSourceEnum("standings_points_source")
+    .notNull()
+    .default("match_result"),
+  rankPoints: jsonb("rank_points").$type<number[]>(),
   maxMatchesPerPlayer: integer("max_matches_per_player").notNull().default(10),
   maxTimesWithSamePartner: integer("max_times_with_same_partner")
     .notNull()
@@ -467,6 +478,7 @@ export const matchSides = pgTable(
       .references(() => tournamentEntries.id, { onDelete: "restrict" }),
     position: integer("position").notNull(),
     score: integer("score"),
+    rank: integer("rank"),
     pointsAwarded: integer("points_awarded").default(0),
   },
   (table) => [unique().on(table.matchId, table.entryId)],

@@ -48,8 +48,9 @@ export interface MatchSide {
   id: string;
   matchId: string;
   entryId: string;
-  position: number; // 1, 2, 3... (supports N-way matches in future)
+  position: number; // 1, 2, 3... (side identity, supports N-way matches)
   score: number;
+  rank?: number | null; // final placement (1 = first); source of truth for N-way results
   pointsAwarded: number;
 }
 
