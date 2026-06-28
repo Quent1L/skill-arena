@@ -1,6 +1,6 @@
 {
   "name": "skol-arena-monorepo",
-  "version": "1.13.1",
+  "version": "1.14.0",
   "description": "Skol - Tournament Management Application",
   "private": true,
   "type": "module",

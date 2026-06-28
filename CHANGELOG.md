@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.14.0](https://skol-arena/Quent1L/skol-arena/compare/1.13.1...1.14.0) (2026-06-28)
+
+### ✨ New Features
+
+* **admin:** add Beta tag and warning to rules engine pages ([1aa6ed1](https://skol-arena/Quent1L/skol-arena/commit/1aa6ed1a24e98c39bfdd355ce62c6d1b4dc05afe))
+* **badges:** dedicated tab with earned/unearned distinction + square cards ([ff158af](https://skol-arena/Quent1L/skol-arena/commit/ff158af5c025068a0021fa26a40da2982bfb25a0))
+* **comparison:** add player comparison view with discipline/tournament scope ([8473139](https://skol-arena/Quent1L/skol-arena/commit/8473139f0038400811f96422df903ac03e51c4d5))
+* **i18n:** add i18n frontend setup ([ee2abe7](https://skol-arena/Quent1L/skol-arena/commit/ee2abe710cb87524bfdc55a46c82be3da46c83cd))
+* **i18n:** migrate all frontend strings to vue-i18n ([e68af05](https://skol-arena/Quent1L/skol-arena/commit/e68af052296c32700f1cdd1828c350cd15f3d901))
+* **player:** extract shared StatsFiltersBar component ([ee36c65](https://skol-arena/Quent1L/skol-arena/commit/ee36c658f3949264ed5d29ce07d13e1a652ed7b9))
+* **ranked:** expose lossStreak in leaderboard, player profile and global stats ([30955a0](https://skol-arena/Quent1L/skol-arena/commit/30955a027e81b1dabed80867478742e1f20d1cb4))
+* **rules-engine:** add contextual message & badge system ([0ac226f](https://skol-arena/Quent1L/skol-arena/commit/0ac226f71289965b7913daaf0d160068c1ae5c1a))
+* **rules:** badge lifecycle — recalc, revocation, nightly reconcile ([9cce1b3](https://skol-arena/Quent1L/skol-arena/commit/9cce1b3903ad878221310b9e5b7614d51381a740))
+* **rules:** enrich condition builder with typed pickers ([b26000e](https://skol-arena/Quent1L/skol-arena/commit/b26000edf00e6334f93b29e74bb4abeabb313593))
+
+### 🐛 Bug Fixes
+
+* **deps:** bump better-auth to 1.6.22 ([a43cfa4](https://skol-arena/Quent1L/skol-arena/commit/a43cfa4ffa1401bd68c56d048d1bc5734367eaf7))
+* **i18n:** escape @ in email placeholders ([3adeb09](https://skol-arena/Quent1L/skol-arena/commit/3adeb09c7615178c2404a182e43a17c06660a634))
+* **ranked:** use real tier range for LP progress bar ([447d91b](https://skol-arena/Quent1L/skol-arena/commit/447d91b49878fad402b3c12cf901d609d4956b4b))
+* **rules:** restore DatePicker value on condition edit ([41147c8](https://skol-arena/Quent1L/skol-arena/commit/41147c8f17f161d109a8e24072a26db668d16be6))
+
+### ⚡ Performance
+
+* **frontend:** slim Font Awesome metadata for icon picker ([f41e1a1](https://skol-arena/Quent1L/skol-arena/commit/f41e1a1a0d6382faa351c852ce963dc9c1f583a9))
+
+### 📝 Documentation
+
+* **changelog:** translate to English + backfill pre-1.9.0 history ([c9126f7](https://skol-arena/Quent1L/skol-arena/commit/c9126f7618706ac3b84b9f251a49a73e9696d8df))
+* translate README to English and align with current stack ([bef0846](https://skol-arena/Quent1L/skol-arena/commit/bef0846f298accc3a497b2dd6a433bbd9df60e20))
+
+### 🔧 Maintenance
+
+* **frontend:** update dependencies ([4676b80](https://skol-arena/Quent1L/skol-arena/commit/4676b80b77eea1e4408fe5261bddf6b967594ead))
+* rename skill-arena to skol-arena ([c74dc1c](https://skol-arena/Quent1L/skol-arena/commit/c74dc1ca6a6a433d448d7b120b48624f4280205f))
+
+### 🎨 Style
+
+* **admin:** improve breadcrumb ([96a357d](https://skol-arena/Quent1L/skol-arena/commit/96a357d02628b7669ad2f1fc4c550108c56cab0a))
+
 ## [1.13.1](https://github.com/Quent1L/skol-arena/compare/1.13.0...1.13.1) (2026-06-22)
 
 ### 🐛 Bug Fixes
