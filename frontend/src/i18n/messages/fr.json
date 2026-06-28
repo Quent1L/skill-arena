@@ -1466,6 +1466,18 @@
     "win": "Victoire",
     "winRateCriteria": "Taux de victoire"
   },
+  "statsFiltersBar": {
+    "allOption": "Tous",
+    "apply": "Appliquer",
+    "bracket": "Bracket",
+    "championship": "Championnat",
+    "discipline": "Discipline",
+    "filters": "Filtres",
+    "mode": "Mode",
+    "ranked": "Ranked",
+    "reset": "Réinitialiser",
+    "tournament": "Tournoi"
+  },
   "submitInvitationView": {
     "codeInvalid": "Code invalide",
     "codeLabel": "Code d'invitation",

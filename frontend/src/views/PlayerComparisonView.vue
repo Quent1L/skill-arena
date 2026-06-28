@@ -5,6 +5,15 @@
       <div class="flex items-center gap-2 mb-3">
         <Button icon="fa fa-arrow-left" severity="secondary" text @click="router.back()" />
         <h1 class="text-lg font-black text-white">{{ t('playerComparisonView.title') }}</h1>
+        <div class="md:hidden ml-auto">
+          <Button
+            icon="fa fa-filter"
+            severity="secondary"
+            @click="showFilterDrawer = true"
+            :badge="activeFilterCount > 0 ? String(activeFilterCount) : undefined"
+            badge-severity="info"
+          />
+        </div>
       </div>
 
       <!-- Desktop: inline AutoComplete selects -->
@@ -55,40 +64,16 @@
         </div>
       </template>
 
-      <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-3">
-        <Select
-          v-model="selectedDisciplineId"
-          :options="disciplines"
-          option-label="name"
-          option-value="id"
-          placeholder="Discipline…"
-          class="w-full sm:w-auto"
-          size="small"
-          aria-label="Discipline"
-          inputId="filter-discipline"
-        />
-        <Select
-          v-if="tournamentOptions.length > 1"
-          v-model="selectedTournamentId"
-          :options="tournamentOptions"
-          option-label="label"
-          option-value="value"
-          :placeholder="t('playerComparisonView.allTournaments')"
-          show-clear
-          class="w-full sm:w-auto"
-          size="small"
-          aria-label="Tournoi"
-          inputId="filter-tournament"
-        />
-        <SelectButton
-          v-model="selectedMode"
-          :options="modeOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-        />
-      </div>
     </div>
+
+    <StatsFiltersBar
+      v-model="statsFilters"
+      v-model:drawer-visible="showFilterDrawer"
+      :available-tournaments="availableTournaments"
+      :allowed-modes="COMPARISON_VALID_MODES"
+      :disciplines="disciplines"
+      auto-select-discipline
+    />
 
     <!-- Mobile player picker (full-screen) -->
     <PlayerPickerDialog
@@ -281,7 +266,7 @@
     <!-- Empty prompt -->
     <div v-else class="text-center py-12 text-gray-500">
       <i class="fa fa-people-arrows text-4xl mb-4 block opacity-30"></i>
-      <p v-if="!selectedDisciplineId && !selectedTournamentId">{{ t('playerComparisonView.chooseDisciplineOrTournament') }}</p>
+      <p v-if="!statsFilters.disciplineId && !statsFilters.tournamentId">{{ t('playerComparisonView.chooseDisciplineOrTournament') }}</p>
       <p v-else>{{ t('playerComparisonView.chooseTwoPlayers') }}</p>
     </div>
   </div>
@@ -306,9 +291,8 @@ import type {
 import PlayerSearchSelect from '@/components/player/PlayerSearchSelect.vue'
 import PlayerPickerDialog from '@/components/match/mobile/PlayerPickerDialog.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import StatsFiltersBar from '@/components/player/StatsFiltersBar.vue'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const { t } = useI18n()
@@ -321,26 +305,28 @@ const { playerA, playerB, headToHead, together, loading, error, loadComparison }
 
 const selectedA = ref<PlayerProfile | null>(null)
 const selectedB = ref<PlayerProfile | null>(null)
-const selectedMode = ref<string | undefined>(undefined)
-const selectedDisciplineId = ref<string | undefined>(undefined)
-const selectedTournamentId = ref<string | undefined>(undefined)
+const qDisciplineId = route.query.disciplineId as string | undefined
+const qMode = route.query.mode as string | undefined
+const qTournamentId = route.query.tournamentId as string | undefined
+const statsFilters = ref<PlayerStatsFilters>({
+  ...(qDisciplineId ? { disciplineId: qDisciplineId } : {}),
+  ...(qMode ? { tournamentMode: qMode } : {}),
+  ...(qTournamentId ? { tournamentId: qTournamentId } : {}),
+})
+const showFilterDrawer = ref(false)
 const disciplines = ref<Discipline[]>([])
 const availableTournaments = ref<PlayerTournamentOption[]>([])
 
-const COMPARISON_VALID_MODES = new Set(['championship', 'ranked'])
+const COMPARISON_VALID_MODES = ['championship', 'ranked']
 
-const tournamentOptions = computed(() => {
-  const filtered = availableTournaments.value.filter(
-    (tour) =>
-      tour.teamMode === 'flex' &&
-      COMPARISON_VALID_MODES.has(tour.mode) &&
-      (!selectedDisciplineId.value || tour.disciplineId === selectedDisciplineId.value),
-  )
-  return [
-    { label: t('playerComparisonView.all'), value: undefined },
-    ...filtered.map((tour) => ({ label: tour.name, value: tour.id })),
-  ]
-})
+const activeFilterCount = computed(
+  () =>
+    [
+      statsFilters.value.tournamentId,
+      statsFilters.value.tournamentMode,
+      statsFilters.value.disciplineId,
+    ].filter(Boolean).length,
+)
 
 const pickerSlot = ref<'a' | 'b' | null>(null)
 const pickerVisible = computed({
@@ -354,12 +340,6 @@ function onMobilePick(player: { id: string; displayName: string; shortName?: str
   else selectedB.value = profile
   pickerSlot.value = null
 }
-
-const modeOptions = computed(() => [
-  { label: t('playerComparisonView.all'), value: undefined },
-  { label: t('playerComparisonView.championship'), value: 'championship' },
-  { label: t('playerComparisonView.ranked'), value: 'ranked' },
-])
 
 // Opponents both players have faced, with each player's record vs that opponent
 const commonRivalries = computed(() => {
@@ -421,14 +401,6 @@ const outcomeComparison = computed(() => {
   return rows.sort((x, y) => y.aMatches + y.bMatches - (x.aMatches + x.bMatches))
 })
 
-function buildFilters(): PlayerStatsFilters {
-  const filters: PlayerStatsFilters = {}
-  if (selectedMode.value) filters.tournamentMode = selectedMode.value
-  if (selectedDisciplineId.value) filters.disciplineId = selectedDisciplineId.value
-  if (selectedTournamentId.value) filters.tournamentId = selectedTournamentId.value
-  return filters
-}
-
 function currentUserProfile(): PlayerProfile | null {
   const u = appUser.value
   return u ? { id: u.id, displayName: u.displayName, shortName: u.shortName } : null
@@ -438,34 +410,27 @@ watch(selectedA, async (a) => {
   availableTournaments.value = []
   if (a) {
     const result = await playerApi.getTournaments(a.id).catch(() => ({ tournaments: [] as PlayerTournamentOption[] }))
-    availableTournaments.value = result.tournaments
+    availableTournaments.value = result.tournaments.filter((t) => t.teamMode === 'flex')
   }
 })
 
-watch([selectedA, selectedB, selectedMode, selectedDisciplineId, selectedTournamentId], () => {
+watch([selectedA, selectedB, statsFilters], () => {
   if (!selectedA.value || !selectedB.value) return
-  if (!selectedDisciplineId.value && !selectedTournamentId.value) return
+  if (!statsFilters.value.disciplineId && !statsFilters.value.tournamentId) return
   router.replace({ query: { a: selectedA.value.id, b: selectedB.value.id } })
-  loadComparison(selectedA.value.id, selectedB.value.id, buildFilters())
-})
+  loadComparison(selectedA.value.id, selectedB.value.id, statsFilters.value)
+}, { deep: true })
 
 onMounted(async () => {
   const qA = route.query.a as string | undefined
   const qB = route.query.b as string | undefined
-  const qDisciplineId = route.query.disciplineId as string | undefined
-  const qMode = route.query.mode as string | undefined
-  const qTournamentId = route.query.tournamentId as string | undefined
 
   const disciplineList = await disciplineApi.list().catch(() => [] as Discipline[])
   disciplines.value = disciplineList
 
-  if (qDisciplineId) {
-    selectedDisciplineId.value = qDisciplineId
-  } else if (disciplineList.length === 1) {
-    selectedDisciplineId.value = disciplineList[0].id
+  if (!statsFilters.value.disciplineId && disciplineList.length === 1) {
+    statsFilters.value = { ...statsFilters.value, disciplineId: disciplineList[0].id }
   }
-  if (qMode) selectedMode.value = qMode
-  if (qTournamentId) selectedTournamentId.value = qTournamentId
 
   const aId = qA ?? appUser.value?.id
   if (aId && aId === appUser.value?.id) {

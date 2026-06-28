@@ -97,6 +97,7 @@ declare module 'vue' {
     SkolLogo: typeof import('./src/components/SkolLogo.vue')['default']
     SplashLoader: typeof import('./src/components/SplashLoader.vue')['default']
     StandingsTable: typeof import('./src/components/tournament/StandingsTable.vue')['default']
+    StatsFiltersBar: typeof import('./src/components/player/StatsFiltersBar.vue')['default']
     StepPanel: typeof import('primevue/steppanel')['default']
     Stepper: typeof import('primevue/stepper')['default']
     Tag: typeof import('primevue/tag')['default']

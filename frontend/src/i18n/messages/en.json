@@ -907,7 +907,7 @@
     "mmrProgression": "MMR progression",
     "opponentLevelTooltip": "Based on MMR gap:<br>Strong = +100<br>Close = ±100<br>Weak = −100",
     "outcomeDistribution": "Match outcome distribution",
-    "vsEqual": "Equal",
+    "vsEqual": "Close",
     "vsStronger": "Stronger",
     "vsWeaker": "Weaker",
     "winrateByOpponentLevel": "Win rate by opponent level",
@@ -1465,6 +1465,18 @@
     "victoryQualityLabel": "Victory quality",
     "win": "Win",
     "winRateCriteria": "Win rate"
+  },
+  "statsFiltersBar": {
+    "allOption": "All",
+    "apply": "Apply",
+    "bracket": "Bracket",
+    "championship": "Championship",
+    "discipline": "Discipline",
+    "filters": "Filters",
+    "mode": "Mode",
+    "ranked": "Ranked",
+    "reset": "Reset",
+    "tournament": "Tournament"
   },
   "submitInvitationView": {
     "codeInvalid": "Invalid code",

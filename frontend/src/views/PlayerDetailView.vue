@@ -14,7 +14,9 @@
 
     <template v-else>
       <!-- Header card -->
-      <div class="rounded-2xl bg-gray-800 px-6 py-5 flex items-center gap-4">
+      <div
+        class="rounded-2xl bg-gray-800 px-3 py-4 md:px-6 md:py-5 flex items-center gap-2 md:gap-4"
+      >
         <Button
           icon="fa fa-arrow-left"
           severity="secondary"
@@ -24,15 +26,17 @@
         />
         <PlayerAvatar
           :name="player?.displayName ?? '?'"
-          size="lg"
+          :size="avatarSize"
           shape="square"
-          class="shrink-0 rounded-2xl"
+          class="shrink-0"
         />
         <div class="min-w-0">
-          <div class="text-2xl font-black text-white truncate">
+          <div class="text-xl md:text-2xl font-black text-white truncate">
             {{ player?.displayName ?? '…' }}
           </div>
-          <div v-if="player?.shortName" class="text-sm text-gray-400">{{ player.shortName }}</div>
+          <div v-if="player?.shortName" class="text-xs md:text-sm text-gray-400">
+            {{ player.shortName }}
+          </div>
         </div>
         <div class="ml-auto shrink-0 flex items-center gap-2">
           <div v-if="canCompare" class="hidden md:block">
@@ -59,157 +63,11 @@
         </div>
       </div>
 
-      <!-- Desktop filters -->
-      <div class="hidden md:flex items-center gap-4 bg-gray-800 rounded-2xl p-4">
-        <div v-if="hasMultipleDisciplines">
-          <div class="flex flex-col gap-1">
-            <label
-              for="filter-discipline"
-              class="text-xs font-bold text-gray-400 uppercase tracking-wide"
-              >{{ t('playerDetailView.discipline') }}</label
-            >
-            <Select
-              v-model="selectedDisciplineId"
-              input-id="filter-discipline"
-              :aria-label="t('playerDetailView.discipline')"
-              :options="disciplineOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('playerDetailView.allDisciplinesOption')"
-              show-clear
-              class="w-40"
-            />
-          </div>
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label
-            for="filter-tournament"
-            class="text-xs font-bold text-gray-400 uppercase tracking-wide"
-            >{{ t('playerDetailView.tournament') }}</label
-          >
-          <Select
-            v-model="selectedTournamentId"
-            input-id="filter-tournament"
-            :aria-label="t('playerDetailView.tournament')"
-            :options="tournamentOptions"
-            option-label="label"
-            option-value="value"
-            :placeholder="t('playerDetailView.allOption')"
-            class="max-w-[60rem]"
-            show-clear
-          >
-            <template #option="{ option }">
-              <div class="flex items-center justify-between w-full gap-2">
-                <span class="truncate">{{ option.label }}</span>
-                <Tag
-                  v-if="option.mode"
-                  :value="modeLabel(option.mode)"
-                  :severity="modeSeverity(option.mode)"
-                  class="shrink-0 text-xs"
-                />
-              </div>
-            </template>
-          </Select>
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">{{ t('playerDetailView.mode') }}</span>
-          <SelectButton
-            v-model="selectedMode"
-            :options="modeOptions"
-            option-label="label"
-            option-value="value"
-            class="w-full"
-          />
-        </div>
-        <div class="mt-3 flex justify-end">
-          <Button
-            :label="t('playerDetailView.reset')"
-            severity="secondary"
-            icon="fa fa-rotate-left"
-            size="small"
-            @click="resetFilters"
-          />
-        </div>
-      </div>
-
-      <!-- Drawer filtres mobile -->
-      <Drawer
-        v-model:visible="showFilterDrawer"
-        position="bottom"
-        :style="{ height: 'auto', maxHeight: '85vh', borderRadius: '1rem 1rem 0 0' }"
-        :header="t('playerDetailView.filters')"
-      >
-        <div class="flex flex-col gap-5 pb-2">
-          <div v-if="hasMultipleDisciplines" class="flex flex-col gap-1">
-            <label for="filter-discipline-mobile" class="text-sm font-medium">{{ t('playerDetailView.discipline') }}</label>
-            <Select
-              v-model="draftDisciplineId"
-              input-id="filter-discipline-mobile"
-              :aria-label="t('playerDetailView.discipline')"
-              :options="disciplineOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('playerDetailView.allDisciplines')"
-              class="w-full"
-              show-clear
-            />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label for="filter-tournament-mobile" class="text-sm font-medium">{{ t('playerDetailView.tournament') }}</label>
-            <Select
-              v-model="draftTournamentId"
-              input-id="filter-tournament-mobile"
-              :aria-label="t('playerDetailView.tournament')"
-              :options="tournamentOptions"
-              option-label="label"
-              option-value="value"
-              :placeholder="t('playerDetailView.allTournaments')"
-              class="w-full"
-              show-clear
-            >
-              <template #option="{ option }">
-                <div class="flex items-center justify-between w-full gap-2">
-                  <span class="truncate">{{ option.label }}</span>
-                  <Tag
-                    v-if="option.mode"
-                    :value="modeLabel(option.mode)"
-                    :severity="modeSeverity(option.mode)"
-                    class="shrink-0 text-xs"
-                  />
-                </div>
-              </template>
-            </Select>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-sm font-medium">{{ t('playerDetailView.mode') }}</span>
-            <SelectButton
-              v-model="draftMode"
-              :options="modeOptions"
-              option-label="label"
-              option-value="value"
-              class="w-full"
-            />
-          </div>
-        </div>
-        <template #footer>
-          <div class="flex gap-3 pt-2">
-            <Button
-              :label="t('playerDetailView.reset')"
-              severity="secondary"
-              icon="fa fa-rotate-left"
-              class="flex-1"
-              @click="resetMobileFilters"
-            />
-            <Button
-              :label="t('playerDetailView.apply')"
-              icon="fa fa-check"
-              class="flex-1"
-              @click="applyMobileFilters"
-            />
-          </div>
-        </template>
-      </Drawer>
+      <StatsFiltersBar
+        v-model="statsFilters"
+        v-model:drawer-visible="showFilterDrawer"
+        :available-tournaments="availableTournaments"
+      />
 
       <!-- Loading -->
       <div v-if="loading || rankedLoading" class="flex justify-center py-12">
@@ -223,7 +81,7 @@
             :mmr="rankedMmr"
             :tiers="rankedTiers"
             :history="rankedHistory"
-            :season-id="selectedTournamentId"
+            :season-id="statsFilters.tournamentId"
             :most-frequent-partners="stats?.mostFrequentPartners"
             :best-partners="stats?.bestPartners"
             :nemeses="stats?.nemeses"
@@ -236,7 +94,7 @@
               {{ t('playerDetailView.last10Matches') }}
             </div>
             <MatchList
-              :tournament-id="selectedTournamentId"
+              :tournament-id="statsFilters.tournamentId"
               :player-id="playerId"
               :current-player-id="playerId"
               :allow-draw="false"
@@ -259,7 +117,7 @@
       </div>
 
       <!-- FILTERED TOURNAMENT VIEW (non-ranked) -->
-      <template v-else-if="selectedTournamentId && stats && stats.totalMatches > 0">
+      <template v-else-if="statsFilters.tournamentId && stats && stats.totalMatches > 0">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           <!-- Stats column -->
           <div class="space-y-3">
@@ -295,7 +153,7 @@
             :most-frequent-partners="stats.mostFrequentPartners"
             :best-partners="stats.bestPartners"
             :nemeses="stats.nemeses"
-            :tournament-id="selectedTournamentId"
+            :tournament-id="statsFilters.tournamentId"
           />
         </div>
 
@@ -309,7 +167,7 @@
         <H2HRivalries
           v-if="stats.h2hStats?.length"
           :stats="stats.h2hStats"
-          :tournament-id="selectedTournamentId"
+          :tournament-id="statsFilters.tournamentId"
         />
 
         <!-- Match history -->
@@ -319,7 +177,7 @@
           </div>
           <MatchList
             :player-id="playerId"
-            :tournament-id="selectedTournamentId"
+            :tournament-id="statsFilters.tournamentId"
             :page-size="10"
             :no-scroll="true"
           />
@@ -327,7 +185,7 @@
       </template>
 
       <!-- UNFILTERED VIEW: grouped by discipline + mode -->
-      <template v-else-if="!selectedTournamentId && groupedStats && groupedStats.length > 0">
+      <template v-else-if="!statsFilters.tournamentId && groupedStats && groupedStats.length > 0">
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div v-for="group in groupedStats" :key="group.key" class="rounded-2xl bg-gray-800 p-4">
             <!-- Group header -->
@@ -377,7 +235,8 @@
                   entry.tournamentName
                 }}</span>
                 <span class="text-xs text-gray-400 shrink-0 ml-3 tabular-nums">
-                  {{ entry.matchesPlayed }} {{ t('playerDetailView.matchesPlayedAbbr') }} &nbsp;·&nbsp;
+                  {{ entry.matchesPlayed }}
+                  {{ t('playerDetailView.matchesPlayedAbbr') }} &nbsp;·&nbsp;
                   <span class="text-green-400">{{ entry.wins }}V</span>
                   <span class="text-gray-600"> / </span>
                   <span class="text-red-400">{{ entry.losses }}D</span>
@@ -393,7 +252,7 @@
           :most-frequent-partners="stats.mostFrequentPartners"
           :best-partners="stats.bestPartners"
           :nemeses="stats.nemeses"
-          :tournament-id="selectedTournamentId"
+          :tournament-id="statsFilters.tournamentId"
         />
 
         <!-- Recent form -->
@@ -402,17 +261,17 @@
         <!-- Outcome type stats -->
         <OutcomeTypeStats
           v-if="
-            (!hasMultipleDisciplines || selectedDisciplineId) && stats?.outcomeTypeStats?.length
+            (!hasMultipleDisciplines || statsFilters.disciplineId) && stats?.outcomeTypeStats?.length
           "
           :stats="stats!.outcomeTypeStats"
         />
 
         <!-- H2H rivalries -->
         <H2HRivalries
-          v-if="(!hasMultipleDisciplines || selectedDisciplineId) && stats?.h2hStats?.length"
+          v-if="(!hasMultipleDisciplines || statsFilters.disciplineId) && stats?.h2hStats?.length"
           :stats="stats!.h2hStats"
           :tooltip="t('h2hRivalries.tooltip')"
-          :tournament-id="selectedTournamentId"
+          :tournament-id="statsFilters.tournamentId"
         />
 
         <!-- Badges -->
@@ -440,6 +299,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { useMediaQuery } from '@vueuse/core'
 import { usePlayerService } from '@/composables/player/player.service'
 import { useAuth } from '@/composables/useAuth'
 import { rankedApi } from '@/composables/ranked/ranked.api'
@@ -459,16 +319,15 @@ import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import OutcomeTypeStats from '@/components/player/OutcomeTypeStats.vue'
 import H2HRivalries from '@/components/player/H2HRivalries.vue'
 import PlayerBadges from '@/components/player/PlayerBadges.vue'
-import Drawer from 'primevue/drawer'
+import StatsFiltersBar from '@/components/player/StatsFiltersBar.vue'
 import Button from 'primevue/button'
-import Select from 'primevue/select'
-import SelectButton from 'primevue/selectbutton'
-import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const isMobile = useMediaQuery('(max-width: 767px)')
+const avatarSize = computed(() => (isMobile.value ? 'md' : 'lg'))
 const { appUser } = useAuth()
 const {
   player,
@@ -485,19 +344,17 @@ const playerId = computed(() => route.params.id as string)
 
 const initialTournamentId = route.query.tournamentId as string | undefined
 
-const selectedTournamentId = ref<string | undefined>(initialTournamentId)
-const selectedMode = ref<string | undefined>(undefined)
-const selectedDisciplineId = ref<string | undefined>(undefined)
-const draftTournamentId = ref<string | undefined>(initialTournamentId)
-const draftMode = ref<string | undefined>(undefined)
-const draftDisciplineId = ref<string | undefined>(undefined)
+const statsFilters = ref<PlayerStatsFilters>(
+  initialTournamentId ? { tournamentId: initialTournamentId } : {},
+)
 const showFilterDrawer = ref(false)
 
 // Ranked tournament detection
 const isRankedTournament = computed(() => {
-  if (!selectedTournamentId.value) return false
+  if (!statsFilters.value.tournamentId) return false
   return (
-    availableTournaments.value.find((tour) => tour.id === selectedTournamentId.value)?.mode === 'ranked'
+    availableTournaments.value.find((tour) => tour.id === statsFilters.value.tournamentId)?.mode ===
+    'ranked'
   )
 })
 
@@ -531,7 +388,7 @@ async function loadRankedData(seasonId: string, pid: string) {
 
 // Grouped stats for unfiltered view
 const groupedStats = computed(() => {
-  if (selectedTournamentId.value || !stats.value) return null
+  if (statsFilters.value.tournamentId || !stats.value) return null
   type Group = {
     key: string
     discipline: string | null
@@ -571,17 +428,21 @@ const groupedStats = computed(() => {
   })
 })
 
-const tournamentOptions = computed(() => [
-  { label: t('playerDetailView.allOption'), value: undefined, mode: undefined },
-  ...availableTournaments.value.map((tour) => ({ label: tour.name, value: tour.id, mode: tour.mode })),
-])
+const hasMultipleDisciplines = computed(() => {
+  const seen = new Set(
+    availableTournaments.value.filter((t) => t.disciplineId).map((t) => t.disciplineId),
+  )
+  return seen.size > 1
+})
 
-const modeOptions = computed(() => [
-  { label: t('playerDetailView.allOption'), value: undefined },
-  { label: t('playerDetailView.championship'), value: 'championship' },
-  { label: t('playerDetailView.bracket'), value: 'bracket' },
-  { label: t('playerDetailView.ranked'), value: 'ranked' },
-])
+const activeFilterCount = computed(
+  () =>
+    [
+      statsFilters.value.tournamentId,
+      statsFilters.value.tournamentMode,
+      statsFilters.value.disciplineId,
+    ].filter(Boolean).length,
+)
 
 function modeLabel(mode: string): string {
   if (mode === 'championship') return t('playerDetailView.championship')
@@ -590,92 +451,29 @@ function modeLabel(mode: string): string {
   return mode
 }
 
-function modeSeverity(mode: string): string {
-  if (mode === 'championship') return 'info'
-  if (mode === 'bracket') return 'warning'
-  if (mode === 'ranked') return 'success'
-  return 'secondary'
-}
-
-const disciplineOptions = computed(() => {
-  const seen = new Set<string>()
-  const opts: { label: string; value: string | undefined }[] = [
-    { label: t('playerDetailView.allDisciplinesOption'), value: undefined },
-  ]
-  for (const tour of availableTournaments.value) {
-    if (tour.disciplineId && !seen.has(tour.disciplineId)) {
-      seen.add(tour.disciplineId)
-      opts.push({ label: tour.disciplineName ?? tour.disciplineId, value: tour.disciplineId })
-    }
-  }
-  return opts
-})
-
-const hasMultipleDisciplines = computed(() => disciplineOptions.value.length > 1)
-
-const activeFilterCount = computed(
-  () =>
-    [selectedTournamentId.value, selectedMode.value, selectedDisciplineId.value].filter(Boolean)
-      .length,
-)
-
-function applyFilters(
-  tournamentId: string | undefined,
-  mode: string | undefined,
-  disciplineId: string | undefined,
-) {
-  const filters: PlayerStatsFilters = {}
-  if (tournamentId) filters.tournamentId = tournamentId
-  if (mode) filters.tournamentMode = mode
-  if (disciplineId) filters.disciplineId = disciplineId
-  loadStats(playerId.value, filters)
-}
-
 const canCompare = computed(
   () => !!appUser.value && appUser.value.id !== playerId.value && appUser.value.role !== 'kiosk',
 )
 
 function goToCompare() {
   const query: Record<string, string> = { b: playerId.value }
-  if (selectedDisciplineId.value) query.disciplineId = selectedDisciplineId.value
-  if (selectedMode.value) query.mode = selectedMode.value
-  if (selectedTournamentId.value) query.tournamentId = selectedTournamentId.value
+  if (statsFilters.value.disciplineId) query.disciplineId = statsFilters.value.disciplineId
+  if (statsFilters.value.tournamentMode) query.mode = statsFilters.value.tournamentMode
+  if (statsFilters.value.tournamentId) query.tournamentId = statsFilters.value.tournamentId
   router.push({ name: 'player-compare', query })
 }
 
-function resetFilters() {
-  selectedTournamentId.value = undefined
-  selectedMode.value = undefined
-  selectedDisciplineId.value = undefined
-  draftTournamentId.value = undefined
-  draftMode.value = undefined
-  draftDisciplineId.value = undefined
-}
-
-function resetMobileFilters() {
-  draftTournamentId.value = undefined
-  draftMode.value = undefined
-  draftDisciplineId.value = undefined
-}
-
-function applyMobileFilters() {
-  selectedTournamentId.value = draftTournamentId.value
-  selectedMode.value = draftMode.value
-  selectedDisciplineId.value = draftDisciplineId.value
-  showFilterDrawer.value = false
-}
-
-// Load regular stats when filter changes (skip for ranked tournaments)
-watch([selectedTournamentId, selectedMode, selectedDisciplineId], ([tid, mode, did]) => {
+// Load regular stats when filters change (skip for ranked tournaments)
+watch(statsFilters, (f) => {
   if (!isRankedTournament.value) {
-    applyFilters(tid ?? undefined, mode ?? undefined, did ?? undefined)
+    loadStats(playerId.value, f)
   }
 })
 
 // Load ranked data when a ranked tournament is selected
-watch([isRankedTournament, selectedTournamentId], async ([isRanked, tid]) => {
+watch([isRankedTournament, () => statsFilters.value.tournamentId], async ([isRanked, tid]) => {
   if (isRanked && tid) {
-    await loadRankedData(tid, playerId.value)
+    await loadRankedData(tid as string, playerId.value)
   } else if (!isRanked) {
     rankedMmr.value = null
     rankedTiers.value = []
@@ -686,10 +484,10 @@ watch([isRankedTournament, selectedTournamentId], async ([isRanked, tid]) => {
 
 onMounted(async () => {
   await Promise.all([loadPlayer(playerId.value), loadTournaments(playerId.value)])
-  if (isRankedTournament.value && selectedTournamentId.value) {
-    await loadRankedData(selectedTournamentId.value, playerId.value)
+  if (isRankedTournament.value && statsFilters.value.tournamentId) {
+    await loadRankedData(statsFilters.value.tournamentId, playerId.value)
   } else {
-    applyFilters(selectedTournamentId.value, selectedMode.value, selectedDisciplineId.value)
+    loadStats(playerId.value, statsFilters.value)
   }
 })
 </script>
