@@ -23,7 +23,9 @@
         <div class="text-5xl font-black text-white tabular-nums">
           {{ mmr.currentMmr.toLocaleString('fr-FR') }}
         </div>
-        <div class="text-xs uppercase tracking-widest text-white/40 mt-1">{{ t('playerMmrProfile.mmrLabel') }}</div>
+        <div class="text-xs uppercase tracking-widest text-white/40 mt-1">
+          {{ t('playerMmrProfile.mmrLabel') }}
+        </div>
         <div class="flex items-center justify-center gap-3 mt-3">
           <div
             v-if="leaderboardRank"
@@ -72,18 +74,32 @@
       <div class="rounded-xl p-3 text-center bg-gray-800">
         <div
           class="text-xl font-black"
-          :class="mmr.winStreak > 1 ? 'text-orange-400' : mmr.lossStreak > 1 ? 'text-blue-400' : 'text-gray-500'"
+          :class="
+            mmr.winStreak > 1
+              ? 'text-orange-400'
+              : mmr.lossStreak > 1
+                ? 'text-blue-400'
+                : 'text-gray-500'
+          "
         >
-          {{ mmr.winStreak > 1 ? `🔥 ${mmr.winStreak}` : mmr.lossStreak > 1 ? `💀 ${mmr.lossStreak}` : '—' }}
+          {{
+            mmr.winStreak > 1
+              ? `🔥 ${mmr.winStreak}`
+              : mmr.lossStreak > 1
+                ? `💀 ${mmr.lossStreak}`
+                : '—'
+          }}
         </div>
         <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.currentStreak') }}</div>
       </div>
     </div>
 
     <!-- W/L + max streaks -->
-    <div class="grid grid-cols-3 gap-3">
-      <div class="rounded-xl p-4 bg-gray-800">
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div class="col-span-2 sm:col-span-1 rounded-xl p-4 bg-gray-800">
+        <div
+          class="text-xs font-bold text-gray-400 normal-case sm:uppercase tracking-normal sm:tracking-wide mb-2"
+        >
           {{ t('playerMmrProfile.winsLosses') }}
         </div>
         <div class="text-2xl font-black">
@@ -93,7 +109,9 @@
         </div>
       </div>
       <div class="rounded-xl p-4 bg-gray-800">
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+        <div
+          class="text-xs font-bold text-gray-400 normal-case sm:uppercase tracking-normal sm:tracking-wide mb-2"
+        >
           {{ t('playerMmrProfile.bestStreak') }}
         </div>
         <div class="text-2xl font-black text-orange-400">
@@ -101,7 +119,9 @@
         </div>
       </div>
       <div class="rounded-xl p-4 bg-gray-800">
-        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">
+        <div
+          class="text-xs font-bold text-gray-400 normal-case sm:uppercase tracking-normal sm:tracking-wide mb-2"
+        >
           {{ t('playerMmrProfile.worstStreak') }}
         </div>
         <div class="text-2xl font-black text-blue-400">
@@ -145,10 +165,7 @@
         class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5"
       >
         {{ t('playerMmrProfile.winrateByOpponentLevel') }}
-        <InfoTooltip
-          :text="t('playerMmrProfile.opponentLevelTooltip')"
-          html
-        />
+        <InfoTooltip :text="t('playerMmrProfile.opponentLevelTooltip')" html />
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-gray-700/50 p-2">
@@ -309,7 +326,7 @@ const cardBgClass = computed(() => CARD_BG[styleIdx(rank.value)])
 const iconBgClass = computed(() => ICON_BG[styleIdx(rank.value)])
 const tierTextClass = computed(() => TIER_TEXT[styleIdx(rank.value)])
 const nextTierTextClass = computed(() =>
-  lpProgress.value ? TIER_TEXT[styleIdx(lpProgress.value.nextTierForStyle)] : '',
+  lpProgress.value ? TIER_TEXT[styleIdx(rank.value)] : '',
 )
 const progressBarClass = computed(() =>
   lpProgress.value ? PROGRESS_BAR[styleIdx(rank.value)] : '',
@@ -324,9 +341,7 @@ const chartData = computed(() => ({
     {
       label: t('playerMmrProfile.mmrLabel'),
       data: chartPoints.value.map((e) => e.mmrAfter),
-      pointBackgroundColor: chartPoints.value.map((e) =>
-        e.mmrDelta >= 0 ? '#22c55e' : '#ef4444',
-      ),
+      pointBackgroundColor: chartPoints.value.map((e) => (e.mmrDelta >= 0 ? '#22c55e' : '#ef4444')),
       pointBorderColor: chartPoints.value.map((e) => (e.mmrDelta >= 0 ? '#22c55e' : '#ef4444')),
       pointRadius: 5,
       borderColor: '#6366f1',
