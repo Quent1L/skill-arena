@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.14.1](https://skol-arena/Quent1L/skol-arena/compare/1.14.0...1.14.1) (2026-06-28)
+
+### 🐛 Bug Fixes
+
+* **ranked:** fix stats grid layout on mobile for long FR labels ([090c6da](https://skol-arena/Quent1L/skol-arena/commit/090c6dafbf436f4c656c3ee728a5a6e970857a54))
+
 ## [1.14.0](https://skol-arena/Quent1L/skol-arena/compare/1.13.1...1.14.0) (2026-06-28)
 
 ### ✨ New Features
