@@ -1541,7 +1541,7 @@
   },
   "tournamentBadgesTab": {
     "availableCount": "{count} badge available | {count} badges available",
-    "earnedCount": "Tournament badges",
+    "earnedCount": "{earned} / {total} badges earned",
     "emptyState": "No badges available",
     "title": "Badges"
   },
@@ -1610,6 +1610,7 @@
       "matches": "Matches",
       "standings": "Standings",
       "stats": "Stats",
+      "badges": "Badges",
       "teams": "Teams"
     }
   },

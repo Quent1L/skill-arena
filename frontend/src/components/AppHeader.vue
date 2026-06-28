@@ -10,7 +10,11 @@
         <div class="flex items-center gap-3">
           <div v-if="!isAuthenticated" class="flex items-center gap-3">
             <Button :label="t('appHeader.signIn')" text @click="handleLoginTap" />
-            <Button :label="t('appHeader.signUp')" @click="router.push('/signup')" class="text-sm" />
+            <Button
+              :label="t('appHeader.signUp')"
+              @click="router.push('/signup')"
+              class="text-sm"
+            />
           </div>
 
           <div v-else class="flex items-center gap-3">
@@ -79,8 +83,12 @@ const route = useRoute()
 const router = useRouter()
 const { currentUser, appUser, isAuthenticated, logout, kioskSettingsLocked } = useAuth()
 const { isMobile } = useViewport()
-const showBackButton = computed(() =>
-  isMobile.value && (route.name === 'tournament-detail' || route.name === 'tournament-tab')
+const showBackButton = computed(
+  () =>
+    isMobile.value &&
+    (route.name === 'tournament-detail' || route.name === 'tournament-tab') &&
+    !route.path.includes('/badges') &&
+    !route.path.includes('/teams'),
 )
 const menu = ref()
 const notifDropdown = useTemplateRef('notifDropdown')
@@ -130,7 +138,9 @@ let loginTapTimer: ReturnType<typeof setTimeout> | null = null
 function handleLoginTap() {
   loginTapCount++
   if (loginTapTimer) clearTimeout(loginTapTimer)
-  loginTapTimer = setTimeout(() => { loginTapCount = 0 }, 3000)
+  loginTapTimer = setTimeout(() => {
+    loginTapCount = 0
+  }, 3000)
 
   if (loginTapCount >= 5) {
     loginTapCount = 0
@@ -154,5 +164,4 @@ function handleLogout() {
 function toggleNotifications(event: Event) {
   notifDropdown.value?.toggle(event)
 }
-
 </script>

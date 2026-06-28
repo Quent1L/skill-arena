@@ -901,7 +901,7 @@
     "currentRank": "Rang actuel",
     "currentStreak": "Série en cours",
     "lossesShort": "D",
-    "matchesCount": "Proches",
+    "matchesCount": "Matchs",
     "matchesLabel": "Matchs",
     "mmrLabel": "MMR",
     "mmrProgression": "Progression MMR",
@@ -1541,7 +1541,7 @@
   },
   "tournamentBadgesTab": {
     "availableCount": "{count} badge disponible | {count} badges disponibles",
-    "earnedCount": "Badges du tournoi",
+    "earnedCount": "{earned} / {total} badges obtenus",
     "emptyState": "Aucun badge disponible",
     "title": "Badges du tournoi"
   },
@@ -1610,6 +1610,7 @@
       "matches": "Matchs",
       "standings": "Classement",
       "stats": "Stats",
+      "badges": "Badges",
       "teams": "Équipes"
     }
   },

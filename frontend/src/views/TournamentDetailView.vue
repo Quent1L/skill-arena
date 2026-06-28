@@ -258,7 +258,7 @@ const statusClasses: Record<string, string> = {
   cancelled: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
 }
 
-const MOBILE_SUB_TABS = ['teams']
+const MOBILE_SUB_TABS = ['teams', 'badges']
 const isMobileSubTab = computed(() => MOBILE_SUB_TABS.includes(activeTabName.value ?? ''))
 
 const visibleTabs = computed(() => {
