@@ -46,7 +46,7 @@
       <div v-if="lpProgress" class="px-6 pb-6">
         <div class="flex justify-between text-xs text-white/40 mb-1.5">
           <span class="font-semibold" :class="tierTextClass">{{ rank?.name }}</span>
-          <span>{{ lpProgress.lp }} / 200 LP</span>
+          <span>{{ lpProgress.lp }} / {{ lpProgress.tierRange }} LP</span>
           <span class="font-semibold" :class="nextTierTextClass">{{ lpProgress.nextLabel }}</span>
         </div>
         <div class="h-2 bg-white/10 rounded-full overflow-hidden">
@@ -291,12 +291,14 @@ const lpProgress = computed(() => {
   if (!props.tiers.length || !rank.value) return null
   if (isTopTier(rank.value, props.tiers)) return null
   const mmrVal = props.mmr.currentMmr
-  const lp = getLp(mmrVal, rank.value)
-  const percent = Math.min(100, Math.round((lp / TIER_SIZE) * 100))
   const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
   const nextTier = sorted.find((tier) => tier.level > rank.value!.level) ?? null
+  const lp = getLp(mmrVal, rank.value)
+  const tierRange = nextTier ? nextTier.minMmr - rank.value.minMmr : TIER_SIZE
+  const percent = Math.min(100, Math.round((lp / tierRange) * 100))
   return {
     lp,
+    tierRange,
     percent,
     nextLabel: nextTier?.name ?? '',
     nextTierForStyle: nextTier ?? rank.value,
@@ -310,7 +312,7 @@ const nextTierTextClass = computed(() =>
   lpProgress.value ? TIER_TEXT[styleIdx(lpProgress.value.nextTierForStyle)] : '',
 )
 const progressBarClass = computed(() =>
-  lpProgress.value ? PROGRESS_BAR[styleIdx(lpProgress.value.nextTierForStyle)] : '',
+  lpProgress.value ? PROGRESS_BAR[styleIdx(rank.value)] : '',
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
 
