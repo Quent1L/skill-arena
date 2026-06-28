@@ -105,15 +105,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import iconFamiliesRaw from '@fortawesome/fontawesome-free/metadata/icon-families.json'
+import iconsData from '@/config/fa-icons.json'
 import categoriesData from '@/config/fa-categories.json'
 
-type IconEntry = {
-  svgs?: { classic?: { solid?: object } }
-  label: string
-  search?: { terms: string[] }
-}
-const iconFamilies = iconFamiliesRaw as Record<string, IconEntry>
+type SlimIcon = { name: string; label: string; terms: string[] }
 type CategoriesData = Record<string, { label: string; icons: string[] }>
 const faCategories = categoriesData as CategoriesData
 
@@ -124,14 +119,12 @@ const { t } = useI18n()
 
 const MAX_RESULTS = 200
 
-const ALL_ICONS = Object.entries(iconFamilies)
-  .filter(([, d]) => d.svgs?.classic?.solid)
-  .map(([name, d]) => ({
-    name,
-    class: `fas fa-${name}`,
-    label: d.label,
-    terms: d.search?.terms ?? [],
-  }))
+const ALL_ICONS = (iconsData as SlimIcon[]).map((ic) => ({
+  name: ic.name,
+  class: `fas fa-${ic.name}`,
+  label: ic.label,
+  terms: ic.terms,
+}))
 
 const iconByName = new Map(ALL_ICONS.map((ic) => [ic.name, ic]))
 

@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "test:unit:cov": "vitest run --coverage",
     "build-only": "bun x --bun vite build --mode prod",
+    "generate:fa-icons": "bun run scripts/generate-fa-icons.mjs",
     "type-check": "vue-tsc --noEmit",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix --cache",
