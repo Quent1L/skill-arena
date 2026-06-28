@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.2](https://skol-arena/Quent1L/skol-arena/compare/1.14.1...1.14.2) (2026-06-28)
+
+### 🐛 Bug Fixes
+
+* **tournament:** show badges tab on mobile ([9230db5](https://skol-arena/Quent1L/skol-arena/commit/9230db5d571382bf61a3716001ca90091fe97559))
+
+### 🔧 Maintenance
+
+* **icon:** update fa-icons JSON ([89f7726](https://skol-arena/Quent1L/skol-arena/commit/89f77265dde5b55b3df83f362eba5f9e36b039dc))
+
 ## [1.14.1](https://skol-arena/Quent1L/skol-arena/compare/1.14.0...1.14.1) (2026-06-28)
 
 ### 🐛 Bug Fixes
