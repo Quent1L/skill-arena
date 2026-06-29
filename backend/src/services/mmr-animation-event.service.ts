@@ -223,7 +223,7 @@ export class MmrAnimationEventService {
 
   private async collectOfficialEvents(
     playerId: string,
-    matchId: string,
+    matchId: string | null,
     seasonId: string,
     tiers: TierData[],
   ): Promise<MmrAnimationEventRecord[]> {
@@ -282,6 +282,7 @@ export class MmrAnimationEventService {
 
     for (const [playerId, { mmrBefore, mmrAfter, reason }] of mmrChanges) {
       const mmrDelta = mmrAfter - mmrBefore;
+      if (mmrDelta === 0) continue;
       const tierBefore = getTierForMmr(mmrBefore, tiers);
       const tierAfter = getTierForMmr(mmrAfter, tiers);
       const rankChanged = (tierBefore?.level ?? null) !== (tierAfter?.level ?? null);
@@ -306,6 +307,25 @@ export class MmrAnimationEventService {
         event: "mmr_animation",
         data: this.buildWsPayload(event, tournamentId),
       });
+    }
+  }
+
+  // Re-sync and notify after an MMR history rebuild (forced season recalc or
+  // cancellation cascade). Emits a "recalculated" animation only for the past
+  // matches whose delta actually changed, and upserting the new deltas keeps
+  // mmr_animation_events in sync so the next match finalization does not replay
+  // a phantom recap.
+  async createRecalcEventsAndBroadcast(seasonId: string, playerIds: string[]): Promise<void> {
+    if (playerIds.length === 0) return;
+
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    if (!config) return;
+
+    const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
+
+    for (const playerId of playerIds) {
+      const events = await this.collectOfficialEvents(playerId, null, seasonId, tiers);
+      this.broadcastEvents(playerId, seasonId, events);
     }
   }
 

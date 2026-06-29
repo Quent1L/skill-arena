@@ -66,6 +66,13 @@ const cancelMatchMmr: Task = async (rawPayload) => {
     .createCancellationEventsAndBroadcast(matchId, tournamentId, mmrChanges)
     .catch((err) => logger.error({ err }, '[Worker] cancellation animation event failed'));
 
+  // The cancelled match handles itself above; posterior matches had their
+  // history rebuilt by the cascade — re-sync their animation events so a later
+  // finalization does not replay a phantom recap.
+  await mmrAnimationEventService
+    .createRecalcEventsAndBroadcast(tournamentId, [...mmrChanges.keys()])
+    .catch((err) => logger.error({ err }, '[Worker] cascade recalc animation event failed'));
+
   // MMR history (incl. streak snapshots) is now rebuilt for every affected
   // player — reconcile their badges (revoke now-invalid, award newly-valid).
   await badgeReconciliationService
@@ -109,6 +116,12 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
   for (const player of players) {
     await mmrCalculationService.recalculatePlayerMmr(tournamentId, player.playerId);
   }
+
+  // History was rebuilt: re-sync animation events and notify players of the
+  // matches whose MMR actually changed (no need to wait for a new match).
+  await mmrAnimationEventService
+    .createRecalcEventsAndBroadcast(tournamentId, players.map((p) => p.playerId))
+    .catch((err) => logger.error({ err }, '[Worker] recalc animation event failed'));
 
   await refreshRankedCaches(tournamentId);
 
