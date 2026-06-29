@@ -28,7 +28,7 @@
       :tiers="store.rankedTiers"
       :loading="store.rankedLoading"
       :provisional-loading="store.rankedProvisionalLoading"
-      :is-recalculating="isLeaderboardRecalculating"
+      :is-recalculating="store.isLeaderboardRecalculating"
       :current-user-id="store.appUser?.id"
       :show-mode-toggle="store.tournament!.validationMode !== 'none'"
       :tournament-id="store.tournamentId"
@@ -38,36 +38,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted } from 'vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
-import { onWsEvent } from '@/composables/notification/notification.socket'
 
 const store = useTournamentDetailStore()
-const isLeaderboardRecalculating = ref(false)
 
+// Leaderboard WS handling (recalc flag + reload) lives in TournamentDetailView,
+// which stays mounted across tab switches, so events aren't missed while this
+// tab is unmounted.
 onMounted(async () => {
   if (store.tournament?.mode === 'ranked') {
     await store.ensureLeaderboard()
   }
-})
-
-const offRecalc = onWsEvent('leaderboard_recalculating', (data) => {
-  if ((data as { seasonId: string }).seasonId === store.tournamentId) {
-    isLeaderboardRecalculating.value = true
-  }
-})
-
-const offUpdate = onWsEvent('leaderboard_updated', (data) => {
-  if ((data as { seasonId: string }).seasonId === store.tournamentId) {
-    isLeaderboardRecalculating.value = false
-    store.reloadLeaderboard()
-  }
-})
-
-onUnmounted(() => {
-  offRecalc()
-  offUpdate()
 })
 </script>

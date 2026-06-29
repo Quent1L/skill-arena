@@ -1,15 +1,21 @@
 <template>
   <div class="leaderboard text-white">
-    <!-- Loading -->
-    <div v-if="activeLoading" class="flex justify-center items-center h-40">
+    <!-- Loading (first load only) -->
+    <div v-if="showFullSpinner" class="flex justify-center items-center h-40">
       <ProgressSpinner />
     </div>
 
     <template v-else>
-      <!-- Recalculation in progress -->
+      <!-- Recalculation job in progress -->
       <div v-if="props.isRecalculating" class="flex items-center justify-center gap-2 mb-3 text-sm text-orange-400">
         <i class="fa fa-sync fa-spin" />
         {{ t('rankedLeaderboard.recalculating') }}
+      </div>
+
+      <!-- Plain refresh in progress (data already shown) -->
+      <div v-else-if="isRefreshing" class="flex items-center justify-center gap-2 mb-3 text-sm text-gray-400">
+        <i class="fa fa-sync fa-spin" />
+        {{ t('rankedLeaderboard.refreshing') }}
       </div>
 
       <!-- Toggle -->
@@ -203,6 +209,11 @@ const activeLoading = computed(() =>
 const activePlayers = computed(() =>
   leaderboardMode.value === 'provisional' ? (props.provisionalPlayers ?? []) : props.players,
 )
+
+// Full-screen spinner only on first load (no data yet). A refresh of an
+// already-shown leaderboard keeps the list visible and shows a subtle banner.
+const showFullSpinner = computed(() => activeLoading.value && activePlayers.value.length === 0)
+const isRefreshing = computed(() => activeLoading.value && activePlayers.value.length > 0)
 
 const rankMap = computed(() => {
   const map = new Map<string, number>()

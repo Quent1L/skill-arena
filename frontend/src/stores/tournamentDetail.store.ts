@@ -26,6 +26,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const leaving = ref(false)
   const profileChartHistory = ref<MmrChartPoint[]>([])
   const playerStats = ref<PlayerStatsResponse | null>(null)
+  const isLeaderboardRecalculating = ref(false)
 
   // Pass-through refs from services
   const tournament = tournamentSvc.currentTournament
@@ -245,6 +246,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     playerStats,
     rankedLoading,
     rankedProvisionalLoading,
+    isLeaderboardRecalculating,
     profileChartHistory,
     playerLeaderboardRank,
     // Tournament stats

@@ -352,6 +352,10 @@ onMounted(async () => {
 
   if (store.tournament?.mode === 'ranked' && store.isAuthenticated) {
     await animationQueue.loadPending(tournamentId.value)
+    // Pending animations mean a finalization just happened (possibly while this
+    // view was unmounted during match entry, so the transient leaderboard_updated
+    // WS event was missed). Force a reload so the leaderboard isn't stale.
+    if (animationQueue.queue.value.length > 0) store.reloadLeaderboard()
     offWsHandlers.push(
       onWsEvent('mmr_animation', (data) => {
         const payload = data as MmrAnimationWsPayload
@@ -370,7 +374,14 @@ onMounted(async () => {
         if (payload.tournamentId !== tournamentId.value) return
         animationQueue.loadPending(tournamentId.value)
       }),
-      onWsEvent('leaderboard_updated', () => {
+      onWsEvent('leaderboard_recalculating', (data) => {
+        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
+        store.isLeaderboardRecalculating = true
+      }),
+      onWsEvent('leaderboard_updated', (data) => {
+        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
+        store.isLeaderboardRecalculating = false
+        store.reloadLeaderboard()
         if (store.playerMmr !== null) store.reloadPlayerProfile()
         if (store.tournamentStats !== null) store.reloadStats()
       }),

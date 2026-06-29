@@ -271,9 +271,9 @@ async function submitMatch() {
       outcomeTypeId: payload.outcomeTypeId,
       outcomeReasonId: payload.outcomeReasonId,
     }
-    await updateMatchWithNavigation(props.matchId, updatePayload, props.tournamentId)
+    await updateMatchWithNavigation(props.matchId, updatePayload, props.tournamentId, tournament.value?.mode)
   } else {
-    await createMatchWithNavigation(payload, props.tournamentId)
+    await createMatchWithNavigation(payload, props.tournamentId, tournament.value?.mode)
   }
 
   detailStore.reloadStats().catch(() => {})

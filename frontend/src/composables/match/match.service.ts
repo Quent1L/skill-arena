@@ -20,12 +20,19 @@ import type {
   MatchStatus,
   ParticipantListItem,
   MatchSideInput,
+  TournamentMode,
 } from '@skol-arena/shared/types/index'
 
 interface ValidationResult {
   valid: boolean
   errors: string[]
   warnings: string[]
+}
+
+// After saving a match, land on the standings (classement) tab when the
+// tournament has one (ranked/championship); otherwise the matches list.
+function tabAfterMatchSave(mode?: TournamentMode): 'standings' | 'matches' {
+  return mode === 'ranked' || mode === 'championship' ? 'standings' : 'matches'
 }
 
 export function useMatchService() {
@@ -152,6 +159,7 @@ export function useMatchService() {
   async function createMatchWithNavigation(
     data: ClientCreateMatchRequest,
     tournamentId: string,
+    tournamentMode?: TournamentMode,
   ): Promise<ClientMatchModel | null> {
     loading.value = true
     error.value = null
@@ -166,7 +174,10 @@ export function useMatchService() {
         life: 3000,
       })
 
-      await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
+      await router.replace({
+        name: 'tournament-tab',
+        params: { id: tournamentId, tab: tabAfterMatchSave(tournamentMode) },
+      })
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : t('matchService.errors.createFailed')
@@ -192,6 +203,7 @@ export function useMatchService() {
     matchId: string,
     data: ClientUpdateMatchRequest,
     tournamentId: string,
+    tournamentMode?: TournamentMode,
   ): Promise<ClientMatchModel | null> {
     loading.value = true
     error.value = null
@@ -206,7 +218,10 @@ export function useMatchService() {
         life: 3000,
       })
 
-      await router.replace({ name: 'tournament-tab', params: { id: tournamentId, tab: 'matches' } })
+      await router.replace({
+        name: 'tournament-tab',
+        params: { id: tournamentId, tab: tabAfterMatchSave(tournamentMode) },
+      })
       return match
     } catch (err) {
       const message = err instanceof Error ? err.message : t('matchService.errors.updateFailed')

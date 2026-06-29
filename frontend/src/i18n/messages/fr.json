@@ -953,6 +953,7 @@
     "modeProvisional": "Provisoire (Live)",
     "noTiers": "Aucun rang configuré pour cette saison",
     "recalculating": "Recalcul MMR en cours…",
+    "refreshing": "Mise à jour du classement…",
     "unknownPlayer": "Inconnu",
     "you": "Vous"
   },

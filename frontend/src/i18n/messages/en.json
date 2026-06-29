@@ -953,6 +953,7 @@
     "modeProvisional": "Provisional",
     "noTiers": "No tiers configured for this season",
     "recalculating": "MMR recalculation in progress…",
+    "refreshing": "Updating standings…",
     "unknownPlayer": "Unknown",
     "you": "You"
   },
