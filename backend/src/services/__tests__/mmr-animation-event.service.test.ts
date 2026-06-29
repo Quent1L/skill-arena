@@ -35,8 +35,8 @@ const echoRow = (data: any) => ({ id: `evt-${data.matchId}`, createdAt: new Date
 const mockAnimRepo = {
   upsert: mock((data: any) => Promise.resolve(echoRow(data))),
   bulkUpsert: mock((rows: any[]) => Promise.resolve(rows.map(echoRow))),
-  getOfficialEventDeltasByPlayer: mock(() => Promise.resolve(new Map<string, { id: string; mmrDelta: number }>())),
-  getOfficialEventDeltasForPlayers: mock(() => Promise.resolve(new Map<string, Map<string, { id: string; mmrDelta: number }>>())),
+  getOfficialEventDeltasByPlayer: mock(() => Promise.resolve(new Map<string, { id: string; mmrDelta: number; seenDelta: number }>())),
+  getOfficialEventDeltasForPlayers: mock(() => Promise.resolve(new Map<string, Map<string, { id: string; mmrDelta: number; seenDelta: number }>>())),
   getPendingForPlayer: mock(() => Promise.resolve([] as any[])),
   markViewed: mock(() => Promise.resolve()),
   updateMessage: mock(() => Promise.resolve()),
@@ -109,12 +109,12 @@ describe("persistRecalcEvents", () => {
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", [historyRow("m1", 18), historyRow("m2", -5)]]])),
     );
-    // m1 stored delta differs (15 -> 18), m2 unchanged (-5).
+    // m1 stored+seen delta differs (15 -> 18), m2 unchanged (-5).
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([
         ["p1", new Map([
-          ["m1", { id: "evt-m1", mmrDelta: 15 }],
-          ["m2", { id: "evt-m2", mmrDelta: -5 }],
+          ["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }],
+          ["m2", { id: "evt-m2", mmrDelta: -5, seenDelta: -5 }],
         ])],
       ])),
     );
@@ -125,8 +125,29 @@ describe("persistRecalcEvents", () => {
     expect(rows.length).toBe(1);
     expect(rows[0].matchId).toBe("m1");
     expect(rows[0].reason).toBe("recalculated");
+    expect(rows[0].mmrDelta).toBe(18); // full delta kept for sync
+    expect(rows[0].displayDelta).toBe(3); // differential 18 - seen 15
     expect(affected).toEqual(["p1"]);
     expect(mockWs.send.mock.calls.length).toBe(0); // persist-only
+  });
+
+  it("recalcs empilés avant visionnage: displayDelta relatif au delta VU, pas au dernier stocké", async () => {
+    // Le joueur a vu +15. Un 1er recalc l'a porté à +18 (stocké, non vu), un 2e
+    // le porte à +20. La news depuis le dernier visionnage = 20 - 15 = 5, pas
+    // 20 - 18 = 2 (ce que donnerait une base sur le delta stocké).
+    mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
+      Promise.resolve(new Map([["p1", [historyRow("m1", 20)]]])),
+    );
+    mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
+      Promise.resolve(new Map([["p1", new Map([["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 15 }]])]])),
+    );
+
+    await mmrAnimationEventService.persistRecalcEvents("season-1", ["p1"]);
+
+    const rows = bulkRows();
+    expect(rows.length).toBe(1);
+    expect(rows[0].mmrDelta).toBe(20); // sync key = nouveau full
+    expect(rows[0].displayDelta).toBe(5); // 20 - seen 15, accumulation correcte
   });
 
   it("bulkUpsert vide + aucun joueur affecté quand aucun delta n'a changé", async () => {
@@ -134,7 +155,7 @@ describe("persistRecalcEvents", () => {
       Promise.resolve(new Map([["p1", [historyRow("m1", 15)]]])),
     );
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
-      Promise.resolve(new Map([["p1", new Map([["m1", { id: "evt-m1", mmrDelta: 15 }]])]])),
+      Promise.resolve(new Map([["p1", new Map([["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }]])]])),
     );
 
     const affected = await mmrAnimationEventService.persistRecalcEvents("season-1", ["p1"]);
@@ -167,10 +188,10 @@ describe("persistRecalcEvents", () => {
     );
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([
-        ["p1", new Map([["m1", { id: "e1", mmrDelta: 10 }]])],   // changé
+        ["p1", new Map([["m1", { id: "e1", mmrDelta: 10, seenDelta: 10 }]])],   // changé
         ["p2", new Map([
-          ["m1", { id: "e2", mmrDelta: -3 }],                    // inchangé
-          ["m2", { id: "e3", mmrDelta: 5 }],                     // changé (5 -> 9)
+          ["m1", { id: "e2", mmrDelta: -3, seenDelta: -3 }],                    // inchangé
+          ["m2", { id: "e3", mmrDelta: 5, seenDelta: 5 }],                      // changé (5 -> 9)
         ])],
       ])),
     );
@@ -194,9 +215,13 @@ describe("persistRecalcEvents", () => {
 // ─── persistCancellationEvents (batch, persist-only, guard delta-0) ──────────────
 
 describe("persistCancellationEvents", () => {
-  it("ignore les joueurs au delta 0 et persiste le reste sans broadcast", async () => {
+  it("ne persiste que les joueurs directs (match_cancelled), displayDelta = -delta vu; ignore le cascade", async () => {
+    // p1 a vu +12 pour le match annulé ; le cascade p2 est couvert par persistRecalcEvents.
+    mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
+      Promise.resolve(new Map([["p1", new Map([["m-cancelled", { id: "evt", mmrDelta: 12, seenDelta: 12 }]])]])),
+    );
     const changes = new Map<string, any>([
-      ["p1", { mmrBefore: 1000, mmrAfter: 1000, reason: "match_cancelled" }],
+      ["p1", { mmrBefore: 1012, mmrAfter: 1000, reason: "match_cancelled" }],
       ["p2", { mmrBefore: 1000, mmrAfter: 985, reason: "cascade" }],
     ]);
 
@@ -204,9 +229,25 @@ describe("persistCancellationEvents", () => {
 
     const rows = bulkRows();
     expect(rows.length).toBe(1);
-    expect(rows[0].playerId).toBe("p2");
-    expect(affected).toEqual(["p2"]);
+    expect(rows[0].playerId).toBe("p1");
+    expect(rows[0].reason).toBe("match_cancelled");
+    expect(rows[0].displayDelta).toBe(-12); // perte des points VUS du match annulé
+    expect(rows[0].rankChanged).toBe(false); // pas de badge de rang trompeur
+    expect(rows[0].tierAfterName).toBeNull();
+    expect(affected).toEqual(["p1"]);
     expect(mockWs.send.mock.calls.length).toBe(0); // persist-only
+  });
+
+  it("ignore un joueur direct sans delta vu préalable (displayDelta 0)", async () => {
+    mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() => Promise.resolve(new Map()));
+    const changes = new Map<string, any>([
+      ["p1", { mmrBefore: 1000, mmrAfter: 990, reason: "match_cancelled" }],
+    ]);
+
+    const affected = await mmrAnimationEventService.persistCancellationEvents("m-cancelled", "season-1", changes);
+
+    expect(bulkRows().length).toBe(0);
+    expect(affected).toEqual([]);
   });
 });
 
@@ -225,9 +266,9 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
   it("BUG: events périmés sur m1..m3 → finalisation de m4 floode 3 'recalculated' + 1 'match_finalized'", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
-        ["m1", { id: "evt-m1", mmrDelta: 15 }],
-        ["m2", { id: "evt-m2", mmrDelta: -5 }],
-        ["m3", { id: "evt-m3", mmrDelta: 10 }],
+        ["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }],
+        ["m2", { id: "evt-m2", mmrDelta: -5, seenDelta: -5 }],
+        ["m3", { id: "evt-m3", mmrDelta: 10, seenDelta: 10 }],
       ])),
     );
 
@@ -244,9 +285,9 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
   it("FIX: events synchronisés → finalisation de m4 n'émet que m4", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
-        ["m1", { id: "evt-m1", mmrDelta: 18 }],
-        ["m2", { id: "evt-m2", mmrDelta: -7 }],
-        ["m3", { id: "evt-m3", mmrDelta: 12 }],
+        ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
+        ["m2", { id: "evt-m2", mmrDelta: -7, seenDelta: -7 }],
+        ["m3", { id: "evt-m3", mmrDelta: 12, seenDelta: 12 }],
       ])),
     );
 
@@ -259,9 +300,9 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
   it("désync partielle: seul m2 a changé → finalisation émet m2 (recalculated) + m4", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
-        ["m1", { id: "evt-m1", mmrDelta: 18 }],
-        ["m2", { id: "evt-m2", mmrDelta: -5 }],
-        ["m3", { id: "evt-m3", mmrDelta: 12 }],
+        ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
+        ["m2", { id: "evt-m2", mmrDelta: -5, seenDelta: -5 }],
+        ["m3", { id: "evt-m3", mmrDelta: 12, seenDelta: 12 }],
       ])),
     );
 
@@ -271,5 +312,84 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
     expect(ev).toContainEqual({ matchId: "m2", reason: "recalculated" });
     expect(ev).toContainEqual({ matchId: "m4", reason: "match_finalized" });
     expect(ev.length).toBe(2);
+  });
+});
+
+// ─── displayDelta sur le chemin de finalisation (collectOfficialEvents) ──────────
+
+describe("createOfficialEventsAndBroadcast: displayDelta", () => {
+  const HISTORY = [historyRow("m1", 18), historyRow("m2", -7), historyRow("m4", 20)];
+
+  beforeEach(() => {
+    setSelectResult([{ playerId: "p1" }]); // getMatchPlayerIds(m4) → [p1]
+    mockPlayerMmrRepo.getMmrHistoryOrdered.mockImplementation(() => Promise.resolve(HISTORY));
+  });
+
+  // upsert payload for a given match (single per-event finalize path)
+  function upsertFor(matchId: string) {
+    return mockAnimRepo.upsert.mock.calls.map((c: any[]) => c[0]).find((d) => d.matchId === matchId);
+  }
+
+  it("match courant (nouveau) = delta complet ; recalculated = delta - seenDelta", async () => {
+    // m1 a été vu à +15, son delta réel est maintenant +18 (désync) → diff +3.
+    mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
+      Promise.resolve(new Map([
+        ["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }],
+        ["m2", { id: "evt-m2", mmrDelta: -7, seenDelta: -7 }],
+      ])),
+    );
+
+    await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1");
+
+    expect(upsertFor("m4").displayDelta).toBe(20); // nouveau match → full
+    expect(upsertFor("m4").mmrDelta).toBe(20);
+    expect(upsertFor("m1").displayDelta).toBe(3); // 18 - seen 15
+    expect(upsertFor("m1").mmrDelta).toBe(18); // full conservé pour la sync
+    expect(upsertFor("m1").reason).toBe("recalculated");
+  });
+
+  it("displayDelta est diffusé dans le payload WS", async () => {
+    mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
+      Promise.resolve(new Map([
+        ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
+        ["m2", { id: "evt-m2", mmrDelta: -7, seenDelta: -7 }],
+      ])),
+    );
+
+    await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1");
+
+    // m1/m2 synchronisés → seul m4 diffusé
+    const sent = mockWs.send.mock.calls.find((c: any[]) => c[1]?.data?.matchId === "m4");
+    expect(sent?.[1].data.displayDelta).toBe(20);
+  });
+});
+
+// ─── getPendingForPlayer: fallback displayDelta sur lignes héritées ──────────────
+
+describe("getPendingForPlayer", () => {
+  function pendingRow(matchId: string, mmrDelta: number, displayDelta: number | null) {
+    return {
+      id: `evt-${matchId}`,
+      matchId,
+      mmrDelta,
+      displayDelta,
+      eventType: "official",
+      reason: "recalculated",
+      rankChanged: false,
+      message: null,
+      opponents: [],
+      teammates: [],
+    };
+  }
+
+  it("renvoie displayDelta tel quel, et retombe sur mmrDelta quand il est null (ligne pré-migration)", async () => {
+    mockAnimRepo.getPendingForPlayer.mockImplementation(() =>
+      Promise.resolve([pendingRow("m1", 12, null), pendingRow("m2", 9, 4)] as any),
+    );
+
+    const out = await mmrAnimationEventService.getPendingForPlayer("p1", "season-1", "fr");
+
+    expect(out.find((e) => e.matchId === "m1")?.displayDelta).toBe(12); // null → fallback mmrDelta
+    expect(out.find((e) => e.matchId === "m2")?.displayDelta).toBe(4); // valeur conservée
   });
 });

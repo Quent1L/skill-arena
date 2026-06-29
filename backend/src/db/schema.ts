@@ -752,6 +752,14 @@ export const mmrAnimationEvents = pgTable(
     mmrBefore: integer("mmr_before").notNull(),
     mmrAfter: integer("mmr_after").notNull(),
     mmrDelta: integer("mmr_delta").notNull(),
+    // Points to display/sum in the recap = mmrDelta - seenDelta. For a new match
+    // this equals mmrDelta; for a recalculated/cancelled match it is only the
+    // change since the player last saw this match, so the recap never re-shows
+    // points already animated. Nullable: legacy rows fall back to mmrDelta.
+    displayDelta: integer("display_delta"),
+    // Full mmrDelta as of the player's last view of this match (0 = never seen).
+    // Baseline for displayDelta; advanced to mmrDelta when the event is viewed.
+    seenDelta: integer("seen_delta").default(0),
     tierBeforeLevel: integer("tier_before_level"),
     tierAfterLevel: integer("tier_after_level"),
     tierBeforeName: text("tier_before_name"),

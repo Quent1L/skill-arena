@@ -305,6 +305,9 @@ export interface MmrAnimationEventResponse {
   mmrBefore: number;
   mmrAfter: number;
   mmrDelta: number;
+  // Points the recap shows/sums: full delta for a new match, differential for a
+  // recalculated/cancelled one. Optional — legacy rows fall back to mmrDelta.
+  displayDelta?: number;
   tierBeforeLevel: number | null;
   tierAfterLevel: number | null;
   tierBeforeName: string | null;

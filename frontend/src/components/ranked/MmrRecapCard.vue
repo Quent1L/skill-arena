@@ -64,6 +64,12 @@
               <div v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
                 <i class="fa-solid fa-rotate"></i> {{ t('mmrRecapCard.recalculated') }}
               </div>
+              <div
+                v-if="event.reason === 'match_cancelled' || event.reason === 'cascade'"
+                class="text-red-400 text-xs shrink-0"
+              >
+                <i class="fa-solid fa-ban"></i> {{ t('mmrRecapCard.cancelled') }}
+              </div>
             </div>
             <!-- Date -->
             <div v-if="event.playedAt" class="text-gray-500 text-xs shrink-0">
@@ -72,9 +78,9 @@
             <!-- Delta -->
             <span
               class="font-bold font-mono shrink-0"
-              :class="event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'"
+              :class="shown(event) >= 0 ? 'text-emerald-400' : 'text-red-400'"
             >
-              {{ event.mmrDelta >= 0 ? '+' : '' }}{{ event.mmrDelta }}
+              {{ shown(event) >= 0 ? '+' : '' }}{{ shown(event) }}
             </span>
           </div>
         </div>
@@ -108,30 +114,32 @@ const props = defineProps<{
 
 defineEmits<{ (e: 'close'): void }>()
 
-const netDelta = computed(() => props.events.reduce((acc, e) => acc + e.mmrDelta, 0))
-const recalcCount = computed(() => props.events.filter((e) => e.reason === 'recalculated').length)
-const newCount = computed(() => props.events.length - recalcCount.value)
+// Points to show/sum: the differential for recalculated/cancelled matches,
+// the full delta for new matches. Legacy rows without displayDelta fall back.
+const shown = (e: MmrAnimationEventResponse) => e.displayDelta ?? e.mmrDelta
+const netDelta = computed(() => props.events.reduce((acc, e) => acc + shown(e), 0))
 
-const newMatchesText = computed(() =>
-  newCount.value > 1
-    ? t('mmrRecapCard.newMatchesPlural', { count: newCount.value })
-    : t('mmrRecapCard.newMatchesSingular', { count: newCount.value }),
-)
+const countByReason = (reasons: MmrAnimationEventResponse['reason'][]) =>
+  props.events.filter((e) => reasons.includes(e.reason)).length
 
-const recalcMatchesText = computed(() =>
-  recalcCount.value > 1
-    ? t('mmrRecapCard.recalcMatchesPlural', { count: recalcCount.value })
-    : t('mmrRecapCard.recalcMatchesSingular', { count: recalcCount.value }),
-)
+// Build "{count} <kind> match(es)" using the kind's singular/plural keys.
+const matchesText = (count: number, kind: 'new' | 'recalc' | 'cancelled') => {
+  const suffix = count > 1 ? 'Plural' : 'Singular'
+  const key = { new: 'newMatches', recalc: 'recalcMatches', cancelled: 'cancelledMatches' }[kind]
+  return t(`mmrRecapCard.${key}${suffix}`, { count })
+}
 
+// One fragment per non-empty category so the badges (recalculated vs cancelled)
+// and the summary line agree.
 const summaryText = computed(() => {
-  if (newCount.value > 0 && recalcCount.value > 0) {
-    return `${newMatchesText.value}, ${recalcMatchesText.value}`
-  }
-  if (recalcCount.value > 0) {
-    return recalcMatchesText.value
-  }
-  return newMatchesText.value
+  const parts: string[] = []
+  const newCount = countByReason(['match_finalized'])
+  const recalcCount = countByReason(['recalculated'])
+  const cancelledCount = countByReason(['match_cancelled', 'cascade'])
+  if (newCount > 0) parts.push(matchesText(newCount, 'new'))
+  if (recalcCount > 0) parts.push(matchesText(recalcCount, 'recalc'))
+  if (cancelledCount > 0) parts.push(matchesText(cancelledCount, 'cancelled'))
+  return parts.join(', ')
 })
 
 function formatMatchDate(date: Date) {

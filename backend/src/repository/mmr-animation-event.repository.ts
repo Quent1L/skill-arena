@@ -2,6 +2,15 @@ import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { mmrAnimationEvents, matches, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
 
+// One match's stored official deltas: mmrDelta is the full match delta (sync
+// key); seenDelta is the full delta as of the player's last view (displayDelta
+// baseline).
+export interface EventDelta {
+  id: string;
+  mmrDelta: number;
+  seenDelta: number;
+}
+
 export interface UpsertMmrAnimationEventData {
   playerId: string;
   seasonId: string;
@@ -11,6 +20,7 @@ export interface UpsertMmrAnimationEventData {
   mmrBefore: number;
   mmrAfter: number;
   mmrDelta: number;
+  displayDelta: number;
   tierBeforeLevel: number | null;
   tierAfterLevel: number | null;
   tierBeforeName: string | null;
@@ -34,6 +44,7 @@ export class MmrAnimationEventRepository {
           mmrBefore: data.mmrBefore,
           mmrAfter: data.mmrAfter,
           mmrDelta: data.mmrDelta,
+          displayDelta: data.displayDelta,
           tierBeforeLevel: data.tierBeforeLevel,
           tierAfterLevel: data.tierAfterLevel,
           tierBeforeName: data.tierBeforeName,
@@ -66,6 +77,7 @@ export class MmrAnimationEventRepository {
           mmrBefore: sql`excluded.mmr_before`,
           mmrAfter: sql`excluded.mmr_after`,
           mmrDelta: sql`excluded.mmr_delta`,
+          displayDelta: sql`excluded.display_delta`,
           tierBeforeLevel: sql`excluded.tier_before_level`,
           tierAfterLevel: sql`excluded.tier_after_level`,
           tierBeforeName: sql`excluded.tier_before_name`,
@@ -149,12 +161,13 @@ export class MmrAnimationEventRepository {
   async getOfficialEventDeltasByPlayer(
     seasonId: string,
     playerId: string,
-  ): Promise<Map<string, { id: string; mmrDelta: number }>> {
+  ): Promise<Map<string, EventDelta>> {
     const rows = await db
       .select({
         id: mmrAnimationEvents.id,
         matchId: mmrAnimationEvents.matchId,
         mmrDelta: mmrAnimationEvents.mmrDelta,
+        seenDelta: mmrAnimationEvents.seenDelta,
       })
       .from(mmrAnimationEvents)
       .where(
@@ -164,16 +177,16 @@ export class MmrAnimationEventRepository {
           eq(mmrAnimationEvents.eventType, "official"),
         ),
       );
-    return new Map(rows.map((r) => [r.matchId, { id: r.id, mmrDelta: r.mmrDelta }]));
+    return new Map(rows.map((r) => [r.matchId, { id: r.id, mmrDelta: r.mmrDelta, seenDelta: r.seenDelta ?? 0 }]));
   }
 
   // Multi-player variant of getOfficialEventDeltasByPlayer: one query for the
-  // whole cascade. Returns playerId -> (matchId -> {id, mmrDelta}).
+  // whole cascade. Returns playerId -> (matchId -> EventDelta).
   async getOfficialEventDeltasForPlayers(
     seasonId: string,
     playerIds: string[],
-  ): Promise<Map<string, Map<string, { id: string; mmrDelta: number }>>> {
-    const result = new Map<string, Map<string, { id: string; mmrDelta: number }>>();
+  ): Promise<Map<string, Map<string, EventDelta>>> {
+    const result = new Map<string, Map<string, EventDelta>>();
     if (playerIds.length === 0) return result;
     const rows = await db
       .select({
@@ -181,6 +194,7 @@ export class MmrAnimationEventRepository {
         playerId: mmrAnimationEvents.playerId,
         matchId: mmrAnimationEvents.matchId,
         mmrDelta: mmrAnimationEvents.mmrDelta,
+        seenDelta: mmrAnimationEvents.seenDelta,
       })
       .from(mmrAnimationEvents)
       .where(
@@ -192,17 +206,19 @@ export class MmrAnimationEventRepository {
       );
     for (const r of rows) {
       const byMatch = result.get(r.playerId) ?? new Map();
-      byMatch.set(r.matchId, { id: r.id, mmrDelta: r.mmrDelta });
+      byMatch.set(r.matchId, { id: r.id, mmrDelta: r.mmrDelta, seenDelta: r.seenDelta ?? 0 });
       result.set(r.playerId, byMatch);
     }
     return result;
   }
 
+  // Mark events viewed and advance their seenDelta baseline to the current full
+  // delta — so a later recalc of the same match shows only the change since now.
   async markViewed(ids: string[]) {
     if (ids.length === 0) return;
     await db
       .update(mmrAnimationEvents)
-      .set({ viewedAt: new Date() })
+      .set({ viewedAt: new Date(), seenDelta: sql`${mmrAnimationEvents.mmrDelta}` })
       .where(inArray(mmrAnimationEvents.id, ids));
   }
 

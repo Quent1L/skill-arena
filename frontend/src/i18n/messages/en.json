@@ -657,7 +657,10 @@
     "newMatchesSingular": "{count} new match",
     "recalcMatchesPlural": "{count} matches recalculated",
     "recalcMatchesSingular": "{count} match recalculated",
+    "cancelledMatchesPlural": "{count} matches cancelled",
+    "cancelledMatchesSingular": "{count} match cancelled",
     "recalculated": "recalculated",
+    "cancelled": "cancelled",
     "title": "MMR recap"
   },
   "mmrRevealAnimation": {

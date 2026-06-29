@@ -171,6 +171,7 @@ export class MmrAnimationEventService {
       mmrBefore,
       mmrAfter,
       mmrDelta: delta,
+      displayDelta: delta,
       tierBeforeLevel: tierBefore?.level ?? null,
       tierAfterLevel: tierAfter?.level ?? null,
       tierBeforeName: tierBefore?.name ?? null,
@@ -241,6 +242,10 @@ export class MmrAnimationEventService {
       const tierBefore = getTierForMmr(history.mmrBefore, tiers);
       const tierAfter = getTierForMmr(history.mmrAfter, tiers);
       const reason: MmrAnimationEventReason = isCurrentMatch ? "match_finalized" : "recalculated";
+      // Show only the change since the player last saw this match. seenDelta is 0
+      // for a never-seen match (a brand-new finalized match), so this naturally
+      // equals the full delta there and the recalc differential otherwise.
+      const displayDelta = history.mmrDelta - (existing?.seenDelta ?? 0);
 
       const event = await mmrAnimationEventRepository.upsert({
         playerId,
@@ -251,6 +256,7 @@ export class MmrAnimationEventService {
         mmrBefore: history.mmrBefore,
         mmrAfter: history.mmrAfter,
         mmrDelta: history.mmrDelta,
+        displayDelta,
         tierBeforeLevel: tierBefore?.level ?? null,
         tierAfterLevel: tierAfter?.level ?? null,
         tierBeforeName: tierBefore?.name ?? null,
@@ -272,25 +278,41 @@ export class MmrAnimationEventService {
     }
   }
 
-  // Persist the cancelled-match summary event per affected player (no live
-  // broadcast — the worker fires a single mmr_recap_ready ping so the client
-  // refetches all pending events as one grouped recap). Returns player ids that
-  // got an event.
+  // Persist the cancelled-match removal event for the match's DIRECT players
+  // only (no live broadcast — the worker fires a single mmr_recap_ready ping so
+  // the client refetches all pending events as one grouped recap).
+  //
+  // Cascade-only players are intentionally skipped: their net change is already
+  // captured by the per-match differentials persistRecalcEvents emits, so adding
+  // a per-player net summary here would double-count it in the recap.
+  //
+  // For a direct player, displayDelta = -(delta they last saw for the cancelled
+  // match) — the points the removed match contributed and now lose. Combined
+  // with the posterior differentials this sums to the player's true net change.
+  // No tier badge: the resulting rank movement is the cumulative effect of the
+  // removal + all posterior recalcs, already carried by the posterior rows and
+  // the headline net — showing the full-net tier swing on this partial row would
+  // be misleading and double-counted. mmrBefore/mmrAfter keep the net snapshot.
+  // Returns player ids that got an event.
   async persistCancellationEvents(
     matchId: string,
     tournamentId: string,
     mmrChanges: Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>,
   ): Promise<string[]> {
-    if (mmrChanges.size === 0) return [];
+    const directEntries = [...mmrChanges].filter(([, c]) => c.reason === "match_cancelled");
+    if (directEntries.length === 0) return [];
 
-    const tiers = await rankedSeasonRepository.getRankTiers(tournamentId);
+    const directPlayerIds = directEntries.map(([playerId]) => playerId);
+    const seenDeltas = await mmrAnimationEventRepository.getOfficialEventDeltasForPlayers(
+      tournamentId,
+      directPlayerIds,
+    );
     const rows: UpsertMmrAnimationEventData[] = [];
 
-    for (const [playerId, { mmrBefore, mmrAfter, reason }] of mmrChanges) {
-      const mmrDelta = mmrAfter - mmrBefore;
-      if (mmrDelta === 0) continue;
-      const tierBefore = getTierForMmr(mmrBefore, tiers);
-      const tierAfter = getTierForMmr(mmrAfter, tiers);
+    for (const [playerId, { mmrBefore, mmrAfter, reason }] of directEntries) {
+      const seenDelta = seenDeltas.get(playerId)?.get(matchId)?.seenDelta ?? 0;
+      const displayDelta = -seenDelta;
+      if (displayDelta === 0) continue;
 
       rows.push({
         playerId,
@@ -300,12 +322,13 @@ export class MmrAnimationEventService {
         reason,
         mmrBefore,
         mmrAfter,
-        mmrDelta,
-        tierBeforeLevel: tierBefore?.level ?? null,
-        tierAfterLevel: tierAfter?.level ?? null,
-        tierBeforeName: tierBefore?.name ?? null,
-        tierAfterName: tierAfter?.name ?? null,
-        rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+        mmrDelta: mmrAfter - mmrBefore,
+        displayDelta,
+        tierBeforeLevel: null,
+        tierAfterLevel: null,
+        tierBeforeName: null,
+        tierAfterName: null,
+        rankChanged: false,
       });
     }
 
@@ -352,6 +375,11 @@ export class MmrAnimationEventService {
           mmrBefore: h.mmrBefore,
           mmrAfter: h.mmrAfter,
           mmrDelta: h.mmrDelta,
+          // Only the change since the player last saw this match (prev is present
+          // and its full delta differs — guaranteed by the continue guard above).
+          // Baseline is seenDelta, not the stored full delta, so back-to-back
+          // recalcs before viewing accumulate instead of overwriting.
+          displayDelta: h.mmrDelta - prev.seenDelta,
           tierBeforeLevel: tierBefore?.level ?? null,
           tierAfterLevel: tierAfter?.level ?? null,
           tierBeforeName: tierBefore?.name ?? null,
@@ -377,6 +405,7 @@ export class MmrAnimationEventService {
       mmrBefore: event.mmrBefore,
       mmrAfter: event.mmrAfter,
       mmrDelta: event.mmrDelta,
+      displayDelta: event.displayDelta ?? event.mmrDelta,
       tierBeforeLevel: event.tierBeforeLevel,
       tierAfterLevel: event.tierAfterLevel,
       tierBeforeName: event.tierBeforeName,
@@ -392,6 +421,7 @@ export class MmrAnimationEventService {
     const events = await mmrAnimationEventRepository.getPendingForPlayer(playerId, seasonId);
     return events.map((event) => ({
       ...event,
+      displayDelta: event.displayDelta ?? event.mmrDelta,
       encouragementMessage:
         event.message ?? translateEncouragement(event.mmrDelta, event.eventType, event.rankChanged, lang),
     }));
