@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.15.0](https://skol-arena/Quent1L/skol-arena/compare/1.14.2...1.15.0) (2026-06-29)
+
+### ✨ New Features
+
+* **discipline:** add icon picker and display in tournament card ([368a3ac](https://skol-arena/Quent1L/skol-arena/commit/368a3ac5899c438174856af189cd6cc0c84bafc6))
+* **ranked:** custom FA icon per rank tier ([f15daf0](https://skol-arena/Quent1L/skol-arena/commit/f15daf00a2a6c9733837ae5e9d4283d363111664))
+
+### 🐛 Bug Fixes
+
+* **ranked:** batch recalc recap, deliver as one grouped card ([64d2b7e](https://skol-arena/Quent1L/skol-arena/commit/64d2b7ec2ae91bcd6cdc6b679155703dbadaa23f))
+* **ranked:** notify recalculated matches, stop phantom recap ([b46a3e6](https://skol-arena/Quent1L/skol-arena/commit/b46a3e6b0f086b73549133ec98e024d789006f12))
+* **ranked:** refresh leaderboard after match save ([9b82efa](https://skol-arena/Quent1L/skol-arena/commit/9b82efa950bbba18fc601feac4802edea86b478f))
+* **ranked:** show recalc differential in MMR recap, not full deltas ([9c33484](https://skol-arena/Quent1L/skol-arena/commit/9c334840ff15005c1ddca2ecd862d5245892e9ed))
+* **ranked:** support draw matches end-to-end ([fbdeef9](https://skol-arena/Quent1L/skol-arena/commit/fbdeef958bbd1518df9f7d7204d0251919f9a003))
+
 ## [1.14.2](https://skol-arena/Quent1L/skol-arena/compare/1.14.1...1.14.2) (2026-06-28)
 
 ### 🐛 Bug Fixes
