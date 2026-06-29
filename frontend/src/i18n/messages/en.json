@@ -1060,6 +1060,8 @@
     "formPercentileHelp": "MMR threshold based on player distribution",
     "formSubRanks": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
     "formSubRanksHelp": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
+    "formIcon": "Icon",
+    "formIconHelp": "Leave empty to use the default icon based on the tier level",
     "recalcConfirm": "Recalculate MMR thresholds?",
     "recalcDialogTitle": "Recalculate thresholds",
     "recalculate": "Recalculate",

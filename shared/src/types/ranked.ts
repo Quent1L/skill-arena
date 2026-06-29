@@ -71,6 +71,7 @@ export interface ClientRankTier {
   percentile: number;
   minMmr: number;
   subRanks: number;
+  iconClass?: string | null;
   calculatedAt: Date;
 }
 
@@ -274,6 +275,7 @@ export const createRankTierSchema = z.object({
   percentile: z.number().min(0).max(1),
   minMmr: z.number().int().min(0),
   subRanks: z.number().int().min(1).max(10).default(1),
+  iconClass: z.string().min(1).max(100).optional().nullable(),
 });
 
 export const updateRankTierSchema = z.object({
@@ -281,6 +283,7 @@ export const updateRankTierSchema = z.object({
   percentile: z.number().min(0).max(1).optional(),
   minMmr: z.number().int().min(0).optional(),
   subRanks: z.number().int().min(1).max(10).optional(),
+  iconClass: z.string().min(1).max(100).optional().nullable(),
 });
 
 export type CreateRankTierInput = z.infer<typeof createRankTierSchema>;

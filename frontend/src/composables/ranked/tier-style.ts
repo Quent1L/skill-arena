@@ -21,6 +21,7 @@ export function tierStyleIdx(tier: ClientRankTier | null): number {
 }
 
 export function getTierIconClass(tier: ClientRankTier | null): string {
+  if (tier?.iconClass) return tier.iconClass
   return TIER_ICON[tierStyleIdx(tier)] ?? 'fa fa-circle'
 }
 

@@ -43,6 +43,12 @@
     >
       <Column field="level" :header="t('rankedTiersView.colLevel')" sortable style="width: 6rem" />
 
+      <Column :header="t('rankedTiersView.formIcon')" style="width: 4rem">
+        <template #body="{ data }">
+          <i :class="getTierIconClass(data)" class="text-xl" />
+        </template>
+      </Column>
+
       <Column field="name" :header="t('common.name')" />
 
       <Column field="percentile" :header="t('rankedTiersView.colPercentile')" sortable style="width: 10rem">
@@ -126,6 +132,11 @@
           <InputNumber v-model="form.subRanks" input-id="tier-subranks" :min="1" :max="10" showButtons />
           <small class="text-surface-400">{{ t('rankedTiersView.formSubRanksHelp') }}</small>
         </div>
+        <div class="flex flex-col gap-1">
+          <label class="font-medium text-sm">{{ t('rankedTiersView.formIcon') }}</label>
+          <FontAwesomeIconPicker v-model="form.iconClass" />
+          <small class="text-surface-400">{{ t('rankedTiersView.formIconHelp') }}</small>
+        </div>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" text @click="formDialogVisible = false" />
@@ -179,6 +190,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
+import { getTierIconClass } from '@/composables/ranked/tier-style'
+import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
 import type { ClientRankTier } from '@skol-arena/shared/types/index'
 
 const route = useRoute()
@@ -194,17 +207,17 @@ const recalcDialogVisible = ref(false)
 const editingTier = ref<ClientRankTier | null>(null)
 const tierToDelete = ref<ClientRankTier | null>(null)
 
-const form = ref({ level: 1, name: '', percentile: 0, minMmr: 0, subRanks: 1 })
+const form = ref({ level: 1, name: '', percentile: 0, minMmr: 0, subRanks: 1, iconClass: '' })
 
 function openCreateDialog() {
   editingTier.value = null
-  form.value = { level: (tiers.value.length > 0 ? Math.max(...tiers.value.map((t) => t.level)) + 1 : 1), name: '', percentile: 0, minMmr: 0, subRanks: 1 }
+  form.value = { level: (tiers.value.length > 0 ? Math.max(...tiers.value.map((t) => t.level)) + 1 : 1), name: '', percentile: 0, minMmr: 0, subRanks: 1, iconClass: '' }
   formDialogVisible.value = true
 }
 
 function openEditDialog(tier: ClientRankTier) {
   editingTier.value = tier
-  form.value = { level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: tier.minMmr, subRanks: tier.subRanks ?? 1 }
+  form.value = { level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: tier.minMmr, subRanks: tier.subRanks ?? 1, iconClass: tier.iconClass ?? '' }
   formDialogVisible.value = true
 }
 
@@ -215,10 +228,11 @@ async function handleSubmit() {
       percentile: form.value.percentile,
       minMmr: form.value.minMmr,
       subRanks: form.value.subRanks,
+      iconClass: form.value.iconClass || null,
     })
     if (ok) formDialogVisible.value = false
   } else {
-    const created = await createTier(seasonId, form.value)
+    const created = await createTier(seasonId, { ...form.value, iconClass: form.value.iconClass || null })
     if (created) formDialogVisible.value = false
   }
 }

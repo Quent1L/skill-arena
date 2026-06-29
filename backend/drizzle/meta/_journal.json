@@ -358,6 +358,13 @@
       "when": 1777526400006,
       "tag": "0050_badge_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1777526400007,
+      "tag": "0051_rank_tier_icon",
+      "breakpoints": true
     }
   ]
 }

@@ -1060,6 +1060,8 @@
     "formPercentileHelp": "Seuil de MMR basé sur la distribution des joueurs",
     "formSubRanks": "Sous-rangs",
     "formSubRanksHelp": "1 = pas de sous-rang. Ex: 5 → Silver 5, Silver 4, ..., Silver 1",
+    "formIcon": "Icône",
+    "formIconHelp": "Laissez vide pour utiliser l'icône par défaut selon le niveau",
     "recalcConfirm": "Les valeurs MMR minimum de chaque rang seront recalculées selon les percentiles et la distribution MMR actuelle des joueurs.",
     "recalcDialogTitle": "Recalculer les seuils MMR ?",
     "recalculate": "Recalculer",

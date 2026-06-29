@@ -724,6 +724,7 @@ export const rankTiers = pgTable(
     percentile: real("percentile").notNull(),
     minMmr: integer("min_mmr").notNull(),
     subRanks: integer("sub_ranks").notNull().default(1),
+    iconClass: text("icon_class"),
     calculatedAt: timestamp("calculated_at").defaultNow().notNull(),
   },
   (table) => [unique().on(table.seasonId, table.level)],
