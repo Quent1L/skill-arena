@@ -196,7 +196,7 @@ export class TournamentRepository {
         organizationId: true,
       },
       with: {
-        discipline: { columns: { id: true, name: true } },
+        discipline: { columns: { id: true, name: true, icon: true } },
       },
       orderBy: (tournaments, { desc }) => [desc(tournaments.createdAt)],
     });

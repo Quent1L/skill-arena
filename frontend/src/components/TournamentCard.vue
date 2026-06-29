@@ -21,7 +21,7 @@
           class="mode-icon-circle shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
           :class="modeIconBgClass"
         >
-          <i :class="[modeIcon, modeIconColorClass, 'text-base']"></i>
+          <i :class="[displayIcon, modeIconColorClass, 'text-base']"></i>
         </div>
         <div class="min-w-0 flex-1">
           <h3 class="text-base font-bold text-white leading-tight truncate mb-1.5">
@@ -163,6 +163,10 @@ const modeIconBgClass = computed(
 )
 const modeProgressClass = computed(
   () => modeConfig[props.tournament.mode]?.progressClass ?? 'bg-gray-400',
+)
+
+const displayIcon = computed(
+  () => props.tournament.discipline?.icon || modeIcon.value,
 )
 
 // Time progress bar

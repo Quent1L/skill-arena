@@ -246,6 +246,7 @@
     "confirmDeleteOutcomeReasonMessage": "Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.",
     "confirmDeleteOutcomeTypeHeader": "Supprimer le type de résultat ?",
     "confirmDeleteOutcomeTypeMessage": "Êtes-vous sûr de vouloir supprimer ce type de résultat ? Cette action est irréversible.",
+    "iconLabel": "Icône",
     "nameLabel": "Nom de la discipline",
     "scoreInstructionsLabel": "Instructions de saisie du score",
     "scoreInstructionsPlaceholder": "Indiquez comment saisir le score pour cette discipline...",

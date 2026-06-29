@@ -396,7 +396,7 @@ export interface TournamentSummary {
   status: TournamentStatus;
   startDate: string;
   endDate: string;
-  discipline?: { id: string; name: string } | null;
+  discipline?: { id: string; name: string; icon?: string | null } | null;
 }
 
 export interface ClientTournamentSummary extends Omit<

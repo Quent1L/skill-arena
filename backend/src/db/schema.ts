@@ -775,6 +775,7 @@ export const mmrAnimationEvents = pgTable(
 export const disciplines = pgTable("disciplines", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  icon: text("icon"),
   scoreInstructions: text("score_instructions"),
   teamInteractionMode: teamInteractionModeEnum("team_interaction_mode"),
 });

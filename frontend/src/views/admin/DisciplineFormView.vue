@@ -37,6 +37,12 @@
                 />
               </div>
               <div>
+                <label class="block text-sm font-medium mb-2">
+                  {{ t('disciplineFormView.iconLabel') }}
+                </label>
+                <FontAwesomeIconPicker v-model="icon" />
+              </div>
+              <div>
                 <label for="teamInteractionMode" class="block text-sm font-medium mb-2">
                   {{ t('disciplineFormView.teamInteractionModeLabel') }}
                 </label>
@@ -131,6 +137,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
 import OutcomeTypeDialog from './components/OutcomeTypeDialog.vue'
 import OutcomeReasonDialog from './components/OutcomeReasonDialog.vue'
+import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -164,6 +171,7 @@ const { handleSubmit, defineField, errors, setValues } = useForm({
 })
 
 const [name] = defineField('name')
+const [icon] = defineField('icon')
 const [scoreInstructions] = defineField('scoreInstructions')
 const [teamInteractionMode] = defineField('teamInteractionMode')
 
@@ -306,6 +314,7 @@ onMounted(async () => {
   if (isEditMode.value && currentDiscipline.value) {
     setValues({
       name: currentDiscipline.value.name,
+      icon: currentDiscipline.value.icon,
       scoreInstructions: currentDiscipline.value.scoreInstructions,
       teamInteractionMode: currentDiscipline.value.teamInteractionMode,
     })

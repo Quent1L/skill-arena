@@ -216,7 +216,7 @@ export class RankedSeasonRepository {
         eq(tournaments.status, "finished"),
       ),
       columns: { id: true, name: true, startDate: true, endDate: true },
-      with: { discipline: { columns: { id: true, name: true } } },
+      with: { discipline: { columns: { id: true, name: true, icon: true } } },
       orderBy: (t, { desc }) => [desc(t.endDate)],
     });
   }
@@ -295,7 +295,7 @@ export class RankedSeasonRepository {
         disciplineId: true,
       },
       with: {
-        discipline: { columns: { id: true, name: true } },
+        discipline: { columns: { id: true, name: true, icon: true } },
       },
       orderBy: (t, { desc }) => [desc(t.startDate)],
     });

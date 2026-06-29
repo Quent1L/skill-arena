@@ -246,6 +246,7 @@
     "confirmDeleteOutcomeReasonMessage": "Are you sure you want to delete this outcome reason? This action is irreversible.",
     "confirmDeleteOutcomeTypeHeader": "Delete outcome type?",
     "confirmDeleteOutcomeTypeMessage": "Are you sure you want to delete this outcome type? This action is irreversible.",
+    "iconLabel": "Icon",
     "nameLabel": "Name",
     "scoreInstructionsLabel": "Score instructions",
     "scoreInstructionsPlaceholder": "Indicate how to enter the score for this discipline...",
