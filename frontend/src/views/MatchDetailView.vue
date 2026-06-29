@@ -427,16 +427,18 @@
       </Dialog>
 
       <!-- MMR Reveal Animation (ranked matches only) -->
+      <!-- Recap first: with >=2 queued events show the grouped card, not the
+           single reveal (currentEvent is non-null whenever the queue is). -->
+      <MmrRecapCard
+        v-if="match.tournament?.mode === 'ranked' && animationQueue.showRecap.value"
+        :events="animationQueue.queue.value"
+        @close="animationQueue.dismissAll()"
+      />
       <MmrRevealAnimation
-        v-if="match.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
+        v-else-if="match.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
         :event="animationQueue.currentEvent.value"
         :tiers="detailStore.rankedTiers"
         @close="animationQueue.acknowledgeCurrentEvent()"
-      />
-      <MmrRecapCard
-        v-else-if="match.tournament?.mode === 'ranked' && animationQueue.showRecap.value"
-        :events="animationQueue.queue.value"
-        @close="animationQueue.dismissAll()"
       />
       <BadgeRevealAnimation
         v-else-if="match.tournament?.mode === 'ranked' && animationQueue.currentBadge.value"
@@ -487,6 +489,7 @@ import type {
   ClientMatchDetail,
   MatchFinalizationReason,
   MmrAnimationWsPayload,
+  MmrRecapReadyPayload,
 } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
@@ -532,21 +535,29 @@ const postDisputing = ref(false)
 const animationQueue = useMMrAnimationQueue()
 let offWs: (() => void) | null = null
 let offBadgeWs: (() => void) | null = null
+let offRecapWs: (() => void) | null = null
 
 function initAnimationIfRanked() {
   if (!match.value || match.value.tournament?.mode !== 'ranked' || !appUser.value) return
-  animationQueue.loadPending(match.value.tournamentId!)
+  const seasonId = match.value.tournamentId!
+  animationQueue.loadPending(seasonId)
   offWs = onWsEvent('mmr_animation', (data: MmrAnimationWsPayload) => {
     animationQueue.enqueue(data)
   })
   offBadgeWs = onWsEvent('badge_animation', (data: BadgeAnimationWsPayload) => {
     animationQueue.enqueueBadge(data)
   })
+  // Bulk recalc/cancellation: refetch all pending at once → one grouped recap.
+  offRecapWs = onWsEvent('mmr_recap_ready', (data: MmrRecapReadyPayload) => {
+    if (data.tournamentId !== seasonId) return
+    animationQueue.loadPending(seasonId)
+  })
 }
 
 onUnmounted(() => {
   if (offWs) offWs()
   if (offBadgeWs) offBadgeWs()
+  if (offRecapWs) offRecapWs()
 })
 
 const currentUser = computed(() => appUser.value)

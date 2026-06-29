@@ -330,3 +330,16 @@ export type LeaderboardUpdatedEvent = {
   event: 'leaderboard_updated';
   data: { seasonId: string };
 };
+
+// Sent once after a bulk MMR rebuild (forced recalc / cancellation cascade) to
+// tell clients to refetch pending animations as a batch, so they surface as a
+// single grouped recap instead of trickling in one-by-one.
+export interface MmrRecapReadyPayload {
+  seasonId: string;
+  tournamentId: string;
+}
+
+export type MmrRecapReadyEvent = {
+  event: 'mmr_recap_ready';
+  data: MmrRecapReadyPayload;
+};

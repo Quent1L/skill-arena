@@ -502,7 +502,7 @@
     "cancelMatch": "Cancel match",
     "cancelNote": "Only the player who entered this match or an administrator can cancel it.",
     "completeMatch": "Complete match",
-    "confirmCancel": "No, keep it",
+    "confirmCancel": "Yes, cancel match",
     "disputeButton": "Dispute",
     "disputeFinalizedDialogTitle": "Dispute finalized result",
     "disputeReasonLabel": "Dispute reason (optional)",

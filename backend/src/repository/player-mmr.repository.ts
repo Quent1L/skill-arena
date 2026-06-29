@@ -203,6 +203,39 @@ export class PlayerMmrRepository {
       .orderBy(asc(matches.playedAt));
   }
 
+  // Multi-player variant of getMmrHistoryOrdered: one query for a whole cascade.
+  // Returns playerId -> history rows (ascending by playedAt).
+  async getMmrHistoryOrderedForPlayers(
+    seasonId: string,
+    playerIds: string[],
+  ): Promise<Map<string, { matchId: string; mmrBefore: number; mmrAfter: number; mmrDelta: number }[]>> {
+    const result = new Map<string, { matchId: string; mmrBefore: number; mmrAfter: number; mmrDelta: number }[]>();
+    if (playerIds.length === 0) return result;
+    const rows = await db
+      .select({
+        playerId: mmrHistory.playerId,
+        matchId: mmrHistory.matchId,
+        mmrBefore: mmrHistory.mmrBefore,
+        mmrAfter: mmrHistory.mmrAfter,
+        mmrDelta: mmrHistory.mmrDelta,
+      })
+      .from(mmrHistory)
+      .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
+      .where(
+        and(
+          eq(mmrHistory.seasonId, seasonId),
+          inArray(mmrHistory.playerId, playerIds),
+        ),
+      )
+      .orderBy(asc(matches.playedAt));
+    for (const r of rows) {
+      const list = result.get(r.playerId) ?? [];
+      list.push({ matchId: r.matchId, mmrBefore: r.mmrBefore, mmrAfter: r.mmrAfter, mmrDelta: r.mmrDelta });
+      result.set(r.playerId, list);
+    }
+    return result;
+  }
+
   async createMmrHistory(data: CreateMmrHistoryData) {
     const [created] = await db
       .insert(mmrHistory)

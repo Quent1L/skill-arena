@@ -223,7 +223,7 @@ import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
 import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
-import type { MmrAnimationWsPayload, BadgeAnimationWsPayload } from '@skol-arena/shared'
+import type { MmrAnimationWsPayload, BadgeAnimationWsPayload, MmrRecapReadyPayload } from '@skol-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 import { onWsEvent, onWsOpen, sendWsMessage, useNotificationSocket } from '@/composables/notification/notification.socket'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
@@ -362,6 +362,13 @@ onMounted(async () => {
         const payload = data as BadgeAnimationWsPayload
         if (payload.tournamentId !== tournamentId.value) return
         animationQueue.enqueueBadge(payload)
+      }),
+      // Bulk recalc/cancellation: refetch all pending events at once so they
+      // surface as one grouped recap instead of trickling in individually.
+      onWsEvent('mmr_recap_ready', (data) => {
+        const payload = data as MmrRecapReadyPayload
+        if (payload.tournamentId !== tournamentId.value) return
+        animationQueue.loadPending(tournamentId.value)
       }),
       onWsEvent('leaderboard_updated', () => {
         if (store.playerMmr !== null) store.reloadPlayerProfile()

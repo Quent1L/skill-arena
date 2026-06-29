@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { mmrAnimationEvents, matches, matchSides, tournamentEntries, tournamentEntryPlayers, appUsers } from "../db/schema";
 
@@ -45,6 +45,37 @@ export class MmrAnimationEventRepository {
       })
       .returning();
     return row;
+  }
+
+  // Single round-trip insert for many events (recalc / cancellation cascade).
+  // Same conflict target/set as upsert: re-syncs deltas and re-arms the
+  // animation (viewedAt: null) so the player sees the recalculated matches.
+  async bulkUpsert(rows: UpsertMmrAnimationEventData[]) {
+    if (rows.length === 0) return [];
+    return await db
+      .insert(mmrAnimationEvents)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: [
+          mmrAnimationEvents.playerId,
+          mmrAnimationEvents.seasonId,
+          mmrAnimationEvents.matchId,
+          mmrAnimationEvents.eventType,
+        ],
+        set: {
+          mmrBefore: sql`excluded.mmr_before`,
+          mmrAfter: sql`excluded.mmr_after`,
+          mmrDelta: sql`excluded.mmr_delta`,
+          tierBeforeLevel: sql`excluded.tier_before_level`,
+          tierAfterLevel: sql`excluded.tier_after_level`,
+          tierBeforeName: sql`excluded.tier_before_name`,
+          tierAfterName: sql`excluded.tier_after_name`,
+          rankChanged: sql`excluded.rank_changed`,
+          reason: sql`excluded.reason`,
+          viewedAt: sql`null`,
+        },
+      })
+      .returning();
   }
 
   async getPendingForPlayer(playerId: string, seasonId: string) {
@@ -134,6 +165,37 @@ export class MmrAnimationEventRepository {
         ),
       );
     return new Map(rows.map((r) => [r.matchId, { id: r.id, mmrDelta: r.mmrDelta }]));
+  }
+
+  // Multi-player variant of getOfficialEventDeltasByPlayer: one query for the
+  // whole cascade. Returns playerId -> (matchId -> {id, mmrDelta}).
+  async getOfficialEventDeltasForPlayers(
+    seasonId: string,
+    playerIds: string[],
+  ): Promise<Map<string, Map<string, { id: string; mmrDelta: number }>>> {
+    const result = new Map<string, Map<string, { id: string; mmrDelta: number }>>();
+    if (playerIds.length === 0) return result;
+    const rows = await db
+      .select({
+        id: mmrAnimationEvents.id,
+        playerId: mmrAnimationEvents.playerId,
+        matchId: mmrAnimationEvents.matchId,
+        mmrDelta: mmrAnimationEvents.mmrDelta,
+      })
+      .from(mmrAnimationEvents)
+      .where(
+        and(
+          eq(mmrAnimationEvents.seasonId, seasonId),
+          inArray(mmrAnimationEvents.playerId, playerIds),
+          eq(mmrAnimationEvents.eventType, "official"),
+        ),
+      );
+    for (const r of rows) {
+      const byMatch = result.get(r.playerId) ?? new Map();
+      byMatch.set(r.matchId, { id: r.id, mmrDelta: r.mmrDelta });
+      result.set(r.playerId, byMatch);
+    }
+    return result;
   }
 
   async markViewed(ids: string[]) {

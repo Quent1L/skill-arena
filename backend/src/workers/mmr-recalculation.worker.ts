@@ -62,15 +62,15 @@ const cancelMatchMmr: Task = async (rawPayload) => {
     new Date(cancelledMatchPlayedAt),
   );
 
+  // Persist the cancelled-match summary event + re-sync posterior matches whose
+  // delta changed (kills the phantom flood on the next finalization). No
+  // per-event broadcast — a single mmr_recap_ready ping below makes clients
+  // refetch all pending events as one grouped recap.
   await mmrAnimationEventService
-    .createCancellationEventsAndBroadcast(matchId, tournamentId, mmrChanges)
+    .persistCancellationEvents(matchId, tournamentId, mmrChanges)
     .catch((err) => logger.error({ err }, '[Worker] cancellation animation event failed'));
-
-  // The cancelled match handles itself above; posterior matches had their
-  // history rebuilt by the cascade — re-sync their animation events so a later
-  // finalization does not replay a phantom recap.
   await mmrAnimationEventService
-    .createRecalcEventsAndBroadcast(tournamentId, [...mmrChanges.keys()])
+    .persistRecalcEvents(tournamentId, [...mmrChanges.keys()])
     .catch((err) => logger.error({ err }, '[Worker] cascade recalc animation event failed'));
 
   // MMR history (incl. streak snapshots) is now rebuilt for every affected
@@ -81,6 +81,10 @@ const cancelMatchMmr: Task = async (rawPayload) => {
 
   await refreshRankedCaches(tournamentId);
 
+  webSocketService.broadcastToTournament(tournamentId, {
+    event: 'mmr_recap_ready',
+    data: { seasonId: tournamentId, tournamentId },
+  });
   webSocketService.broadcastToTournament(tournamentId, {
     event: 'leaderboard_updated',
     data: { seasonId: tournamentId },
@@ -117,14 +121,20 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
     await mmrCalculationService.recalculatePlayerMmr(tournamentId, player.playerId);
   }
 
-  // History was rebuilt: re-sync animation events and notify players of the
-  // matches whose MMR actually changed (no need to wait for a new match).
+  // History was rebuilt: re-sync animation events for the matches whose MMR
+  // actually changed (no need to wait for a new match). Batched, no per-event
+  // broadcast — a single mmr_recap_ready ping makes clients refetch as one
+  // grouped recap.
   await mmrAnimationEventService
-    .createRecalcEventsAndBroadcast(tournamentId, players.map((p) => p.playerId))
+    .persistRecalcEvents(tournamentId, players.map((p) => p.playerId))
     .catch((err) => logger.error({ err }, '[Worker] recalc animation event failed'));
 
   await refreshRankedCaches(tournamentId);
 
+  webSocketService.broadcastToTournament(tournamentId, {
+    event: 'mmr_recap_ready',
+    data: { seasonId: tournamentId, tournamentId },
+  });
   webSocketService.broadcastToTournament(tournamentId, {
     event: 'leaderboard_updated',
     data: { seasonId: tournamentId },

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { mmrAnimationEventRepository } from "../repository/mmr-animation-event.repository";
+import type { UpsertMmrAnimationEventData } from "../repository/mmr-animation-event.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
@@ -271,23 +272,27 @@ export class MmrAnimationEventService {
     }
   }
 
-  async createCancellationEventsAndBroadcast(
+  // Persist the cancelled-match summary event per affected player (no live
+  // broadcast — the worker fires a single mmr_recap_ready ping so the client
+  // refetches all pending events as one grouped recap). Returns player ids that
+  // got an event.
+  async persistCancellationEvents(
     matchId: string,
     tournamentId: string,
     mmrChanges: Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>,
-  ): Promise<void> {
-    if (mmrChanges.size === 0) return;
+  ): Promise<string[]> {
+    if (mmrChanges.size === 0) return [];
 
     const tiers = await rankedSeasonRepository.getRankTiers(tournamentId);
+    const rows: UpsertMmrAnimationEventData[] = [];
 
     for (const [playerId, { mmrBefore, mmrAfter, reason }] of mmrChanges) {
       const mmrDelta = mmrAfter - mmrBefore;
       if (mmrDelta === 0) continue;
       const tierBefore = getTierForMmr(mmrBefore, tiers);
       const tierAfter = getTierForMmr(mmrAfter, tiers);
-      const rankChanged = (tierBefore?.level ?? null) !== (tierAfter?.level ?? null);
 
-      const event = await mmrAnimationEventRepository.upsert({
+      rows.push({
         playerId,
         seasonId: tournamentId,
         matchId,
@@ -300,33 +305,65 @@ export class MmrAnimationEventService {
         tierAfterLevel: tierAfter?.level ?? null,
         tierBeforeName: tierBefore?.name ?? null,
         tierAfterName: tierAfter?.name ?? null,
-        rankChanged,
-      });
-
-      webSocketService.send(playerId, {
-        event: "mmr_animation",
-        data: this.buildWsPayload(event, tournamentId),
+        rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
       });
     }
+
+    await mmrAnimationEventRepository.bulkUpsert(rows);
+    return [...new Set(rows.map((r) => r.playerId))];
   }
 
-  // Re-sync and notify after an MMR history rebuild (forced season recalc or
-  // cancellation cascade). Emits a "recalculated" animation only for the past
-  // matches whose delta actually changed, and upserting the new deltas keeps
-  // mmr_animation_events in sync so the next match finalization does not replay
-  // a phantom recap.
-  async createRecalcEventsAndBroadcast(seasonId: string, playerIds: string[]): Promise<void> {
-    if (playerIds.length === 0) return;
+  // Re-sync after an MMR history rebuild (forced season recalc or cancellation
+  // cascade). Persists a "recalculated" event for each past match whose delta
+  // actually changed — keeping mmr_animation_events in sync so the next match
+  // finalization does not replay a phantom recap. Batched: 2 reads + 1 write
+  // for the whole cascade, no per-event broadcast. Returns player ids that got
+  // at least one event.
+  async persistRecalcEvents(seasonId: string, playerIds: string[]): Promise<string[]> {
+    if (playerIds.length === 0) return [];
 
     const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
-    if (!config) return;
+    if (!config) return [];
 
     const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
+    const historyByPlayer = await playerMmrRepository.getMmrHistoryOrderedForPlayers(seasonId, playerIds);
+    const existingByPlayer = await mmrAnimationEventRepository.getOfficialEventDeltasForPlayers(seasonId, playerIds);
+
+    const rows: UpsertMmrAnimationEventData[] = [];
+    const affected = new Set<string>();
 
     for (const playerId of playerIds) {
-      const events = await this.collectOfficialEvents(playerId, null, seasonId, tiers);
-      this.broadcastEvents(playerId, seasonId, events);
+      const history = historyByPlayer.get(playerId) ?? [];
+      const existing = existingByPlayer.get(playerId);
+      if (!existing) continue;
+
+      for (const h of history) {
+        const prev = existing.get(h.matchId);
+        if (!prev || prev.mmrDelta === h.mmrDelta) continue;
+
+        const tierBefore = getTierForMmr(h.mmrBefore, tiers);
+        const tierAfter = getTierForMmr(h.mmrAfter, tiers);
+        rows.push({
+          playerId,
+          seasonId,
+          matchId: h.matchId,
+          eventType: "official",
+          reason: "recalculated",
+          mmrBefore: h.mmrBefore,
+          mmrAfter: h.mmrAfter,
+          mmrDelta: h.mmrDelta,
+          tierBeforeLevel: tierBefore?.level ?? null,
+          tierAfterLevel: tierAfter?.level ?? null,
+          tierBeforeName: tierBefore?.name ?? null,
+          tierAfterName: tierAfter?.name ?? null,
+          rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+        });
+        affected.add(playerId);
+      }
     }
+
+    await mmrAnimationEventRepository.bulkUpsert(rows);
+    return [...affected];
   }
 
   private buildWsPayload(event: MmrAnimationEventRecord, tournamentId: string) {

@@ -502,7 +502,7 @@
     "cancelMatch": "Annuler le match",
     "cancelNote": "Seul le joueur ayant saisi ce match ou un administrateur peut l'annuler.",
     "completeMatch": "Compléter le match",
-    "confirmCancel": "Non, conserver",
+    "confirmCancel": "Oui, annuler le match",
     "disputeButton": "Contester",
     "disputeFinalizedDialogTitle": "Contester le résultat finalisé",
     "disputeReasonLabel": "Raison de la contestation (optionnel)",
