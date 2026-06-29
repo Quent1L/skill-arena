@@ -82,6 +82,7 @@
                 :nemeses="store.playerStats?.stats?.nemeses"
                 :outcome-type-stats="store.playerStats?.stats?.outcomeTypeStats"
                 :season-id="store.tournamentId"
+                :allow-draw="store.tournament?.allowDraw"
               />
               <div
                 v-else-if="!store.rankedLoading"

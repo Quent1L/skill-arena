@@ -83,7 +83,7 @@ export class MatchService {
     }
 
     if (!tournament.scoreEnabled && input.status === 'reported') {
-      matchInputValidator.validateWinnerRequired(input.winnerPosition)
+      matchInputValidator.validateWinnerRequired(input.winnerPosition, tournament.allowDraw ?? false)
       input.scoreA = null
       input.scoreB = null
     } else if (input.status === 'reported' && input.scoreA != null && input.scoreB != null) {

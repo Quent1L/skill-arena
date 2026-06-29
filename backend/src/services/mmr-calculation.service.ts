@@ -43,6 +43,7 @@ interface CheckpointState {
   mmr: number;
   wins: number;
   losses: number;
+  draws: number;
   winStreak: number;
   maxWinStreak: number;
   lossStreak: number;
@@ -118,9 +119,9 @@ export class MmrCalculationService {
     let state: CheckpointState;
     if (fromPlayedAt) {
       checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, fromPlayedAt);
-      state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
+      state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     } else {
-      state = { mmr: config.baseMmr, wins: 0, losses: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
+      state = { mmr: config.baseMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     }
 
     await playerMmrRepository.deleteMmrHistoryForPlayer(seasonId, playerId, fromPlayedAt);
@@ -152,9 +153,10 @@ export class MmrCalculationService {
       seasonId,
       playerId,
       currentMmr: state.mmr,
-      matchesPlayed: state.wins + state.losses,
+      matchesPlayed: state.wins + state.losses + state.draws,
       wins: state.wins,
       losses: state.losses,
+      draws: state.draws,
       winStreak: state.winStreak,
       maxWinStreak: state.maxWinStreak,
       lossStreak: state.lossStreak,
@@ -171,7 +173,7 @@ export class MmrCalculationService {
     lookups: MmrLookups,
   ): Promise<CheckpointState> {
     const { sidesMap, historiesMap, currentMmrMap } = lookups;
-    const isPlacement = state.wins + state.losses < config.placementMatches;
+    const isPlacement = state.wins + state.losses + state.draws < config.placementMatches;
     const raw = sidesMap.get(match.id) ?? { opponentPlayerIds: [], sameTeamPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
     const { opponentPlayerIds, playerWon } = raw;
     const sameTeamPlayerIds = raw.sameTeamPlayerIds ?? [];
@@ -233,7 +235,7 @@ export class MmrCalculationService {
       outcome: outcomeFromWin(playerWon),
       winStreakAfter: newState.winStreak,
       lossStreakAfter: newState.lossStreak,
-      matchesPlayedAfter: newState.wins + newState.losses,
+      matchesPlayedAfter: newState.wins + newState.losses + newState.draws,
     });
 
     return newState;
@@ -271,6 +273,8 @@ export class MmrCalculationService {
       newState.winStreak = 0;
       newState.lossStreak = state.lossStreak + 1;
       newState.maxLossStreak = Math.max(state.maxLossStreak, newState.lossStreak);
+    } else {
+      newState.draws = state.draws + 1;
     }
     return newState;
   }

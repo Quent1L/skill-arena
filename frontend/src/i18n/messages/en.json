@@ -904,6 +904,7 @@
     "bestStreak": "Best streak",
     "currentRank": "Current rank",
     "currentStreak": "Current streak",
+    "drawsShort": "D",
     "lossesShort": "L",
     "matchesCount": "Matches",
     "matchesLabel": "Matches",
@@ -916,6 +917,7 @@
     "vsWeaker": "Weaker",
     "winrateByOpponentLevel": "Win rate by opponent level",
     "winrateLabel": "Win rate",
+    "winsDrawsLosses": "Wins / Draws / Losses",
     "winsLosses": "Wins / Losses",
     "winsShort": "W",
     "worstStreak": "Worst streak"

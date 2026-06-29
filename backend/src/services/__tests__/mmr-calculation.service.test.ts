@@ -391,7 +391,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].maxWinStreak).toBe(2);
     });
 
-    it("les nuls ne comptent pas dans wins/losses/matchesPlayed", async () => {
+    it("les nuls comptent comme draw et dans matchesPlayed, pas dans wins/losses", async () => {
       setupMatches([makeMatch("m1")], {
         m1: makeSideResult({ playerWon: null }),
       });
@@ -400,7 +400,8 @@ describe("MmrCalculationService", () => {
       const call = mockPlayerMmrRepo.upsert.mock.calls.at(-1)!;
       expect(call[0].wins).toBe(0);
       expect(call[0].losses).toBe(0);
-      expect(call[0].matchesPlayed).toBe(0);
+      expect(call[0].draws).toBe(1);
+      expect(call[0].matchesPlayed).toBe(1);
     });
 
     it("MMR plancher à 1 (pas de MMR négatif)", async () => {

@@ -10,6 +10,7 @@ export interface UpsertPlayerMmrData {
   matchesPlayed: number;
   wins: number;
   losses: number;
+  draws?: number;
   winStreak: number;
   maxWinStreak: number;
   lossStreak: number;
@@ -54,9 +55,9 @@ export class PlayerMmrRepository {
       if (players.length === 0) return players;
 
       const recentRows = await tx.execute(sql`
-        SELECT player_id, mmr_delta
+        SELECT player_id, outcome, mmr_delta
         FROM (
-          SELECT mh.player_id, mh.mmr_delta,
+          SELECT mh.player_id, mh.outcome, mh.mmr_delta,
             ROW_NUMBER() OVER (PARTITION BY mh.player_id ORDER BY m.played_at DESC) AS rn
           FROM mmr_history mh
           INNER JOIN matches m ON m.id = mh.match_id
@@ -66,12 +67,16 @@ export class PlayerMmrRepository {
       `);
 
       const resultsByPlayer = new Map<string, { outcome: 'win' | 'loss' | 'draw' }[]>();
-      for (const row of recentRows.rows as { player_id: string; mmr_delta: number }[]) {
+      for (const row of recentRows.rows as { player_id: string; outcome: string | null; mmr_delta: number }[]) {
         const list = resultsByPlayer.get(row.player_id) ?? [];
-        const delta = Number(row.mmr_delta);
-        let outcome: 'win' | 'loss' | 'draw' = 'draw';
-        if (delta > 0) outcome = 'win';
-        else if (delta < 0) outcome = 'loss';
+        let outcome: 'win' | 'loss' | 'draw';
+        if (row.outcome === 'win' || row.outcome === 'loss' || row.outcome === 'draw') {
+          outcome = row.outcome;
+        } else {
+          // Legacy rows without a stored outcome: fall back to delta sign
+          const delta = Number(row.mmr_delta);
+          outcome = delta > 0 ? 'win' : delta < 0 ? 'loss' : 'draw';
+        }
         list.push({ outcome });
         resultsByPlayer.set(row.player_id, list);
       }
@@ -96,6 +101,7 @@ export class PlayerMmrRepository {
           matchesPlayed: data.matchesPlayed,
           wins: data.wins,
           losses: data.losses,
+          draws: data.draws ?? 0,
           winStreak: data.winStreak,
           maxWinStreak: data.maxWinStreak,
           lossStreak: data.lossStreak,
@@ -314,7 +320,7 @@ export class PlayerMmrRepository {
     seasonId: string,
     playerId: string,
     beforePlayedAt: Date,
-  ): Promise<{ mmr: number; wins: number; losses: number; winStreak: number; maxWinStreak: number; lossStreak: number; maxLossStreak: number } | null> {
+  ): Promise<{ mmr: number; wins: number; losses: number; draws: number; winStreak: number; maxWinStreak: number; lossStreak: number; maxLossStreak: number } | null> {
     const rows = await db
       .select({ mmrAfter: mmrHistory.mmrAfter, outcome: mmrHistory.outcome })
       .from(mmrHistory)
@@ -330,16 +336,18 @@ export class PlayerMmrRepository {
 
     if (rows.length === 0) return null;
 
-    let wins = 0, losses = 0, winStreak = 0, maxWinStreak = 0, lossStreak = 0, maxLossStreak = 0;
+    let wins = 0, losses = 0, draws = 0, winStreak = 0, maxWinStreak = 0, lossStreak = 0, maxLossStreak = 0;
     for (const row of rows) {
       if (row.outcome === 'win') {
         wins++; winStreak++; maxWinStreak = Math.max(maxWinStreak, winStreak); lossStreak = 0;
       } else if (row.outcome === 'loss') {
         losses++; winStreak = 0; lossStreak++; maxLossStreak = Math.max(maxLossStreak, lossStreak);
+      } else if (row.outcome === 'draw') {
+        draws++;
       }
     }
 
-    return { mmr: rows[rows.length - 1].mmrAfter, wins, losses, winStreak, maxWinStreak, lossStreak, maxLossStreak };
+    return { mmr: rows[rows.length - 1].mmrAfter, wins, losses, draws, winStreak, maxWinStreak, lossStreak, maxLossStreak };
   }
 
   async preloadOpponentHistories(

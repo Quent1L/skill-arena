@@ -1,0 +1,1 @@
+ALTER TABLE "player_mmr" ADD COLUMN IF NOT EXISTS "draws" integer DEFAULT 0 NOT NULL;

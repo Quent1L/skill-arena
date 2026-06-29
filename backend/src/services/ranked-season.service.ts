@@ -469,6 +469,7 @@ export class RankedSeasonService {
       matchesPlayed: 0,
       wins: 0,
       losses: 0,
+      draws: 0,
       winStreak: 0,
       maxWinStreak: 0,
       lossStreak: 0,

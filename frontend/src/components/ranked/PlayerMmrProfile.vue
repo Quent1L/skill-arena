@@ -100,10 +100,14 @@
         <div
           class="text-xs font-bold text-gray-400 normal-case sm:uppercase tracking-normal sm:tracking-wide mb-2"
         >
-          {{ t('playerMmrProfile.winsLosses') }}
+          {{ showDraws ? t('playerMmrProfile.winsDrawsLosses') : t('playerMmrProfile.winsLosses') }}
         </div>
         <div class="text-2xl font-black">
           <span class="text-green-400">{{ mmr.wins }}{{ t('playerMmrProfile.winsShort') }}</span>
+          <template v-if="showDraws">
+            <span class="text-gray-600 mx-1">/</span>
+            <span class="text-yellow-400">{{ mmr.draws }}{{ t('playerMmrProfile.drawsShort') }}</span>
+          </template>
           <span class="text-gray-600 mx-1">/</span>
           <span class="text-red-400">{{ mmr.losses }}{{ t('playerMmrProfile.lossesShort') }}</span>
         </div>
@@ -282,7 +286,10 @@ const props = defineProps<{
   opponentQuality?: OpponentQualityStats
   recentForm?: Array<'V' | 'D' | 'N'>
   outcomeTypeStats?: PlayerOutcomeTypeStat[]
+  allowDraw?: boolean
 }>()
+
+const showDraws = computed(() => props.allowDraw === true || props.mmr.draws > 0)
 
 const rank = computed((): ClientRankTier | null => {
   if (!props.tiers.length) return null

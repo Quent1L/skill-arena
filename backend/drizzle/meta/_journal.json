@@ -379,6 +379,13 @@
       "when": 1777526400009,
       "tag": "0053_mmr_display_delta",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1777526400010,
+      "tag": "0054_player_mmr_draws",
+      "breakpoints": true
     }
   ]
 }

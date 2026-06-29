@@ -34,6 +34,7 @@ export interface PlayerMmr {
   matchesPlayed: number;
   wins: number;
   losses: number;
+  draws: number;
   winStreak: number;
   maxWinStreak: number;
   lossStreak: number;

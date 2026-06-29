@@ -904,6 +904,7 @@
     "bestStreak": "Meilleure série",
     "currentRank": "Rang actuel",
     "currentStreak": "Série en cours",
+    "drawsShort": "N",
     "lossesShort": "D",
     "matchesCount": "Matchs",
     "matchesLabel": "Matchs",
@@ -916,6 +917,7 @@
     "vsWeaker": "Plus faibles",
     "winrateByOpponentLevel": "Win rate par niveau d'adversaire",
     "winrateLabel": "Winrate",
+    "winsDrawsLosses": "Victoires / Nuls / Défaites",
     "winsLosses": "Victoires / Défaites",
     "winsShort": "V",
     "worstStreak": "Pire série"

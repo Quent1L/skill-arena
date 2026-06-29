@@ -83,7 +83,8 @@ export class MatchInputValidator {
         }
     }
 
-    validateWinnerRequired(winnerPosition?: number | null): void {
+    validateWinnerRequired(winnerPosition?: number | null, allowDraw = false): void {
+        if (winnerPosition === null && allowDraw) return;
         if (winnerPosition === undefined || winnerPosition === null) {
             throw new BadRequestError(ErrorCode.MATCH_WINNER_REQUIRED);
         }

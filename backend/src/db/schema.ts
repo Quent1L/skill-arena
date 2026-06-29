@@ -671,6 +671,7 @@ export const playerMmr = pgTable(
     matchesPlayed: integer("matches_played").notNull().default(0),
     wins: integer("wins").notNull().default(0),
     losses: integer("losses").notNull().default(0),
+    draws: integer("draws").notNull().default(0),
     winStreak: integer("win_streak").notNull().default(0),
     maxWinStreak: integer("max_win_streak").notNull().default(0),
     lossStreak: integer("loss_streak").notNull().default(0),
