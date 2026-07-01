@@ -1,5 +1,6 @@
 ---
 import Logo from './Logo.astro'
+import Icon from './Icon.astro'
 
 const links = [
   { href: '/', label: 'Home' },
@@ -7,23 +8,82 @@ const links = [
   { href: '/about', label: 'About' },
   { href: '/docs', label: 'Docs' },
 ]
+
+const path = Astro.url.pathname
+const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href))
 ---
 
-<header class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
-  <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+<header class="sticky top-0 z-50 border-b border-white/10 bg-slate-900/70 backdrop-blur-lg">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
     <a href="/" class="flex items-center">
-      <Logo width={140} height={51} />
+      <Logo width={130} height={47} />
     </a>
-    <ul class="flex gap-6 text-sm font-medium text-slate-200">
+    <ul class="hidden items-center gap-1 text-sm font-medium sm:flex">
       {
         links.map((link) => (
           <li>
-            <a href={link.href} class="transition-colors hover:text-brand-mid">
+            <a
+              href={link.href}
+              aria-current={isActive(link.href) ? 'page' : undefined}
+              class={`rounded-full px-4 py-2 transition-colors ${
+                isActive(link.href)
+                  ? 'bg-white/10 text-brand-mid'
+                  : 'text-slate-300 hover:bg-white/5 hover:text-brand-mid'
+              }`}
+            >
               {link.label}
             </a>
           </li>
         ))
       }
+      <li>
+        <a
+          href="https://github.com/Quent1L/skol-arena"
+          target="_blank"
+          rel="noreferrer"
+          class="ml-2 flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-slate-200 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          <Icon name="github" class="h-4 w-4" />
+          GitHub
+        </a>
+      </li>
     </ul>
+
+    <details class="group relative sm:hidden">
+      <summary
+        class="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-lg border border-white/15 text-slate-200"
+      >
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+      </summary>
+      <ul
+        class="absolute top-11 right-0 flex w-48 flex-col gap-1 rounded-xl border border-white/10 bg-slate-900 p-2 text-sm shadow-xl shadow-black/40"
+      >
+        {
+          links.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                class={`block rounded-lg px-3 py-2 ${isActive(link.href) ? 'bg-white/10 text-brand-mid' : 'text-slate-300 hover:bg-white/5'}`}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+        <li>
+          <a
+            href="https://github.com/Quent1L/skol-arena"
+            target="_blank"
+            rel="noreferrer"
+            class="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-300 hover:bg-white/5"
+          >
+            <Icon name="github" class="h-4 w-4" />
+            GitHub
+          </a>
+        </li>
+      </ul>
+    </details>
   </nav>
 </header>

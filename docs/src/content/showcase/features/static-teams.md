@@ -1,7 +1,7 @@
 ---
 title: Static team rosters
 summary: Persistent teams that carry the same lineup across an entire tournament.
-order: 2
+order: 5
 icon: users
 ---
 

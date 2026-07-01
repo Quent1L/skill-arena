@@ -1,5 +1,6 @@
 ---
 import Nav from '../components/Nav.astro'
+import Icon from '../components/Icon.astro'
 import '../styles/global.css'
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
   description?: string
 }
 const { title, description = 'Skol Arena — tournament management, done right.' } = Astro.props
+const repoUrl = 'https://github.com/Quent1L/skol-arena'
 ---
 
 <!doctype html>
@@ -19,15 +21,37 @@ const { title, description = 'Skol Arena — tournament management, done right.'
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content="/logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <title>{title} · Skol Arena</title>
   </head>
-  <body class="min-h-screen bg-slate-900 text-slate-100">
+  <body class="min-h-screen text-slate-100">
     <Nav />
     <main>
       <slot />
     </main>
-    <footer class="border-t border-white/10 py-8 text-center text-sm text-slate-400">
-      <p>Skol Arena — Skill Or Luck?</p>
+    <footer class="border-t border-white/10 bg-black/20">
+      <div
+        class="mx-auto flex max-w-6xl flex-col items-center gap-4 px-6 py-10 text-sm text-slate-400 sm:flex-row sm:justify-between"
+      >
+        <p>Skol Arena — Skill Or Luck? Open source, self-hostable.</p>
+        <div class="flex items-center gap-5">
+          <a href="/docs" class="transition-colors hover:text-brand-mid">Docs</a>
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noreferrer"
+            class="flex items-center gap-2 transition-colors hover:text-brand-mid"
+          >
+            <Icon name="github" class="h-4 w-4" />
+            GitHub
+          </a>
+        </div>
+      </div>
     </footer>
   </body>
 </html>

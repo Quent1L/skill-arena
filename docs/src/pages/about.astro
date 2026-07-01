@@ -1,27 +1,136 @@
 ---
 import { getEntry, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
+import Icon from '../components/Icon.astro'
 
 const why = await getEntry('showcase', 'why')
 if (!why) throw new Error('Missing showcase/why.md content entry')
 const { Content } = await render(why)
+
+const audiences = [
+  {
+    icon: 'trophy',
+    title: 'Ranked ladders',
+    desc: 'Ongoing competitive groups who want a real rating that persists season to season.',
+  },
+  {
+    icon: 'flag',
+    title: 'Recurring leagues',
+    desc: 'Office, campus, or club competitions that run the same format week after week.',
+  },
+  {
+    icon: 'bolt',
+    title: 'Esports & gaming',
+    desc: 'Scrims and community tournaments across any discipline you configure.',
+  },
+  {
+    icon: 'users',
+    title: 'Tabletop & board games',
+    desc: 'Static team rosters and championships for regular game nights.',
+  },
+]
+
+const stack = [
+  { icon: 'bolt', label: 'Frontend', value: 'Vue 3, Vite, TailwindCSS, PrimeVue' },
+  { icon: 'chart', label: 'Backend', value: 'Hono, Bun, Drizzle ORM, PostgreSQL' },
+  { icon: 'lock', label: 'Auth', value: 'Better Auth — native login or Keycloak SSO' },
+  { icon: 'layers', label: 'Architecture', value: 'Routes → Services → Repositories' },
+]
 ---
 
-<BaseLayout title="About" description="Why Skol Arena exists and what it's built with.">
-  <section class="mx-auto max-w-3xl px-6 py-20">
-    <h1 class="text-3xl font-bold text-brand-mid sm:text-4xl">{why.data.title}</h1>
-    <div class="mt-6 text-lg leading-relaxed text-slate-300 [&_p]:mb-4">
-      <Content />
-    </div>
+<BaseLayout
+  title="About"
+  description="Why Skol Arena exists, who it's for, and what it's built with."
+>
+  <section class="relative overflow-hidden">
+    <div class="bg-grid pointer-events-none absolute inset-0"></div>
+    <div class="relative mx-auto max-w-3xl px-6 py-20">
+      <h1 class="animate-fade-up text-3xl font-extrabold sm:text-4xl">
+        <span class="text-gradient">{why.data.title}</span>
+      </h1>
+      <div
+        class="animate-fade-up mt-6 text-lg leading-relaxed text-slate-300 [&_p]:mb-4"
+        style="animation-delay: 0.05s"
+      >
+        <Content />
+      </div>
 
-    <h2 class="mt-12 mb-4 text-xl font-semibold text-brand-mid">Stack</h2>
-    <ul class="grid grid-cols-1 gap-3 text-slate-300 sm:grid-cols-2">
-      <li><strong class="text-slate-100">Frontend:</strong> Vue 3, Vite, TailwindCSS, PrimeVue</li>
-      <li><strong class="text-slate-100">Backend:</strong> Hono, Bun, Drizzle ORM, PostgreSQL</li>
-      <li><strong class="text-slate-100">Auth:</strong> Better Auth</li>
-      <li>
-        <strong class="text-slate-100">Architecture:</strong> Routes → Services → Repositories
-      </li>
-    </ul>
+      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Who it's for</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {
+          audiences.map((item) => (
+            <div class="card-glow flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-start/15 text-brand-mid">
+                <Icon name={item.icon} class="h-4 w-4" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-white">{item.title}</p>
+                <p class="text-sm text-slate-400">{item.desc}</p>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Stack</h2>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {
+          stack.map((item) => (
+            <div class="card-glow flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-start/15 text-brand-mid">
+                <Icon name={item.icon} class="h-4 w-4" />
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-white">{item.label}</p>
+                <p class="text-sm text-slate-400">{item.value}</p>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+
+      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Open source</h2>
+      <div class="card-glow rounded-xl border border-white/10 bg-white/[0.03] p-6">
+        <div class="mb-3 flex items-center gap-3">
+          <div
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-start/15 text-brand-mid"
+          >
+            <Icon name="scale" class="h-4 w-4" />
+          </div>
+          <p class="font-semibold text-white">AGPL-3.0</p>
+        </div>
+        <p class="text-sm leading-relaxed text-slate-400">
+          Skol Arena is licensed under the GNU Affero General Public License v3.0. You're free to
+          self-host it, read the code, and modify it for your own community. The one thing AGPL asks
+          in return: if you run a modified version as a network service for others, you make your
+          changes' source available to them too — the copyleft extends to hosted use, not just
+          distributed copies.
+        </p>
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-3">
+        <a
+          href="https://github.com/Quent1L/skol-arena"
+          target="_blank"
+          rel="noreferrer"
+          class="flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
+        >
+          <Icon name="github" class="h-5 w-5" />
+          View source on GitHub
+        </a>
+        <a
+          href="/docs"
+          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          Self-hosting docs
+        </a>
+        <a
+          href="/features"
+          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          Explore features
+        </a>
+      </div>
+    </div>
   </section>
 </BaseLayout>

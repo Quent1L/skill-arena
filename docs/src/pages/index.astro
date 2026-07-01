@@ -2,45 +2,165 @@
 import { getEntry, getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Logo from '../components/Logo.astro'
+import Icon from '../components/Icon.astro'
 import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
+import RankedSpotlight from '../components/RankedSpotlight.astro'
 
 const hero = await getEntry('showcase', 'hero')
 if (!hero) throw new Error('Missing showcase/hero.md content entry')
 const { Content: HeroContent } = await render(hero)
 
+const RANKED_ID = 'features/ranked-mode'
 const allFeatures = await getCollection('showcase', ({ id }) => id.startsWith('features/'))
-const highlights = allFeatures.sort((a, b) => a.data.order - b.data.order).slice(0, 4)
+const sortedFeatures = allFeatures.sort((a, b) => a.data.order - b.data.order)
+const highlights = sortedFeatures.filter((f) => f.id !== RANKED_ID).slice(0, 6)
+const rankedFeature = sortedFeatures.find((f) => f.id === RANKED_ID)
+if (!rankedFeature) throw new Error('Missing showcase/features/ranked-mode.md content entry')
+
+const badges = [
+  { icon: 'scale', label: 'AGPL-3.0 licensed' },
+  { icon: 'docker', label: 'Docker-ready' },
+  { icon: 'globe', label: 'FR / EN' },
+]
 ---
 
 <BaseLayout title="Home">
-  <section class="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20 text-center">
-    <Logo width={280} height={101} />
-    <h1 class="text-3xl font-bold text-brand-mid sm:text-4xl">{hero.data.title}</h1>
-    <div class="max-w-none text-lg leading-relaxed text-slate-300 [&_p]:mb-4">
-      <HeroContent />
-    </div>
-    <a
-      href="/features"
-      class="rounded-full bg-brand-start px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-mid"
+  <section class="relative overflow-hidden">
+    <div
+      class="animate-float pointer-events-none absolute top-[-10rem] left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-brand-start/25 blur-3xl"
     >
-      Discover the features
-    </a>
-    <ScreenshotPlaceholder caption="Dashboard preview" />
+    </div>
+    <div
+      class="pointer-events-none absolute top-10 right-[-6rem] h-72 w-72 rounded-full bg-brand-end/20 blur-3xl"
+    >
+    </div>
+    <div class="bg-grid pointer-events-none absolute inset-0"></div>
+
+    <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20 text-center">
+      <div class="animate-fade-up">
+        <Logo width={280} height={101} />
+      </div>
+      <span
+        class="animate-fade-up flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-300"
+        style="animation-delay: 0.05s"
+      >
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400"></span>
+        Open source · Self-hostable · v1.15
+      </span>
+      <h1
+        class="animate-fade-up text-4xl leading-tight font-extrabold text-balance sm:text-5xl"
+        style="animation-delay: 0.1s"
+      >
+        <span class="text-gradient">{hero.data.title}</span>
+      </h1>
+      <div
+        class="animate-fade-up max-w-none text-lg leading-relaxed text-slate-300 [&_p]:mb-4"
+        style="animation-delay: 0.15s"
+      >
+        <HeroContent />
+      </div>
+      <div
+        class="animate-fade-up flex flex-wrap items-center justify-center gap-3"
+        style="animation-delay: 0.2s"
+      >
+        <a
+          href="/features"
+          class="rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
+        >
+          Discover the features
+        </a>
+        <a
+          href="https://github.com/Quent1L/skol-arena"
+          target="_blank"
+          rel="noreferrer"
+          class="flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          <Icon name="github" class="h-5 w-5" />
+          View on GitHub
+        </a>
+      </div>
+
+      <div
+        class="animate-fade-up mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-400"
+        style="animation-delay: 0.25s"
+      >
+        {
+          badges.map((badge) => (
+            <span class="flex items-center gap-1.5">
+              <Icon name={badge.icon} class="h-4 w-4 text-brand-mid" />
+              {badge.label}
+            </span>
+          ))
+        }
+      </div>
+
+      <div class="animate-fade-up w-full pt-6" style="animation-delay: 0.3s">
+        <ScreenshotPlaceholder caption="Dashboard preview" />
+      </div>
+    </div>
   </section>
 
-  <section class="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-6 pb-20 sm:grid-cols-2">
-    {
-      highlights.map(async (feature) => {
-        const { Content } = await render(feature)
-        return (
-          <div class="rounded-xl border border-white/10 bg-white/5 p-6">
-            <h2 class="mb-2 text-lg font-semibold text-brand-mid">{feature.data.title}</h2>
-            <div class="text-sm text-slate-300 [&_p]:mb-2">
-              <Content />
+  <section class="relative mx-auto max-w-6xl px-6 pb-24">
+    <div class="mx-auto mb-10 max-w-xl text-center">
+      <h2 class="text-2xl font-bold text-white sm:text-3xl">Everything an organizer needs</h2>
+      <p class="mt-2 text-slate-400">From bracket day one to a persistent ranked ladder.</p>
+    </div>
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        highlights.map(async (feature) => {
+          const { Content } = await render(feature)
+          return (
+            <div class="card-glow group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:bg-white/[0.05]">
+              <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid transition-transform group-hover:scale-110">
+                <Icon name={feature.data.icon ?? 'bolt'} class="h-5 w-5" />
+              </div>
+              <div class="mb-2 flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-white">{feature.data.title}</h3>
+                {feature.data.badge && (
+                  <span class="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
+                    {feature.data.badge}
+                  </span>
+                )}
+              </div>
+              <div class="prose prose-invert prose-sm max-w-none text-slate-400 prose-headings:font-semibold prose-headings:text-white prose-strong:text-slate-200 prose-a:text-brand-mid [&_p]:mb-2">
+                <Content />
+              </div>
             </div>
-          </div>
-        )
-      })
-    }
+          )
+        })
+      }
+    </div>
+    <div class="mt-10 text-center">
+      <a href="/features" class="text-sm font-semibold text-brand-mid hover:text-brand-end">
+        See all features →
+      </a>
+    </div>
+  </section>
+
+  <section class="relative mx-auto max-w-5xl px-6 pb-24">
+    <RankedSpotlight variant="home" feature={rankedFeature} />
+  </section>
+
+  <section class="relative border-t border-white/10 bg-black/20">
+    <div class="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-16 text-center">
+      <h2 class="text-2xl font-bold text-white sm:text-3xl">Ready to run your first tournament?</h2>
+      <p class="text-slate-400">
+        Spin up Skol Arena with a single Docker container and your own PostgreSQL database.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/docs"
+          class="rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
+        >
+          Read the self-hosting docs
+        </a>
+        <a
+          href="/about"
+          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          Why Skol Arena
+        </a>
+      </div>
+    </div>
   </section>
 </BaseLayout>

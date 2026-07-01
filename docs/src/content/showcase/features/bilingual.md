@@ -1,7 +1,7 @@
 ---
 title: Bilingual by default
 summary: The app itself ships in French and English.
-order: 8
+order: 9
 icon: globe
 ---
 

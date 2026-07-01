@@ -9,6 +9,7 @@ const showcase = defineCollection({
     summary: z.string().optional(),
     order: z.number().default(0),
     icon: z.string().optional(),
+    badge: z.string().optional(),
   }),
 })
 

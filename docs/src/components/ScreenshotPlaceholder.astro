@@ -7,8 +7,33 @@ const { caption, aspectClass = 'aspect-video' } = Astro.props
 ---
 
 <div
-  class={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-mid/40 bg-brand-start/10 p-6 text-sm text-brand-mid/80 ${aspectClass}`}
+  class={`group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl shadow-brand-start/10 ${aspectClass}`}
 >
-  <span aria-hidden="true" class="text-3xl">🖼️</span>
-  <p>{caption}</p>
+  <div class="flex items-center gap-1.5 border-b border-white/10 bg-white/5 px-4 py-2.5">
+    <span class="h-2.5 w-2.5 rounded-full bg-red-400/70"></span>
+    <span class="h-2.5 w-2.5 rounded-full bg-yellow-400/70"></span>
+    <span class="h-2.5 w-2.5 rounded-full bg-green-400/70"></span>
+    <span class="ml-3 rounded-md bg-white/5 px-3 py-0.5 text-xs text-slate-500">skol-arena.app</span
+    >
+  </div>
+  <div
+    class="relative flex h-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-start/15 via-slate-900 to-slate-900 p-6 text-center"
+  >
+    <div class="bg-grid absolute inset-0 opacity-60"></div>
+    <div class="relative flex flex-col items-center gap-2">
+      <svg
+        class="h-8 w-8 text-brand-mid/70"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+        <path d="m3 15 4.5-4.5a2 2 0 0 1 2.83 0L15 15m2-2 1.5-1.5a2 2 0 0 1 2.83 0L21 13"></path>
+        <circle cx="8" cy="8.5" r="1.2" fill="currentColor" stroke="none"></circle>
+      </svg>
+      <p class="text-sm font-medium text-slate-400">{caption}</p>
+      <p class="text-xs text-slate-500">Screenshot coming soon</p>
+    </div>
+  </div>
 </div>

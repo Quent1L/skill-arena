@@ -1,7 +1,7 @@
 ---
 title: Game rules pages
 summary: Rich-text rules, written once, linked from any tournament.
-order: 6
+order: 7
 icon: book
 ---
 

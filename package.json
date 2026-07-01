@@ -2,6 +2,7 @@
   "name": "skol-arena-monorepo",
   "version": "1.16.0",
   "description": "Skol - Tournament Management Application",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "repository": {

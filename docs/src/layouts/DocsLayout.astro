@@ -12,28 +12,56 @@ const navItems = [
   { href: '/docs/environment-variables', label: 'Environment Variables' },
   { href: '/docs/deployment', label: 'Deployment' },
 ]
+
+const path = Astro.url.pathname
+const isActive = (href: string) => (href === '/docs' ? path === '/docs' : path.startsWith(href))
 ---
 
 <BaseLayout title={frontmatter.title} description={frontmatter.description}>
-  <div class="mx-auto flex max-w-6xl gap-10 px-6 py-12">
-    <aside class="hidden w-56 shrink-0 sm:block">
-      <nav class="sticky top-6 flex flex-col gap-1 text-sm">
+  <div class="relative overflow-hidden">
+    <div class="bg-grid pointer-events-none absolute inset-0 opacity-40"></div>
+    <div class="relative mx-auto flex max-w-6xl gap-10 px-6 py-12">
+      <aside class="hidden w-56 shrink-0 sm:block">
+        <nav class="sticky top-24 flex flex-col gap-1 text-sm">
+          <p class="mb-2 px-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+            Documentation
+          </p>
+          {
+            navItems.map((item) => (
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class={`rounded-lg border-l-2 px-3 py-2 transition-colors ${
+                  isActive(item.href)
+                    ? 'border-brand-mid bg-white/5 font-medium text-brand-mid'
+                    : 'border-transparent text-slate-300 hover:bg-white/5 hover:text-brand-mid'
+                }`}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </aside>
+
+      <select
+        onchange="window.location.href=this.value"
+        class="mb-2 w-full rounded-lg border border-white/15 bg-slate-900 px-3 py-2 text-sm text-slate-200 sm:hidden"
+      >
         {
           navItems.map((item) => (
-            <a
-              href={item.href}
-              class="rounded-lg px-3 py-2 text-slate-300 transition-colors hover:bg-white/5 hover:text-brand-mid"
-            >
+            <option value={item.href} selected={isActive(item.href)}>
               {item.label}
-            </a>
+            </option>
           ))
         }
-      </nav>
-    </aside>
-    <article
-      class="prose prose-invert min-w-0 max-w-none flex-1 prose-headings:text-brand-mid prose-a:text-brand-mid prose-code:text-brand-end"
-    >
-      <slot />
-    </article>
+      </select>
+
+      <article
+        class="prose prose-invert min-w-0 max-w-none flex-1 prose-headings:font-bold prose-headings:text-white prose-h2:mt-10 prose-h2:border-b prose-h2:border-white/10 prose-h2:pb-2 prose-a:text-brand-mid prose-a:no-underline hover:prose-a:underline prose-code:rounded prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-brand-end prose-code:before:content-none prose-code:after:content-none prose-pre:border prose-pre:border-white/10 prose-pre:bg-black/40 prose-th:text-slate-200 prose-strong:text-slate-100"
+      >
+        <slot />
+      </article>
+    </div>
   </div>
 </BaseLayout>
