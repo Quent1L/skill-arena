@@ -1,0 +1,14 @@
+---
+interface Props {
+  caption: string
+  aspectClass?: string
+}
+const { caption, aspectClass = 'aspect-video' } = Astro.props
+---
+
+<div
+  class={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-mid/40 bg-brand-start/10 p-6 text-sm text-brand-mid/80 ${aspectClass}`}
+>
+  <span aria-hidden="true" class="text-3xl">🖼️</span>
+  <p>{caption}</p>
+</div>

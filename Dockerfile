@@ -13,6 +13,7 @@ COPY package.json bun.lock ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
+COPY docs/package.json ./docs/
 
 # Installer TOUTES les deps (y compris devDependencies pour le build)
 RUN --mount=type=cache,target=/root/.bun/install/cache \

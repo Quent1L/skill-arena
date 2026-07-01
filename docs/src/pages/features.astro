@@ -1,0 +1,33 @@
+---
+import { getCollection, render } from 'astro:content'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
+
+const allFeatures = await getCollection('showcase', ({ id }) => id.startsWith('features/'))
+const features = allFeatures.sort((a, b) => a.data.order - b.data.order)
+---
+
+<BaseLayout title="Features" description="Everything Skol Arena does, in one page.">
+  <section class="mx-auto max-w-3xl px-6 py-16 text-center">
+    <h1 class="text-3xl font-bold text-brand-mid sm:text-4xl">Features</h1>
+    <p class="mt-4 text-slate-300">Everything you need to run a competitive community.</p>
+  </section>
+
+  <section class="mx-auto flex max-w-3xl flex-col gap-16 px-6 pb-24">
+    {
+      features.map(async (feature) => {
+        const { Content } = await render(feature)
+        return (
+          <article class="flex flex-col gap-4">
+            <h2 class="text-2xl font-semibold text-brand-mid">{feature.data.title}</h2>
+            {feature.data.summary && <p class="text-slate-400 italic">{feature.data.summary}</p>}
+            <div class="text-slate-300 [&_p]:mb-3">
+              <Content />
+            </div>
+            <ScreenshotPlaceholder caption={`${feature.data.title} screenshot`} />
+          </article>
+        )
+      })
+    }
+  </section>
+</BaseLayout>

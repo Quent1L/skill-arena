@@ -1,0 +1,27 @@
+---
+import { getEntry, render } from 'astro:content'
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const why = await getEntry('showcase', 'why')
+if (!why) throw new Error('Missing showcase/why.md content entry')
+const { Content } = await render(why)
+---
+
+<BaseLayout title="About" description="Why Skol Arena exists and what it's built with.">
+  <section class="mx-auto max-w-3xl px-6 py-20">
+    <h1 class="text-3xl font-bold text-brand-mid sm:text-4xl">{why.data.title}</h1>
+    <div class="mt-6 text-lg leading-relaxed text-slate-300 [&_p]:mb-4">
+      <Content />
+    </div>
+
+    <h2 class="mt-12 mb-4 text-xl font-semibold text-brand-mid">Stack</h2>
+    <ul class="grid grid-cols-1 gap-3 text-slate-300 sm:grid-cols-2">
+      <li><strong class="text-slate-100">Frontend:</strong> Vue 3, Vite, TailwindCSS, PrimeVue</li>
+      <li><strong class="text-slate-100">Backend:</strong> Hono, Bun, Drizzle ORM, PostgreSQL</li>
+      <li><strong class="text-slate-100">Auth:</strong> Better Auth</li>
+      <li>
+        <strong class="text-slate-100">Architecture:</strong> Routes → Services → Repositories
+      </li>
+    </ul>
+  </section>
+</BaseLayout>

@@ -1,0 +1,46 @@
+---
+import { getEntry, getCollection, render } from 'astro:content'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import Logo from '../components/Logo.astro'
+import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
+
+const hero = await getEntry('showcase', 'hero')
+if (!hero) throw new Error('Missing showcase/hero.md content entry')
+const { Content: HeroContent } = await render(hero)
+
+const allFeatures = await getCollection('showcase', ({ id }) => id.startsWith('features/'))
+const highlights = allFeatures.sort((a, b) => a.data.order - b.data.order).slice(0, 4)
+---
+
+<BaseLayout title="Home">
+  <section class="mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20 text-center">
+    <Logo width={280} height={101} />
+    <h1 class="text-3xl font-bold text-brand-mid sm:text-4xl">{hero.data.title}</h1>
+    <div class="max-w-none text-lg leading-relaxed text-slate-300 [&_p]:mb-4">
+      <HeroContent />
+    </div>
+    <a
+      href="/features"
+      class="rounded-full bg-brand-start px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-mid"
+    >
+      Discover the features
+    </a>
+    <ScreenshotPlaceholder caption="Dashboard preview" />
+  </section>
+
+  <section class="mx-auto grid max-w-5xl grid-cols-1 gap-6 px-6 pb-20 sm:grid-cols-2">
+    {
+      highlights.map(async (feature) => {
+        const { Content } = await render(feature)
+        return (
+          <div class="rounded-xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-2 text-lg font-semibold text-brand-mid">{feature.data.title}</h2>
+            <div class="text-sm text-slate-300 [&_p]:mb-2">
+              <Content />
+            </div>
+          </div>
+        )
+      })
+    }
+  </section>
+</BaseLayout>

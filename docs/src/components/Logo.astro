@@ -1,0 +1,106 @@
+---
+interface Props {
+  width?: number
+  height?: number
+  class?: string
+}
+const { width = 360, height = 130, class: className } = Astro.props
+---
+
+<svg
+  width={width}
+  height={height}
+  viewBox="0 0 360 130"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="Skol Arena logo"
+  class={className}
+>
+  <defs>
+    <linearGradient id="sk-text" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color: #7c3aed"></stop>
+      <stop offset="50%" style="stop-color: #a78bfa"></stop>
+      <stop offset="100%" style="stop-color: #c084fc"></stop>
+    </linearGradient>
+    <linearGradient id="sk-die" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #a78bfa"></stop>
+      <stop offset="100%" style="stop-color: #7c3aed"></stop>
+    </linearGradient>
+    <filter id="sk-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"></feGaussianBlur>
+      <feMerge
+        ><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"
+        ></feMergeNode></feMerge
+      >
+    </filter>
+    <filter id="sk-text-glow" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur stdDeviation="2" result="blur"></feGaussianBlur>
+      <feMerge
+        ><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"
+        ></feMergeNode></feMerge
+      >
+    </filter>
+  </defs>
+
+  <g>
+    <text
+      x="180"
+      y="108"
+      font-family="'Exo 2', 'Rajdhani', sans-serif"
+      font-size="100"
+      font-weight="900"
+      fill="url(#sk-text)"
+      text-anchor="middle"
+      letter-spacing="6"
+      filter="url(#sk-text-glow)">SKOL</text
+    >
+  </g>
+
+  <line
+    x1="30"
+    y1="118"
+    x2="330"
+    y2="118"
+    stroke="url(#sk-text)"
+    stroke-width="3"
+    stroke-linecap="round"
+    opacity="0.35"></line>
+
+  <g filter="url(#sk-glow)">
+    <g transform="translate(268, 8) rotate(15, 26, 26)">
+      <rect x="0" y="0" width="52" height="52" rx="10" fill="url(#sk-die)"></rect>
+      <rect x="0" y="0" width="52" height="20" rx="10" fill="rgba(255,255,255,0.18)"></rect>
+      <circle cx="13" cy="13" r="5.5" fill="white" opacity="0.95"></circle>
+      <circle cx="26" cy="26" r="5.5" fill="white" opacity="0.95"></circle>
+      <circle cx="39" cy="39" r="5.5" fill="white" opacity="0.95"></circle>
+      <rect
+        x="0"
+        y="0"
+        width="52"
+        height="52"
+        rx="10"
+        fill="none"
+        stroke="rgba(255,255,255,0.15)"
+        stroke-width="1.5"></rect>
+    </g>
+  </g>
+
+  <text
+    x="303"
+    y="76"
+    font-family="'Exo 2', sans-serif"
+    font-size="16"
+    font-weight="900"
+    fill="#a78bfa"
+    text-anchor="middle"
+    opacity="0.7">?</text
+  >
+
+  <g>
+    <circle cx="252" cy="18" r="2" fill="#a78bfa"></circle>
+    <circle cx="335" cy="35" r="1.5" fill="#c084fc"></circle>
+    <circle cx="318" cy="8" r="1.5" fill="#a78bfa"></circle>
+    <circle cx="245" cy="42" r="1" fill="#7c3aed"></circle>
+    <circle cx="345" cy="15" r="1" fill="#c084fc"></circle>
+  </g>
+</svg>

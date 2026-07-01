@@ -26,7 +26,8 @@
 
 # Documentation
 **/README.md
-**/docs
+**/docs/**
+!docs/package.json
 **/*.md
 
 # Tests

@@ -1,0 +1,33 @@
+---
+import Nav from '../components/Nav.astro'
+import '../styles/global.css'
+
+interface Props {
+  title: string
+  description?: string
+}
+const { title, description = 'Skol Arena — tournament management, done right.' } = Astro.props
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="/logo.svg" />
+    <title>{title} · Skol Arena</title>
+  </head>
+  <body class="min-h-screen bg-slate-900 text-slate-100">
+    <Nav />
+    <main>
+      <slot />
+    </main>
+    <footer class="border-t border-white/10 py-8 text-center text-sm text-slate-400">
+      <p>Skol Arena — Skill Or Luck?</p>
+    </footer>
+  </body>
+</html>

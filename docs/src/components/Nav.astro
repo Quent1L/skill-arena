@@ -1,0 +1,29 @@
+---
+import Logo from './Logo.astro'
+
+// future: self-hosting docs nav entry goes here once that facet is built (route: /docs)
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/features', label: 'Features' },
+  { href: '/about', label: 'About' },
+]
+---
+
+<header class="border-b border-white/10 bg-slate-900/80 backdrop-blur">
+  <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+    <a href="/" class="flex items-center">
+      <Logo width={140} height={51} />
+    </a>
+    <ul class="flex gap-6 text-sm font-medium text-slate-200">
+      {
+        links.map((link) => (
+          <li>
+            <a href={link.href} class="transition-colors hover:text-brand-mid">
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+</header>
