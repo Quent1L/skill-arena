@@ -1,0 +1,39 @@
+---
+import BaseLayout from './BaseLayout.astro'
+
+interface Frontmatter {
+  title: string
+  description?: string
+}
+const { frontmatter } = Astro.props as { frontmatter: Frontmatter }
+
+const navItems = [
+  { href: '/docs', label: 'Overview' },
+  { href: '/docs/environment-variables', label: 'Environment Variables' },
+  { href: '/docs/deployment', label: 'Deployment' },
+]
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <div class="mx-auto flex max-w-6xl gap-10 px-6 py-12">
+    <aside class="hidden w-56 shrink-0 sm:block">
+      <nav class="sticky top-6 flex flex-col gap-1 text-sm">
+        {
+          navItems.map((item) => (
+            <a
+              href={item.href}
+              class="rounded-lg px-3 py-2 text-slate-300 transition-colors hover:bg-white/5 hover:text-brand-mid"
+            >
+              {item.label}
+            </a>
+          ))
+        }
+      </nav>
+    </aside>
+    <article
+      class="prose prose-invert min-w-0 max-w-none flex-1 prose-headings:text-brand-mid prose-a:text-brand-mid prose-code:text-brand-end"
+    >
+      <slot />
+    </article>
+  </div>
+</BaseLayout>

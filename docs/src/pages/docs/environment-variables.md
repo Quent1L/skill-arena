@@ -1,0 +1,81 @@
+---
+layout: ../../layouts/DocsLayout.astro
+title: Environment Variables
+description: Every environment variable Skol Arena reads, grouped by purpose.
+---
+
+Skol Arena has no central env-validation file — every variable below is read
+directly where it's needed. This page is the canonical reference.
+
+## Database & migrations
+
+| Variable            | Purpose                                                                                                                           | Required | Default                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------- |
+| `DATABASE_URL`      | PostgreSQL connection string. Used by the app's connection pool, Better Auth, the Drizzle migrator, and the background job queue. | **Yes**  | —                                                       |
+| `DATABASE_POOL_MAX` | Maximum connections in the pool.                                                                                                  | No       | `10`                                                    |
+| `MIGRATIONS_FOLDER` | Path to the Drizzle migrations directory.                                                                                         | No       | `./drizzle` (the Docker image sets `./backend/drizzle`) |
+
+Migrations run automatically, synchronously, at server startup — before any
+traffic is accepted. There is no manual migrate command. If a migration fails,
+the process exits immediately (useful for container orchestrators to detect a
+bad deploy).
+
+## Server & runtime
+
+| Variable              | Purpose                                                                                                                                                | Required | Default                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------ |
+| `NODE_ENV`            | Standard Node environment flag; affects CORS origin behavior.                                                                                          | No       | dev behavior if unset    |
+| `PORT`                | Port the server listens on.                                                                                                                            | No       | `3000`                   |
+| `FRONTEND_URL`        | Allowed CORS origin and Better Auth trusted origin for the frontend.                                                                                   | No       | `http://localhost:5173`  |
+| `FRONTEND_BUILD_PATH` | Enables single-container mode: serves the built frontend (static assets + SPA fallback) from this path. Without it, the container only serves the API. | No       | disabled                 |
+| `LOG_LEVEL`           | Pino log level.                                                                                                                                        | No       | `info`                   |
+| `LOG_FORMAT`          | Log output format: `json` or `logfmt`.                                                                                                                 | No       | `json`                   |
+| `APP_TIMEZONE`        | Timezone used for time-of-day/day-of-week logic in the contextual rules engine.                                                                        | No       | `Europe/Paris`           |
+| `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account (only used when the database has zero users).                                                   | No       | `admin@skol-arena.local` |
+
+## Authentication (Better Auth)
+
+| Variable                 | Purpose                                                                                                     | Required                                                                | Default                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ |
+| `BETTER_AUTH_SECRET`     | Signing secret for sessions and cookies.                                                                    | **Yes**                                                                 | —                                                      |
+| `BETTER_AUTH_URL`        | Better Auth's own base URL; also added as a trusted origin.                                                 | No                                                                      | falls back to `BASE_URL`, then `http://localhost:3000` |
+| `BASE_URL`               | Secondary fallback for the auth base URL.                                                                   | No                                                                      | `http://localhost:3000`                                |
+| `ENABLE_EMAIL_PASSWORD`  | Shows/hides the email+password login form on the frontend (set to the literal string `"false"` to hide it). | No                                                                      | enabled                                                |
+| `KEYCLOAK_CLIENT_ID`     | Keycloak OAuth client ID.                                                                                   | No — but all three Keycloak variables are needed together to enable SSO | —                                                      |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak OAuth client secret.                                                                               | No (see above)                                                          | —                                                      |
+| `KEYCLOAK_ISSUER`        | Keycloak issuer URL (also used to derive the realm name shown on the login button).                         | No (see above)                                                          | —                                                      |
+| `KEYCLOAK_PKCE`          | Enables PKCE for the Keycloak OAuth flow (literal `"true"` to enable).                                      | No                                                                      | disabled                                               |
+| `KEYCLOAK_LOGIN_LABEL`   | Custom label for the Keycloak login button.                                                                 | No                                                                      | —                                                      |
+
+At least one authentication method must be active: the app refuses to start if
+`ENABLE_EMAIL_PASSWORD` is disabled and Keycloak isn't fully configured.
+
+## Email (SMTP)
+
+Used for transactional email such as password resets.
+
+| Variable         | Purpose                                    | Required               | Default |
+| ---------------- | ------------------------------------------ | ---------------------- | ------- |
+| `SMTP_HOST`      | SMTP server host.                          | Yes, for email to work | —       |
+| `SMTP_PORT`      | SMTP server port.                          | Yes, for email to work | —       |
+| `SMTP_SECURE`    | Use TLS (typically `"true"` for port 465). | No                     | `false` |
+| `SMTP_USER`      | SMTP auth username.                        | Yes, for email to work | —       |
+| `SMTP_PASSWORD`  | SMTP auth password.                        | Yes, for email to work | —       |
+| `SMTP_FROM`      | "From" email address.                      | Yes, for email to work | —       |
+| `SMTP_FROM_NAME` | Display name in the "From" header.         | No                     | —       |
+
+If these are left unset, the app still starts fine — email sending will simply
+fail when triggered (e.g. a password-reset request).
+
+## Web push notifications (VAPID)
+
+| Variable            | Purpose                                          | Required                                                | Default |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------- | ------- |
+| `VAPID_PUBLIC_KEY`  | VAPID public key for browser push notifications. | No — push is silently disabled unless both keys are set | —       |
+| `VAPID_PRIVATE_KEY` | VAPID private key.                               | No (see above)                                          | —       |
+
+## Real-time (WebSocket)
+
+No dedicated variables. WebSocket connections are mounted on the same server
+and port as the HTTP API, and authenticated using the existing Better Auth
+session — nothing extra to configure.
