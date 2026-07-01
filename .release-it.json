@@ -29,7 +29,9 @@
     "tagAnnotation": "Release v${version}",
     "push": true,
     "requireCleanWorkingDir": true,
-    "requireUpstream": false
+    "requireUpstream": false,
+    "requireCommits": true,
+    "requireCommitsFail": false
   },
   "npm": {
     "publish": false,
