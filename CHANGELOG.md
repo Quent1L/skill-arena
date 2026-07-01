@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.15.1](https://github.com/Quent1L/skol-arena/compare/1.15.0...1.15.1) (2026-07-01)
+
 ## [1.15.0](https://skol-arena/Quent1L/skol-arena/compare/1.14.2...1.15.0) (2026-06-29)
 
 ### ✨ New Features
