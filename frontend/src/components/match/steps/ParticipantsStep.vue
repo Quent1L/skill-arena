@@ -204,23 +204,12 @@ async function runValidation() {
   }
 }
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
-
 watch([allPlayerIdsModel, () => props.playedAt], () => {
-  if (debounceTimer) clearTimeout(debounceTimer)
   errors.value = []
   warnings.value = []
-  if (allPlayerIdsModel.value.length < 2) return
-  debounceTimer = setTimeout(() => {
-    void runValidation()
-  }, 500)
 })
 
 async function onNext() {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer)
-    debounceTimer = null
-  }
   const result = await runValidation()
   if (!result?.valid) return
   emit('next')

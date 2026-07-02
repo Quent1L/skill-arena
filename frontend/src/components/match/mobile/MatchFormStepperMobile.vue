@@ -76,7 +76,10 @@
           ref="compositionStepRef"
           v-model:sides="formState.sides"
           v-model:all-player-ids="formState.allPlayerIds"
+          :tournament-id="tournamentId"
           :player-names="playersMap"
+          :played-at="formState.playedAt"
+          :match-id="matchId"
           hide-navigation
           @previous="activeStep = 'participants'"
           @next="goToStepAfterComposition"

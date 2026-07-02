@@ -75,7 +75,10 @@
             <CompositionStep
               v-model:sides="formState.sides"
               v-model:all-player-ids="formState.allPlayerIds"
+              :tournament-id="props.tournamentId"
               :player-names="playersMap"
+              :played-at="formState.playedAt"
+              :match-id="props.matchId"
               :next-label="isFutureDate ? 'Programmer le match' : undefined"
               @previous="activeStep = 'participants'"
               @next="goToStepAfterComposition"

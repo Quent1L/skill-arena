@@ -70,6 +70,10 @@
       {{ t('compositionStep.emptySideError') }}
     </div>
 
+    <div v-if="errors.length > 0" class="flex flex-col gap-2">
+      <Message v-for="err in errors" :key="err" severity="error" :closable="false">{{ err }}</Message>
+    </div>
+
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
       <Button
         :label="t('compositionStep.previous')"
@@ -82,7 +86,8 @@
         :icon="props.nextLabel ? 'fas fa-calendar-check' : 'fas fa-arrow-right'"
         :icon-pos="props.nextLabel ? undefined : 'right'"
         :class="props.nextLabel ? 'bg-green-600 hover:bg-green-700' : ''"
-        :disabled="emptySide"
+        :loading="validating"
+        :disabled="emptySide || errors.length > 0"
         @click="onNext"
       />
     </div>
@@ -93,8 +98,10 @@
 import { ref, computed, onMounted, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
+import Message from 'primevue/message'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import { useMatchService } from '@/composables/match/match.service'
 import type { MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Player {
@@ -103,7 +110,10 @@ interface Player {
 }
 
 interface Props {
+  tournamentId: string
   playerNames: Record<string, string>
+  playedAt?: Date | null
+  matchId?: string
   hideNavigation?: boolean
   nextLabel?: string
 }
@@ -116,6 +126,10 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 const { t } = useI18n()
+
+const { validateMatchSides } = useMatchService()
+const validating = ref(false)
+const errors = ref<string[]>([])
 
 const sidesModel = defineModel<MatchSideInput[]>('sides', { required: true })
 const allPlayerIdsModel = defineModel<string[]>('allPlayerIds', { required: true })
@@ -157,12 +171,32 @@ const emptySide = computed(() => playersA.value.length === 0 || playersB.value.l
 
 defineExpose({ triggerNext: () => onNext() })
 
-function onNext() {
+async function onNext() {
   syncSidesToModel()
-  emit('next')
+  errors.value = []
+  validating.value = true
+  try {
+    const result = await validateMatchSides(
+      props.tournamentId,
+      sidesModel.value,
+      props.playedAt ?? undefined,
+      props.matchId,
+    )
+    if (!result.valid) {
+      errors.value = result.errors
+      return
+    }
+    emit('next')
+  } finally {
+    validating.value = false
+  }
 }
 
 watchEffect(syncSidesToModel)
+
+watch([playersA, playersB], () => {
+  errors.value = []
+})
 
 watch(allPlayerIdsModel, () => {
   const idsSet = new Set(allPlayerIdsModel.value)

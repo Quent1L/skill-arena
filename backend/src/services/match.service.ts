@@ -815,20 +815,29 @@ export class MatchService {
   }
 
   private async validateTournamentRulesForValidation(
-    input: CreateMatchInput,
+    input: CreateMatchInput & { allPlayerIds?: string[] },
     tournament: NonNullable<TournamentFromRepository>,
     errors: string[],
   ) {
-    const sides = input.sides ?? []
+    let sides = input.sides ?? []
     const hasFullComposition = sides.length >= 2 &&
       sides.every((s) =>
         tournament.teamMode === 'static' ? !!s.teamId : (s.playerIds?.length ?? 0) > 0
       )
 
-    if (!hasFullComposition) return
+    if (!hasFullComposition) {
+      // A 2-player flex match can only mean 1v1 — no need to wait for the
+      // composition step to know the split, so rule checks (opponent/partner
+      // limits) can run right away instead of only failing at match creation.
+      if (tournament.teamMode !== 'flex' || input.allPlayerIds?.length !== 2) return
+      sides = [
+        { position: 1, playerIds: [input.allPlayerIds[0]] },
+        { position: 2, playerIds: [input.allPlayerIds[1]] },
+      ]
+    }
 
     try {
-      await this.validateMatchRules(input, tournament)
+      await this.validateMatchRules({ ...input, sides }, tournament)
     } catch (error) {
       if (error instanceof AppError) {
         const translatedMessage = String(i18next.t(`errors.${error.code}`, error.details || {}))

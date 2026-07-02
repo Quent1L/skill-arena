@@ -596,6 +596,134 @@ describe("Static Team Rule Validation", () => {
   });
 });
 
+describe("Flex 1v1 Opponent Validation via allPlayerIds", () => {
+  let flex1v1TournamentId: string;
+  let soloAId: string;
+  let soloBId: string;
+
+  beforeAll(async () => {
+    flex1v1TournamentId = randomUUID();
+    const timestamp = Date.now() + 19000;
+    const today = new Date().toISOString().split("T")[0];
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    const [authA] = await testDb.insert(betterAuthUser).values({
+      id: `solo-auth-a-${timestamp}`,
+      name: "Solo A",
+      email: `solo-a-${timestamp}@test.com`,
+      emailVerified: true,
+    }).returning();
+
+    const [authB] = await testDb.insert(betterAuthUser).values({
+      id: `solo-auth-b-${timestamp}`,
+      name: "Solo B",
+      email: `solo-b-${timestamp}@test.com`,
+      emailVerified: true,
+    }).returning();
+
+    const [userA] = await testDb.insert(appUsers).values({
+      externalId: authA.id,
+      displayName: "Solo A",
+      shortName: "SLOA",
+      role: "player",
+    }).returning();
+    soloAId = userA.id;
+
+    const [userB] = await testDb.insert(appUsers).values({
+      externalId: authB.id,
+      displayName: "Solo B",
+      shortName: "SLOB",
+      role: "player",
+    }).returning();
+    soloBId = userB.id;
+
+    await testDb.insert(tournaments).values({
+      id: flex1v1TournamentId,
+      name: "Flex 1v1 Opponent Validation Test",
+      createdBy: soloAId,
+      teamMode: "flex",
+      mode: "championship",
+      status: "open",
+      minTeamSize: 1,
+      maxTeamSize: 1,
+      maxMatchesPerPlayer: 10,
+      maxTimesWithSamePartner: 10,
+      maxTimesWithSameOpponent: 2,
+      startDate: today,
+      endDate: nextWeek,
+    });
+
+    await testDb.insert(tournamentParticipants).values([
+      { tournamentId: flex1v1TournamentId, userId: soloAId },
+      { tournamentId: flex1v1TournamentId, userId: soloBId },
+    ]);
+  });
+
+  it("should validate as valid before the opponent limit is reached", async () => {
+    const validation = await matchService.validateMatch({
+      tournamentId: flex1v1TournamentId,
+      allPlayerIds: [soloAId, soloBId],
+      status: "scheduled",
+    });
+
+    expect(validation.valid).toBe(true);
+    expect(validation.errors).toEqual([]);
+  });
+
+  it("should reach the opponent limit after two 1v1 matches", async () => {
+    for (let i = 0; i < 2; i++) {
+      const result = await matchService.createMatch(
+        {
+          tournamentId: flex1v1TournamentId,
+          sides: [{ position: 1, playerIds: [soloAId] }, { position: 2, playerIds: [soloBId] }],
+          status: "scheduled",
+        },
+        soloAId,
+      );
+      expect(result).toBeTruthy();
+    }
+
+    const count = await matchRepository.countMatchesTeamsVsTeam(
+      flex1v1TournamentId,
+      [soloAId],
+      [soloBId],
+    );
+    expect(Number(count)).toBe(2);
+  });
+
+  it("should surface MAX_OPPONENT_MATCHES_EXCEEDED from /validate using only allPlayerIds (no sides)", async () => {
+    // Regression test: the wizard's participants step only sends allPlayerIds
+    // (the team split isn't known yet), but for an unambiguous 2-player flex
+    // match /validate must still catch the same rule the real create call enforces.
+    const validation = await matchService.validateMatch({
+      tournamentId: flex1v1TournamentId,
+      allPlayerIds: [soloAId, soloBId],
+      status: "scheduled",
+    });
+
+    expect(validation.valid).toBe(false);
+    expect(validation.errors.length).toBeGreaterThan(0);
+    expect(validation.errors[0]).toContain("Solo A");
+    expect(validation.errors[0]).toContain("Solo B");
+
+    // The real create call should fail with the same error code.
+    try {
+      await matchService.createMatch(
+        {
+          tournamentId: flex1v1TournamentId,
+          sides: [{ position: 1, playerIds: [soloAId] }, { position: 2, playerIds: [soloBId] }],
+          status: "scheduled",
+        },
+        soloAId,
+      );
+      throw new Error("Expected ConflictError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConflictError);
+      expect((error as ConflictError).code).toBe(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED);
+    }
+  });
+});
+
 afterAll(async () => {
   await closeTestDatabase();
 });
