@@ -352,6 +352,8 @@ export class MatchService {
       throw new BadRequestError(ErrorCode.MATCH_ALREADY_CONFIRMED)
     }
 
+    matchStatusValidator.validateNotFinalized(match.status)
+
     if (tournament?.mode === 'bracket') {
       const sides = (match as { sides?: { entryId: string }[] }).sides ?? []
       if (sides.length < 2) {
@@ -432,9 +434,7 @@ export class MatchService {
       throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
     }
 
-    if (match.status === 'confirmed') {
-      throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_DELETED)
-    }
+    matchStatusValidator.validateCanDelete(match.status)
 
     await matchRepository.delete(id)
 

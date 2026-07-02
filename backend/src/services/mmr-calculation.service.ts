@@ -2,6 +2,7 @@ import { db } from "../config/database";
 import { eq, and, inArray, notInArray, gt, gte } from "drizzle-orm";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
+import type { CreateMmrHistoryData } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import type { Discipline, MmrAnimationEventReason, MmrHistoryOutcome, OutcomeType } from "@skol-arena/shared";
 
@@ -279,7 +280,9 @@ export class MmrCalculationService {
     return newState;
   }
 
-  async processMatchFinalization(matchId: string): Promise<void> {
+  async processMatchFinalization(
+    matchId: string,
+  ): Promise<Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>> {
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, matchId),
       with: {
@@ -291,21 +294,40 @@ export class MmrCalculationService {
       },
     });
 
-    if (!match || match.tournament?.mode !== "ranked") return;
+    if (!match || match.tournament?.mode !== "ranked") return new Map();
 
     const seasonId = match.tournamentId;
     const playerIds = await this.getMatchPlayerIds(matchId);
 
     for (const playerId of playerIds) {
       await this.ensurePlayerMmrExists(seasonId, match.tournament.rankedConfig?.baseMmr ?? 1000, playerId);
-      await this.recalculatePlayerMmr(seasonId, playerId, match.playedAt);
     }
+
+    return this.cascadeRecalculateFromMatch(matchId, seasonId, match.playedAt, "match_finalized");
   }
 
   async cascadeRecalculateAfterCancellation(
     matchId: string,
     seasonId: string,
     cancelledMatchPlayedAt: Date,
+  ): Promise<Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>> {
+    return this.cascadeRecalculateFromMatch(matchId, seasonId, cancelledMatchPlayedAt, "match_cancelled");
+  }
+
+  /**
+   * Generic wave-propagation recalc: recomputes the match's direct participants
+   * from fromPlayedAt forward, then repeatedly finds third parties who share
+   * later match history with anyone whose MMR just changed and recalculates
+   * them too, until nothing changes anymore. Used both for cancellation (undo
+   * a match) and normal finalization (a backdated match can change history for
+   * players other than its own two direct participants) — the only difference
+   * is the reason tag attached to the direct-participant wave.
+   */
+  private async cascadeRecalculateFromMatch(
+    matchId: string,
+    seasonId: string,
+    fromPlayedAt: Date,
+    initialReason: MmrAnimationEventReason,
   ): Promise<Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>> {
     const result = new Map<string, { mmrBefore: number; mmrAfter: number; reason: MmrAnimationEventReason }>();
     const directPlayerIds = await this.getMatchPlayerIds(matchId);
@@ -314,13 +336,13 @@ export class MmrCalculationService {
     let changedIds = await this.recalcWaveAndCollectChanges(
       seasonId,
       directPlayerIds,
-      cancelledMatchPlayedAt,
-      "match_cancelled",
+      fromPlayedAt,
+      initialReason,
       result,
     );
 
     while (changedIds.length > 0) {
-      const nextWave = await this.findAffectedPlayers(seasonId, changedIds, cancelledMatchPlayedAt, [...processedIds]);
+      const nextWave = await this.findAffectedPlayers(seasonId, changedIds, fromPlayedAt, [...processedIds]);
       if (nextWave.length === 0) break;
 
       for (const playerId of nextWave) processedIds.add(playerId);
@@ -328,7 +350,7 @@ export class MmrCalculationService {
       changedIds = await this.recalcWaveAndCollectChanges(
         seasonId,
         nextWave,
-        cancelledMatchPlayedAt,
+        fromPlayedAt,
         "cascade",
         result,
       );
@@ -402,6 +424,176 @@ export class MmrCalculationService {
       .where(and(...conditions));
 
     return playerRows.map((r) => r.playerId);
+  }
+
+  /**
+   * Deterministic full-season MMR recalculation. Unlike the old per-player loop
+   * (which read opponent MMR from tables the same loop was concurrently
+   * rewriting, making the result depend on arbitrary player iteration order),
+   * this replays every finalized match exactly once in a single global
+   * chronological pass (playedAt asc, id asc tiebreak), keeping only one
+   * in-memory CheckpointState per player. Matches are streamed page by page
+   * (keyset pagination) so memory stays bounded by page size + player count,
+   * not total match count.
+   */
+  async recalculateSeasonMmrDeterministic(seasonId: string, pageSize = 500): Promise<void> {
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    if (!config) return;
+
+    const existingPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
+    const existingPlayerIds = new Set(existingPlayers.map((p) => p.playerId));
+
+    await playerMmrRepository.deleteAllMmrHistoryForSeason(seasonId);
+
+    const stateMap = new Map<string, CheckpointState>();
+    let cursor: { playedAt: Date; id: string } | undefined;
+
+    for (;;) {
+      const page = await playerMmrRepository.getFinalizedMatchesPageForSeason(seasonId, cursor, pageSize);
+      if (page.length === 0) break;
+
+      const historyBatch: CreateMmrHistoryData[] = [];
+      for (const match of page) {
+        this.processMatchGlobal(match, seasonId, config, stateMap, historyBatch);
+      }
+      await playerMmrRepository.createMmrHistoryBatch(historyBatch);
+
+      const last = page[page.length - 1];
+      cursor = { playedAt: last.playedAt, id: last.id };
+
+      if (page.length < pageSize) break;
+    }
+
+    for (const playerId of existingPlayerIds) {
+      if (!stateMap.has(playerId)) {
+        await playerMmrRepository.deleteBySeasonAndPlayer(seasonId, playerId);
+      }
+    }
+
+    for (const [playerId, state] of stateMap) {
+      await playerMmrRepository.upsert({
+        seasonId,
+        playerId,
+        currentMmr: state.mmr,
+        matchesPlayed: state.wins + state.losses + state.draws,
+        wins: state.wins,
+        losses: state.losses,
+        draws: state.draws,
+        winStreak: state.winStreak,
+        maxWinStreak: state.maxWinStreak,
+        lossStreak: state.lossStreak,
+        maxLossStreak: state.maxLossStreak,
+      });
+    }
+  }
+
+  /**
+   * Same per-player math as processOneMatch (calculateMatchMmrBySides/distributeToPlayer
+   * are unchanged), but sources every participant's currentMmr from a single
+   * shared in-memory map instead of live DB reads — this is what removes the
+   * order-dependency. All reads for a match use the pre-match snapshot; the
+   * map is only written once every participant's delta for this match has
+   * been computed.
+   */
+  private processMatchGlobal(
+    match: Awaited<ReturnType<typeof playerMmrRepository.getFinalizedMatchesPageForSeason>>[number],
+    seasonId: string,
+    config: { baseMmr: number; kFactor: number; placementMatches: number },
+    stateMap: Map<string, CheckpointState>,
+    historyBatch: CreateMmrHistoryData[],
+  ): void {
+    const sides = match.sides;
+    if (!sides || sides.length < 2) return;
+    const [sideA, sideB] = sides;
+    const sideAIds = sideA.entry?.players.map((p) => p.playerId) ?? [];
+    const sideBIds = sideB.entry?.players.map((p) => p.playerId) ?? [];
+    const participantIds = [...new Set([...sideAIds, ...sideBIds])];
+    if (participantIds.length === 0) return;
+
+    const preState = new Map<string, CheckpointState>();
+    for (const id of participantIds) {
+      preState.set(
+        id,
+        stateMap.get(id) ?? {
+          mmr: config.baseMmr,
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          winStreak: 0,
+          maxWinStreak: 0,
+          lossStreak: 0,
+          maxLossStreak: 0,
+        },
+      );
+    }
+
+    const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null };
+    const discipline = outcomeType.discipline ?? { id: "", name: "", teamInteractionMode: null };
+    const getOtherMmr = (id: string) => preState.get(id)?.mmr ?? config.baseMmr;
+
+    for (const playerId of participantIds) {
+      const playerState = preState.get(playerId)!;
+      const raw = this.resolveSideData(sideA, sideB, playerId, match.winnerSide);
+      const { opponentPlayerIds, playerWon } = raw;
+      const sameTeamPlayerIds = raw.sameTeamPlayerIds ?? [];
+      const isPlacement = playerState.wins + playerState.losses + playerState.draws < config.placementMatches;
+
+      const mySidePlayers: SidePlayerInput[] = [
+        { id: playerId, currentMmr: playerState.mmr },
+        ...sameTeamPlayerIds.map((id) => ({ id, currentMmr: getOtherMmr(id) })),
+      ];
+      const oppSidePlayers: SidePlayerInput[] = opponentPlayerIds.map((id) => ({
+        id,
+        currentMmr: getOtherMmr(id),
+      }));
+
+      const calcResults = this.calculateMatchMmrBySides({
+        discipline,
+        outcomeType,
+        sides: [
+          { isWinner: playerWon, players: mySidePlayers, score: raw.scoreForPlayer },
+          { isWinner: playerWon === null ? null : !playerWon, players: oppSidePlayers, score: raw.scoreForOpponent },
+        ],
+        kFactor: config.kFactor,
+        isPlacement,
+      });
+
+      const playerResult = calcResults.find((r) => r.playerId === playerId);
+      const delta = playerResult?.mmrDelta ?? 0;
+      const mmrBefore = playerState.mmr;
+      const mmrAfter = playerResult?.newMmr ?? Math.max(1, playerState.mmr + delta);
+      const opponentAvgMmr = oppSidePlayers.length > 0
+        ? Math.round(oppSidePlayers.reduce((s, p) => s + p.currentMmr, 0) / oppSidePlayers.length)
+        : config.baseMmr;
+      const kEffective = this.calculateEffectiveK(
+        config.kFactor,
+        raw.scoreForPlayer,
+        raw.scoreForOpponent,
+        isPlacement,
+        outcomeType.scoreCountsForMmr,
+        null,
+      ) * outcomeType.mmrMultiplier;
+
+      const newState = this.advanceState(playerState, playerWon, mmrAfter);
+
+      historyBatch.push({
+        seasonId,
+        playerId,
+        matchId: match.id,
+        mmrBefore,
+        mmrAfter,
+        mmrDelta: delta,
+        kEffective,
+        opponentAvgMmr,
+        isPlacement,
+        outcome: outcomeFromWin(playerWon),
+        winStreakAfter: newState.winStreak,
+        lossStreakAfter: newState.lossStreak,
+        matchesPlayedAfter: newState.wins + newState.losses + newState.draws,
+      });
+
+      stateMap.set(playerId, newState);
+    }
   }
 
   private async recalculateBoundaries(seasonId: string, baseMmr: number): Promise<void> {

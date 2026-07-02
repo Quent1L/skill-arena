@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql, inArray, lt, gte } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, inArray, lt, gte, gt } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
 import type { MmrHistoryOutcome, OpponentQualityStats } from "@skol-arena/shared";
@@ -394,6 +394,51 @@ export class PlayerMmrRepository {
     return await db.query.playerMmr.findMany({
       where: eq(playerMmr.seasonId, seasonId),
     });
+  }
+
+  /**
+   * Keyset-paginated page of finalized season matches, ordered deterministically
+   * (playedAt asc, id asc as tiebreaker for identical timestamps). Used by the
+   * full-season deterministic recalc to stream matches without loading the
+   * whole season into memory at once.
+   */
+  async getFinalizedMatchesPageForSeason(
+    seasonId: string,
+    cursor: { playedAt: Date; id: string } | undefined,
+    pageSize: number,
+  ) {
+    const baseCond = and(eq(matches.tournamentId, seasonId), eq(matches.status, "finalized"));
+    const whereCond = cursor
+      ? and(
+          baseCond,
+          or(
+            gt(matches.playedAt, cursor.playedAt),
+            and(eq(matches.playedAt, cursor.playedAt), gt(matches.id, cursor.id)),
+          ),
+        )
+      : baseCond;
+
+    return await db.query.matches.findMany({
+      where: whereCond,
+      orderBy: (m, { asc }) => [asc(m.playedAt), asc(m.id)],
+      limit: pageSize,
+      with: {
+        outcomeType: { with: { discipline: true } },
+        sides: {
+          orderBy: (s, { asc }) => [asc(s.position)],
+          with: { entry: { with: { players: true } } },
+        },
+      },
+    });
+  }
+
+  async deleteAllMmrHistoryForSeason(seasonId: string): Promise<void> {
+    await db.delete(mmrHistory).where(eq(mmrHistory.seasonId, seasonId));
+  }
+
+  async createMmrHistoryBatch(rows: CreateMmrHistoryData[]): Promise<void> {
+    if (rows.length === 0) return;
+    await db.insert(mmrHistory).values(rows);
   }
 
   async getOpponentQualityStats(seasonId: string, playerId: string): Promise<OpponentQualityStats> {

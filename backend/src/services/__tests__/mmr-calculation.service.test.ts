@@ -59,6 +59,9 @@ const mockPlayerMmrRepo = {
   preloadOpponentHistories: mock(() => Promise.resolve(new Map<string, number>())),
   getPlayerCurrentMmrs: mock(() => Promise.resolve(new Map<string, number>())),
   deleteBySeasonAndPlayer: mock((_seasonId: any, _playerId: any) => Promise.resolve()),
+  getFinalizedMatchesPageForSeason: mock((_seasonId: any, _cursor: any, _pageSize: any) => Promise.resolve([] as any[])),
+  deleteAllMmrHistoryForSeason: mock(() => Promise.resolve()),
+  createMmrHistoryBatch: mock((_rows: any[]) => Promise.resolve()),
 };
 
 mock.module("../../repository/player-mmr.repository", () => ({
@@ -119,6 +122,9 @@ function resetMocks() {
   mockPlayerMmrRepo.preloadOpponentHistories.mockImplementation(() => Promise.resolve(new Map()));
   mockPlayerMmrRepo.getPlayerCurrentMmrs.mockImplementation(() => Promise.resolve(new Map()));
   mockPlayerMmrRepo.deleteBySeasonAndPlayer.mockImplementation(() => Promise.resolve());
+  mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(() => Promise.resolve([]));
+  mockPlayerMmrRepo.deleteAllMmrHistoryForSeason.mockImplementation(() => Promise.resolve());
+  mockPlayerMmrRepo.createMmrHistoryBatch.mockImplementation(() => Promise.resolve());
 
   _selectResult = [];
   mockDb.query.matches.findFirst.mockImplementation(() => Promise.resolve(null));
@@ -1020,10 +1026,11 @@ describe("MmrCalculationService", () => {
       (svc as any).recalculatePlayerMmr = mock(async () => {});
     }
 
-    it("match introuvable → retour immédiat, aucun appel downstream", async () => {
+    it("match introuvable → retour immédiat, aucun appel downstream, Map vide", async () => {
       stubPrivates(service, []);
-      await service.processMatchFinalization("m1");
+      const result = await service.processMatchFinalization("m1");
       expect((service as any).getMatchPlayerIds.mock.calls).toHaveLength(0);
+      expect(result.size).toBe(0);
     });
 
     it("tournoi non ranked → retour immédiat", async () => {
@@ -1039,18 +1046,24 @@ describe("MmrCalculationService", () => {
       expect((service as any).getMatchPlayerIds.mock.calls).toHaveLength(0);
     });
 
-    it("match ranked, 2 joueurs → recalculate appelé pour chacun", async () => {
+    it("match ranked, 2 joueurs → recalculate appelé pour chacun via la cascade", async () => {
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({
           id: "m1",
           tournamentId: "s1",
+          playedAt: new Date("2024-01-01"),
           tournament: { mode: "ranked", rankedConfig: { baseMmr: 1000 } },
         }),
       );
       stubPrivates(service, ["p1", "p2"]);
-      await service.processMatchFinalization("m1");
+      const result = await service.processMatchFinalization("m1");
       expect((service as any).ensurePlayerMmrExists.mock.calls).toHaveLength(2);
       expect((service as any).recalculatePlayerMmr.mock.calls).toHaveLength(2);
+      // Direct participants are tagged "match_finalized" (not "match_cancelled")
+      // — proves processMatchFinalization now goes through the generic cascade
+      // with its own reason, not a copy-pasted cancellation code path.
+      expect(result.get("p1")?.reason).toBe("match_finalized");
+      expect(result.get("p2")?.reason).toBe("match_finalized");
     });
 
     it("rankedConfig null → baseMmr fallback à 1000 pour ensurePlayerMmrExists", async () => {
@@ -1066,5 +1079,189 @@ describe("MmrCalculationService", () => {
       expect((service as any).ensurePlayerMmrExists.mock.calls[0][1]).toBe(1000);
     });
 
+  });
+
+  // ── cascadeRecalculateFromMatch (via cascadeRecalculateAfterCancellation) ──
+  // No coverage existed anywhere in the repo for the wave-propagation cascade
+  // before this fix (confirmed by search). This exercises the orchestration:
+  // direct participants first, then a third party found by findAffectedPlayers,
+  // tagged with the right reasons, until the wave loop finds nothing left to change.
+
+  describe("cascadeRecalculateFromMatch", () => {
+    it("recalcule un tiers affecté renvoyé par findAffectedPlayers et le tague 'cascade'", async () => {
+      const playerMmrStore: Record<string, number> = { p1: 1000, p2: 1000, p3: 1000 };
+
+      mockPlayerMmrRepo.getBySeasonAndPlayer.mockImplementation((...args: any[]) =>
+        Promise.resolve({ currentMmr: playerMmrStore[args[1] as string] }),
+      );
+      mockPlayerMmrRepo.upsert.mockImplementation((args: any) => {
+        playerMmrStore[args.playerId] = args.currentMmr;
+        return Promise.resolve(args);
+      });
+
+      (service as any).getMatchPlayerIds = mock(async () => ["p1", "p2"]);
+
+      const matchesByPlayer: Record<string, ReturnType<typeof makeMatch>[]> = {
+        p1: [makeMatch("m1")],
+        p2: [makeMatch("m1")],
+        p3: [makeMatch("m2")],
+      };
+      const sideByPlayer: Record<string, ReturnType<typeof makeSideResult>> = {
+        p1: makeSideResult({ playerWon: true, opponentPlayerIds: ["p2"] }),
+        p2: makeSideResult({ playerWon: false, opponentPlayerIds: ["p1"] }),
+        p3: makeSideResult({ playerWon: true, opponentPlayerIds: ["p1"] }),
+      };
+      (service as any).getPlayerMatchesForSeason = async (_seasonId: string, playerId: string) =>
+        matchesByPlayer[playerId] ?? [];
+      (service as any).preloadMatchSides = async (matchIds: string[], playerId: string) => {
+        const map = new Map();
+        for (const id of matchIds) map.set(id, sideByPlayer[playerId] ?? makeSideResult({ playerWon: null }));
+        return map;
+      };
+
+      let findAffectedCalls = 0;
+      (service as any).findAffectedPlayers = mock(async () => {
+        findAffectedCalls++;
+        return findAffectedCalls === 1 ? ["p3"] : [];
+      });
+
+      const result = await service.cascadeRecalculateAfterCancellation("m1", "s1", new Date("2024-01-01T00:00:00Z"));
+
+      // 2 calls: 1st finds p3 after the direct wave changes p1/p2, 2nd (after
+      // p3's own wave) finds nothing left → loop stops.
+      expect((service as any).findAffectedPlayers.mock.calls).toHaveLength(2);
+      expect((service as any).findAffectedPlayers.mock.calls[0][1]).toEqual(["p1", "p2"]);
+      expect(result.get("p1")?.reason).toBe("match_cancelled");
+      expect(result.get("p2")?.reason).toBe("match_cancelled");
+      expect(result.get("p3")?.reason).toBe("cascade");
+      expect(playerMmrStore.p3).not.toBe(1000); // p3 was actually recalculated, not skipped
+    });
+
+    it("aucun changement direct → findAffectedPlayers jamais appelé", async () => {
+      (service as any).getMatchPlayerIds = mock(async () => ["p1", "p2"]);
+      (service as any).recalculatePlayerMmr = mock(async () => {}); // no-op: mmr never actually changes
+      (service as any).findAffectedPlayers = mock(async () => ["should-not-be-reached"]);
+
+      await service.cascadeRecalculateAfterCancellation("m1", "s1", new Date("2024-01-01T00:00:00Z"));
+
+      expect((service as any).findAffectedPlayers.mock.calls).toHaveLength(0);
+    });
+  });
+
+  // ── recalculateSeasonMmrDeterministic ─────────────────────────────────────
+
+  describe("recalculateSeasonMmrDeterministic", () => {
+    function makeGlobalMatch(opts: {
+      id: string;
+      playedAt: string;
+      sideAIds: string[];
+      sideBIds: string[];
+      winnerSide: string | null;
+      scoreA?: number | null;
+      scoreB?: number | null;
+      outcomeType?: { scoreCountsForMmr: boolean; points: number; mmrMultiplier?: number; discipline?: any } | null;
+    }) {
+      return {
+        id: opts.id,
+        playedAt: new Date(opts.playedAt),
+        winnerSide: opts.winnerSide,
+        outcomeType: opts.outcomeType ?? null,
+        sides: [
+          { position: 1, score: opts.scoreA ?? null, entry: { players: opts.sideAIds.map((id) => ({ playerId: id })) } },
+          { position: 2, score: opts.scoreB ?? null, entry: { players: opts.sideBIds.map((id) => ({ playerId: id })) } },
+        ],
+      };
+    }
+
+    // Simulates the real keyset-paginated repository method against an
+    // in-memory, already playedAt/id-sorted fixture list.
+    function makePaginator(sortedMatches: ReturnType<typeof makeGlobalMatch>[]) {
+      return (_seasonId: string, cursor: { playedAt: Date; id: string } | undefined, pageSize: number) => {
+        let startIdx = 0;
+        if (cursor) {
+          const idx = sortedMatches.findIndex((m) => m.id === cursor.id);
+          startIdx = idx + 1;
+        }
+        return Promise.resolve(sortedMatches.slice(startIdx, startIdx + pageSize));
+      };
+    }
+
+    it("1 match 1v1, victoire p1 → historique + upsert pour les deux joueurs, deltas opposés", async () => {
+      const matches = [
+        makeGlobalMatch({ id: "m1", playedAt: "2024-01-01T00:00:00Z", sideAIds: ["p1"], sideBIds: ["p2"], winnerSide: "A" }),
+      ];
+      mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(makePaginator(matches));
+
+      const historyBatches: any[][] = [];
+      mockPlayerMmrRepo.createMmrHistoryBatch.mockImplementation((rows: any[]) => {
+        historyBatches.push(rows);
+        return Promise.resolve();
+      });
+      const upserts: any[] = [];
+      mockPlayerMmrRepo.upsert.mockImplementation((args: any) => {
+        upserts.push(args);
+        return Promise.resolve();
+      });
+
+      await service.recalculateSeasonMmrDeterministic("s1");
+
+      expect(mockPlayerMmrRepo.deleteAllMmrHistoryForSeason.mock.calls).toHaveLength(1);
+      expect(historyBatches[0]).toHaveLength(2);
+      const p1History = historyBatches[0].find((r) => r.playerId === "p1")!;
+      const p2History = historyBatches[0].find((r) => r.playerId === "p2")!;
+      expect(p1History.mmrDelta).toBeGreaterThan(0);
+      expect(p2History.mmrDelta).toBeLessThan(0);
+      expect(upserts.find((u) => u.playerId === "p1")!.currentMmr).toBe(p1History.mmrAfter);
+      expect(upserts.find((u) => u.playerId === "p2")!.currentMmr).toBe(p2History.mmrAfter);
+    });
+
+    it("joueur avec 0 match restant après recalcul → entrée player_mmr supprimée", async () => {
+      mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(makePaginator([]));
+      mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() =>
+        Promise.resolve([{ playerId: "ghost-player" }]),
+      );
+
+      await service.recalculateSeasonMmrDeterministic("s1");
+
+      expect(mockPlayerMmrRepo.deleteBySeasonAndPlayer.mock.calls).toHaveLength(1);
+      expect(mockPlayerMmrRepo.deleteBySeasonAndPlayer.mock.calls[0]).toEqual(["s1", "ghost-player"]);
+      expect(mockPlayerMmrRepo.upsert.mock.calls).toHaveLength(0);
+    });
+
+    it("graphe de matchs enchevêtré : résultat identique quel que soit le page size (1 vs tout en une page)", async () => {
+      // p1 beats p2, p2 beats p3, p3 beats p1 — cyclic dependency between players,
+      // exactly the shape that made the old per-player unordered loop diverge.
+      const matches = [
+        makeGlobalMatch({ id: "m1", playedAt: "2024-01-01T00:00:00Z", sideAIds: ["p1"], sideBIds: ["p2"], winnerSide: "A" }),
+        makeGlobalMatch({ id: "m2", playedAt: "2024-01-02T00:00:00Z", sideAIds: ["p2"], sideBIds: ["p3"], winnerSide: "A" }),
+        makeGlobalMatch({ id: "m3", playedAt: "2024-01-03T00:00:00Z", sideAIds: ["p3"], sideBIds: ["p1"], winnerSide: "A" }),
+        makeGlobalMatch({ id: "m4", playedAt: "2024-01-04T00:00:00Z", sideAIds: ["p1"], sideBIds: ["p3"], winnerSide: "B" }),
+      ];
+
+      async function runWithPageSize(pageSize: number) {
+        const svc = new MmrCalculationService();
+        mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(makePaginator(matches));
+        const upserts: any[] = [];
+        mockPlayerMmrRepo.upsert.mockImplementation((args: any) => {
+          upserts.push(args);
+          return Promise.resolve();
+        });
+        await svc.recalculateSeasonMmrDeterministic("s1", pageSize);
+        return upserts.sort((a, b) => a.playerId.localeCompare(b.playerId));
+      }
+
+      const resultSinglePage = await runWithPageSize(500);
+      resetMocks();
+      const resultOneMatchPerPage = await runWithPageSize(1);
+
+      expect(resultOneMatchPerPage).toEqual(resultSinglePage);
+    });
+
+    it("aucune config ranked → retourne immédiatement, aucun appel downstream", async () => {
+      mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(null));
+      await service.recalculateSeasonMmrDeterministic("s1");
+      expect(mockPlayerMmrRepo.deleteAllMmrHistoryForSeason.mock.calls).toHaveLength(0);
+      expect(mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mock.calls).toHaveLength(0);
+    });
   });
 });

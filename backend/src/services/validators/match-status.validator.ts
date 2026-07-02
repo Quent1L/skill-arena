@@ -45,7 +45,7 @@ export class MatchStatusValidator {
      * Validate match cannot be deleted
      */
     validateCanDelete(status: MatchStatus): void {
-        if (status === "confirmed") {
+        if (status === "confirmed" || status === "finalized") {
             throw new BadRequestError(ErrorCode.MATCH_CANNOT_BE_DELETED);
         }
     }

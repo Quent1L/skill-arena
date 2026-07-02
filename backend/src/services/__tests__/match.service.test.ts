@@ -678,6 +678,34 @@ describe("MatchService - basic flows", () => {
     }
   });
 
+  it("deleteMatch should throw BadRequestError when match finalized", async () => {
+    repo.getById = async () =>
+      ({ id: "m-f", tournamentId: "t-1", status: "finalized" }) as any;
+    usrRepo.getById = async () => ({ id: "u-1", role: "super_admin" }) as any;
+    try {
+      await matchService.deleteMatch("m-f", "u-1");
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(BadRequestError);
+    }
+  });
+
+  it("updateMatch should throw BadRequestError when match finalized", async () => {
+    repo.getById = async () =>
+      ({ id: "m-f", tournamentId: "t-1", status: "finalized" }) as any;
+    usrRepo.getById = async () => ({ id: "u-1", role: "super_admin" }) as any;
+    try {
+      await matchService.updateMatch(
+        "m-f",
+        { status: "reported" } as UpdateMatchRequestData,
+        "u-1",
+      );
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(BadRequestError);
+    }
+  });
+
   it("reportMatchResult should reject when match status invalid", async () => {
     repo.getById = async () =>
       ({ id: "m-1", tournamentId: "t-1", status: "confirmed" }) as any;

@@ -24,7 +24,7 @@ const finalizeMatchMmr: Task = async (rawPayload) => {
   const { matchId, tournamentId } = rawPayload as FinalizeMmrPayload;
   logger.info({ matchId, tournamentId }, '[Worker] finalize_match_mmr start');
 
-  await mmrCalculationService.processMatchFinalization(matchId);
+  const mmrChanges = await mmrCalculationService.processMatchFinalization(matchId);
 
   // Evaluate rules first: produces the message injected into the MMR animation
   // and the badge revealed afterwards.
@@ -38,6 +38,20 @@ const finalizeMatchMmr: Task = async (rawPayload) => {
   await mmrAnimationEventService
     .createOfficialEventsAndBroadcast(matchId, tournamentId, rulesOutputs)
     .catch((err) => logger.error({ err }, '[Worker] official animation event failed'));
+
+  // A backdated finalization can ripple to third parties beyond this match's
+  // own 2 participants (already handled above via createOfficialEventsAndBroadcast).
+  // Those cascade-only players never got an animation/badge pass for their
+  // rebuilt history — sync them the same way the cancellation cascade does.
+  const cascadePlayerIds = [...mmrChanges].filter(([, c]) => c.reason === 'cascade').map(([playerId]) => playerId);
+  if (cascadePlayerIds.length > 0) {
+    await mmrAnimationEventService
+      .persistRecalcEvents(tournamentId, cascadePlayerIds)
+      .catch((err) => logger.error({ err }, '[Worker] finalization cascade animation event failed'));
+    await badgeReconciliationService
+      .reconcilePlayers(tournamentId, cascadePlayerIds)
+      .catch((err) => logger.error({ err }, '[Worker] finalization cascade badge reconciliation failed'));
+  }
 
   await refreshRankedCaches(tournamentId);
 
@@ -117,9 +131,8 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
   if (!rankedConfig) return;
 
   const players = await playerMmrRepository.getAllPlayersBySeasonId(tournamentId);
-  for (const player of players) {
-    await mmrCalculationService.recalculatePlayerMmr(tournamentId, player.playerId);
-  }
+
+  await mmrCalculationService.recalculateSeasonMmrDeterministic(tournamentId);
 
   // History was rebuilt: re-sync animation events for the matches whose MMR
   // actually changed (no need to wait for a new match). Batched, no per-event
