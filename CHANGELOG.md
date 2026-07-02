@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.2](https://github.com/Quent1L/skol-arena/compare/1.15.1...1.15.2) (2026-07-02)
+
+### 🐛 Bug Fixes
+
+* **match:** sync /validate rule checks with match creation ([e6ffdfc](https://github.com/Quent1L/skol-arena/commit/e6ffdfca0fccae62c9fad8b9b72aeb64f4110602))
+* **stats:** hide outcome-type UI when discipline has none ([b83108c](https://github.com/Quent1L/skol-arena/commit/b83108c0e120e66371f59c3bf7448e9a978df078))
+
 ## [1.15.1](https://github.com/Quent1L/skol-arena/compare/1.15.0...1.15.1) (2026-07-01)
 
 ## [1.15.0](https://skol-arena/Quent1L/skol-arena/compare/1.14.2...1.15.0) (2026-06-29)
