@@ -56,7 +56,7 @@
     </div>
 
     <!-- Outcome type -->
-    <div class="flex flex-col gap-2">
+    <div v-if="outcomeTypes.length > 0" class="flex flex-col gap-2">
       <label for="result-outcome-type" class="text-sm font-medium">{{ t('resultStep.outcomeType') }}</label>
       <Select
         v-model="outcomeTypeIdModel"

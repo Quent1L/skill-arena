@@ -17,6 +17,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Répartition des fins de match -->
         <div
+          v-if="hasOutcomeTypes"
           class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
@@ -308,6 +309,10 @@ const lineOptions = {
     point: { radius: 3 },
   },
 }
+
+const hasOutcomeTypes = computed(() =>
+  (store.tournamentStats?.outcomeDistribution ?? []).some((o) => o.outcomeTypeName),
+)
 
 const bestTeamsItems = computed(() =>
   (store.tournamentStats?.bestTeams ?? []).map((team) => ({
