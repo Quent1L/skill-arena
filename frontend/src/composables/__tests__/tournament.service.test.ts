@@ -75,6 +75,121 @@ describe('useTournamentService', () => {
     })
   })
 
+  describe('canDeleteTournament', () => {
+    it('super admin peut tout supprimer', () => {
+      mockIsSuperAdmin.value = true
+      mockCurrentUser.value = { id: 'user-1', role: 'super_admin' }
+      const { canDeleteTournament } = useTournamentService()
+      expect(canDeleteTournament({ id: 't-1', status: 'ongoing' } as TournamentResponse)).toBe(true)
+    })
+
+    it('utilisateur non admin: seulement les brouillons', () => {
+      mockIsSuperAdmin.value = false
+      mockCurrentUser.value = { id: 'user-1', role: 'player' }
+      const { canDeleteTournament } = useTournamentService()
+      expect(canDeleteTournament({ id: 't-1', status: 'draft' } as TournamentResponse)).toBe(true)
+      expect(canDeleteTournament({ id: 't-1', status: 'open' } as TournamentResponse)).toBe(false)
+    })
+
+    it('anonyme ne peut rien supprimer', () => {
+      mockCurrentUser.value = null
+      const { canDeleteTournament } = useTournamentService()
+      expect(canDeleteTournament({ id: 't-1', status: 'draft' } as TournamentResponse)).toBe(false)
+    })
+  })
+
+  describe('canEditTournament', () => {
+    it('suit canManageTournament', () => {
+      mockIsSuperAdmin.value = true
+      mockCurrentUser.value = { id: 'user-1', role: 'super_admin' }
+      const { canEditTournament } = useTournamentService()
+      expect(canEditTournament({ id: 't-1', status: 'open' } as TournamentResponse)).toBe(true)
+
+      mockIsSuperAdmin.value = false
+      mockCurrentUser.value = { id: 'user-1', role: 'player' }
+      const service = useTournamentService()
+      expect(service.canEditTournament({ id: 't-1', status: 'open' } as TournamentResponse)).toBe(
+        false,
+      )
+    })
+  })
+
+  describe('getEditableFields', () => {
+    it('brouillon: tout est éditable', () => {
+      const { getEditableFields } = useTournamentService()
+      expect(getEditableFields({ status: 'draft' } as TournamentResponse)).toEqual(['all'])
+    })
+
+    it('après brouillon: liste restreinte', () => {
+      const { getEditableFields } = useTournamentService()
+      expect(getEditableFields({ status: 'ongoing' } as TournamentResponse)).toEqual([
+        'description',
+        'startDate',
+        'endDate',
+        'status',
+        'scoreEnabled',
+      ])
+    })
+  })
+
+  describe('isTournamentOpenForJoin', () => {
+    it('ouvert en statut open', () => {
+      const { isTournamentOpenForJoin } = useTournamentService()
+      expect(isTournamentOpenForJoin({ status: 'open', mode: 'championship' } as TournamentResponse)).toBe(true)
+    })
+
+    it('ranked reste rejoignable en cours', () => {
+      const { isTournamentOpenForJoin } = useTournamentService()
+      expect(isTournamentOpenForJoin({ status: 'ongoing', mode: 'ranked' } as TournamentResponse)).toBe(true)
+      expect(isTournamentOpenForJoin({ status: 'ongoing', mode: 'championship' } as TournamentResponse)).toBe(false)
+    })
+
+    it('null → false', () => {
+      const { isTournamentOpenForJoin } = useTournamentService()
+      expect(isTournamentOpenForJoin(null)).toBe(false)
+    })
+  })
+
+  describe('canLeaveTournament', () => {
+    it('possible avant le début', () => {
+      const { canLeaveTournament } = useTournamentService()
+      expect(canLeaveTournament({ status: 'open' } as TournamentResponse)).toBe(true)
+      expect(canLeaveTournament({ status: 'draft' } as TournamentResponse)).toBe(true)
+    })
+
+    it('impossible en cours ou terminé', () => {
+      const { canLeaveTournament } = useTournamentService()
+      expect(canLeaveTournament({ status: 'ongoing' } as TournamentResponse)).toBe(false)
+      expect(canLeaveTournament({ status: 'finished' } as TournamentResponse)).toBe(false)
+    })
+  })
+
+  describe('canCreateMatchInTournament', () => {
+    const tournament = { status: 'ongoing', mode: 'championship' } as TournamentResponse
+
+    it('participant authentifié sur tournoi en cours', () => {
+      const { canCreateMatchInTournament } = useTournamentService()
+      expect(canCreateMatchInTournament(tournament, true, true)).toBe(true)
+    })
+
+    it('refusé si non authentifié, non participant ou mode bracket', () => {
+      const { canCreateMatchInTournament } = useTournamentService()
+      expect(canCreateMatchInTournament(tournament, false, true)).toBe(false)
+      expect(canCreateMatchInTournament(tournament, true, false)).toBe(false)
+      expect(
+        canCreateMatchInTournament({ status: 'ongoing', mode: 'bracket' } as TournamentResponse, true, true),
+      ).toBe(false)
+    })
+
+    it('kiosk: pas besoin d’être participant', () => {
+      const { canCreateMatchInTournament } = useTournamentService()
+      expect(canCreateMatchInTournament(tournament, true, false, 'kiosk')).toBe(true)
+      expect(
+        canCreateMatchInTournament({ status: 'finished', mode: 'championship' } as TournamentResponse, true, false, 'kiosk'),
+      ).toBe(false)
+    })
+  })
+
   describe('listTournaments', () => {
     it('should load tournaments successfully', async () => {
       const mockTournaments: TournamentResponse[] = [

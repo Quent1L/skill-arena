@@ -19,6 +19,7 @@
     "type-check:backend": "cd backend && bun run type-check",
     "type-check:frontend": "cd frontend && bun run type-check",
     "test:unit": "bun run test:unit:backend && bun run test:unit:frontend",
+    "test:e2e": "cd frontend && bun run e2e:prepare && bun run test:e2e",
     "test:unit:backend": "cd backend && bun run test",
     "test:unit:frontend": "cd frontend && bun run test:unit",
     "test:unit:cov": "bun run test:unit:cov:backend && bun run test:unit:cov:frontend",

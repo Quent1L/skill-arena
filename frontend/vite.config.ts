@@ -30,7 +30,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
       devOptions: {
-        enabled: true,
+        // Disabled during e2e runs: the dev service worker caches bundles and
+        // interferes with Playwright.
+        enabled: !process.env.VITE_E2E,
         type: 'module',
       },
       manifest: {
@@ -59,5 +61,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  optimizeDeps: {
+    // Scanne aussi les vues lazy du router: sinon vite découvre leurs
+    // dépendances à la première navigation et déclenche un full reload
+    // ("optimized dependencies changed") qui casse la navigation en cours.
+    entries: ['index.html', 'src/views/**/*.vue'],
   },
 })

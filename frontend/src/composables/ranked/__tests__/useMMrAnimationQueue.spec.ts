@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { MmrAnimationEventResponse } from '@skol-arena/shared'
+import { makeMmrEvent } from '@/test-support/factories'
 import { useMMrAnimationQueue } from '../useMMrAnimationQueue'
 
 // API is pulled in at import time; stub it so the composable has no side effects.
@@ -13,26 +14,7 @@ vi.mock('../mmr-animation-event.api', () => ({
 }))
 
 function ev(reason: MmrAnimationEventResponse['reason']): MmrAnimationEventResponse {
-  return {
-    id: Math.random().toString(36),
-    matchId: Math.random().toString(36),
-    seasonId: 's',
-    eventType: 'official',
-    reason,
-    mmrBefore: 1000,
-    mmrAfter: 1000,
-    mmrDelta: 0,
-    displayDelta: 0,
-    tierBeforeLevel: null,
-    tierAfterLevel: null,
-    tierBeforeName: null,
-    tierAfterName: null,
-    rankChanged: false,
-    encouragementMessage: null,
-    createdAt: '',
-    opponents: [],
-    teammates: [],
-  }
+  return makeMmrEvent({ reason })
 }
 
 describe('useMMrAnimationQueue.showRecap', () => {

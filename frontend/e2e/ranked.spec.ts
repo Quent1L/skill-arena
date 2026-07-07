@@ -1,0 +1,61 @@
+import { test, expect } from '@playwright/test'
+import { USERS, SEASON_ID, ADMIN_STATE } from './fixtures'
+
+test('le leaderboard groupe les joueurs par rang, du plus haut au plus bas', async ({ page }) => {
+  await page.goto(`/tournaments/${SEASON_ID}`)
+
+  await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
+  await expect(page.getByText('1550').first()).toBeVisible()
+
+  // Diamond (1550) au-dessus de Bronze (850)
+  const content = await page.locator('.leaderboard').innerText()
+  expect(content.indexOf('Diamond')).toBeGreaterThan(-1)
+  expect(content.indexOf('Bronze')).toBeGreaterThan(-1)
+  expect(content.indexOf('Diamond')).toBeLessThan(content.indexOf('Bronze'))
+  expect(content.indexOf(USERS.player1.displayName)).toBeLessThan(
+    content.indexOf(USERS.player3.displayName),
+  )
+})
+
+test('la bascule provisoire intègre les matchs non finalisés', async ({ page }) => {
+  await page.goto(`/tournaments/${SEASON_ID}`)
+  await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
+
+  // player4 a un match "reported" (non finalisé): son MMR provisoire
+  // diffère de son MMR officiel (850)
+  const leaderboard = page.locator('.leaderboard')
+  const player4Row = leaderboard.locator('a', { hasText: USERS.player4.displayName })
+  await expect(player4Row).toContainText('850')
+
+  await page.getByRole('button', { name: 'Provisoire (Live)' }).click()
+  await expect(player4Row).toBeVisible()
+  await expect(player4Row).not.toContainText('850')
+})
+
+test('le profil MMR montre rang, MMR et historique', async ({ page }) => {
+  await page.goto(`/players/${USERS.player1.appUserId}?tournamentId=${SEASON_ID}`)
+
+  await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
+  // MMR formaté fr-FR: "1 550" (espace fine insécable)
+  await expect(page.getByText(/1[\s  ]?550/).first()).toBeVisible()
+  await expect(page.getByText('Diamond').first()).toBeVisible()
+  // Historique seedé: +26 puis +24
+  await expect(page.getByText('+26').first()).toBeVisible()
+  await expect(page.getByText('+24').first()).toBeVisible()
+})
+
+test.describe('admin ranked', () => {
+  test.use({ storageState: ADMIN_STATE })
+
+  test('la saison seedée apparaît dans la liste admin', async ({ page }) => {
+    await page.goto('/admin/ranked')
+    await expect(page.getByText('E2E Season').first()).toBeVisible()
+  })
+
+  test('la page des rangs liste les 5 tiers', async ({ page }) => {
+    await page.goto(`/admin/ranked/${SEASON_ID}/tiers`)
+    for (const tier of ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond']) {
+      await expect(page.getByText(tier).first()).toBeVisible()
+    }
+  })
+})

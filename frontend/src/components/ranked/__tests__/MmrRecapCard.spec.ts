@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import type { MmrAnimationEventResponse } from '@skol-arena/shared'
+import { makeMmrEvent } from '@/test-support/factories'
 import MmrRecapCard from '../MmrRecapCard.vue'
 
 // t echoes the key, appending #count when an interpolation count is given, so we
@@ -12,31 +13,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-let seq = 0
-function ev(over: Partial<MmrAnimationEventResponse>): MmrAnimationEventResponse {
-  seq += 1
-  return {
-    id: `e${seq}`,
-    matchId: `m${seq}`,
-    seasonId: 's',
-    eventType: 'official',
-    reason: 'match_finalized',
-    mmrBefore: 1000,
-    mmrAfter: 1000,
-    mmrDelta: 0,
-    displayDelta: 0,
-    tierBeforeLevel: null,
-    tierAfterLevel: null,
-    tierBeforeName: null,
-    tierAfterName: null,
-    rankChanged: false,
-    encouragementMessage: null,
-    createdAt: '',
-    opponents: [],
-    teammates: [],
-    ...over,
-  }
-}
+const ev = makeMmrEvent
 
 function mountCard(events: MmrAnimationEventResponse[]) {
   return mount(MmrRecapCard, {

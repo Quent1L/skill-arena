@@ -471,4 +471,17 @@ router.beforeEach((to) => {
   }
 })
 
+// Un import lazy de vue peut échouer quand les chunks servis ont changé
+// (redéploiement en prod, ré-optimisation des deps du serveur vite en dev):
+// on recharge la page directement sur la destination.
+router.onError((error, to) => {
+  const message = error instanceof Error ? error.message : String(error)
+  if (
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('error loading dynamically imported module')
+  ) {
+    window.location.href = to.fullPath
+  }
+})
+
 export default router

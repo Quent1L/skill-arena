@@ -10,6 +10,12 @@
     "test:unit": "vitest --run",
     "test:watch": "vitest",
     "test:unit:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "e2e:db:up": "docker compose -f e2e/docker-compose.yml up -d --wait",
+    "e2e:db:down": "docker compose -f e2e/docker-compose.yml down -v",
+    "e2e:seed": "cd ../backend && DATABASE_URL=postgres://skolarena:skolarena@localhost:5435/skolarena_e2e bun run scripts/seed-e2e.ts",
+    "e2e:prepare": "run-s e2e:db:up e2e:seed",
     "build-only": "bun x --bun vite build --mode prod",
     "generate:fa-icons": "bun run scripts/generate-fa-icons.mjs",
     "type-check": "vue-tsc --noEmit",
@@ -48,6 +54,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@prettier/plugin-oxc": "^0.2.0",
     "@primevue/auto-import-resolver": "^4.5.5",
     "@tailwindcss/vite": "^4.3.1",
