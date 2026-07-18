@@ -14,6 +14,20 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(version),
   },
   plugins: [
+    {
+      // Exposes the current version over HTTP: the client compares it against
+      // __APP_VERSION__ to detect a deployment without waiting on the service
+      // worker lifecycle. Emitted at build time rather than kept in public/ so it
+      // cannot drift from ../VERSION.
+      name: 'emit-version-json',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({ version }),
+        })
+      },
+    },
     tailwindcss(),
     vue(),
     Components({

@@ -15,22 +15,18 @@ import frLocale from 'primelocale/fr.json'
 import enLocale from 'primelocale/en.json'
 import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
+import { checkVersion } from './composables/pwa/pwa.update'
 import { i18n, getInitialLocale } from './i18n'
 
+// Deployment detection: these checks only raise a flag, they never reload.
+// Navigation is what applies the update (see router/index.ts), so input in
+// progress is never interrupted.
 if ('serviceWorker' in navigator) {
-  let refreshing = false
-  const hadController = !!navigator.serviceWorker.controller // false au tout 1er chargement
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing || !hadController) return // évite double reload + flicker premier chargement
-    refreshing = true
-    window.dispatchEvent(new CustomEvent('app:update-available'))
-  })
-
-  navigator.serviceWorker.ready.then((registration) => {
-    const UPDATE_INTERVAL = 60 * 60 * 1000 // 60 min
-    setInterval(() => registration.update(), UPDATE_INTERVAL)
+  navigator.serviceWorker.ready.then(() => {
+    const CHECK_INTERVAL = 60 * 60 * 1000 // 60 min
+    setInterval(() => void checkVersion(), CHECK_INTERVAL)
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') registration.update()
+      if (document.visibilityState === 'visible') void checkVersion()
     })
   })
 }

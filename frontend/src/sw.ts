@@ -11,7 +11,15 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 self.addEventListener('install', () => {
   console.log('[SW] Service worker installed')
-  self.skipWaiting()
+  // First install (no active SW): take over right away. Otherwise stay in
+  // waiting — the app decides when to apply the update (see
+  // composables/pwa/pwa.update.ts), so the page never reloads in the middle of
+  // whatever the user is doing.
+  if (!self.registration.active) self.skipWaiting()
+})
+
+self.addEventListener('message', (event: ExtendableMessageEvent) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

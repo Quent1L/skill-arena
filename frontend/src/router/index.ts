@@ -2,6 +2,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { requireAdmin, requireAuth, requireSettingsAccess, redirectIfAuthenticated } from './guards'
+import {
+  applyUpdate,
+  checkVersionThrottled,
+  isUpdatePending,
+  updatesBlocked,
+} from '@/composables/pwa/pwa.update'
 import { i18n } from '@/i18n'
 
 const t = (key: string) => i18n.global.t(key)
@@ -469,6 +475,16 @@ router.beforeEach((to) => {
   if (!navigator.onLine) {
     return { name: 'offline', query: { redirect: to.fullPath } }
   }
+
+  // Switching screens is the one moment where reloading costs the user nothing:
+  // they were leaving the view anyway. Cancel the vue-router navigation, since
+  // applyUpdate reloads straight onto the destination.
+  if (isUpdatePending() && !updatesBlocked()) {
+    void applyUpdate(to.fullPath)
+    return false
+  }
+
+  void checkVersionThrottled()
 })
 
 // Un import lazy de vue peut échouer quand les chunks servis ont changé

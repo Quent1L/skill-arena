@@ -1,7 +1,7 @@
 <template>
   <div>
     <SplashLoader :visible="!isAppReady" />
-    <UpdateOverlay :visible="showUpdateOverlay" />
+    <UpdateOverlay :visible="isApplying" />
     <Toast
       position="top-right"
       :breakpoints="{ '640px': { width: 'calc(100vw - 1rem)', right: '0.5rem', left: 'auto' } }"
@@ -20,6 +20,7 @@ import { useConfigService } from './composables/config/config.service'
 import { initErrorService, useErrorService } from './composables/useErrorService'
 import { useNotificationService } from './composables/notification/notification.service'
 import { useNotificationSocket } from './composables/notification/notification.socket'
+import { usePWAUpdate } from './composables/pwa/pwa.update'
 import AppWrapper from './AppWrapper.vue'
 import SplashLoader from './components/SplashLoader.vue'
 import UpdateOverlay from './components/UpdateOverlay.vue'
@@ -31,19 +32,27 @@ const errorService = useErrorService()
 const notificationService = useNotificationService()
 const notificationSocket = useNotificationSocket()
 const toast = useAppToast()
+const { isApplying, checkVersion, applyUpdate } = usePWAUpdate()
 
 const isAppReady = ref(false)
-const showUpdateOverlay = ref(false)
 
-const onUpdateAvailable = () => {
-  showUpdateOverlay.value = true
-  setTimeout(() => globalThis.location.reload(), 1500)
-}
+/**
+ * Checks the version during the splash without ever delaying startup: if the
+ * network drags, boot anyway and the update lands on the next navigation.
+ */
+const BOOT_CHECK_TIMEOUT_MS = 1500
+
+const checkVersionAtBoot = () =>
+  Promise.race([
+    checkVersion(),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), BOOT_CHECK_TIMEOUT_MS)),
+  ])
 
 onMounted(async () => {
-  globalThis.addEventListener('app:update-available', onUpdateAvailable)
-
   initErrorService(toast)
+
+  // Runs alongside loading: the user is still looking at the splash.
+  const bootUpdateCheck = checkVersionAtBoot()
 
   const minDelay = new Promise((resolve) => setTimeout(resolve, 250))
 
@@ -72,12 +81,17 @@ onMounted(async () => {
     notificationSocket.connect()
   }
 
+  // Apply before revealing the app: the user never sees the stale version.
+  if (await bootUpdateCheck) {
+    await applyUpdate()
+    return
+  }
+
   await minDelay
   isAppReady.value = true
 })
 
 onUnmounted(() => {
   errorService.uninstall()
-  globalThis.removeEventListener('app:update-available', onUpdateAvailable)
 })
 </script>
