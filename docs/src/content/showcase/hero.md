@@ -1,9 +1,10 @@
 ---
-title: Run tournaments people actually want to play in
-summary: Brackets, ranked ladders, team rosters, and live stats — all in one place.
+title: The competition platform built for players, not just organizers
+summary: Championships, brackets, and ranked ladders that fit how your community actually plays.
 order: 0
 ---
 
-Skol Arena is a tournament management platform for competitive communities. Create
-brackets or championships, track a persistent ranked ladder with real MMR, manage
-team rosters, and give every player a stats profile — without spreadsheets.
+Run flexible championships, elimination brackets, and ranked competitions that fit how your
+community actually plays. Mobile-first and player-driven: participants report their own
+matches, confirm or contest results, and keep the competition moving without routing
+everything through one organizer.

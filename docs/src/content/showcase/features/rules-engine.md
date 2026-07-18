@@ -4,6 +4,7 @@ summary: Live badges and messages that react to what's happening in the tourname
 order: 8
 icon: bolt
 badge: Beta
+pillar: platform
 ---
 
 A configurable rules engine surfaces contextual messages and badges based on

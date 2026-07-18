@@ -1,8 +1,9 @@
 ---
 title: Disciplines & outcomes
 summary: Configure the games you play once, then define exactly how results score.
-order: 1
+order: 4
 icon: layers
+pillar: platform
 ---
 
 A **discipline** is the game or activity being played — chess, foosball, a video game, anything. Admins configure a discipline once (name, icon, scoring instructions) and reuse it across every bracket, championship, or ranked season.

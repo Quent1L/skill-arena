@@ -1,8 +1,9 @@
 ---
 title: Championship limits
 summary: A full set of fairness rules to stop a season-long championship from being gamed.
-order: 2
+order: 0
 icon: sliders
+pillar: championship
 ---
 
 Championships run for weeks or months, which opens the door to gaming the standings. Skol Arena gives organizers a dedicated set of limits to close that off:

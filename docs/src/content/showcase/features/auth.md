@@ -3,6 +3,7 @@ title: Secure authentication
 summary: Native login or Keycloak SSO — enable either, or both at once.
 order: 10
 icon: lock
+pillar: platform
 ---
 
 Accounts are backed by Better Auth, giving every player a secure login and every

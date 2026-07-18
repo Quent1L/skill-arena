@@ -10,6 +10,9 @@ const showcase = defineCollection({
     order: z.number().default(0),
     icon: z.string().optional(),
     badge: z.string().optional(),
+    pillar: z.enum(['championship', 'bracket', 'ranked', 'platform']).optional(),
+    tagline: z.string().optional(),
+    bestFor: z.array(z.string()).optional(),
   }),
 })
 

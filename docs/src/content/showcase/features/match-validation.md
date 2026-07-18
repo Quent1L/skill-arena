@@ -1,8 +1,9 @@
 ---
 title: Configurable match validation
 summary: Choose how much trust a tournament extends before a reported score locks in.
-order: 4
+order: 1
 icon: shield
+pillar: platform
 ---
 
 Every championship and ranked tournament picks its own **validation mode** — how much confirmation a reported match result needs before it's locked in:

@@ -16,7 +16,7 @@ docker run -d \
   -e DATABASE_URL="postgres://user:password@your-db-host:5432/skol_arena" \
   -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" \
   -e FRONTEND_BUILD_PATH="/app/frontend/dist" \
-  ghcr.io/quent1l/skol-arena:latest
+  quent1l/skol-arena:latest
 ```
 
 On first boot the app runs its database migrations automatically, then creates an
@@ -39,4 +39,4 @@ container only exposes the API.
 ## Prerequisites
 
 - A PostgreSQL database (any recent version) reachable from the container.
-- Docker (or a Docker-compatible runtime) able to pull from `ghcr.io`.
+- Docker (or a Docker-compatible runtime) able to pull from [Docker Hub](https://hub.docker.com/r/quent1l/skol-arena) .

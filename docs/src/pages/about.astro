@@ -7,27 +7,34 @@ const why = await getEntry('showcase', 'why')
 if (!why) throw new Error('Missing showcase/why.md content entry')
 const { Content } = await render(why)
 
-const audiences = [
-  {
-    icon: 'trophy',
-    title: 'Ranked ladders',
-    desc: 'Ongoing competitive groups who want a real rating that persists season to season.',
-  },
-  {
-    icon: 'flag',
-    title: 'Recurring leagues',
-    desc: 'Office, campus, or club competitions that run the same format week after week.',
-  },
-  {
-    icon: 'bolt',
-    title: 'Esports & gaming',
-    desc: 'Scrims and community tournaments across any discipline you configure.',
-  },
+const principles = [
   {
     icon: 'users',
-    title: 'Tabletop & board games',
-    desc: 'Static team rosters and championships for regular game nights.',
+    title: 'Players run the day-to-day',
+    desc: 'Creating, reporting, confirming, contesting, and cancelling a match all sit with the players in it. Nothing waits on a single person being available.',
   },
+  {
+    icon: 'shield',
+    title: 'Trust is configurable, not assumed',
+    desc: 'Each tournament picks how much confirmation a result needs. Reliable reporters get fast-tracked; a dispute resets that standing.',
+  },
+  {
+    icon: 'sliders',
+    title: 'The discipline shapes the rules',
+    desc: 'Disciplines carry their own outcome types, point weights, and MMR multipliers, so scoring reflects the game rather than a generic template.',
+  },
+  {
+    icon: 'phone',
+    title: 'Mobile is the primary surface',
+    desc: 'Competitions happen in venues, not at desks. Mobile screens are purpose-built, and the app installs as a PWA.',
+  },
+]
+
+const nonGoals = [
+  'Payment handling, ticketing, or registration fees',
+  'Live streaming, broadcast overlays, or spectator feeds',
+  'Public matchmaking across unrelated communities',
+  'A hosted SaaS plan — you run your own instance',
 ]
 
 const stack = [
@@ -55,10 +62,10 @@ const stack = [
         <Content />
       </div>
 
-      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Who it's for</h2>
+      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Design principles</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {
-          audiences.map((item) => (
+          principles.map((item) => (
             <div class="card-glow flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-start/15 text-brand-mid">
                 <Icon name={item.icon} class="h-4 w-4" />
@@ -71,6 +78,22 @@ const stack = [
           ))
         }
       </div>
+
+      <h2 class="mt-14 mb-5 text-xl font-semibold text-white">What it deliberately isn't</h2>
+      <p class="mb-4 text-sm text-slate-400">
+        Scope kept narrow on purpose — Skol Arena runs the competition, and leaves these to tools
+        built for them:
+      </p>
+      <ul class="flex flex-col gap-2">
+        {
+          nonGoals.map((item) => (
+            <li class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+              <Icon name="cross" class="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+              {item}
+            </li>
+          ))
+        }
+      </ul>
 
       <h2 class="mt-14 mb-5 text-xl font-semibold text-white">Stack</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

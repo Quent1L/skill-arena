@@ -1,8 +1,9 @@
 ---
 title: Static team rosters
 summary: Persistent teams that carry the same lineup across an entire tournament.
-order: 5
+order: 3
 icon: users
+pillar: platform
 ---
 
 For events where teams stay together, Skol Arena manages a static roster: add and

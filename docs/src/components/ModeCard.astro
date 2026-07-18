@@ -1,0 +1,55 @@
+---
+import type { CollectionEntry } from 'astro:content'
+import Icon from './Icon.astro'
+
+interface Props {
+  entry: CollectionEntry<'showcase'>
+  href?: string
+}
+const { entry, href } = Astro.props
+const { title, tagline, icon, bestFor } = entry.data
+---
+
+<article
+  class="card-glow flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition-colors hover:bg-white/[0.05]"
+>
+  <div
+    class="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid"
+  >
+    <Icon name={icon ?? 'bolt'} class="h-6 w-6" />
+  </div>
+  <h3 class="text-xl font-bold text-white">{title}</h3>
+  {tagline && <p class="mt-1 text-sm font-medium text-brand-mid/80">{tagline}</p>}
+  <div
+    class="prose prose-invert prose-sm prose-strong:text-slate-200 mt-4 max-w-none text-slate-400 [&_p]:mb-3"
+  >
+    <slot />
+  </div>
+  {
+    bestFor && bestFor.length > 0 && (
+      <div class="mt-5 border-t border-white/10 pt-5">
+        <p class="mb-3 text-xs font-semibold tracking-[0.15em] text-slate-500 uppercase">
+          Best for
+        </p>
+        <ul class="flex flex-col gap-2">
+          {bestFor.map((item) => (
+            <li class="flex items-start gap-2 text-sm text-slate-300">
+              <Icon name="check" class="mt-0.5 h-4 w-4 shrink-0 text-brand-mid" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+  {
+    href && (
+      <a
+        href={href}
+        class="mt-6 text-sm font-semibold text-brand-mid transition-colors hover:text-brand-end"
+      >
+        Read more →
+      </a>
+    )
+  }
+</article>

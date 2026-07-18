@@ -1,8 +1,9 @@
 ---
 title: Ranked mode
 summary: A real Elo-derivative MMR ladder — dynamic tiers, per-discipline team scoring, instant feedback on every match.
-order: 3
+order: 0
 icon: trophy
+pillar: ranked
 ---
 
 Ranked isn't a leaderboard bolted onto a bracket — it's a full competitive ladder system, season over season.

@@ -9,8 +9,8 @@ description: Docker image, Docker Compose setup, first boot, and platform notes.
 Official images are published to GitHub Container Registry:
 
 ```
-ghcr.io/quent1l/skol-arena:latest
-ghcr.io/quent1l/skol-arena:<version>   # e.g. 1.15.0
+quent1l/skol-arena:latest
+quent1l/skol-arena:<version>   # e.g. 1.15.0
 ```
 
 The image is built from the repository's multi-stage `Dockerfile`: it compiles the
@@ -43,7 +43,7 @@ services:
       - skol-db-data:/var/lib/postgresql/data
 
   app:
-    image: ghcr.io/quent1l/skol-arena:latest
+    image: quent1l/skol-arena:latest
     restart: unless-stopped
     depends_on:
       - db
