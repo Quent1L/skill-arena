@@ -33,6 +33,12 @@
     "requireCommits": true,
     "requireCommitsFail": false
   },
+  "github": {
+    "release": true,
+    "releaseName": "v${version}",
+    "autoGenerate": false,
+    "draft": false
+  },
   "npm": {
     "publish": false,
     "ignoreVersion": true

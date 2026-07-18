@@ -15,6 +15,9 @@ jobs:
   release:
     if: "!startsWith(github.event.head_commit.message, 'chore(release)')"
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.gate.outputs.proceed }}
+      version: ${{ steps.ver.outputs.value }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -32,6 +35,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - run: bunx release-it --ci
+      # Hidden commit types (ci, test) still make conventional-changelog recommend a
+      # patch bump, which produces a release with an empty changelog section. Only
+      # release when at least one commit maps to a visible section.
+      - name: Check for releasable commits
+        id: gate
+        run: |
+          LAST=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST" ]; then
+            echo "No tag found, treating as releasable"
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          COUNT=$(git log "$LAST..HEAD" --format=%s \
+            | grep -vE '^chore\(release\)' \
+            | grep -cE '^(feat|fix|perf|refactor|docs|chore|style)(\(.+\))?!?:' || true)
+          echo "$COUNT releasable commit(s) since $LAST"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.gate.outputs.proceed == 'true'
+        run: bunx release-it --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read released version
+        if: steps.gate.outputs.proceed == 'true'
+        id: ver
+        run: echo "value=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+  docker:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      tag: ${{ needs.release.outputs.version }}
+    secrets: inherit

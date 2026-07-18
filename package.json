@@ -4,6 +4,10 @@
   "description": "Skol - Tournament Management Application",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quent1L/skol-arena.git"
+  },
   "scripts": {
     "setup:db": "cd backend && bun run db:push",
     "dev": "bun run build:shared && concurrently \"bun run dev:shared\" \"bun run dev:backend\" \"bun run dev:frontend\" --names \"shared,backend,frontend\" --prefix-colors \"blue,green,yellow\"",

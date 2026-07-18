@@ -1,62 +1,44 @@
 name: Docker Publish
 
 on:
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
-  workflow_dispatch: {}
+  workflow_call:
+    inputs:
+      tag:
+        description: Released version to build and publish
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish
+        required: true
+        type: string
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-and-push:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: main
-
-      - name: Confirm a release actually happened
-        id: check
-        run: |
-          MSG=$(git log -1 --format=%s)
-          if [[ "$MSG" == chore\(release\):* || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Read version
-        if: steps.check.outputs.proceed == 'true'
-        id: version
-        run: echo "value=$(cat VERSION)" >> "$GITHUB_OUTPUT"
-
-      - name: Lowercase image name
-        if: steps.check.outputs.proceed == 'true'
-        id: image
-        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          ref: ${{ inputs.tag }}
 
       - uses: docker/setup-buildx-action@v3
-        if: steps.check.outputs.proceed == 'true'
 
       - uses: docker/login-action@v3
-        if: steps.check.outputs.proceed == 'true'
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: docker/build-push-action@v6
-        if: steps.check.outputs.proceed == 'true'
         with:
           context: .
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.image.outputs.name }}:${{ steps.version.outputs.value }}
-            ghcr.io/${{ steps.image.outputs.name }}:latest
+            quent1l/skol-arena:${{ inputs.tag }}
+            quent1l/skol-arena:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
