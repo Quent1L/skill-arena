@@ -8,3 +8,6 @@
 # Added by code-review-graph
 .code-review-graph/
 .venv
+
+# Local Claude Code settings (per-machine permissions)
+.claude/settings.local.json
