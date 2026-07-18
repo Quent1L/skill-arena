@@ -143,6 +143,15 @@ if (isKeycloakEnabled) {
   );
 }
 
+// Without BETTER_AUTH_URL the localhost fallback emits cookies with no `Secure` flag and
+// narrows trustedOrigins to localhost: random logouts that are very hard to diagnose.
+if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_URL) {
+  console.warn(
+    "[auth] BETTER_AUTH_URL non défini en production : fallback sur http://localhost:3000. " +
+      "Les cookies de session seront émis sans l'attribut Secure et trustedOrigins ne contiendra que localhost.",
+  );
+}
+
 // Configuration dynamique de Better Auth
 const authConfig: any = {
   database: drizzleAdapter(db, {
@@ -152,6 +161,12 @@ const authConfig: any = {
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 jours
     updateAge: 60 * 60 * 24, // refresh si la session a plus d'1 jour
+    // Avoids a Postgres lookup on every request (addUserContext runs on "*").
+    // Accepted trade-off: revoking a session takes up to 5 min to apply.
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
   },
   account: {
     accountLinking: {
