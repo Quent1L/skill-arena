@@ -181,12 +181,8 @@ export const ruleTypeEnum = pgEnum("rule_type", ["message", "badge"]);
 export const ruleScopeEnum = pgEnum("rule_scope", ["global", "discipline"]);
 
 export const notificationTypeEnum = pgEnum("notification_type", [
-  "MATCH_INVITE",
-  "MATCH_REMINDER",
+  "MATCH_CREATED",
   "MATCH_VALIDATION",
-  "TOURNAMENT_UPDATE",
-  "SYSTEM_ALERT",
-  "match_created",
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
   "BADGE_AWARDED",

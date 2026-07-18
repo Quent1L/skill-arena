@@ -1,5 +1,5 @@
 import { Context, Next } from "hono";
-import i18next from "../config/i18n";
+import { runWithLang } from "../utils/i18n-context";
 
 export async function i18nMiddleware(c: Context, next: Next) {
   // Get language from Accept-Language header or query param
@@ -14,11 +14,9 @@ export async function i18nMiddleware(c: Context, next: Next) {
   const supportedLanguages = ["fr", "en"];
   const selectedLang = supportedLanguages.includes(lang) ? lang : "fr";
 
-  i18next.changeLanguage(selectedLang);
-
-  // Store i18n instance in context for use in error handler
-  c.set("i18n", i18next);
   c.set("lang", selectedLang);
 
-  await next();
+  // Wraps the whole handler chain: anything downstream reads the language from
+  // the async context instead of a mutated global.
+  return runWithLang(selectedLang, () => next());
 }

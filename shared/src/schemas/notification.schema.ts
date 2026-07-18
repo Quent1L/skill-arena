@@ -1,12 +1,8 @@
 import { z } from "zod";
 
 export const NotificationTypeEnum = z.enum([
-  "MATCH_INVITE",
-  "MATCH_REMINDER",
+  "MATCH_CREATED",
   "MATCH_VALIDATION",
-  "TOURNAMENT_UPDATE",
-  "SYSTEM_ALERT",
-  "match_created",
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
   "BADGE_AWARDED",

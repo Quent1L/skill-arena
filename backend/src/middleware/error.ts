@@ -3,7 +3,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AppError } from "../types/errors";
 import { ZodError } from "zod";
 import type { ZodIssue } from "zod";
-import i18next from "../config/i18n";
+import { t } from "../utils/i18n-context";
 import { logger } from "../utils/logger";
 
 export async function errorHandler(err: Error, c: Context) {
@@ -34,17 +34,9 @@ export async function errorHandler(err: Error, c: Context) {
     logger.error({ logError, err }, "CRITICAL: Failed to log error properly");
   }
 
-  // Get i18n instance from context or use default
-  let i18n;
-  try {
-    i18n = c.get("i18n") || i18next;
-  } catch (_e) {
-    i18n = i18next;
-  }
-
   // Handle AppError (our custom errors)
   if (err instanceof AppError) {
-    const message = i18n.t(`errors.${err.code}`, err.details || {});
+    const message = t(`errors.${err.code}`, err.details || {});
     
     logger.error({ err, request: requestInfo }, "[AppError] %s", err.code);
 
@@ -62,7 +54,7 @@ export async function errorHandler(err: Error, c: Context) {
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {
-    const message = i18n.t("errors.VALIDATION_ERROR");
+    const message = t("errors.VALIDATION_ERROR");
     const validationIssues = err.issues.map((e: ZodIssue) => ({
       path: e.path.join("."),
       message: e.message,
@@ -86,7 +78,7 @@ export async function errorHandler(err: Error, c: Context) {
 
   // Handle unknown errors
   // Use generic message for response, but log full details
-  const genericMessage = i18n.t("errors.UNKNOWN");
+  const genericMessage = t("errors.UNKNOWN");
   
   logger.error({ err, request: requestInfo }, "[UnknownError]");
 

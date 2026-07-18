@@ -3,7 +3,7 @@ import { userRepository } from "../../repository/user.repository";
 import { teamRepository } from "../../repository/team.repository";
 import { BadRequestError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput, MatchSideInput } from "@skol-arena/shared/types/index";
-import i18next from "../../config/i18n";
+import { t } from "../../utils/i18n-context";
 
 type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>
@@ -280,7 +280,7 @@ export class MatchInputValidator {
                 const player = await userRepository.getById(id);
                 const playerName = player?.displayName || id;
                 errors.push(
-                    String(i18next.t("errors.MATCH_OVERLAPPING_PLAYERS", { playerName }))
+                    t("errors.MATCH_OVERLAPPING_PLAYERS", { playerName })
                 );
                 return;
             }

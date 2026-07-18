@@ -27,7 +27,7 @@ import {
   ConflictError,
   AppError,
 } from '../types/errors'
-import i18next from '../config/i18n'
+import { t } from '../utils/i18n-context'
 import { matchSidesRepository } from '../repository/match-sides.repository'
 import { notificationService } from './notification.service'
 import { matchInputValidator } from './validators/match-input.validator'
@@ -840,10 +840,10 @@ export class MatchService {
       await this.validateMatchRules({ ...input, sides }, tournament)
     } catch (error) {
       if (error instanceof AppError) {
-        const translatedMessage = String(i18next.t(`errors.${error.code}`, error.details || {}))
+        const translatedMessage = t(`errors.${error.code}`, error.details || {})
         errors.push(translatedMessage)
       } else {
-        const fallbackMessage = String(i18next.t('errors.UNKNOWN'))
+        const fallbackMessage = t('errors.UNKNOWN')
         errors.push(error instanceof Error ? error.message : fallbackMessage)
       }
     }

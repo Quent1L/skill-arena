@@ -9,7 +9,6 @@ export type AppVariables = {
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string;
   lang: string;
-  i18n: object;
 };
 
 /**
@@ -20,7 +19,6 @@ export type AppVariablesOptional = {
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string | null;
   lang: string;
-  i18n: object;
 };
 
 /**

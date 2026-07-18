@@ -39,7 +39,7 @@ export class MatchNotificationBuilder {
       if (!ctx) continue
       await notificationService.send({
         userId: playerId,
-        type: 'match_created',
+        type: 'MATCH_CREATED',
         titleKey,
         messageKey,
         translationParams: {
@@ -196,7 +196,7 @@ export class MatchNotificationBuilder {
     return {
       teammates: teammateNames.filter(Boolean).join(', '),
       opponents: opponentNames.filter(Boolean).join(', '),
-      matchFormat: `${teamA.length}v${teamA.length}`,
+      matchFormat: `${teammates.length + 1}v${opponents.length}`,
     }
   }
 }

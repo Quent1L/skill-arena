@@ -50,7 +50,7 @@ describe("MatchNotificationBuilder", () => {
     expect(sentPayloads).toHaveLength(3); // p2, p3, p4
     const p2Notif = sentPayloads.find((p) => p.userId === "p2");
     expect(p2Notif).toBeDefined();
-    expect(p2Notif.type).toBe("match_created");
+    expect(p2Notif.type).toBe("MATCH_CREATED");
     expect(p2Notif.translationParams.creatorName).toBe("User-p1");
     expect(p2Notif.translationParams.tournamentName).toBe("Tour");
     expect(p2Notif.translationParams.matchFormat).toBe("2v2");
@@ -61,6 +61,26 @@ describe("MatchNotificationBuilder", () => {
     // Raw instant, so the reader's device owns the locale and the timezone
     expect(p2Notif.translationParams.matchDate).toBe("2026-06-01T15:00:00.000Z");
     expect(p2Notif.matchId).toBe("m-1");
+  });
+
+  it("reports matchFormat from the recipient's point of view on an uneven match", async () => {
+    (matchRepository as any).getById = async () => ({
+      id: "m-6",
+      tournamentId: "t-1",
+      status: "scheduled",
+      playedAt: new Date("2026-06-01T15:00:00Z"),
+    });
+    (matchRepository as any).getParticipationsByMatchId = async () => [
+      { playerId: "p1", teamSide: "A" },
+      { playerId: "p2", teamSide: "A" },
+      { playerId: "p3", teamSide: "B" },
+    ];
+
+    await matchNotificationBuilder.notifyMatchCreated("m-6", "p1", "Tour");
+
+    // p2 is the outnumbering side, p3 the lone one — each reads its own side first
+    expect(sentPayloads.find((p) => p.userId === "p2").translationParams.matchFormat).toBe("2v1");
+    expect(sentPayloads.find((p) => p.userId === "p3").translationParams.matchFormat).toBe("1v2");
   });
 
   it("stores a null matchDate when the match has no date yet", async () => {
