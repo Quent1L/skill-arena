@@ -20,11 +20,17 @@ bun run dev
 bun run type-check
 
 # Tests
-cd backend && bun test           # Backend tests
-cd frontend && bun run test:unit # Frontend tests (Vitest)
+cd backend && bun run test             # Backend: unit + integration
+cd backend && bun run test:unit        # Backend: unit only
+cd backend && bun run test:integration # Backend: integration only
+cd frontend && bun run test:unit       # Frontend tests (Vitest)
+
+# Always use the backend scripts, never a bare `bun test`: they pass --isolate,
+# which is required. Without it the state leaks between test files and produces
+# dozens of bogus failures.
 
 # Single test file
-cd backend && bun test path/to/file.test.ts
+cd backend && bun test path/to/file.test.ts --isolate
 cd frontend && bun run test:unit path/to/file.test.ts
 
 # Linting (frontend)
