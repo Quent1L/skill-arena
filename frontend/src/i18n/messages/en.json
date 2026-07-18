@@ -299,6 +299,8 @@
   "errorService": {
     "checkConsole": "Check the console for more details",
     "locationPrefix": "Location: {location}",
+    "serverUnreachableDetail": "The app cannot reach the server. Please try again in a moment.",
+    "serverUnreachableSummary": "Cannot connect",
     "summary": "Error",
     "uncaughtJs": "Uncaught JavaScript error",
     "unexpectedError": "An unexpected error occurred",
@@ -761,9 +763,13 @@
   },
   "offlineView": {
     "checking": "Checking…",
-    "description": "Check your internet connection and try again.",
-    "retry": "Retry",
-    "title": "You are offline"
+    "description": "Your device has no internet connection.",
+    "nextAttempt": "Next attempt in {seconds}s",
+    "retry": "Retry now",
+    "title": "You are offline",
+    "unreachableDescription": "The app cannot reach the server right now.",
+    "unreachableTitle": "Cannot connect",
+    "waitingForNetwork": "Will resume automatically once the connection is back"
   },
   "organizationService": {
     "errors": {

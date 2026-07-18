@@ -299,6 +299,8 @@
   "errorService": {
     "checkConsole": "Consultez la console pour plus de détails",
     "locationPrefix": "Emplacement : {location}",
+    "serverUnreachableDetail": "L'application n'arrive pas à joindre le serveur. Réessayez dans un instant.",
+    "serverUnreachableSummary": "Connexion impossible",
     "summary": "Erreur",
     "uncaughtJs": "Erreur JavaScript non capturée",
     "unexpectedError": "Une erreur inattendue est survenue",
@@ -760,10 +762,14 @@
     "title": "Notifications"
   },
   "offlineView": {
-    "checking": "Vérification…",
-    "description": "Vérifiez votre connexion internet et réessayez.",
-    "retry": "Réessayer",
-    "title": "Vous êtes hors ligne"
+    "checking": "Vérification en cours…",
+    "description": "Votre appareil n'a plus de connexion internet.",
+    "nextAttempt": "Nouvelle tentative dans {seconds} s",
+    "retry": "Réessayer maintenant",
+    "title": "Vous êtes hors ligne",
+    "unreachableDescription": "L'application n'arrive pas à joindre le serveur pour le moment.",
+    "unreachableTitle": "Connexion impossible",
+    "waitingForNetwork": "Reprise automatique dès le retour de la connexion"
   },
   "organizationService": {
     "errors": {

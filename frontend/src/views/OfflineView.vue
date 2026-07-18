@@ -8,33 +8,72 @@
       </div>
 
       <div class="space-y-3">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('offlineView.title') }}</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t(titleKey) }}</h1>
         <p class="text-gray-500 dark:text-gray-400 text-sm">
-          {{ t('offlineView.description') }}
+          {{ t(descriptionKey) }}
         </p>
       </div>
 
-      <Button
-        :label="checking ? t('offlineView.checking') : t('offlineView.retry')"
-        :icon="checking ? 'fa fa-spinner fa-spin' : 'fa fa-rotate-right'"
-        :disabled="checking"
-        @click="probe"
-      />
+      <div class="space-y-4">
+        <!-- The automatic retry must be visible: otherwise the app looks frozen. -->
+        <p
+          class="text-gray-400 dark:text-gray-500 text-xs flex items-center justify-center gap-2"
+          aria-live="polite"
+        >
+          <template v-if="checking">
+            <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+            {{ t('offlineView.checking') }}
+          </template>
+          <!-- With no network no attempt runs: announcing a countdown would be false. -->
+          <template v-else-if="isDeviceOffline">
+            {{ t('offlineView.waitingForNetwork') }}
+          </template>
+          <template v-else>
+            {{ t('offlineView.nextAttempt', { seconds: secondsUntilRetry }) }}
+          </template>
+        </p>
+
+        <Button
+          :label="t('offlineView.retry')"
+          icon="fa fa-rotate-right"
+          :disabled="checking"
+          @click="probe"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import SkolLogo from '@/components/SkolLogo.vue'
+import { apiBaseURL } from '@/config/ApiConfig'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 
+const RETRY_INTERVAL_SECONDS = 15
+
 const checking = ref(false)
+const secondsUntilRetry = ref(RETRY_INTERVAL_SECONDS)
+
+/**
+ * `navigator.onLine` is only reliable one way: false ⇒ the device truly has no network.
+ * True proves nothing (flaky wifi, captive portal, ISP outage), so it must not be read
+ * as proof that the connection is fine and the server is at fault.
+ * When in doubt: a factual message, blaming no one.
+ */
+const isDeviceOffline = ref(!navigator.onLine)
+
+const titleKey = computed(() =>
+  isDeviceOffline.value ? 'offlineView.title' : 'offlineView.unreachableTitle',
+)
+const descriptionKey = computed(() =>
+  isDeviceOffline.value ? 'offlineView.description' : 'offlineView.unreachableDescription',
+)
 
 function redirectTarget(): string {
   const r = route.query.redirect
@@ -43,10 +82,15 @@ function redirectTarget(): string {
 
 async function probe() {
   if (checking.value) return
+  secondsUntilRetry.value = RETRY_INTERVAL_SECONDS
+  // Device with no network: pointless to try, coming back online triggers the probe.
   if (!navigator.onLine) return
   checking.value = true
   try {
-    const res = await fetch('/api/config', { signal: AbortSignal.timeout(5000) })
+    // Absolute URL: in dev the backend is not on the Vite server's origin, and a
+    // relative URL would get index.html as 200 — the probe would wrongly report a
+    // recovered backend.
+    const res = await fetch(`${apiBaseURL}/api/config`, { signal: AbortSignal.timeout(5000) })
     if (res.ok) {
       router.replace(redirectTarget())
       return
@@ -59,18 +103,34 @@ async function probe() {
 }
 
 function onOnline() {
+  isDeviceOffline.value = false
   probe()
+}
+
+function onOffline() {
+  isDeviceOffline.value = true
 }
 
 let interval: ReturnType<typeof setInterval>
 
+/** The displayed countdown IS the scheduler: it cannot lie about what happens. */
+function tick() {
+  if (checking.value) return
+  secondsUntilRetry.value -= 1
+  if (secondsUntilRetry.value <= 0) {
+    probe()
+  }
+}
+
 onMounted(() => {
   window.addEventListener('online', onOnline)
-  interval = setInterval(probe, 15000)
+  window.addEventListener('offline', onOffline)
+  interval = setInterval(tick, 1000)
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', onOnline)
+  window.removeEventListener('offline', onOffline)
   clearInterval(interval)
 })
 </script>

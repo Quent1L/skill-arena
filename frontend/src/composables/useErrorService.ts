@@ -3,10 +3,20 @@
  */
 
 import type { ToastServiceMethods } from 'primevue/toastservice'
+import { isNetworkError } from '@/utils/HttpErrors'
 import { i18n } from '@/i18n'
 
 // Singleton pour accéder au ToastService
 let toastInstance: ToastServiceMethods | null = null
+
+const TOAST_LIFE_MS = 8000
+
+/**
+ * An unreachable backend fails several calls in a row (config, session, retry...).
+ * This lock prevents stacking one toast per call: a single message, for as long as
+ * the toast stays visible.
+ */
+let networkToastVisible = false
 
 /**
  * Initialiser le service avec l'instance de Toast
@@ -18,6 +28,29 @@ export function initErrorService(toast: ToastServiceMethods) {
 }
 
 /**
+ * Unreachable server: an explicit message rather than raw browser text
+ * ("NetworkError when attempting to fetch resource"), and one toast at a time.
+ * This is not an application bug — hence the `warn` severity.
+ */
+function showNetworkError() {
+  if (networkToastVisible || !toastInstance) {
+    return
+  }
+
+  networkToastVisible = true
+  setTimeout(() => {
+    networkToastVisible = false
+  }, TOAST_LIFE_MS)
+
+  toastInstance.add({
+    severity: 'warn',
+    summary: i18n.global.t('errorService.serverUnreachableSummary'),
+    detail: i18n.global.t('errorService.serverUnreachableDetail'),
+    life: TOAST_LIFE_MS,
+  })
+}
+
+/**
  * Afficher une erreur dans un toast
  */
 function showError(error: Error | string, detail?: string) {
@@ -25,6 +58,12 @@ function showError(error: Error | string, detail?: string) {
   const errorDetail = detail || (typeof error === 'object' && error.stack ? i18n.global.t('errorService.checkConsole') : undefined)
 
   console.error('[Global Error Handler]', error)
+
+  // Network failure: dedicated message, never the browser's technical text.
+  if (isNetworkError(error)) {
+    showNetworkError()
+    return
+  }
 
   // Si le toast n'est pas encore disponible, seulement logger
   if (!toastInstance) {
@@ -36,7 +75,7 @@ function showError(error: Error | string, detail?: string) {
     severity: 'error',
     summary: i18n.global.t('errorService.summary'),
     detail: errorMessage || errorDetail || i18n.global.t('errorService.unexpectedError'),
-    life: 8000,
+    life: TOAST_LIFE_MS,
   })
 }
 
@@ -126,6 +165,7 @@ export const errorService = {
   install,
   uninstall,
   showError,
+  showNetworkError,
 }
 
 // Export de la fonction pour les composants Vue

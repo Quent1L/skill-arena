@@ -14,6 +14,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { isNetworkError } from '@/utils/HttpErrors'
 import { useAppToast } from './composables/useAppToast'
 import { useAuth } from './composables/useAuth'
 import { useConfigService } from './composables/config/config.service'
@@ -26,6 +28,7 @@ import SplashLoader from './components/SplashLoader.vue'
 import UpdateOverlay from './components/UpdateOverlay.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 const { initialize, isAuthenticated } = useAuth()
 const { loadConfig } = useConfigService()
 const errorService = useErrorService()
@@ -56,24 +59,44 @@ onMounted(async () => {
 
   const minDelay = new Promise((resolve) => setTimeout(resolve, 250))
 
+  // Unreachable backend: config + session fail together. Record the fact and decide
+  // only once, below, whether the user needs to be told.
+  let serverUnreachable = false
+
   try {
     await loadConfig()
     console.log('Configuration loaded successfully')
   } catch (error) {
     console.error('Erreur lors du chargement de la configuration:', error)
-    errorService.showError(error as Error)
+    if (isNetworkError(error)) {
+      serverUnreachable = true
+    } else {
+      errorService.showError(error as Error)
+    }
   }
 
   try {
     await initialize()
   } catch (error: unknown) {
     console.error("Erreur lors de l'initialisation de la session:", error)
-    toast.add({
-      severity: 'error',
-      summary: t('app.errorSummary'),
-      detail: t('app.unexpectedError'),
-      life: 8000,
-    })
+    if (isNetworkError(error)) {
+      serverUnreachable = true
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: t('app.errorSummary'),
+        detail: t('app.unexpectedError'),
+        life: 8000,
+      })
+    }
+  }
+
+  if (serverUnreachable) {
+    // The /offline page already says it all: a toast on top would be noise.
+    await router.isReady()
+    if (router.currentRoute.value.name !== 'offline') {
+      errorService.showNetworkError()
+    }
   }
 
   if (isAuthenticated.value) {
