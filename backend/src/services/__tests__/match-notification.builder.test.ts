@@ -58,6 +58,39 @@ describe("MatchNotificationBuilder", () => {
     expect(p2Notif.translationParams.teammates).toBe("User-p1");
     expect(p2Notif.translationParams.opponents).toBe("User-p3, User-p4");
     expect(p2Notif.requiresAction).toBe(false);
+    // Raw instant, so the reader's device owns the locale and the timezone
+    expect(p2Notif.translationParams.matchDate).toBe("2026-06-01T15:00:00.000Z");
+    expect(p2Notif.matchId).toBe("m-1");
+  });
+
+  it("stores a null matchDate when the match has no date yet", async () => {
+    (matchRepository as any).getById = async () => ({
+      id: "m-4",
+      tournamentId: "t-1",
+      status: "draft",
+      playedAt: null,
+    });
+
+    await matchNotificationBuilder.notifyMatchCreated("m-4", "p1", "Tour");
+
+    expect(sentPayloads[0].translationParams.matchDate).toBeNull();
+  });
+
+  it("leaves participant lists empty rather than baking in a localized label", async () => {
+    (matchRepository as any).getById = async () => ({
+      id: "m-5",
+      tournamentId: "t-1",
+      status: "scheduled",
+      playedAt: new Date("2026-06-01T15:00:00Z"),
+    });
+    (matchRepository as any).getParticipationsByMatchId = async () => [
+      { playerId: "p1", teamSide: "A" },
+      { playerId: "p3", teamSide: "B" },
+    ];
+
+    await matchNotificationBuilder.notifyMatchCreated("m-5", "p1", "Tour");
+
+    expect(sentPayloads[0].translationParams.teammates).toBe("");
   });
 
   it("notifyMatchValidationRequired sends action notification with reporter context", async () => {

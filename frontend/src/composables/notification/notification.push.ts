@@ -1,5 +1,6 @@
 import { notificationApi } from './notification.api'
 import { configApi } from '../config.api'
+import { i18n } from '@/i18n'
 
 async function enablePush() {
     try {
@@ -48,6 +49,9 @@ async function enablePush() {
         deviceType: 'WEB',
         subscriptionEndpoint: subscription.endpoint,
         subscriptionData: subscriptionJson,
+        // Push payloads are rendered server-side while this device is offline
+        locale: i18n.global.locale.value,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
       console.log('[enablePush] Device registered successfully')
 

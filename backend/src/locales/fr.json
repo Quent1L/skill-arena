@@ -1,5 +1,9 @@
 {
   "notifications": {
+    "DATE_TBD": "À définir",
+    "NO_TEAMMATES": "Aucun",
+    "UNKNOWN_PLAYER": "Joueur inconnu",
+    "SOME_PLAYER": "Un joueur",
     "BADGE_AWARDED_TITLE": "Nouveau badge débloqué !",
     "BADGE_AWARDED_MESSAGE": "🏅 Tu as obtenu le badge « {{badgeLabel}} ».",
     "BADGE_REVOKED_TITLE": "Badge retiré",

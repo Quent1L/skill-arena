@@ -30,15 +30,23 @@ export const RegisterDeviceSchema = z.object({
   deviceType: DeviceTypeEnum,
   subscriptionEndpoint: z.string(),
   subscriptionData: z.record(z.string(), z.any()).optional(),
+  locale: z.string().optional(),
+  timezone: z.string().optional(),
 });
 
 export const NotificationResponseSchema = z.object({
   id: z.string().uuid(),
+  // Pre-rendered server-side, kept as a fallback when the client does not know the key
   title: z.string(),
   message: z.string(),
+  // Raw keys + params so the client can render with its own locale and timezone
+  titleKey: z.string(),
+  messageKey: z.string(),
+  translationParams: z.record(z.string(), z.any()).nullable().optional(),
   actionUrl: z.string().nullable(),
   requiresAction: z.boolean(),
   isRead: z.boolean(),
+  actionCompleted: z.boolean().optional(),
   createdAt: z.string(), // ISO date
 });
 

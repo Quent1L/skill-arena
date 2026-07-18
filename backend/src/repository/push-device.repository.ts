@@ -26,6 +26,8 @@ export const pushDeviceRepository = {
           active: true,
           updatedAt: new Date(),
           subscriptionData: JSON.stringify(data.subscriptionData),
+          locale: data.locale ?? null,
+          timezone: data.timezone ?? null,
         })
         .where(eq(userPushDevices.id, existing.id))
         .returning();
@@ -42,6 +44,8 @@ export const pushDeviceRepository = {
         subscriptionEndpoint: data.subscriptionEndpoint,
         subscriptionData: JSON.stringify(data.subscriptionData),
         active: true,
+        locale: data.locale ?? null,
+        timezone: data.timezone ?? null,
       })
       .returning();
     logger.debug({ id: result[0]?.id }, '[PushDeviceRepo] Device created successfully:');

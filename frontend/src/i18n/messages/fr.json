@@ -728,6 +728,26 @@
   "notificationList": {
     "empty": "Aucune notification"
   },
+  "notifications": {
+    "BADGE_AWARDED_MESSAGE": "🏅 Tu as obtenu le badge « {badgeLabel} ».",
+    "BADGE_AWARDED_TITLE": "Nouveau badge débloqué !",
+    "BADGE_REVOKED_MESSAGE": "Le badge « {badgeLabel} » t'a été retiré suite à une mise à jour des résultats.",
+    "BADGE_REVOKED_TITLE": "Badge retiré",
+    "DATE_TBD": "À définir",
+    "MATCH_CREATED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Adversaires : {opponents}\n👥 Coéquipiers : {teammates}",
+    "MATCH_CREATED_TITLE": "{creatorName} vous a ajouté dans un match {matchFormat}",
+    "MATCH_POST_DISPUTE_MESSAGE": "🚩 {tournamentName}\n📅 {matchDate}\n{disputerName} conteste le résultat de ce match finalisé.",
+    "MATCH_POST_DISPUTE_TITLE": "{disputerName} a contesté le résultat",
+    "MATCH_SCHEDULED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Adversaires : {opponents}\n👥 Coéquipiers : {teammates}",
+    "MATCH_SCHEDULED_TITLE": "{creatorName} vous a programmé un match {matchFormat}",
+    "MATCH_SCORE_PROPOSAL_MESSAGE": "⚠️ Score proposé : {scoreA} - {scoreB}\nConfirmez ou contestez ce résultat avant la deadline.",
+    "MATCH_SCORE_PROPOSAL_TITLE": "{proposerName} propose un score corrigé",
+    "MATCH_VALIDATION_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Adversaires : {opponents}\n👥 Coéquipiers : {teammates}\n✅ Confirmez ou contestez ce résultat avant la deadline.",
+    "MATCH_VALIDATION_TITLE": "{reporterName} a saisi le résultat ({matchFormat})",
+    "NO_TEAMMATES": "Aucun",
+    "SOME_PLAYER": "Un joueur",
+    "UNKNOWN_PLAYER": "Joueur inconnu"
+  },
   "notificationsView": {
     "backAriaLabel": "Retour",
     "deleteAll": "Tout supprimer",

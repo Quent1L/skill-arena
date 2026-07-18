@@ -4,6 +4,7 @@ import i18next from "../config/i18n";
 import { notificationRepository } from "../repository/notification.repository";
 import { pushDeviceRepository } from "../repository/push-device.repository";
 import { webSocketService } from "./websocket.service";
+import { localizeNotificationParams } from "../utils/notification-format";
 import { CreateNotification, RegisterDevice } from "@skol-arena/shared";
 
 // Configure web-push
@@ -15,32 +16,17 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
-/**
- * Decode HTML entities for plain text display (push notifications)
- */
-function decodeHtmlEntities(text: string): string {
-  const entities: Record<string, string> = {
-    "&#x2F;": "/",
-    "&amp;": "&",
-    "&lt;": "<",
-    "&gt;": ">",
-    "&quot;": '"',
-    "&#x27;": "'",
-    "&#x60;": "`",
-  };
-
-  return text.replace(/&#x[0-9A-F]+;|&[a-z]+;/gi, (match) => {
-    return entities[match] || match;
-  });
-}
-
 type PushDevice = Awaited<ReturnType<typeof pushDeviceRepository.getActiveForUser>>[number];
 
-function buildNotificationContent(data: CreateNotification): { title: string; message: string } {
-  const lng = "fr";
+function buildNotificationContent(
+  data: Pick<CreateNotification, "titleKey" | "messageKey" | "translationParams">,
+  lng: string = "fr",
+  timeZone?: string,
+): { title: string; message: string } {
+  const params = localizeNotificationParams(data.translationParams, lng, timeZone);
   return {
-    title: String(i18next.t(data.titleKey, { lng, ...data.translationParams })),
-    message: String(i18next.t(data.messageKey, { lng, ...data.translationParams })),
+    title: String(i18next.t(data.titleKey, { lng, ...params })),
+    message: String(i18next.t(data.messageKey, { lng, ...params })),
   };
 }
 
@@ -107,7 +93,8 @@ export const notificationService = {
     logger.debug(
       `[Notification] Sending WebSocket notification to user ${data.userId}`,
     );
-    // WebSocket payload keeps HTML entities (rendered with v-html)
+    // titleKey/messageKey/translationParams travel along: a connected client
+    // re-renders them with its own locale and timezone, title/message are the fallback.
     const sent = webSocketService.send(data.userId, {
       event: "new_notification",
       data: { ...notification, title, message },
@@ -120,15 +107,15 @@ export const notificationService = {
       `[Push] Found ${devices.length} push device(s) for user ${data.userId}`,
     );
 
-    // Push payload decodes HTML entities for plain text
-    const pushPayload = {
-      ...notification,
-      title: decodeHtmlEntities(title),
-      message: decodeHtmlEntities(message),
-    };
-
+    // The device is offline, so this is the one channel the server must render itself:
+    // use the locale and timezone captured when that device registered.
     for (const device of devices) {
-      await sendPushToDevice(device, pushPayload);
+      const rendered = buildNotificationContent(
+        data,
+        device.locale ?? "fr",
+        device.timezone ?? undefined,
+      );
+      await sendPushToDevice(device, { ...notification, ...rendered });
     }
 
     return notification;
@@ -138,14 +125,14 @@ export const notificationService = {
     const notifications = await notificationRepository.getForUser(userId);
     return notifications.map((n) => ({
       ...n,
-      title: i18next.t(n.titleKey, {
+      ...buildNotificationContent(
+        {
+          titleKey: n.titleKey,
+          messageKey: n.messageKey,
+          translationParams: n.translationParams as Record<string, unknown>,
+        },
         lng,
-        ...(n.translationParams as Record<string, unknown>),
-      }),
-      message: i18next.t(n.messageKey, {
-        lng,
-        ...(n.translationParams as Record<string, unknown>),
-      }),
+      ),
     }));
   },
 
@@ -192,8 +179,12 @@ export const notificationService = {
       type: original.type,
       titleKey: original.titleKey,
       messageKey: newMessageKey || original.messageKey,
+      // Without these the resent notification renders with empty placeholders
+      translationParams:
+        (original.translationParams as Record<string, unknown> | null) ?? undefined,
       actionUrl: original.actionUrl || undefined,
       requiresAction: original.requiresAction,
+      matchId: original.matchId ?? undefined,
     };
 
     return await this.send(newData);

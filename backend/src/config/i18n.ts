@@ -15,6 +15,9 @@ i18next.init({
     fr: { translation: frTranslation },
     en: { translation: enTranslation },
   },
+  // Translations are rendered as plain text (UI text nodes, push notifications),
+  // never injected as HTML. Escaping here would leak entities like &#x2F; into the output.
+  interpolation: { escapeValue: false },
 });
 
 export default i18next;

@@ -2,8 +2,13 @@ import http from '@/config/ApiConfig'
 
 export interface RawNotification {
   id: string
+  /** Rendered server-side, used as a fallback when titleKey/messageKey are unknown here */
   title: string
   message: string
+  /** Raw keys + params, rendered client-side with this device's locale and timezone */
+  titleKey?: string
+  messageKey?: string
+  translationParams?: Record<string, unknown> | null
   actionUrl: string | null
   requiresAction: boolean
   isRead: boolean
@@ -27,7 +32,7 @@ export const notificationApi = {
   async resend(id: string, messageKey?: string): Promise<void> {
     await http.post(`${BASE_URL}/notifications/${id}/resend`, messageKey ? { messageKey } : undefined)
   },
-  async registerPushDevice(payload: { subscriptionEndpoint: string; subscriptionData: unknown; deviceType: 'WEB' | 'ANDROID' | 'IOS' }): Promise<void> {
+  async registerPushDevice(payload: { subscriptionEndpoint: string; subscriptionData: unknown; deviceType: 'WEB' | 'ANDROID' | 'IOS'; locale?: string; timezone?: string }): Promise<void> {
     await http.post(`${BASE_URL}/me/pushDevices`, payload)
   },
   async removePushDevice(deviceId: string): Promise<void> {

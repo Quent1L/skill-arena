@@ -14,7 +14,7 @@
     <div class="flex justify-between items-start gap-2">
       <div class="flex-1 cursor-pointer" @click="handleClick">
         <div class="flex items-center justify-between gap-2 mb-1">
-          <h3 class="font-semibold text-sm md:text-base">{{ props.notif.title }}</h3>
+          <h3 class="font-semibold text-sm md:text-base">{{ title }}</h3>
           <span class="text-[10px] md:text-xs opacity-60 whitespace-nowrap">
             {{ formatDate(props.notif.createdAt) }}
           </span>
@@ -22,8 +22,8 @@
         <pre
           class="text-xs md:text-sm opacity-80 whitespace-pre-wrap"
           style="font-family: inherit"
-          v-html="props.notif.message"
-        ></pre>
+          >{{ message }}</pre
+        >
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <span
@@ -56,10 +56,15 @@ import { useI18n } from 'vue-i18n'
 import { computed, ref, useTemplateRef } from 'vue'
 import { useAppToast } from '@/composables/useAppToast'
 import { useSwipe } from '@vueuse/core'
+import { useNotificationText } from '@/composables/notification/notification.i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const props = defineProps<{ notif: Notification }>()
+const { renderTitle, renderMessage } = useNotificationText()
+
+const title = computed(() => renderTitle(props.notif))
+const message = computed(() => renderMessage(props.notif))
 const { open, deleteNotification } = useNotificationService()
 const router = useRouter()
 const toast = useAppToast()
@@ -114,7 +119,7 @@ function formatDate(date: Date): string {
   if (days < 7) return t('notificationItem.date.daysAgo', { days })
 
   // Format complet pour les notifications plus anciennes
-  return date.toLocaleDateString('fr-FR', {
+  return date.toLocaleDateString(locale.value, {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',

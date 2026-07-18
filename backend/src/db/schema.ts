@@ -926,6 +926,9 @@ export const userPushDevices = pgTable("user_push_devices", {
   subscriptionEndpoint: text("subscription_endpoint").notNull(),
   subscriptionData: text("subscription_data"), // Storing JSON as text or use jsonb if preferred
   active: boolean("active").notNull().default(true),
+  // Captured at registration: push payloads are rendered server-side while the device is offline
+  locale: text("locale"),
+  timezone: text("timezone"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
