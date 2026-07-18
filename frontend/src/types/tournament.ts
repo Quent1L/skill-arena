@@ -1,4 +1,4 @@
-// Re-export des types depuis le package partagé
+// Re-export types from the shared package
 export {
   type TournamentMode,
   type TournamentStatus,
@@ -7,7 +7,7 @@ export {
   type CreateTournamentInput as TournamentCreate,
   type UpdateTournamentInput as TournamentUpdate,
   type TournamentWithStats,
-  // Schemas pour la validation
+  // Schemas for validation
   tournamentModeSchema,
   tournamentStatusSchema,
   teamModeSchema,
@@ -15,7 +15,7 @@ export {
   updateTournamentSchema,
 } from '@skol-arena/shared'
 
-// Types spécifiques au frontend (si nécessaire)
+// Frontend-specific types (if needed)
 export interface TournamentFormData {
   name: string
   description?: string

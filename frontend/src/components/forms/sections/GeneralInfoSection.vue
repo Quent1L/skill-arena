@@ -45,10 +45,10 @@
         <small class="p-error">{{ errors.disciplineId }}</small>
       </div>
 
-      <!-- Slot pour des champs supplémentaires en haut (mode tournoi : status / mode / teamMode) -->
+      <!-- Slot for extra fields at the top (tournament mode: status / mode / teamMode) -->
       <slot name="after-discipline" />
 
-      <!-- Règles du jeu -->
+      <!-- Game rules -->
       <div>
         <label for="rulesId" class="block text-sm font-medium mb-2">{{ t('generalInfoSection.fields.rules') }}</label>
         <Select
@@ -91,7 +91,7 @@
         <small class="p-error">{{ errors.description }}</small>
       </div>
 
-      <!-- Slot pour les champs spécifiques avant les tailles d'équipe (mode tournoi) -->
+      <!-- Slot for fields specific before team sizes (tournament mode) -->
       <slot name="before-team-size" />
 
       <!-- Min Team Size -->
@@ -128,7 +128,7 @@
         <small class="p-error">{{ errors.maxTeamSize }}</small>
       </div>
 
-      <!-- Date de début -->
+      <!-- Start date -->
       <div>
         <label for="startDate" class="block text-sm font-medium mb-2">
           {{ t('generalInfoSection.fields.startDate') }} <span class="text-red-500">*</span>
@@ -161,7 +161,7 @@
       </div>
     </div>
 
-    <!-- Allow Draw (toujours en pleine largeur après les autres champs) -->
+    <!-- Allow Draw (always full width after the other fields) -->
     <div v-if="showAllowDraw" class="flex items-center py-4">
       <Checkbox
         id="allowDraw"
@@ -172,7 +172,7 @@
       <label for="allowDraw" class="ml-2">{{ t('generalInfoSection.fields.allowDraw') }}</label>
     </div>
 
-    <!-- Slot pour des champs supplémentaires en bas -->
+    <!-- Slot for extra fields at the bottom -->
     <slot name="footer" />
   </div>
 </template>

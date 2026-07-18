@@ -42,7 +42,7 @@ logger.info({
 
 const plugins: any[] = [];
 
-// Fonction commune pour traiter les codes d'invitation lors de l'inscription
+// Shared function to process invitation codes during sign-up
 async function processInvitationCode(
   user: any,
   request: any,
@@ -81,18 +81,18 @@ async function processInvitationCode(
     logger.info(`[${source}] Code consumed successfully for user ${user.id}`);
   } catch (error: any) {
     logger.error(`[${source}] Code consumption failed:`, error);
-    // Note: On ne supprime PAS l'utilisateur ici
-    // La création du appUser sera bloquée dans userService.getOrCreateAppUser()
+    // Note: We do NOT delete the user here
+    // appUser creation will be blocked in userService.getOrCreateAppUser()
   }
 }
 
-// Plugin pour consommer les codes d'invitation lors de l'inscription
+// Plugin to consume invitation codes during sign-up
 plugins.push({
   id: "invitation-code-consumer",
   hooks: {
     after: [
       {
-        // Hook pour l'inscription email/password
+        // Hook for email/password sign-up
         matcher: (context: any) => context.path === "/sign-up/email",
         handler: async (context: any) => {
           const user =
@@ -102,7 +102,7 @@ plugins.push({
         },
       },
       {
-        // Hook pour l'inscription OAuth (Keycloak)
+        // Hook for OAuth sign-up (Keycloak)
         matcher: (context: any) => {
           return (
             context.path?.includes("/oauth2/callback/keycloak") ||
@@ -110,7 +110,7 @@ plugins.push({
           );
         },
         handler: async (context: any) => {
-          // Vérifier si c'est un nouvel utilisateur
+          // Check whether this is a new user
           const user =
             context.context?.newSession?.user ?? context.context?.returned?.user;
           if (!user || !context.isNewUser) {
@@ -152,15 +152,15 @@ if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_URL) {
   );
 }
 
-// Configuration dynamique de Better Auth
+// Dynamic Better Auth configuration
 const authConfig: any = {
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
   session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30 jours
-    updateAge: 60 * 60 * 24, // refresh si la session a plus d'1 jour
+    expiresIn: 60 * 60 * 24 * 30, // 30 days
+    updateAge: 60 * 60 * 24, // refresh if the session is more than 1 day old
     // Avoids a Postgres lookup on every request (addUserContext runs on "*").
     // Accepted trade-off: revoking a session takes up to 5 min to apply.
     cookieCache: {
@@ -185,8 +185,8 @@ const authConfig: any = {
   plugins,
 };
 
-// Email/password est toujours activé dans Better Auth pour permettre la connexion admin.
-// ENABLE_EMAIL_PASSWORD=false masque uniquement le formulaire côté frontend.
+// Email/password is always enabled in Better Auth to allow admin login.
+// ENABLE_EMAIL_PASSWORD=false only hides the form on the frontend side.
 authConfig.emailAndPassword = {
   enabled: true,
   sendResetPassword: async ({ user, url }: any) => {

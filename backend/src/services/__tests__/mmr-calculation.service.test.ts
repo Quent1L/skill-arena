@@ -238,8 +238,8 @@ describe("MmrCalculationService", () => {
     it("placement seul n'active pas le multiplicateur score", () => {
       const withScore = service.calculateEffectiveK(32, 10, 0, false, true, null);
       const placement = service.calculateEffectiveK(32, 0, 0, true, false, null);
-      // Différents modificateurs, pas de cumul non désiré
-      expect(withScore).toBe(64); // score uniquement
+      // Different modifiers, no unwanted stacking
+      expect(withScore).toBe(64); // score only
       expect(placement).toBe(64); // placement uniquement
     });
   });
@@ -292,7 +292,7 @@ describe("MmrCalculationService", () => {
     it("symétrie approximative : delta victoire + delta défaite ≈ 0 pour égaux", () => {
       const win = service.calculateMmrDelta(1000, 1000, 1, 32);
       const loss = service.calculateMmrDelta(1000, 1000, 0, 32);
-      // Avec l'arrondi, la différence peut être de ±1
+      // With rounding, the difference can be ±1
       expect(Math.abs(win + loss)).toBeLessThanOrEqual(1);
     });
   });
@@ -456,9 +456,9 @@ describe("MmrCalculationService", () => {
 
       await service.recalculatePlayerMmr(SEASON, PLAYER);
 
-      expect(historyArgs[0].isPlacement).toBe(true);  // match 1 (0 joués avant)
-      expect(historyArgs[1].isPlacement).toBe(true);  // match 2 (1 joué avant)
-      expect(historyArgs[2].isPlacement).toBe(false); // match 3 (2 joués avant ≥ placementMatches)
+      expect(historyArgs[0].isPlacement).toBe(true);  // match 1 (0 played before)
+      expect(historyArgs[1].isPlacement).toBe(true);  // match 2 (1 played before)
+      expect(historyArgs[2].isPlacement).toBe(false); // match 3 (2 played before ≥ placementMatches)
     });
 
     it("historique MMR créé pour chaque match", async () => {
@@ -575,7 +575,7 @@ describe("MmrCalculationService", () => {
       const historyNoScore: any[] = [];
       const historyWithScore: any[] = [];
 
-      // Victoire sans score (0-0, total=0 → pas d'amplification)
+      // Win with no score (0-0, total=0 → no amplification)
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         historyNoScore.push(args);
         return Promise.resolve();
@@ -588,7 +588,7 @@ describe("MmrCalculationService", () => {
       resetMocks();
       service = new MmrCalculationService();
 
-      // Victoire écrasante 10-0 → amplification maximale (diff/total = 1)
+      // Lopsided win 10-0 → maximum amplification (diff/total = 1)
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         historyWithScore.push(args);
         return Promise.resolve();
@@ -637,7 +637,7 @@ describe("MmrCalculationService", () => {
     });
   });
 
-  // ── Scénarios combinés ─────────────────────────────────────────────────────
+  // ── Combined scenarios ─────────────────────────────────────────────────────
 
   describe("scénarios combinés K factor", () => {
     it("victoire écrasante en placement avec outcome premium → K maximal", () => {

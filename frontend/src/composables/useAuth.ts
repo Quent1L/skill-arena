@@ -1,5 +1,5 @@
 /**
- * Composable pour l'authentification avec Better Auth
+ * Composable for authentication with Better Auth
  */
 
 import { ref, computed } from 'vue'
@@ -26,14 +26,14 @@ let inFlightCheck: Promise<unknown> | null = null
 let inFlightInit: Promise<void> | null = null
 
 /**
- * Récupère les données de l'utilisateur depuis l'API /users/me
+ * Fetches the user's data from the /users/me API
  */
 async function fetchUserData() {
   try {
     const userData = await userApi.me()
     appUserData.value = userData
   } catch (err) {
-    console.error('Erreur lors de la récupération des données utilisateur:', err)
+    console.error('Error fetching user data:', err)
     appUserData.value = null
     throw err
   }
@@ -141,7 +141,7 @@ export function useAuth() {
   }
 
   /**
-   * Connexion avec email et mot de passe
+   * Login with email and password
    */
   async function login(credentials: { email: string; password: string }) {
     loading.value = true
@@ -176,7 +176,7 @@ export function useAuth() {
   }
 
   /**
-   * Inscription avec email et mot de passe
+   * Sign-up with email and password
    */
   async function register(credentials: {
     email: string
@@ -201,7 +201,7 @@ export function useAuth() {
       const result = await authClient.signUp.email(signUpData)
 
       if (result.error) {
-        // Better Auth peut retourner l'erreur dans différents formats
+        // Better Auth may return the error in different formats
         const errorMessage = result.error?.message ?? i18n.global.t('auth.errors.register')
 
         error.value = errorMessage
@@ -212,7 +212,7 @@ export function useAuth() {
 
       return result
     } catch (err: unknown) {
-      // Gérer les erreurs spécifiques du code d'invitation
+      // Handle invitation-code-specific errors
       let message = i18n.global.t('auth.errors.registerGeneric')
 
       if (err instanceof Error) {
@@ -231,11 +231,11 @@ export function useAuth() {
   }
 
   /**
-   * Initialise la session au démarrage de l'application
+   * Initializes the session at application startup
    */
   async function initialize() {
     if (sessionData.value !== undefined) {
-      return // Déjà initialisé
+      return // Already initialized
     }
     if (inFlightInit) {
       return inFlightInit // Two concurrent guards await the same promise
@@ -243,15 +243,15 @@ export function useAuth() {
 
     const run = (async () => {
       try {
-        console.log('Initialisation de la session utilisateur...')
+        console.log('Initializing user session...')
         await checkSession()
 
-        // Si l'utilisateur est connecté, récupérer ses données
+        // If the user is logged in, fetch their data
         if (sessionData.value?.data?.user) {
           try {
             await fetchUserData()
           } catch (fetchError: unknown) {
-            // Si l'erreur est INVITATION_CODE_REQUIRED, la propager pour que le guard la gère
+            // If the error is INVITATION_CODE_REQUIRED, propagate it so the guard can handle it
             if ((fetchError as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
               throw fetchError
             }
@@ -263,7 +263,7 @@ export function useAuth() {
               throw fetchError
             }
             // Real auth error (401): legitimate logout.
-            console.warn('Erreur lors de la récupération des données utilisateur:', fetchError)
+            console.warn('Error fetching user data:', fetchError)
             sessionData.value = { data: { user: null, session: null } }
             appUserData.value = null
           }
@@ -290,19 +290,19 @@ export function useAuth() {
   }
 
   /**
-   * Déconnexion
+   * Logout
    */
   async function logout() {
     loading.value = true
     error.value = null
 
     try {
-      // Déconnecter de Better Auth
+      // Log out of Better Auth
       await authClient.signOut()
       sessionData.value = undefined
       appUserData.value = null
 
-      // Si Keycloak est activé, rediriger vers le logout Keycloak
+      // If Keycloak is enabled, redirect to Keycloak logout
       const { config } = useConfigService()
       if (config.value?.auth?.keycloak?.enabled && config.value?.auth?.keycloak?.issuer) {
         const keycloakLogoutUrl = buildKeycloakLogoutUrl(
@@ -323,7 +323,7 @@ export function useAuth() {
 
 
   /**
-   * Demande de réinitialisation de mot de passe
+   * Password reset request
    */
   async function requestPasswordReset(email: string) {
     loading.value = true
@@ -354,7 +354,7 @@ export function useAuth() {
   }
 
   /**
-   * Réinitialisation du mot de passe avec token
+   * Password reset with token
    */
   async function resetPassword(token: string, newPassword: string) {
     loading.value = true
@@ -385,7 +385,7 @@ export function useAuth() {
   }
 
   /**
-   * Changement de mot de passe (utilisateur connecté)
+   * Password change (logged-in user)
    */
   async function changePassword(currentPassword: string, newPassword: string) {
     loading.value = true

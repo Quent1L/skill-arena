@@ -27,9 +27,9 @@ interface SideInfo {
 }
 
 /**
- * Construit le contexte `match_submitted` (les "facts") pour chaque joueur
- * impliqué dans un match. Le moteur de règles est ensuite évalué une fois
- * par joueur.
+ * Builds the `match_submitted` context (the "facts") for each player
+ * involved in a match. The rules engine is then evaluated once
+ * per player.
  */
 export interface MatchSubmittedContexts {
   contexts: PlayerContext[];

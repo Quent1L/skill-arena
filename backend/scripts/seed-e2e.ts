@@ -172,8 +172,8 @@ async function seedChampionship() {
     status: "ongoing",
     minTeamSize: 1,
     maxTeamSize: 1,
-    // Limites hautes: les runs e2e répétés créent des matchs entre les mêmes
-    // joueurs sans reseed (le seed idempotent ne reset pas la base)
+    // High limits: repeated e2e runs create matches between the same
+    // players without reseeding (the idempotent seed doesn't reset the DB)
     maxMatchesPerPlayer: 1000,
     maxTimesWithSamePartner: 1000,
     maxTimesWithSameOpponent: 1000,
@@ -269,7 +269,7 @@ async function seedRankedSeason() {
     playedAt: daysAgo(1),
   });
 
-  // Match non finalisé: alimente le leaderboard provisoire (statuts reported/pending/disputed)
+  // Unfinalized match: feeds the provisional leaderboard (reported/pending/disputed statuses)
   await insertFinalizedMatch({
     matchId: IDS.rankedPendingMatch,
     tournamentId: IDS.season,

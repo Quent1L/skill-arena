@@ -5,14 +5,14 @@ const E2E_DATABASE_URL = 'postgres://skolarena:skolarena@localhost:5435/skolaren
 export default defineConfig({
   testDir: './e2e',
   globalSetup: './e2e/global-setup.ts',
-  // DB partagée + specs qui mutent l'état: exécution séquentielle
+  // Shared DB + specs that mutate state: sequential execution
   workers: 1,
   fullyParallel: false,
   timeout: 30_000,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5173',
-    // Neutralise le service worker PWA (dev-dist) pendant les runs
+    // Disables the PWA service worker (dev-dist) during runs
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
   },
@@ -22,8 +22,8 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // useViewport teste screen.width/height < 768: l'écran headless
-        // par défaut (1280x720) ferait basculer l'app en variante mobile
+        // useViewport tests screen.width/height < 768: the default headless
+        // screen (1280x720) would switch the app to the mobile variant
         screen: { width: 1920, height: 1080 },
         viewport: { width: 1280, height: 800 },
         storageState: 'e2e/.auth/player.json',
@@ -33,8 +33,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      // Le frontend dev appelle http://localhost:3000 en dur (ApiConfig):
-      // le backend e2e DOIT posséder ce port — stoppe la stack dev avant.
+      // The dev frontend hardcodes http://localhost:3000 (ApiConfig):
+      // the e2e backend MUST own this port — stop the dev stack first.
       command: 'bun run src/index.ts',
       cwd: '../backend',
       url: 'http://localhost:3000/',
@@ -47,8 +47,8 @@ export default defineConfig({
         NODE_ENV: 'development',
         ENABLE_EMAIL_PASSWORD: 'true',
         LOG_LEVEL: 'warn',
-        // Neutralise le SSO Keycloak que backend/.env pourrait activer
-        // (dotenv n'écrase pas les variables déjà présentes)
+        // Disables Keycloak SSO which backend/.env might enable
+        // (dotenv doesn't override variables that are already set)
         KEYCLOAK_CLIENT_ID: '',
         KEYCLOAK_CLIENT_SECRET: '',
         KEYCLOAK_ISSUER: '',
@@ -56,7 +56,7 @@ export default defineConfig({
       },
     },
     {
-      // Binaire direct: `bun x` peut bloquer quand le backend est spawné en parallèle
+      // Direct binary: `bun x` can hang when the backend is spawned in parallel
       command: './node_modules/.bin/vite --mode dev',
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,

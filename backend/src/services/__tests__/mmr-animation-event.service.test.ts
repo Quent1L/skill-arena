@@ -132,9 +132,9 @@ describe("persistRecalcEvents", () => {
   });
 
   it("recalcs empilés avant visionnage: displayDelta relatif au delta VU, pas au dernier stocké", async () => {
-    // Le joueur a vu +15. Un 1er recalc l'a porté à +18 (stocké, non vu), un 2e
-    // le porte à +20. La news depuis le dernier visionnage = 20 - 15 = 5, pas
-    // 20 - 18 = 2 (ce que donnerait une base sur le delta stocké).
+    // Player saw +15. A 1st recalc brought it to +18 (stored, unseen), a 2nd
+    // brings it to +20. The news since the last viewing = 20 - 15 = 5, not
+    // 20 - 18 = 2 (what a base on the stored delta would give).
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", [historyRow("m1", 20)]]])),
     );
@@ -146,8 +146,8 @@ describe("persistRecalcEvents", () => {
 
     const rows = bulkRows();
     expect(rows.length).toBe(1);
-    expect(rows[0].mmrDelta).toBe(20); // sync key = nouveau full
-    expect(rows[0].displayDelta).toBe(5); // 20 - seen 15, accumulation correcte
+    expect(rows[0].mmrDelta).toBe(20); // sync key = new full
+    expect(rows[0].displayDelta).toBe(5); // 20 - seen 15, correct accumulation
   });
 
   it("bulkUpsert vide + aucun joueur affecté quand aucun delta n'a changé", async () => {
@@ -188,17 +188,17 @@ describe("persistRecalcEvents", () => {
     );
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([
-        ["p1", new Map([["m1", { id: "e1", mmrDelta: 10, seenDelta: 10 }]])],   // changé
+        ["p1", new Map([["m1", { id: "e1", mmrDelta: 10, seenDelta: 10 }]])],   // changed
         ["p2", new Map([
-          ["m1", { id: "e2", mmrDelta: -3, seenDelta: -3 }],                    // inchangé
-          ["m2", { id: "e3", mmrDelta: 5, seenDelta: 5 }],                      // changé (5 -> 9)
+          ["m1", { id: "e2", mmrDelta: -3, seenDelta: -3 }],                    // unchanged
+          ["m2", { id: "e3", mmrDelta: 5, seenDelta: 5 }],                      // changed (5 -> 9)
         ])],
       ])),
     );
 
     const affected = await mmrAnimationEventService.persistRecalcEvents("season-1", ["p1", "p2"]);
 
-    expect(mockAnimRepo.bulkUpsert.mock.calls.length).toBe(1); // batch unique
+    expect(mockAnimRepo.bulkUpsert.mock.calls.length).toBe(1); // single batch
     const rows = bulkRows();
     expect(rows.length).toBe(2); // p1/m1 + p2/m2
     expect(affected.sort()).toEqual(["p1", "p2"]);
@@ -216,7 +216,7 @@ describe("persistRecalcEvents", () => {
 
 describe("persistCancellationEvents", () => {
   it("ne persiste que les joueurs directs (match_cancelled), displayDelta = -delta vu; ignore le cascade", async () => {
-    // p1 a vu +12 pour le match annulé ; le cascade p2 est couvert par persistRecalcEvents.
+    // p1 saw +12 for the cancelled match; the p2 cascade is covered by persistRecalcEvents.
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", new Map([["m-cancelled", { id: "evt", mmrDelta: 12, seenDelta: 12 }]])]])),
     );
@@ -231,8 +231,8 @@ describe("persistCancellationEvents", () => {
     expect(rows.length).toBe(1);
     expect(rows[0].playerId).toBe("p1");
     expect(rows[0].reason).toBe("match_cancelled");
-    expect(rows[0].displayDelta).toBe(-12); // perte des points VUS du match annulé
-    expect(rows[0].rankChanged).toBe(false); // pas de badge de rang trompeur
+    expect(rows[0].displayDelta).toBe(-12); // loss of SEEN points from the cancelled match
+    expect(rows[0].rankChanged).toBe(false); // no misleading rank badge
     expect(rows[0].tierAfterName).toBeNull();
     expect(affected).toEqual(["p1"]);
     expect(mockWs.send.mock.calls.length).toBe(0); // persist-only
@@ -251,9 +251,9 @@ describe("persistCancellationEvents", () => {
   });
 });
 
-// ─── Théorie du flood (chemin de finalisation réel, inchangé) ───────────────────
-// Reproduit le bug: events d'animation périmés (deltas != mmr_history) → la
-// finalisation d'un nouveau match émet un "recalculated" par match désynchronisé.
+// ─── Flood theory (real finalization path, unchanged) ───────────────────
+// Reproduces the bug: stale animation events (deltas != mmr_history) → finalizing
+// a new match emits a "recalculated" for each desynced match.
 
 describe("théorie: flood au prochain match quand les events sont périmés", () => {
   const HISTORY = [historyRow("m1", 18), historyRow("m2", -7), historyRow("m3", 12), historyRow("m4", 20)];
@@ -315,7 +315,7 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
   });
 });
 
-// ─── displayDelta sur le chemin de finalisation (collectOfficialEvents) ──────────
+// ─── displayDelta on the finalization path (collectOfficialEvents) ──────────
 
 describe("createOfficialEventsAndBroadcast: displayDelta", () => {
   const HISTORY = [historyRow("m1", 18), historyRow("m2", -7), historyRow("m4", 20)];
@@ -331,7 +331,7 @@ describe("createOfficialEventsAndBroadcast: displayDelta", () => {
   }
 
   it("match courant (nouveau) = delta complet ; recalculated = delta - seenDelta", async () => {
-    // m1 a été vu à +15, son delta réel est maintenant +18 (désync) → diff +3.
+    // m1 was seen at +15, its real delta is now +18 (desync) → diff +3.
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
         ["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }],
@@ -341,10 +341,10 @@ describe("createOfficialEventsAndBroadcast: displayDelta", () => {
 
     await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1");
 
-    expect(upsertFor("m4").displayDelta).toBe(20); // nouveau match → full
+    expect(upsertFor("m4").displayDelta).toBe(20); // new match → full
     expect(upsertFor("m4").mmrDelta).toBe(20);
     expect(upsertFor("m1").displayDelta).toBe(3); // 18 - seen 15
-    expect(upsertFor("m1").mmrDelta).toBe(18); // full conservé pour la sync
+    expect(upsertFor("m1").mmrDelta).toBe(18); // full kept for sync
     expect(upsertFor("m1").reason).toBe("recalculated");
   });
 
@@ -358,13 +358,13 @@ describe("createOfficialEventsAndBroadcast: displayDelta", () => {
 
     await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1");
 
-    // m1/m2 synchronisés → seul m4 diffusé
+    // m1/m2 synced → only m4 broadcast
     const sent = mockWs.send.mock.calls.find((c: any[]) => c[1]?.data?.matchId === "m4");
     expect(sent?.[1].data.displayDelta).toBe(20);
   });
 });
 
-// ─── getPendingForPlayer: fallback displayDelta sur lignes héritées ──────────────
+// ─── getPendingForPlayer: fallback displayDelta on legacy rows ──────────────
 
 describe("getPendingForPlayer", () => {
   function pendingRow(matchId: string, mmrDelta: number, displayDelta: number | null) {
@@ -390,6 +390,6 @@ describe("getPendingForPlayer", () => {
     const out = await mmrAnimationEventService.getPendingForPlayer("p1", "season-1", "fr");
 
     expect(out.find((e) => e.matchId === "m1")?.displayDelta).toBe(12); // null → fallback mmrDelta
-    expect(out.find((e) => e.matchId === "m2")?.displayDelta).toBe(4); // valeur conservée
+    expect(out.find((e) => e.matchId === "m2")?.displayDelta).toBe(4); // preserved value
   });
 });

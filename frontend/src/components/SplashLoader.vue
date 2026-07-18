@@ -79,7 +79,7 @@ defineProps<{ visible: boolean }>()
   100% { transform: translateY(-100vh) scaleX(0.6); opacity: 0; }
 }
 
-/* position / taille / durée / délai pour chaque particule */
+/* position / size / duration / delay for each particle */
 .p1  { width: 3px;   height: 3px;   left:  8%;  animation-duration:  9s; animation-delay:  0s;   opacity: 0.5; }
 .p2  { width: 2px;   height: 2px;   left: 18%;  animation-duration:  7s; animation-delay:  2.2s; opacity: 0.3; }
 .p3  { width: 4px;   height: 4px;   left: 28%;  animation-duration: 11s; animation-delay:  0.8s; opacity: 0.4; }

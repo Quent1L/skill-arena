@@ -261,7 +261,7 @@ export function useDisciplineService() {
   async function loadOutcomeReasons(outcomeTypeId: string) {
     try {
       const newReasons = await outcomeReasonApi.list(outcomeTypeId)
-      // Fusionner les nouvelles raisons avec les existantes, en remplaçant celles du même type
+      // Merge the new reasons with the existing ones, replacing those of the same type
       outcomeReasons.value = [
         ...outcomeReasons.value.filter((r) => r.outcomeTypeId !== outcomeTypeId),
         ...newReasons,

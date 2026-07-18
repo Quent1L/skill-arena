@@ -1,15 +1,15 @@
 /**
- * Schémas de validation pour l'authentification avec Zod
+ * Zod validation schemas for authentication
  */
 
 import { z } from 'zod'
 import { i18n } from '@/i18n'
 
-// Regex simple pour valider l'email
+// Simple regex to validate the email
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
- * Schéma de validation pour la connexion
+ * Validation schema for login
  */
 export const loginSchema = z.object({
   email: z
@@ -23,7 +23,7 @@ export const loginSchema = z.object({
 })
 
 /**
- * Schéma de validation pour l'inscription
+ * Validation schema for sign-up
  */
 export const registerSchema = z
   .object({
@@ -44,7 +44,7 @@ export const registerSchema = z
   })
 
 /**
- * Schéma de validation pour la demande de réinitialisation de mot de passe
+ * Validation schema for the password reset request
  */
 export const forgotPasswordSchema = z.object({
   email: z
@@ -54,7 +54,7 @@ export const forgotPasswordSchema = z.object({
 })
 
 /**
- * Schéma de validation pour la réinitialisation de mot de passe
+ * Validation schema for the password reset
  */
 export const resetPasswordSchema = z
   .object({
@@ -70,7 +70,7 @@ export const resetPasswordSchema = z
   })
 
 /**
- * Schéma de validation pour le changement de mot de passe (utilisateur connecté)
+ * Validation schema for password change (logged-in user)
  */
 export const changePasswordSchema = z
   .object({
@@ -87,7 +87,7 @@ export const changePasswordSchema = z
   })
 
 /**
- * Types inférés des schémas
+ * Types inferred from the schemas
  */
 export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>

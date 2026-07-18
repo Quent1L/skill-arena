@@ -44,10 +44,10 @@ window.addEventListener('error', (event) => {
   }
 })
 
-// Forcer le dark mode
+// Force dark mode
 document.documentElement.classList.add('my-app-dark')
 
-// Initialisation du thème depuis localStorage
+// Initialize the theme from localStorage
 //const savedTheme = localStorage.getItem('theme') || 'dark'
 
 /**if (savedTheme === 'dark') {
@@ -56,19 +56,19 @@ document.documentElement.classList.add('my-app-dark')
   document.documentElement.classList.remove('my-app-dark')
 }**/
 
-// Installer les intercepteurs d'erreurs globaux dès le démarrage
-// Les erreurs seront loggées dans la console jusqu'à ce que le Toast soit disponible
+// Install the global error interceptors right at startup
+// Errors will be logged to the console until the Toast is available
 errorService.install()
 
-// Appliquer la langue initiale (localStorage) à <html> et à PrimeVue
+// Apply the initial language (localStorage) to <html> and PrimeVue
 const initialLocale = getInitialLocale()
 document.documentElement.lang = initialLocale
 const primevueLocale = initialLocale === 'en' ? enLocale.en : frLocale.fr
 
-// Créer l'application Vue
+// Create the Vue application
 const app = createApp(App)
 
-// Configurer PrimeVue et les services
+// Configure PrimeVue and the services
 app.use(PrimeVue, {
   locale: primevueLocale,
   theme: {

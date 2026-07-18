@@ -70,7 +70,7 @@ export const bracketRoundTypeEnum = ["winners", "losers", "bronze"] as const;
 export type BracketRoundType = (typeof bracketRoundTypeEnum)[number];
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const userRoleSchema = z.enum(userRoleEnum);

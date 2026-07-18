@@ -487,9 +487,9 @@ router.beforeEach((to) => {
   void checkVersionThrottled()
 })
 
-// Un import lazy de vue peut échouer quand les chunks servis ont changé
-// (redéploiement en prod, ré-optimisation des deps du serveur vite en dev):
-// on recharge la page directement sur la destination.
+// A lazy view import can fail when the served chunks have changed
+// (prod redeploy, vite dev server dep re-optimization):
+// we reload the page directly to the destination.
 router.onError((error, to) => {
   const message = error instanceof Error ? error.message : String(error)
   if (

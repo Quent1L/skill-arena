@@ -118,7 +118,7 @@ function formatDate(date: Date): string {
   if (hours < 24) return t('notificationItem.date.hoursAgo', { hours })
   if (days < 7) return t('notificationItem.date.daysAgo', { days })
 
-  // Format complet pour les notifications plus anciennes
+  // Full format for older notifications
   return date.toLocaleDateString(locale.value, {
     day: 'numeric',
     month: 'short',

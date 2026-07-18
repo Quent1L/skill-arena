@@ -26,7 +26,7 @@ const players = [
 ]
 
 function mountBoard(props: Record<string, unknown> = {}) {
-  // showModeToggle est une prop Boolean optionnelle: absente, Vue la caste à false
+  // showModeToggle is an optional Boolean prop: absent, Vue casts it to false
   return mountWithPrime(RankedLeaderboard, {
     props: { players, tiers, showModeToggle: true, ...props },
   })

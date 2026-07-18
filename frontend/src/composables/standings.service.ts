@@ -19,7 +19,7 @@ export function useStandingsService() {
     loading.value = true
     error.value = null
 
-    // Garder les anciennes données pendant le chargement pour éviter le layout shift
+    // Keep the previous data while loading to avoid layout shift
     const previousStandings = [...standings.value]
 
     try {
@@ -27,7 +27,7 @@ export function useStandingsService() {
       standings.value = result.standings
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : t('standingsService.errors.loadFailed')
-      // En cas d'erreur, garder les anciennes données si disponibles
+      // On error, keep the previous data if available
       if (previousStandings.length === 0) {
         standings.value = []
       }
@@ -44,7 +44,7 @@ export function useStandingsService() {
     loading.value = true
     error.value = null
 
-    // Garder les anciennes données pendant le chargement pour éviter le layout shift
+    // Keep the previous data while loading to avoid layout shift
     const previousStandings = [...standings.value]
 
     try {
@@ -52,7 +52,7 @@ export function useStandingsService() {
       standings.value = result.standings
     } catch (err: unknown) {
       error.value = err instanceof Error ? err.message : t('standingsService.errors.loadFailed')
-      // En cas d'erreur, garder les anciennes données si disponibles
+      // On error, keep the previous data if available
       if (previousStandings.length === 0) {
         standings.value = []
       }

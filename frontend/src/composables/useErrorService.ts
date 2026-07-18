@@ -1,12 +1,12 @@
 /**
- * Service global de gestion des erreurs non capturées
+ * Global service for handling uncaught errors
  */
 
 import type { ToastServiceMethods } from 'primevue/toastservice'
 import { isNetworkError } from '@/utils/HttpErrors'
 import { i18n } from '@/i18n'
 
-// Singleton pour accéder au ToastService
+// Singleton to access the ToastService
 let toastInstance: ToastServiceMethods | null = null
 
 const TOAST_LIFE_MS = 8000
@@ -19,8 +19,8 @@ const TOAST_LIFE_MS = 8000
 let networkToastVisible = false
 
 /**
- * Initialiser le service avec l'instance de Toast
- * À appeler dans App.vue après le montage
+ * Initialize the service with the Toast instance
+ * To be called in App.vue after mounting
  */
 export function initErrorService(toast: ToastServiceMethods) {
   toastInstance = toast
@@ -51,7 +51,7 @@ function showNetworkError() {
 }
 
 /**
- * Afficher une erreur dans un toast
+ * Show an error in a toast
  */
 function showError(error: Error | string, detail?: string) {
   const errorMessage = typeof error === 'string' ? error : error.message
@@ -65,7 +65,7 @@ function showError(error: Error | string, detail?: string) {
     return
   }
 
-  // Si le toast n'est pas encore disponible, seulement logger
+  // If the toast isn't available yet, just log
   if (!toastInstance) {
     console.warn('[Error Service] Toast not available yet, error logged to console only')
     return
@@ -80,7 +80,7 @@ function showError(error: Error | string, detail?: string) {
 }
 
 /**
- * Gestionnaire d'erreurs JavaScript non capturées
+ * Uncaught JavaScript error handler
  */
 function handleError(event: ErrorEvent) {
   event.preventDefault()
@@ -103,7 +103,7 @@ function handleError(event: ErrorEvent) {
 }
 
 /**
- * Gestionnaire de promesses rejetées non capturées
+ * Unhandled promise rejection handler
  */
 function handleUnhandledRejection(event: PromiseRejectionEvent) {
   event.preventDefault()
@@ -118,7 +118,7 @@ function handleUnhandledRejection(event: PromiseRejectionEvent) {
   } else if (typeof reason === 'string') {
     errorMessage = reason
   } else if (reason && typeof reason === 'object') {
-    // Gérer les erreurs API (format { error: { code, message } })
+    // Handle API errors (format { error: { code, message } })
     if (reason.error?.message) {
       errorMessage = reason.error.message
       errorDetail = reason.error.code
@@ -138,20 +138,20 @@ function handleUnhandledRejection(event: PromiseRejectionEvent) {
 }
 
 /**
- * Installer les intercepteurs d'erreurs globaux
+ * Install the global error interceptors
  */
 function install() {
-  // Intercepter les erreurs JavaScript non capturées
+  // Intercept uncaught JavaScript errors
   window.addEventListener('error', handleError)
 
-  // Intercepter les promesses rejetées non capturées
+  // Intercept unhandled promise rejections
   window.addEventListener('unhandledrejection', handleUnhandledRejection)
 
   console.log('[Error Service] Global error handlers installed')
 }
 
 /**
- * Désinstaller les intercepteurs d'erreurs globaux
+ * Uninstall the global error interceptors
  */
 function uninstall() {
   window.removeEventListener('error', handleError)
@@ -160,7 +160,7 @@ function uninstall() {
   console.log('[Error Service] Global error handlers uninstalled')
 }
 
-// Export du service sous forme d'objet
+// Export the service as an object
 export const errorService = {
   install,
   uninstall,
@@ -168,7 +168,7 @@ export const errorService = {
   showNetworkError,
 }
 
-// Export de la fonction pour les composants Vue
+// Export the function for Vue components
 export function useErrorService() {
   return errorService
 }

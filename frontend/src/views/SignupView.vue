@@ -9,7 +9,7 @@
 
       <Card>
         <template #content>
-          <!-- Message d'erreur si aucune méthode d'authentification n'est disponible -->
+          <!-- Error message if no authentication method is available -->
           <Message v-if="noAuthMethodAvailable" severity="error" :closable="false" class="mb-6">
             <div class="space-y-2">
               <p class="font-semibold">
@@ -133,14 +133,14 @@ const keycloakLoginLabel = computed(
 )
 
 onMounted(() => {
-  // Vérifier si une erreur OAuth est présente dans l'URL
+  // Check if an OAuth error is present in the URL
   const error = route.query.error as string
   const errorDescription = route.query.error_description as string
 
   if (error) {
     const errorMessage = errorDescription || t('signupView.oauthError')
 
-    // Afficher l'erreur à l'utilisateur
+    // Show the error to the user
     toast.add({
       severity: 'error',
       summary: t('signupView.errorSummary'),
@@ -148,7 +148,7 @@ onMounted(() => {
       life: 8000,
     })
 
-    // Nettoyer l'URL
+    // Clean up the URL
     router.replace({ query: {} })
   }
 
@@ -206,17 +206,17 @@ async function proceedToKeycloakRegistration() {
   try {
     document.cookie = `invitation_code=${invitationCode.value}; path=/; max-age=600; SameSite=Lax`
 
-    // En dev, le frontend est sur localhost:5173, donc on doit spécifier l'URL complète
-    // En prod (dockerisé), le frontend est servi par le backend, donc '/' suffit
-    // Redirige vers la page d'accueil. Si pas de code d'invitation, le guard détectera
-    // l'erreur INVITATION_CODE_REQUIRED et redirigera automatiquement vers /submit-invitation
+    // In dev, the frontend is on localhost:5173, so the full URL must be specified
+    // In prod (dockerized), the frontend is served by the backend, so '/' is enough
+    // Redirects to the home page. If there's no invitation code, the guard will detect
+    // the INVITATION_CODE_REQUIRED error and automatically redirect to /submit-invitation
     const callbackURL = import.meta.env.DEV ? 'http://localhost:5173/' : '/'
 
-    // IMPORTANT: requestSignUp: true pour forcer la création de compte
+    // IMPORTANT: requestSignUp: true to force account creation
     await authClient.signIn.oauth2({
       providerId: 'keycloak',
       callbackURL,
-      requestSignUp: true, // Force le sign-up (avec code d'invitation)
+      requestSignUp: true, // Force sign-up (with invitation code)
     })
   } catch (error: unknown) {
     isSigningIn.value = false

@@ -37,7 +37,7 @@ beforeEach(() => {
 })
 
 async function mountTable(props: Record<string, unknown> = {}) {
-  // showProvisionalToggle est une prop Boolean optionnelle: absente, Vue la caste à false
+  // showProvisionalToggle is an optional Boolean prop: absent, Vue casts it to false
   const wrapper = mountWithPrime(StandingsTable, {
     props: { tournamentId: 't1', showProvisionalToggle: true, ...props },
     global: { directives: { tooltip: {} } },

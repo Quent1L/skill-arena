@@ -96,7 +96,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Transition glissement vertical (vers le haut) */
+/* Vertical slide transition (upward) */
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -112,7 +112,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Transition glissement vertical (vers le bas) */
+/* Vertical slide transition (downward) */
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
@@ -128,7 +128,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Transition zoom (agrandissement) */
+/* Zoom transition (enlarging) */
 .zoom-enter-active,
 .zoom-leave-active {
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -144,7 +144,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Transition zoom out (rétrécissement) */
+/* Zoom out transition (shrinking) */
 .zoom-out-enter-active,
 .zoom-out-leave-active {
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -160,7 +160,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Transition rotation (pour des effets spéciaux) */
+/* Rotation transition (for special effects) */
 .rotate-enter-active,
 .rotate-leave-active {
   transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -176,7 +176,7 @@ usePageTransitions()
   opacity: 0;
 }
 
-/* Effet de fondu avec blur */
+/* Fade effect with blur */
 .blur-enter-active,
 .blur-leave-active {
   transition: all 0.4s ease;
@@ -189,7 +189,7 @@ usePageTransitions()
   transform: scale(1.05);
 }
 
-/* Positionnement pour éviter les problèmes de layout */
+/* Positioning to avoid layout issues */
 .slide-left-enter-active,
 .slide-left-leave-active,
 .slide-right-enter-active,
@@ -205,13 +205,13 @@ usePageTransitions()
   min-height: 100vh;
 }
 
-/* Container pour éviter les problèmes de positionnement */
+/* Container to avoid positioning issues */
 #app {
   position: relative;
   overflow-x: clip; /* clip (not hidden) avoids creating a scroll container, which would break position:sticky */
 }
 
-/* Amélioration des performances */
+/* Performance improvement */
 .slide-left-enter-active,
 .slide-left-leave-active,
 .slide-right-enter-active,
@@ -229,7 +229,7 @@ usePageTransitions()
   -webkit-backface-visibility: hidden;
 }
 
-/* Responsive: réduire les animations sur mobile pour de meilleures performances */
+/* Responsive: reduce animations on mobile for better performance */
 @media (max-width: 768px) {
   .slide-left-enter-active,
   .slide-left-leave-active,
@@ -243,7 +243,7 @@ usePageTransitions()
   }
 }
 
-/* Réduire les animations si l'utilisateur préfère moins de mouvement */
+/* Reduce animations if the user prefers less motion */
 @media (prefers-reduced-motion: reduce) {
   .slide-left-enter-active,
   .slide-left-leave-active,

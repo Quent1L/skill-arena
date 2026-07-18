@@ -57,7 +57,7 @@
         <i class="fa fa-chevron-right text-gray-400 text-xs sm:text-sm group-hover:text-primary-500 transition-colors shrink-0" />
       </button>
 
-      <!-- Règles -->
+      <!-- Rules -->
       <button
         v-if="store.tournament!.rulesId"
         @click="router.push(`/rules/${store.tournament!.rulesId}`)"

@@ -126,8 +126,8 @@ const router = useRouter()
 const route = useRoute()
 const { register, loading, error } = useAuth()
 
-// Note: La vérification du code d'invitation est gérée par le hook backend
-// lors de l'inscription. Pas besoin de vérifier le cookie côté frontend.
+// Note: Invitation code verification is handled by the backend hook
+// during sign-up. No need to check the cookie on the frontend side.
 
 const { defineField, handleSubmit, errors } = useForm({
   validationSchema: toTypedSchema(registerSchema),

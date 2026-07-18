@@ -156,7 +156,7 @@ const emit = defineEmits<{
 const expandedRows = ref<Record<string, boolean>>({})
 const loadedOutcomeTypeIds = ref<Set<string>>(new Set())
 
-// Computed qui calcule les raisons par type à partir des props (se met à jour automatiquement)
+// Computed that derives reasons by type from the props (updates automatically)
 const outcomeReasonsByType = computed(() => {
   const map = new Map<string, OutcomeReason[]>()
   props.outcomeReasons.forEach((reason) => {
@@ -170,7 +170,7 @@ const outcomeReasonsByType = computed(() => {
 
 function onRowExpand(event: { data: OutcomeType }) {
   const outcomeTypeId = event.data.id
-  // Charger les raisons seulement si pas déjà chargées
+  // Load reasons only if not already loaded
   if (!loadedOutcomeTypeIds.value.has(outcomeTypeId)) {
     loadOutcomeReasonsForType(outcomeTypeId)
   }
@@ -178,7 +178,7 @@ function onRowExpand(event: { data: OutcomeType }) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function onRowCollapse(_event: { data: OutcomeType }) {
-  // Optionnel : nettoyer les données si nécessaire
+  // Optional: clean up data if needed
 }
 
 async function loadOutcomeReasonsForType(outcomeTypeId: string) {
@@ -194,7 +194,7 @@ function getOutcomeReasonsForType(outcomeTypeId: string): OutcomeReason[] {
   return outcomeReasonsByType.value.get(outcomeTypeId) || []
 }
 
-// Expose expandedRows pour permettre la suppression lors de la suppression d'un type
+// Expose expandedRows to allow cleanup when a type is deleted
 defineExpose({
   expandedRows,
 })

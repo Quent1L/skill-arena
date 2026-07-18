@@ -58,7 +58,7 @@ app.use("/api/*", async (c, next) => {
   logger.debug(`--> ${method} ${path} ${c.res.status} ${ms}ms`);
 });
 
-// Configuration CORS en mode développement
+// CORS configuration in development mode
 app.use(
   "*",
   cors({

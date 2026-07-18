@@ -37,7 +37,7 @@ describe('MmrRecapCard', () => {
     mountCard([
       ev({ reason: 'recalculated', mmrDelta: 18, displayDelta: 3 }),
       ev({ reason: 'recalculated', mmrDelta: -5, displayDelta: -1 }),
-      ev({ reason: 'match_finalized', mmrDelta: 4, displayDelta: null as unknown as number }), // ligne héritée
+      ev({ reason: 'match_finalized', mmrDelta: 4, displayDelta: null as unknown as number }), // legacy row
     ])
     expect(netEl()).toBe('+6') // 3 - 1 + 4
   })

@@ -1,5 +1,5 @@
 /**
- * Export centralisé de tous les types
+ * Centralized export of all types
  */
 
 export * from './tournament'

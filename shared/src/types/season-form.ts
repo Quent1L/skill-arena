@@ -2,12 +2,12 @@ import { z } from "zod";
 import { validationModeSchema } from "./enums";
 
 // ============================================
-// Schéma de base partagé entre tournois et saisons ranked
+// Base schema shared between tournaments and ranked seasons
 // ============================================
-// Une saison ranked est un tournoi (mode='ranked') avec une config MMR additionnelle.
-// Ces deux entités partagent le même bloc de champs "informations générales" et
-// "contraintes de score". Ce schéma factorise ces champs communs (côté formulaire,
-// donc avec des objets Date plutôt que des strings ISO).
+// A ranked season is a tournament (mode='ranked') with an additional MMR config.
+// These two entities share the same "general information" and "score constraints"
+// field block. This schema factors out these common fields (form side,
+// hence with Date objects rather than ISO strings).
 
 export const baseSeasonFormSchema = z.object({
   name: z
@@ -46,11 +46,11 @@ export type BaseSeasonUpdateFormData = z.infer<
 >;
 
 // ============================================
-// Prédicats partagés pour la validation cross-field
+// Shared predicates for cross-field validation
 // ============================================
-// Utilisés via `.refine(predicate, options)` dans les schemas dérivés.
-// On expose les prédicats plutôt que des wrappers de schémas pour éviter
-// les complications de typage de ZodEffects.
+// Used via `.refine(predicate, options)` in derived schemas.
+// We expose the predicates rather than schema wrappers to avoid
+// ZodEffects typing complications.
 
 export const dateRangePredicate = (data: {
   startDate?: Date | string;

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Schéma de base pour un participant de tournoi
+// Base schema for a tournament participant
 export const participantSchema = z.object({
   id: z.string().uuid(),
   tournamentId: z.string().uuid(),
@@ -10,17 +10,17 @@ export const participantSchema = z.object({
   joinedAt: z.coerce.date(),
 });
 
-// Schéma pour l'inscription à un tournoi
+// Schema for joining a tournament
 export const joinTournamentSchema = z.object({
   tournamentId: z.string().uuid(),
 });
 
-// Schéma pour qu'un admin ajoute un participant
+// Schema for an admin adding a participant
 export const adminAddParticipantSchema = z.object({
   userId: z.string().uuid(),
 });
 
-// Schéma pour la réponse de l'inscription
+// Schema for the join response
 export const joinTournamentResponseSchema = z.object({
   id: z.string().uuid(),
   tournamentId: z.string().uuid(),
@@ -40,7 +40,7 @@ export const joinTournamentResponseSchema = z.object({
   }),
 });
 
-// Schéma pour la liste des participants
+// Schema for the participant list
 export const participantListItemSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
@@ -54,7 +54,7 @@ export const participantListItemSchema = z.object({
   }),
 });
 
-// Types inférés
+// Inferred types
 export type Participant = z.infer<typeof participantSchema>;
 export type JoinTournamentRequest = z.infer<typeof joinTournamentSchema>;
 export type JoinTournamentResponse = z.infer<

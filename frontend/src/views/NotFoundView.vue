@@ -4,7 +4,7 @@
   >
     <div class="max-w-md w-full text-center relative z-30">
       <div class="space-y-8">
-        <!-- Icône d'erreur -->
+        <!-- Error icon -->
         <div class="flex justify-center">
           <div class="relative">
             <div
@@ -12,14 +12,14 @@
             >
               <i class="fa fa-exclamation-triangle text-6xl text-blue-600 dark:text-blue-400"></i>
             </div>
-            <!-- Animation pulse -->
+            <!-- Pulse animation -->
             <div
               class="absolute inset-0 w-32 h-32 bg-blue-200 dark:bg-blue-800/30 rounded-full animate-ping opacity-20"
             ></div>
           </div>
         </div>
 
-        <!-- Contenu principal -->
+        <!-- Main content -->
         <div class="space-y-4">
           <h1 class="text-6xl font-bold text-gray-900 dark:text-white">404</h1>
 
@@ -49,7 +49,7 @@
             />
           </div>
 
-          <!-- Liens rapides pour les utilisateurs connectés -->
+          <!-- Quick links for logged-in users -->
           <div v-if="isAuthenticated" class="pt-4 border-t border-gray-200 dark:border-gray-700">
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('notFoundView.quickLinks') }}</p>
             <div class="flex flex-wrap gap-2 justify-center">
@@ -65,7 +65,7 @@
           </div>
         </div>
 
-        <!-- Message pour les utilisateurs non connectés -->
+        <!-- Message for logged-out users -->
         <div v-if="!isAuthenticated" class="pt-6 border-t border-gray-200 dark:border-gray-700">
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{{ t('notFoundView.notLoggedIn') }}</p>
           <div class="flex gap-2 justify-center">
@@ -76,7 +76,7 @@
       </div>
     </div>
 
-    <!-- Élément décoratif -->
+    <!-- Decorative element -->
     <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
       <div
         class="absolute top-20 left-10 w-4 h-4 bg-blue-300 dark:bg-blue-600 rounded-full opacity-30 animate-float"
@@ -119,7 +119,7 @@ function goHome() {
 }
 
 function goBack() {
-  // Vérifier s'il y a un historique
+  // Check if there is history
   if (globalThis.history.length > 1) {
     router.back()
   } else {
@@ -129,7 +129,7 @@ function goBack() {
 </script>
 
 <style scoped>
-/* Assurer la cliquabilité des éléments interactifs */
+/* Ensure clickability of interactive elements */
 .not-found-view {
   pointer-events: auto;
 }
@@ -141,7 +141,7 @@ function goBack() {
   z-index: 100;
 }
 
-/* Animations personnalisées */
+/* Custom animations */
 @keyframes float {
   0%,
   100% {
@@ -171,7 +171,7 @@ function goBack() {
   animation-delay: 1s;
 }
 
-/* Style pour le mode sombre */
+/* Dark mode style */
 .dark .not-found-view {
   color: white;
 }

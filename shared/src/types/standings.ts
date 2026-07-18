@@ -1,7 +1,7 @@
 import type { VictoryQualityDetail } from "./outcome-type";
 
 // ============================================
-// Types et interfaces pour les classements
+// Types and interfaces for standings
 // ============================================
 
 export interface HeadToHeadRecord {

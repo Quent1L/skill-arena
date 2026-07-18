@@ -77,9 +77,9 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    // Scanne aussi les vues lazy du router: sinon vite découvre leurs
-    // dépendances à la première navigation et déclenche un full reload
-    // ("optimized dependencies changed") qui casse la navigation en cours.
+    // Also scans the router's lazy views: otherwise vite discovers their
+    // dependencies on first navigation and triggers a full reload
+    // ("optimized dependencies changed") that breaks the ongoing navigation.
     entries: ['index.html', 'src/views/**/*.vue'],
   },
 })

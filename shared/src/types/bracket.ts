@@ -11,7 +11,7 @@ import type { Match, ClientMatchModel } from "./match";
 import type { TournamentEntryModel } from "./entry";
 
 // ============================================
-// Interfaces de base pour les brackets
+// Base interfaces for brackets
 // ============================================
 
 export interface BracketConfig {
@@ -73,7 +73,7 @@ export interface BracketData {
 }
 
 // ============================================
-// Types pour la génération de bracket
+// Types for bracket generation
 // ============================================
 
 export interface GenerateBracketInput {
@@ -91,7 +91,7 @@ export interface CanGenerateBracketResponse {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const generateBracketSchema = z
@@ -164,18 +164,18 @@ export const canGenerateBracketResponseSchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type GenerateBracketRequestData = z.infer<typeof generateBracketSchema>;
 export type CanGenerateBracketResponseData = z.infer<typeof canGenerateBracketResponseSchema>;
 
 // ============================================
-// Types pour le frontend (avec dates en Date)
+// Types for the frontend (with Date dates)
 // ============================================
 
 /**
- * Type pour BracketConfig côté frontend - dates converties en Date par xior
+ * Type for BracketConfig on the frontend side - dates converted to Date by xior
  */
 export interface ClientBracketConfig extends Omit<BracketConfig, 'createdAt' | 'updatedAt'> {
   createdAt: Date;
@@ -183,28 +183,28 @@ export interface ClientBracketConfig extends Omit<BracketConfig, 'createdAt' | '
 }
 
 /**
- * Type pour BracketRound côté frontend
+ * Type for BracketRound on the frontend side
  */
 export interface ClientBracketRound extends Omit<BracketRound, 'createdAt'> {
   createdAt: Date;
 }
 
 /**
- * Type pour BracketSeed côté frontend
+ * Type for BracketSeed on the frontend side
  */
 export interface ClientBracketSeed extends Omit<BracketSeed, 'createdAt'> {
   createdAt: Date;
 }
 
 /**
- * Type pour BracketMatchMetadata côté frontend
+ * Type for BracketMatchMetadata on the frontend side
  */
 export interface ClientBracketMatchMetadata extends Omit<BracketMatchMetadata, 'createdAt'> {
   createdAt: Date;
 }
 
 /**
- * Type pour BracketMatchWithMetadata côté frontend
+ * Type for BracketMatchWithMetadata on the frontend side
  */
 export interface ClientBracketMatchWithMetadata {
   match: ClientMatchModel;
@@ -213,7 +213,7 @@ export interface ClientBracketMatchWithMetadata {
 }
 
 /**
- * Type pour BracketData côté frontend
+ * Type for BracketData on the frontend side
  */
 export interface ClientBracketData {
   config: ClientBracketConfig;

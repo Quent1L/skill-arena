@@ -298,7 +298,7 @@ describe("StandingsService", () => {
     });
   });
 
-  // ── Tri / départage ────────────────────────────────────────────────────────
+  // ── Sorting / tiebreaking ────────────────────────────────────────────────────────
 
   describe("tri et départage", () => {
     it("trie par points décroissants", async () => {
@@ -514,7 +514,7 @@ describe("StandingsService", () => {
     });
   });
 
-  // ── Configuration du tournoi ──────────────────────────────────────────────
+  // ── Tournament configuration ──────────────────────────────────────────────
 
   describe("configuration du tournoi", () => {
     it("scoreEnabled=false (static) : scored/conceded/scoreDiff restent à 0", async () => {
@@ -584,7 +584,7 @@ describe("StandingsService", () => {
     });
   });
 
-  // ── Tiebreakers calculés ──────────────────────────────────────────────────
+  // ── Computed tiebreakers ──────────────────────────────────────────────────
 
   describe("tiebreakers calculés", () => {
     it("winLossRatio = wins / max(1, losses) — évite la division par zéro", async () => {
@@ -1081,7 +1081,7 @@ describe("StandingsService", () => {
     });
   });
 
-  // ── Cas limites supplémentaires ───────────────────────────────────────────
+  // ── Additional edge cases ───────────────────────────────────────────
 
   describe("cas limites supplémentaires", () => {
     it("tournoi sans équipe (static) : retourne un classement vide", async () => {

@@ -85,7 +85,7 @@
             />
           </StepPanel>
 
-          <!-- Step 4: Résultat -->
+          <!-- Step 4: Result -->
           <StepPanel value="result">
             <ResultStep
               v-model:sides="formState.sides"

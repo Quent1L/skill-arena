@@ -8,7 +8,7 @@
 
       <Card>
         <template #content>
-          <!-- Message d'erreur si aucune méthode d'authentification n'est disponible -->
+          <!-- Error message if no authentication method is available -->
           <Message v-if="noAuthMethodAvailable" severity="error" :closable="false" class="mb-6">
             <div class="space-y-2">
               <p class="font-semibold">
@@ -22,7 +22,7 @@
           </Message>
 
           <form v-if="!noAuthMethodAvailable" @submit="onSubmit" class="space-y-6">
-            <!-- Formulaire Email/Password (seulement si activé ou ?native=true) -->
+            <!-- Email/Password form (only if enabled or ?native=true) -->
             <template v-if="showEmailPassword">
               <div class="flex flex-col gap-2">
                 <label for="email" class="font-medium">{{ t('loginView.emailLabel') }}</label>
@@ -78,7 +78,7 @@
                 :disabled="loading"
               />
 
-              <!-- Séparateur "Ou" uniquement si les deux méthodes sont affichées -->
+              <!-- "Or" separator only if both methods are shown -->
               <div v-if="keycloakEnabled && showEmailPassword" class="relative">
                 <div class="absolute inset-0 flex items-center">
                   <div class="w-full border-t border-gray-300"></div>
@@ -89,7 +89,7 @@
               </div>
             </template>
 
-            <!-- Bouton Keycloak (affiché si activé) -->
+            <!-- Keycloak button (shown if enabled) -->
             <Button
               v-if="keycloakEnabled"
               @click="loginWithKeycloak"
@@ -104,7 +104,7 @@
               {{ isKeycloakLoading ? t('loginView.keycloakLoading') : keycloakLoginLabel }}
             </Button>
 
-            <!-- Lien d'inscription -->
+            <!-- Sign-up link -->
             <div class="text-center text-sm">
               <span class="text-gray-600">{{ t('loginView.noAccount') }}</span>
               <Button
@@ -116,7 +116,7 @@
               />
             </div>
 
-            <!-- Retour à l'accueil -->
+            <!-- Back to home -->
             <div class="text-center">
               <Button
                 link
@@ -160,7 +160,7 @@ const forceNative = computed(() => route.query.native === 'true')
 const showEmailPassword = computed(() => emailPasswordEnabled.value || forceNative.value)
 const noAuthMethodAvailable = computed(() => !showEmailPassword.value && !keycloakEnabled.value)
 
-// Détecter les erreurs OAuth dans l'URL (redirection depuis Better Auth)
+// Detect OAuth errors in the URL (redirect from Better Auth)
 if (route.query.error) {
   const errorDescription = route.query.error_description as string
   error.value = errorDescription || t('loginView.oauthError')

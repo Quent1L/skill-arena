@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // ============================================
-// Types et interfaces pour les règles du jeu
+// Types and interfaces for game rules
 // ============================================
 
 export interface GameRule {
@@ -19,7 +19,7 @@ export interface ClientGameRule extends Omit<GameRule, "createdAt" | "updatedAt"
 }
 
 // ============================================
-// Schémas Zod
+// Zod schemas
 // ============================================
 
 export const createGameRuleSchema = z.object({
@@ -40,7 +40,7 @@ export const updateGameRuleSchema = z.object({
 });
 
 // ============================================
-// Types inférés
+// Inferred types
 // ============================================
 
 export type CreateGameRuleData = z.infer<typeof createGameRuleSchema>;

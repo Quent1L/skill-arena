@@ -173,10 +173,10 @@ async function submitCode() {
     await consumeCode(invitationCode.value)
     document.cookie = 'invitation_code=; path=/; max-age=0'
 
-    // Rafraîchir les données utilisateur pour obtenir l'appUser
+    // Refresh user data to obtain the appUser
     await fetchUserData()
 
-    // Rediriger vers la page d'accueil
+    // Redirect to the home page
     router.push('/')
   } catch (err: unknown) {
     submitError.value = (err as Error).message || t('submitInvitationView.submitError')

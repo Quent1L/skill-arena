@@ -167,7 +167,7 @@
         </p>
       </div>
 
-      <!-- En équipe -->
+      <!-- As a team -->
       <div class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide text-center mb-3">
           <i class="fa fa-people-group mr-1"></i> {{ t('playerComparisonView.togetherTitle') }}
@@ -203,7 +203,7 @@
         </p>
       </div>
 
-      <!-- Rivalités communes -->
+      <!-- Common rivalries -->
       <div class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
           <i class="fa fa-users-rectangle mr-1"></i> {{ t('playerComparisonView.commonRivalries') }}
@@ -239,7 +239,7 @@
         </p>
       </div>
 
-      <!-- Spécialisation par type de résultat -->
+      <!-- Specialization by outcome type -->
       <div v-if="outcomeComparison.length" class="rounded-2xl bg-gray-800 p-4">
         <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
           <i class="fa fa-chart-pie mr-1"></i> {{ t('playerComparisonView.outcomeSpecTitle') }}

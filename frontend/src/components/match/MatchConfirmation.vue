@@ -28,7 +28,7 @@
           </p>
         </div>
 
-        <!-- Score contesté avec proposition active -->
+        <!-- Disputed score with an active proposal -->
         <div
           v-if="activeProposal"
           class="p-4 rounded-lg border-2 border-warn-400 dark:border-warn-500 bg-warn-50 dark:bg-warn-900/20 space-y-3"
@@ -179,7 +179,7 @@
           </div>
         </div>
 
-        <!-- Actions pour le joueur connecté -->
+        <!-- Actions for the logged-in player -->
         <div v-if="canUserRespond" class="space-y-3">
           <Divider />
 
@@ -229,7 +229,7 @@
     </template>
   </Card>
 
-  <!-- Dialog de réponse -->
+  <!-- Response dialog -->
   <Dialog
     v-model:visible="responseDialogVisible"
     :header="responseIntent === 'agree' ? t('matchConfirmation.dialogAcceptTitle') : t('matchConfirmation.dialogDisputeTitle')"

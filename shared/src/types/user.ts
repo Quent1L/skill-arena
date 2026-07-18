@@ -1,7 +1,7 @@
 import { type UserRole } from "./enums";
 
 // ============================================
-// Types et interfaces pour les utilisateurs
+// Types and interfaces for users
 // ============================================
 
 export interface User {
@@ -16,7 +16,7 @@ export interface User {
 
 export interface AppUser {
   id: string;
-  externalId: string; // Référence vers Better Auth user
+  externalId: string; // Reference to Better Auth user
   displayName: string;
   shortName: string;
   role: UserRole;

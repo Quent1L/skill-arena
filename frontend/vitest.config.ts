@@ -28,8 +28,8 @@ export default mergeConfig(
         ],
         reportsDirectory: './coverage',
         reporter: ['text', 'html', 'json', 'lcov'],
-        // Plancher-cliquet: la couverture globale inclut tout src/ (vues comprises).
-        // Remonter ces seuils au fil des nouveaux tests.
+        // Ratchet floor: overall coverage includes all of src/ (views included).
+        // Raise these thresholds as new tests are added.
         lines: 9,
         functions: 7,
         branches: 6,

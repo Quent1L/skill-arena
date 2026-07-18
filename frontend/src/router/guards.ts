@@ -1,5 +1,5 @@
 /**
- * Navigation Guards pour protéger les routes authentifiées
+ * Navigation Guards to protect authenticated routes
  */
 
 import type { RouteLocationNormalized } from 'vue-router'
@@ -21,7 +21,7 @@ function loginRedirect(to: RouteLocationNormalized) {
 }
 
 /**
- * Middleware pour vérifier l'authentification
+ * Middleware to verify authentication
  */
 export async function requireAuth(to: RouteLocationNormalized) {
   const { isAuthenticated, isInitialized, initialize } = useAuth()
@@ -58,25 +58,25 @@ export async function requireAuth(to: RouteLocationNormalized) {
 }
 
 /**
- * Middleware pour vérifier que l'utilisateur est administrateur
+ * Middleware to verify that the user is an administrator
  */
 export async function requireAdmin(to: RouteLocationNormalized) {
   const { isAuthenticated, isSuperAdmin, isInitialized, initialize } = useAuth()
 
   try {
-    // Initialiser la session si ce n'est pas déjà fait
+    // Initialize the session if not already done
     if (!isInitialized.value) {
       await initialize()
     }
 
     if (!isAuthenticated.value) {
-      console.warn("Pas d'utilisateur connecté")
+      console.warn('No logged-in user')
       return loginRedirect(to)
     } else if (isSuperAdmin.value) {
-      console.log('Utilisateur est admin, accès autorisé')
+      console.log('User is admin, access granted')
       return
     } else {
-      console.warn('Utilisateur connecté mais pas admin')
+      console.warn('User logged in but not admin')
       return {
         path: '/',
         replace: true,
@@ -95,13 +95,13 @@ export async function requireAdmin(to: RouteLocationNormalized) {
       return offlineRedirect(to)
     }
 
-    // Autres erreurs - rediriger vers login
+    // Other errors - redirect to login
     return loginRedirect(to)
   }
 }
 
 /**
- * Middleware pour protéger la page paramètres (bloque les kiosks verrouillés)
+ * Middleware to protect the settings page (blocks locked kiosks)
  */
 export async function requireSettingsAccess(to: RouteLocationNormalized) {
   const { isAuthenticated, userRole, isInitialized, initialize } = useAuth()
@@ -132,7 +132,7 @@ export async function requireSettingsAccess(to: RouteLocationNormalized) {
 }
 
 /**
- * Middleware pour rediriger les utilisateurs déjà connectés
+ * Middleware to redirect already logged-in users
  */
 export async function redirectIfAuthenticated(to: RouteLocationNormalized) {
   const { isAuthenticated, isInitialized, initialize } = useAuth()
@@ -158,7 +158,7 @@ export async function redirectIfAuthenticated(to: RouteLocationNormalized) {
 }
 
 /**
- * Exemple d'utilisation dans le router:
+ * Example usage in the router:
  *
  * {
  *   path: '/dashboard',

@@ -419,7 +419,7 @@ export class PlayerStatsService {
 
   private async computeRecentForm(playerId: string, tournamentId?: string): Promise<Array<'V' | 'D' | 'N'>> {
     const rows = await playerStatsRepository.getPlayerRecentForm(playerId, 10, tournamentId);
-    // Reverse so index 0 = oldest, last = most recent (left→right = ancien→récent)
+    // Reverse so index 0 = oldest, last = most recent (left→right = old→recent)
     return [...rows].reverse().map((r) => {
       if (isWinResult(r)) return 'V';
       if (isLossResult(r)) return 'D';

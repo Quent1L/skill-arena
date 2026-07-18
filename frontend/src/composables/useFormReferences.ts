@@ -5,9 +5,9 @@ import { useGameRulesService } from '@/composables/game-rules/game-rules.service
 import { useOrganizationService } from '@/composables/organization/organization.service'
 
 /**
- * Charge en parallèle les listes de référence (disciplines, règles, organisations)
- * dont les formulaires de tournoi/saison ranked ont besoin pour leurs Selects.
- * Évite la duplication des Promise.all dans chaque vue.
+ * Loads the reference lists in parallel (disciplines, rules, organizations)
+ * that tournament/ranked season forms need for their Selects.
+ * Avoids duplicating Promise.all in every view.
  */
 export function useFormReferences() {
   const { disciplines, listDisciplines } = useDisciplineService()

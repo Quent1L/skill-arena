@@ -15,20 +15,20 @@
       :aria-label="$t('skolLogo.ariaLabel')"
     >
       <defs>
-        <!-- Dégradé texte -->
+        <!-- Text gradient -->
         <linearGradient id="sk-text" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style="stop-color: #7c3aed" />
           <stop offset="50%" style="stop-color: #a78bfa" />
           <stop offset="100%" style="stop-color: #c084fc" />
         </linearGradient>
 
-        <!-- Dégradé dé -->
+        <!-- Die gradient -->
         <linearGradient id="sk-die" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color: #a78bfa" />
           <stop offset="100%" style="stop-color: #7c3aed" />
         </linearGradient>
 
-        <!-- Glow dé -->
+        <!-- Die glow -->
         <filter id="sk-glow" x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="6" result="blur" />
           <feMerge>
@@ -37,7 +37,7 @@
           </feMerge>
         </filter>
 
-        <!-- Glow texte léger -->
+        <!-- Light text glow -->
         <filter id="sk-text-glow" x="-5%" y="-5%" width="110%" height="110%">
           <feGaussianBlur stdDeviation="2" result="blur" />
           <feMerge>
@@ -47,7 +47,7 @@
         </filter>
       </defs>
 
-      <!-- ===== TEXTE SKOL ===== -->
+      <!-- ===== SKOL TEXT ===== -->
       <g class="sk-text">
         <text
           x="180"
@@ -64,7 +64,7 @@
         </text>
       </g>
 
-      <!-- Soulignement animé -->
+      <!-- Animated underline -->
       <line
         x1="30"
         y1="118"
@@ -77,18 +77,18 @@
         class="sk-underline"
       />
 
-      <!-- ===== DÉ ===== -->
+      <!-- ===== DIE ===== -->
       <g class="sk-die" filter="url(#sk-glow)">
-        <!-- Corps dé - carré arrondi penché -->
+        <!-- Die body - tilted rounded square -->
         <g transform="translate(268, 8) rotate(15, 26, 26)">
           <rect x="0" y="0" width="52" height="52" rx="10" fill="url(#sk-die)" />
-          <!-- Reflet haut -->
+          <!-- Top highlight -->
           <rect x="0" y="0" width="52" height="20" rx="10" fill="rgba(255,255,255,0.18)" />
-          <!-- Points face 3 (diagonale) -->
+          <!-- Face 3 pips (diagonal) -->
           <circle cx="13" cy="13" r="5.5" fill="white" opacity="0.95" />
           <circle cx="26" cy="26" r="5.5" fill="white" opacity="0.95" />
           <circle cx="39" cy="39" r="5.5" fill="white" opacity="0.95" />
-          <!-- Contour subtil -->
+          <!-- Subtle outline -->
           <rect
             x="0"
             y="0"
@@ -102,7 +102,7 @@
         </g>
       </g>
 
-      <!-- Point d'interrogation sous le dé -->
+      <!-- Question mark under the die -->
       <text
         x="303"
         y="76"

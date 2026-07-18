@@ -15,7 +15,7 @@ test.describe('anonyme', () => {
     await page.locator('#password input').fill(USERS.player1.password)
     await page.locator('form button[type="submit"]').click()
 
-    // Arrivée sur la liste des tournois, shell authentifié
+    // Lands on the tournament list, authenticated shell
     await expect(page).toHaveURL('/')
     await expect(page.getByRole('button', { name: 'Menu utilisateur' })).toBeVisible()
   })
@@ -29,7 +29,7 @@ test.describe('anonyme', () => {
   })
 
   test('logout renvoie vers /login et invalide la session', async ({ page }) => {
-    // Session dédiée: signOut révoque le token, on ne touche pas au storageState partagé
+    // Dedicated session: signOut revokes the token, we don't touch the shared storageState
     const res = await page.request.post(`${API_URL}/api/auth/sign-in/email`, {
       data: { email: USERS.player2.email, password: USERS.player2.password },
     })
@@ -42,7 +42,7 @@ test.describe('anonyme', () => {
     await page.getByText('Se déconnecter').click()
     await signOut
 
-    // La session est bien invalidée: une route protégée redirige
+    // The session is properly invalidated: a protected route redirects
     await page.goto('/')
     await expect(page).toHaveURL(/\/login/)
   })

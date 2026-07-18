@@ -12,7 +12,7 @@ import {
 } from "./season-form";
 
 // ============================================
-// Types et interfaces pour le mode Ranked
+// Types and interfaces for Ranked mode
 // ============================================
 
 export interface RankedSeasonConfig {
@@ -77,7 +77,7 @@ export interface ClientRankTier {
 }
 
 // ============================================
-// Types client (dates converties en Date)
+// Client types (dates converted to Date)
 // ============================================
 
 export interface OpponentQualityBucket {
@@ -128,14 +128,14 @@ export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 // ============================================
-// Schémas pour le formulaire (frontend, dates en Date)
+// Schemas for the form (frontend, Date dates)
 // ============================================
-// Étend baseSeasonFormSchema (champs communs avec les tournois) en ajoutant
-// les champs spécifiques aux saisons ranked (config MMR).
+// Extends baseSeasonFormSchema (fields shared with tournaments) by adding
+// fields specific to ranked seasons (MMR config).
 const rankedSeasonExtraFields = {
   baseMmr: z.number().int().min(100).max(5000),
   kFactor: z.number().int().min(8).max(128),
@@ -179,7 +179,7 @@ export type UpdateRankedSeasonFormData = z.infer<
 >;
 
 // ============================================
-// Schémas pour l'API (backend, dates en string)
+// Schemas for the API (backend, string dates)
 // ============================================
 
 export const createRankedSeasonSchema = z
@@ -264,7 +264,7 @@ export const updateRankedSeasonSchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type CreateRankedSeasonInput = z.infer<typeof createRankedSeasonSchema>;

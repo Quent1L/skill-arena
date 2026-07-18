@@ -62,7 +62,7 @@
             </div>
           </div>
 
-          <!-- Types de résultat (uniquement en mode édition) -->
+          <!-- Outcome types (edit mode only) -->
           <OutcomeTypeTable
             v-if="isEditMode && currentDiscipline"
             :outcome-types="outcomeTypes"
@@ -99,7 +99,7 @@
       </Card>
     </form>
 
-    <!-- Dialog pour Outcome Type -->
+    <!-- Outcome Type Dialog -->
     <OutcomeTypeDialog
       v-model:visible="outcomeTypeDialogVisible"
       :editing="editingOutcomeType"
@@ -107,7 +107,7 @@
       @submit="handleOutcomeTypeSubmit"
     />
 
-    <!-- Dialog pour Outcome Reason -->
+    <!-- Outcome Reason Dialog -->
     <OutcomeReasonDialog
       v-model:visible="outcomeReasonDialogVisible"
       :editing="editingOutcomeReason"
@@ -246,10 +246,10 @@ async function handleOutcomeReasonSubmit(values: { name: string }) {
     editingOutcomeReason.value = null
     currentOutcomeTypeForReason.value = null
 
-    // Recharger les raisons pour ce type
+    // Reload reasons for this type
     await loadOutcomeReasons(outcomeTypeId)
   } catch (err) {
-    console.error('Erreur lors de la sauvegarde de la raison de résultat:', err)
+    console.error('Error saving outcome reason:', err)
   }
 }
 
@@ -263,12 +263,12 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
       try {
         const idToDelete = outcomeType.id
         await deleteOutcomeType(idToDelete)
-        // Supprimer de expandedRows si présent
+        // Remove from expandedRows if present
         if (outcomeTypeTableRef.value?.expandedRows[idToDelete]) {
           delete outcomeTypeTableRef.value.expandedRows[idToDelete]
         }
       } catch (err) {
-        console.error('Erreur lors de la suppression:', err)
+        console.error('Error during deletion:', err)
       }
     },
   })

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type TournamentAdminRole } from "./enums";
 
 // ============================================
-// Types et interfaces pour les équipes statiques
+// Types and interfaces for static teams
 // ============================================
 
 export interface ClientTeamMember {
@@ -30,7 +30,7 @@ export const createTeamSchema = z.object({
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 
 // ============================================
-// Types conservés pour rétrocompatibilité
+// Types kept for backward compatibility
 // ============================================
 
 export interface TournamentAdmin {
@@ -43,7 +43,7 @@ export interface TournamentAdmin {
 }
 
 // ============================================
-// Types pour les statistiques
+// Types for statistics
 // ============================================
 
 export interface PlayerStats {

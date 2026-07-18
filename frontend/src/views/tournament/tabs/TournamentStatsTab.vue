@@ -15,7 +15,7 @@
 
     <template v-else-if="store.tournamentStats">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Répartition des fins de match -->
+        <!-- Match outcome breakdown -->
         <div
           v-if="hasOutcomeTypes"
           class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
@@ -54,7 +54,7 @@
           <p v-else class="text-gray-500 dark:text-gray-400 text-sm">{{ t('tournamentStatsTab.activity.empty') }}</p>
         </div>
 
-        <!-- Meilleure équipe (flex uniquement) -->
+        <!-- Best team (flex only) -->
         <TopPlayersCard
           v-if="store.tournament!.teamMode === 'flex' && bestTeamsItems.length"
           :title="t('tournamentStatsTab.bestTeams.title')"
@@ -64,7 +64,7 @@
           :items="bestTeamsItems"
         />
 
-        <!-- Séries de victoires -->
+        <!-- Win streaks -->
         <div
           v-if="store.tournamentStats.winStreaks.length"
           class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
@@ -91,7 +91,7 @@
           </div>
         </div>
 
-        <!-- Séries de défaites en cours -->
+        <!-- Current losing streaks -->
         <div
           v-if="store.tournamentStats.lossStreaks.length"
           class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
@@ -118,7 +118,7 @@
           </div>
         </div>
 
-        <!-- Meilleures séries d'invincibilité -->
+        <!-- Best unbeaten streaks -->
         <div
           v-if="store.tournamentStats.invincibleStreaks.length"
           class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
@@ -145,7 +145,7 @@
           </div>
         </div>
 
-        <!-- Meilleur joueur solo (asymétrique uniquement) -->
+        <!-- Best solo player (asymmetric only) -->
         <TopPlayersCard
           v-if="bestAsymmetricSoloItems.length"
           :title="t('tournamentStatsTab.bestAsymmetricSolo.title')"
@@ -155,7 +155,7 @@
           :items="bestAsymmetricSoloItems"
         />
 
-        <!-- Meilleur joueur 1v1 -->
+        <!-- Best 1v1 player -->
         <TopPlayersCard
           v-if="bestSoloItems.length"
           :title="t('tournamentStatsTab.bestSolo.title')"
@@ -165,7 +165,7 @@
           :items="bestSoloItems"
         />
 
-        <!-- Meilleur joueur 2v2 (flex uniquement) -->
+        <!-- Best 2v2 player (flex only) -->
         <TopPlayersCard
           v-if="store.tournament!.teamMode === 'flex' && bestDuoItems.length"
           :title="t('tournamentStatsTab.bestDuo.title')"
@@ -175,7 +175,7 @@
           :items="bestDuoItems"
         />
 
-        <!-- Fun stats par type de résultat -->
+        <!-- Fun stats by outcome type -->
         <div
           v-if="store.tournamentStats.outcomeTypeFunStats.length"
           class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"

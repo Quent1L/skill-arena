@@ -1,11 +1,11 @@
 import { execSync } from 'node:child_process'
 
 /**
- * Purge les mutations des runs précédents: les matchs créés par les tests
- * (ids aléatoires, contrairement aux fixtures seedées préfixées "e2e")
- * ne sont ni supprimables ni annulables via l'API une fois finalisés, et
- * déclenchent le contrôle "déjà un match à cette date et heure" (même minute)
- * sur les runs suivants.
+ * Purges mutations from previous runs: matches created by tests
+ * (random ids, unlike seeded fixtures prefixed "e2e")
+ * are neither deletable nor cancellable via the API once finalized, and
+ * trigger the "already a match at this date and time" check (same minute)
+ * on subsequent runs.
  */
 export default function globalSetup() {
   const sql = `
@@ -20,7 +20,7 @@ export default function globalSetup() {
     )
   } catch (err) {
     throw new Error(
-      `Purge de la base e2e impossible — conteneur skol-postgres-e2e lancé ? (bun run e2e:db:up)\n${err}`,
+      `Unable to purge the e2e database — is the skol-postgres-e2e container running? (bun run e2e:db:up)\n${err}`,
     )
   }
 }

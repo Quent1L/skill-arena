@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // ============================================
-// Types et interfaces pour les disciplines
+// Types and interfaces for disciplines
 // ============================================
 
 export type TeamInteractionMode = 'INDIVIDUAL' | 'SHARED_RESOURCE' | 'COLLABORATIVE';
@@ -31,7 +31,7 @@ export interface UpdateDisciplineInput {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const createDisciplineSchema = z.object({
@@ -56,7 +56,7 @@ export const updateDisciplineSchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type CreateDisciplineRequestData = z.infer<

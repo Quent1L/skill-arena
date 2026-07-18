@@ -28,7 +28,7 @@
 
     <!-- Content -->
     <div v-else class="space-y-2">
-      <!-- MMR de départ -->
+      <!-- Starting MMR -->
       <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
         <i class="fa fa-star text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
         <div>
@@ -86,7 +86,7 @@
         </div>
       </div>
 
-      <!-- Répartition en équipe -->
+      <!-- Team split -->
       <div
         v-if="hasTeamMode"
         class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg"
@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <!-- Accordéon formules -->
+      <!-- Formulas accordion -->
       <details
         class="group mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
       >

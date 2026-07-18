@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Discipline } from "./discipline";
 
 // ============================================
-// Types et interfaces pour les types de résultat
+// Types and interfaces for outcome types
 // ============================================
 
 export interface OutcomeType {
@@ -43,7 +43,7 @@ export interface UpdateOutcomeTypeInput {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const createOutcomeTypeSchema = z.object({
@@ -72,7 +72,7 @@ export const updateOutcomeTypeSchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type CreateOutcomeTypeRequestData = z.infer<

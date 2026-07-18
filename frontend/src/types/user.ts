@@ -1,4 +1,4 @@
-// Re-export des types depuis le package partagé
+// Re-export types from the shared package
 export {
   type User,
   type AppUser,

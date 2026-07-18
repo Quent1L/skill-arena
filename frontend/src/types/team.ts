@@ -1,7 +1,7 @@
-// Re-export des types depuis le package partagé
+// Re-export types from the shared package
 export { type Team, type TeamMember, type TeamStats } from '@skol-arena/shared'
 
-// Types spécifiques au frontend pour compatibilité
+// Frontend-specific types for compatibility
 import type { User } from './user'
 import type { Team } from '@skol-arena/shared'
 

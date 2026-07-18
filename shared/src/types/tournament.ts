@@ -21,7 +21,7 @@ import {
 } from "./season-form";
 
 // ============================================
-// Types et interfaces pour les tournois
+// Types and interfaces for tournaments
 // ============================================
 
 export interface BaseTournament {
@@ -131,12 +131,12 @@ export interface TournamentWithStats extends BaseTournament {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
-// Schéma de base sans validations cross-field pour les formulaires
-// Étend baseSeasonFormSchema (champs communs avec les saisons ranked) en ajoutant
-// les champs spécifiques aux tournois.
+// Base schema without cross-field validations for forms
+// Extends baseSeasonFormSchema (fields shared with ranked seasons) by adding
+// fields specific to tournaments.
 export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
@@ -150,7 +150,7 @@ export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
-// Schéma pour la mise à jour sans validations cross-field
+// Schema for updates without cross-field validations
 export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
   {
     mode: tournamentModeSchema.optional(),
@@ -167,13 +167,13 @@ export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
   },
 );
 
-// Schéma pour la création de tournoi (utilisé par le frontend avec Date objects)
+// Schema for tournament creation (used by the frontend with Date objects)
 export const createTournamentFormSchema = baseTournamentFormSchema
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError)
   .refine(scoreRangePredicate, scoreRangeError);
 
-// Schéma de base pour les données de tournoi
+// Base schema for tournament data
 const baseTournamentDataSchema = z.object({
   name: z
     .string({ message: "Le nom est requis" })
@@ -226,12 +226,12 @@ const baseTournamentDataSchema = z.object({
   validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
 
-// Schéma pour l'API (validation des données d'entrée - SANS createdBy)
+// Schema for the API (input data validation - WITHOUT createdBy)
 export const createTournamentRequestSchema = baseTournamentDataSchema
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError);
 
-// Schéma pour l'API complet (AVEC createdBy - pour les types uniquement)
+// Schema for the full API (WITH createdBy - types only)
 export const createTournamentSchema = baseTournamentDataSchema
   .extend({
     createdBy: z.string().uuid(),
@@ -239,13 +239,13 @@ export const createTournamentSchema = baseTournamentDataSchema
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError);
 
-// Schéma pour la mise à jour (frontend avec Date objects)
+// Schema for updates (frontend with Date objects)
 export const updateTournamentFormSchema = baseTournamentUpdateFormSchema
   .refine(dateRangePredicate, dateRangeError)
   .refine(teamSizePredicate, teamSizeError)
   .refine(scoreRangePredicate, scoreRangeError);
 
-// Schéma pour la mise à jour (API avec strings ISO)
+// Schema for updates (API with ISO strings)
 export const updateTournamentSchema = z
   .object({
     name: z
@@ -299,10 +299,10 @@ export const listTournamentsQuerySchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
-// Types pour les formulaires (frontend)
+// Types for forms (frontend)
 export type BaseTournamentFormData = z.infer<typeof baseTournamentFormSchema>;
 export type BaseTournamentUpdateFormData = z.infer<
   typeof baseTournamentUpdateFormSchema
@@ -314,7 +314,7 @@ export type UpdateTournamentFormData = z.infer<
   typeof updateTournamentFormSchema
 >;
 
-// Types pour l'API (backend)
+// Types for the API (backend)
 export type CreateTournamentRequestData = z.infer<
   typeof createTournamentRequestSchema
 >;
@@ -322,7 +322,7 @@ export type CreateTournamentApiData = z.infer<typeof createTournamentSchema>;
 export type UpdateTournamentApiData = z.infer<typeof updateTournamentSchema>;
 
 // ============================================
-// Utilitaires de conversion
+// Conversion utilities
 // ============================================
 
 function toLocalDateStr(d: Date): string {
@@ -330,7 +330,7 @@ function toLocalDateStr(d: Date): string {
 }
 
 /**
- * Convertit des données de formulaire (avec Date objects) en payload API (avec ISO strings)
+ * Converts form data (with Date objects) into an API payload (with ISO strings)
  */
 export function formDataToApiPayload<
   T extends { startDate?: Date; endDate?: Date },
@@ -349,7 +349,7 @@ export function formDataToApiPayload<
 }
 
 /**
- * Convertit des données API (avec ISO strings) en données de formulaire (avec Date objects)
+ * Converts API data (with ISO strings) into form data (with Date objects)
  */
 export function apiDataToFormData<
   T extends { startDate?: string; endDate?: string },
@@ -368,12 +368,12 @@ export function apiDataToFormData<
 }
 
 // ============================================
-// Types pour le frontend (avec dates en Date au lieu de string)
+// Types for the frontend (with Date dates instead of string)
 // ============================================
 
 /**
- * Type pour BaseTournament côté frontend - les dates string sont automatiquement
- * converties en objets Date par l'intercepteur xior
+ * Type for BaseTournament on the frontend side - string dates are automatically
+ * converted to Date objects by the xior interceptor
  */
 export interface ClientBaseTournament extends Omit<
   BaseTournament,
@@ -386,7 +386,7 @@ export interface ClientBaseTournament extends Omit<
 }
 
 /**
- * Type allégé pour les listes de tournois (réponse API de listing)
+ * Lightweight type for tournament lists (listing API response)
  */
 export interface TournamentSummary {
   id: string;
@@ -408,7 +408,7 @@ export interface ClientTournamentSummary extends Omit<
 }
 
 /**
- * Type pour TournamentWithStats côté frontend
+ * Type for TournamentWithStats on the frontend side
  */
 export interface ClientTournamentWithStats extends Omit<
   TournamentWithStats,
@@ -421,8 +421,8 @@ export interface ClientTournamentWithStats extends Omit<
 }
 
 /**
- * Type pour CreateTournamentRequestData côté frontend
- * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ * Type for CreateTournamentRequestData on the frontend side
+ * Dates can be Date objects (will be serialized to strings by JSON.stringify)
  */
 export interface ClientCreateTournamentRequest extends Omit<
   CreateTournamentRequestData,
@@ -433,8 +433,8 @@ export interface ClientCreateTournamentRequest extends Omit<
 }
 
 /**
- * Type pour UpdateTournamentApiData côté frontend
- * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ * Type for UpdateTournamentApiData on the frontend side
+ * Dates can be Date objects (will be serialized to strings by JSON.stringify)
  */
 export interface ClientUpdateTournamentRequest extends Omit<
   UpdateTournamentApiData,

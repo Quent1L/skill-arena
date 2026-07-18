@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-// Hiérarchie des routes pour déterminer la direction
+// Route hierarchy used to determine direction
 const routeHierarchy: Record<string, number> = {
   home: 0,
   quiz: 1,
@@ -18,7 +18,7 @@ interface TransitionRule {
   back: string
 }
 
-// Règles de transition évaluées dans l'ordre, première correspondance gagne
+// Transition rules evaluated in order, first match wins
 const transitionRules: TransitionRule[] = [
   { match: (n, o) => n.includes('quiz') && !o.includes('quiz'), forward: 'slide-left', back: 'slide-right' },
   { match: (n, o) => n.includes('quiz') && o.includes('quiz'), forward: 'slide-down', back: 'slide-right' },
@@ -40,7 +40,7 @@ export function usePageTransitions() {
   const transitionName = ref('fade')
   const isNavigatingBack = ref(false)
 
-  // Historique de navigation pour détecter les retours
+  // Navigation history used to detect backward navigation
   const navigationHistory = ref<string[]>([])
 
   watch(
@@ -54,12 +54,12 @@ export function usePageTransitions() {
       const newRouteString = newRouteName.toString()
       const oldRouteString = oldRouteName.toString()
 
-      // Ajouter à l'historique
+      // Add to history
       if (!navigationHistory.value.includes(newRouteString)) {
         navigationHistory.value.push(newRouteString)
       }
 
-      // Déterminer si c'est un retour en arrière
+      // Determine whether this is backward navigation
       const newLevel = routeHierarchy[newRouteString] ?? 1
       const oldLevel = routeHierarchy[oldRouteString] ?? 1
 
@@ -69,7 +69,7 @@ export function usePageTransitions() {
           navigationHistory.value.indexOf(newRouteString) <
             navigationHistory.value.indexOf(oldRouteString))
 
-      // Choisir la transition appropriée
+      // Choose the appropriate transition
       transitionName.value = getTransitionForRoute(
         newRouteString,
         oldRouteString,

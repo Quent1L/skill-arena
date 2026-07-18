@@ -1,5 +1,5 @@
 // ============================================
-// Types pour le profil et les statistiques d'un joueur
+// Types for a player's profile and statistics
 // ============================================
 
 import { z } from "zod";

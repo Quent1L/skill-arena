@@ -26,8 +26,8 @@ function isTriggerEvent(value: string): value is TriggerEvent {
 }
 
 /**
- * Vérifie que tous les facts référencés dans l'arbre de conditions existent
- * dans le catalogue de l'événement déclencheur.
+ * Verifies that all facts referenced in the conditions tree exist
+ * in the trigger event's catalog.
  */
 function collectFactKeys(conditions: RuleConditions, acc: Set<string>): void {
   if ("all" in conditions) conditions.all.forEach((c) => collectFactKeys(c, acc));

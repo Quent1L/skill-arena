@@ -10,21 +10,21 @@ import type {
 
 const BASE_URL = '/api/tournaments'
 
-// Type alias pour l'API response (ClientBaseTournament - dates converties en Date par l'intercepteur)
+// Type alias for the API response (ClientBaseTournament - dates converted to Date by the interceptor)
 export type TournamentResponse = ClientBaseTournament
 export type TournamentListResponse = ClientTournamentSummary
 
-// Interface pour les filtres de liste (basée sur ListTournamentsQuery du shared)
+// Interface for the list filters (based on ListTournamentsQuery from shared)
 export interface ListTournamentsFilters {
   status?: TournamentStatus
   mode?: TournamentMode
   createdBy?: string
 }
 
-// Type pour le payload de création (avec dates en Date qui seront sérialisées en string)
+// Type for the creation payload (with Date dates that will be serialized to string)
 export type CreateTournamentPayload = ClientCreateTournamentRequest
 
-// Type pour le payload de mise à jour (avec dates en Date qui seront sérialisées en string)
+// Type for the update payload (with Date dates that will be serialized to string)
 export type UpdateTournamentPayload = ClientUpdateTournamentRequest
 
 /**

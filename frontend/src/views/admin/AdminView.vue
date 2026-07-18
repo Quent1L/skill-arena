@@ -8,7 +8,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Card Gestion des tournois -->
+      <!-- Tournament Management Card -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToTournaments">
         <template #content>
           <div class="text-center py-8">
@@ -124,7 +124,7 @@
         </template>
       </Card>
 
-      <!-- Card Règles du jeu -->
+      <!-- Game Rules Card -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRules">
         <template #content>
           <div class="text-center py-8">
@@ -147,7 +147,7 @@
         </template>
       </Card>
 
-      <!-- Card Moteur de règles -->
+      <!-- Rules Engine Card -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRulesEngine">
         <template #content>
           <div class="text-center py-8">

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { auth } from "../config/auth";
 
 /**
- * Type commun pour les variables de contexte Hono
+ * Common type for Hono context variables
  */
 export type AppVariables = {
   user: typeof auth.$Infer.Session.user | null;
@@ -12,7 +12,7 @@ export type AppVariables = {
 };
 
 /**
- * Type commun pour les variables de contexte Hono (avec appUserId optionnel)
+ * Common type for Hono context variables (with optional appUserId)
  */
 export type AppVariablesOptional = {
   user: typeof auth.$Infer.Session.user | null;
@@ -22,28 +22,28 @@ export type AppVariablesOptional = {
 };
 
 /**
- * Type Hono avec les variables d'application standard
+ * Hono type with standard app variables
  */
 export type AppHono = Hono<{
   Variables: AppVariables;
 }>;
 
 /**
- * Type Hono avec les variables d'application (appUserId optionnel)
+ * Hono type with app variables (optional appUserId)
  */
 export type AppHonoOptional = Hono<{
   Variables: AppVariablesOptional;
 }>;
 
 /**
- * Factory pour créer une nouvelle instance Hono avec les types appropriés
+ * Factory to create a new Hono instance with the appropriate types
  */
 export function createAppHono(): AppHono {
   return new Hono<{ Variables: AppVariables }>();
 }
 
 /**
- * Factory pour créer une nouvelle instance Hono avec appUserId optionnel
+ * Factory to create a new Hono instance with optional appUserId
  */
 export function createAppHonoOptional(): AppHonoOptional {
   return new Hono<{ Variables: AppVariablesOptional }>();

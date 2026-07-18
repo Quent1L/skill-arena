@@ -1,5 +1,5 @@
-// Re-export des types depuis le package partagé
-// Note: On utilise les types Client car le frontend reçoit les dates en tant qu'objets Date
+// Re-export types from the shared package
+// Note: We use the Client types because the frontend receives dates as Date objects
 export {
   type ClientMatchModel as Match,
   type ClientMatchModel as MatchModel,
@@ -7,7 +7,7 @@ export {
   type MatchStatus,
 } from '@skol-arena/shared/types/index'
 
-// Types spécifiques au frontend pour compatibilité
+// Frontend-specific types for compatibility
 import type { Team } from './team'
 import type { User } from './user'
 import type { ClientMatchModel } from '@skol-arena/shared/types/index'

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // ============================================
-// Types et interfaces pour les raisons de résultat
+// Types and interfaces for outcome reasons
 // ============================================
 
 export interface OutcomeReason {
@@ -30,7 +30,7 @@ export interface UpdateOutcomeReasonInput {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const createOutcomeReasonSchema = z.object({
@@ -51,7 +51,7 @@ export const updateOutcomeReasonSchema = z.object({
 });
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type CreateOutcomeReasonRequestData = z.infer<

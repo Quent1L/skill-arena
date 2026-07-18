@@ -4,7 +4,7 @@ import { USERS, CHAMPIONSHIP_ID, CHAMP_MATCH_ID } from './fixtures'
 async function addParticipant(page: Page, displayName: string) {
   const search = page.getByPlaceholder('Rechercher un joueur...')
   await search.fill(displayName.split(' ').pop()!)
-  // Suggestions AutoComplete téléportées dans un overlay
+  // AutoComplete suggestions teleported into an overlay
   await page.getByRole('option', { name: displayName }).click()
 }
 
@@ -21,7 +21,7 @@ test('le stepper bloque tant que les participants sont incomplets', async ({ pag
   await page.getByRole('button', { name: 'Maintenant' }).click()
   await page.getByRole('button', { name: 'Suivant' }).click()
 
-  // Seul le joueur connecté est auto-sélectionné: Suivant désactivé
+  // Only the logged-in player is auto-selected: Next disabled
   await expect(page.getByText('Participants sélectionnés')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Suivant' })).toBeDisabled()
 })
@@ -29,17 +29,17 @@ test('le stepper bloque tant que les participants sont incomplets', async ({ pag
 test('crée un match complet via le stepper', async ({ page }) => {
   await page.goto(`/tournaments/${CHAMPIONSHIP_ID}/create-match`)
 
-  // Étape 1: date — "Maintenant"
+  // Step 1: date — "Now"
   await page.getByRole('button', { name: 'Maintenant' }).click()
   await page.getByRole('button', { name: 'Suivant' }).click()
 
-  // Étape 2: participants — le joueur connecté (player1) est auto-sélectionné
+  // Step 2: participants — the logged-in player (player1) is auto-selected
   await addParticipant(page, USERS.player3.displayName)
   const next = page.getByRole('button', { name: 'Suivant' })
   await expect(next).toBeEnabled()
   await next.click()
 
-  // Étape 3: résultat — vainqueur + scores
+  // Step 3: result — winner + scores
   await page
     .getByRole('button', { name: new RegExp(USERS.player3.displayName) })
     .first()
@@ -50,7 +50,7 @@ test('crée un match complet via le stepper', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Créer le match' }).click()
 
-  // Après création: retour sur l'onglet classement du tournoi (championship)
+  // After creation: back on the tournament's standings tab (championship)
   await expect(page).toHaveURL(new RegExp(`/tournaments/${CHAMPIONSHIP_ID}/standings`), {
     timeout: 15_000,
   })

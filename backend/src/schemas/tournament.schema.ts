@@ -5,7 +5,7 @@ import {
   type AdminAddParticipantRequest,
 } from "@skol-arena/shared/types/index";
 
-// Re-export des schémas et types depuis le package partagé
+// Re-export schemas and types from the shared package
 export {
   tournamentModeSchema,
   teamModeSchema,

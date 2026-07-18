@@ -15,7 +15,7 @@
     <form @submit="onSubmit" class="max-w-4xl">
       <Card>
         <template #content>
-          <!-- Informations générales -->
+          <!-- General information -->
           <div class="mb-6">
             <GeneralInfoSection
               :discipline-options="disciplineOptions"

@@ -61,8 +61,8 @@ export class RulesRepository {
   }
 
   /**
-   * Règles actives pour un événement, filtrées par scope (global, ou
-   * discipline correspondante).
+   * Active rules for an event, filtered by scope (global, or
+   * matching discipline).
    */
   async listActiveByTrigger(triggerEvent: string, disciplineId: string | null) {
     const scopeFilter = disciplineId

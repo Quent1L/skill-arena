@@ -11,7 +11,7 @@ import type { MatchSideModel, MatchResultModel } from "./entry";
 import type { HistoryMatchSide } from "./ranked";
 
 // ============================================
-// Types et interfaces pour les matchs
+// Types and interfaces for matches
 // ============================================
 
 export interface Match {
@@ -218,7 +218,7 @@ export interface FinalizeMatchInput {
 }
 
 // ============================================
-// Schémas Zod pour la validation
+// Zod schemas for validation
 // ============================================
 
 export const matchSideInputSchema = z.object({
@@ -360,7 +360,7 @@ export const validateMatchSchema = z.object({
 export type ValidateMatchRequestData = z.infer<typeof validateMatchSchema>;
 
 // ============================================
-// Types inférés des schémas
+// Types inferred from schemas
 // ============================================
 
 export type CreateMatchRequestData = z.infer<typeof createMatchSchema>;
@@ -383,12 +383,12 @@ export const playerMatchHistoryQuerySchema = z.object({
 export type PlayerMatchHistoryQuery = z.infer<typeof playerMatchHistoryQuerySchema>;
 
 // ============================================
-// Types pour le frontend (avec dates en Date au lieu de string)
+// Types for the frontend (with Date dates instead of string)
 // ============================================
 
 /**
- * Type pour Match côté frontend - les dates string sont automatiquement
- * converties en objets Date par l'intercepteur xior
+ * Type for Match on the frontend side - string dates are automatically
+ * converted to Date objects by the xior interceptor
  */
 export interface ClientMatch extends Omit<
   Match,
@@ -408,8 +408,8 @@ export interface ClientMatch extends Omit<
 }
 
 /**
- * Type pour MatchModel côté frontend - les dates string sont automatiquement
- * converties en objets Date par l'intercepteur xior
+ * Type for MatchModel on the frontend side - string dates are automatically
+ * converted to Date objects by the xior interceptor
  */
 export interface ClientMatchModel extends Omit<
   MatchModel,
@@ -449,8 +449,8 @@ export interface ClientMatchModel extends Omit<
 }
 
 /**
- * Type pour MatchConfirmation côté frontend - les dates string sont automatiquement
- * converties en objets Date par l'intercepteur xior
+ * Type for MatchConfirmation on the frontend side - string dates are automatically
+ * converted to Date objects by the xior interceptor
  */
 export interface ClientMatchConfirmation extends Omit<
   MatchConfirmation,
@@ -461,8 +461,8 @@ export interface ClientMatchConfirmation extends Omit<
 }
 
 /**
- * Type pour CreateMatchRequestData côté frontend
- * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ * Type for CreateMatchRequestData on the frontend side
+ * Dates can be Date objects (will be serialized to strings by JSON.stringify)
  */
 export interface ClientCreateMatchRequest extends Omit<
   CreateMatchRequestData,
@@ -473,8 +473,8 @@ export interface ClientCreateMatchRequest extends Omit<
 }
 
 /**
- * Type pour UpdateMatchRequestData côté frontend
- * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ * Type for UpdateMatchRequestData on the frontend side
+ * Dates can be Date objects (will be serialized to strings by JSON.stringify)
  */
 export interface ClientUpdateMatchRequest extends Omit<
   UpdateMatchRequestData,
@@ -484,8 +484,8 @@ export interface ClientUpdateMatchRequest extends Omit<
 }
 
 /**
- * Type pour ValidateMatchRequestData côté frontend
- * Les dates peuvent être des objets Date (seront sérialisées en string par JSON.stringify)
+ * Type for ValidateMatchRequestData on the frontend side
+ * Dates can be Date objects (will be serialized to strings by JSON.stringify)
  */
 export interface ClientValidateMatchRequest extends Omit<
   ValidateMatchRequestData,

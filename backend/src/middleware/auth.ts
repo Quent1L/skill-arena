@@ -24,12 +24,12 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
     c.set("appUserId", appUserId);
     await next();
   } catch (error: unknown) {
-    // Si l'erreur est liée au code d'invitation manquant
+    // If the error is related to a missing invitation code
     if ((error as { code?: string }).code === "INVITATION_CODE_REQUIRED") {
       logger.warn(`[Auth Middleware] User ${betterAuthUser.id} is authenticated but has no invitation code`);
 
-      // Retourner une erreur 403 Forbidden avec un message clair
-      // L'utilisateur est authentifié (session valide) mais doit soumettre un code d'invitation
+      // Return a 403 Forbidden error with a clear message
+      // The user is authenticated (valid session) but must submit an invitation code
       return c.json(
         {
           error: {
@@ -37,11 +37,11 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
             message: "Vous devez soumettre un code d'invitation pour activer votre compte."
           }
         },
-        403 // Forbidden (authentifié mais pas autorisé)
+        403 // Forbidden (authenticated but not authorized)
       );
     }
 
-    // Autres erreurs
+    // Other errors
     throw error;
   }
 }

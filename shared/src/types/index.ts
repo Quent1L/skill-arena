@@ -1,11 +1,11 @@
 // ============================================
-// Export de tous les types partagés
+// Export all shared types
 // ============================================
 
 // Enums et types de base
 export * from "./enums";
 
-// Types métier
+// Business types
 export * from "./season-form";
 export * from "./tournament";
 export * from "./user";
@@ -51,13 +51,13 @@ export interface ApiError {
 }
 
 // ============================================
-// Types utilitaires pour transformation de dates
+// Utility types for date transformation
 // ============================================
 
 /**
- * Type utilitaire qui transforme toutes les propriétés de type string
- * qui correspondent à des dates ISO en objets Date.
- * Utilisé côté frontend où l'intercepteur transforme automatiquement les dates.
+ * Utility type that transforms all string-typed properties
+ * that correspond to ISO dates into Date objects.
+ * Used on the frontend side where the interceptor automatically transforms dates.
  */
 export type WithClientDates<T> = {
   [K in keyof T]: T[K] extends string
@@ -70,8 +70,8 @@ export type WithClientDates<T> = {
 };
 
 /**
- * Type utilitaire pour les payloads d'API côté frontend.
- * Les dates sont acceptées en tant qu'objets Date, mais seront sérialisées en string par JSON.stringify.
+ * Utility type for frontend-side API payloads.
+ * Dates are accepted as Date objects, but will be serialized to strings by JSON.stringify.
  */
 export type ClientPayload<T> = {
   [K in keyof T]: T[K] extends string

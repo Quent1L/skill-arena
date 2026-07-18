@@ -24,7 +24,7 @@ interface EvaluableRule {
 }
 
 /**
- * Remplace les variables {{key}} d'un template par les valeurs du contexte.
+ * Replaces {{key}} variables in a template with values from the context.
  */
 export function interpolate(template: string, facts: Facts): string {
   return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) => {
@@ -34,8 +34,8 @@ export function interpolate(template: string, facts: Facts): string {
 }
 
 /**
- * Sélectionne la règle gagnante: priorité la plus haute, tirage aléatoire
- * si égalité.
+ * Selects the winning rule: highest priority, random draw
+ * on tie.
  */
 function selectWinner<T extends { priority: number }>(candidates: T[]): T | null {
   if (candidates.length === 0) return null;
@@ -66,10 +66,10 @@ function resolveDisplay(facts: Facts, displayNames: Map<string, string>): Facts 
 
 export class RulesEvaluationService {
   /**
-   * Évalue les règles `match_submitted` pour un match finalisé (une passe par
-   * joueur). Attribue les badges (unicité) et renvoie, par joueur, le message
-   * et le badge produits. La diffusion (message injecté dans l'animation MMR,
-   * badge animé) est gérée par mmr-animation-event.service.
+   * Evaluates `match_submitted` rules for a finalized match (one pass per
+   * player). Assigns badges (uniqueness) and returns, per player, the message
+   * and badge produced. Broadcasting (message injected into the MMR animation,
+   * animated badge) is handled by mmr-animation-event.service.
    */
   async evaluateMatchSubmitted(matchId: string): Promise<Map<string, PlayerRulesOutput>> {
     const result = new Map<string, PlayerRulesOutput>();
@@ -164,8 +164,8 @@ export class RulesEvaluationService {
   }
 
   /**
-   * Simulateur (bouton "Tester" de l'éditeur admin): évalue une règle
-   * éphémère contre un contexte fourni, sans écriture DB.
+   * Simulator (admin editor "Test" button): evaluates an ephemeral rule
+   * against a provided context, without writing to DB.
    */
   async simulate(conditions: RuleConditions, action: RuleAction, context: Facts): Promise<TestRuleResult> {
     const ephemeral: EvaluableRule = {

@@ -7,7 +7,7 @@
     <form @submit="onSubmit" class="max-w-4xl">
       <Card>
         <template #content>
-          <!-- Informations générales -->
+          <!-- General information -->
           <div class="mb-6">
             <GeneralInfoSection
               :discipline-options="disciplineOptions"
@@ -19,7 +19,7 @@
               :editable-fields="editableFields"
             >
               <template #after-discipline>
-                <!-- Status (mode édition uniquement) -->
+                <!-- Status (edit mode only) -->
                 <div v-if="isEditMode">
                   <label for="status" class="block text-sm font-medium mb-2">{{ t('common.status') }}</label>
                   <Select
@@ -76,7 +76,7 @@
             </GeneralInfoSection>
           </div>
 
-          <!-- Règles du championnat -->
+          <!-- Championship rules -->
           <div v-if="mode === 'championship'" class="mb-6">
             <h2 class="text-xl font-semibold mb-4">{{ t('tournamentFormView.championshipRulesTitle') }}</h2>
 

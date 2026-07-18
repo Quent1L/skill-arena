@@ -13,7 +13,7 @@
     <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
 
     <div class="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-4">
-      <!-- Panneau gauche: métadonnées -->
+      <!-- Left panel: metadata -->
       <Card>
         <template #title>{{ t('rulesEngineFormView.metadataTitle') }}</template>
         <template #content>

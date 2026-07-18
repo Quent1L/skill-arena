@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import { logger } from '../utils/logger';
 
-// Namespace stable pour tous les jobs Skol (évite collision avec advisory locks d'autres applis)
+// Stable namespace for all Skol jobs (avoids collision with advisory locks from other apps)
 const JOB_LOCK_NAMESPACE = 9_876_543;
 
 export async function withAdvisoryLock<T>(

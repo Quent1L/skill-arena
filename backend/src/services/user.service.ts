@@ -13,12 +13,12 @@ export class UserService {
   ): Promise<string> {
     let appUser = await userRepository.getByExternalId(betterAuthUserId);
 
-    // Si le appUser existe déjà, le retourner
+    // If the appUser already exists, return it
     if (appUser) {
       return appUser.id;
     }
 
-    // Sinon, vérifier qu'un code d'invitation a été consommé avant de créer le appUser
+    // Otherwise, verify an invitation code has been consumed before creating the appUser
     const hasValidInvitation = await invitationRepository.hasUserUsedCode(betterAuthUserId);
 
     if (!hasValidInvitation) {
@@ -28,7 +28,7 @@ export class UserService {
       );
     }
 
-    // Code d'invitation valide, créer le appUser
+    // Valid invitation code, create the appUser
     appUser = await userRepository.createAppUser({
       externalId: betterAuthUserId,
       displayName: displayName,

@@ -1,71 +1,71 @@
 import { z } from "zod";
 
 // ============================================
-// Moteur de règles — messages contextuels & badges
+// Rules engine — contextual messages & badges
 // ============================================
 
 export type RuleType = "message" | "badge";
 export type RuleScope = "global" | "discipline";
 
 /**
- * Événements applicatifs déclencheurs. Ouvert à l'extension, mais seul
- * `match_submitted` est supporté en v1.
+ * Application trigger events. Open for extension, but only
+ * `match_submitted` is supported in v1.
  */
 export const TRIGGER_EVENTS = ["match_submitted"] as const;
 export type TriggerEvent = (typeof TRIGGER_EVENTS)[number];
 
 // ============================================
-// Contexte d'évaluation par événement (les "facts")
+// Evaluation context per event (the "facts")
 // ============================================
 
 /**
- * Contexte fourni pour l'événement `match_submitted`. Le moteur est appelé
- * une fois par joueur impliqué (gagnant puis perdant).
+ * Context provided for the `match_submitted` event. The engine is called
+ * once per player involved (winner then loser).
  */
 export interface MatchSubmittedContext {
-  // Résultat du match (du point de vue du joueur évalué)
+  // Match result (from the evaluated player's point of view)
   winnerId: string;
   loserId: string;
   scoreWinner: number;
   scoreLoser: number;
   matchScore: string;
 
-  // Delta MMR (mode Ranked)
+  // MMR delta (Ranked mode)
   mmrDelta: number;
   newMmr: number;
   previousMmr: number;
 
-  // Rang (mode Ranked)
+  // Rank (Ranked mode)
   newRank: string;
   previousRank: string;
   rankChanged: boolean;
   rankUp: boolean;
   rankDown: boolean;
 
-  // Séries
+  // Streaks
   winStreak: number;
   lossStreak: number;
 
-  // Contexte joueur
+  // Player context
   isPlacementMatch: boolean;
   matchCountThisSeason: number;
 
-  // Contexte adversaire
+  // Opponent context
   opponentRank: string;
 
-  // Date / horaire du match (fuseau Europe/Paris)
+  // Match date / time (Europe/Paris timezone)
   matchHour: number; // 0-23
-  matchMinuteOfDay: number; // 0-1439 (minute dans la journée, précision à la minute)
-  matchDayOfWeek: number; // 1=lundi … 7=dimanche
+  matchMinuteOfDay: number; // 0-1439 (minute of the day, minute precision)
+  matchDayOfWeek: number; // 1=Monday … 7=Sunday
   matchDate: string; // 'YYYY-MM-DD'
 
-  // Contexte global
+  // Global context
   discipline: string;
   site: string;
 }
 
 // ============================================
-// Catalogue de facts (utilisé par l'UI admin + validation backend)
+// Fact catalog (used by the admin UI + backend validation)
 // ============================================
 
 export type FactType = "number" | "boolean" | "string" | "date";
@@ -111,8 +111,8 @@ export const EVENT_FACT_CATALOG: Record<TriggerEvent, FactDefinition[]> = {
 };
 
 /**
- * Opérateurs json-rules-engine autorisés par type de fact (pour peupler les
- * dropdowns du builder et valider côté backend).
+ * json-rules-engine operators allowed per fact type (used to populate the
+ * builder's dropdowns and validate on the backend side).
  */
 export const OPERATORS_BY_TYPE: Record<FactType, string[]> = {
   number: ["greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive", "equal", "notEqual", "in", "notIn"],
@@ -140,7 +140,7 @@ export interface BadgeAction {
 export type RuleAction = MessageAction | BadgeAction;
 
 // ============================================
-// Conditions (arbre json-rules-engine sérialisé)
+// Conditions (serialized json-rules-engine tree)
 // ============================================
 
 export interface ConditionLeaf {
@@ -160,7 +160,7 @@ export interface ConditionGroupAny {
 export type RuleConditions = ConditionGroupAll | ConditionGroupAny | ConditionLeaf;
 
 // ============================================
-// Règle
+// Rule
 // ============================================
 
 export interface Rule {
@@ -196,15 +196,15 @@ export interface RulesOutputBadge {
   description: string;
 }
 
-/** Résultat de l'évaluation des règles pour un joueur (interne backend). */
+/** Result of the rules evaluation for a player (internal backend). */
 export interface PlayerRulesOutput {
   message?: string;
-  /** Tous les badges nouvellement attribués lors de cette évaluation. */
+  /** All badges newly awarded during this evaluation. */
   badges?: (RulesOutputBadge & { badgeId: string })[];
 }
 
 // ============================================
-// Animation de badge (parité avec mmr_animation)
+// Badge animation (parity with mmr_animation)
 // ============================================
 
 export interface BadgeAnimationResponse {
@@ -222,7 +222,7 @@ export interface BadgeAnimationWsPayload extends BadgeAnimationResponse {
 }
 
 // ============================================
-// Schémas Zod
+// Zod schemas
 // ============================================
 
 const conditionLeafSchema: z.ZodType<ConditionLeaf> = z.object({
@@ -272,7 +272,7 @@ export const createRuleSchema = z.object({
 export const updateRuleSchema = createRuleSchema.partial();
 
 /**
- * Schéma du simulateur de règle (bouton "Tester" de l'éditeur admin).
+ * Rule simulator schema (admin editor "Test" button).
  */
 export const testRuleSchema = z.object({
   triggerEvent: z.enum(TRIGGER_EVENTS),
@@ -282,7 +282,7 @@ export const testRuleSchema = z.object({
 });
 
 // ============================================
-// Badges joueur
+// Player badges
 // ============================================
 
 export interface PlayerBadge {
@@ -310,7 +310,7 @@ export interface AvailableBadge {
 }
 
 // ============================================
-// Types inférés
+// Inferred types
 // ============================================
 
 export type CreateRuleData = z.infer<typeof createRuleSchema>;

@@ -37,7 +37,7 @@
     <div v-else-if="store.tournament">
       <!-- Mobile version -->
       <div v-if="isMobile" class="h-full">
-        <!-- Sub-tabs (participants, teams, stats): accessible via cards, pas dans la bottom nav -->
+        <!-- Sub-tabs (participants, teams, stats): accessible via cards, not in the bottom nav -->
         <div v-if="isMobileSubTab" class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
           <div
             class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 h-14 flex items-center px-4 shadow-sm"

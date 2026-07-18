@@ -9,9 +9,9 @@ export function isDateString(str: string) {
   return arrayOfDateStringRegex.some((regex) => regex.test(str))
 }
 /**
- * Fonction qui convertit les dates au format string en date javascript
- * @param data  données à convertir
- * @returns données converties
+ * Function that converts string-formatted dates into javascript dates
+ * @param data  data to convert
+ * @returns converted data
  */
 function parseDateString(value: string): Date {
   const localMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)

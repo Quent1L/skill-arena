@@ -1,5 +1,5 @@
 /**
- * Extension des types Better Auth pour ajouter des champs personnalisés
+ * Better Auth type extension to add custom fields
  */
 
 import 'better-auth/client'
