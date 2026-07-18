@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.16.0](https://github.com/Quent1L/skol-arena/compare/1.15.2...1.16.0) (2026-07-18)
+
+### ✨ New Features
+
+* **match:** add rematch action to match detail ([ea0e334](https://github.com/Quent1L/skol-arena/commit/ea0e334ade37707b5c84a8d8673dc847171d5374))
+* **pwa:** apply updates at navigation boundaries ([0b7118f](https://github.com/Quent1L/skol-arena/commit/0b7118fe52842a79953fc1697fd9456b61040361))
+
+### 🐛 Bug Fixes
+
+* **auth:** stop treating network failures as logout ([86ceb0f](https://github.com/Quent1L/skol-arena/commit/86ceb0f89d8406a7613561ba1e4e11b3047f6fe0))
+* **notifications:** matchFormat, i18n race, enum casing ([7f23c0b](https://github.com/Quent1L/skol-arena/commit/7f23c0b6a8ae01667091aa8e75937d29b9152952))
+* **notifications:** render match date client-side ([3e9f185](https://github.com/Quent1L/skol-arena/commit/3e9f185728af806968a2e9168d4bb72033df477d))
+* **ranked:** fix MMR recalc divergence and close finalize/delete/update integrity gaps ([f0cd897](https://github.com/Quent1L/skol-arena/commit/f0cd8974be3fa0edc1adec45520750427e2d0970))
+* **ui:** report unreachable server without blaming the user ([c724c34](https://github.com/Quent1L/skol-arena/commit/c724c34a6d2e17f3d16514008abac5c5b17e25a9))
+
+### ⚡ Performance
+
+* **auth:** cache session in cookie for 5 minutes ([84d747a](https://github.com/Quent1L/skol-arena/commit/84d747a5f945bbd037f42605eb6328b1a71707c5))
+
+### 📝 Documentation
+
+* require --isolate for backend tests ([8f4ba03](https://github.com/Quent1L/skol-arena/commit/8f4ba030f02c0b53edea940fdebd1ba190266c68))
+* translate French comments to English ([d60ce33](https://github.com/Quent1L/skol-arena/commit/d60ce339bc231813099b699337464a6b73e4b17f))
+
+### 🔧 Maintenance
+
+* ignore dev-dist and local Claude Code settings ([5b5b0c9](https://github.com/Quent1L/skol-arena/commit/5b5b0c9a8cc3f252bc4cba82c5a9b523349edfcf))
+
 ## [1.15.2](https://github.com/Quent1L/skol-arena/compare/1.15.1...1.15.2) (2026-07-02)
 
 ### 🐛 Bug Fixes
