@@ -4,7 +4,21 @@
 
 import type { RouteLocationNormalized } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { isNetworkError } from '@/utils/HttpErrors'
 import { errorService } from '@/composables/useErrorService.ts'
+
+/**
+ * Unreachable backend: we have NO information about the session, so redirecting to
+ * /login would be a false logout. Send to /offline instead, leaving the session state
+ * "unknown" to be retried on the next navigation.
+ */
+function offlineRedirect(to: RouteLocationNormalized) {
+  return { name: 'offline', query: { redirect: to.fullPath } }
+}
+
+function loginRedirect(to: RouteLocationNormalized) {
+  return { path: '/login', query: { redirect: to.fullPath } }
+}
 
 /**
  * Middleware pour vérifier l'authentification
@@ -20,10 +34,7 @@ export async function requireAuth(to: RouteLocationNormalized) {
     if (isAuthenticated.value) {
       return
     } else {
-      return {
-        path: '/login',
-        query: { redirect: to.fullPath },
-      }
+      return loginRedirect(to)
     }
   } catch (error) {
     console.error('❌ Error during authentication check:', error)
@@ -38,10 +49,11 @@ export async function requireAuth(to: RouteLocationNormalized) {
       return '/submit-invitation'
     }
 
-    return {
-      path: '/login',
-      query: { redirect: to.fullPath },
+    if (isNetworkError(error)) {
+      return offlineRedirect(to)
     }
+
+    return loginRedirect(to)
   }
 }
 
@@ -59,10 +71,7 @@ export async function requireAdmin(to: RouteLocationNormalized) {
 
     if (!isAuthenticated.value) {
       console.warn("Pas d'utilisateur connecté")
-      return {
-        path: '/login',
-        query: { redirect: to.fullPath },
-      }
+      return loginRedirect(to)
     } else if (isSuperAdmin.value) {
       console.log('Utilisateur est admin, accès autorisé')
       return
@@ -76,16 +85,18 @@ export async function requireAdmin(to: RouteLocationNormalized) {
   } catch (error) {
     console.error('Error checking admin status:', error)
 
-    // Si l'erreur est INVITATION_CODE_REQUIRED, rediriger vers /submit-invitation
-    if (error instanceof Error && error.message === 'INVITATION_CODE_REQUIRED') {
+    // On INVITATION_CODE_REQUIRED, redirect to /submit-invitation
+    // (the application code is carried by `cause`, see ApiConfig.ts)
+    if (error instanceof Error && error.cause === 'INVITATION_CODE_REQUIRED') {
       return '/submit-invitation'
     }
 
-    // Autres erreurs - rediriger vers login
-    return {
-      path: '/login',
-      query: { redirect: to.fullPath },
+    if (isNetworkError(error)) {
+      return offlineRedirect(to)
     }
+
+    // Autres erreurs - rediriger vers login
+    return loginRedirect(to)
   }
 }
 
@@ -101,10 +112,7 @@ export async function requireSettingsAccess(to: RouteLocationNormalized) {
     }
 
     if (!isAuthenticated.value) {
-      return {
-        path: '/login',
-        query: { redirect: to.fullPath },
-      }
+      return loginRedirect(to)
     }
 
     if (userRole.value === 'kiosk' && localStorage.getItem('kiosk_settings_locked') === 'true') {
@@ -114,10 +122,12 @@ export async function requireSettingsAccess(to: RouteLocationNormalized) {
     return
   } catch (error) {
     console.error('Error checking settings access:', error)
-    return {
-      path: '/login',
-      query: { redirect: to.fullPath },
+
+    if (isNetworkError(error)) {
+      return offlineRedirect(to)
     }
+
+    return loginRedirect(to)
   }
 }
 
@@ -138,6 +148,12 @@ export async function redirectIfAuthenticated(to: RouteLocationNormalized) {
     }
   } catch (error) {
     console.error('Error during redirect check:', error)
+
+    // With no backend response we cannot claim the user is logged out:
+    // showing /login would be misleading.
+    if (isNetworkError(error)) {
+      return offlineRedirect(to)
+    }
   }
 }
 

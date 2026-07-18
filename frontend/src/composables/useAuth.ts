@@ -6,6 +6,7 @@ import { ref, computed } from 'vue'
 import { authClient } from '@/lib/auth-client'
 import { userApi, type UserResponse } from '@/composables/user/user.api'
 import { useConfigService } from '@/composables/config/config.service'
+import { NETWORK_ERROR, isNetworkError, isTransientStatus } from '@/utils/HttpErrors'
 import { i18n } from '@/i18n'
 
 const sessionData = ref()
@@ -13,6 +14,16 @@ const appUserData = ref<UserResponse | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const kioskSettingsLocked = ref(localStorage.getItem('kiosk_settings_locked') === 'true')
+
+const RETRY_DELAY_MS = 600
+
+function networkError(): Error {
+  return new Error(i18n.global.t('auth.errors.sessionFetchGeneric'), { cause: NETWORK_ERROR })
+}
+
+/** Shared in-flight promises: keeps two concurrent guards from racing each other. */
+let inFlightCheck: Promise<unknown> | null = null
+let inFlightInit: Promise<void> | null = null
 
 /**
  * Récupère les données de l'utilisateur depuis l'API /users/me
@@ -61,36 +72,72 @@ export function useAuth() {
   const token = computed(() => sessionData.value?.data?.session?.token || null)
   const isInitialized = computed(() => sessionData.value !== undefined)
 
+  /**
+   * A single round-trip to Better Auth.
+   * Throws an error marked NETWORK_ERROR when the failure is transient, leaving the
+   * session state untouched — the caller then decides whether to retry.
+   */
+  async function fetchSessionOnce() {
+    let result
+    try {
+      result = await authClient.getSession()
+    } catch {
+      // better-fetch rejection: unreachable network, CORS, DNS, timeout.
+      throw networkError()
+    }
+
+    if (result.error) {
+      if (isTransientStatus(result.error.status)) {
+        throw networkError()
+      }
+      // Explicit auth response (401, 403...): no session, a legitimate case.
+      error.value = result.error.message || i18n.global.t('auth.errors.sessionFetch')
+      sessionData.value = { data: { user: null, session: null } }
+      appUserData.value = null
+      throw new Error(result.error.message)
+    }
+
+    return result
+  }
+
   async function checkSession(force = false) {
-    if (loading.value && !force) {
-      return sessionData.value
+    if (inFlightCheck && !force) {
+      return inFlightCheck
     }
 
     loading.value = true
     error.value = null
 
-    try {
-      const result = await authClient.getSession()
-      if (result.error) {
-        error.value = result.error.message || i18n.global.t('auth.errors.sessionFetch')
-        sessionData.value = { data: { user: null, session: null } }
-        appUserData.value = null
-        throw new Error(result.error.message)
+    const run = (async () => {
+      try {
+        // A single retry on network error: covers a restarting backend / cold start,
+        // a frequent cause of false logouts.
+        let result
+        try {
+          result = await fetchSessionOnce()
+        } catch (err) {
+          if (!isNetworkError(err)) throw err
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+          result = await fetchSessionOnce()
+        }
+
+        sessionData.value = result
+        return result
+      } catch (err) {
+        error.value =
+          err instanceof Error ? err.message : i18n.global.t('auth.errors.sessionFetchGeneric')
+        // NB: the logged-out state is NOT written here. Either fetchSessionOnce already
+        // did it for a real 401, or the failure is transient and the session stays
+        // unknown (`undefined`) so a later navigation retries.
+        throw err
+      } finally {
+        loading.value = false
+        inFlightCheck = null
       }
-      sessionData.value = result
-      return result
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : i18n.global.t('auth.errors.sessionFetchGeneric')
-      error.value = message
-      sessionData.value = { data: { user: null, session: null } }
-      appUserData.value = null
-      throw err
-    } finally {
-      loading.value = false
-    }
+    })()
+
+    inFlightCheck = run
+    return run
   }
 
   /**
@@ -190,35 +237,56 @@ export function useAuth() {
     if (sessionData.value !== undefined) {
       return // Déjà initialisé
     }
-
-    try {
-      console.log('Initialisation de la session utilisateur...')
-      await checkSession()
-
-      // Si l'utilisateur est connecté, récupérer ses données
-      if (sessionData.value?.data?.user) {
-        try {
-          await fetchUserData()
-        } catch (fetchError: unknown) {
-          // Si l'erreur est INVITATION_CODE_REQUIRED, la propager pour que le guard la gère
-          if ((fetchError as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
-            throw fetchError
-          }
-          // Pour les autres erreurs (401, etc.), réinitialiser silencieusement
-          console.warn('Erreur lors de la récupération des données utilisateur:', fetchError)
-          sessionData.value = { data: { user: null, session: null } }
-          appUserData.value = null
-        }
-      }
-    } catch (err: unknown) {
-      // Si c'est INVITATION_CODE_REQUIRED, propager l'erreur
-      if ((err as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
-        throw err
-      }
-      // Ignore les autres erreurs d'initialisation
-      sessionData.value = { data: { user: null, session: null } }
-      appUserData.value = null
+    if (inFlightInit) {
+      return inFlightInit // Two concurrent guards await the same promise
     }
+
+    const run = (async () => {
+      try {
+        console.log('Initialisation de la session utilisateur...')
+        await checkSession()
+
+        // Si l'utilisateur est connecté, récupérer ses données
+        if (sessionData.value?.data?.user) {
+          try {
+            await fetchUserData()
+          } catch (fetchError: unknown) {
+            // Si l'erreur est INVITATION_CODE_REQUIRED, la propager pour que le guard la gère
+            if ((fetchError as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
+              throw fetchError
+            }
+            // Transient error on /users/me: the Better Auth session is still valid.
+            // Reset the state to "unknown" to retry, rather than logging out.
+            if (isNetworkError(fetchError)) {
+              sessionData.value = undefined
+              appUserData.value = null
+              throw fetchError
+            }
+            // Real auth error (401): legitimate logout.
+            console.warn('Erreur lors de la récupération des données utilisateur:', fetchError)
+            sessionData.value = { data: { user: null, session: null } }
+            appUserData.value = null
+          }
+        }
+      } catch (err: unknown) {
+        if ((err as { cause?: string })?.cause === 'INVITATION_CODE_REQUIRED') {
+          throw err
+        }
+        // Transient failure: pin nothing. `sessionData` stays `undefined` so
+        // `isInitialized` stays false and the next navigation really retries.
+        if (isNetworkError(err)) {
+          throw err
+        }
+        // Authentication error: legitimate logged-out state.
+        sessionData.value = { data: { user: null, session: null } }
+        appUserData.value = null
+      } finally {
+        inFlightInit = null
+      }
+    })()
+
+    inFlightInit = run
+    return run
   }
 
   /**

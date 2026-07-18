@@ -3,6 +3,7 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { errorService } from '@/composables/useErrorService.ts'
 import { makeAuthMock, type AuthMockState } from '@/test-support/mock-modules'
+import { NETWORK_ERROR } from '@/utils/HttpErrors'
 import {
   requireAuth,
   requireAdmin,
@@ -99,9 +100,12 @@ describe('requireAdmin', () => {
     expect(await requireAdmin(to)).toEqual({ path: '/', replace: true })
   })
 
-  it('INVITATION_CODE_REQUIRED (message) → /submit-invitation', async () => {
+  // The application code is carried by `cause` (see ApiConfig.ts), not by `message`.
+  it('INVITATION_CODE_REQUIRED → /submit-invitation', async () => {
     setAuth({ initialized: false })
-    auth.initialize.mockRejectedValue(new Error('INVITATION_CODE_REQUIRED'))
+    auth.initialize.mockRejectedValue(
+      new Error('invitation', { cause: 'INVITATION_CODE_REQUIRED' }),
+    )
     expect(await requireAdmin(to)).toBe('/submit-invitation')
   })
 })
@@ -154,5 +158,42 @@ describe('redirectIfAuthenticated', () => {
     auth.initialize.mockRejectedValue(new Error('boom'))
     const login = { fullPath: '/login', query: {} } as unknown as RouteLocationNormalized
     expect(await redirectIfAuthenticated(login)).toBeUndefined()
+  })
+})
+
+/**
+ * Unreachable backend: no information about the session. Redirecting to /login would
+ * show a false logout — that is the bug fixed here.
+ */
+describe('échec réseau → /offline, jamais /login', () => {
+  const offline = { name: 'offline', query: { redirect: '/tournaments/42' } }
+
+  function failWithNetworkError() {
+    setAuth({ initialized: false })
+    auth.initialize.mockRejectedValue(new Error('injoignable', { cause: NETWORK_ERROR }))
+  }
+
+  it('requireAuth', async () => {
+    failWithNetworkError()
+    expect(await requireAuth(to)).toEqual(offline)
+  })
+
+  it('requireAdmin', async () => {
+    failWithNetworkError()
+    expect(await requireAdmin(to)).toEqual(offline)
+  })
+
+  it('requireSettingsAccess', async () => {
+    failWithNetworkError()
+    expect(await requireSettingsAccess(to)).toEqual(offline)
+  })
+
+  it('redirectIfAuthenticated', async () => {
+    failWithNetworkError()
+    const login = { fullPath: '/login', query: {} } as unknown as RouteLocationNormalized
+    expect(await redirectIfAuthenticated(login)).toEqual({
+      name: 'offline',
+      query: { redirect: '/login' },
+    })
   })
 })
