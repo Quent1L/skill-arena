@@ -12,7 +12,12 @@
     <div v-else-if="match" class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <Button :label="t('matchDetailView.back')" icon="fa fa-arrow-left" severity="secondary" @click="goBack()" />
+        <Button
+          :label="t('matchDetailView.back')"
+          icon="fa fa-arrow-left"
+          severity="secondary"
+          @click="goBack()"
+        />
 
         <div class="flex items-center gap-3">
           <Button
@@ -22,6 +27,15 @@
             severity="info"
             size="small"
             @click="completeMatch"
+          />
+          <Button
+            v-if="canRematchMatch"
+            :label="t('matchDetailView.rematchMatch')"
+            icon="fa fa-redo"
+            severity="secondary"
+            outlined
+            size="small"
+            @click="rematchMatch"
           />
           <Button
             v-if="canCancelMatch"
@@ -227,30 +241,46 @@
             <!-- Match Details -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm p-2">
               <div>
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.matchDate') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.matchDate')
+                }}</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
               </div>
               <div v-if="match.creator">
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.enteredBy') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.enteredBy')
+                }}</span>
                 <span class="ml-2 font-semibold"> {{ match.creator.displayName }}</span>
               </div>
               <div v-if="match.outcomeType">
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.outcomeType') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.outcomeType')
+                }}</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeType.name }}</span>
               </div>
               <div v-if="match.outcomeReason">
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.outcomeReason') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.outcomeReason')
+                }}</span>
                 <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
               </div>
               <div v-if="match.result?.finalizedAt">
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.finalizedAt') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.finalizedAt')
+                }}</span>
                 <span class="ml-2 font-semibold">{{ formatDate(match.result.finalizedAt) }}</span>
               </div>
               <div v-if="match.result?.finalizationReason">
-                <span class="text-surface-500 dark:text-surface-400">{{ t('matchDetailView.finalization') }}</span>
+                <span class="text-surface-500 dark:text-surface-400">{{
+                  t('matchDetailView.finalization')
+                }}</span>
                 <span class="ml-2 font-semibold">
                   <template v-if="match.result.finalizationReason === 'trust_score'">
-                    {{ t('matchDetailView.trustScoreBy', { name: match.result.reporter?.displayName ?? t('matchDetailView.unknown') }) }}
+                    {{
+                      t('matchDetailView.trustScoreBy', {
+                        name: match.result.reporter?.displayName ?? t('matchDetailView.unknown'),
+                      })
+                    }}
                   </template>
                   <template v-else>
                     {{ getFinalizationReasonLabel(match.result.finalizationReason) }}
@@ -293,14 +323,17 @@
             class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-1"
           >
             <div class="flex items-center justify-between">
-              <span class="font-medium">{{ dispute.player?.displayName || t('matchDetailView.unknownPlayer') }}</span>
+              <span class="font-medium">{{
+                dispute.player?.displayName || t('matchDetailView.unknownPlayer')
+              }}</span>
               <Tag severity="danger" :value="t('matchDetailView.disputed')" />
             </div>
             <div
               v-if="dispute.contestationReason"
               class="text-sm text-surface-600 dark:text-surface-400"
             >
-              <span class="font-semibold">{{ t('matchDetailView.reason') }}</span> {{ dispute.contestationReason }}
+              <span class="font-semibold">{{ t('matchDetailView.reason') }}</span>
+              {{ dispute.contestationReason }}
             </div>
             <div
               v-if="dispute.contestationProof"
@@ -490,6 +523,7 @@ import type {
   MatchFinalizationReason,
   MmrAnimationWsPayload,
   MmrRecapReadyPayload,
+  BadgeAnimationWsPayload,
 } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
@@ -499,7 +533,6 @@ import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
-import type { BadgeAnimationWsPayload } from '@skol-arena/shared/types/index'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -633,6 +666,13 @@ const canEditMatch = computed(() => {
   return match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value)
 })
 
+const canRematchMatch = computed(() => {
+  if (!match.value) return false
+  if (match.value.tournament?.status === 'finished') return false
+  if (match.value.tournament?.mode === 'bracket') return false
+  return canManageMatch.value || isParticipant.value
+})
+
 async function loadMatch() {
   try {
     loading.value = true
@@ -747,6 +787,14 @@ async function handleFinalize(reason: MatchFinalizationReason) {
 function completeMatch() {
   if (!match.value || !match.value.tournamentId) return
   router.push(`/tournaments/${match.value.tournamentId}/create-match?matchId=${match.value.id}`)
+}
+
+function rematchMatch() {
+  if (!match.value?.tournamentId) return
+  router.push({
+    path: `/tournaments/${match.value.tournamentId}/create-match`,
+    query: { sourceMatchId: match.value.id },
+  })
 }
 
 function getFinalizationReasonLabel(reason: string): string {

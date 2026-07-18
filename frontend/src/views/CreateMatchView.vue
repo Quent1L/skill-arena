@@ -1,6 +1,16 @@
 <template>
-  <MatchFormStepperMobile v-if="isMobile" :tournament-id="tournamentId" :match-id="matchId" :bracket-locked="isBracketMatch" />
-  <MatchFormStepperDesktop v-else :tournament-id="tournamentId" :match-id="matchId" :bracket-locked="isBracketMatch" />
+  <MatchFormStepperMobile
+    v-if="isMobile"
+    :tournament-id="tournamentId"
+    :match-id="matchId"
+    :bracket-locked="isBracketMatch"
+  />
+  <MatchFormStepperDesktop
+    v-else
+    :tournament-id="tournamentId"
+    :match-id="matchId"
+    :bracket-locked="isBracketMatch"
+  />
 </template>
 
 <script setup lang="ts">
@@ -11,8 +21,11 @@ import { useAppToast } from '@/composables/useAppToast'
 import { useViewport } from '@/composables/useViewport'
 import MatchFormStepperMobile from '@/components/match/mobile/MatchFormStepperMobile.vue'
 import MatchFormStepperDesktop from '@/components/match/MatchFormStepperDesktop.vue'
-import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
-import type { MatchFormState } from '@/composables/match/match-form.context'
+import {
+  MATCH_FORM_KEY,
+  type MatchFormState,
+  type TournamentPlayer,
+} from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useTeamService } from '@/composables/team/team.service'
@@ -21,8 +34,12 @@ import { useAuth } from '@/composables/useAuth'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
-import type { ClientBaseTournament, MatchSideInput, OutcomeType, OutcomeReason } from '@skol-arena/shared'
-import type { TournamentPlayer } from '@/composables/match/match-form.context'
+import type {
+  ClientBaseTournament,
+  MatchSideInput,
+  OutcomeType,
+  OutcomeReason,
+} from '@skol-arena/shared'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -31,6 +48,7 @@ const toast = useAppToast()
 
 const tournamentId = route.params.tournamentId as string
 const matchId = route.query.matchId as string | undefined
+const sourceMatchId = route.query.sourceMatchId as string | undefined
 
 const { playersMap, loadPlayersMap, getMatch } = useMatchService()
 const { loadTournamentWithErrorHandling } = useTournamentService()
@@ -107,6 +125,27 @@ async function loadExistingMatch() {
   }
 }
 
+async function loadMatchForRematch() {
+  if (!sourceMatchId) return
+  try {
+    const match = await getMatch(sourceMatchId)
+    const sides: MatchSideInput[] = match.sides.map((s) => ({
+      position: s.position,
+      playerIds: s.players.map((p) => p.id),
+      teamId: s.teamId ?? undefined,
+    }))
+    formState.value.sides = sides
+    formState.value.allPlayerIds = sides.flatMap((s) => s.playerIds ?? [])
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: t('createMatchView.errorSummary'),
+      detail: t('createMatchView.loadMatchError'),
+      life: 3000,
+    })
+  }
+}
+
 async function loadParticipants() {
   const raw = await getTournamentParticipants(tournamentId)
   participants.value = raw.map((p) => ({ id: p.userId, displayName: p.user.displayName }))
@@ -149,9 +188,21 @@ onMounted(async () => {
   if (tournament.value?.teamMode === 'static') await loadTeams(tournamentId)
   else await loadParticipants()
   if (matchId) await loadExistingMatch()
+  else if (sourceMatchId) await loadMatchForRematch()
   await loadOutcomeData()
   isLoading.value = false
 })
 
-provide(MATCH_FORM_KEY, { formState, activeStep, tournament, playersMap, teams, participants, outcomeTypes, outcomeReasons, scoreInstructions, isLoading })
+provide(MATCH_FORM_KEY, {
+  formState,
+  activeStep,
+  tournament,
+  playersMap,
+  teams,
+  participants,
+  outcomeTypes,
+  outcomeReasons,
+  scoreInstructions,
+  isLoading,
+})
 </script>

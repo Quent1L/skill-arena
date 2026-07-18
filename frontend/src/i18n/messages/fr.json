@@ -532,6 +532,7 @@
     "postDisputesTitle": "Contestations post-finalisation",
     "proof": "Preuve :",
     "reason": "Raison :",
+    "rematchMatch": "Rejouer",
     "status": {
       "cancelled": "Annulé",
       "confirmed": "Confirmé",
@@ -653,14 +654,14 @@
     "title": "Comment fonctionne le MMR ?"
   },
   "mmrRecapCard": {
+    "cancelled": "annulé",
+    "cancelledMatchesPlural": "{count} matchs annulés",
+    "cancelledMatchesSingular": "{count} match annulé",
     "newMatchesPlural": "{count} nouveaux matchs",
     "newMatchesSingular": "{count} nouveau match",
     "recalcMatchesPlural": "{count} matchs recalculés",
     "recalcMatchesSingular": "{count} match recalculé",
-    "cancelledMatchesPlural": "{count} matchs annulés",
-    "cancelledMatchesSingular": "{count} match annulé",
     "recalculated": "recalculé",
-    "cancelled": "annulé",
     "title": "Récap MMR"
   },
   "mmrRevealAnimation": {
@@ -1059,6 +1060,8 @@
     "deleteDialogTitle": "Supprimer le rang ?",
     "editDialogTitle": "Modifier le rang",
     "empty": "Aucun rang défini pour cette saison",
+    "formIcon": "Icône",
+    "formIconHelp": "Laissez vide pour utiliser l'icône par défaut selon le niveau",
     "formLevel": "Niveau",
     "formMinMmr": "MMR minimum",
     "formName": "Nom",
@@ -1067,8 +1070,6 @@
     "formPercentileHelp": "Seuil de MMR basé sur la distribution des joueurs",
     "formSubRanks": "Sous-rangs",
     "formSubRanksHelp": "1 = pas de sous-rang. Ex: 5 → Silver 5, Silver 4, ..., Silver 1",
-    "formIcon": "Icône",
-    "formIconHelp": "Laissez vide pour utiliser l'icône par défaut selon le niveau",
     "recalcConfirm": "Les valeurs MMR minimum de chaque rang seront recalculées selon les percentiles et la distribution MMR actuelle des joueurs.",
     "recalcDialogTitle": "Recalculer les seuils MMR ?",
     "recalculate": "Recalculer",
@@ -1614,12 +1615,12 @@
       "open": "Ouvert"
     },
     "tabs": {
+      "badges": "Badges",
       "bracket": "Bracket",
       "infos": "Infos",
       "matches": "Matchs",
       "standings": "Classement",
       "stats": "Stats",
-      "badges": "Badges",
       "teams": "Équipes"
     }
   },

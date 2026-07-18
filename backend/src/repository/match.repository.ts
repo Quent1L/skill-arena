@@ -278,6 +278,7 @@ export class MatchRepository {
         isWinner,
         entryId: entry?.id ?? "",
         entryName,
+        teamId: entry?.team?.id ?? null,
         players,
       };
     });
@@ -304,6 +305,7 @@ export class MatchRepository {
             scoreEnabled: match.tournament.scoreEnabled ?? true,
             validationMode: match.tournament.validationMode,
             validationTimerHours: match.tournament.validationTimerHours,
+            status: match.tournament.status,
           }
         : undefined,
       outcomeType: match.outcomeType
@@ -323,7 +325,7 @@ export class MatchRepository {
         proposedScoreA: c.proposedScoreA,
         proposedScoreB: c.proposedScoreB,
         proposedWinnerPosition: c.proposedWinner !== null && c.proposedWinner !== undefined
-          ? (parseInt(c.proposedWinner) || null)
+          ? (Number.parseInt(c.proposedWinner) || null)
           : null,
         proposedOutcomeTypeId: c.proposedOutcomeTypeId,
         proposedOutcomeReasonId: c.proposedOutcomeReasonId,
@@ -527,14 +529,14 @@ export class MatchRepository {
         outcomeTypeName: sql<string | null>`(
           SELECT name FROM outcome_types WHERE id = ${matches.outcomeTypeId} LIMIT 1
         )`,
-        mmrDelta: filters.playerIds?.split(',').filter(Boolean)[0]
+        mmrDelta: filters.playerIds?.split(',').find(Boolean)
           ? sql<number | null>`(
               SELECT mmr_delta FROM mmr_history
               WHERE match_id = ${matches.id} AND player_id = ${filters.playerIds!.split(',')[0]}
               LIMIT 1
             )`
           : sql<null>`NULL`,
-        pointsDelta: filters.playerIds?.split(',').filter(Boolean)[0]
+        pointsDelta: filters.playerIds?.split(',').find(Boolean)
           ? sql<number | null>`(
               SELECT points_awarded FROM match_player_points
               WHERE match_id = ${matches.id} AND player_id = ${filters.playerIds!.split(',')[0]}

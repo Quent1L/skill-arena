@@ -3,6 +3,7 @@ import {
   type MatchStatus,
   type MatchFinalizationReason,
   type MatchTeamSide,
+  type TournamentStatus,
   matchStatusSchema,
   matchFinalizationReasonSchema,
 } from "./enums";
@@ -562,6 +563,7 @@ export interface MatchDetailSide {
   isWinner: boolean;
   entryId: string;
   entryName: string | null;
+  teamId: string | null;
   players: MatchDetailPlayer[];
 }
 
@@ -606,6 +608,7 @@ export interface ClientMatchDetail {
     scoreEnabled: boolean;
     validationMode?: string;
     validationTimerHours?: number | null;
+    status: TournamentStatus;
   };
   outcomeType?: { id: string; name: string } | null;
   outcomeReason?: { id: string; name: string } | null;

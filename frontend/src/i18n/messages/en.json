@@ -532,6 +532,7 @@
     "postDisputesTitle": "Post-finalization disputes",
     "proof": "Proof:",
     "reason": "Reason:",
+    "rematchMatch": "Rematch",
     "status": {
       "cancelled": "Cancelled",
       "confirmed": "Confirmed",
@@ -653,14 +654,14 @@
     "title": "How does MMR work?"
   },
   "mmrRecapCard": {
+    "cancelled": "cancelled",
+    "cancelledMatchesPlural": "{count} matches cancelled",
+    "cancelledMatchesSingular": "{count} match cancelled",
     "newMatchesPlural": "{count} new matches",
     "newMatchesSingular": "{count} new match",
     "recalcMatchesPlural": "{count} matches recalculated",
     "recalcMatchesSingular": "{count} match recalculated",
-    "cancelledMatchesPlural": "{count} matches cancelled",
-    "cancelledMatchesSingular": "{count} match cancelled",
     "recalculated": "recalculated",
-    "cancelled": "cancelled",
     "title": "MMR recap"
   },
   "mmrRevealAnimation": {
@@ -1059,6 +1060,8 @@
     "deleteDialogTitle": "Delete tier?",
     "editDialogTitle": "Edit tier",
     "empty": "No tiers",
+    "formIcon": "Icon",
+    "formIconHelp": "Leave empty to use the default icon based on the tier level",
     "formLevel": "Level",
     "formMinMmr": "Minimum MMR",
     "formName": "Name",
@@ -1067,8 +1070,6 @@
     "formPercentileHelp": "MMR threshold based on player distribution",
     "formSubRanks": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
     "formSubRanksHelp": "1 = no sub-rank. E.g. 5 → Silver 5, Silver 4, ..., Silver 1",
-    "formIcon": "Icon",
-    "formIconHelp": "Leave empty to use the default icon based on the tier level",
     "recalcConfirm": "Recalculate MMR thresholds?",
     "recalcDialogTitle": "Recalculate thresholds",
     "recalculate": "Recalculate",
@@ -1614,12 +1615,12 @@
       "open": "Open"
     },
     "tabs": {
+      "badges": "Badges",
       "bracket": "Bracket",
       "infos": "Info",
       "matches": "Matches",
       "standings": "Standings",
       "stats": "Stats",
-      "badges": "Badges",
       "teams": "Teams"
     }
   },
