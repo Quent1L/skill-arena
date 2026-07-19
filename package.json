@@ -64,8 +64,8 @@
     ],
     "catalog": {
       "zod": "4.4.3",
-      "better-auth": "1.6.22",
-      "typescript": "6.0.3"
+      "better-auth": "1.6.23",
+      "typescript": "7.0.2"
     }
   }
 }
