@@ -10,6 +10,13 @@ export class InvitationRepository {
     });
   }
 
+  async findById(id: string) {
+    return await db.query.invitationCodes.findFirst({
+      where: eq(invitationCodes.id, id),
+      with: { usages: true },
+    });
+  }
+
   async create(data: typeof invitationCodes.$inferInsert) {
     const [code] = await db.insert(invitationCodes).values(data).returning();
     return code;

@@ -127,7 +127,7 @@ export class InvitationService {
   }
 
   async deactivateCode(codeId: string) {
-    const code = await invitationRepository.findByCode(codeId);
+    const code = await invitationRepository.findById(codeId);
     if (!code) {
       throw new NotFoundError(ErrorCode.INVITATION_CODE_NOT_FOUND);
     }
