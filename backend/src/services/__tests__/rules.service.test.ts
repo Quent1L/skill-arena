@@ -56,6 +56,28 @@ describe("RulesService — non-deterministic facts", () => {
     expect(mockRulesRepo.create).not.toHaveBeenCalled();
   });
 
+  it("rejects randomRoll on update when the stored rule is a badge and type is omitted", async () => {
+    await expect(
+      rulesService.update("rule-1", { triggerEvent: "match_submitted", conditions: randomCondition }),
+    ).rejects.toThrow("RANDOM_NOT_ALLOWED_ON_BADGE");
+    expect(mockRulesRepo.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects a partial PATCH that switches an existing randomRoll rule to badge", async () => {
+    mockRulesRepo.getById.mockImplementationOnce(() =>
+      Promise.resolve({
+        id: "rule-1",
+        type: "message",
+        triggerEvent: "match_submitted",
+        scope: "global",
+        disciplineId: null,
+        conditions: randomCondition,
+      } as never),
+    );
+    await expect(rulesService.update("rule-1", { type: "badge" })).rejects.toThrow("RANDOM_NOT_ALLOWED_ON_BADGE");
+    expect(mockRulesRepo.update).not.toHaveBeenCalled();
+  });
+
   it("accepts the new line-up facts on a badge rule", async () => {
     const badgeRule = baseRule({
       type: "badge",

@@ -59,16 +59,15 @@ export class RulesService {
 
   async update(id: string, data: UpdateRuleData) {
     const existing = await this.getById(id);
-    if (data.triggerEvent && data.conditions) {
-      // `type` may be absent from a partial PATCH — fall back to the stored one.
-      this.validateRule(
-        data.triggerEvent,
-        data.conditions,
-        data.scope ?? "global",
-        data.disciplineId ?? null,
-        data.type ?? existing.type,
-      );
-    }
+    // Validate the MERGED rule: a partial PATCH (e.g. switching type to `badge`
+    // without resending conditions) must not sneak past the fact checks.
+    this.validateRule(
+      data.triggerEvent ?? existing.triggerEvent,
+      data.conditions ?? (existing.conditions as RuleConditions),
+      data.scope ?? existing.scope,
+      data.disciplineId ?? existing.disciplineId,
+      data.type ?? existing.type,
+    );
     const rule = await rulesRepository.update(id, data);
     // Flag dirty for the nightly/manual recompute (deactivation keeps badges, so skip).
     if (rule.type === "badge" && rule.isActive) await rulesRepository.markBadgeRulesDirty();
