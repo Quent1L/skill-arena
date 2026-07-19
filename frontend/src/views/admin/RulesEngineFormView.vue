@@ -84,7 +84,7 @@
       <Card>
         <template #title>{{ t('rulesEngineFormView.conditionsTitle') }}</template>
         <template #content>
-          <ConditionBuilder v-model="form.conditions" :facts="catalog" :players="players" />
+          <ConditionBuilder v-model="form.conditions" :facts="conditionFacts" :players="players" />
         </template>
       </Card>
 
@@ -165,8 +165,19 @@
       <div class="grid grid-cols-2 gap-3">
         <div v-for="fact in catalog" :key="fact.key">
           <label class="block text-xs font-medium mb-1">{{ fact.label }}</label>
+          <MultiSelect
+            v-if="fact.ref === 'player' && fact.type === 'stringList'"
+            v-model="testContext[fact.key]"
+            :options="players"
+            option-label="displayName"
+            option-value="id"
+            :placeholder="t('rulesEngineFormView.placeholderPlayer')"
+            filter
+            display="chip"
+            class="w-full"
+          />
           <Select
-            v-if="fact.ref === 'player'"
+            v-else-if="fact.ref === 'player'"
             v-model="testContext[fact.key]"
             :options="players"
             option-label="displayName"
@@ -221,6 +232,8 @@ import ConditionBuilder from '@/components/rules/ConditionBuilder.vue'
 import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
 import { emptyGroup, toConditions, fromConditions, hasValidLeaf, type PlayerOption } from '@/components/rules/condition-tree'
 import { userApi } from '@/composables/user/user.api'
+import type { CatalogFact } from '@/composables/rules/rules.api'
+import { NON_DETERMINISTIC_FACTS } from '@skol-arena/shared/types/index'
 import type {
   BadgeAction,
   CreateRuleData,
@@ -302,16 +315,36 @@ const messageVariants = ref<string[]>([''])
 const activeVariant = ref(0)
 const badge = reactive<{ icon: string; label: string; description: string }>({ icon: '', label: '', description: '' })
 
+/**
+ * Random facts are hidden on badge rules: badge awards are replayed by the
+ * nightly reconciliation and must stay deterministic (backend rejects them too).
+ */
+const conditionFacts = computed(() =>
+  form.type === 'badge'
+    ? catalog.value.filter((f) => !(NON_DETERMINISTIC_FACTS as readonly string[]).includes(f.key))
+    : catalog.value,
+)
+
+/** Sample rendering of a fact for the message preview. */
+function sampleFor(fact: CatalogFact): string {
+  if (fact.ref === 'player') {
+    if (Array.isArray(fact.sample)) {
+      const names = players.value.slice(0, 2).map((p) => p.displayName)
+      return names.length ? names.join(', ') : t('rulesEngineFormView.previewPlayerFallback')
+    }
+    return players.value[0]?.displayName ?? t('rulesEngineFormView.previewPlayerFallback')
+  }
+  if (fact.ref === 'time') return formatMinutes(Number(fact.sample))
+  return Array.isArray(fact.sample) ? fact.sample.join(', ') : String(fact.sample)
+}
+
 const preview = computed(() => {
   const variant = messageVariants.value[0]
   if (!variant) return ''
   return variant.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key: string) => {
     const fact = catalog.value.find((f) => f.key === key)
-    if (!fact) return ''
     // Player-ref facts render a display name; preview with a sample player.
-    if (fact.ref === 'player') return players.value[0]?.displayName ?? t('rulesEngineFormView.previewPlayerFallback')
-    if (fact.ref === 'time') return formatMinutes(Number(fact.sample))
-    return String(fact.sample)
+    return fact ? sampleFor(fact) : ''
   })
 })
 
@@ -375,7 +408,7 @@ const testResult = ref<TestRuleResult | null>(null)
 
 function openTest() {
   testResult.value = null
-  for (const fact of catalog.value) testContext[fact.key] = fact.sample
+  for (const fact of catalog.value) testContext[fact.key] = Array.isArray(fact.sample) ? [...fact.sample] : fact.sample
   testDialogVisible.value = true
 }
 

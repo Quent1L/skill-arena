@@ -84,6 +84,9 @@ export enum ErrorCode {
   // Game rules errors
   GAME_RULE_NOT_FOUND = "GAME_RULE_NOT_FOUND",
 
+  // Rules engine errors
+  RANDOM_NOT_ALLOWED_ON_BADGE = "RANDOM_NOT_ALLOWED_ON_BADGE",
+
   // Ranked errors
   SEASON_ALREADY_ACTIVE = "SEASON_ALREADY_ACTIVE",
   SEASON_NOT_FOUND = "SEASON_NOT_FOUND",

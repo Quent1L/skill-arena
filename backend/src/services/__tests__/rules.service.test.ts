@@ -1,0 +1,74 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { CreateRuleData, RuleConditions } from "@skol-arena/shared";
+
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+
+const mockRulesRepo = {
+  getById: mock((_id: any) => Promise.resolve({ id: "rule-1", type: "badge" } as any)),
+  create: mock((data: any) => Promise.resolve({ ...data, id: "rule-1" })),
+  update: mock((id: any, data: any) => Promise.resolve({ id, ...data })),
+  markBadgeRulesDirty: mock(() => Promise.resolve()),
+};
+mock.module("../../repository/rules.repository", () => ({ rulesRepository: mockRulesRepo }));
+
+const { rulesService } = await import("../rules.service");
+
+const randomCondition: RuleConditions = { all: [{ fact: "randomRoll", operator: "lessThan", value: 30 }] };
+const streakCondition: RuleConditions = { all: [{ fact: "winStreak", operator: "greaterThanInclusive", value: 3 }] };
+
+function baseRule(overrides: Partial<CreateRuleData> = {}): CreateRuleData {
+  return {
+    triggerEvent: "match_submitted",
+    type: "message",
+    scope: "global",
+    disciplineId: null,
+    priority: 0,
+    name: "Test rule",
+    description: null,
+    conditions: streakCondition,
+    action: { type: "message", variants: ["ok"] },
+    isActive: true,
+    ...overrides,
+  } as CreateRuleData;
+}
+
+beforeEach(() => {
+  mockRulesRepo.getById.mockClear();
+  mockRulesRepo.create.mockClear();
+  mockRulesRepo.update.mockClear();
+});
+
+describe("RulesService — non-deterministic facts", () => {
+  it("accepts randomRoll on a message rule", async () => {
+    const rule = await rulesService.create(baseRule({ conditions: randomCondition }), "admin-1");
+    expect(rule.id).toBe("rule-1");
+    expect(mockRulesRepo.create).toHaveBeenCalled();
+  });
+
+  it("rejects randomRoll on a badge rule (reconciliation must stay deterministic)", async () => {
+    const badgeRule = baseRule({
+      type: "badge",
+      conditions: randomCondition,
+      action: { type: "badge", icon: "fa fa-dice", label: "Chanceux", description: "Coup de bol" },
+    });
+    await expect(rulesService.create(badgeRule, "admin-1")).rejects.toThrow("RANDOM_NOT_ALLOWED_ON_BADGE");
+    expect(mockRulesRepo.create).not.toHaveBeenCalled();
+  });
+
+  it("accepts the new line-up facts on a badge rule", async () => {
+    const badgeRule = baseRule({
+      type: "badge",
+      conditions: { all: [{ fact: "teammateIds", operator: "contains", value: "player-1" }] },
+      action: { type: "badge", icon: "fa fa-users", label: "Duo", description: "Avec ce joueur" },
+    });
+    await rulesService.create(badgeRule, "admin-1");
+    expect(mockRulesRepo.create).toHaveBeenCalled();
+  });
+
+  it("still rejects facts absent from the catalog", async () => {
+    const rule = baseRule({ conditions: { all: [{ fact: "notAFact", operator: "equal", value: 1 }] } });
+    await expect(rulesService.create(rule, "admin-1")).rejects.toThrow();
+    expect(mockRulesRepo.create).not.toHaveBeenCalled();
+  });
+});

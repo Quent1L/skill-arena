@@ -23,6 +23,11 @@ export type TriggerEvent = (typeof TRIGGER_EVENTS)[number];
  * once per player involved (winner then loser).
  */
 export interface MatchSubmittedContext {
+  // Evaluated player and his match line-up
+  playerId: string;
+  teammateIds: string[];
+  opponentIds: string[];
+
   // Match result (from the evaluated player's point of view)
   winnerId: string;
   loserId: string;
@@ -68,18 +73,21 @@ export interface MatchSubmittedContext {
 // Fact catalog (used by the admin UI + backend validation)
 // ============================================
 
-export type FactType = "number" | "boolean" | "string" | "date";
+export type FactType = "number" | "boolean" | "string" | "stringList" | "date";
 
 export interface FactDefinition {
   key: string;
   label: string;
   type: FactType;
-  sample: number | boolean | string;
+  sample: number | boolean | string | string[];
   /** Special reference: render a dedicated picker instead of a raw input. */
   ref?: "player" | "time" | "discipline" | "site" | "weekday";
 }
 
 export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
+  { key: "playerId", label: "Joueur concerné", type: "string", sample: "", ref: "player" },
+  { key: "teammateIds", label: "Coéquipiers", type: "stringList", sample: [], ref: "player" },
+  { key: "opponentIds", label: "Adversaires", type: "stringList", sample: [], ref: "player" },
   { key: "winnerId", label: "Gagnant", type: "string", sample: "", ref: "player" },
   { key: "loserId", label: "Perdant", type: "string", sample: "", ref: "player" },
   { key: "scoreWinner", label: "Score du gagnant", type: "number", sample: 2 },
@@ -104,7 +112,14 @@ export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
   { key: "matchDate", label: "Date du match (AAAA-MM-JJ)", type: "date", sample: "2026-06-12" },
   { key: "discipline", label: "Discipline", type: "string", sample: "", ref: "discipline" },
   { key: "site", label: "Organisation", type: "string", sample: "", ref: "site" },
+  { key: "randomRoll", label: "Tirage aléatoire (0-99)", type: "number", sample: 50 },
 ];
+
+/**
+ * Facts that are re-drawn at every evaluation. Forbidden on badge rules: the
+ * nightly reconciliation replays past matches and must stay deterministic.
+ */
+export const NON_DETERMINISTIC_FACTS = ["randomRoll"] as const;
 
 export const EVENT_FACT_CATALOG: Record<TriggerEvent, FactDefinition[]> = {
   match_submitted: MATCH_SUBMITTED_FACTS,
@@ -118,6 +133,7 @@ export const OPERATORS_BY_TYPE: Record<FactType, string[]> = {
   number: ["greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive", "equal", "notEqual", "in", "notIn"],
   boolean: ["equal", "notEqual"],
   string: ["equal", "notEqual", "in", "notIn", "contains", "doesNotContain"],
+  stringList: ["contains", "doesNotContain"],
   date: ["equal", "notEqual", "greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive"],
 };
 

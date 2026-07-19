@@ -54,12 +54,17 @@ const PLAYER_FACT_KEYS = EVENT_FACT_CATALOG.match_submitted.filter((f) => f.ref 
  * For message interpolation, player-reference facts (winnerId/loserId) render
  * the player's displayName instead of the raw UUID.
  */
-function resolveDisplay(facts: Facts, displayNames: Map<string, string>): Facts {
+export function resolveDisplay(facts: Facts, displayNames: Map<string, string>): Facts {
   if (displayNames.size === 0) return facts;
   const out: Facts = { ...facts };
   for (const key of PLAYER_FACT_KEYS) {
-    const id = facts[key];
-    if (typeof id === "string" && displayNames.has(id)) out[key] = displayNames.get(id);
+    const value = facts[key];
+    // List facts (teammateIds/opponentIds) render as a comma-separated name list.
+    if (Array.isArray(value)) {
+      out[key] = value.map((id) => (typeof id === "string" ? displayNames.get(id) ?? id : id)).join(", ");
+    } else if (typeof value === "string" && displayNames.has(value)) {
+      out[key] = displayNames.get(value);
+    }
   }
   return out;
 }
@@ -109,7 +114,9 @@ export class RulesEvaluationService {
     engineBundle: { engine: Engine; byId: Map<string, EvaluableRule> },
     displayNames: Map<string, string>,
   ): Promise<PlayerRulesOutput> {
-    const facts = context as unknown as Facts;
+    // `randomRoll` is drawn here rather than in the context service: that service
+    // must stay deterministic so badge reconciliation can replay past matches.
+    const facts: Facts = { ...(context as unknown as Facts), randomRoll: Math.floor(Math.random() * 100) };
     const matched = await this.runEngine(engineBundle, facts);
     const output: PlayerRulesOutput = {};
 

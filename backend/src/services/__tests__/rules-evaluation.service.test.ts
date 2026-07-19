@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { rulesEvaluationService, interpolate } from "../rules-evaluation.service";
+import { rulesEvaluationService, interpolate, resolveDisplay } from "../rules-evaluation.service";
 import type { BadgeAction, MessageAction, RuleConditions } from "@skol-arena/shared";
 
 describe("interpolate", () => {
@@ -15,6 +15,30 @@ describe("interpolate", () => {
 
   it("replaces unknown/undefined variables with empty string", () => {
     expect(interpolate("a{{missing}}b", {})).toBe("ab");
+  });
+});
+
+describe("resolveDisplay", () => {
+  const names = new Map([
+    ["alice", "Alice"],
+    ["bob", "Bob"],
+    ["carl", "Carl"],
+  ]);
+
+  it("renders scalar player facts as display names", () => {
+    const out = resolveDisplay({ playerId: "alice", winnerId: "bob" }, names);
+    expect(interpolate("{{playerId}} bat {{winnerId}}", out)).toBe("Alice bat Bob");
+  });
+
+  it("renders player list facts as a comma-separated name list", () => {
+    const out = resolveDisplay({ teammateIds: ["bob", "carl"], opponentIds: [] }, names);
+    expect(interpolate("Avec {{teammateIds}}", out)).toBe("Avec Bob, Carl");
+    expect(interpolate("Contre {{opponentIds}}", out)).toBe("Contre ");
+  });
+
+  it("keeps ids that have no known display name", () => {
+    const out = resolveDisplay({ teammateIds: ["bob", "ghost"] }, names);
+    expect(out.teammateIds).toBe("Bob, ghost");
   });
 });
 
@@ -94,5 +118,36 @@ describe("RulesEvaluationService.simulate", () => {
     const weekend: RuleConditions = { all: [{ fact: "matchDayOfWeek", operator: "in", value: [6, 7] }] };
     expect((await rulesEvaluationService.simulate(weekend, messageAction, { matchDayOfWeek: 7 })).matched).toBe(true);
     expect((await rulesEvaluationService.simulate(weekend, messageAction, { matchDayOfWeek: 3 })).matched).toBe(false);
+  });
+
+  it("targets a single recipient via playerId", async () => {
+    const forAlice: RuleConditions = { all: [{ fact: "playerId", operator: "equal", value: "alice" }] };
+    expect((await rulesEvaluationService.simulate(forAlice, messageAction, { playerId: "alice" })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(forAlice, messageAction, { playerId: "bob" })).matched).toBe(false);
+  });
+
+  it("matches 'teammate of X' via teammateIds contains", async () => {
+    const withBob: RuleConditions = { all: [{ fact: "teammateIds", operator: "contains", value: "bob" }] };
+    expect((await rulesEvaluationService.simulate(withBob, messageAction, { teammateIds: ["bob"] })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(withBob, messageAction, { teammateIds: ["carl"] })).matched).toBe(
+      false,
+    );
+    expect((await rulesEvaluationService.simulate(withBob, messageAction, { teammateIds: [] })).matched).toBe(false);
+  });
+
+  it("matches 'against X' via opponentIds contains", async () => {
+    const vsBob: RuleConditions = { all: [{ fact: "opponentIds", operator: "contains", value: "bob" }] };
+    expect((await rulesEvaluationService.simulate(vsBob, messageAction, { opponentIds: ["bob", "carl"] })).matched).toBe(
+      true,
+    );
+    expect((await rulesEvaluationService.simulate(vsBob, messageAction, { opponentIds: ["carl"] })).matched).toBe(false);
+  });
+
+  it("gates a rule on randomRoll so base messages can still show up", async () => {
+    const thirtyPercent: RuleConditions = { all: [{ fact: "randomRoll", operator: "lessThan", value: 30 }] };
+    expect((await rulesEvaluationService.simulate(thirtyPercent, messageAction, { randomRoll: 10 })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(thirtyPercent, messageAction, { randomRoll: 50 })).matched).toBe(
+      false,
+    );
   });
 });

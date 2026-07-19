@@ -1,5 +1,6 @@
 import {
   EVENT_FACT_CATALOG,
+  NON_DETERMINISTIC_FACTS,
   OPERATORS_BY_TYPE,
   TRIGGER_EVENTS,
   type AvailableBadge,
@@ -47,7 +48,7 @@ export class RulesService {
   }
 
   async create(data: CreateRuleData, createdBy: string) {
-    this.validateRule(data.triggerEvent, data.conditions, data.scope, data.disciplineId ?? null);
+    this.validateRule(data.triggerEvent, data.conditions, data.scope, data.disciplineId ?? null, data.type);
     const rule = await rulesRepository.create({ ...(data as CreateRuleRow), createdBy });
     // Do NOT recompute now: a reconciliation pass can be long and the admin may
     // keep editing. Just flag it dirty — the nightly cron (or a manual trigger)
@@ -57,9 +58,16 @@ export class RulesService {
   }
 
   async update(id: string, data: UpdateRuleData) {
-    await this.getById(id);
+    const existing = await this.getById(id);
     if (data.triggerEvent && data.conditions) {
-      this.validateRule(data.triggerEvent, data.conditions, data.scope ?? "global", data.disciplineId ?? null);
+      // `type` may be absent from a partial PATCH — fall back to the stored one.
+      this.validateRule(
+        data.triggerEvent,
+        data.conditions,
+        data.scope ?? "global",
+        data.disciplineId ?? null,
+        data.type ?? existing.type,
+      );
     }
     const rule = await rulesRepository.update(id, data);
     // Flag dirty for the nightly/manual recompute (deactivation keeps badges, so skip).
@@ -155,6 +163,7 @@ export class RulesService {
     conditions: RuleConditions,
     scope: string,
     disciplineId: string | null,
+    type: string,
   ): void {
     if (!isTriggerEvent(triggerEvent)) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
     if (scope === "discipline" && !disciplineId) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
@@ -164,6 +173,11 @@ export class RulesService {
     collectFactKeys(conditions, used);
     for (const fact of used) {
       if (!allowed.has(fact)) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
+      // Badge awards are replayed by the nightly reconciliation: a random fact
+      // would grant/revoke badges at every pass.
+      if (type === "badge" && (NON_DETERMINISTIC_FACTS as readonly string[]).includes(fact)) {
+        throw new BadRequestError(ErrorCode.RANDOM_NOT_ALLOWED_ON_BADGE);
+      }
     }
   }
 }

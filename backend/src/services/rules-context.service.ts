@@ -97,7 +97,12 @@ export class RulesContextService {
       const opponent = side === sideA ? sideB : sideA;
       return side.playerIds.map(async (playerId) => {
         const personal = await this.buildPersonalFacts(tournamentId, matchId, playerId, opponent, tiers, !!rankedConfig, historical);
-        return { playerId, context: { ...base, ...personal } as MatchSubmittedContext };
+        const lineUp = {
+          playerId,
+          teammateIds: side.playerIds.filter((id) => id !== playerId),
+          opponentIds: opponent.playerIds,
+        };
+        return { playerId, context: { ...base, ...lineUp, ...personal } as MatchSubmittedContext };
       });
     });
     const contexts = await Promise.all(allPlayerTasks);
@@ -155,6 +160,9 @@ export class RulesContextService {
   ): Promise<
     Omit<
       MatchSubmittedContext,
+      | "playerId"
+      | "teammateIds"
+      | "opponentIds"
       | "winnerId"
       | "loserId"
       | "scoreWinner"
