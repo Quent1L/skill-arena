@@ -9,6 +9,7 @@ Skol is a tournament management application with a Bun monorepo structure:
 - **Backend**: Hono + Bun + Drizzle ORM + PostgreSQL + Better Auth
 - **Frontend**: Vue 3 + Vite + PrimeVue + TailwindCSS
 - **Shared**: TypeScript types and Zod schemas consumed by both
+- **Docs**: Astro static showcase + self-hosting documentation site
 
 ## Common Commands
 
@@ -33,17 +34,23 @@ cd frontend && bun run test:unit       # Frontend tests (Vitest)
 cd backend && bun test path/to/file.test.ts --isolate
 cd frontend && bun run test:unit path/to/file.test.ts
 
-# Linting (frontend)
-cd frontend && bun run lint
+# Linting
+bun run lint                     # All workspaces
+cd frontend && bun run lint      # Frontend only
+cd docs && bun run lint          # Docs only (Prettier)
 
 # Database
 # Create migration files in backend/drizzle and reference this migration in backend/drizzle/meta/_journal.json
 # Migrations are applied automatically at server startup (no manual migrate command)
 
 # Build
-bun run build                    # Build shared + frontend
+bun run build                    # Build shared + frontend + backend + docs
 cd shared && bun run build       # Build shared package only
+cd docs && bun run build         # Build docs site only (also generates the search index)
 ```
+
+All four workspaces are wired into the root `dev`, `build`, `type-check` and `lint`
+scripts — `bun run dev` starts the docs site alongside backend and frontend.
 
 ## Architecture
 
@@ -53,7 +60,8 @@ cd shared && bun run build       # Build shared package only
 skol-arena/
 ├── shared/     # @skol-arena/shared - types + Zod schemas
 ├── backend/    # Hono API server
-└── frontend/   # Vue 3 SPA
+├── frontend/   # Vue 3 SPA
+└── docs/       # @skol-arena/docs - Astro static site (showcase + self-hosting docs)
 ```
 
 ### Backend Layered Architecture (Routes → Services → Repositories)
@@ -76,6 +84,33 @@ skol-arena/
 
 - Import types from `@skol-arena/shared`, never duplicate locally
 - If `Cannot find module '@skol-arena/shared'`: run `cd shared && bun run build`
+
+### Documentation Site (`docs/`)
+
+Custom Astro static site (no Starlight), Tailwind v4 via `@tailwindcss/vite`. Dark theme
+only, brand tokens declared with `@theme` in `docs/src/styles/global.css` — there is no
+`tailwind.config.js`. Content is authored in English.
+
+Content lives in two places:
+
+- **`docs/src/content/showcase/`** — a content collection (schema in
+  `docs/src/content.config.ts`). These Markdown files are **fragments, not pages**: they
+  have no routes and are pulled into `/`, `/features` and `/about` via `getCollection` +
+  `render()`, filtered by id prefix and sorted by `data.order`.
+- **`docs/src/pages/docs/*.md`** — real routes using the `layout:` frontmatter pattern.
+  Outside any collection, so no schema validation. The sidebar in `DocsLayout.astro` is a
+  hardcoded array — add new pages there manually.
+
+Search is **Pagefind** (`astro-pagefind` integration), indexing the built HTML:
+
+- `<main data-pagefind-body>` in `BaseLayout.astro` scopes indexing to page content
+- Result titles come from each page's `<h1>` — a page without one shows up untitled
+- Deep links rely on `id` anchors already present on feature blocks and markdown headings
+- The index is generated into `docs/dist/` at build time and served from there in dev, so
+  **`bun run build` must have run once for search to work locally**
+- `SearchDialog.astro` loads `/pagefind/pagefind.js` through `Function()`. This is
+  deliberate: any statically analysable specifier gets wrapped in `__vitePreload()` with an
+  unresolved `__VITE_PRELOAD__` placeholder that throws at runtime.
 
 ## Key Conventions
 
