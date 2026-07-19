@@ -21,7 +21,9 @@ docker run -d \
 
 On first boot the app runs its database migrations automatically, then creates an
 initial super-admin account if the database is empty. Watch the container logs for
-the generated password — see [Deployment](/docs/deployment) for details.
+the generated password: it is regenerated and logged again on every restart until
+that account logs in for the first time — see [Deployment](/docs/deployment) for
+details.
 
 Only two variables are truly required to get a working instance: `DATABASE_URL` and
 `BETTER_AUTH_SECRET`. `FRONTEND_BUILD_PATH` is what turns the image into a

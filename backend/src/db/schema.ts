@@ -249,6 +249,9 @@ export const appUsers = pgTable("app_users", {
   displayName: text("display_name").notNull(),
   shortName: text("short_name").notNull(),
   role: userRoleEnum("role").notNull().default("player"),
+  // Bootstrap admin waiting for its first login: while true, the startup routine
+  // regenerates and re-logs its password on every restart.
+  bootstrapPending: boolean("bootstrap_pending").notNull().default(false),
   trustScoreCount: integer("trust_score_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })

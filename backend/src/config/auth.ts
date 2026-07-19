@@ -8,6 +8,7 @@ import { emailService } from "../services/email.service";
 import { invitationService } from "../services/invitation.service";
 import i18next from "./i18n";
 import { logger } from "../utils/logger";
+import { clearBootstrapPending } from "../utils/init-admin";
 
 function extractInvitationCode(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
@@ -85,6 +86,37 @@ async function processInvitationCode(
     // appUser creation will be blocked in userService.getOrCreateAppUser()
   }
 }
+
+// Plugin to stop the startup password rotation once the bootstrap admin connects
+plugins.push({
+  id: "bootstrap-admin-activator",
+  hooks: {
+    after: [
+      {
+        matcher: (context: any) =>
+          context.path === "/sign-in/email" ||
+          context.path === "/change-password" ||
+          context.path?.includes("/oauth2/callback/keycloak") ||
+          context.path?.includes("/sign-in-oauth2"),
+        handler: async (context: any) => {
+          try {
+            const signedIn =
+              context.context?.newSession?.user ??
+              context.context?.session?.user ??
+              context.context?.returned?.user;
+            if (signedIn?.id) {
+              await clearBootstrapPending(signedIn.id);
+            }
+          } catch (error: any) {
+            // Never let this break the login flow
+            logger.error({ err: error }, "[Bootstrap Admin Hook] Failed to clear pending flag");
+          }
+          return {};
+        },
+      },
+    ],
+  },
+});
 
 // Plugin to consume invitation codes during sign-up
 plugins.push({

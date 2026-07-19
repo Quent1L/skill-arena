@@ -31,7 +31,7 @@ bad deploy).
 | `LOG_LEVEL`           | Pino log level.                                                                                                                                        | No       | `info`                   |
 | `LOG_FORMAT`          | Log output format: `json` or `logfmt`.                                                                                                                 | No       | `json`                   |
 | `APP_TIMEZONE`        | Timezone used for time-of-day/day-of-week logic in the contextual rules engine.                                                                        | No       | `Europe/Paris`           |
-| `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account (only used when the database has zero users).                                                   | No       | `admin@skol-arena.local` |
+| `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account. Its password is regenerated and logged on every startup until that account logs in once.       | No       | `admin@skol-arena.local` |
 
 ## Authentication (Better Auth)
 

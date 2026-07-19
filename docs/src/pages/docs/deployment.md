@@ -41,12 +41,18 @@ services:
       POSTGRES_DB: skol_arena
     volumes:
       - skol-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U skol -d skol_arena']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   app:
     image: quent1l/skol-arena:latest
     restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - '3000:3000'
     environment:
@@ -62,6 +68,11 @@ volumes:
 The app has no other stateful dependency — no upload directory or extra volume is
 needed beyond the Postgres data volume.
 
+The `healthcheck` and `condition: service_healthy` matter more than they look. A
+plain `depends_on: - db` only waits for the database *container* to start, not for
+Postgres to accept connections — the app would then fail its startup migrations and,
+under `restart: unless-stopped`, crash-loop until the database happens to be ready.
+
 Add SMTP, VAPID, or Keycloak variables from the
 [Environment Variables](/docs/environment-variables) reference as needed; none of
 them are required to get a working instance running.
@@ -76,15 +87,47 @@ empty database:
    the container logs and fix the underlying issue rather than retrying blindly.
 2. **An initial super-admin account is created**, but only if the `appUsers` table
    is completely empty. The account email is `INITIAL_ADMIN_EMAIL` (defaults to
-   `admin@skol-arena.local`), and a random password is generated and printed
-   **once** to the container logs:
+   `admin@skol-arena.local`), and a random password is generated and printed to
+   the container logs:
 
    ```bash
-   docker compose logs app | grep -A2 "initial admin"
+   docker compose logs app | grep "INITIAL ADMIN CREDENTIALS"
    ```
 
-   Log in with that email/password at `/login?native=true`, then change the
-   password from the account settings.
+   As long as that account has **never logged in**, a **new password is generated
+   and logged on every restart**, and the previous one stops working. Missing the
+   log line the first time is therefore harmless — restart the container and read
+   the fresh password. Rotation stops permanently on the first successful login.
+
+   Log in with the last logged email/password at `/login?native=true`, then change
+   the password from the account settings. The generated password appears in
+   cleartext in the logs, so treat those logs as a secret until you have replaced
+   it.
+
+## Recovering a lost admin password
+
+The rotation described above only covers accounts flagged as awaiting their first
+login. Instances created **before** that behaviour existed are never flagged, so
+they keep whatever password they already have — restarting them does not print a
+new one.
+
+If you are locked out — the initial password was lost and no other super-admin can
+log in — re-arm the rotation by hand against the database:
+
+```sql
+UPDATE app_users SET bootstrap_pending = true WHERE role = 'super_admin';
+```
+
+Restart the container and read the new password from the logs, exactly as on a
+first boot. The flag clears itself again on the next successful login.
+
+This is deliberately a manual step. The app cannot tell an admin who has never
+logged in from one who simply has not logged in recently — sessions expire and are
+deleted — so automatically re-arming the rotation would invalidate working
+passwords on healthy instances.
+
+The same procedure works as a general admin password reset, for example if SSO
+becomes unavailable and no local credentials are known.
 
 ## Single-container frontend serving
 

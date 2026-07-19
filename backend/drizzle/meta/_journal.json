@@ -407,6 +407,13 @@
       "when": 1777526400013,
       "tag": "0057_notification_type_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1777526400014,
+      "tag": "0058_bootstrap_admin_pending",
+      "breakpoints": true
     }
   ]
 }
