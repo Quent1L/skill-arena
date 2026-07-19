@@ -28,7 +28,7 @@ if (!isEmailPasswordEnabled && !isKeycloakEnabled) {
   logger.fatal({
     emailPassword: isEmailPasswordEnabled,
     keycloak: isKeycloakEnabled,
-  }, "ERREUR DE CONFIGURATION CRITIQUE: Aucune méthode d'authentification n'est activée");
+  }, "CRITICAL CONFIGURATION ERROR: no authentication method is enabled");
 
   throw new Error(
     "AUTHENTICATION_CONFIG_ERROR: At least one authentication method must be enabled. " +
@@ -39,7 +39,7 @@ if (!isEmailPasswordEnabled && !isKeycloakEnabled) {
 logger.info({
   emailPassword: isEmailPasswordEnabled,
   keycloak: isKeycloakEnabled,
-}, "Configuration de l'authentification");
+}, "Authentication configuration");
 
 const plugins: any[] = [];
 
@@ -179,8 +179,8 @@ if (isKeycloakEnabled) {
 // narrows trustedOrigins to localhost: random logouts that are very hard to diagnose.
 if (process.env.NODE_ENV === "production" && !process.env.BETTER_AUTH_URL) {
   console.warn(
-    "[auth] BETTER_AUTH_URL non défini en production : fallback sur http://localhost:3000. " +
-      "Les cookies de session seront émis sans l'attribut Secure et trustedOrigins ne contiendra que localhost.",
+    "[auth] BETTER_AUTH_URL is not set in production: falling back to http://localhost:3000. " +
+      "Session cookies will be emitted without the Secure attribute and trustedOrigins will only contain localhost.",
   );
 }
 

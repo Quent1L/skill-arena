@@ -69,7 +69,7 @@ The app has no other stateful dependency — no upload directory or extra volume
 needed beyond the Postgres data volume.
 
 The `healthcheck` and `condition: service_healthy` matter more than they look. A
-plain `depends_on: - db` only waits for the database *container* to start, not for
+plain `depends_on: - db` only waits for the database _container_ to start, not for
 Postgres to accept connections — the app would then fail its startup migrations and,
 under `restart: unless-stopped`, crash-loop until the database happens to be ready.
 
