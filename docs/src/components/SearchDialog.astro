@@ -1,0 +1,214 @@
+---
+// The search modal. Render once per page (Nav does this); any number of
+// <Search /> trigger buttons can open it.
+import Icon from './Icon.astro'
+---
+
+<dialog
+  id="search-dialog"
+  data-pagefind-ignore
+  class="w-[min(40rem,calc(100vw-2rem))] rounded-xl border border-white/10 bg-slate-900/95 p-0 text-slate-100 shadow-2xl shadow-black/60 backdrop-blur-lg"
+>
+  <div class="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+    <Icon name="search" class="h-4 w-4 shrink-0 text-slate-500" />
+    <input
+      id="search-input"
+      type="search"
+      autocomplete="off"
+      placeholder="Search the docs…"
+      class="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-500"
+    />
+    <kbd
+      class="hidden rounded border border-white/15 px-1.5 py-0.5 font-sans text-xs text-slate-400 sm:inline"
+      >esc</kbd
+    >
+  </div>
+
+  <div id="search-results" class="max-h-[60vh] overflow-y-auto p-2">
+    <p class="px-3 py-6 text-center text-sm text-slate-500">Type to search.</p>
+  </div>
+
+  <div
+    class="hidden items-center gap-4 border-t border-white/10 px-4 py-2 text-xs text-slate-500 sm:flex"
+  >
+    <span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span>
+    <span><kbd>↵</kbd> open</span>
+    <span><kbd>esc</kbd> close</span>
+  </div>
+</dialog>
+
+<style>
+  #search-dialog::backdrop {
+    background: rgb(0 0 0 / 0.7);
+    backdrop-filter: blur(4px);
+  }
+  /* <dialog> centres in both axes via `margin: auto`; keep the horizontal centring and
+     pin it near the top like a command palette. */
+  #search-dialog[open] {
+    margin-inline: auto;
+    margin-top: 12vh;
+    margin-bottom: auto;
+  }
+  #search-input::-webkit-search-cancel-button {
+    display: none;
+  }
+  /* Results are injected at runtime, so their styles must not be scoped away. */
+  #search-results :global(mark) {
+    background: color-mix(in oklab, var(--color-brand-mid) 25%, transparent);
+    color: var(--color-brand-end);
+    border-radius: 0.125rem;
+  }
+  #search-results :global([data-active]) {
+    background: rgb(255 255 255 / 0.05);
+    color: var(--color-brand-mid);
+  }
+</style>
+
+<script>
+  // Types for the generated module live in src/env.d.ts.
+  type Pagefind = typeof import('/pagefind/pagefind.js')
+  type PagefindData = import('/pagefind/pagefind.js').PagefindData
+
+  // Pagefind's runtime only exists in dist/ after `astro build`, so Vite must not try to
+  // resolve or preload it. Any statically analysable specifier — literal or const-folded
+  // variable — gets wrapped in __vitePreload() with an unresolved __VITE_PRELOAD__
+  // placeholder, which throws at runtime. Going through Function() keeps it opaque.
+  const importPagefind = new Function('src', 'return import(src)') as (
+    src: string,
+  ) => Promise<unknown>
+
+  const dialog = document.getElementById('search-dialog') as HTMLDialogElement | null
+  const input = document.getElementById('search-input') as HTMLInputElement | null
+  const resultsEl = document.getElementById('search-results')
+
+  if (dialog && input && resultsEl) {
+    let pagefind: Pagefind | null = null
+    let loadFailed = false
+    let latestQuery = ''
+
+    // The index is generated into dist/ by `astro build`. In `astro dev` it is served
+    // from the last build, so a build must have run at least once for search to work.
+    const loadPagefind = async () => {
+      if (pagefind || loadFailed) return
+      try {
+        const mod = (await importPagefind('/pagefind/pagefind.js')) as Pagefind
+        await mod.init()
+        pagefind = mod
+      } catch {
+        loadFailed = true
+      }
+    }
+
+    const message = (text: string) =>
+      `<p class="px-3 py-6 text-center text-sm text-slate-500">${text}</p>`
+
+    const escape = (value: string) =>
+      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+    const renderResult = (data: PagefindData) => {
+      const subs = data.sub_results
+        .filter((sub) => sub.url !== data.url)
+        .slice(0, 3)
+        .map(
+          (sub) => `
+            <a href="${sub.url}" data-result
+               class="ml-3 block rounded-lg border-l border-white/10 px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-brand-mid">
+              <span class="block font-medium text-slate-300">${escape(sub.title)}</span>
+              <span class="line-clamp-1 text-xs">${sub.excerpt}</span>
+            </a>`,
+        )
+        .join('')
+
+      return `
+        <div class="mb-1">
+          <a href="${data.url}" data-result
+             class="block rounded-lg px-3 py-2 hover:bg-white/5">
+            <span class="font-display block font-semibold text-slate-100">${escape(
+              data.meta.title ?? data.url,
+            )}</span>
+            <span class="line-clamp-2 text-sm text-slate-400">${data.excerpt}</span>
+          </a>
+          ${subs}
+        </div>`
+    }
+
+    const search = async (query: string) => {
+      if (!query.trim()) {
+        resultsEl.innerHTML = message('Type to search.')
+        return
+      }
+
+      await loadPagefind()
+      if (!pagefind) {
+        resultsEl.innerHTML = message('Search index unavailable — run <code>bun run build</code>.')
+        return
+      }
+
+      const response = await pagefind.debouncedSearch(query, undefined, 200)
+      // debouncedSearch resolves null when superseded; also drop stale in-flight responses.
+      if (!response || query !== latestQuery) return
+
+      if (response.results.length === 0) {
+        resultsEl.innerHTML = message(`No results for “${escape(query)}”.`)
+        return
+      }
+
+      const data = await Promise.all(response.results.slice(0, 6).map((result) => result.data()))
+      if (query !== latestQuery) return
+
+      resultsEl.innerHTML = data.map(renderResult).join('')
+      resultsEl.scrollTop = 0
+    }
+
+    const moveActive = (delta: number) => {
+      const all = Array.from(resultsEl.querySelectorAll<HTMLAnchorElement>('[data-result]'))
+      if (all.length === 0) return
+      const current = all.findIndex((el) => el.hasAttribute('data-active'))
+      const next = (current + delta + all.length) % all.length
+      all.forEach((el) => el.removeAttribute('data-active'))
+      all[next].setAttribute('data-active', '')
+      all[next].scrollIntoView({ block: 'nearest' })
+    }
+
+    const open = () => {
+      if (dialog.open) return
+      dialog.showModal()
+      input.select()
+      void loadPagefind()
+    }
+
+    document.querySelectorAll('[data-search-open]').forEach((button) => {
+      button.addEventListener('click', open)
+    })
+
+    document.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        open()
+      }
+    })
+
+    input.addEventListener('input', () => {
+      latestQuery = input.value
+      void search(input.value)
+    })
+
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        moveActive(event.key === 'ArrowDown' ? 1 : -1)
+      } else if (event.key === 'Enter') {
+        const active = resultsEl.querySelector<HTMLAnchorElement>('[data-active]')
+        if (active) {
+          event.preventDefault()
+          window.location.href = active.href
+        }
+      }
+    })
+
+    // Native <dialog> has no backdrop-click dismissal; the backdrop reports as the dialog itself.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close()
+    })
+  }
+</script>

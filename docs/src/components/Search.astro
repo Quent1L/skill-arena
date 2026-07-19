@@ -1,0 +1,32 @@
+---
+// Trigger button only. The dialog it opens lives in SearchDialog.astro, rendered once
+// per page — this component is rendered twice (desktop nav + mobile nav).
+import Icon from './Icon.astro'
+
+interface Props {
+  /** Icon-only variant, used for the mobile trigger next to the hamburger. */
+  compact?: boolean
+}
+const { compact = false } = Astro.props
+---
+
+<button
+  type="button"
+  data-search-open
+  aria-label="Search"
+  class={`flex items-center gap-2 rounded-full border border-white/15 text-slate-300 transition-colors hover:border-brand-mid/60 hover:text-brand-mid ${
+    compact ? 'h-9 w-9 justify-center' : 'px-4 py-2 text-sm'
+  }`}
+>
+  <Icon name="search" class="h-4 w-4" />
+  {
+    !compact && (
+      <>
+        <span>Search</span>
+        <kbd class="rounded border border-white/15 px-1.5 py-0.5 font-sans text-xs text-slate-400">
+          ⌘K
+        </kbd>
+      </>
+    )
+  }
+</button>
