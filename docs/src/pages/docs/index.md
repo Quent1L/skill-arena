@@ -15,7 +15,6 @@ docker run -d \
   -p 3000:3000 \
   -e DATABASE_URL="postgres://user:password@your-db-host:5432/skol_arena" \
   -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" \
-  -e FRONTEND_BUILD_PATH="/app/frontend/dist" \
   quent1l/skol-arena:latest
 ```
 
@@ -26,9 +25,9 @@ that account logs in for the first time — see [Deployment](/docs/deployment) f
 details.
 
 Only two variables are truly required to get a working instance: `DATABASE_URL` and
-`BETTER_AUTH_SECRET`. `FRONTEND_BUILD_PATH` is what turns the image into a
-single-container deployment serving both the API and the web app — without it, the
-container only exposes the API.
+`BETTER_AUTH_SECRET`. Everything else has a usable default — the image already
+points `FRONTEND_BUILD_PATH` and `MIGRATIONS_FOLDER` at the bundled frontend build
+and migrations, so a single container serves both the API and the web app.
 
 ## Where to go next
 

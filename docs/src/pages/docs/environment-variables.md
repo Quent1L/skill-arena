@@ -22,16 +22,16 @@ bad deploy).
 
 ## Server & runtime
 
-| Variable              | Purpose                                                                                                                                                | Required | Default                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ------------------------ |
-| `NODE_ENV`            | Standard Node environment flag; affects CORS origin behavior.                                                                                          | No       | dev behavior if unset    |
-| `PORT`                | Port the server listens on.                                                                                                                            | No       | `3000`                   |
-| `FRONTEND_URL`        | Allowed CORS origin and Better Auth trusted origin for the frontend.                                                                                   | No       | `http://localhost:5173`  |
-| `FRONTEND_BUILD_PATH` | Enables single-container mode: serves the built frontend (static assets + SPA fallback) from this path. Without it, the container only serves the API. | No       | disabled                 |
-| `LOG_LEVEL`           | Pino log level.                                                                                                                                        | No       | `info`                   |
-| `LOG_FORMAT`          | Log output format: `json` or `logfmt`.                                                                                                                 | No       | `json`                   |
-| `APP_TIMEZONE`        | Timezone used for time-of-day/day-of-week logic in the contextual rules engine.                                                                        | No       | `Europe/Paris`           |
-| `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account. Its password is regenerated and logged on every startup until that account logs in once.       | No       | `admin@skol-arena.local` |
+| Variable              | Purpose                                                                                                                                          | Required | Default                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------- |
+| `NODE_ENV`            | Standard Node environment flag; affects CORS origin behavior.                                                                                    | No       | dev behavior if unset                                      |
+| `PORT`                | Port the server listens on.                                                                                                                      | No       | `3000`                                                     |
+| `FRONTEND_URL`        | Allowed CORS origin and Better Auth trusted origin for the frontend.                                                                             | No       | `http://localhost:5173`                                    |
+| `FRONTEND_BUILD_PATH` | Single-container mode: serves the built frontend (static assets + SPA fallback) from this path. Set to an empty value to serve the API only.     | No       | unset outside Docker (the image sets `/app/frontend/dist`) |
+| `LOG_LEVEL`           | Pino log level.                                                                                                                                  | No       | `info`                                                     |
+| `LOG_FORMAT`          | Log output format: `json` or `logfmt`.                                                                                                           | No       | `json`                                                     |
+| `APP_TIMEZONE`        | Timezone used for time-of-day/day-of-week logic in the contextual rules engine.                                                                  | No       | `Europe/Paris`                                             |
+| `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account. Its password is regenerated and logged on every startup until that account logs in once. | No       | `admin@skol-arena.local`                                   |
 
 ## Authentication (Better Auth)
 

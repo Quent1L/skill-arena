@@ -63,6 +63,7 @@ COPY --from=build --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV MIGRATIONS_FOLDER=./backend/drizzle
+ENV FRONTEND_BUILD_PATH=/app/frontend/dist
 
 EXPOSE 3000
 

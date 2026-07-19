@@ -59,7 +59,6 @@ services:
       DATABASE_URL: postgres://skol:change-me@db:5432/skol_arena
       BETTER_AUTH_SECRET: change-me-to-a-long-random-string
       BETTER_AUTH_URL: http://localhost:3000
-      FRONTEND_BUILD_PATH: /app/frontend/dist
 
 volumes:
   skol-db-data:
@@ -131,9 +130,12 @@ becomes unavailable and no local credentials are known.
 
 ## Single-container frontend serving
 
-Setting `FRONTEND_BUILD_PATH=/app/frontend/dist` (as in the Compose example
-above) tells the backend to serve the built Vue app itself — static assets plus
-an SPA fallback to `index.html` — so a single container and a single port cover
-both the API and the web app. This is not enabled by default: without the
-variable, the container only exposes the API, and `/` returns a plain
-placeholder response.
+The image ships with `FRONTEND_BUILD_PATH=/app/frontend/dist` already set, which
+tells the backend to serve the built Vue app itself — static assets plus an SPA
+fallback to `index.html` — so a single container and a single port cover both the
+API and the web app. Nothing to configure.
+
+Setting the variable to an empty value disables it: the container then only
+exposes the API, and `/` returns a plain placeholder response. That is only
+useful if you serve the frontend separately (a CDN or a reverse proxy), in which
+case set `FRONTEND_URL` so CORS and the auth trusted origins allow it.

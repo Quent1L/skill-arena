@@ -52,7 +52,6 @@ export default defineConfig({
         KEYCLOAK_CLIENT_ID: '',
         KEYCLOAK_CLIENT_SECRET: '',
         KEYCLOAK_ISSUER: '',
-        KEYCLOAK_DISCOVERY_URL: '',
       },
     },
     {
