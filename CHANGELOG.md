@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.17.0](https://github.com/Quent1L/skol-arena/compare/1.16.0...1.17.0) (2026-07-19)
+
+### ✨ New Features
+
+* **auth:** rotate bootstrap admin password until first login ([d441bb0](https://github.com/Quent1L/skol-arena/commit/d441bb090c6fddac8f3c4fb80473cdea8e016a36))
+* **rules:** add player targeting and random gating facts ([48e2fcf](https://github.com/Quent1L/skol-arena/commit/48e2fcfebbf950c151332950131f34dd8a61faaf))
+
+### 🐛 Bug Fixes
+
+* **env:** preset FRONTEND_BUILD_PATH, sync env docs ([7b8b077](https://github.com/Quent1L/skol-arena/commit/7b8b077e8104478ea54408aa3eea55671d7dc5c0))
+* **invitations:** look up code by id when deactivating ([93dfa54](https://github.com/Quent1L/skol-arena/commit/93dfa5466dd376e80de709004d5e834b9a6d9ab6))
+* **rules:** validate merged rule on partial update ([e5bcf41](https://github.com/Quent1L/skol-arena/commit/e5bcf419cf10eed24336ab1285601a4f7199f685))
+
+### 📝 Documentation
+
+* add Astro showcase site as new workspace package ([9968c73](https://github.com/Quent1L/skol-arena/commit/9968c73db9f2fe89bdbd01b023f8d0d47641b4cd))
+* add self-hosting technical docs (env vars, deployment) ([cf5f0ed](https://github.com/Quent1L/skol-arena/commit/cf5f0ed45f78bb5661727b594b4c05ad75828de6))
+* add site-wide search with Pagefind ([33bb87d](https://github.com/Quent1L/skol-arena/commit/33bb87db152cfeccd7c29420eed90cb5db2db188))
+* **backend:** translate remaining French log messages ([2be4b61](https://github.com/Quent1L/skol-arena/commit/2be4b61500d3827e7a68cab739714544dfc19fe1))
+* document organizations and invitation codes ([491eb6b](https://github.com/Quent1L/skol-arena/commit/491eb6b64c8191c07ce2caa25b5baaf062e3ea06))
+* document the docs workspace in CLAUDE.md ([f250940](https://github.com/Quent1L/skol-arena/commit/f2509404285c004b3b99f8a785cb8871821746a7))
+* redesign showcase site and deepen feature content ([9e15508](https://github.com/Quent1L/skol-arena/commit/9e155087f4c9f6e74852c676df60b9a6fd84127f))
+* reposition showcase site around player-first workflow ([5916ead](https://github.com/Quent1L/skol-arena/commit/5916eadd8e87b5c1178ad53d538c41ae2a311deb))
+
+### 🔧 Maintenance
+
+* **deps:** bump dependencies across workspaces ([24ba9fe](https://github.com/Quent1L/skol-arena/commit/24ba9fe7739d365a7c7555bd52452ec479124086))
+
 ## [1.16.0](https://github.com/Quent1L/skol-arena/compare/1.15.2...1.16.0) (2026-07-18)
 
 ### ✨ New Features
