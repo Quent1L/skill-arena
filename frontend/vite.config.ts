@@ -76,6 +76,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    watch: {
+      // The watcher only skips node_modules and .git by default, so it walks
+      // generated artifacts too. Coverage reports alone are hundreds of HTML
+      // files, and watching them makes Bun's fs.watch throw EINVAL, which kills
+      // the dev server. None of these are ever served in dev.
+      // shared/dist is deliberately NOT ignored: it is what @skol-arena/shared
+      // resolves to, and watching it is what reloads the app after a shared rebuild.
+      ignored: ['**/coverage/**', '**/playwright-report/**', '**/test-results/**'],
+    },
+  },
   optimizeDeps: {
     // Also scans the router's lazy views: otherwise vite discovers their
     // dependencies on first navigation and triggers a full reload
