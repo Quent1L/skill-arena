@@ -66,6 +66,7 @@ export function makeAuthMock(state: AuthMockState) {
     requestPasswordReset: vi.fn(),
     resetPassword: vi.fn(),
     changePassword: vi.fn(),
+    listAuthProviders: vi.fn(async () => ['credential']),
     kioskSettingsLocked: ref(false),
     lockKioskSettings: vi.fn(),
   }

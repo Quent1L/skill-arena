@@ -6,6 +6,7 @@ import { db } from "./database";
 import * as schema from "../db/schema";
 import { emailService } from "../services/email.service";
 import { invitationService } from "../services/invitation.service";
+import { userRepository } from "../repository/user.repository";
 import i18next from "./i18n";
 import { logger } from "../utils/logger";
 import { clearBootstrapPending } from "../utils/init-admin";
@@ -190,6 +191,21 @@ const authConfig: any = {
     provider: "pg",
     schema,
   }),
+  // Records the last login on app_users so it survives session expiry.
+  // Runs on session creation only (i.e. at login), not on every request.
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (createdSession: { userId: string }) => {
+          try {
+            await userRepository.touchLastLogin(createdSession.userId);
+          } catch (error) {
+            logger.warn({ err: error, userId: createdSession.userId }, "Failed to record last login");
+          }
+        },
+      },
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // refresh if the session is more than 1 day old

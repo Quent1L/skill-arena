@@ -24,6 +24,21 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
     c.set("appUserId", appUserId);
     await next();
   } catch (error: unknown) {
+    // Deactivated account: the session may still be valid (auth cookie cache)
+    if ((error as { code?: string }).code === "USER_DEACTIVATED") {
+      logger.warn(`[Auth Middleware] User ${betterAuthUser.id} is deactivated`);
+
+      return c.json(
+        {
+          error: {
+            code: "USER_DEACTIVATED",
+            message: "Votre compte a été désactivé.",
+          },
+        },
+        403
+      );
+    }
+
     // If the error is related to a missing invitation code
     if ((error as { code?: string }).code === "INVITATION_CODE_REQUIRED") {
       logger.warn(`[Auth Middleware] User ${betterAuthUser.id} is authenticated but has no invitation code`);

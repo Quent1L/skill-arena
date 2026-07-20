@@ -1,22 +1,11 @@
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import type { MiddlewareHandler } from "hono";
-import { createAppHono, type AppVariables } from "../../types/hono";
+import { createAppHono } from "../../types/hono";
 import { requireAuth } from "../../middleware/auth";
+import { requireSuperAdmin } from "../../middleware/require-role";
 import { organizationService } from "../../services/organization.service";
-import { userRepository } from "../../repository/user.repository";
-import { ForbiddenError, ErrorCode } from "../../types/errors";
 
 const adminOrganizations = createAppHono();
-
-const requireSuperAdmin: MiddlewareHandler<{ Variables: AppVariables }> = async (c, next) => {
-  const appUserId = c.get("appUserId");
-  const currentUser = await userRepository.getById(appUserId);
-  if (currentUser?.role !== "super_admin") {
-    throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
-  }
-  await next();
-};
 
 const createOrganizationSchema = z.object({
   name: z.string().min(1, "Le nom est requis").max(100),

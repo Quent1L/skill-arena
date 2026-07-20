@@ -1,24 +1,13 @@
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import type { MiddlewareHandler } from "hono";
-import { createAppHono, type AppVariables } from "../../types/hono";
+import { createAppHono } from "../../types/hono";
 import { requireAuth } from "../../middleware/auth";
-import { userRepository } from "../../repository/user.repository";
-import { ForbiddenError, ErrorCode } from "../../types/errors";
+import { requireSuperAdmin } from "../../middleware/require-role";
 import { rulesService } from "../../services/rules.service";
 import { createRuleSchema, testRuleSchema, updateRuleSchema } from "@skol-arena/shared";
 import type { RuleScope, RuleType } from "@skol-arena/shared";
 
 const adminRules = createAppHono();
-
-const requireSuperAdmin: MiddlewareHandler<{ Variables: AppVariables }> = async (c, next) => {
-  const appUserId = c.get("appUserId");
-  const currentUser = await userRepository.getById(appUserId);
-  if (currentUser?.role !== "super_admin") {
-    throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
-  }
-  await next();
-};
 
 const listFiltersSchema = z.object({
   type: z.enum(["message", "badge"]).optional(),

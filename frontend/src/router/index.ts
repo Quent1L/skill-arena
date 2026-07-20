@@ -235,6 +235,30 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/views/admin/UsersList.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: t('routes.adminUsersBreadcrumb'),
+      title: t('routes.adminUsers'),
+      requiresAuth: true,
+      parent: 'admin',
+    },
+  },
+  {
+    path: '/admin/users/:id/edit',
+    name: 'admin-users-edit',
+    component: () => import('@/views/admin/UserFormView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: t('routes.adminUsersEdit'),
+      title: t('routes.adminUsersEdit'),
+      requiresAuth: true,
+      parent: 'admin-users',
+    },
+  },
+  {
     path: '/admin/rules',
     name: 'admin-rules',
     component: () => import('@/views/admin/GameRulesList.vue'),

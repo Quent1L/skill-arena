@@ -9,6 +9,7 @@ export * from "./enums";
 export * from "./season-form";
 export * from "./tournament";
 export * from "./user";
+export * from "./admin-user";
 export * from "./match";
 export * from "./team";
 export * from "./participant";

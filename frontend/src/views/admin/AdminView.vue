@@ -124,6 +124,29 @@
         </template>
       </Card>
 
+      <!-- Users Card -->
+      <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToUsers">
+        <template #content>
+          <div class="text-center py-8">
+            <div class="mb-4">
+              <i class="fa fa-users text-5xl text-indigo-600"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              {{ t('adminView.usersTitle') }}
+            </h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">
+              {{ t('adminView.usersDescription') }}
+            </p>
+            <Button
+              :label="t('adminView.access')"
+              icon="fa fa-arrow-right"
+              class="bg-indigo-600 hover:bg-indigo-700"
+              @click.stop="navigateToUsers"
+            />
+          </div>
+        </template>
+      </Card>
+
       <!-- Game Rules Card -->
       <Card class="cursor-pointer hover:shadow-lg transition-shadow" @click="navigateToRules">
         <template #content>
@@ -195,6 +218,10 @@ function navigateToInvitaionCode() {
 
 function navigateToOrganizations() {
   router.push('/admin/organizations')
+}
+
+function navigateToUsers() {
+  router.push('/admin/users')
 }
 
 function navigateToRules() {

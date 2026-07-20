@@ -13,6 +13,7 @@ import {
   varchar,
   real,
   index,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -240,25 +241,47 @@ export const organizationMembers = pgTable(
   (t) => [unique().on(t.organizationId, t.userId)],
 );
 
-export const appUsers = pgTable("app_users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  externalId: text("external_id")
-    .notNull()
-    .unique()
-    .references(() => user.id, { onDelete: "cascade" }),
-  displayName: text("display_name").notNull(),
-  shortName: text("short_name").notNull(),
-  role: userRoleEnum("role").notNull().default("player"),
-  // Bootstrap admin waiting for its first login: while true, the startup routine
-  // regenerates and re-logs its password on every restart.
-  bootstrapPending: boolean("bootstrap_pending").notNull().default(false),
-  trustScoreCount: integer("trust_score_count").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const appUsers = pgTable(
+  "app_users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Nullable on purpose: archiving deletes the Better Auth identity (login,
+    // sessions, linked SSO accounts) while this row survives, because 15 tables
+    // of tournament history cascade from it.
+    externalId: text("external_id")
+      .unique()
+      .references(() => user.id, { onDelete: "set null" }),
+    displayName: text("display_name").notNull(),
+    shortName: text("short_name").notNull(),
+    role: userRoleEnum("role").notNull().default("player"),
+    // Bootstrap admin waiting for its first login: while true, the startup routine
+    // regenerates and re-logs its password on every restart.
+    bootstrapPending: boolean("bootstrap_pending").notNull().default(false),
+    trustScoreCount: integer("trust_score_count").notNull().default(0),
+    // Refreshed by the Better Auth session-create hook, so it survives session expiry.
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    // Reversible: the account still exists, it simply cannot sign in.
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
+    deactivatedBy: uuid("deactivated_by").references((): AnyPgColumn => appUsers.id, {
+      onDelete: "set null",
+    }),
+    // Terminal: the Better Auth identity is gone and the name is anonymised.
+    // Kept as a row so matches, standings and MMR history stay intact.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references((): AnyPgColumn => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    index("app_users_deactivated_at_idx").on(t.deactivatedAt),
+    index("app_users_archived_at_idx").on(t.archivedAt),
+  ],
+);
 
 export const gameRules = pgTable("game_rules", {
   id: uuid("id").primaryKey().defaultRandom(),

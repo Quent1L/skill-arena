@@ -118,7 +118,8 @@ export async function initializeAdminIfNeeded(): Promise<void> {
     .where(eq(appUsers.bootstrapPending, true))
     .limit(1);
 
-  if (pendingAdmin) {
+  // externalId is null only for archived users, which are never bootstrapPending.
+  if (pendingAdmin?.externalId) {
     await rotateBootstrapPassword(pendingAdmin.externalId);
     return;
   }

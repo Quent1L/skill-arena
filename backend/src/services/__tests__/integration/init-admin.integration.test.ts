@@ -23,7 +23,9 @@ async function getAdmin() {
     .from(appUsers)
     .where(eq(appUsers.role, "super_admin"))
     .limit(1);
-  return admin;
+  // externalId is nullable since archiving, but a bootstrap admin always has one.
+  // Returned as-is so the "no admin" case still yields undefined.
+  return admin as typeof admin & { externalId: string };
 }
 
 async function getPasswordHash(externalId: string): Promise<string | null> {

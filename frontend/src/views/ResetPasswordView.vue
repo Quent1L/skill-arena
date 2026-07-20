@@ -18,7 +18,7 @@
           </div>
 
           <div v-else-if="!resetSuccess">
-            <p class="text-gray-700 mb-6">{{ t('resetPasswordView.instructions') }}</p>
+            <p class="mb-6">{{ t('resetPasswordView.instructions') }}</p>
 
             <form @submit="onSubmit" class="space-y-6">
               <div class="flex flex-col gap-2">
@@ -72,7 +72,7 @@
           <div v-else class="text-center py-4">
             <i class="fa fa-check-circle text-green-500 text-5xl mb-4"></i>
             <h3 class="text-xl font-semibold mb-2">{{ t('resetPasswordView.successTitle') }}</h3>
-            <p class="text-gray-700 mb-6">
+            <p class="mb-6">
               {{ t('resetPasswordView.successMessage') }}
             </p>
             <Button :label="t('resetPasswordView.login')" @click="router.push('/login')" />

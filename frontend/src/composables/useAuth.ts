@@ -7,6 +7,7 @@ import { authClient } from '@/lib/auth-client'
 import { userApi, type UserResponse } from '@/composables/user/user.api'
 import { useConfigService } from '@/composables/config/config.service'
 import { NETWORK_ERROR, isNetworkError, isTransientStatus } from '@/utils/HttpErrors'
+import { translateAuthError } from '@/utils/AuthErrors'
 import { i18n } from '@/i18n'
 
 const sessionData = ref()
@@ -91,10 +92,11 @@ export function useAuth() {
         throw networkError()
       }
       // Explicit auth response (401, 403...): no session, a legitimate case.
-      error.value = result.error.message || i18n.global.t('auth.errors.sessionFetch')
+      const message = translateAuthError(result.error, 'auth.errors.sessionFetch')
+      error.value = message
       sessionData.value = { data: { user: null, session: null } }
       appUserData.value = null
-      throw new Error(result.error.message)
+      throw new Error(message)
     }
 
     return result
@@ -154,8 +156,10 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || i18n.global.t('auth.errors.login')
-        throw new Error(result.error.message)
+        // Thrown translated too: the catch below re-reads err.message into error.value.
+        const message = translateAuthError(result.error, 'auth.errors.login')
+        error.value = message
+        throw new Error(message)
       }
 
       localStorage.removeItem('kiosk_settings_locked')
@@ -201,8 +205,7 @@ export function useAuth() {
       const result = await authClient.signUp.email(signUpData)
 
       if (result.error) {
-        // Better Auth may return the error in different formats
-        const errorMessage = result.error?.message ?? i18n.global.t('auth.errors.register')
+        const errorMessage = translateAuthError(result.error, 'auth.errors.register')
 
         error.value = errorMessage
         throw new Error(errorMessage)
@@ -336,8 +339,9 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || i18n.global.t('auth.errors.passwordResetRequest')
-        throw new Error(result.error.message)
+        const message = translateAuthError(result.error, 'auth.errors.passwordResetRequest')
+        error.value = message
+        throw new Error(message)
       }
 
       return result
@@ -354,6 +358,19 @@ export function useAuth() {
   }
 
   /**
+   * providerId of every account linked to the session: "credential" for the
+   * native password, "keycloak" for SSO. An SSO-only user has no password,
+   * so the change-password flow cannot apply to them.
+   */
+  async function listAuthProviders(): Promise<string[]> {
+    const result = await authClient.listAccounts()
+    if (result.error) {
+      throw new Error(translateAuthError(result.error, 'auth.errors.sessionFetch'))
+    }
+    return (result.data ?? []).map((account) => account.providerId)
+  }
+
+  /**
    * Password reset with token
    */
   async function resetPassword(token: string, newPassword: string) {
@@ -367,8 +384,9 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || i18n.global.t('auth.errors.passwordReset')
-        throw new Error(result.error.message)
+        const message = translateAuthError(result.error, 'auth.errors.passwordReset')
+        error.value = message
+        throw new Error(message)
       }
 
       return result
@@ -399,8 +417,9 @@ export function useAuth() {
       })
 
       if (result.error) {
-        error.value = result.error.message || i18n.global.t('auth.errors.passwordChange')
-        throw new Error(result.error.message)
+        const message = translateAuthError(result.error, 'auth.errors.passwordChange')
+        error.value = message
+        throw new Error(message)
       }
 
       return result
@@ -442,6 +461,7 @@ export function useAuth() {
     requestPasswordReset,
     resetPassword,
     changePassword,
+    listAuthProviders,
     kioskSettingsLocked,
     lockKioskSettings,
   }

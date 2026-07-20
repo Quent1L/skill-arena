@@ -211,14 +211,45 @@
             </div>
           </template>
           <template #content>
-            <Button
-              :label="t('settings.account.changePassword')"
-              outlined
-              icon="fas fa-key"
-              severity="secondary"
-              class="w-full"
-              @click="openChangePasswordDialog"
-            />
+            <!-- An SSO-only account has no password to re-enter, so the change
+                 flow is replaced by the email-based creation flow. -->
+            <div v-if="hasNativePassword" class="space-y-3">
+              <Button
+                :label="t('settings.account.changePassword')"
+                outlined
+                icon="fas fa-key"
+                severity="secondary"
+                class="w-full"
+                @click="openChangePasswordDialog"
+              />
+            </div>
+
+            <div v-else class="space-y-3">
+              <Message severity="info" :closable="false">
+                {{ t('settings.account.ssoOnlyNotice') }}
+              </Message>
+
+              <Message v-if="setPasswordSent" severity="success" :closable="false">
+                <i class="fa fa-check mr-2"></i>
+                {{ t('settings.account.setPasswordSent') }}
+              </Message>
+
+              <Message v-if="setPasswordError" severity="error" :closable="false">
+                {{ setPasswordError }}
+              </Message>
+
+              <Button
+                v-if="!setPasswordSent"
+                :label="t('settings.account.setPassword')"
+                outlined
+                icon="fas fa-envelope"
+                severity="secondary"
+                class="w-full"
+                :loading="setPasswordLoading"
+                :disabled="setPasswordLoading || !userEmail"
+                @click="sendSetPasswordLink"
+              />
+            </div>
           </template>
         </Card>
 
@@ -502,7 +533,15 @@ const notificationSupported = computed(
 
 const router = useRouter()
 const { enablePush, disablePush } = useNotificationPush()
-const { changePassword, loading: authLoading, error: authError, userRole, lockKioskSettings } = useAuth()
+const {
+  changePassword,
+  requestPasswordReset,
+  listAuthProviders,
+  loading: authLoading,
+  error: authError,
+  userRole,
+  lockKioskSettings,
+} = useAuth()
 
 // Kiosk lock
 const showKioskLockDialog = ref(false)
@@ -567,6 +606,33 @@ const onSubmitProfile = handleProfileSubmit(async (values) => {
 // Change password form
 const showChangePasswordDialog = ref(false)
 const changePasswordSuccess = ref(false)
+
+// Defaults to true so a failed provider lookup keeps the existing flow rather
+// than hiding it: a user with a password must never lose the ability to change it.
+const hasNativePassword = ref(true)
+const userEmail = ref<string | null>(null)
+const setPasswordLoading = ref(false)
+const setPasswordSent = ref(false)
+const setPasswordError = ref<string | null>(null)
+
+/**
+ * Better Auth exposes no set-password endpoint: the reset mail is the only way to
+ * give a password to an SSO account, and it also proves the address belongs to them.
+ */
+async function sendSetPasswordLink() {
+  if (!userEmail.value) return
+  setPasswordLoading.value = true
+  setPasswordError.value = null
+  try {
+    await requestPasswordReset(userEmail.value)
+    setPasswordSent.value = true
+  } catch (err: unknown) {
+    setPasswordError.value =
+      err instanceof Error ? err.message : t('settings.account.setPasswordError')
+  } finally {
+    setPasswordLoading.value = false
+  }
+}
 
 const { defineField, handleSubmit, errors, resetForm } = useForm({
   validationSchema: toTypedSchema(changePasswordSchema),
@@ -675,8 +741,15 @@ onMounted(async () => {
   try {
     const user = await userApi.me()
     setProfileValues({ displayName: user.displayName, shortName: user.shortName })
+    userEmail.value = user.betterAuth.email
   } catch {
     profileError.value = t('settings.profile.loadError')
+  }
+
+  try {
+    hasNativePassword.value = (await listAuthProviders()).includes('credential')
+  } catch {
+    // Keep the default: showing the change-password flow is the safe failure mode.
   }
 })
 

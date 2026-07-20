@@ -14,6 +14,7 @@ import invitations from "./routes/invitations.route";
 import adminInvitations from "./routes/admin/invitations.route";
 import adminOrganizations from "./routes/admin/organizations.route";
 import adminRules from "./routes/admin/rules.route";
+import adminUsers from "./routes/admin/users.route";
 import gameRulesRouter from "./routes/game-rules.route";
 import teamsRouter from "./routes/teams.route";
 import rankedRouter from "./routes/ranked.route";
@@ -115,6 +116,8 @@ app.route("/api/admin/invitations", adminInvitations);
 app.route("/api/admin/organizations", adminOrganizations);
 
 app.route("/api/admin/rules", adminRules);
+
+app.route("/api/admin/users", adminUsers);
 
 app.route("/api/game-rules", gameRulesRouter);
 

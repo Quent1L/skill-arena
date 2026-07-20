@@ -414,6 +414,20 @@
       "when": 1777526400014,
       "tag": "0058_bootstrap_admin_pending",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1777526400015,
+      "tag": "0059_admin_user_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1777526400016,
+      "tag": "0060_user_archiving",
+      "breakpoints": true
     }
   ]
 }
