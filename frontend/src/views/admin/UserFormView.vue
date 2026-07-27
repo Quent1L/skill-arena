@@ -1,7 +1,6 @@
 <template>
   <div class="user-form-view p-4">
     <div class="flex items-center gap-3 mb-6">
-      <Button icon="fa fa-arrow-left" text rounded @click="router.push('/admin/users')" />
       <h1 class="text-2xl font-bold">
         {{ currentUser?.displayName ?? t('adminUserFormView.title') }}
       </h1>
@@ -457,7 +456,15 @@ async function handleResetPassword() {
       detail: t('adminUsersList.resetPasswordSent', { name: currentUser.value?.displayName }),
       life: 3000,
     })
+    return
   }
+
+  toast.add({
+    severity: 'error',
+    summary: t('adminUsersList.resetPasswordFailedSummary'),
+    detail: error.value ?? t('adminUsersService.errors.resetPasswordFailed'),
+    life: 5000,
+  })
 }
 
 async function handleActivation(active: boolean) {
@@ -539,6 +546,10 @@ onMounted(async () => {
 <style scoped>
 .user-form-view {
   max-width: 1200px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
 }
 </style>

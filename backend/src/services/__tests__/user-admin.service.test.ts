@@ -42,6 +42,7 @@ mock.module("../../config/auth", () => ({
 
 import { UserService } from "../user.service";
 import { ErrorCode } from "../../types/errors";
+import { reportEmailDeliveryFailure } from "../../utils/email-delivery-context";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ beforeEach(() => {
   mockOrganizationService.addMemberDirect.mockClear();
   mockOrganizationService.removeMember.mockClear();
   mockRequestPasswordReset.mockClear();
+  mockRequestPasswordReset.mockImplementation(() => Promise.resolve({}));
 
   mockUserRepo.getById.mockImplementation(() => Promise.resolve(makeAppUser() as any));
   mockUserRepo.getUserAdminDetail.mockImplementation(() => Promise.resolve(makeDetail() as any));
@@ -398,6 +400,30 @@ describe("UserService password reset", () => {
       if (previous === undefined) delete process.env.FRONTEND_URL;
       else process.env.FRONTEND_URL = previous;
     }
+  });
+
+  it("reports a delivery failure instead of pretending the mail left", async () => {
+    mockRequestPasswordReset.mockImplementation(() =>
+      Promise.reject(new Error("connect ECONNREFUSED 127.0.0.1:2525")),
+    );
+
+    await expect(service.sendPasswordReset(TARGET_ID)).rejects.toMatchObject({
+      code: ErrorCode.EMAIL_SEND_FAILED,
+      statusCode: 500,
+    });
+  });
+
+  it("surfaces a failure the sendResetPassword hook reported out of band", async () => {
+    // Better Auth swallows hook errors, so the hook hands them over through the
+    // strict-delivery store while the endpoint itself still resolves.
+    mockRequestPasswordReset.mockImplementation(() => {
+      reportEmailDeliveryFailure(new Error("SMTP down"));
+      return Promise.resolve({});
+    });
+
+    await expect(service.sendPasswordReset(TARGET_ID)).rejects.toMatchObject({
+      code: ErrorCode.EMAIL_SEND_FAILED,
+    });
   });
 
   it("404s when the target has no email", async () => {

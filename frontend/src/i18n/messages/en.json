@@ -134,6 +134,7 @@
     "reactivateConfirmMessage": "Reactivate {name}?",
     "reactivateDialogHeader": "Reactivate account",
     "resetPassword": "Send password reset",
+    "resetPasswordFailedSummary": "Email not sent",
     "resetPasswordSent": "A reset link was sent to {name}",
     "resetPasswordSentSummary": "Email sent",
     "roles": {

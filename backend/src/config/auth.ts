@@ -10,6 +10,7 @@ import { userRepository } from "../repository/user.repository";
 import i18next from "./i18n";
 import { logger } from "../utils/logger";
 import { clearBootstrapPending } from "../utils/init-admin";
+import { reportEmailDeliveryFailure } from "../utils/email-delivery-context";
 
 function extractInvitationCode(cookieHeader: string | null): string | null {
   if (!cookieHeader) return null;
@@ -238,18 +239,30 @@ const authConfig: any = {
 authConfig.emailAndPassword = {
   enabled: true,
   sendResetPassword: async ({ user, url }: any) => {
-    void emailService.sendEmail({
-      to: user.email,
-      subject: i18next.t("emails.password_reset_subject"),
-      text: i18next.t("emails.password_reset_text", {
-        url,
-        expiresIn: 60,
-      }),
-      html: i18next.t("emails.password_reset_html", {
-        url,
-        expiresIn: 60,
-      }),
-    });
+    try {
+      await emailService.sendEmail({
+        to: user.email,
+        subject: i18next.t("emails.password_reset_subject"),
+        text: i18next.t("emails.password_reset_text", {
+          url,
+          expiresIn: 60,
+        }),
+        html: i18next.t("emails.password_reset_html", {
+          url,
+          expiresIn: 60,
+        }),
+      });
+    } catch (error) {
+      // Better Auth swallows anything this hook throws, so the failure is handed to the
+      // admin caller waiting for it. On the public flow nobody is listening: stay silent,
+      // reporting the delivery status would reveal whether the account exists.
+      if (!reportEmailDeliveryFailure(error)) {
+        logger.error(
+          { err: error },
+          "Password reset email delivery failed (public flow)"
+        );
+      }
+    }
   },
   resetPasswordTokenExpiresIn: 3600,
   minPasswordLength: 8,

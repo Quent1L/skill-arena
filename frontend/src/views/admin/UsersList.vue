@@ -455,7 +455,15 @@ async function handleResetPassword(target: AdminUserListItem) {
       detail: t('adminUsersList.resetPasswordSent', { name: target.displayName }),
       life: 3000,
     })
+    return
   }
+
+  toast.add({
+    severity: 'error',
+    summary: t('adminUsersList.resetPasswordFailedSummary'),
+    detail: error.value ?? t('adminUsersService.errors.resetPasswordFailed'),
+    life: 5000,
+  })
 }
 
 function openActivationDialog(target: AdminUserListItem) {

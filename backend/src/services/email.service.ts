@@ -13,18 +13,23 @@ class EmailService {
   private readonly transporter: Transporter;
 
   constructor() {
+    const user = process.env.SMTP_USER;
+
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
+      port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
-      },
+      // Dev mail catchers (maildev, mailpit…) usually run without AUTH and reject the
+      // session when credentials are offered, so only authenticate when configured.
+      ...(user ? { auth: { user, pass: process.env.SMTP_PASSWORD } } : {}),
     });
   }
 
   async sendEmail(options: EmailOptions): Promise<void> {
+    if (!process.env.SMTP_HOST) {
+      throw new Error("SMTP_HOST is not configured — cannot send email");
+    }
+
     const mailOptions = {
       from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM}>`,
       to: options.to,

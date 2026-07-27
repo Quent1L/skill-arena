@@ -54,18 +54,23 @@ At least one authentication method must be active: the app refuses to start if
 
 Used for transactional email such as password resets.
 
-| Variable         | Purpose                                    | Required               | Default |
-| ---------------- | ------------------------------------------ | ---------------------- | ------- |
-| `SMTP_HOST`      | SMTP server host.                          | Yes, for email to work | —       |
-| `SMTP_PORT`      | SMTP server port.                          | Yes, for email to work | —       |
-| `SMTP_SECURE`    | Use TLS (typically `"true"` for port 465). | No                     | `false` |
-| `SMTP_USER`      | SMTP auth username.                        | Yes, for email to work | —       |
-| `SMTP_PASSWORD`  | SMTP auth password.                        | Yes, for email to work | —       |
-| `SMTP_FROM`      | "From" email address.                      | Yes, for email to work | —       |
-| `SMTP_FROM_NAME` | Display name in the "From" header.         | No                     | —       |
+| Variable         | Purpose                                             | Required               | Default |
+| ---------------- | --------------------------------------------------- | ---------------------- | ------- |
+| `SMTP_HOST`      | SMTP server host.                                   | Yes, for email to work | —       |
+| `SMTP_PORT`      | SMTP server port.                                   | No                     | `587`   |
+| `SMTP_SECURE`    | Use TLS (typically `"true"` for port 465).          | No                     | `false` |
+| `SMTP_USER`      | SMTP auth username. Omit for a server without AUTH. | No                     | —       |
+| `SMTP_PASSWORD`  | SMTP auth password.                                 | No                     | —       |
+| `SMTP_FROM`      | "From" email address.                               | Yes, for email to work | —       |
+| `SMTP_FROM_NAME` | Display name in the "From" header.                  | No                     | —       |
 
 If these are left unset, the app still starts fine — email sending will simply
-fail when triggered (e.g. a password-reset request).
+fail when triggered (e.g. a password-reset request). The server checks the SMTP
+connection at startup and logs a warning when it is unreachable.
+
+With a local mail catcher (maildev, mailpit…), set `SMTP_HOST=127.0.0.1` rather
+than `localhost`: the latter resolves to `::1` first while those tools bind IPv4
+only, which yields `connect ECONNREFUSED ::1:<port>`.
 
 ## Web push notifications (VAPID)
 

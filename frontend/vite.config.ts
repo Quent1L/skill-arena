@@ -84,7 +84,13 @@ export default defineConfig({
       // the dev server. None of these are ever served in dev.
       // shared/dist is deliberately NOT ignored: it is what @skol-arena/shared
       // resolves to, and watching it is what reloads the app after a shared rebuild.
-      ignored: ['**/coverage/**', '**/playwright-report/**', '**/test-results/**'],
+      ignored: [
+        '**/coverage/**',
+        '**/playwright-report/**',
+        '**/test-results/**',
+        '**/dev-dist/**',
+        '**/.code-review-graph/**',
+      ],
     },
   },
   optimizeDeps: {

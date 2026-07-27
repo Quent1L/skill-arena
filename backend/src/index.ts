@@ -23,6 +23,7 @@ import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
 import { createAppHonoOptional } from "./types/hono";
 import { webSocketService } from "./services/websocket.service";
+import { emailService } from "./services/email.service";
 import { userService } from "./services/user.service";
 import { startJobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
@@ -33,6 +34,18 @@ import { taskList } from "./workers/mmr-recalculation.worker";
 
 await runMigrations();
 await initializeAdminIfNeeded();
+
+// Non-blocking canary: surfaces a broken SMTP setup at boot instead of at the first
+// password reset. verifyConnection() swallows its own error and returns false.
+if (!process.env.SMTP_HOST) {
+  logger.warn("SMTP_HOST not set — password reset emails cannot be sent");
+} else {
+  void emailService.verifyConnection().then((ok) => {
+    if (!ok) {
+      logger.warn("SMTP unreachable — password reset emails will fail");
+    }
+  });
+}
 
 let workerRunner: Runner | null = null;
 try {

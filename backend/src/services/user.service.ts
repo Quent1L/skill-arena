@@ -6,9 +6,12 @@ import {
   ConflictError,
   ErrorCode,
   ForbiddenError,
+  InternalServerError,
   NotFoundError,
   UnauthorizedError,
 } from "../types/errors";
+import { logger } from "../utils/logger";
+import { withStrictEmailDelivery } from "../utils/email-delivery-context";
 import type {
   AdminArchiveUserInput,
   AdminRestoreUserInput,
@@ -213,12 +216,21 @@ export class UserService {
       }) => Promise<unknown>;
     };
 
-    await api.requestPasswordReset({
-      body: {
-        email: detail.email,
-        redirectTo: `${resolveFrontendUrl()}/reset-password`,
-      },
-    });
+    try {
+      await withStrictEmailDelivery(() =>
+        api.requestPasswordReset({
+          body: {
+            email: detail.email as string,
+            redirectTo: `${resolveFrontendUrl()}/reset-password`,
+          },
+        })
+      );
+    } catch (error) {
+      // Covers SMTP failures reported by the sendResetPassword hook as well as any
+      // Better Auth error: the admin must not be told the mail left when it did not.
+      logger.error({ err: error, targetId }, "Admin password reset failed");
+      throw new InternalServerError(ErrorCode.EMAIL_SEND_FAILED);
+    }
   }
 
   async deactivateUser(actorId: string, targetId: string) {

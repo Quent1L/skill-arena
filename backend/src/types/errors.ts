@@ -123,6 +123,9 @@ export enum ErrorCode {
   USER_ALREADY_ARCHIVED = "USER_ALREADY_ARCHIVED",
   USER_IS_ARCHIVED = "USER_IS_ARCHIVED",
   USER_NOT_ARCHIVED = "USER_NOT_ARCHIVED",
+
+  // Email delivery errors
+  EMAIL_SEND_FAILED = "EMAIL_SEND_FAILED",
 }
 
 // Base error class
