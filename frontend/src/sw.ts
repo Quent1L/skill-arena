@@ -52,8 +52,11 @@ self.addEventListener('push', (event: PushEvent) => {
   const options: NotificationOptions = {
     body: notification.message,
     data: { url: notification.actionUrl },
-    badge: '/skol-arena-logo.png',
-    icon: '/skol-arena-logo.png',
+    // The PWA icon, which is the only logo actually shipped in public/. The previous
+    // /skol-arena-logo.png never existed: the SPA fallback answered it with index.html,
+    // so the browser silently dropped the image and notifications came out bare.
+    badge: '/icons/icon-192x192.png',
+    icon: '/icons/icon-192x192.png',
   }
   console.log('[SW] Showing notification:', title, options)
   event.waitUntil(self.registration.showNotification(title, options))
