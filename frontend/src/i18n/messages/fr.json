@@ -1103,10 +1103,12 @@
   },
   "playerRelationStats": {
     "bestPartners": "Meilleurs partenaires",
+    "bestPartnersTooltip": "Classés par taux de victoires pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs joués ensemble. Un excellent taux sur 2 matchs ne remonte donc pas devant un bon taux sur 20.",
+    "confrontationCount": "{count} affrontement | {count} affrontements",
     "frequentPartners": "Partenaires fréquents",
-    "lossCount": "{count} défaite | {count} défaites",
     "matchCount": "{count} match | {count} matchs",
     "toughOpponents": "Adversaires difficiles",
+    "toughOpponentsTooltip": "Classés par taux de défaites pondéré par le nombre de matchs (taux × √matchs), à partir de {count} affrontements. L'adversaire le plus fréquent n'est donc pas forcément le plus redoutable.",
     "winRateSuffix": "% V"
   },
   "publicHomeView": {

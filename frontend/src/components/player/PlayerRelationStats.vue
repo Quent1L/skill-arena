@@ -24,8 +24,9 @@
     </div>
 
     <div v-if="bestPartners?.length" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+      <div class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
         {{ t('playerRelationStats.bestPartners') }}
+        <InfoTooltip :text="t('playerRelationStats.bestPartnersTooltip', { count: MIN_RELATION_MATCHES })" />
       </div>
       <div
         v-for="p in bestPartners"
@@ -41,23 +42,24 @@
             <span class="truncate block">{{ p.displayName }}</span>
           </div>
         </RouterLink>
-        <div class="flex items-center gap-3">
-          <span class="text-[10px] text-gray-500">{{ t('playerRelationStats.matchCount', { count: p.count }) }}</span>
-          <div class="text-right">
-            <div class="text-xs text-green-400">{{ p.count > 0 ? Math.round((p.wins / p.count) * 100) : 0 }}{{ t('playerRelationStats.winRateSuffix') }}</div>
-            <div
+        <div class="text-right shrink-0">
+          <div class="flex items-center justify-end gap-1.5">
+            <span class="text-xs text-green-400">{{ p.winRate }}{{ t('playerRelationStats.winRateSuffix') }}</span>
+            <span
               v-if="p.chemistryDelta !== undefined"
               class="text-[10px]"
               :class="p.chemistryDelta > 0 ? 'text-emerald-400' : p.chemistryDelta < 0 ? 'text-red-400' : 'text-gray-500'"
-            >{{ p.chemistryDelta > 0 ? '+' : '' }}{{ p.chemistryDelta }}%</div>
+            >{{ p.chemistryDelta > 0 ? '+' : '' }}{{ p.chemistryDelta }}%</span>
           </div>
+          <div class="text-[10px] text-gray-500">{{ t('playerRelationStats.matchCount', { count: p.count }) }}</div>
         </div>
       </div>
     </div>
 
     <div v-if="nemeses?.length" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
+      <div class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
         {{ t('playerRelationStats.toughOpponents') }}
+        <InfoTooltip :text="t('playerRelationStats.toughOpponentsTooltip', { count: MIN_RELATION_MATCHES })" />
       </div>
       <div
         v-for="p in nemeses"
@@ -71,7 +73,10 @@
           <PlayerAvatar :name="p.displayName" size="xs" shape="square" class="shrink-0" />
           <span class="truncate">{{ p.displayName }}</span>
         </RouterLink>
-        <span class="text-xs text-red-400">{{ t('playerRelationStats.lossCount', { count: p.losses }) }}</span>
+        <div class="text-right shrink-0">
+          <div class="text-xs text-red-400">{{ p.winRate }}{{ t('playerRelationStats.winRateSuffix') }}</div>
+          <div class="text-[10px] text-gray-500">{{ t('playerRelationStats.confrontationCount', { count: p.count }) }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -81,7 +86,11 @@
 import { useI18n } from 'vue-i18n'
 import type { PlayerRelationStat } from '@skol-arena/shared/types/index'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import InfoTooltip from '@/components/InfoTooltip.vue'
 import { playerLink } from '@/utils/player-link'
+
+/** Mirrors MIN_RELATION_MATCHES in backend/src/services/player-stats.service.ts */
+const MIN_RELATION_MATCHES = 3
 
 defineProps<{
   mostFrequentPartners?: PlayerRelationStat[]

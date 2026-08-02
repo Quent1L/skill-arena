@@ -18,6 +18,8 @@ export interface PlayerRelationStat {
   count: number;
   wins: number;
   losses: number;
+  /** Player's win rate in this relation, in percent (0-100), already rounded */
+  winRate: number;
   chemistryDelta?: number;
 }
 

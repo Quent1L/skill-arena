@@ -1103,10 +1103,12 @@
   },
   "playerRelationStats": {
     "bestPartners": "Best partners",
+    "bestPartnersTooltip": "Ranked by win rate weighted by match count (rate × √matches), from {count} matches played together. A perfect rate over 2 matches therefore stays behind a good rate over 20.",
+    "confrontationCount": "{count} encounter | {count} encounters",
     "frequentPartners": "Frequent partners",
-    "lossCount": "{count} loss | {count} losses",
     "matchCount": "{count} match(es)",
     "toughOpponents": "Tough opponents",
+    "toughOpponentsTooltip": "Ranked by loss rate weighted by match count (rate × √matches), from {count} encounters. The most frequent opponent is therefore not necessarily the toughest one.",
     "winRateSuffix": "% W"
   },
   "publicHomeView": {

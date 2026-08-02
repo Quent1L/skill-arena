@@ -428,6 +428,13 @@
       "when": 1777526400016,
       "tag": "0060_user_archiving",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1777526400017,
+      "tag": "0061_flush_player_stats_cache",
+      "breakpoints": true
     }
   ]
 }

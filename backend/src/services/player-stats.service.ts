@@ -137,6 +137,27 @@ function tallyRelations(
   return acc;
 }
 
+const MIN_RELATION_MATCHES = 3;
+const TOP_RELATIONS = 3;
+
+/**
+ * Ranks relations by success rate weighted by sample size (rate × √matches), so a
+ * single lucky match never outranks a long, consistently good record. Relations below
+ * MIN_RELATION_MATCHES are dropped entirely: an empty list hides the card client-side
+ * rather than advertising a statistic nobody should trust.
+ */
+export function rankRelationsByWeightedRate(
+  relations: PlayerRelationStat[],
+  rateOf: (r: PlayerRelationStat) => number,
+): PlayerRelationStat[] {
+  return relations
+    .filter((r) => r.count >= MIN_RELATION_MATCHES)
+    .map((r) => ({ relation: r, score: rateOf(r) * Math.sqrt(r.count) }))
+    .sort((a, b) => b.score - a.score || b.relation.count - a.relation.count)
+    .slice(0, TOP_RELATIONS)
+    .map((s) => s.relation);
+}
+
 function accumulateTournamentMatches(
   base: PlayerTournamentEntry,
   entryIds: string[],
@@ -503,7 +524,7 @@ export class PlayerStatsService {
     const partnerStats = tallyRelations(matchResults, entryToPlayers, (r) => r.entryId, playerId);
 
     const allPartners = Array.from(partnerStats.entries()).map(([id, s]): PlayerRelationStat => {
-      const winRateWith = s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0;
+      const winRate = s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0;
       return {
         playerId: id,
         displayName: s.displayName,
@@ -511,14 +532,12 @@ export class PlayerStatsService {
         count: s.count,
         wins: s.wins,
         losses: s.losses,
-        chemistryDelta: winRateWith - globalWinRate,
+        winRate,
+        chemistryDelta: winRate - globalWinRate,
       };
     });
-    const frequent = [...allPartners].sort((a, b) => b.count - a.count).slice(0, 3);
-    const best = [...allPartners]
-      .filter((p) => p.count > 0)
-      .sort((a, b) => (b.wins / b.count) - (a.wins / a.count))
-      .slice(0, 3);
+    const frequent = [...allPartners].sort((a, b) => b.count - a.count).slice(0, TOP_RELATIONS);
+    const best = rankRelationsByWeightedRate(allPartners, (p) => p.wins / p.count);
 
     return { frequent, best };
   }
@@ -534,10 +553,19 @@ export class PlayerStatsService {
 
     const nemesisStats = tallyRelations(matchResults, entryToPlayers, (r) => r.oppEntryId);
 
-    return Array.from(nemesisStats.entries())
-      .map(([id, s]) => ({ playerId: id, displayName: s.displayName, shortName: s.shortName, count: s.count, wins: s.wins, losses: s.losses }))
-      .sort((a, b) => b.losses - a.losses)
-      .slice(0, 3);
+    // wins/losses are counted from the subject player's point of view, so a nemesis is an
+    // opponent with a high loss rate — not merely the one met most often.
+    const allOpponents = Array.from(nemesisStats.entries()).map(([id, s]): PlayerRelationStat => ({
+      playerId: id,
+      displayName: s.displayName,
+      shortName: s.shortName,
+      count: s.count,
+      wins: s.wins,
+      losses: s.losses,
+      winRate: s.count > 0 ? Math.round((s.wins / s.count) * 100) : 0,
+    }));
+
+    return rankRelationsByWeightedRate(allOpponents, (o) => o.losses / o.count);
   }
 
   private async buildTournamentHistory(
