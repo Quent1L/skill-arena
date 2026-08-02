@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.18.0](https://github.com/Quent1L/skol-arena/compare/1.17.0...1.18.0) (2026-08-02)
+
+### ✨ New Features
+
+* **admin:** user management dashboard with archiving ([28412c2](https://github.com/Quent1L/skol-arena/commit/28412c28e0e5a42ffca02441662fc4b85243b49d))
+* **player-mmr:** add match-count filter to MMR chart ([0492948](https://github.com/Quent1L/skol-arena/commit/0492948ae197e014d013405d60a5b43b88a485a8))
+* **player-stats:** weight best partners and nemeses by match count ([d7e692f](https://github.com/Quent1L/skol-arena/commit/d7e692f7e325094a0b57ef2737dd1e296f62b030))
+* **ranked:** add peak MMR and weekly MMR stats ([d7ed63d](https://github.com/Quent1L/skol-arena/commit/d7ed63db192556da777798f8197b27d4ce8bb73c))
+* **tournament-stats:** rank outcome types by volume and rate ([9bfdd00](https://github.com/Quent1L/skol-arena/commit/9bfdd0020d89d368e16cab6b149bb2715fd88c2c))
+
+### 🐛 Bug Fixes
+
+* **cache:** flush stale names on player rename ([18b5ed7](https://github.com/Quent1L/skol-arena/commit/18b5ed77d70d80f8b411a98111fd8bf655348c58))
+* **email:** surface SMTP failures on admin password reset ([06fc05b](https://github.com/Quent1L/skol-arena/commit/06fc05bf9962e6f8ed336e3930e4bab9c0a05720))
+* **notifications:** use the shipped icon for push payloads ([64394c5](https://github.com/Quent1L/skol-arena/commit/64394c52bf92d27577f04a365644dca625846f35))
+* **pwa:** precache fonts so icons survive a deploy ([39d00c7](https://github.com/Quent1L/skol-arena/commit/39d00c7fe98514ec1f65bd879eb4bc8258f138e0))
+
+### 🔧 Maintenance
+
+* **deps:** pin typescript to 6.x ([9b2bbf9](https://github.com/Quent1L/skol-arena/commit/9b2bbf9f51d76fab611419f32f724ff93080b53b))
+* **frontend:** stop watching generated artifacts in dev ([83df8cc](https://github.com/Quent1L/skol-arena/commit/83df8cc036be66fb0adea0afcfb41600e04afd83))
+
+### 🎨 Style
+
+* **stats:** redesign match outcome distribution layout ([73e7c70](https://github.com/Quent1L/skol-arena/commit/73e7c70216c9da7b56ce7e39700337610741c527))
+* **tournament-stats:** collapse streak lists to top 3 ([294b17d](https://github.com/Quent1L/skol-arena/commit/294b17d718042a8662a693f4a48851a75c3f62c2))
+
 ## [1.17.0](https://github.com/Quent1L/skol-arena/compare/1.16.0...1.17.0) (2026-07-19)
 
 ### ✨ New Features
