@@ -30,7 +30,7 @@ describe("i18n-context", () => {
   });
 
   it("resolves the request language from Accept-Language and exposes it downstream", async () => {
-    const app = new Hono();
+    const app = new Hono<{ Variables: { lang: string } }>();
     app.use("*", i18nMiddleware);
     app.get("/lang", (c) => c.json({ inHandler: currentLang(), fromContext: c.get("lang") }));
 
@@ -50,13 +50,13 @@ describe("i18n-context", () => {
   });
 
   it("still sees the request language inside the error handler", async () => {
-    let langSeenByErrorHandler: string | null = null;
+    const seen: { lang: string | null } = { lang: null };
     const app = new Hono();
     app.use("*", i18nMiddleware);
     app.onError((err, c) => {
       // The handler runs after the throw unwinds the chain — the assertion is
       // that the async context survives that unwind.
-      langSeenByErrorHandler = currentLang();
+      seen.lang = currentLang();
       return errorHandler(err, c);
     });
     app.get("/boom", () => {
@@ -65,6 +65,6 @@ describe("i18n-context", () => {
 
     await app.request("/boom", { headers: { "Accept-Language": "en" } });
 
-    expect(langSeenByErrorHandler).toBe("en");
+    expect(seen.lang).toBe("en");
   });
 });
