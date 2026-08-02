@@ -24,7 +24,6 @@ declare module 'vue' {
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
     Checkbox: typeof import('primevue/checkbox')['default']
-    Chip: typeof import('primevue/chip')['default']
     Column: typeof import('primevue/column')['default']
     CompositionStep: typeof import('./src/components/match/steps/CompositionStep.vue')['default']
     ConditionBuilder: typeof import('./src/components/rules/ConditionBuilder.vue')['default']
@@ -119,6 +118,7 @@ declare module 'vue' {
     TournamentParticipantsList: typeof import('./src/components/tournament/TournamentParticipantsList.vue')['default']
     UpdateOverlay: typeof import('./src/components/UpdateOverlay.vue')['default']
     ValidationModeSection: typeof import('./src/components/forms/sections/ValidationModeSection.vue')['default']
+    WeeklyMmrLeaders: typeof import('./src/components/ranked/WeeklyMmrLeaders.vue')['default']
     WhenStep: typeof import('./src/components/match/steps/WhenStep.vue')['default']
   }
   export interface GlobalDirectives {

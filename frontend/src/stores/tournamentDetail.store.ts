@@ -39,6 +39,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const rankedTiers = rankedSvc.tiers
   const playerMmr = rankedSvc.playerMmr
   const playerOpponentQuality = rankedSvc.playerOpponentQuality
+  const weeklyMmrLeaders = rankedSvc.weeklyMmrLeaders
   const rankedLoading = rankedSvc.loading
   const rankedProvisionalLoading = rankedSvc.provisionalLoading
   const tournamentStats = statsSvc.stats
@@ -179,6 +180,15 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
   }
 
+  // MMR only exists in ranked seasons, so the weekly ranking is fetched on demand
+  // rather than bundled into the (cached, mode-agnostic) tournament stats payload.
+  async function ensureWeeklyMmrLeaders() {
+    if (tournament.value?.mode !== 'ranked') return
+    if (!weeklyMmrLeaders.value) {
+      await rankedSvc.loadWeeklyMmrLeaders(tournamentId.value)
+    }
+  }
+
   async function reloadPlayerProfile() {
     if (!appUser.value?.id) return
     const [chartHistory] = await Promise.all([
@@ -202,6 +212,9 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
     if (tournamentStats.value !== null) {
       promises.push(reloadStats())
+    }
+    if (weeklyMmrLeaders.value !== null) {
+      promises.push(rankedSvc.loadWeeklyMmrLeaders(tournamentId.value))
     }
     await Promise.all(promises)
   }
@@ -249,6 +262,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     isLeaderboardRecalculating,
     profileChartHistory,
     playerLeaderboardRank,
+    weeklyMmrLeaders,
     // Tournament stats
     tournamentStats,
     tournamentStatsLoading,
@@ -273,6 +287,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     ensureLeaderboard,
     ensurePlayerProfile,
     ensureStats,
+    ensureWeeklyMmrLeaders,
     reloadTournament,
     reloadStats,
     reloadLeaderboard,

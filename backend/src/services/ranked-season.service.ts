@@ -12,6 +12,8 @@ import type {
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
   TournamentStatus,
+  WeeklyMmrLeader,
+  WeeklyMmrLeaders,
 } from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
@@ -30,6 +32,37 @@ interface ProvisionalReplayCtx {
   kFactor: number;
   provisionalMmr: Map<string, number>;
   provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
+}
+
+export const TOP_WEEKLY_GAINERS = 3;
+export const TOP_WEEKLY_LOSERS = 3;
+
+// Splits per-player net MMR variations into the best climbers and the biggest
+// drops. Players who broke even over the window belong to neither list.
+export function splitWeeklyMmrLeaders(
+  rows: WeeklyMmrLeader[],
+  topGainers = TOP_WEEKLY_GAINERS,
+  topLosers = TOP_WEEKLY_LOSERS,
+): { gainers: WeeklyMmrLeader[]; losers: WeeklyMmrLeader[] } {
+  const gainers = rows
+    .filter((r) => r.mmrGained > 0)
+    .sort((a, b) => b.mmrGained - a.mmrGained)
+    .slice(0, topGainers);
+  const losers = rows
+    .filter((r) => r.mmrGained < 0)
+    .sort((a, b) => a.mmrGained - b.mmrGained)
+    .slice(0, topLosers);
+  return { gainers, losers };
+}
+
+// Monday 00:00 UTC of the week containing `now`. Only a fallback: clients send
+// their own local week boundary so the profile tile and this ranking agree.
+export function startOfWeekUtc(now: Date): Date {
+  const start = new Date(now);
+  start.setUTCHours(0, 0, 0, 0);
+  const daysSinceMonday = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+  return start;
 }
 
 function countLeadingWins(results: { outcome: string }[]): number {
@@ -301,6 +334,13 @@ export class RankedSeasonService {
         maxLossStreak: 0,
       });
     }
+  }
+
+  // Deliberately uncached: the computed_data cache is only invalidated on match
+  // finalization, so it would keep serving last week's ranking after a rollover.
+  async getWeeklyMmrLeaders(seasonId: string, from: Date): Promise<WeeklyMmrLeaders> {
+    const rows = await playerMmrRepository.getMmrDeltasSince(seasonId, from);
+    return { weekStart: from, ...splitWeeklyMmrLeaders(rows) };
   }
 
   async computeAndCacheOfficial(seasonId: string): Promise<void> {

@@ -92,6 +92,47 @@
         </div>
         <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.currentStreak') }}</div>
       </div>
+      <!-- Wider labels than the tiles above, so they get half the row each -->
+      <div class="col-span-3 grid grid-cols-2 gap-3">
+        <div class="rounded-xl p-3 text-center bg-gray-800" data-test="peak-tile">
+          <div class="flex items-center justify-center gap-2">
+            <i
+              v-if="peakTier"
+              :class="[peakTierIcon, peakTierTextClass]"
+              class="text-lg"
+              :title="peakTier.name"
+            />
+            <span class="text-xl font-black text-white tabular-nums">
+              {{ peakMmr !== null ? peakMmr.toLocaleString('fr-FR') : '—' }}
+            </span>
+          </div>
+          <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.peakLabel') }}</div>
+        </div>
+        <div class="rounded-xl p-3 text-center bg-gray-800" data-test="weekly-tile">
+          <div
+            class="text-xl font-black tabular-nums"
+            :class="
+              weekly.matchesPlayed === 0
+                ? 'text-gray-500'
+                : weekly.mmrGained >= 0
+                  ? 'text-green-400'
+                  : 'text-red-400'
+            "
+          >
+            {{
+              weekly.matchesPlayed === 0
+                ? '—'
+                : `${weekly.mmrGained > 0 ? '+' : ''}${weekly.mmrGained}`
+            }}
+          </div>
+          <div class="text-xs text-gray-400 mt-0.5">
+            {{ t('playerMmrProfile.weeklyMmrLabel') }}
+            <span v-if="weekly.matchesPlayed > 0" class="text-gray-500">
+              · {{ t('playerMmrProfile.weeklyMmrMatches', weekly.matchesPlayed) }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- W/L + max streaks -->
@@ -265,9 +306,17 @@ import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import PlayerBadges from '@/components/player/PlayerBadges.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
-import { getLp, isTopTier, TIER_SIZE } from '@/composables/ranked/ranked.service'
 import {
-  TIER_ICON,
+  getLp,
+  isTopTier,
+  TIER_SIZE,
+  getTierForMmr,
+  getPeakMmr,
+  getWeeklyMmrGain,
+  getCurrentWeekStart,
+} from '@/composables/ranked/ranked.service'
+import {
+  getTierIconClass,
   TIER_TEXT_CLASS as TIER_TEXT,
   TIER_ICON_BG_CLASS as ICON_BG,
   TIER_CARD_BG_CLASS as CARD_BG,
@@ -303,14 +352,23 @@ const props = defineProps<{
 
 const showDraws = computed(() => props.allowDraw === true || props.mmr.draws > 0)
 
-const rank = computed((): ClientRankTier | null => {
-  if (!props.tiers.length) return null
-  const mmr = props.mmr.currentMmr
-  return (
-    [...props.tiers].sort((a, b) => b.level - a.level).find((tier) => mmr >= tier.minMmr) ??
-    props.tiers[0]
-  )
+const rank = computed(() => getTierForMmr(props.mmr.currentMmr, props.tiers))
+
+const peakMmr = computed(() => {
+  const peak = getPeakMmr(props.history ?? [])
+  // No history yet: the current MMR is, by definition, the highest reached.
+  return peak ?? (props.mmr.matchesPlayed > 0 ? props.mmr.currentMmr : null)
 })
+
+const peakTier = computed(() =>
+  peakMmr.value === null ? null : getTierForMmr(peakMmr.value, props.tiers),
+)
+
+const peakTierTextClass = computed(() => TIER_TEXT[styleIdx(peakTier.value)])
+
+const peakTierIcon = computed(() => getTierIconClass(peakTier.value))
+
+const weekly = computed(() => getWeeklyMmrGain(props.history ?? [], getCurrentWeekStart()))
 
 const mmrDelta = computed(() => {
   if (props.initialMmr === undefined) return null
@@ -350,7 +408,7 @@ const nextTierTextClass = computed(() =>
 const progressBarClass = computed(() =>
   lpProgress.value ? PROGRESS_BAR[styleIdx(rank.value)] : '',
 )
-const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
+const tierIcon = computed(() => getTierIconClass(rank.value))
 
 const allChartPoints = computed(() => props.history ?? [])
 

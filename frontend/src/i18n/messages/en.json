@@ -1085,9 +1085,12 @@
     "mmrProgression": "MMR progression",
     "opponentLevelTooltip": "Based on MMR gap:<br>Strong = +100<br>Close = ±100<br>Weak = −100",
     "outcomeDistribution": "Match outcome distribution",
+    "peakLabel": "Highest MMR this season",
     "vsEqual": "Close",
     "vsStronger": "Stronger",
     "vsWeaker": "Weaker",
+    "weeklyMmrLabel": "MMR this week",
+    "weeklyMmrMatches": "{count} match | {count} matches",
     "winrateByOpponentLevel": "Win rate by opponent level",
     "winrateLabel": "Win rate",
     "winsDrawsLosses": "Wins / Draws / Losses",
@@ -1210,6 +1213,7 @@
       "loadSeasonFailed": "Error loading season",
       "loadSeasonsFailed": "Error loading seasons",
       "loadTiersFailed": "Error loading tiers",
+      "loadWeeklyMmrFailed": "Error loading this week's ranking",
       "recalculateTiersFailed": "Error recalculating tiers",
       "startSeasonFailed": "Error starting season",
       "updateSeasonFailed": "Error updating season",
@@ -1994,6 +1998,13 @@
       "vulnerabilityTooltip": "Ranked by loss rate weighted by match count (rate × √matches), from {count} matches on this outcome type. A perfect rate over 3 matches therefore stays behind a high rate over 30.",
       "winCount": "{count} win | {count} wins",
       "winners": "Winners"
+    },
+    "weeklyMmr": {
+      "empty": "No data",
+      "gainers": "Biggest climbers",
+      "losers": "Biggest drops",
+      "matchCount": "{count} match | {count} matches",
+      "title": "This week"
     },
     "winStreaks": {
       "consecutiveWins": "consecutive wins",

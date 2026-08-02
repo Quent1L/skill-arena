@@ -10,6 +10,7 @@ import type {
   ClientTournamentSummary,
   OpponentQualityStats,
   MmrChartPoint,
+  WeeklyMmrLeaders,
 } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
@@ -114,6 +115,13 @@ export const rankedApi = {
   async getPlayerMmr(seasonId: string, playerId: string): Promise<PlayerMmrResponse> {
     const response = await http.get<PlayerMmrResponse>(
       `${BASE_URL}/seasons/${seasonId}/players/${playerId}`,
+    )
+    return response.data
+  },
+
+  async getWeeklyMmrLeaders(seasonId: string, from: string): Promise<WeeklyMmrLeaders> {
+    const response = await http.get<WeeklyMmrLeaders>(
+      `${BASE_URL}/seasons/${seasonId}/weekly-mmr?from=${encodeURIComponent(from)}`,
     )
     return response.data
   },

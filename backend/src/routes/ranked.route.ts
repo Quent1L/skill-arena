@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { rankedSeasonService } from "../services/ranked-season.service";
+import { rankedSeasonService, startOfWeekUtc } from "../services/ranked-season.service";
 import { mmrAnimationEventService } from "../services/mmr-animation-event.service";
 import { rulesService } from "../services/rules.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
@@ -207,6 +207,25 @@ ranked.get("/seasons/:id/players/:playerId/history", async (c) => {
   const enriched = history.map((h) => ({ ...h, sides: sidesMap.get(h.matchId) ?? [] }));
   return c.json(enriched);
 });
+
+// GET /ranked/seasons/:id/weekly-mmr - Best MMR climbers / drops of the week
+ranked.get(
+  "/seasons/:id/weekly-mmr",
+  zValidator("query", z.object({ from: z.string().datetime().optional() })),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const season = await rankedSeasonRepository.getSeasonWithConfig(id);
+    if (!season) {
+      throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
+    }
+    // Clients send their own local Monday so the player tile and this ranking
+    // share the exact same boundary; the UTC week is only a fallback.
+    const { from } = c.req.valid("query");
+    const weekStart = from ? new Date(from) : startOfWeekUtc(new Date());
+    const leaders = await rankedSeasonService.getWeeklyMmrLeaders(id, weekStart);
+    return c.json(leaders);
+  },
+);
 
 // GET /ranked/seasons/:id/animation-events/pending - Get pending MMR animation events
 ranked.get("/seasons/:id/animation-events/pending", requireAuth, async (c) => {

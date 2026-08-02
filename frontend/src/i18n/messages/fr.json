@@ -1085,9 +1085,12 @@
     "mmrProgression": "Progression MMR",
     "opponentLevelTooltip": "Basé sur l'écart de MMR :<br>Forts = +100<br>Proches = ±100<br>Faibles = −100",
     "outcomeDistribution": "Répartition des fins de match",
+    "peakLabel": "Plus haut MMR cette saison",
     "vsEqual": "Proches",
     "vsStronger": "Plus forts",
     "vsWeaker": "Plus faibles",
+    "weeklyMmrLabel": "MMR cette semaine",
+    "weeklyMmrMatches": "{count} match | {count} matchs",
     "winrateByOpponentLevel": "Win rate par niveau d'adversaire",
     "winrateLabel": "Winrate",
     "winsDrawsLosses": "Victoires / Nuls / Défaites",
@@ -1210,6 +1213,7 @@
       "loadSeasonFailed": "Erreur lors du chargement de la saison",
       "loadSeasonsFailed": "Erreur lors du chargement des saisons",
       "loadTiersFailed": "Erreur lors du chargement des rangs",
+      "loadWeeklyMmrFailed": "Erreur lors du chargement du classement de la semaine",
       "recalculateTiersFailed": "Erreur lors du recalcul des rangs",
       "startSeasonFailed": "Erreur lors du démarrage de la saison",
       "updateSeasonFailed": "Erreur lors de la mise à jour de la saison",
@@ -1994,6 +1998,13 @@
       "vulnerabilityTooltip": "Classement par taux de défaite pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs sur ce type de résultat. Un 100 % sur 3 matchs reste donc derrière un 90 % sur 30.",
       "winCount": "{count} victoire | {count} victoires",
       "winners": "Gagnants"
+    },
+    "weeklyMmr": {
+      "empty": "Aucune donnée",
+      "gainers": "Meilleures progressions",
+      "losers": "Plus grosses chutes",
+      "matchCount": "{count} match | {count} matchs",
+      "title": "Cette semaine"
     },
     "winStreaks": {
       "consecutiveWins": "victoires consécutives",

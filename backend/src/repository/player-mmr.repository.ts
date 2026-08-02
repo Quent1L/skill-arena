@@ -1,7 +1,7 @@
 import { eq, and, or, desc, asc, sql, inArray, lt, gte, gt } from "drizzle-orm";
 import { db } from "../config/database";
-import { playerMmr, mmrHistory, matches, matchSides } from "../db/schema";
-import type { MmrHistoryOutcome, OpponentQualityStats } from "@skol-arena/shared";
+import { playerMmr, mmrHistory, matches, matchSides, appUsers } from "../db/schema";
+import type { MmrHistoryOutcome, OpponentQualityStats, WeeklyMmrLeader } from "@skol-arena/shared";
 
 export interface UpsertPlayerMmrData {
   seasonId: string;
@@ -163,6 +163,7 @@ export class PlayerMmrRepository {
   async getMmrChartSeries(seasonId: string, playerId: string) {
     return await db
       .select({
+        mmrBefore: mmrHistory.mmrBefore,
         mmrAfter: mmrHistory.mmrAfter,
         mmrDelta: mmrHistory.mmrDelta,
         outcome: mmrHistory.outcome,
@@ -439,6 +440,24 @@ export class PlayerMmrRepository {
   async createMmrHistoryBatch(rows: CreateMmrHistoryData[]): Promise<void> {
     if (rows.length === 0) return;
     await db.insert(mmrHistory).values(rows);
+  }
+
+  // Net MMR variation per player over a time window. mmr_history has no timestamp
+  // of its own, so the window is applied on matches.playedAt through the join.
+  async getMmrDeltasSince(seasonId: string, from: Date): Promise<WeeklyMmrLeader[]> {
+    return await db
+      .select({
+        playerId: mmrHistory.playerId,
+        displayName: appUsers.displayName,
+        shortName: appUsers.shortName,
+        mmrGained: sql<number>`SUM(${mmrHistory.mmrDelta})::int`,
+        matchesPlayed: sql<number>`COUNT(*)::int`,
+      })
+      .from(mmrHistory)
+      .innerJoin(matches, eq(mmrHistory.matchId, matches.id))
+      .innerJoin(appUsers, eq(mmrHistory.playerId, appUsers.id))
+      .where(and(eq(mmrHistory.seasonId, seasonId), gte(matches.playedAt, from)))
+      .groupBy(mmrHistory.playerId, appUsers.displayName, appUsers.shortName);
   }
 
   async getOpponentQualityStats(seasonId: string, playerId: string): Promise<OpponentQualityStats> {

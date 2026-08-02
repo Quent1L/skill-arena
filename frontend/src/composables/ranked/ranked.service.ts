@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { startOfWeek } from 'date-fns'
 import { i18n } from '@/i18n'
 import { rankedApi } from './ranked.api'
 import type { RankedSeason, FinishedSeasonSummary } from './ranked.api'
@@ -14,8 +15,41 @@ import type {
   ClientRankTier,
   ClientTournamentSummary,
   OpponentQualityStats,
+  MmrChartPoint,
+  WeeklyMmrLeaders,
 } from '@skol-arena/shared/types/index'
 import { formDataToApiPayload } from '@skol-arena/shared/types/index'
+
+export function getTierForMmr(mmr: number, allTiers: ClientRankTier[]): ClientRankTier | null {
+  if (!allTiers.length) return null
+  return (
+    [...allTiers].sort((a, b) => b.level - a.level).find((tier) => mmr >= tier.minMmr) ?? allTiers[0]
+  )
+}
+
+// Highest MMR reached over the season. Seeded with the starting MMR of the first
+// match so a player who only ever lost still peaks at their entry level.
+export function getPeakMmr(history: MmrChartPoint[]): number | null {
+  if (!history.length) return null
+  return history.reduce((peak, point) => Math.max(peak, point.mmrAfter), history[0].mmrBefore)
+}
+
+export function getWeeklyMmrGain(
+  history: MmrChartPoint[],
+  weekStart: Date,
+): { mmrGained: number; matchesPlayed: number } {
+  const from = weekStart.getTime()
+  const played = history.filter((point) => new Date(point.playedAt).getTime() >= from)
+  return {
+    mmrGained: played.reduce((sum, point) => sum + point.mmrDelta, 0),
+    matchesPlayed: played.length,
+  }
+}
+
+// Monday 00:00, local time — the week the player actually lives in.
+export function getCurrentWeekStart(now: Date = new Date()): Date {
+  return startOfWeek(now, { weekStartsOn: 1 })
+}
 
 export function getSubRank(mmr: number, tier: ClientRankTier, allTiers: ClientRankTier[]): number | null {
   if (tier.subRanks <= 1) return null
@@ -70,6 +104,7 @@ export function useRankedService() {
   const playerMmr = ref<ClientPlayerMmr | null>(null)
   const playerOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
   const playerHistory = ref<ClientMmrHistoryEntry[]>([])
+  const weeklyMmrLeaders = ref<WeeklyMmrLeaders | null>(null)
   const finishedSeasons = ref<FinishedSeasonSummary[]>([])
   const playerHistoryHasMore = ref(false)
   const playerHistoryOffset = ref(0)
@@ -328,8 +363,24 @@ export function useRankedService() {
   }
 
   function getRank(mmr: number, tierList: ClientRankTier[]): ClientRankTier | null {
-    if (!tierList.length) return null
-    return [...tierList].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tierList[0]
+    return getTierForMmr(mmr, tierList)
+  }
+
+  async function loadWeeklyMmrLeaders(seasonId: string) {
+    loading.value = true
+    error.value = null
+    try {
+      weeklyMmrLeaders.value = await rankedApi.getWeeklyMmrLeaders(
+        seasonId,
+        getCurrentWeekStart().toISOString(),
+      )
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : i18n.global.t('rankedService.errors.loadWeeklyMmrFailed')
+      weeklyMmrLeaders.value = null
+    } finally {
+      loading.value = false
+    }
   }
 
   async function loadFinishedSeasons() {
@@ -353,6 +404,7 @@ export function useRankedService() {
     playerMmr,
     playerOpponentQuality,
     playerHistory,
+    weeklyMmrLeaders,
     finishedSeasons,
     loading,
     provisionalLoading,
@@ -368,6 +420,7 @@ export function useRankedService() {
     loadPlayerMmr,
     loadPlayerHistory,
     loadMoreHistory,
+    loadWeeklyMmrLeaders,
     playerHistoryHasMore,
     getRank,
     loadFinishedSeasons,

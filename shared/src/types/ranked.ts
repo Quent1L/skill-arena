@@ -44,10 +44,26 @@ export interface PlayerMmr {
 export type MmrHistoryOutcome = 'win' | 'loss' | 'draw';
 
 export interface MmrChartPoint {
+  mmrBefore: number;
   mmrAfter: number;
   mmrDelta: number;
   outcome?: MmrHistoryOutcome | null;
   playedAt: Date;
+}
+
+// Net MMR variation of a player over a time window (a calendar week today).
+export interface WeeklyMmrLeader {
+  playerId: string;
+  displayName: string;
+  shortName: string;
+  mmrGained: number;
+  matchesPlayed: number;
+}
+
+export interface WeeklyMmrLeaders {
+  weekStart: Date;
+  gainers: WeeklyMmrLeader[];
+  losers: WeeklyMmrLeader[];
 }
 
 export interface MmrHistoryEntry {

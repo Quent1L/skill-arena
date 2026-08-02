@@ -15,6 +15,21 @@
 
     <template v-else-if="store.tournamentStats">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Weekly MMR movers (ranked seasons only) -->
+        <div
+          v-if="hasWeeklyMmr"
+          class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+        >
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="fa fa-calendar-week mr-2 text-cyan-500" />
+            {{ t('tournamentStatsTab.weeklyMmr.title') }}
+          </h2>
+          <WeeklyMmrLeaders
+            :gainers="store.weeklyMmrLeaders!.gainers"
+            :losers="store.weeklyMmrLeaders!.losers"
+            :tournament-id="store.tournament?.id"
+          />
+        </div>
         <!-- Match outcome breakdown -->
         <div
           v-if="hasOutcomeTypes"
@@ -51,7 +66,9 @@
           <div v-if="isMounted && momentumChartData" class="h-48">
             <Chart type="line" :data="momentumChartData" :options="lineOptions" class="h-full" />
           </div>
-          <p v-else class="text-gray-500 dark:text-gray-400 text-sm">{{ t('tournamentStatsTab.activity.empty') }}</p>
+          <p v-else class="text-gray-500 dark:text-gray-400 text-sm">
+            {{ t('tournamentStatsTab.activity.empty') }}
+          </p>
         </div>
 
         <!-- Best team (flex only) -->
@@ -86,7 +103,9 @@
               <span class="font-bold text-orange-600 dark:text-orange-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.winStreaks.consecutiveWins') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                t('tournamentStatsTab.winStreaks.consecutiveWins')
+              }}</span>
             </div>
           </div>
         </div>
@@ -113,7 +132,9 @@
               <span class="font-bold text-red-600 dark:text-red-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.lossStreaks.consecutiveLosses') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                t('tournamentStatsTab.lossStreaks.consecutiveLosses')
+              }}</span>
             </div>
           </div>
         </div>
@@ -140,7 +161,9 @@
               <span class="font-bold text-blue-600 dark:text-blue-400 text-lg">{{
                 entry.currentStreak
               }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('tournamentStatsTab.invincibleStreaks.unbeatenMatches') }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                t('tournamentStatsTab.invincibleStreaks.unbeatenMatches')
+              }}</span>
             </div>
           </div>
         </div>
@@ -215,6 +238,7 @@ import { formatDate } from 'date-fns'
 import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import OutcomeTypeFunStats from '@/components/stats/OutcomeTypeFunStats.vue'
+import WeeklyMmrLeaders from '@/components/ranked/WeeklyMmrLeaders.vue'
 
 const store = useTournamentDetailStore()
 const { t } = useI18n()
@@ -222,7 +246,7 @@ const { t } = useI18n()
 const isMounted = ref(false)
 
 onMounted(async () => {
-  await store.ensureStats()
+  await Promise.all([store.ensureStats(), store.ensureWeeklyMmrLeaders()])
   await nextTick()
   isMounted.value = true
 })
@@ -265,6 +289,11 @@ const lineOptions = {
     point: { radius: 3 },
   },
 }
+
+const hasWeeklyMmr = computed(() => {
+  const weekly = store.weeklyMmrLeaders
+  return !!weekly && (weekly.gainers.length > 0 || weekly.losers.length > 0)
+})
 
 const hasOutcomeTypes = computed(() =>
   (store.tournamentStats?.outcomeDistribution ?? []).some((o) => o.outcomeTypeName),
