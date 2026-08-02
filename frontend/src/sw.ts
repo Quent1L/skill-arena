@@ -1,8 +1,12 @@
 /// <reference lib="webworker" />
 
-import { precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 
 declare const self: ServiceWorkerGlobalScope
+
+// Drops the precaches left by previous versions on activation. Without it every
+// deployment strands a full copy of the bundle — fonts included — in storage forever.
+cleanupOutdatedCaches()
 
 // Precache and route assets
 precacheAndRoute(self.__WB_MANIFEST)

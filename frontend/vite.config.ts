@@ -41,7 +41,11 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // Fonts belong in the precache alongside the CSS that references them. Left out,
+        // they are the only asset a page still served by the previous worker fetches from
+        // the network — where their content-hashed filename no longer exists after a
+        // deployment that changed the font bytes. Icons then render as tofu until reload.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
       },
       devOptions: {
         // Disabled during e2e runs: the dev service worker caches bundles and

@@ -189,9 +189,36 @@ app.get(
 // Only serve if FRONTEND_BUILD_PATH is configured
 const frontendBuildPath = process.env.FRONTEND_BUILD_PATH;
 let _indexHtmlCache: string | null = null;
+/** Everything vite emits under /assets/ carries a content hash, so it can never go stale. */
+const HASHED_ASSET_PATH = /^\/assets\//;
+
 if (frontendBuildPath) {
   // Serve static assets (JS, CSS, images…) — serveStatic calls next() when file not found
-  app.use("/*", serveStatic({ root: frontendBuildPath }));
+  app.use(
+    "/*",
+    serveStatic({
+      root: frontendBuildPath,
+      onFound: (_path, c) => {
+        // index.html, sw.js, manifest.webmanifest and version.json must revalidate on every
+        // load, otherwise a client can stay pinned to a deployment it has already replaced.
+        c.header(
+          "Cache-Control",
+          HASHED_ASSET_PATH.test(c.req.path)
+            ? "public, max-age=31536000, immutable"
+            : "no-cache"
+        );
+      }
+    })
+  );
+
+  // Reaching this point for a hashed asset means the file is genuinely gone (usually a client
+  // still running a previous deployment). Answering with the SPA shell hands the browser HTML
+  // where it expects a font or a script: fonts then fail to decode and render as tofu, and
+  // scripts surface as "Unexpected token '<'". Fail honestly instead.
+  app.use("/*", async (c, next) => {
+    if (HASHED_ASSET_PATH.test(c.req.path)) return c.text("Not found", 404);
+    return next();
+  });
 
   // SPA fallback: all unmatched routes serve index.html (cached in memory)
   app.use("/*", async (c) => {
@@ -203,6 +230,7 @@ if (frontendBuildPath) {
       }
       _indexHtmlCache = await indexFile.text();
     }
+    c.header("Cache-Control", "no-cache");
     return c.html(_indexHtmlCache);
   });
 } else {
