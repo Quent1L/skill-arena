@@ -316,6 +316,8 @@
     "name": "Name",
     "no": "No",
     "save": "Save",
+    "showLess": "Show less",
+    "showMore": "Show {count} more",
     "status": "Status",
     "success": "Success",
     "update": "Update",

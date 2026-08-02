@@ -101,6 +101,7 @@ declare module 'vue' {
     StatsFiltersBar: typeof import('./src/components/player/StatsFiltersBar.vue')['default']
     StepPanel: typeof import('primevue/steppanel')['default']
     Stepper: typeof import('primevue/stepper')['default']
+    StreakLeadersCard: typeof import('./src/components/stats/StreakLeadersCard.vue')['default']
     Tag: typeof import('primevue/tag')['default']
     TeamManagementPanel: typeof import('./src/components/tournament/TeamManagementPanel.vue')['default']
     TeamPreview: typeof import('./src/components/match/TeamPreview.vue')['default']

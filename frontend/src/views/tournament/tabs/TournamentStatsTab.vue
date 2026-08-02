@@ -82,91 +82,34 @@
         />
 
         <!-- Win streaks -->
-        <div
+        <StreakLeadersCard
           v-if="store.tournamentStats.winStreaks.length"
-          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
-        >
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
-            <i class="fa fa-fire mr-2 text-orange-500" />
-            {{ t('tournamentStatsTab.winStreaks.title') }}
-          </h2>
-          <div class="space-y-2">
-            <div
-              v-for="entry in store.tournamentStats.winStreaks"
-              :key="entry.playerId"
-              class="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800"
-            >
-              <i class="fa fa-fire text-orange-500 text-lg" />
-              <span class="flex-1 font-medium text-gray-900 dark:text-white">{{
-                entry.displayName
-              }}</span>
-              <span class="font-bold text-orange-600 dark:text-orange-400 text-lg">{{
-                entry.currentStreak
-              }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                t('tournamentStatsTab.winStreaks.consecutiveWins')
-              }}</span>
-            </div>
-          </div>
-        </div>
+          :title="t('tournamentStatsTab.winStreaks.title')"
+          icon="fa fa-fire"
+          variant="orange"
+          :entries="store.tournamentStats.winStreaks"
+          :unit-label="t('tournamentStatsTab.winStreaks.consecutiveWins')"
+        />
 
         <!-- Current losing streaks -->
-        <div
+        <StreakLeadersCard
           v-if="store.tournamentStats.lossStreaks.length"
-          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
-        >
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
-            <i class="fa fa-skull-crossbones mr-2 text-red-500" />
-            {{ t('tournamentStatsTab.lossStreaks.title') }}
-          </h2>
-          <div class="space-y-2">
-            <div
-              v-for="entry in store.tournamentStats.lossStreaks"
-              :key="entry.playerId"
-              class="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800"
-            >
-              <i class="fa fa-skull-crossbones text-red-500 text-lg" />
-              <span class="flex-1 font-medium text-gray-900 dark:text-white">{{
-                entry.displayName
-              }}</span>
-              <span class="font-bold text-red-600 dark:text-red-400 text-lg">{{
-                entry.currentStreak
-              }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                t('tournamentStatsTab.lossStreaks.consecutiveLosses')
-              }}</span>
-            </div>
-          </div>
-        </div>
+          :title="t('tournamentStatsTab.lossStreaks.title')"
+          icon="fa fa-skull-crossbones"
+          variant="red"
+          :entries="store.tournamentStats.lossStreaks"
+          :unit-label="t('tournamentStatsTab.lossStreaks.consecutiveLosses')"
+        />
 
         <!-- Best unbeaten streaks -->
-        <div
+        <StreakLeadersCard
           v-if="store.tournamentStats.invincibleStreaks.length"
-          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
-        >
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
-            <i class="fa fa-shield mr-2 text-blue-500" />
-            {{ t('tournamentStatsTab.invincibleStreaks.title') }}
-          </h2>
-          <div class="space-y-2">
-            <div
-              v-for="entry in store.tournamentStats.invincibleStreaks"
-              :key="entry.playerId"
-              class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
-            >
-              <i class="fa fa-shield text-blue-500 text-lg" />
-              <span class="flex-1 font-medium text-gray-900 dark:text-white">{{
-                entry.displayName
-              }}</span>
-              <span class="font-bold text-blue-600 dark:text-blue-400 text-lg">{{
-                entry.currentStreak
-              }}</span>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{
-                t('tournamentStatsTab.invincibleStreaks.unbeatenMatches')
-              }}</span>
-            </div>
-          </div>
-        </div>
+          :title="t('tournamentStatsTab.invincibleStreaks.title')"
+          icon="fa fa-shield"
+          variant="blue"
+          :entries="store.tournamentStats.invincibleStreaks"
+          :unit-label="t('tournamentStatsTab.invincibleStreaks.unbeatenMatches')"
+        />
 
         <!-- Best solo player (asymmetric only) -->
         <TopPlayersCard
@@ -238,6 +181,7 @@ import { formatDate } from 'date-fns'
 import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import OutcomeTypeFunStats from '@/components/stats/OutcomeTypeFunStats.vue'
+import StreakLeadersCard from '@/components/stats/StreakLeadersCard.vue'
 import WeeklyMmrLeaders from '@/components/ranked/WeeklyMmrLeaders.vue'
 
 const store = useTournamentDetailStore()

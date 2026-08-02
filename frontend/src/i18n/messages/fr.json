@@ -316,6 +316,8 @@
     "name": "Nom",
     "no": "Non",
     "save": "Enregistrer",
+    "showLess": "Voir moins",
+    "showMore": "Voir plus ({count})",
     "status": "Statut",
     "success": "Succès",
     "update": "Mettre à jour",
