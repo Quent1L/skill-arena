@@ -216,6 +216,11 @@ export class StandingsRepository {
   async deleteComputedData(tournamentId: string): Promise<void> {
     await db.delete(computedData).where(eq(computedData.tournamentId, tournamentId));
   }
+
+  async deleteComputedDataMany(tournamentIds: string[]): Promise<void> {
+    if (tournamentIds.length === 0) return;
+    await db.delete(computedData).where(inArray(computedData.tournamentId, tournamentIds));
+  }
 }
 
 export const standingsRepository = new StandingsRepository();

@@ -1,6 +1,7 @@
 import { userRepository } from "../repository/user.repository";
 import { invitationRepository } from "../repository/invitation.repository";
 import { organizationService } from "./organization.service";
+import { playerCacheService } from "./player-cache.service";
 import { auth } from "../config/auth";
 import {
   ConflictError,
@@ -109,7 +110,26 @@ export class UserService {
     if (!appUser) {
       throw new NotFoundError(ErrorCode.USER_NOT_FOUND);
     }
-    return await userRepository.updateAppUser(appUserId, data);
+    const renamed = this.isRenamed(appUser, data);
+    const updated = await userRepository.updateAppUser(appUserId, data);
+    if (renamed) {
+      await playerCacheService.invalidateDenormalizedNames([appUserId]);
+    }
+    return updated;
+  }
+
+  /**
+   * Rankings and stats cache the names they display, so a rename has to flush them.
+   * Nothing else in a profile is denormalised, hence the narrow check.
+   */
+  private isRenamed(
+    current: { displayName: string; shortName: string },
+    input: { displayName?: string; shortName?: string }
+  ): boolean {
+    return (
+      (input.displayName !== undefined && input.displayName !== current.displayName) ||
+      (input.shortName !== undefined && input.shortName !== current.shortName)
+    );
   }
 
   /**
@@ -193,7 +213,11 @@ export class UserService {
 
     const { displayName, shortName, role } = input;
     if (displayName !== undefined || shortName !== undefined || role !== undefined) {
+      const renamed = this.isRenamed(target, input);
       await userRepository.updateAppUser(targetId, { displayName, shortName, role });
+      if (renamed) {
+        await playerCacheService.invalidateDenormalizedNames([targetId]);
+      }
     }
 
     return await this.getUserAdminDetail(targetId);
@@ -300,6 +324,9 @@ export class UserService {
       input.shortName ?? `ARCH${label}`.slice(0, 8),
     );
 
+    // Anonymising is a rename: the real name stays in every cached ranking until flushed.
+    await playerCacheService.invalidateDenormalizedNames([targetId]);
+
     return await this.getUserAdminDetail(targetId);
   }
 
@@ -330,6 +357,10 @@ export class UserService {
       source.displayName,
       source.shortName,
     );
+
+    // The archived profile takes the source's name, so its cached history is stale.
+    // The source itself has none: the blocker check above rejects any played history.
+    await playerCacheService.invalidateDenormalizedNames([archivedId]);
 
     return await this.getUserAdminDetail(archivedId);
   }

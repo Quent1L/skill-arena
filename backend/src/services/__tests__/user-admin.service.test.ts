@@ -35,6 +35,11 @@ const mockOrganizationService = {
 };
 mock.module("../organization.service", () => ({ organizationService: mockOrganizationService }));
 
+const mockPlayerCacheService = {
+  invalidateDenormalizedNames: mock((_ids: any) => Promise.resolve()),
+};
+mock.module("../player-cache.service", () => ({ playerCacheService: mockPlayerCacheService }));
+
 const mockRequestPasswordReset = mock((_o: any) => Promise.resolve({}));
 mock.module("../../config/auth", () => ({
   auth: { api: { requestPasswordReset: mockRequestPasswordReset } },
@@ -82,6 +87,7 @@ beforeEach(() => {
   for (const fn of Object.values(mockUserRepo)) fn.mockClear();
   mockOrganizationService.addMemberDirect.mockClear();
   mockOrganizationService.removeMember.mockClear();
+  mockPlayerCacheService.invalidateDenormalizedNames.mockClear();
   mockRequestPasswordReset.mockClear();
   mockRequestPasswordReset.mockImplementation(() => Promise.resolve({}));
 
@@ -144,6 +150,91 @@ describe("UserService admin guards", () => {
       service.adminUpdateUser(ACTOR_ID, TARGET_ID, { email: "taken@example.com" }),
     ).rejects.toMatchObject({ code: ErrorCode.EMAIL_ALREADY_EXISTS });
     expect(mockUserRepo.updateExternalUserEmail).not.toHaveBeenCalled();
+  });
+});
+
+// Standings, leaderboards and stats store the name they display, so they only stay
+// correct if a rename flushes them.
+describe("UserService rename cache invalidation", () => {
+  it("flushes the caches when an admin changes the display name", async () => {
+    await service.adminUpdateUser(ACTOR_ID, TARGET_ID, { displayName: "New Name" });
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).toHaveBeenCalledWith([TARGET_ID]);
+  });
+
+  it("flushes the caches when an admin changes only the short name", async () => {
+    await service.adminUpdateUser(ACTOR_ID, TARGET_ID, { shortName: "NEW" });
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).toHaveBeenCalledWith([TARGET_ID]);
+  });
+
+  it("keeps the caches when the submitted names are unchanged", async () => {
+    await service.adminUpdateUser(ACTOR_ID, TARGET_ID, {
+      displayName: "Target",
+      shortName: "TGT",
+    });
+
+    expect(mockUserRepo.updateAppUser).toHaveBeenCalled();
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).not.toHaveBeenCalled();
+  });
+
+  it("keeps the caches on a role-only update", async () => {
+    await service.adminUpdateUser(ACTOR_ID, TARGET_ID, { role: "tournament_admin" });
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).not.toHaveBeenCalled();
+  });
+
+  it("keeps the caches on an email-only update", async () => {
+    await service.adminUpdateUser(ACTOR_ID, TARGET_ID, { email: "new@example.com" });
+
+    expect(mockUserRepo.updateExternalUserEmail).toHaveBeenCalled();
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).not.toHaveBeenCalled();
+  });
+
+  it("flushes the caches when a player renames themselves", async () => {
+    await service.updateProfile(TARGET_ID, { displayName: "Renamed", shortName: "RNM" });
+
+    expect(mockUserRepo.updateAppUser).toHaveBeenCalledWith(TARGET_ID, {
+      displayName: "Renamed",
+      shortName: "RNM",
+    });
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).toHaveBeenCalledWith([TARGET_ID]);
+  });
+
+  it("keeps the caches when a player saves their profile unchanged", async () => {
+    await service.updateProfile(TARGET_ID, { displayName: "Target", shortName: "TGT" });
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).not.toHaveBeenCalled();
+  });
+
+  it("404s when renaming an unknown profile", async () => {
+    mockUserRepo.getById.mockImplementation(() => Promise.resolve(null as any));
+
+    await expect(
+      service.updateProfile(TARGET_ID, { displayName: "Ghost", shortName: "GHO" }),
+    ).rejects.toMatchObject({ code: ErrorCode.USER_NOT_FOUND });
+    expect(mockUserRepo.updateAppUser).not.toHaveBeenCalled();
+  });
+
+  it("flushes the caches when archiving anonymises the profile", async () => {
+    await service.archiveUser(ACTOR_ID, TARGET_ID);
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).toHaveBeenCalledWith([TARGET_ID]);
+  });
+
+  it("flushes the caches of the archived profile when restoring", async () => {
+    const ARCHIVED_ID = "archived-1";
+    mockUserRepo.getById.mockImplementation((id: any) =>
+      Promise.resolve(
+        id === ARCHIVED_ID
+          ? (makeAppUser({ id: ARCHIVED_ID, archivedAt: new Date(), externalId: null }) as any)
+          : (makeAppUser({ id: TARGET_ID, displayName: "Comeback", shortName: "CMB" }) as any),
+      ),
+    );
+
+    await service.restoreArchivedUser(ACTOR_ID, ARCHIVED_ID, { sourceUserId: TARGET_ID });
+
+    expect(mockPlayerCacheService.invalidateDenormalizedNames).toHaveBeenCalledWith([ARCHIVED_ID]);
   });
 });
 

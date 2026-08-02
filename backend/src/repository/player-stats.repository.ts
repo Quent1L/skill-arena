@@ -246,6 +246,27 @@ export class PlayerStatsRepository {
     return rows.map((r) => r.playerId);
   }
 
+  async getPlayerIdsByTournaments(tournamentIds: string[]): Promise<string[]> {
+    if (tournamentIds.length === 0) return [];
+    const rows = await db
+      .selectDistinct({ playerId: tournamentEntryPlayers.playerId })
+      .from(tournamentEntryPlayers)
+      .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .where(inArray(tournamentEntries.tournamentId, tournamentIds));
+    return rows.map((r) => r.playerId);
+  }
+
+  /** Lean counterpart of getPlayerTournaments: ids only, for several players at once. */
+  async getTournamentIdsByPlayers(playerIds: string[]): Promise<string[]> {
+    if (playerIds.length === 0) return [];
+    const rows = await db
+      .selectDistinct({ tournamentId: tournamentEntries.tournamentId })
+      .from(tournamentEntryPlayers)
+      .innerJoin(tournamentEntries, eq(tournamentEntryPlayers.entryId, tournamentEntries.id))
+      .where(inArray(tournamentEntryPlayers.playerId, playerIds));
+    return rows.map((r) => r.tournamentId);
+  }
+
 }
 
 export const playerStatsRepository = new PlayerStatsRepository();
