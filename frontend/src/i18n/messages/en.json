@@ -1977,10 +1977,23 @@
       "title": "Match outcome distribution"
     },
     "outcomeTypeFunStats": {
-      "king": "King of {name}",
-      "times": "{count} time | {count} times",
+      "efficiency": "Efficiency",
+      "efficiencyTooltip": "Ranked by success rate weighted by match count (rate × √matches), from {count} matches on this outcome type. A perfect rate over 3 matches therefore stays behind a good rate over 30.",
+      "king": "Kings of {name}",
+      "lossCount": "{count} loss | {count} losses",
+      "losers": "Losers",
+      "lowSample": "Small sample",
+      "lowSampleTooltip": "No player reached {count} matches on this outcome type, so the usual threshold was lifted rather than hiding the ranking. Take it with a pinch of salt.",
+      "matchCount": "{count} match | {count} matches",
+      "noRateData": "No data",
+      "shareOfTotal": "{pct} % of total",
       "title": "Stats by outcome type",
-      "victim": "Victim of {name}"
+      "victim": "Victims of {name}",
+      "volume": "Volume",
+      "vulnerability": "Vulnerability",
+      "vulnerabilityTooltip": "Ranked by loss rate weighted by match count (rate × √matches), from {count} matches on this outcome type. A perfect rate over 3 matches therefore stays behind a high rate over 30.",
+      "winCount": "{count} win | {count} wins",
+      "winners": "Winners"
     },
     "winStreaks": {
       "consecutiveWins": "consecutive wins",

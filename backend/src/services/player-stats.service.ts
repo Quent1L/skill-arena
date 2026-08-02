@@ -2,6 +2,7 @@ import { playerStatsRepository } from "../repository/player-stats.repository";
 import { matchSidesRepository } from "../repository/match-sides.repository";
 import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
+import { rankByWeightedRate, TOP_WEIGHTED_RATE } from "./stats-ranking";
 import type {
   PlayerProfile,
   PlayerDetailStats,
@@ -137,25 +138,19 @@ function tallyRelations(
   return acc;
 }
 
-const MIN_RELATION_MATCHES = 3;
-const TOP_RELATIONS = 3;
+const TOP_RELATIONS = TOP_WEIGHTED_RATE;
 
 /**
  * Ranks relations by success rate weighted by sample size (rate × √matches), so a
  * single lucky match never outranks a long, consistently good record. Relations below
- * MIN_RELATION_MATCHES are dropped entirely: an empty list hides the card client-side
- * rather than advertising a statistic nobody should trust.
+ * MIN_WEIGHTED_RATE_MATCHES are dropped entirely: an empty list hides the card
+ * client-side rather than advertising a statistic nobody should trust.
  */
 export function rankRelationsByWeightedRate(
   relations: PlayerRelationStat[],
   rateOf: (r: PlayerRelationStat) => number,
 ): PlayerRelationStat[] {
-  return relations
-    .filter((r) => r.count >= MIN_RELATION_MATCHES)
-    .map((r) => ({ relation: r, score: rateOf(r) * Math.sqrt(r.count) }))
-    .sort((a, b) => b.score - a.score || b.relation.count - a.relation.count)
-    .slice(0, TOP_RELATIONS)
-    .map((s) => s.relation);
+  return rankByWeightedRate(relations, rateOf, (r) => r.count);
 }
 
 function accumulateTournamentMatches(

@@ -1,0 +1,211 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { describe, it, expect, mock } from "bun:test";
+
+mock.module("../../repository/tournament-stats.repository", () => ({
+  tournamentStatsRepository: {},
+}));
+
+import { computeOutcomeTypeFunStats } from "../tournament-stats.service";
+
+// ─── Fixtures ────────────────────────────────────────────────────────────────
+
+function side(position: number, playerIds: string[]) {
+  return {
+    position,
+    entryId: `e${position}`,
+    entry: {
+      id: `e${position}`,
+      players: playerIds.map((id) => ({
+        playerId: id,
+        player: { id, displayName: id.toUpperCase(), shortName: id },
+      })),
+    },
+  };
+}
+
+/**
+ * One finalized match of `typeId`. winnerSide "A" makes sideA win, "B" makes it lose,
+ * null is a draw.
+ */
+function match(
+  typeId: string | null,
+  winnerSide: "A" | "B" | null,
+  sideA: string[],
+  sideB: string[],
+  typeName = typeId,
+) {
+  return {
+    id: `m-${Math.round(performance.now() * 1000)}-${sideA.join()}-${sideB.join()}`,
+    winnerSide,
+    playedAt: new Date(),
+    outcomeTypeId: typeId,
+    outcomeType: typeId ? { id: typeId, name: typeName!, isDefault: false } : null,
+    sides: [side(1, sideA), side(2, sideB)],
+  };
+}
+
+/** `n` matches of `typeId` where `winner` beats `loser`. */
+function series(typeId: string, winner: string, loser: string, n: number) {
+  return Array.from({ length: n }, () => match(typeId, "A", [winner], [loser]));
+}
+
+function stat(stats: ReturnType<typeof computeOutcomeTypeFunStats>, typeId: string) {
+  const found = stats.find((s) => s.outcomeTypeId === typeId);
+  if (!found) throw new Error(`outcome type ${typeId} missing from stats`);
+  return found;
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+describe("computeOutcomeTypeFunStats", () => {
+  it("classe le volume sur le nombre brut et l'efficacité sur le taux pondéré", () => {
+    const matches = [
+      // grinder: 12 wins but 24 matches played → high volume, 50 % rate
+      ...series("normal", "grinder", "filler", 12),
+      ...series("normal", "filler", "grinder", 12),
+      // sniper: 9 wins over 10 matches → lower volume, 90 % rate
+      ...series("normal", "sniper", "filler", 9),
+      ...series("normal", "filler", "sniper", 1),
+    ];
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+
+    expect(normal.topWinnersByVolume[0]!.playerId).toBe("filler");
+    expect(normal.topWinnersByVolume[1]!.playerId).toBe("grinder");
+    expect(normal.topWinnersByRate[0]!.playerId).toBe("sniper");
+    expect(normal.topWinnersByRate[0]!.ratePct).toBe(90);
+    expect(normal.winnersRateIsLowSample).toBe(false);
+  });
+
+  it("expose le contexte de chaque entrée : matchs joués, taux et part du total", () => {
+    const matches = [
+      ...series("normal", "a", "b", 6), // a: 6 wins / 8 played
+      ...series("normal", "b", "a", 2), // b: 2 wins / 8 played
+    ];
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const leader = normal.topWinnersByVolume[0]!;
+
+    expect(normal.totalMatches).toBe(8);
+    expect(leader.playerId).toBe("a");
+    expect(leader.count).toBe(6);
+    expect(leader.matchesPlayed).toBe(8);
+    expect(leader.ratePct).toBe(75);
+    // 6 of the 8 wins recorded on this outcome type
+    expect(leader.sharePct).toBe(75);
+  });
+
+  it("compte les nuls dans les matchs joués sans gonfler les victoires", () => {
+    const matches = [
+      ...series("normal", "a", "b", 3),
+      match("normal", null, ["a"], ["b"]),
+    ];
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const a = normal.topWinnersByVolume[0]!;
+
+    expect(a.count).toBe(3);
+    expect(a.matchesPlayed).toBe(4);
+    expect(a.ratePct).toBe(75);
+  });
+
+  it("écarte de l'efficacité les joueurs sous le seuil quand d'autres l'atteignent", () => {
+    const matches = [
+      ...series("normal", "regular", "punchingbag", 5), // 5 played, 100 %
+      match("normal", "A", ["rookie"], ["punchingbag"]), // 1 played, 100 %
+    ];
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+
+    expect(normal.topWinnersByRate.map((p) => p.playerId)).toEqual(["regular"]);
+    expect(normal.topWinnersByVolume.map((p) => p.playerId)).toContain("rookie");
+    expect(normal.winnersRateIsLowSample).toBe(false);
+  });
+
+  it("lève le seuil et signale l'échantillon faible sur un type de résultat rare", () => {
+    // Nobody reaches 3 matches on this type: without the fallback the column is empty.
+    const matches = [
+      match("fanny", "A", ["a"], ["b"]),
+      match("fanny", "A", ["a"], ["c"]),
+      match("fanny", "A", ["d"], ["e"]),
+    ];
+
+    const fanny = stat(computeOutcomeTypeFunStats(matches as any), "fanny");
+
+    expect(fanny.topWinnersByRate.length).toBeGreaterThan(0);
+    expect(fanny.topWinnersByRate[0]!.playerId).toBe("a");
+    expect(fanny.winnersRateIsLowSample).toBe(true);
+  });
+
+  it("gère indépendamment les drapeaux gagnants et perdants", () => {
+    // "champ" wins 4 times, each victim loses only once → winners pass the threshold,
+    // losers do not.
+    const matches = [
+      match("normal", "A", ["champ"], ["v1"]),
+      match("normal", "A", ["champ"], ["v2"]),
+      match("normal", "A", ["champ"], ["v3"]),
+      match("normal", "A", ["champ"], ["v4"]),
+    ];
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+
+    expect(normal.winnersRateIsLowSample).toBe(false);
+    expect(normal.losersRateIsLowSample).toBe(true);
+    expect(normal.topLosersByRate.length).toBeGreaterThan(0);
+  });
+
+  it("renvoie des listes de taux vides sans drapeau quand le type n'a que des nuls", () => {
+    const matches = [
+      match("draw", null, ["a"], ["b"]),
+      match("draw", null, ["a"], ["b"]),
+      match("draw", null, ["a"], ["b"]),
+    ];
+
+    const drawType = stat(computeOutcomeTypeFunStats(matches as any), "draw");
+
+    expect(drawType.topWinnersByVolume).toEqual([]);
+    expect(drawType.topWinnersByRate).toEqual([]);
+    expect(drawType.topLosersByRate).toEqual([]);
+    expect(drawType.winnersRateIsLowSample).toBe(false);
+    expect(drawType.losersRateIsLowSample).toBe(false);
+  });
+
+  it("calcule la part du total sur les deux gagnants d'un match 2v2", () => {
+    const matches = series("normal", "x", "y", 4).map((m) => ({
+      ...m,
+      sides: [side(1, ["x", "mate"]), side(2, ["y", "opp"])],
+    }));
+
+    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+
+    // 8 wins recorded across 4 matches, split evenly between the two team mates
+    expect(normal.topWinnersByVolume.map((p) => p.sharePct)).toEqual([50, 50]);
+  });
+
+  it("trie les types de résultat par nombre de matchs décroissant", () => {
+    const matches = [
+      ...series("rare", "a", "b", 1),
+      ...series("common", "a", "b", 5),
+      ...series("medium", "a", "b", 3),
+    ];
+
+    const stats = computeOutcomeTypeFunStats(matches as any);
+
+    expect(stats.map((s) => s.outcomeTypeId)).toEqual(["common", "medium", "rare"]);
+  });
+
+  it("ignore les matchs sans type de résultat et ne garde que 3 joueurs par liste", () => {
+    const matches = [
+      match(null, "A", ["a"], ["b"]),
+      ...series("normal", "a", "z", 5),
+      ...series("normal", "b", "z", 4),
+      ...series("normal", "c", "z", 3),
+      ...series("normal", "d", "z", 2),
+    ];
+
+    const stats = computeOutcomeTypeFunStats(matches as any);
+
+    expect(stats).toHaveLength(1);
+    expect(stats[0]!.topWinnersByVolume.map((p) => p.playerId)).toEqual(["a", "b", "c"]);
+  });
+});

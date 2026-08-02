@@ -89,7 +89,7 @@ import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import { playerLink } from '@/utils/player-link'
 
-/** Mirrors MIN_RELATION_MATCHES in backend/src/services/player-stats.service.ts */
+/** Mirrors MIN_WEIGHTED_RATE_MATCHES in backend/src/services/stats-ranking.ts */
 const MIN_RELATION_MATCHES = 3
 
 defineProps<{

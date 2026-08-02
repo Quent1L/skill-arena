@@ -1977,10 +1977,23 @@
       "title": "Répartition des fins de match"
     },
     "outcomeTypeFunStats": {
-      "king": "Roi de {name}",
-      "times": "{count} fois",
+      "efficiency": "Efficacité",
+      "efficiencyTooltip": "Classement par taux de réussite pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs sur ce type de résultat. Un 100 % sur 3 matchs reste donc derrière un 90 % sur 30.",
+      "king": "Rois de {name}",
+      "lossCount": "{count} défaite | {count} défaites",
+      "losers": "Perdants",
+      "lowSample": "Échantillon faible",
+      "lowSampleTooltip": "Aucun joueur n'atteint {count} matchs sur ce type de résultat : le seuil habituel a été levé pour ne pas masquer le classement. À prendre avec des pincettes.",
+      "matchCount": "{count} match | {count} matchs",
+      "noRateData": "Aucune donnée",
+      "shareOfTotal": "{pct} % du total",
       "title": "Stats par type de résultat",
-      "victim": "Victime de {name}"
+      "victim": "Victimes de {name}",
+      "volume": "Volume",
+      "vulnerability": "Vulnérabilité",
+      "vulnerabilityTooltip": "Classement par taux de défaite pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs sur ce type de résultat. Un 100 % sur 3 matchs reste donc derrière un 90 % sur 30.",
+      "winCount": "{count} victoire | {count} victoires",
+      "winners": "Gagnants"
     },
     "winStreaks": {
       "consecutiveWins": "victoires consécutives",

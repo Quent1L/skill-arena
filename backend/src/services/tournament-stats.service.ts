@@ -1,5 +1,6 @@
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
+import { rankByWeightedRate, TOP_WEIGHTED_RATE } from "./stats-ranking";
 import type {
   TournamentStats,
   OutcomeTypeCount,
@@ -7,6 +8,7 @@ import type {
   WinStreakEntry,
   BestDuoEntry,
   OutcomeTypeFunStat,
+  OutcomeTypeLeader,
 } from "@skol-arena/shared";
 
 type MatchData = Awaited<
@@ -260,36 +262,102 @@ function computeBestInvincibleStreak(matchesData: MatchData[]): WinStreakEntry[]
   return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
 }
 
-type CountEntry = { displayName: string; shortName: string; count: number };
-type OutcomeTypeAcc = {
-  name: string;
-  winners: Map<string, CountEntry>;
-  losers: Map<string, CountEntry>;
+type OutcomeTypePlayerAcc = {
+  displayName: string;
+  shortName: string;
+  wins: number;
+  losses: number;
+  played: number;
 };
 
-function incrementCount(map: Map<string, CountEntry>, player: PlayerRef): void {
+type OutcomeTypeAcc = {
+  name: string;
+  totalMatches: number;
+  players: Map<string, OutcomeTypePlayerAcc>;
+};
+
+function recordOutcomeTypeResult(
+  players: Map<string, OutcomeTypePlayerAcc>,
+  player: PlayerRef,
+  won: boolean,
+  lost: boolean,
+): void {
   const { id, displayName, shortName } = player;
-  const c = map.get(id) ?? { displayName, shortName, count: 0 };
-  c.count++;
-  map.set(id, c);
+  if (!players.has(id)) {
+    players.set(id, { displayName, shortName, wins: 0, losses: 0, played: 0 });
+  }
+  const acc = players.get(id)!;
+  // Draws count as played but neither won nor lost: they belong in the rate denominator.
+  acc.played++;
+  if (won) acc.wins++;
+  if (lost) acc.losses++;
 }
 
 function countOutcomePlayers(match: MatchData, entry: OutcomeTypeAcc): void {
   for (const side of match.sides) {
+    const won = isWinner(side, match.winnerSide);
+    const lost = isLoser(side, match.winnerSide);
     for (const ep of side.entry.players) {
-      if (!ep.player) continue;
-      if (isWinner(side, match.winnerSide)) incrementCount(entry.winners, ep.player);
-      else if (isLoser(side, match.winnerSide)) incrementCount(entry.losers, ep.player);
+      if (ep.player) recordOutcomeTypeResult(entry.players, ep.player, won, lost);
     }
   }
 }
 
-function topByCount(map: Map<string, CountEntry>) {
-  const top = Array.from(map.entries()).sort((a, b) => b[1].count - a[1].count)[0];
-  return top ? { playerId: top[0], ...top[1] } : null;
+/** A player's record for one outcome type, viewed from either the win or the loss angle. */
+type LeaderCandidate = OutcomeTypeLeader & { rate: number };
+
+function toCandidates(
+  players: Map<string, OutcomeTypePlayerAcc>,
+  metricOf: (p: OutcomeTypePlayerAcc) => number,
+): LeaderCandidate[] {
+  const total = Array.from(players.values()).reduce((sum, p) => sum + metricOf(p), 0);
+
+  return Array.from(players.entries())
+    .filter(([, p]) => metricOf(p) > 0)
+    .map(([playerId, p]) => {
+      const count = metricOf(p);
+      const rate = p.played > 0 ? count / p.played : 0;
+      return {
+        playerId,
+        displayName: p.displayName,
+        shortName: p.shortName,
+        count,
+        matchesPlayed: p.played,
+        ratePct: Math.round(rate * 100),
+        sharePct: total > 0 ? Math.round((count / total) * 100) : 0,
+        rate,
+      };
+    });
 }
 
-function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
+function stripRate(candidates: LeaderCandidate[]): OutcomeTypeLeader[] {
+  return candidates.map(({ rate: _rate, ...leader }) => leader);
+}
+
+function rankByVolume(candidates: LeaderCandidate[]): OutcomeTypeLeader[] {
+  const ranked = [...candidates]
+    .sort((a, b) => b.count - a.count || b.ratePct - a.ratePct)
+    .slice(0, TOP_WEIGHTED_RATE);
+  return stripRate(ranked);
+}
+
+/**
+ * Ranks by weighted rate, falling back to an unfiltered ranking when the match threshold
+ * leaves nobody. Rare outcome types (fanny, win on foul…) would otherwise show an empty
+ * column; the flag lets the UI label the result as a small sample instead of hiding it.
+ */
+function rankByRate(candidates: LeaderCandidate[]): {
+  leaders: OutcomeTypeLeader[];
+  isLowSample: boolean;
+} {
+  const filtered = rankByWeightedRate(candidates, (c) => c.rate, (c) => c.matchesPlayed);
+  if (filtered.length > 0) return { leaders: stripRate(filtered), isLowSample: false };
+
+  const fallback = rankByWeightedRate(candidates, (c) => c.rate, (c) => c.matchesPlayed, 0);
+  return { leaders: stripRate(fallback), isLowSample: fallback.length > 0 };
+}
+
+export function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
   const typeMap = new Map<string, OutcomeTypeAcc>();
 
   for (const match of matchesData) {
@@ -297,17 +365,33 @@ function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunSta
 
     const typeId = match.outcomeTypeId;
     if (!typeMap.has(typeId)) {
-      typeMap.set(typeId, { name: match.outcomeType.name, winners: new Map(), losers: new Map() });
+      typeMap.set(typeId, { name: match.outcomeType.name, totalMatches: 0, players: new Map() });
     }
-    countOutcomePlayers(match, typeMap.get(typeId)!);
+    const entry = typeMap.get(typeId)!;
+    entry.totalMatches++;
+    countOutcomePlayers(match, entry);
   }
 
-  return Array.from(typeMap.entries()).map(([outcomeTypeId, data]) => ({
-    outcomeTypeId,
-    outcomeTypeName: data.name,
-    topWinner: topByCount(data.winners),
-    topLoser: topByCount(data.losers),
-  }));
+  return Array.from(typeMap.entries())
+    .map(([outcomeTypeId, data]) => {
+      const winners = toCandidates(data.players, (p) => p.wins);
+      const losers = toCandidates(data.players, (p) => p.losses);
+      const winnersByRate = rankByRate(winners);
+      const losersByRate = rankByRate(losers);
+
+      return {
+        outcomeTypeId,
+        outcomeTypeName: data.name,
+        totalMatches: data.totalMatches,
+        topWinnersByVolume: rankByVolume(winners),
+        topWinnersByRate: winnersByRate.leaders,
+        topLosersByVolume: rankByVolume(losers),
+        topLosersByRate: losersByRate.leaders,
+        winnersRateIsLowSample: winnersByRate.isLowSample,
+        losersRateIsLowSample: losersByRate.isLowSample,
+      };
+    })
+    .sort((a, b) => b.totalMatches - a.totalMatches || a.outcomeTypeName.localeCompare(b.outcomeTypeName));
 }
 
 function fillMomentumDays(

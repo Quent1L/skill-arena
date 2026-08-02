@@ -435,6 +435,13 @@
       "when": 1777526400017,
       "tag": "0061_flush_player_stats_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1777526400018,
+      "tag": "0062_flush_tournament_stats_cache",
+      "breakpoints": true
     }
   ]
 }

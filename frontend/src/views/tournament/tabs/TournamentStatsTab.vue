@@ -184,55 +184,10 @@
             <i class="fa fa-star mr-2 text-amber-500" />
             {{ t('tournamentStatsTab.outcomeTypeFunStats.title') }}
           </h2>
-          <div class="space-y-4">
-            <div
-              v-for="stat in store.tournamentStats.outcomeTypeFunStats"
-              :key="stat.outcomeTypeId"
-              class="border border-gray-100 dark:border-gray-800 rounded-lg p-4"
-            >
-              <h3
-                class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide"
-              >
-                {{ stat.outcomeTypeName }}
-              </h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div
-                  v-if="stat.topWinner"
-                  class="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 rounded-lg p-3"
-                >
-                  <i class="fa fa-crown text-green-600 dark:text-green-400" />
-                  <div class="min-w-0">
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ t('tournamentStatsTab.outcomeTypeFunStats.king', { name: stat.outcomeTypeName }) }}
-                    </div>
-                    <div class="font-semibold text-gray-900 dark:text-white truncate">
-                      {{ stat.topWinner.displayName }}
-                    </div>
-                    <div class="text-xs text-green-600 dark:text-green-400 font-medium">
-                      {{ t('tournamentStatsTab.outcomeTypeFunStats.times', { count: stat.topWinner.count }) }}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  v-if="stat.topLoser"
-                  class="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 rounded-lg p-3"
-                >
-                  <i class="fa fa-skull text-red-500 dark:text-red-400" />
-                  <div class="min-w-0">
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
-                      {{ t('tournamentStatsTab.outcomeTypeFunStats.victim', { name: stat.outcomeTypeName }) }}
-                    </div>
-                    <div class="font-semibold text-gray-900 dark:text-white truncate">
-                      {{ stat.topLoser.displayName }}
-                    </div>
-                    <div class="text-xs text-red-500 dark:text-red-400 font-medium">
-                      {{ t('tournamentStatsTab.outcomeTypeFunStats.times', { count: stat.topLoser.count }) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <OutcomeTypeFunStats
+            :stats="store.tournamentStats.outcomeTypeFunStats"
+            :tournament-id="store.tournament?.id"
+          />
         </div>
 
         <!-- Empty state -->
@@ -259,6 +214,7 @@ import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
 import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
+import OutcomeTypeFunStats from '@/components/stats/OutcomeTypeFunStats.vue'
 
 const store = useTournamentDetailStore()
 const { t } = useI18n()
