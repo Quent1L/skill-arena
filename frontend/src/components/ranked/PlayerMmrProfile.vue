@@ -138,9 +138,20 @@
     <RecentFormSection v-if="recentForm?.length" :results="recentForm" />
 
     <!-- MMR Progression Chart -->
-    <div v-if="isMounted && chartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
-      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
-        {{ t('playerMmrProfile.mmrProgression') }}
+    <div v-if="isMounted && allChartPoints.length > 1" class="rounded-xl p-4 bg-gray-800">
+      <div class="flex items-center justify-between mb-3 gap-2">
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+          {{ t('playerMmrProfile.mmrProgression') }}
+        </div>
+        <SelectButton
+          v-if="matchCountFilterOptions.length > 1"
+          v-model="matchCountFilter"
+          :options="matchCountFilterOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          size="small"
+        />
       </div>
       <Chart type="line" :data="chartData" :options="chartOptions" class="h-40" />
     </div>
@@ -240,6 +251,7 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Chart from 'primevue/chart'
+import SelectButton from 'primevue/selectbutton'
 import type {
   ClientPlayerMmr,
   MmrChartPoint,
@@ -340,10 +352,29 @@ const progressBarClass = computed(() =>
 )
 const tierIcon = computed(() => TIER_ICON[styleIdx(rank.value)])
 
-const chartPoints = computed(() => props.history ?? [])
+const allChartPoints = computed(() => props.history ?? [])
+
+const matchCountFilterOptions = computed(() => {
+  const total = allChartPoints.value.length
+  const opts: { label: string; value: number | 'all' }[] = []
+  if (total > 25) opts.push({ label: '25', value: 25 })
+  if (total > 50) opts.push({ label: '50', value: 50 })
+  if (total > 100) opts.push({ label: '100', value: 100 })
+  opts.push({ label: t('playerMmrProfile.allMatches'), value: 'all' })
+  return opts
+})
+
+const matchCountFilter = ref<number | 'all'>(50)
+
+const chartPoints = computed(() => {
+  if (matchCountFilter.value === 'all') return allChartPoints.value
+  return allChartPoints.value.slice(-matchCountFilter.value)
+})
+
+const chartStartIndex = computed(() => allChartPoints.value.length - chartPoints.value.length)
 
 const chartData = computed(() => ({
-  labels: chartPoints.value.map((_, i) => `M${i + 1}`),
+  labels: chartPoints.value.map((_, i) => `M${chartStartIndex.value + i + 1}`),
   datasets: [
     {
       label: t('playerMmrProfile.mmrLabel'),

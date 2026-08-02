@@ -1072,6 +1072,7 @@
     "wldLabel": "W / D / L"
   },
   "playerMmrProfile": {
+    "allMatches": "All",
     "bestStreak": "Best streak",
     "currentRank": "Current rank",
     "currentStreak": "Current streak",

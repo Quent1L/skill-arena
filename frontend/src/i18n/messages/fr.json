@@ -1072,6 +1072,7 @@
     "wldLabel": "V / N / D"
   },
   "playerMmrProfile": {
+    "allMatches": "Tout",
     "bestStreak": "Meilleure série",
     "currentRank": "Rang actuel",
     "currentStreak": "Série en cours",
