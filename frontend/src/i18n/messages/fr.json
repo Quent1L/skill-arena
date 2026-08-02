@@ -724,9 +724,10 @@
     "resetFilters": "Réinitialiser les filtres"
   },
   "matchOutcomeDistribution": {
-    "drawsCount": "{count} N",
-    "lossesCount": "{count} D",
-    "winsCount": "{count} V"
+    "drawsLabel": "{count} N",
+    "lossesLabel": "{count} D",
+    "matchCount": "{count} match | {count} matchs",
+    "winsLabel": "{count} V"
   },
   "matchService": {
     "errors": {

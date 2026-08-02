@@ -724,9 +724,10 @@
     "resetFilters": "Reset filters"
   },
   "matchOutcomeDistribution": {
-    "drawsCount": "{count} D",
-    "lossesCount": "{count} L",
-    "winsCount": "{count} W"
+    "drawsLabel": "{count} D",
+    "lossesLabel": "{count} L",
+    "matchCount": "{count} match | {count} matches",
+    "winsLabel": "{count} W"
   },
   "matchService": {
     "errors": {
