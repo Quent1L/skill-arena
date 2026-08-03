@@ -300,7 +300,7 @@ const route = useRoute()
 const router = useRouter()
 const { appUser } = useAuth()
 const { isMobile } = useViewport()
-const { playerA, playerB, headToHead, together, loading, error, loadComparison } =
+const { playerA, playerB, headToHead, together, loading, error, loadComparison, clearComparison } =
   usePlayerComparisonService()
 
 const selectedA = ref<PlayerProfile | null>(null)
@@ -415,8 +415,8 @@ watch(selectedA, async (a) => {
 })
 
 watch([selectedA, selectedB, statsFilters], () => {
-  if (!selectedA.value || !selectedB.value) return
-  if (!statsFilters.value.disciplineId && !statsFilters.value.tournamentId) return
+  if (!selectedA.value || !selectedB.value) return clearComparison()
+  if (!statsFilters.value.disciplineId && !statsFilters.value.tournamentId) return clearComparison()
   router.replace({ query: { a: selectedA.value.id, b: selectedB.value.id } })
   loadComparison(selectedA.value.id, selectedB.value.id, statsFilters.value)
 }, { deep: true })
