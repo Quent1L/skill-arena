@@ -1,15 +1,65 @@
 /// <reference lib="webworker" />
 
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { addPlugins, cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
 
 declare const self: ServiceWorkerGlobalScope
+
+// Read once: workbox-build refuses a source where the injection point appears
+// more than a single time.
+const manifest = self.__WB_MANIFEST
+const PRECACHE_TOTAL = manifest.length
+
+/** Precache writes are fast and numerous: coalesce the messages sent to the app. */
+const PROGRESS_THROTTLE_MS = 150
+
+let precachedCount = 0
+let lastProgressAt = 0
+
+async function postProgress(): Promise<void> {
+  // includeUncontrolled: an installing worker controls nothing yet, and the page
+  // sitting on the update overlay is exactly the one it has to report to.
+  const clients = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })
+  for (const client of clients) {
+    client.postMessage({
+      type: 'PRECACHE_PROGRESS',
+      done: precachedCount,
+      total: PRECACHE_TOTAL,
+    })
+  }
+}
+
+function countPrecachedEntry(): void {
+  precachedCount += 1
+  const now = Date.now()
+  const isLast = precachedCount >= PRECACHE_TOTAL
+  if (!isLast && now - lastProgressAt < PROGRESS_THROTTLE_MS) return
+  lastProgressAt = now
+  void postProgress()
+}
+
+// Real install progress, pushed to the app so the update overlay can show how far
+// the download actually is instead of a fake timed bar. Two hooks are needed:
+// workbox skips an entry whose revision is already cached, and a skip goes through
+// cachedResponseWillBeUsed while an actual download goes through cacheDidUpdate.
+// Both are filtered on the install event so runtime cache hits never move the bar.
+addPlugins([
+  {
+    cachedResponseWillBeUsed: async ({ event, cachedResponse }) => {
+      if (event?.type === 'install' && cachedResponse) countPrecachedEntry()
+      return cachedResponse
+    },
+    cacheDidUpdate: async ({ event }) => {
+      if (event?.type === 'install') countPrecachedEntry()
+    },
+  },
+])
 
 // Drops the precaches left by previous versions on activation. Without it every
 // deployment strands a full copy of the bundle — fonts included — in storage forever.
 cleanupOutdatedCaches()
 
 // Precache and route assets
-precacheAndRoute(self.__WB_MANIFEST)
+precacheAndRoute(manifest)
 
 // Service worker for push notifications
 

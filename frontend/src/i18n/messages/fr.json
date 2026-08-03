@@ -2034,6 +2034,9 @@
     "title": "Évènements compétitifs"
   },
   "updateOverlay": {
+    "continueAnyway": "Continuer sans attendre",
+    "downloadingSubtitle": "Téléchargement en cours...",
+    "slowHint": "Connexion lente ? Le téléchargement peut prendre un moment.",
     "subtitle": "Rechargement en cours...",
     "title": "Nouvelle version disponible"
   },

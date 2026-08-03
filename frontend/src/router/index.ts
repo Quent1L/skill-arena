@@ -5,7 +5,9 @@ import { requireAdmin, requireAuth, requireSettingsAccess, redirectIfAuthenticat
 import {
   applyUpdate,
   checkVersionThrottled,
+  isUpdateDeferred,
   isUpdatePending,
+  isUpdateReady,
   updatesBlocked,
 } from '@/composables/pwa/pwa.update'
 import { i18n } from '@/i18n'
@@ -503,7 +505,9 @@ router.beforeEach((to) => {
   // Switching screens is the one moment where reloading costs the user nothing:
   // they were leaving the view anyway. Cancel the vue-router navigation, since
   // applyUpdate reloads straight onto the destination.
-  if (isUpdatePending() && !updatesBlocked()) {
+  // A deferred update is the exception: the user asked to keep browsing, so wait
+  // until the new bundle is downloaded before taking the page from them.
+  if (isUpdatePending() && !updatesBlocked() && (!isUpdateDeferred() || isUpdateReady())) {
     void applyUpdate(to.fullPath)
     return false
   }

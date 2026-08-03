@@ -9,23 +9,79 @@
         <SkolLogo :animated="false" />
         <div class="update-text">
           <p class="update-title">{{ t('updateOverlay.title') }}</p>
-          <p class="update-subtitle">{{ t('updateOverlay.subtitle') }}</p>
+          <p class="update-subtitle">
+            {{ isDownloading ? t('updateOverlay.downloadingSubtitle') : t('updateOverlay.subtitle') }}
+          </p>
         </div>
         <div class="update-progress-track">
-          <div class="update-progress-bar" />
+          <div
+            v-if="percent !== null"
+            class="update-progress-bar update-progress-measured"
+            :style="{ width: `${percent}%` }"
+          />
+          <div v-else-if="isDownloading" class="update-progress-bar update-progress-indeterminate" />
+          <div v-else class="update-progress-bar update-progress-timed" />
         </div>
+        <p v-if="percent !== null" class="update-percent">{{ percent }}%</p>
+        <p v-if="showSlowHint" class="update-hint">{{ t('updateOverlay.slowHint') }}</p>
+        <button v-if="showDismiss" type="button" class="update-dismiss" @click="emit('dismiss')">
+          {{ t('updateOverlay.continueAnyway') }}
+        </button>
       </div>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SkolLogo from '@/components/SkolLogo.vue'
+import type { UpdatePhase } from '@/composables/pwa/pwa.update'
+
+/** Past this, say out loud that a slow connection is the likely explanation. */
+const SLOW_HINT_MS = 5000
+/** Past this, stop holding the app hostage: offer to keep using it. */
+const DISMISS_MS = 15000
 
 const { t } = useI18n()
 
-defineProps<{ visible: boolean }>()
+const props = withDefaults(
+  defineProps<{ visible: boolean; phase?: UpdatePhase; progress?: number | null }>(),
+  { phase: 'applying', progress: null },
+)
+
+const emit = defineEmits<{ dismiss: [] }>()
+
+const showSlowHint = ref(false)
+const showDismiss = ref(false)
+let timers: ReturnType<typeof setTimeout>[] = []
+
+const isDownloading = computed(() => props.phase === 'downloading')
+const percent = computed(() =>
+  isDownloading.value && props.progress !== null ? Math.round(props.progress * 100) : null,
+)
+
+function clearTimers(): void {
+  timers.forEach(clearTimeout)
+  timers = []
+}
+
+// The escalation is time-based, not phase-based: what matters to the user is how
+// long they have been staring at this screen, whatever the worker is doing.
+watch(
+  () => props.visible,
+  (visible) => {
+    clearTimers()
+    showSlowHint.value = false
+    showDismiss.value = false
+    if (!visible) return
+    timers.push(setTimeout(() => (showSlowHint.value = true), SLOW_HINT_MS))
+    timers.push(setTimeout(() => (showDismiss.value = true), DISMISS_MS))
+  },
+  { immediate: true },
+)
+
+onUnmounted(clearTimers)
 </script>
 
 <style scoped>
@@ -215,6 +271,10 @@ defineProps<{ visible: boolean }>()
   width: 0%;
   background: linear-gradient(90deg, #7c3aed, #a78bfa);
   border-radius: 2px;
+}
+
+/* Timed bar: the handover is near-instant, the bar just paces UPDATE_OVERLAY_MIN_MS. */
+.update-progress-timed {
   animation: progress-fill 1.5s linear forwards;
 }
 
@@ -225,6 +285,75 @@ defineProps<{ visible: boolean }>()
   to {
     width: 100%;
   }
+}
+
+/* Real precache progress, width driven by the worker's messages. */
+.update-progress-measured {
+  transition: width 0.25s ease-out;
+}
+
+/* Fallback while the worker has not reported anything yet. */
+.update-progress-indeterminate {
+  width: 40%;
+  animation: progress-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes progress-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+.update-percent {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8125rem;
+  color: rgba(167, 139, 250, 0.75);
+  margin: -18px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.update-hint {
+  max-width: 260px;
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgba(167, 139, 250, 0.45);
+  margin: -14px 0 0;
+  animation: hint-in 0.4s ease;
+}
+
+@keyframes hint-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.update-dismiss {
+  padding: 8px 18px;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 6px;
+  background: transparent;
+  color: #a78bfa;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+  animation: hint-in 0.4s ease;
+}
+
+.update-dismiss:hover {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.6);
 }
 
 .update-fade-enter-active {

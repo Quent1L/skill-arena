@@ -1,7 +1,12 @@
 <template>
   <div>
     <SplashLoader :visible="!isAppReady" />
-    <UpdateOverlay :visible="isApplying" />
+    <UpdateOverlay
+      :visible="overlayVisible"
+      :phase="updatePhase"
+      :progress="downloadProgress"
+      @dismiss="dismissUpdate"
+    />
     <Toast
       position="top-right"
       :breakpoints="{ '640px': { width: 'calc(100vw - 1rem)', right: '0.5rem', left: 'auto' } }"
@@ -35,7 +40,8 @@ const errorService = useErrorService()
 const notificationService = useNotificationService()
 const notificationSocket = useNotificationSocket()
 const toast = useAppToast()
-const { isApplying, checkVersion, applyUpdate } = usePWAUpdate()
+const { overlayVisible, updatePhase, downloadProgress, checkVersion, applyUpdate, dismissUpdate } =
+  usePWAUpdate()
 
 const isAppReady = ref(false)
 
@@ -105,9 +111,11 @@ onMounted(async () => {
   }
 
   // Apply before revealing the app: the user never sees the stale version.
+  // A false return means the update could not be applied (download too slow, or
+  // the user chose to keep going): boot as usual, it will land at a navigation.
   if (await bootUpdateCheck) {
-    await applyUpdate()
-    return
+    const reloading = await applyUpdate()
+    if (reloading) return
   }
 
   await minDelay

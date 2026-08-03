@@ -2034,6 +2034,9 @@
     "title": "Competitive events"
   },
   "updateOverlay": {
+    "continueAnyway": "Continue anyway",
+    "downloadingSubtitle": "Downloading...",
+    "slowHint": "Slow connection? The download may take a while.",
     "subtitle": "Reloading...",
     "title": "New version available"
   },
