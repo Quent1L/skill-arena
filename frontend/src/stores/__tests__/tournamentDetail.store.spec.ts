@@ -52,6 +52,10 @@ const loadWeeklyMmrLeaders = vi.fn(async (seasonId: string) => {
   } as unknown as WeeklyMmrLeaders
 })
 const loadLeaderboard = vi.fn()
+const loadPlayerMmr = vi.fn(async () => {
+  playerMmrRef.value = { currentMmr: 1000 }
+  return []
+})
 
 vi.mock('@/composables/ranked/ranked.service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/composables/ranked/ranked.service')>()
@@ -68,7 +72,7 @@ vi.mock('@/composables/ranked/ranked.service', async (importOriginal) => {
       provisionalLoading: ref(false),
       loadLeaderboard,
       loadProvisionalLeaderboard: vi.fn(),
-      loadPlayerMmr: vi.fn(async () => []),
+      loadPlayerMmr,
       loadWeeklyMmrLeaders,
     }),
   }
@@ -138,6 +142,35 @@ describe('useTournamentDetailStore — tournament-scoped state', () => {
     await store.initialize('tournament-a')
 
     expect(store.weeklyMmrLeaders).not.toBeNull()
+  })
+
+  // A remount on the same tournament (returning from match entry) rehydrates the caches
+  // from the previous mount, so they have to be revalidated instead of trusted.
+  it('initialize with the same id revalidates the warm caches', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureStats()
+    await store.ensureWeeklyMmrLeaders()
+    await store.ensurePlayerProfile()
+    vi.clearAllMocks()
+
+    await store.initialize('tournament-a')
+
+    expect(loadStats).toHaveBeenCalledTimes(1)
+    expect(loadWeeklyMmrLeaders).toHaveBeenCalledTimes(1)
+    expect(loadPlayerMmr).toHaveBeenCalledTimes(1)
+  })
+
+  it('initialize does not revalidate caches that were never loaded', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    vi.clearAllMocks()
+
+    await store.initialize('tournament-a')
+
+    expect(loadStats).not.toHaveBeenCalled()
+    expect(loadWeeklyMmrLeaders).not.toHaveBeenCalled()
+    expect(loadPlayerMmr).not.toHaveBeenCalled()
   })
 })
 

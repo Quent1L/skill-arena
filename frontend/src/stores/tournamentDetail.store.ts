@@ -130,8 +130,23 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     isLeaderboardRecalculating.value = false
   }
 
+  // Pinia keeps `pinia.state.value[$id]` when a store is disposed, so a remount rehydrates
+  // the previous caches and every `ensure*` guard below short-circuits on them. Coming back
+  // from match entry — a sibling route, so the view really unmounts — that means rendering
+  // pre-match MMR, weekly gain and stats. The WS refresh doesn't cover it either: the view
+  // was unmounted when `leaderboard_updated` fired. initialize() already refetches the
+  // tournament, the participants and the leaderboard, so revalidate the rest here.
+  async function revalidateWarmCaches() {
+    const promises: Promise<unknown>[] = []
+    if (playerMmr.value !== null) promises.push(reloadPlayerProfile())
+    if (tournamentStats.value !== null) promises.push(reloadStats())
+    if (weeklyMmrLeaders.value !== null) promises.push(reloadWeeklyMmrLeaders())
+    await Promise.all(promises)
+  }
+
   async function initialize(id: string) {
-    if (id !== tournamentId.value) resetTournamentScopedState()
+    const isSameTournament = id === tournamentId.value
+    if (!isSameTournament) resetTournamentScopedState()
     tournamentId.value = id
     isInitialLoading.value = true
     try {
@@ -141,6 +156,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
         if (tournament.value.mode === 'ranked') {
           await rankedSvc.loadLeaderboard(id)
         }
+        if (isSameTournament) await revalidateWarmCaches()
       }
     } finally {
       isInitialLoading.value = false
