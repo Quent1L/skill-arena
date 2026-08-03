@@ -1237,6 +1237,7 @@
     "colSubRanks": "Sub-ranks",
     "delete": "Delete",
     "deleteConfirm": "Delete tier <strong>{name}</strong>?",
+    "deleteRenumberHint": "The tiers above it move down one level so the numbering stays continuous.",
     "deleteDialogTitle": "Delete tier?",
     "editDialogTitle": "Edit tier",
     "empty": "No tiers",

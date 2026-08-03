@@ -111,6 +111,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skol-arena/shared'
 import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
+import { getNextTier } from '@/composables/ranked/ranked.service'
 
 const { t } = useI18n()
 
@@ -195,10 +196,8 @@ const tierMinMmr = computed(() => {
 
 const tierMaxMmr = computed((): number | null => {
   const tier = tierAfter.value ?? tierBefore.value
-  if (!tier || !props.tiers.length) return null
-  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const idx = sorted.findIndex((t) => t.level === tier.level)
-  return sorted[idx + 1]?.minMmr ?? null
+  if (!tier) return null
+  return getNextTier(tier, props.tiers)?.minMmr ?? null
 })
 
 const barBaseStyle = computed(() => {

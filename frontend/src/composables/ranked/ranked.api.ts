@@ -131,8 +131,8 @@ export const rankedApi = {
     return response.data
   },
 
-  async createTier(seasonId: string, data: CreateRankTierInput): Promise<ClientRankTier> {
-    const response = await http.post<ClientRankTier>(`${BASE_URL}/seasons/${seasonId}/tiers`, data)
+  async createTier(seasonId: string, data: CreateRankTierInput): Promise<ClientRankTier[]> {
+    const response = await http.post<ClientRankTier[]>(`${BASE_URL}/seasons/${seasonId}/tiers`, data)
     return response.data
   },
 
@@ -141,8 +141,9 @@ export const rankedApi = {
     return response.data
   },
 
-  async deleteTier(seasonId: string, level: number): Promise<void> {
-    await http.delete(`${BASE_URL}/seasons/${seasonId}/tiers/${level}`)
+  async deleteTier(seasonId: string, level: number): Promise<ClientRankTier[]> {
+    const response = await http.delete<ClientRankTier[]>(`${BASE_URL}/seasons/${seasonId}/tiers/${level}`)
+    return response.data
   },
 
   async recalculateTiers(seasonId: string): Promise<ClientRankTier[]> {

@@ -86,4 +86,35 @@ describe('RankedLeaderboard', () => {
     const wrapper = mountBoard({ showModeToggle: false })
     expect(wrapper.findComponent({ name: 'SelectButton' }).exists()).toBe(false)
   })
+
+  // Le rang suivant est cherché par ordre, pas en `level + 1`: une saison éditée
+  // avant que les niveaux soient recompactés peut avoir des trous.
+  describe('niveaux non contigus (1, 2, 4)', () => {
+    const gapped = [
+      makeTier({ id: 'bronze', level: 1, name: 'Bronze', minMmr: 700 }),
+      makeTier({ id: 'silver', level: 2, name: 'Silver', minMmr: 900 }),
+      makeTier({ id: 'gold', level: 4, name: 'Gold', minMmr: 1100 }),
+    ]
+
+    it('barre de progression partielle et non pleine pour un joueur de milieu de rang', () => {
+      const wrapper = mountBoard({
+        tiers: gapped,
+        players: [
+          makePlayerMmr({
+            currentMmr: 1000,
+            player: { id: 'u2', displayName: 'Bob', shortName: 'BO' },
+          }),
+        ],
+      })
+      // Silver 900 → Gold 1100, Bob à 1000 = moitié de la plage
+      const bar = wrapper.find('[style*="width: 50%"]')
+      expect(bar.exists()).toBe(true)
+      expect(wrapper.find('[style*="width: 100%"]').exists()).toBe(false)
+    })
+
+    it('seuil du rang le plus bas exprimé par rapport au rang suivant', () => {
+      const wrapper = mountBoard({ tiers: gapped })
+      expect(wrapper.text()).toContain('< 900 MMR')
+    })
+  })
 })

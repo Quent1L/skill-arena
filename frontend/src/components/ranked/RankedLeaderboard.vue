@@ -145,7 +145,7 @@ import { RouterLink } from 'vue-router'
 import { playerLink } from '@/utils/player-link'
 import { useSwipe } from '@vueuse/core'
 import type { ClientPlayerMmr, ClientRankTier } from '@skol-arena/shared/types/index'
-import { isTopTier } from '@/composables/ranked/ranked.service'
+import { isTopTier, getNextTier, getPrevTier, getTierForMmr } from '@/composables/ranked/ranked.service'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 
@@ -233,11 +233,7 @@ const tierGroups = computed(() =>
 )
 
 function getPlayerTier(mmr: number): ClientRankTier | null {
-  if (!props.tiers.length) return null
-  return (
-    [...props.tiers].sort((a, b) => b.level - a.level).find((tier) => mmr >= tier.minMmr) ??
-    props.tiers[0]
-  )
+  return getTierForMmr(mmr, props.tiers)
 }
 
 function tierTextColor(tier: ClientRankTier): string {
@@ -257,17 +253,14 @@ function tierBarClass(tier: ClientRankTier): string {
 }
 
 function tierThreshold(tier: ClientRankTier): string {
-  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  if (tier.level === sorted[0]?.level) {
-    const above = sorted.find((entry) => entry.level === tier.level + 1)
-    return above ? `< ${above.minMmr} MMR` : `${tier.minMmr}+ MMR`
-  }
-  return `${tier.minMmr}+ MMR`
+  const isLowestTier = !getPrevTier(tier, props.tiers)
+  if (!isLowestTier) return `${tier.minMmr}+ MMR`
+  const above = getNextTier(tier, props.tiers)
+  return above ? `< ${above.minMmr} MMR` : `${tier.minMmr}+ MMR`
 }
 
 function tierProgress(mmr: number, tier: ClientRankTier): number {
-  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const next = sorted.find((entry) => entry.level === tier.level + 1)
+  const next = getNextTier(tier, props.tiers)
   if (!next) return 100
   const range = next.minMmr - tier.minMmr
   if (range <= 0) return 100

@@ -156,9 +156,12 @@
       :modal="true"
       :style="{ width: '400px' }"
     >
-      <div class="flex items-center gap-3">
+      <div class="flex items-start gap-3">
         <i class="pi pi-exclamation-triangle text-3xl text-orange-500"></i>
-        <span>{{ t('rankedTiersView.deleteConfirm', { name: tierToDelete?.name }) }}</span>
+        <div class="flex flex-col gap-2">
+          <span>{{ t('rankedTiersView.deleteConfirm', { name: tierToDelete?.name }) }}</span>
+          <small class="text-surface-400">{{ t('rankedTiersView.deleteRenumberHint') }}</small>
+        </div>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" text @click="deleteDialogVisible = false" />
@@ -232,8 +235,8 @@ async function handleSubmit() {
     })
     if (ok) formDialogVisible.value = false
   } else {
-    const created = await createTier(seasonId, { ...form.value, iconClass: form.value.iconClass || null })
-    if (created) formDialogVisible.value = false
+    const ok = await createTier(seasonId, { ...form.value, iconClass: form.value.iconClass || null })
+    if (ok) formDialogVisible.value = false
   }
 }
 

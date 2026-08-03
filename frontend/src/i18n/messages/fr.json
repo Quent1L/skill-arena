@@ -1237,6 +1237,7 @@
     "colSubRanks": "Sous-rangs",
     "delete": "Supprimer",
     "deleteConfirm": "Supprimer le rang \"{name}\" ?",
+    "deleteRenumberHint": "Les rangs supérieurs descendent d'un niveau pour que la numérotation reste continue.",
     "deleteDialogTitle": "Supprimer le rang ?",
     "editDialogTitle": "Modifier le rang",
     "empty": "Aucun rang défini pour cette saison",

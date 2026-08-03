@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, asc, sql } from "drizzle-orm";
 import type {
   CreateRankTierInput,
   UpdateRankTierInput,
@@ -9,8 +9,17 @@ import {
   tournamentAdmins,
   rankedSeasonConfigs,
   rankTiers,
+  mmrAnimationEvents,
 } from "../db/schema";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
+import type * as schema from "../db/schema";
 import type { TournamentStatus } from "@skol-arena/shared/types/index";
+
+type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
+
+/** Old level -> new level, for the tiers that actually moved. */
+type LevelMapping = Map<number, number>;
 
 export interface CreateRankedSeasonData {
   name: string;
@@ -131,8 +140,8 @@ export class RankedSeasonRepository {
     { level: 5, name: "Légende",    percentile: 0.95, minMmr: 1500 },
   ] as const;
 
-  async getRankTiers(seasonId: string) {
-    return await db.query.rankTiers.findMany({
+  async getRankTiers(seasonId: string, tx: DbTransaction = db) {
+    return await tx.query.rankTiers.findMany({
       where: eq(rankTiers.seasonId, seasonId),
       orderBy: (t, { asc }) => [asc(t.level)],
     });
@@ -221,12 +230,124 @@ export class RankedSeasonRepository {
     });
   }
 
+  /**
+   * Move the given tiers to their new level in two passes, through negative
+   * values: UNIQUE(season_id, level) is checked row by row, so a single pass
+   * would collide with a tier that has not moved yet.
+   */
+  private async applyLevelMoves(
+    tx: DbTransaction,
+    moves: { id: string; level: number; newLevel: number }[],
+  ): Promise<LevelMapping> {
+    if (moves.length === 0) return new Map();
+    const ids = moves.map((move) => move.id);
+
+    await tx
+      .update(rankTiers)
+      .set({ level: sql`-${rankTiers.level}` })
+      .where(inArray(rankTiers.id, ids));
+
+    for (const move of moves) {
+      await tx
+        .update(rankTiers)
+        .set({ level: move.newLevel })
+        .where(eq(rankTiers.id, move.id));
+    }
+
+    return new Map(moves.map((move) => [move.level, move.newLevel]));
+  }
+
+  /** Close the gaps left by a deletion: levels become 1..N again. */
+  private async resequenceLevels(
+    tx: DbTransaction,
+    seasonId: string,
+  ): Promise<LevelMapping> {
+    const remaining = await tx
+      .select({ id: rankTiers.id, level: rankTiers.level })
+      .from(rankTiers)
+      .where(eq(rankTiers.seasonId, seasonId))
+      .orderBy(asc(rankTiers.level));
+
+    const moves = remaining
+      .map((tier, index) => ({ ...tier, newLevel: index + 1 }))
+      .filter((tier) => tier.newLevel !== tier.level);
+    return await this.applyLevelMoves(tx, moves);
+  }
+
+  /** Free up `fromLevel` by pushing it and everything above it one level up. */
+  private async shiftLevelsUp(
+    tx: DbTransaction,
+    seasonId: string,
+    fromLevel: number,
+  ): Promise<LevelMapping> {
+    const affected = await tx
+      .select({ id: rankTiers.id, level: rankTiers.level })
+      .from(rankTiers)
+      .where(
+        and(eq(rankTiers.seasonId, seasonId), sql`${rankTiers.level} >= ${fromLevel}`),
+      )
+      .orderBy(asc(rankTiers.level));
+
+    const moves = affected.map((tier) => ({ ...tier, newLevel: tier.level + 1 }));
+    return await this.applyLevelMoves(tx, moves);
+  }
+
+  /**
+   * Keep the tier levels frozen in mmr_animation_events consistent with the
+   * renumbering. Levels pointing at a tier that no longer exists are nulled —
+   * the stored tier name is kept, so past reveals still read correctly.
+   */
+  private async remapAnimationEventLevels(
+    tx: DbTransaction,
+    seasonId: string,
+    mapping: LevelMapping,
+    removedLevel: number | null,
+  ) {
+    if (mapping.size === 0 && removedLevel === null) return;
+
+    const remap = (column: AnyPgColumn) => {
+      const branches = [sql`CASE`];
+      if (removedLevel !== null) {
+        branches.push(sql` WHEN ${column} = ${removedLevel} THEN NULL`);
+      }
+      for (const [oldLevel, newLevel] of mapping) {
+        branches.push(sql` WHEN ${column} = ${oldLevel} THEN ${newLevel}`);
+      }
+      branches.push(sql` ELSE ${column} END`);
+      return sql.join(branches);
+    };
+
+    await tx
+      .update(mmrAnimationEvents)
+      .set({
+        tierBeforeLevel: remap(mmrAnimationEvents.tierBeforeLevel),
+        tierAfterLevel: remap(mmrAnimationEvents.tierAfterLevel),
+      })
+      .where(eq(mmrAnimationEvents.seasonId, seasonId));
+  }
+
+  /**
+   * Insert a tier and return the whole season back at contiguous levels 1..N.
+   * The requested level is clamped to the end of the ladder; inserting in the
+   * middle pushes the tiers above it one level up.
+   */
   async insertTier(seasonId: string, data: CreateRankTierInput) {
-    const [created] = await db
-      .insert(rankTiers)
-      .values({ seasonId, ...data })
-      .returning();
-    return created;
+    return await db.transaction(async (tx) => {
+      const existing = await tx
+        .select({ level: rankTiers.level })
+        .from(rankTiers)
+        .where(eq(rankTiers.seasonId, seasonId));
+      const maxLevel = existing.reduce((max, tier) => Math.max(max, tier.level), 0);
+      const level = Math.min(Math.max(data.level, 1), maxLevel + 1);
+
+      if (level <= maxLevel) {
+        const mapping = await this.shiftLevelsUp(tx, seasonId, level);
+        await this.remapAnimationEventLevels(tx, seasonId, mapping, null);
+      }
+
+      await tx.insert(rankTiers).values({ seasonId, ...data, level });
+      return await this.getRankTiers(seasonId, tx);
+    });
   }
 
   async updateTier(seasonId: string, level: number, data: UpdateRankTierInput) {
@@ -238,10 +359,22 @@ export class RankedSeasonRepository {
     return updated;
   }
 
+  /**
+   * Delete a tier and close the gap it leaves, so levels stay 1..N. Levels are
+   * the business key of a tier (unique per season, used in URLs and frozen in
+   * mmr_animation_events), so the renumbering is transactional.
+   */
   async deleteTier(seasonId: string, level: number) {
-    await db
-      .delete(rankTiers)
-      .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)));
+    return await db.transaction(async (tx) => {
+      await tx
+        .delete(rankTiers)
+        .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)));
+
+      const mapping = await this.resequenceLevels(tx, seasonId);
+      await this.remapAnimationEventLevels(tx, seasonId, mapping, level);
+
+      return await this.getRankTiers(seasonId, tx);
+    });
   }
 
   async getLastFinishedSeason(disciplineId: string) {

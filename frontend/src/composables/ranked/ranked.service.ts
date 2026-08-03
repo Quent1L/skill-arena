@@ -51,11 +51,25 @@ export function getCurrentWeekStart(now: Date = new Date()): Date {
   return startOfWeek(now, { weekStartsOn: 1 })
 }
 
+// Neighbours are resolved by order, never by `level ± 1`: levels are kept
+// contiguous server-side, but a season edited before that guarantee existed can
+// still have holes.
+export function getNextTier(tier: ClientRankTier, allTiers: ClientRankTier[]): ClientRankTier | null {
+  return (
+    [...allTiers].sort((a, b) => a.level - b.level).find((t) => t.level > tier.level) ?? null
+  )
+}
+
+export function getPrevTier(tier: ClientRankTier, allTiers: ClientRankTier[]): ClientRankTier | null {
+  return (
+    [...allTiers].sort((a, b) => b.level - a.level).find((t) => t.level < tier.level) ?? null
+  )
+}
+
 export function getSubRank(mmr: number, tier: ClientRankTier, allTiers: ClientRankTier[]): number | null {
   if (tier.subRanks <= 1) return null
-  const sorted = [...allTiers].sort((a, b) => a.level - b.level)
-  const nextTier = sorted.find((t) => t.level > tier.level)
-  const prevTier = [...sorted].reverse().find((t) => t.level < tier.level)
+  const nextTier = getNextTier(tier, allTiers)
+  const prevTier = getPrevTier(tier, allTiers)
   const rangeTop = nextTier?.minMmr ?? (tier.minMmr + (prevTier ? tier.minMmr - prevTier.minMmr : 1000))
   const range = rangeTop - tier.minMmr
   if (range <= 0) return 1
@@ -80,7 +94,7 @@ export function getLp(mmr: number, tier: ClientRankTier): number {
 }
 
 export function isTopTier(tier: ClientRankTier, allTiers: ClientRankTier[]): boolean {
-  return !allTiers.some((t) => t.level > tier.level)
+  return getNextTier(tier, allTiers) === null
 }
 
 export function getMatchLabel(
@@ -303,16 +317,17 @@ export function useRankedService() {
     }
   }
 
-  async function createTier(seasonId: string, data: CreateRankTierInput): Promise<ClientRankTier | null> {
+  // Create and delete return the whole ladder: the backend renumbers the levels
+  // to keep them contiguous, so the local list has to be replaced, not patched.
+  async function createTier(seasonId: string, data: CreateRankTierInput): Promise<boolean> {
     loading.value = true
     error.value = null
     try {
-      const tier = await rankedApi.createTier(seasonId, data)
-      tiers.value = [...tiers.value, tier].sort((a, b) => a.level - b.level)
-      return tier
+      tiers.value = await rankedApi.createTier(seasonId, data)
+      return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : i18n.global.t('rankedService.errors.createTierFailed')
-      return null
+      return false
     } finally {
       loading.value = false
     }
@@ -337,8 +352,7 @@ export function useRankedService() {
     loading.value = true
     error.value = null
     try {
-      await rankedApi.deleteTier(seasonId, level)
-      tiers.value = tiers.value.filter((t) => t.level !== level)
+      tiers.value = await rankedApi.deleteTier(seasonId, level)
       return true
     } catch (err) {
       error.value = err instanceof Error ? err.message : i18n.global.t('rankedService.errors.deleteTierFailed')

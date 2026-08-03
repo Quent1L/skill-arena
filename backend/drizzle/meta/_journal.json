@@ -442,6 +442,13 @@
       "when": 1777526400018,
       "tag": "0062_flush_tournament_stats_cache",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1777526400019,
+      "tag": "0063_resequence_rank_tiers",
+      "breakpoints": true
     }
   ]
 }

@@ -14,10 +14,20 @@ import {
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
-import { NotFoundError, ErrorCode } from "../types/errors";
+import { NotFoundError, BadRequestError, ErrorCode } from "../types/errors";
 import type { TournamentStatus } from "@skol-arena/shared/types/index";
 
 const ranked = createAppHono();
+
+// Tiers are addressed by level, not by id. A non-numeric segment used to slip
+// through as NaN and silently match no row.
+function parseTierLevel(raw: string): number {
+  const level = Number(raw);
+  if (!Number.isInteger(level) || level < 1) {
+    throw new BadRequestError(ErrorCode.INVALID_RANK_TIER_LEVEL);
+  }
+  return level;
+}
 
 // POST /ranked/seasons - Create a new ranked season
 ranked.post(
@@ -91,6 +101,8 @@ ranked.get("/seasons/:id/tiers", async (c) => {
 });
 
 // POST /ranked/seasons/:id/tiers - Create a rank tier
+// Returns the whole ladder: the requested level may have been clamped or may
+// have pushed the tiers above it one level up.
 ranked.post(
   "/seasons/:id/tiers",
   requireAuth,
@@ -98,8 +110,8 @@ ranked.post(
   async (c) => {
     const id = c.req.param("id")!;
     const data = c.req.valid("json");
-    const tier = await rankedSeasonRepository.insertTier(id, data);
-    return c.json(tier, 201);
+    const tiers = await rankedSeasonRepository.insertTier(id, data);
+    return c.json(tiers, 201);
   },
 );
 
@@ -110,19 +122,21 @@ ranked.patch(
   zValidator("json", updateRankTierSchema),
   async (c) => {
     const id = c.req.param("id")!;
-    const level = Number(c.req.param("level")!);
+    const level = parseTierLevel(c.req.param("level")!);
     const data = c.req.valid("json");
     const tier = await rankedSeasonRepository.updateTier(id, level, data);
+    if (!tier) throw new NotFoundError(ErrorCode.RANK_TIER_NOT_FOUND);
     return c.json(tier);
   },
 );
 
 // DELETE /ranked/seasons/:id/tiers/:level - Delete a rank tier
+// Returns the renumbered ladder: deleting a tier closes the gap it leaves.
 ranked.delete("/seasons/:id/tiers/:level", requireAuth, async (c) => {
   const id = c.req.param("id")!;
-  const level = Number(c.req.param("level")!);
-  await rankedSeasonRepository.deleteTier(id, level);
-  return c.json({ success: true });
+  const level = parseTierLevel(c.req.param("level")!);
+  const tiers = await rankedSeasonRepository.deleteTier(id, level);
+  return c.json(tiers);
 });
 
 // POST /ranked/seasons/:id/tiers/recalculate - Recalculate tier MMR boundaries

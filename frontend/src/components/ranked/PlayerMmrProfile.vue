@@ -311,6 +311,7 @@ import {
   isTopTier,
   TIER_SIZE,
   getTierForMmr,
+  getNextTier,
   getPeakMmr,
   getWeeklyMmrGain,
   getCurrentWeekStart,
@@ -385,8 +386,7 @@ const lpProgress = computed(() => {
   if (!props.tiers.length || !rank.value) return null
   if (isTopTier(rank.value, props.tiers)) return null
   const mmrVal = props.mmr.currentMmr
-  const sorted = [...props.tiers].sort((a, b) => a.level - b.level)
-  const nextTier = sorted.find((tier) => tier.level > rank.value!.level) ?? null
+  const nextTier = getNextTier(rank.value, props.tiers)
   const lp = getLp(mmrVal, rank.value)
   const tierRange = nextTier ? nextTier.minMmr - rank.value.minMmr : TIER_SIZE
   const percent = Math.min(100, Math.round((lp / tierRange) * 100))

@@ -6,6 +6,8 @@ import {
   getTierLabel,
   getLp,
   isTopTier,
+  getNextTier,
+  getPrevTier,
   getMatchLabel,
   getTierForMmr,
   getPeakMmr,
@@ -23,6 +25,33 @@ vi.mock('@/i18n', () => ({
 function tiers(...defs: Array<Partial<ClientRankTier>>): ClientRankTier[] {
   return defs.map((d) => makeTier(d))
 }
+
+describe('getNextTier / getPrevTier', () => {
+  it('voisins immédiats sur des niveaux contigus', () => {
+    const all = tiers({ level: 1 }, { level: 2 }, { level: 3 })
+    expect(getNextTier(all[1], all)?.level).toBe(3)
+    expect(getPrevTier(all[1], all)?.level).toBe(1)
+  })
+
+  it('saute les trous de numérotation (1, 2, 4)', () => {
+    const all = tiers({ level: 1 }, { level: 2 }, { level: 4 })
+    expect(getNextTier(all[1], all)?.level).toBe(4)
+    expect(getPrevTier(all[2], all)?.level).toBe(2)
+  })
+
+  it('null aux extrémités', () => {
+    const all = tiers({ level: 1 }, { level: 4 })
+    expect(getNextTier(all[1], all)).toBeNull()
+    expect(getPrevTier(all[0], all)).toBeNull()
+  })
+
+  it('ne dépend pas de l’ordre du tableau fourni', () => {
+    const all = tiers({ level: 4 }, { level: 1 }, { level: 2 })
+    const tier = all.find((t) => t.level === 2)!
+    expect(getNextTier(tier, all)?.level).toBe(4)
+    expect(getPrevTier(tier, all)?.level).toBe(1)
+  })
+})
 
 describe('getSubRank', () => {
   it('null quand le tier n’a pas de sous-rangs (subRanks <= 1)', () => {
