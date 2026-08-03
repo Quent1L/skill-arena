@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
-import { useRankedService } from '@/composables/ranked/ranked.service'
+import { useRankedService, getCurrentWeekStart } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
@@ -27,6 +27,9 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const profileChartHistory = ref<MmrChartPoint[]>([])
   const playerStats = ref<PlayerStatsResponse | null>(null)
   const isLeaderboardRecalculating = ref(false)
+  // Week the cached weeklyMmrLeaders belongs to, so a session left open across the
+  // Monday rollover doesn't keep rendering last week's movers.
+  const weeklyMmrWeekStart = ref<number | null>(null)
 
   // Pass-through refs from services
   const tournament = tournamentSvc.currentTournament
@@ -110,7 +113,25 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   })
 
   // Actions
+
+  // This store is a singleton but is instantiated by several components outside
+  // TournamentDetailView (match detail, match stepper), so $dispose() on unmount is not a
+  // reliable reset. Clear every tournament-scoped cache here, otherwise the `ensure*`
+  // guards below short-circuit and render the previous tournament's data.
+  function resetTournamentScopedState() {
+    weeklyMmrLeaders.value = null
+    weeklyMmrWeekStart.value = null
+    tournamentStats.value = null
+    playerMmr.value = null
+    playerStats.value = null
+    profileChartHistory.value = []
+    rankedLeaderboard.value = []
+    rankedProvisionalLeaderboard.value = []
+    isLeaderboardRecalculating.value = false
+  }
+
   async function initialize(id: string) {
+    if (id !== tournamentId.value) resetTournamentScopedState()
     tournamentId.value = id
     isInitialLoading.value = true
     try {
@@ -157,13 +178,14 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   }
 
   async function ensureLeaderboard() {
+    if (!tournamentId.value) return
     if (!rankedLeaderboard.value.length) {
       await rankedSvc.loadLeaderboard(tournamentId.value)
     }
   }
 
   async function ensurePlayerProfile() {
-    if (!appUser.value?.id) return
+    if (!tournamentId.value || !appUser.value?.id) return
     if (!playerMmr.value) {
       const [chartHistory] = await Promise.all([
         rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
@@ -175,22 +197,33 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   }
 
   async function ensureStats() {
+    if (!tournamentId.value) return
     if (!tournamentStats.value) {
       await statsSvc.loadStats(tournamentId.value)
     }
   }
 
+  async function loadWeeklyMmr() {
+    await rankedSvc.loadWeeklyMmrLeaders(tournamentId.value)
+    weeklyMmrWeekStart.value = getCurrentWeekStart().getTime()
+  }
+
   // MMR only exists in ranked seasons, so the weekly ranking is fetched on demand
   // rather than bundled into the (cached, mode-agnostic) tournament stats payload.
   async function ensureWeeklyMmrLeaders() {
-    if (tournament.value?.mode !== 'ranked') return
-    if (!weeklyMmrLeaders.value) {
-      await rankedSvc.loadWeeklyMmrLeaders(tournamentId.value)
+    if (!tournamentId.value || tournament.value?.mode !== 'ranked') return
+    if (!weeklyMmrLeaders.value || weeklyMmrWeekStart.value !== getCurrentWeekStart().getTime()) {
+      await loadWeeklyMmr()
     }
   }
 
+  async function reloadWeeklyMmrLeaders() {
+    if (!tournamentId.value || tournament.value?.mode !== 'ranked') return
+    await loadWeeklyMmr()
+  }
+
   async function reloadPlayerProfile() {
-    if (!appUser.value?.id) return
+    if (!tournamentId.value || !appUser.value?.id) return
     const [chartHistory] = await Promise.all([
       rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
       playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
@@ -200,6 +233,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   }
 
   async function refreshSilently() {
+    if (!tournamentId.value) return
     const promises: Promise<unknown>[] = [
       reloadTournament(),
       reloadParticipants(),
@@ -214,24 +248,28 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
       promises.push(reloadStats())
     }
     if (weeklyMmrLeaders.value !== null) {
-      promises.push(rankedSvc.loadWeeklyMmrLeaders(tournamentId.value))
+      promises.push(reloadWeeklyMmrLeaders())
     }
     await Promise.all(promises)
   }
 
   async function reloadTournament() {
+    if (!tournamentId.value) return
     await tournamentSvc.loadTournamentWithErrorHandling(tournamentId.value)
   }
 
   async function reloadStats() {
+    if (!tournamentId.value) return
     await statsSvc.loadStats(tournamentId.value)
   }
 
   async function reloadLeaderboard() {
+    if (!tournamentId.value) return
     await rankedSvc.loadLeaderboard(tournamentId.value)
   }
 
   async function loadProvisionalLeaderboard() {
+    if (!tournamentId.value) return
     await rankedSvc.loadProvisionalLeaderboard(tournamentId.value)
   }
 
@@ -288,6 +326,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     ensurePlayerProfile,
     ensureStats,
     ensureWeeklyMmrLeaders,
+    reloadWeeklyMmrLeaders,
     reloadTournament,
     reloadStats,
     reloadLeaderboard,

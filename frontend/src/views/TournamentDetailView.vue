@@ -350,6 +350,25 @@ onMounted(async () => {
   )
   sendWsMessage({ event: 'subscribe_tournament', tournamentId: tournamentId.value })
 
+  if (store.tournament?.mode === 'ranked') {
+    // Leaderboard/stats freshness is not personal data — unauthenticated viewers need
+    // these refreshes too, so they sit outside the isAuthenticated block below.
+    offWsHandlers.push(
+      onWsEvent('leaderboard_recalculating', (data) => {
+        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
+        store.isLeaderboardRecalculating = true
+      }),
+      onWsEvent('leaderboard_updated', (data) => {
+        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
+        store.isLeaderboardRecalculating = false
+        store.reloadLeaderboard()
+        if (store.playerMmr !== null) store.reloadPlayerProfile()
+        if (store.tournamentStats !== null) store.reloadStats()
+        if (store.weeklyMmrLeaders !== null) store.reloadWeeklyMmrLeaders()
+      }),
+    )
+  }
+
   if (store.tournament?.mode === 'ranked' && store.isAuthenticated) {
     await animationQueue.loadPending(tournamentId.value)
     // Pending animations mean a finalization just happened (possibly while this
@@ -373,17 +392,6 @@ onMounted(async () => {
         const payload = data as MmrRecapReadyPayload
         if (payload.tournamentId !== tournamentId.value) return
         animationQueue.loadPending(tournamentId.value)
-      }),
-      onWsEvent('leaderboard_recalculating', (data) => {
-        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
-        store.isLeaderboardRecalculating = true
-      }),
-      onWsEvent('leaderboard_updated', (data) => {
-        if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
-        store.isLeaderboardRecalculating = false
-        store.reloadLeaderboard()
-        if (store.playerMmr !== null) store.reloadPlayerProfile()
-        if (store.tournamentStats !== null) store.reloadStats()
       }),
     )
   }

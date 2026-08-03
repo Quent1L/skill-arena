@@ -1,0 +1,202 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { ref, computed } from 'vue'
+import type { WeeklyMmrLeaders } from '@skol-arena/shared/types/index'
+
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+
+vi.mock('@/composables/useAuth', () => ({
+  useAuth: () => ({
+    isAuthenticated: computed(() => true),
+    appUser: computed(() => ({ id: 'u1', email: 'u1@test.dev', role: 'player' })),
+    userRole: computed(() => 'player'),
+  }),
+}))
+
+const tournamentRef = ref<{ mode: string } | null>({ mode: 'ranked' })
+
+vi.mock('@/composables/tournament/tournament.service', () => ({
+  useTournamentService: () => ({
+    currentTournament: tournamentRef,
+    error: ref(null),
+    loadTournamentWithErrorHandling: vi.fn(),
+    isTournamentOpenForJoin: () => false,
+    canLeaveTournament: () => false,
+    canManageTournament: () => false,
+    canCreateMatchInTournament: () => false,
+    recalculatePoints: vi.fn(),
+    clearCache: vi.fn(),
+  }),
+}))
+
+vi.mock('@/composables/participant.service', () => ({
+  useParticipantService: () => ({
+    participants: ref([]),
+    participantCount: computed(() => 0),
+    loading: ref(false),
+    isUserParticipant: () => false,
+    getTournamentParticipants: vi.fn(),
+    joinTournamentAndReload: vi.fn(),
+    leaveTournamentAndReload: vi.fn(),
+  }),
+}))
+
+const weeklyMmrLeadersRef = ref<WeeklyMmrLeaders | null>(null)
+const playerMmrRef = ref<unknown>(null)
+const leaderboardRef = ref<unknown[]>([])
+const loadWeeklyMmrLeaders = vi.fn(async (seasonId: string) => {
+  weeklyMmrLeadersRef.value = {
+    weekStart: new Date(),
+    gainers: [{ seasonId }],
+    losers: [],
+  } as unknown as WeeklyMmrLeaders
+})
+const loadLeaderboard = vi.fn()
+
+vi.mock('@/composables/ranked/ranked.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/composables/ranked/ranked.service')>()
+  return {
+    getCurrentWeekStart: actual.getCurrentWeekStart,
+    useRankedService: () => ({
+      leaderboard: leaderboardRef,
+      provisionalLeaderboard: ref([]),
+      tiers: ref([]),
+      playerMmr: playerMmrRef,
+      playerOpponentQuality: ref(undefined),
+      weeklyMmrLeaders: weeklyMmrLeadersRef,
+      loading: ref(false),
+      provisionalLoading: ref(false),
+      loadLeaderboard,
+      loadProvisionalLeaderboard: vi.fn(),
+      loadPlayerMmr: vi.fn(async () => []),
+      loadWeeklyMmrLeaders,
+    }),
+  }
+})
+
+const statsRef = ref<unknown>(null)
+const loadStats = vi.fn(async () => {
+  statsRef.value = { momentum: [] }
+})
+
+vi.mock('@/composables/tournament/tournament-stats.service', () => ({
+  useTournamentStatsService: () => ({
+    stats: statsRef,
+    loading: ref(false),
+    error: ref(null),
+    loadStats,
+  }),
+}))
+
+vi.mock('@/composables/player/player.api', () => ({
+  playerApi: { getStats: vi.fn(async () => ({ stats: {} })) },
+}))
+
+import { useTournamentDetailStore } from '../tournamentDetail.store'
+
+// A Wednesday, so the week start (Monday) is unambiguous.
+const WEDNESDAY = new Date('2026-03-11T10:00:00')
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(WEDNESDAY)
+  setActivePinia(createPinia())
+  tournamentRef.value = { mode: 'ranked' }
+  weeklyMmrLeadersRef.value = null
+  playerMmrRef.value = null
+  leaderboardRef.value = []
+  statsRef.value = null
+  vi.clearAllMocks()
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+describe('useTournamentDetailStore — tournament-scoped state', () => {
+  it('initialize with a new id clears the caches of the previous tournament', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureStats()
+    await store.ensureWeeklyMmrLeaders()
+    expect(store.weeklyMmrLeaders).not.toBeNull()
+    expect(store.tournamentStats).not.toBeNull()
+
+    await store.initialize('tournament-b')
+
+    expect(store.weeklyMmrLeaders).toBeNull()
+    expect(store.tournamentStats).toBeNull()
+    expect(store.rankedLeaderboard).toEqual([])
+    expect(store.isLeaderboardRecalculating).toBe(false)
+  })
+
+  it('initialize with the same id keeps the caches', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureWeeklyMmrLeaders()
+
+    await store.initialize('tournament-a')
+
+    expect(store.weeklyMmrLeaders).not.toBeNull()
+  })
+})
+
+describe('useTournamentDetailStore — weekly MMR leaders', () => {
+  it('ensureWeeklyMmrLeaders does not refetch within the same week', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+
+    await store.ensureWeeklyMmrLeaders()
+    await store.ensureWeeklyMmrLeaders()
+
+    expect(loadWeeklyMmrLeaders).toHaveBeenCalledTimes(1)
+  })
+
+  it('ensureWeeklyMmrLeaders refetches after the Monday rollover', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureWeeklyMmrLeaders()
+
+    // Next Wednesday: a new week started, the cached movers are stale.
+    vi.setSystemTime(new Date('2026-03-18T10:00:00'))
+    await store.ensureWeeklyMmrLeaders()
+
+    expect(loadWeeklyMmrLeaders).toHaveBeenCalledTimes(2)
+  })
+
+  it('reloadWeeklyMmrLeaders always refetches', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureWeeklyMmrLeaders()
+
+    await store.reloadWeeklyMmrLeaders()
+
+    expect(loadWeeklyMmrLeaders).toHaveBeenCalledTimes(2)
+  })
+
+  it('does nothing when the tournament is not ranked', async () => {
+    tournamentRef.value = { mode: 'championship' }
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+
+    await store.ensureWeeklyMmrLeaders()
+    await store.reloadWeeklyMmrLeaders()
+
+    expect(loadWeeklyMmrLeaders).not.toHaveBeenCalled()
+  })
+})
+
+describe('useTournamentDetailStore — uninitialized store', () => {
+  it('reload actions are no-ops without a tournament id', async () => {
+    const store = useTournamentDetailStore()
+
+    await store.reloadStats()
+    await store.reloadLeaderboard()
+    await store.reloadWeeklyMmrLeaders()
+    await store.refreshSilently()
+
+    expect(loadStats).not.toHaveBeenCalled()
+    expect(loadLeaderboard).not.toHaveBeenCalled()
+    expect(loadWeeklyMmrLeaders).not.toHaveBeenCalled()
+  })
+})

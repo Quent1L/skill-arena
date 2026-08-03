@@ -118,7 +118,6 @@ import { computed, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
-import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import WhenStep from '@/components/match/steps/WhenStep.vue'
 import ParticipantsStep from '@/components/match/steps/ParticipantsStep.vue'
 import TeamsStep from '@/components/match/steps/TeamsStep.vue'
@@ -144,7 +143,6 @@ const {
   createMatchWithNavigation,
   updateMatchWithNavigation,
 } = useMatchService()
-const detailStore = useTournamentDetailStore()
 
 const isEditMode = computed(() => !!props.matchId)
 
@@ -277,12 +275,6 @@ async function submitMatch() {
     await updateMatchWithNavigation(props.matchId, updatePayload, props.tournamentId, tournament.value?.mode)
   } else {
     await createMatchWithNavigation(payload, props.tournamentId, tournament.value?.mode)
-  }
-
-  detailStore.reloadStats().catch(() => {})
-  detailStore.reloadTournament().catch(() => {})
-  if (detailStore.tournament?.mode === 'ranked') {
-    detailStore.reloadLeaderboard().catch(() => {})
   }
 }
 

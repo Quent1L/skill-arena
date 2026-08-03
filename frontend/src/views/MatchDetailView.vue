@@ -470,7 +470,7 @@
       <MmrRevealAnimation
         v-else-if="match.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
         :event="animationQueue.currentEvent.value"
-        :tiers="detailStore.rankedTiers"
+        :tiers="rankedTiers"
         @close="animationQueue.acknowledgeCurrentEvent()"
       />
       <BadgeRevealAnimation
@@ -526,7 +526,7 @@ import type {
   BadgeAnimationWsPayload,
 } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
-import { useTournamentDetailStore } from '@/stores/tournamentDetail.store.ts'
+import { useRankedService } from '@/composables/ranked/ranked.service'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
@@ -551,7 +551,9 @@ function goBack() {
 }
 const { getMatch, respondToMatch, finalizeMatch, cancelMatch } = useMatchService()
 const { appUser } = useAuth()
-const detailStore = useTournamentDetailStore()
+// Tiers drive the reveal animation's icon, colours and progress bar. This view never
+// loads the tournament, so they have to be fetched on their own.
+const { tiers: rankedTiers, loadTiers } = useRankedService()
 
 const match = ref<ClientMatchDetail | null>(null)
 const loading = ref(true)
@@ -573,6 +575,7 @@ let offRecapWs: (() => void) | null = null
 function initAnimationIfRanked() {
   if (!match.value || match.value.tournament?.mode !== 'ranked' || !appUser.value) return
   const seasonId = match.value.tournamentId!
+  loadTiers(seasonId)
   animationQueue.loadPending(seasonId)
   offWs = onWsEvent('mmr_animation', (data: MmrAnimationWsPayload) => {
     animationQueue.enqueue(data)
@@ -703,13 +706,6 @@ async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string;
   } finally {
     responding.value = false
   }
-  refreshTournament()
-}
-
-async function refreshTournament() {
-  detailStore.reloadStats()
-  detailStore.reloadTournament()
-  if (detailStore.tournament?.mode === 'ranked') detailStore.reloadLeaderboard()
 }
 
 function handleRedirectToScoreForm(data: { reason?: string }) {
@@ -781,7 +777,6 @@ async function handleFinalize(reason: MatchFinalizationReason) {
   } catch (err) {
     console.error('Error finalizing match:', err)
   }
-  refreshTournament()
 }
 
 function completeMatch() {
