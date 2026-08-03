@@ -62,6 +62,38 @@ describe('errorService — serveur injoignable', () => {
     expect(add).toHaveBeenCalledTimes(2)
   })
 
+  it('se tait quand la page est en train de partir', async () => {
+    // Un rechargement de mise à jour coupe les requêtes en vol : chaque abandon
+    // remonte comme un échec réseau, sur un écran qui n'existera plus.
+    const errorService = await loadErrorService()
+    const { markLeaving } = await import('@/utils/app-lifecycle')
+
+    markLeaving()
+    errorService.showError(new Error('Failed to fetch', { cause: NETWORK_ERROR }))
+    errorService.showError(new Error('Tournoi introuvable', { cause: 'TOURNAMENT_NOT_FOUND' }))
+
+    expect(add).not.toHaveBeenCalled()
+  })
+
+  it('garde le marqueur réseau des rejets non gérés', async () => {
+    // Régression : le handler transmettait `reason.message`, une chaîne, ce qui
+    // perdait `cause` — un backend injoignable sortait en erreur brute
+    // « Failed to fetch » au lieu du message dédié.
+    vi.resetModules()
+    const mod = await import('@/composables/useErrorService')
+    mod.initErrorService(toast)
+    mod.errorService.install()
+
+    const event = new Event('unhandledrejection') as Event & { reason: unknown }
+    event.reason = new Error('Failed to fetch', { cause: NETWORK_ERROR })
+    window.dispatchEvent(event)
+    mod.errorService.uninstall()
+
+    expect(add).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ severity: 'warn', summary: 'errorService.serverUnreachableSummary' }),
+    )
+  })
+
   it('laisse passer les vraies erreurs applicatives', async () => {
     const errorService = await loadErrorService()
 

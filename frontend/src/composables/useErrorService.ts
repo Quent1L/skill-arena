@@ -3,6 +3,7 @@
  */
 
 import type { ToastServiceMethods } from 'primevue/toastservice'
+import { isLeaving } from '@/utils/app-lifecycle'
 import { isNetworkError } from '@/utils/HttpErrors'
 import { i18n } from '@/i18n'
 
@@ -58,6 +59,12 @@ function showError(error: Error | string, detail?: string) {
   const errorDetail = detail || (typeof error === 'object' && error.stack ? i18n.global.t('errorService.checkConsole') : undefined)
 
   console.error('[Global Error Handler]', error)
+
+  // The page is being replaced: whatever just failed was cut short by our own
+  // reload, and the toast would flash by on a screen that no longer exists.
+  if (isLeaving()) {
+    return
+  }
 
   // Network failure: dedicated message, never the browser's technical text.
   if (isNetworkError(error)) {
@@ -134,7 +141,11 @@ function handleUnhandledRejection(event: PromiseRejectionEvent) {
     promise: event.promise,
   })
 
-  showError(errorMessage, errorDetail)
+  // Forward the Error itself rather than its message: `cause` is what marks a
+  // transient network failure, and a plain string drops it — which is how an
+  // unreachable backend surfaced as a raw "Failed to fetch" error toast instead of
+  // the dedicated "server unreachable" one.
+  showError(reason instanceof Error ? reason : errorMessage, errorDetail)
 }
 
 /**
