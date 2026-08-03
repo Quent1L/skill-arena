@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.19.0](https://github.com/Quent1L/skol-arena/compare/1.18.1...1.19.0) (2026-08-03)
+
+### ✨ New Features
+
+* **pwa:** split forced and background update flows ([0a25421](https://github.com/Quent1L/skol-arena/commit/0a25421562fbc1c7d09e012ac101ffa0d58ffb82))
+
+### 🐛 Bug Fixes
+
+* **comparison:** clear stale results when filters emptied ([e8f874a](https://github.com/Quent1L/skol-arena/commit/e8f874aa7af95abe038537fad8d5aeb4fc432a1b))
+* **errors:** stop reporting failures caused by leaving the page ([89b8a5a](https://github.com/Quent1L/skol-arena/commit/89b8a5a399cb9f668dda6b489e6f2801b67b8c23))
+* **ranked:** keep rank tier levels contiguous ([589bb44](https://github.com/Quent1L/skol-arena/commit/589bb442275b4215770dae501e05d635bc0a4347))
+* **ranked:** refresh weekly MMR movers on match finalization ([1eca138](https://github.com/Quent1L/skol-arena/commit/1eca138596a00f84e00a7131cc2b8c98e1c53cd8))
+* **ranked:** revalidate stale caches on tournament remount ([ba2d5e4](https://github.com/Quent1L/skol-arena/commit/ba2d5e421ee0281668d33bc38ea966a6b515e04a))
+
 ## [1.18.1](https://github.com/Quent1L/skol-arena/compare/1.18.0...1.18.1) (2026-08-03)
 
 ### 🐛 Bug Fixes
