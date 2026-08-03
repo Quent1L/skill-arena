@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.18.1](https://github.com/Quent1L/skol-arena/compare/1.18.0...1.18.1) (2026-08-03)
+
+### 🐛 Bug Fixes
+
+* **pwa:** stop the update overlay from looping on slow networks ([d873a35](https://github.com/Quent1L/skol-arena/commit/d873a35975e9cc97984a0be39235b3e6b7b31de6))
+
 ## [1.18.0](https://github.com/Quent1L/skol-arena/compare/1.17.0...1.18.0) (2026-08-02)
 
 ### ✨ New Features
