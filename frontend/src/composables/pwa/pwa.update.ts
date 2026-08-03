@@ -1,19 +1,34 @@
 import { ref, readonly, computed } from 'vue'
+import { markLeaving } from '@/utils/app-lifecycle'
+import { isVersionBelowMin } from '@/utils/semver'
 
 /** Minimum time the UpdateOverlay stays up, so it can actually be read. */
 export const UPDATE_OVERLAY_MIN_MS = 1500
 /** Budget for the handover itself, once a worker is waiting: skipWaiting is instant. */
 const HANDOVER_TIMEOUT_MS = 5000
-/** Ceiling on how long we wait for a new worker to finish precaching. */
-const DOWNLOAD_MAX_MS = 120 * 1000
+/**
+ * Ceiling on how long we wait for a new worker to finish precaching, when the user
+ * has no choice but to wait it out.
+ */
+const FORCED_DOWNLOAD_MAX_MS = 120 * 1000
+/**
+ * Same ceiling for a routine release. Much lower on purpose: nobody should stare at
+ * a splash for two minutes over a bug fix. Giving up here is not final — the install
+ * keeps running and a later navigation applies it for the cost of a reload.
+ */
+const BACKGROUND_DOWNLOAD_MAX_MS = 8 * 1000
 /** Throttle window for navigation-triggered checks. */
 const CHECK_THROTTLE_MS = 60 * 1000
 /** Past this many reloads for the same version, stop: something is not converging. */
 const MAX_RELOAD_ATTEMPTS = 2
 const RELOAD_ATTEMPTS_KEY = 'skol.updateReloads'
+/** How long the "update done" screen stays up. Long enough to read a version number. */
+export const UPDATE_CONFIRM_MS = 3500
+/** Last version this browser actually ran, to spot the change on the next boot. */
+const LAST_VERSION_KEY = 'skol.lastVersion'
 
 /** What the overlay is currently waiting on. */
-export type UpdatePhase = 'idle' | 'downloading' | 'applying'
+export type UpdatePhase = 'idle' | 'downloading' | 'applying' | 'done'
 
 /** A new version is deployed but not applied yet. */
 const updatePending = ref(false)
@@ -38,9 +53,24 @@ const controllerTakenOver = ref(false)
 const updateReady = ref(false)
 /** Precache progress reported by the installing worker, 0..1, null while unknown. */
 const downloadProgress = ref<number | null>(null)
+/** Same progress as a file count, so the wait is legible rather than a bare bar. */
+const downloadDone = ref<number | null>(null)
+const downloadTotal = ref<number | null>(null)
+/**
+ * The served build requires a version this one is below: the update is not optional
+ * and the user gets no way out of it. Resolved at detection.
+ */
+const updateForced = ref(false)
+/** Version to announce as freshly installed, null when there is nothing to announce. */
+const confirmedVersion = ref<string | null>(null)
 
-/** The overlay is the apply routine made visible — unless the user waved it away. */
-const overlayVisible = computed(() => isApplying.value && !deferred.value)
+/**
+ * The overlay is the apply routine made visible — unless the user waved it away —
+ * plus the confirmation shown once on the other side of the reload.
+ */
+const overlayVisible = computed(
+  () => (isApplying.value && !deferred.value) || confirmedVersion.value !== null,
+)
 
 /** True once a deployment is detected. Only a reload clears it. */
 export function isUpdatePending(): boolean {
@@ -51,6 +81,8 @@ let lastCheckAt = 0
 let blockers = 0
 let prefetchStarted = false
 let pendingVersion: string | null = null
+/** Floor advertised by the served build, needed to tell a routine update from a forced one. */
+let servedMinVersion: string | null = null
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -69,10 +101,12 @@ if (hasServiceWorker()) {
   navigator.serviceWorker.addEventListener('message', (event: MessageEvent) => {
     const data = event.data as { type?: string; done?: number; total?: number } | undefined
     if (data?.type !== 'PRECACHE_PROGRESS' || !data.total) return
-    const ratio = Math.min(1, (data.done ?? 0) / data.total)
+    const done = Math.min(data.total, data.done ?? 0)
     // Monotonic: a worker restarting its install must not rewind the bar under
     // the user's eyes.
-    downloadProgress.value = Math.max(downloadProgress.value ?? 0, ratio)
+    downloadProgress.value = Math.max(downloadProgress.value ?? 0, done / data.total)
+    downloadDone.value = Math.max(downloadDone.value ?? 0, done)
+    downloadTotal.value = data.total
   })
 
   // Catches the handover that completes after the user deferred the update.
@@ -143,12 +177,80 @@ async function prefetchUpdate(): Promise<void> {
   prefetchStarted = true
   try {
     const registration = await navigator.serviceWorker.getRegistration()
-    await registration?.update()
+    if (!registration) return
+    // Nothing else announces that a background precache is done: a worker that
+    // reaches `waiting` on its own sits there silently. Without this watcher a
+    // routine update would only ever land on a cold start, never on a navigation.
+    // Attached before update() so the `updatefound` it triggers is not missed.
+    void waitForInstalled(registration).then((worker) => {
+      if (worker) updateReady.value = true
+    })
+    await registration.update()
   } catch {
     // Offline: let the next detection try again.
     prefetchStarted = false
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Post-update confirmation                                                    */
+/* -------------------------------------------------------------------------- */
+
+function readLastVersion(): string | null {
+  try {
+    return localStorage.getItem(LAST_VERSION_KEY)
+  } catch {
+    // Private mode: worst case the confirmation never shows.
+    return null
+  }
+}
+
+function rememberVersion(version: string): void {
+  try {
+    localStorage.setItem(LAST_VERSION_KEY, version)
+  } catch {
+    // See above.
+  }
+}
+
+/**
+ * Returns the version to announce as freshly installed, and records the current one
+ * for next time. Null when there is nothing to say.
+ *
+ * Reading it from storage rather than from the update flow is what makes the
+ * announcement reliable: navigations bypass the precache, so a plain reload lands on
+ * the new bundle without `applyUpdate` ever running — the very case where the user
+ * would otherwise be moved to a new version with no explanation at all.
+ *
+ * Mandatory updates get announced too. The blocking screen they show on the way in
+ * says a version is *required*, not that one was installed, and it can be gone in the
+ * 1.5s floor when the bundle was already precached — leaving the user with a page
+ * that reloaded under them for no stated reason.
+ */
+export function consumeUpdateConfirmation(): string | null {
+  const previous = readLastVersion()
+  rememberVersion(__APP_VERSION__)
+
+  // First run on this browser: nothing changed, there was no "before".
+  if (!previous || previous === __APP_VERSION__) return null
+  return __APP_VERSION__
+}
+
+/** Holds the confirmation screen up long enough to read, then hands over to the app. */
+export async function announceUpdate(): Promise<void> {
+  const version = consumeUpdateConfirmation()
+  if (!version) return
+
+  updatePhase.value = 'done'
+  confirmedVersion.value = version
+  await delay(UPDATE_CONFIRM_MS)
+  confirmedVersion.value = null
+  updatePhase.value = 'idle'
+}
+
+/* -------------------------------------------------------------------------- */
+/* Detection                                                                   */
+/* -------------------------------------------------------------------------- */
 
 /**
  * Compares the served version against the one baked into the bundle. Much
@@ -161,8 +263,10 @@ export async function checkVersion(): Promise<boolean> {
   try {
     const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' })
     if (!response.ok) return false
-    const data = (await response.json()) as { version?: string }
+    const data = (await response.json()) as { version?: string; minVersion?: string | null }
     if (!data.version) return false
+
+    servedMinVersion = data.minVersion ?? null
 
     if (data.version === __APP_VERSION__) {
       // Running exactly what is served: whatever happened before worked out.
@@ -178,6 +282,9 @@ export async function checkVersion(): Promise<boolean> {
       return false
     }
 
+    // Resolved after the loop breaker on purpose: an update that already failed to
+    // stick must not be the one the user is locked behind.
+    updateForced.value = isVersionBelowMin(__APP_VERSION__, servedMinVersion)
     updatePending.value = true
     void prefetchUpdate()
     return true
@@ -220,7 +327,10 @@ function waitForInstalled(registration: ServiceWorkerRegistration): Promise<Serv
       if (!worker) return false
       const onStateChange = () => {
         if (worker.state === 'installed' || worker.state === 'activated') {
-          settle(registration.waiting ?? null)
+          // Fall back to the worker itself: `registration.waiting` is not always
+          // populated yet when `statechange` fires, and reporting no worker there
+          // would read as a failed download.
+          settle(registration.waiting ?? worker)
         } else if (worker.state === 'redundant') {
           settle(null)
         }
@@ -281,7 +391,8 @@ async function prepareWorker(): Promise<boolean> {
     if (worker) updateReady.value = true
   })
 
-  const waiting = registration.waiting ?? (await withTimeout(installed, DOWNLOAD_MAX_MS, null))
+  const budget = updateForced.value ? FORCED_DOWNLOAD_MAX_MS : BACKGROUND_DOWNLOAD_MAX_MS
+  const waiting = registration.waiting ?? (await withTimeout(installed, budget, null))
   if (!waiting) return false
 
   updateReady.value = true
@@ -322,6 +433,10 @@ export async function applyUpdate(targetUrl?: string): Promise<boolean> {
   if (!ready) {
     // The download never landed. Let the app live on the current version rather
     // than reload into the same stale bundle over and over.
+    // This doubles as the escape hatch of a forced update: `dismissUpdate` is inert
+    // there, so `deferred` can only be set here, by a download that genuinely failed.
+    // Being offline must leave a usable app, not a bricked one — and the guard at the
+    // top of this function then stops us retrying on every navigation.
     deferred.value = true
     stopApplying()
     return false
@@ -342,6 +457,9 @@ export async function applyUpdate(targetUrl?: string): Promise<boolean> {
   await delay(Math.max(0, UPDATE_OVERLAY_MIN_MS - (Date.now() - startedAt)))
 
   recordReloadAttempt(pendingVersion ?? 'unknown')
+  // Everything still in flight is about to be cut off. Say so, or each aborted
+  // request reports itself as a failure the user can neither act on nor read.
+  markLeaving()
   if (target === window.location.href) window.location.reload()
   else window.location.href = target
   return true
@@ -352,6 +470,9 @@ export async function applyUpdate(targetUrl?: string): Promise<boolean> {
  * update lands at the next navigation, once the new worker is ready.
  */
 export function dismissUpdate(): void {
+  // No opt-out of a mandatory update. The only way out stays a download that truly
+  // failed, which `applyUpdate` handles below.
+  if (updateForced.value) return
   deferred.value = true
 }
 
@@ -384,15 +505,25 @@ export function isUpdateReady(): boolean {
   return updateReady.value
 }
 
+/** True when the pending update is mandatory: no dismissal, no waiting for later. */
+export function isUpdateForcedPending(): boolean {
+  return updateForced.value
+}
+
 export function usePWAUpdate() {
   return {
     updatePending: readonly(updatePending),
+    updateForced: readonly(updateForced),
+    confirmedVersion: readonly(confirmedVersion),
     isApplying: readonly(isApplying),
     updatePhase: readonly(updatePhase),
     downloadProgress: readonly(downloadProgress),
+    downloadDone: readonly(downloadDone),
+    downloadTotal: readonly(downloadTotal),
     overlayVisible,
     checkVersion,
     checkVersionThrottled,
+    announceUpdate,
     applyUpdate,
     dismissUpdate,
     blockUpdates,

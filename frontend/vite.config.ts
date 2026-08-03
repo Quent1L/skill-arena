@@ -6,8 +6,16 @@ import tailwindcss from '@tailwindcss/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite'
 import { PrimeVueResolver } from '@primevue/auto-import-resolver'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 const version = readFileSync(new URL('../VERSION', import.meta.url), 'utf-8').trim()
+
+// Lowest version a client is allowed to keep running. Written by the release
+// pipeline (scripts/apply-force-update.ts), never by hand. Optional on purpose:
+// a checkout predating the file must still build.
+const minVersionPath = new URL('../MIN_VERSION', import.meta.url)
+const minVersion = existsSync(minVersionPath)
+  ? readFileSync(minVersionPath, 'utf-8').trim() || null
+  : null
 
 export default defineConfig({
   define: {
@@ -19,12 +27,14 @@ export default defineConfig({
       // __APP_VERSION__ to detect a deployment without waiting on the service
       // worker lifecycle. Emitted at build time rather than kept in public/ so it
       // cannot drift from ../VERSION.
+      // `minVersion` rides along in the same payload so deciding whether the update
+      // is blocking costs no extra request.
       name: 'emit-version-json',
       generateBundle() {
         this.emitFile({
           type: 'asset',
           fileName: 'version.json',
-          source: JSON.stringify({ version }),
+          source: JSON.stringify({ version, minVersion }),
         })
       },
     },

@@ -6,10 +6,12 @@ import {
   applyUpdate,
   checkVersionThrottled,
   isUpdateDeferred,
+  isUpdateForcedPending,
   isUpdatePending,
   isUpdateReady,
   updatesBlocked,
 } from '@/composables/pwa/pwa.update'
+import { markLeaving } from '@/utils/app-lifecycle'
 import { i18n } from '@/i18n'
 
 const t = (key: string) => i18n.global.t(key)
@@ -505,11 +507,18 @@ router.beforeEach((to) => {
   // Switching screens is the one moment where reloading costs the user nothing:
   // they were leaving the view anyway. Cancel the vue-router navigation, since
   // applyUpdate reloads straight onto the destination.
-  // A deferred update is the exception: the user asked to keep browsing, so wait
-  // until the new bundle is downloaded before taking the page from them.
-  if (isUpdatePending() && !updatesBlocked() && (!isUpdateDeferred() || isUpdateReady())) {
-    void applyUpdate(to.fullPath)
-    return false
+  if (isUpdatePending() && !updatesBlocked()) {
+    // A mandatory update interrupts even when the bundle is still downloading: the
+    // user waits it out in front of the real progress. A routine one only interrupts
+    // once applying costs nothing but a reload — otherwise let them navigate, this
+    // guard runs again on the next move, by which time the worker is usually ready.
+    // Deferred is the exception either way: they asked to keep browsing (or the
+    // download failed), so nothing happens until the new bundle is actually there.
+    const shouldApply = isUpdateForcedPending() ? !isUpdateDeferred() : isUpdateReady()
+    if (shouldApply) {
+      void applyUpdate(to.fullPath)
+      return false
+    }
   }
 
   void checkVersionThrottled()
@@ -524,6 +533,7 @@ router.onError((error, to) => {
     message.includes('Failed to fetch dynamically imported module') ||
     message.includes('error loading dynamically imported module')
   ) {
+    markLeaving()
     window.location.href = to.fullPath
   }
 })

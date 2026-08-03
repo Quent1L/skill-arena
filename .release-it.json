@@ -44,6 +44,6 @@
     "ignoreVersion": true
   },
   "hooks": {
-    "after:bump": "echo '✅ VERSION mise à jour : '$(cat VERSION)"
+    "after:bump": "bun scripts/apply-force-update.ts ${version} && echo '✅ VERSION mise à jour : '$(cat VERSION)"
   }
 }

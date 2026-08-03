@@ -8,12 +8,11 @@
       <div class="update-content">
         <SkolLogo :animated="false" />
         <div class="update-text">
-          <p class="update-title">{{ t('updateOverlay.title') }}</p>
-          <p class="update-subtitle">
-            {{ isDownloading ? t('updateOverlay.downloadingSubtitle') : t('updateOverlay.subtitle') }}
-          </p>
+          <p class="update-title">{{ title }}</p>
+          <p class="update-subtitle">{{ subtitle }}</p>
         </div>
-        <div class="update-progress-track">
+        <p v-if="isDone" class="update-version">{{ version }}</p>
+        <div v-else class="update-progress-track">
           <div
             v-if="percent !== null"
             class="update-progress-bar update-progress-measured"
@@ -23,7 +22,12 @@
           <div v-else class="update-progress-bar update-progress-timed" />
         </div>
         <p v-if="percent !== null" class="update-percent">{{ percent }}%</p>
-        <p v-if="showSlowHint" class="update-hint">{{ t('updateOverlay.slowHint') }}</p>
+        <p v-if="fileCount" class="update-files">
+          {{ t('updateOverlay.fileProgress', fileCount) }}
+        </p>
+        <p v-if="showSlowHint" class="update-hint">
+          {{ forced ? t('updateOverlay.forcedSlowHint') : t('updateOverlay.slowHint') }}
+        </p>
         <button v-if="showDismiss" type="button" class="update-dismiss" @click="emit('dismiss')">
           {{ t('updateOverlay.continueAnyway') }}
         </button>
@@ -46,8 +50,18 @@ const DISMISS_MS = 15000
 const { t } = useI18n()
 
 const props = withDefaults(
-  defineProps<{ visible: boolean; phase?: UpdatePhase; progress?: number | null }>(),
-  { phase: 'applying', progress: null },
+  defineProps<{
+    visible: boolean
+    phase?: UpdatePhase
+    progress?: number | null
+    /** Mandatory update: the user gets no way past this screen. */
+    forced?: boolean
+    done?: number | null
+    total?: number | null
+    /** Version freshly installed, shown by the `done` phase. */
+    version?: string | null
+  }>(),
+  { phase: 'applying', progress: null, forced: false, done: null, total: null, version: null },
 )
 
 const emit = defineEmits<{ dismiss: [] }>()
@@ -57,8 +71,29 @@ const showDismiss = ref(false)
 let timers: ReturnType<typeof setTimeout>[] = []
 
 const isDownloading = computed(() => props.phase === 'downloading')
+/** The update already landed: this screen reports it rather than asking to wait. */
+const isDone = computed(() => props.phase === 'done')
 const percent = computed(() =>
   isDownloading.value && props.progress !== null ? Math.round(props.progress * 100) : null,
+)
+
+const title = computed(() => {
+  if (isDone.value) return t('updateOverlay.doneTitle')
+  return props.forced ? t('updateOverlay.forcedTitle') : t('updateOverlay.title')
+})
+
+const subtitle = computed(() => {
+  if (isDone.value) return t('updateOverlay.doneSubtitle')
+  if (isDownloading.value) return t('updateOverlay.downloadingSubtitle')
+  return props.forced ? t('updateOverlay.forcedSubtitle') : t('updateOverlay.subtitle')
+})
+
+// A percentage says how far along; a file count says the thing is genuinely moving.
+// Only meaningful while the bundle is actually coming down.
+const fileCount = computed(() =>
+  isDownloading.value && props.done !== null && props.total
+    ? { done: props.done, total: props.total }
+    : null,
 )
 
 function clearTimers(): void {
@@ -74,9 +109,13 @@ watch(
     clearTimers()
     showSlowHint.value = false
     showDismiss.value = false
-    if (!visible) return
+    // Nothing is pending in the `done` phase: there is no slowness to excuse and
+    // nothing to escape from.
+    if (!visible || isDone.value) return
     timers.push(setTimeout(() => (showSlowHint.value = true), SLOW_HINT_MS))
-    timers.push(setTimeout(() => (showDismiss.value = true), DISMISS_MS))
+    // No escape offered when the update is mandatory. A download that truly fails
+    // still releases the app on its own, from pwa.update.
+    if (!props.forced) timers.push(setTimeout(() => (showDismiss.value = true), DISMISS_MS))
   },
   { immediate: true },
 )
@@ -312,6 +351,24 @@ onUnmounted(clearTimers)
   font-size: 0.8125rem;
   color: rgba(167, 139, 250, 0.75);
   margin: -18px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.update-version {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(167, 139, 250, 0.9);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.update-files {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.75rem;
+  color: rgba(167, 139, 250, 0.5);
+  margin: -20px 0 0;
   font-variant-numeric: tabular-nums;
 }
 

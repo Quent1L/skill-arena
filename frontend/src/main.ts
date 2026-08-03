@@ -16,6 +16,7 @@ import enLocale from 'primelocale/en.json'
 import themePreset from './config/PrimevuePreset'
 import { errorService } from './composables/useErrorService'
 import { checkVersion } from './composables/pwa/pwa.update'
+import { markLeaving } from './utils/app-lifecycle'
 import { i18n, getInitialLocale } from './i18n'
 
 // Deployment detection: these checks only raise a flag, they never reload.
@@ -32,6 +33,7 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('vite:preloadError', () => {
+  markLeaving()
   window.location.reload()
 })
 
@@ -40,6 +42,7 @@ window.addEventListener('error', (event) => {
     event.message?.includes('Failed to fetch dynamically imported module') ||
     event.message?.includes('Importing a module script failed')
   ) {
+    markLeaving()
     window.location.reload()
   }
 })

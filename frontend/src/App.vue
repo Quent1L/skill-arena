@@ -5,6 +5,10 @@
       :visible="overlayVisible"
       :phase="updatePhase"
       :progress="downloadProgress"
+      :forced="updateForced"
+      :done="downloadDone"
+      :total="downloadTotal"
+      :version="confirmedVersion"
       @dismiss="dismissUpdate"
     />
     <Toast
@@ -40,8 +44,19 @@ const errorService = useErrorService()
 const notificationService = useNotificationService()
 const notificationSocket = useNotificationSocket()
 const toast = useAppToast()
-const { overlayVisible, updatePhase, downloadProgress, checkVersion, applyUpdate, dismissUpdate } =
-  usePWAUpdate()
+const {
+  overlayVisible,
+  updatePhase,
+  updateForced,
+  confirmedVersion,
+  downloadProgress,
+  downloadDone,
+  downloadTotal,
+  checkVersion,
+  announceUpdate,
+  applyUpdate,
+  dismissUpdate,
+} = usePWAUpdate()
 
 const isAppReady = ref(false)
 
@@ -119,6 +134,9 @@ onMounted(async () => {
   }
 
   await minDelay
+  // Runs after the version check so it knows whether the update that just landed was
+  // a mandatory one. Nothing to announce on a normal boot: this returns immediately.
+  await announceUpdate()
   isAppReady.value = true
 })
 

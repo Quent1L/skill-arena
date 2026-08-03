@@ -141,6 +141,31 @@ Search is **Pagefind** (`astro-pagefind` integration), indexing the built HTML:
 - Frontend: Vitest
 - Test files in `__tests__/` directories alongside source files
 
+### Releasing a blocking update
+
+Updates are normally applied in the background: the new bundle is precached silently and
+only swapped in when it costs a single reload. A release that breaks compatibility (or
+fixes something severe enough that staying on the old bundle is not acceptable) must
+instead block the user until the update lands.
+
+Signal it by committing an empty marker file in the same PR:
+
+```bash
+touch FORCE_UPDATE && git add FORCE_UPDATE
+```
+
+The version number cannot be written by hand — release-it derives it from the
+conventional commits at merge time. `scripts/apply-force-update.ts`, run from the
+`after:bump` hook in `.release-it.json`, resolves the marker into the published version:
+it writes `MIN_VERSION` and deletes the marker, both inside the `chore(release)` commit.
+
+`MIN_VERSION` is a floor, not a per-release flag: a client that has been away skips
+straight to the latest version without passing through the intermediate ones, so the
+floor is what tells it whether one of the versions it skipped was breaking. **Never edit
+`MIN_VERSION` by hand.** The frontend build reads it and ships it in `version.json`
+alongside `version` (`frontend/vite.config.ts`); the client compares it against its own
+`__APP_VERSION__` in `frontend/src/composables/pwa/pwa.update.ts`.
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 

@@ -2036,7 +2036,13 @@
   },
   "updateOverlay": {
     "continueAnyway": "Continue anyway",
+    "doneSubtitle": "The app has just been updated.",
+    "doneTitle": "Update complete",
     "downloadingSubtitle": "Downloading...",
+    "fileProgress": "{done} / {total} files",
+    "forcedSlowHint": "This update is mandatory. Please hold on, it is almost done.",
+    "forcedSubtitle": "Mandatory update, the app will reload automatically...",
+    "forcedTitle": "Update required",
     "slowHint": "Slow connection? The download may take a while.",
     "subtitle": "Reloading...",
     "title": "New version available"

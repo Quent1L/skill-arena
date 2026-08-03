@@ -2036,7 +2036,13 @@
   },
   "updateOverlay": {
     "continueAnyway": "Continuer sans attendre",
+    "doneSubtitle": "L'application vient d'être mise à jour.",
+    "doneTitle": "Mise à jour effectuée",
     "downloadingSubtitle": "Téléchargement en cours...",
+    "fileProgress": "{done} / {total} fichiers",
+    "forcedSlowHint": "Cette mise à jour est obligatoire. Merci de patienter, elle se termine bientôt.",
+    "forcedSubtitle": "Mise à jour obligatoire, l'application se recharge automatiquement...",
+    "forcedTitle": "Mise à jour requise",
     "slowHint": "Connexion lente ? Le téléchargement peut prendre un moment.",
     "subtitle": "Rechargement en cours...",
     "title": "Nouvelle version disponible"
