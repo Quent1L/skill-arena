@@ -9,7 +9,7 @@
             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
         "
-        @click="sub = 'profile'"
+        @click="setSub('profile')"
       >
         {{ t('tournamentStatsCombinedTab.nav.myProfile') }}
       </button>
@@ -20,7 +20,7 @@
             ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
         "
-        @click="sub = 'global'"
+        @click="setSub('global')"
       >
         {{ t('tournamentStatsCombinedTab.nav.global') }}
       </button>
@@ -62,6 +62,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
@@ -69,12 +70,20 @@ import TournamentStatsTab from './TournamentStatsTab.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const store = useTournamentDetailStore()
-const sub = ref<'profile' | 'global'>('profile')
+const route = useRoute()
+const router = useRouter()
+const sub = ref<'profile' | 'global'>(route.query.statsSub === 'global' ? 'global' : 'profile')
 const { t } = useI18n()
 
 const isRankedAndAuth = computed(
   () => store.tournament?.mode === 'ranked' && store.isAuthenticated && !!store.appUser,
 )
+
+function setSub(value: 'profile' | 'global') {
+  sub.value = value
+  const query = { ...route.query, statsSub: value === 'global' ? 'global' : undefined }
+  router.replace({ query })
+}
 
 onMounted(async () => {
   if (isRankedAndAuth.value) await store.ensurePlayerProfile()

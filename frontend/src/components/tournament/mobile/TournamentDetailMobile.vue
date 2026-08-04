@@ -226,7 +226,9 @@ const store = useTournamentDetailStore()
 
 const contentAreaRef = ref<HTMLElement | null>(null)
 const standingsType = ref<'official' | 'provisional'>('official')
-const statsSubTab = ref<'profile' | 'global'>('profile')
+const statsSubTab = ref<'profile' | 'global'>(
+  route.query.statsSub === 'global' ? 'global' : 'profile',
+)
 const standingsTypeValues = ['official', 'provisional'] as const
 
 useSwipe(contentAreaRef, {
@@ -246,11 +248,9 @@ useSwipe(contentAreaRef, {
       const next = statsSubTabValues[currentIndex + 1]
       const prev = statsSubTabValues[currentIndex - 1]
       if (direction === 'left' && next) {
-        statsSwipeTransition.value = 'slide-left'
-        statsSubTab.value = next
+        setStatsSubTab(next)
       } else if (direction === 'right' && prev) {
-        statsSwipeTransition.value = 'slide-right'
-        statsSubTab.value = prev
+        setStatsSubTab(prev)
       }
     }
   },
@@ -274,6 +274,7 @@ function setStatsSubTab(tab: 'profile' | 'global') {
   const to = statsSubTabValues.indexOf(tab)
   statsSwipeTransition.value = to > from ? 'slide-left' : 'slide-right'
   statsSubTab.value = tab
+  router.replace({ query: { ...route.query, statsSub: tab === 'global' ? 'global' : undefined } })
 }
 
 function navigate(tab: string) {
