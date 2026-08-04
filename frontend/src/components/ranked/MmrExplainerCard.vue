@@ -29,8 +29,8 @@
     <!-- Content -->
     <div v-else class="space-y-2">
       <!-- Starting MMR -->
-      <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
-        <i class="fa fa-star text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
+      <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
+        <i class="fa fa-star text-violet-500 w-4 shrink-0 text-sm text-center" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">{{ t('mmrExplainerCard.startingMmr') }}</span>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -45,9 +45,9 @@
       <!-- Matchs de placement -->
       <div
         v-if="(rankedConfig?.placementMatches ?? 0) > 0"
-        class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg"
+        class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg"
       >
-        <i class="fa fa-flag-checkered text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
+        <i class="fa fa-flag-checkered text-violet-500 w-4 shrink-0 text-sm text-center" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm"
             >{{ t('mmrExplainerCard.placementMatches') }}</span
@@ -63,8 +63,8 @@
       </div>
 
       <!-- Gain / Perte -->
-      <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
-        <i class="fa fa-arrows-up-down text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
+      <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
+        <i class="fa fa-arrows-up-down text-violet-500 w-4 shrink-0 text-sm text-center" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">{{ t('mmrExplainerCard.gainLoss') }}</span>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -74,8 +74,8 @@
       </div>
 
       <!-- Facteur adversaire -->
-      <div class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
-        <i class="fa fa-scale-balanced text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
+      <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
+        <i class="fa fa-scale-balanced text-violet-500 w-4 shrink-0 text-sm text-center" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm"
             >{{ t('mmrExplainerCard.opponentFactor') }}</span
@@ -89,9 +89,9 @@
       <!-- Team split -->
       <div
         v-if="hasTeamMode"
-        class="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg"
+        class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg"
       >
-        <i class="fa fa-users text-violet-500 mt-0.5 w-4 shrink-0 text-sm" />
+        <i class="fa fa-users text-violet-500 w-4 shrink-0 text-sm text-center" />
         <div>
           <span class="font-medium text-gray-700 dark:text-gray-300 text-sm">
             {{ t('mmrExplainerCard.teamDistribution') }}
