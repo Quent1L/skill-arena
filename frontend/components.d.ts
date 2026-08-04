@@ -57,6 +57,7 @@ declare module 'vue' {
     MmrRecapCard: typeof import('./src/components/ranked/MmrRecapCard.vue')['default']
     MmrRevealAnimation: typeof import('./src/components/ranked/MmrRevealAnimation.vue')['default']
     MobileBottomNav: typeof import('./src/components/tournament/mobile/MobileBottomNav.vue')['default']
+    MobileRankedProfilePane: typeof import('./src/components/tournament/mobile/MobileRankedProfilePane.vue')['default']
     MultiSelect: typeof import('primevue/multiselect')['default']
     NotificationBell: typeof import('./src/components/NotificationBell.vue')['default']
     NotificationDropdown: typeof import('./src/components/NotificationDropdown.vue')['default']
