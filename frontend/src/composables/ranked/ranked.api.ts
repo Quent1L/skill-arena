@@ -5,6 +5,7 @@ import type {
   CreateRankTierInput,
   UpdateRankTierInput,
   ClientPlayerMmr,
+  ClientSeasonMmrPlayer,
   ClientMmrHistoryEntry,
   ClientRankTier,
   ClientTournamentSummary,
@@ -55,6 +56,10 @@ export type RankedSeason = {
 
 export type LeaderboardResponse = {
   players: ClientPlayerMmr[]
+}
+
+export type SeasonMmrLeaderboardResponse = {
+  players: ClientSeasonMmrPlayer[]
 }
 
 export type PlayerMmrResponse = {
@@ -109,6 +114,11 @@ export const rankedApi = {
 
   async getProvisionalLeaderboard(id: string): Promise<LeaderboardResponse> {
     const response = await http.get<LeaderboardResponse>(`${BASE_URL}/seasons/${id}/leaderboard/provisional`)
+    return response.data
+  },
+
+  async getSeasonMmrLeaderboard(id: string): Promise<SeasonMmrLeaderboardResponse> {
+    const response = await http.get<SeasonMmrLeaderboardResponse>(`${BASE_URL}/seasons/${id}/leaderboard/season-stats`)
     return response.data
   },
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { ClientRankTier, MmrChartPoint } from '@skol-arena/shared'
-import { makeTier } from '@/test-support/factories'
+import { makeTier, makePlayerMmr } from '@/test-support/factories'
 import {
   getSubRank,
   getTierLabel,
@@ -11,6 +11,7 @@ import {
   getMatchLabel,
   getTierForMmr,
   getPeakMmr,
+  sortBySeasonMetric,
   getWeeklyMmrGain,
   getCurrentWeekStart,
   useRankedService,
@@ -215,6 +216,34 @@ describe('getPeakMmr', () => {
       point(980, -30, '2026-07-21T10:00:00Z'),
     ]
     expect(getPeakMmr(history)).toBe(1000)
+  })
+})
+
+describe('sortBySeasonMetric', () => {
+  const seasonPlayer = (id: string, peakMmr: number, avgMmr: number) =>
+    ({ ...makePlayerMmr({ player: { id, displayName: id, shortName: id } }), peakMmr, avgMmr })
+
+  const players = [
+    seasonPlayer('a', 1200, 1400),
+    seasonPlayer('b', 1500, 1100),
+    seasonPlayer('c', 1300, 1250),
+  ]
+
+  it('classe sur le peak, décroissant', () => {
+    expect(sortBySeasonMetric(players, 'peak').map((p) => p.player?.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('classe sur la moyenne, décroissant', () => {
+    expect(sortBySeasonMetric(players, 'average').map((p) => p.player?.id)).toEqual(['a', 'c', 'b'])
+  })
+
+  it('ne mute pas le tableau reçu', () => {
+    sortBySeasonMetric(players, 'peak')
+    expect(players.map((p) => p.player?.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('tolère une liste vide', () => {
+    expect(sortBySeasonMetric([], 'peak')).toEqual([])
   })
 })
 

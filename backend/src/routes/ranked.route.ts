@@ -179,6 +179,15 @@ ranked.get("/seasons/:id/leaderboard/provisional", async (c) => {
   return c.json({ players: fresh?.players ?? [] });
 });
 
+// GET /ranked/seasons/:id/leaderboard/season-stats - Peak + average MMR over the whole
+// season (finished seasons only). Both metrics ship in one payload: same query cost,
+// and the client switches between them without a second round trip.
+ranked.get("/seasons/:id/leaderboard/season-stats", async (c) => {
+  const id = c.req.param("id")!;
+  const players = await rankedSeasonService.getSeasonMmrLeaderboard(id);
+  return c.json({ players });
+});
+
 // GET /ranked/seasons/:id/players/:playerId - Player MMR profile
 ranked.get("/seasons/:id/players/:playerId", async (c) => {
   const { id, playerId } = c.req.param();

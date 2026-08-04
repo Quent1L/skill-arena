@@ -1,6 +1,7 @@
 import { eq, and, inArray } from "drizzle-orm";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
+import type { SeasonMmrStatsRow } from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
@@ -11,6 +12,7 @@ import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
+  ClientSeasonMmrPlayer,
   TournamentStatus,
   WeeklyMmrLeader,
   WeeklyMmrLeaders,
@@ -53,6 +55,22 @@ export function splitWeeklyMmrLeaders(
     .sort((a, b) => a.mmrGained - b.mmrGained)
     .slice(0, topLosers);
   return { gainers, losers };
+}
+
+// Joins the season MMR aggregates onto the leaderboard rows, which already carry the
+// player relation. Players missing from `stats` are dropped: they sit under the
+// placement threshold, or have no history row at all. Left unsorted on purpose — the
+// ranking metric depends on the view the client is showing.
+export function mergeSeasonMmrStats(
+  players: ClientPlayerMmr[],
+  stats: SeasonMmrStatsRow[],
+): ClientSeasonMmrPlayer[] {
+  const byPlayer = new Map(stats.map((s) => [s.playerId, s]));
+  return players.flatMap((player) => {
+    const stat = byPlayer.get(player.playerId);
+    if (!stat) return [];
+    return [{ ...player, peakMmr: stat.peakMmr, avgMmr: stat.avgMmr }];
+  });
 }
 
 // Monday 00:00 UTC of the week containing `now`. Only a fallback: clients send
@@ -341,6 +359,25 @@ export class RankedSeasonService {
   async getWeeklyMmrLeaders(seasonId: string, from: Date): Promise<WeeklyMmrLeaders> {
     const rows = await playerMmrRepository.getMmrDeltasSince(seasonId, from);
     return { weekStart: from, ...splitWeeklyMmrLeaders(rows) };
+  }
+
+  // Peak and average MMR over the whole season. Restricted to finished seasons: the
+  // metrics only make sense once the history is complete. Uncached on purpose — a
+  // finished season's mmr_history is frozen, so the query is cheap and always right.
+  async getSeasonMmrLeaderboard(seasonId: string): Promise<ClientSeasonMmrPlayer[]> {
+    const season = await rankedSeasonRepository.getSeasonWithConfig(seasonId);
+    if (!season) {
+      throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
+    }
+    if (season.status !== "finished") {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
+    }
+
+    const [players, stats] = await Promise.all([
+      playerMmrRepository.getBySeasonOrdered(seasonId),
+      playerMmrRepository.getSeasonMmrStats(seasonId, season.rankedConfig?.placementMatches ?? 0),
+    ]);
+    return mergeSeasonMmrStats(players as ClientPlayerMmr[], stats);
   }
 
   async computeAndCacheOfficial(seasonId: string): Promise<void> {

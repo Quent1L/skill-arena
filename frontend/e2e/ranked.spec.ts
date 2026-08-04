@@ -27,7 +27,8 @@ test('la bascule provisoire intègre les matchs non finalisés', async ({ page }
   const player4Row = leaderboard.locator('a', { hasText: USERS.player4.displayName })
   await expect(player4Row).toContainText('850')
 
-  await page.getByRole('button', { name: 'Provisoire (Live)' }).click()
+  await page.locator('[data-test="leaderboard-mode-trigger"]').click()
+  await page.getByRole('menuitem', { name: 'Provisoire (Live)' }).click()
   await expect(player4Row).toBeVisible()
   await expect(player4Row).not.toContainText('850')
 })

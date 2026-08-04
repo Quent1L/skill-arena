@@ -11,6 +11,7 @@ import type {
   CreateRankTierInput,
   UpdateRankTierInput,
   ClientPlayerMmr,
+  ClientSeasonMmrPlayer,
   ClientMmrHistoryEntry,
   ClientRankTier,
   ClientTournamentSummary,
@@ -32,6 +33,18 @@ export function getTierForMmr(mmr: number, allTiers: ClientRankTier[]): ClientRa
 export function getPeakMmr(history: MmrChartPoint[]): number | null {
   if (!history.length) return null
   return history.reduce((peak, point) => Math.max(peak, point.mmrAfter), history[0].mmrBefore)
+}
+
+export type SeasonMmrMetric = 'peak' | 'average'
+
+// Season leaderboards are served unsorted: the backend ships peak and average in one
+// payload and the active view decides the ranking.
+export function sortBySeasonMetric(
+  players: ClientSeasonMmrPlayer[],
+  metric: SeasonMmrMetric,
+): ClientSeasonMmrPlayer[] {
+  const value = (p: ClientSeasonMmrPlayer) => (metric === 'peak' ? p.peakMmr : p.avgMmr)
+  return [...players].sort((a, b) => value(b) - value(a))
 }
 
 export function getWeeklyMmrGain(
@@ -124,8 +137,10 @@ export function useRankedService() {
   const playerHistoryOffset = ref(0)
   const playerHistorySeasonId = ref('')
   const playerHistoryPlayerId = ref('')
+  const seasonMmrLeaderboard = ref<ClientSeasonMmrPlayer[]>([])
   const loading = ref(false)
   const provisionalLoading = ref(false)
+  const seasonMmrLoading = ref(false)
   const error = ref<string | null>(null)
 
   const HISTORY_PAGE_SIZE = 10
@@ -251,6 +266,19 @@ export function useRankedService() {
       error.value = err instanceof Error ? err.message : i18n.global.t('rankedService.errors.loadProvisionalLeaderboardFailed')
     } finally {
       provisionalLoading.value = false
+    }
+  }
+
+  async function loadSeasonMmrLeaderboard(seasonId: string) {
+    seasonMmrLoading.value = true
+    error.value = null
+    try {
+      const data = await rankedApi.getSeasonMmrLeaderboard(seasonId)
+      seasonMmrLeaderboard.value = data.players
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : i18n.global.t('rankedService.errors.loadSeasonMmrLeaderboardFailed')
+    } finally {
+      seasonMmrLoading.value = false
     }
   }
 
@@ -414,6 +442,7 @@ export function useRankedService() {
     currentSeason,
     leaderboard,
     provisionalLeaderboard,
+    seasonMmrLeaderboard,
     tiers,
     playerMmr,
     playerOpponentQuality,
@@ -422,6 +451,7 @@ export function useRankedService() {
     finishedSeasons,
     loading,
     provisionalLoading,
+    seasonMmrLoading,
     error,
     loadSeasons,
     loadSeasonById,
@@ -431,6 +461,7 @@ export function useRankedService() {
     endSeason,
     loadLeaderboard,
     loadProvisionalLeaderboard,
+    loadSeasonMmrLeaderboard,
     loadPlayerMmr,
     loadPlayerHistory,
     loadMoreHistory,

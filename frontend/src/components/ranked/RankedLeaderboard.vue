@@ -7,26 +7,42 @@
 
     <template v-else>
       <!-- Recalculation job in progress -->
-      <div v-if="props.isRecalculating" class="flex items-center justify-center gap-2 mb-3 text-sm text-orange-400">
+      <div
+        v-if="props.isRecalculating"
+        class="flex items-center justify-center gap-2 mb-3 text-sm text-orange-400"
+      >
         <i class="fa fa-sync fa-spin" />
         {{ t('rankedLeaderboard.recalculating') }}
       </div>
 
       <!-- Plain refresh in progress (data already shown) -->
-      <div v-else-if="isRefreshing" class="flex items-center justify-center gap-2 mb-3 text-sm text-gray-400">
+      <div
+        v-else-if="isRefreshing"
+        class="flex items-center justify-center gap-2 mb-3 text-sm text-gray-400"
+      >
         <i class="fa fa-sync fa-spin" />
         {{ t('rankedLeaderboard.refreshing') }}
       </div>
 
-      <!-- Toggle -->
-      <div v-if="props.showModeToggle !== false" class="flex justify-center mb-4">
-        <SelectButton
-          v-model="leaderboardMode"
-          :options="modeOptions"
-          option-label="label"
-          option-value="value"
-          size="small"
-        />
+      <!-- View switcher: the active view is spelled out on the trigger, the others
+           live in the popup. -->
+      <div v-if="modeOptions.length > 1" class="flex items-center justify-end gap-2 mb-4">
+        <span class="text-xs text-gray-400">{{ t('rankedLeaderboard.modeLabel') }}</span>
+        <InfoTooltip :text="modesHint" html />
+        <button
+          type="button"
+          class="flex items-center gap-2 rounded-md border border-white/10 bg-gray-800/70 px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-gray-700/70"
+          :aria-label="`${t('rankedLeaderboard.modeLabel')}: ${activeModeLabel}`"
+          aria-haspopup="true"
+          :aria-controls="MODE_MENU_ID"
+          data-test="leaderboard-mode-trigger"
+          @click="modeMenu?.toggle($event)"
+        >
+          <i class="fa fa-layer-group text-xs text-primary-400" />
+          <span>{{ activeModeLabel }}</span>
+          <i class="fa fa-chevron-down text-[10px] text-gray-400" />
+        </button>
+        <Menu :id="MODE_MENU_ID" ref="modeMenu" :model="modeMenuItems" popup />
       </div>
 
       <!-- No tiers configured -->
@@ -98,11 +114,15 @@
                   >
                 </div>
                 <div class="flex items-center justify-between">
-                  <div class="flex text-[10px] w-full ">{{ getPlayedMatchLabel(player) }}</div>
+                  <div class="flex text-[10px] w-full">{{ getPlayedMatchLabel(player) }}</div>
                   <div class="flex items-center justify-end w-full mt-1">
                     <RecentFormBadges
-                      v-if="player.recentResults?.length"
-                      :results="player.recentResults.map(r => r.outcome === 'win' ? 'V' : r.outcome === 'loss' ? 'D' : 'N')"
+                      v-if="!isSeasonMode && player.recentResults?.length"
+                      :results="
+                        player.recentResults.map((r) =>
+                          r.outcome === 'win' ? 'V' : r.outcome === 'loss' ? 'D' : 'N',
+                        )
+                      "
                     />
                   </div>
                 </div>
@@ -113,20 +133,23 @@
                   <div
                     class="h-full rounded-full"
                     :class="tierBarClass(group.tier)"
-                    :style="{ width: `${tierProgress(player.currentMmr, group.tier)}%` }"
+                    :style="{ width: `${tierProgress(displayMmr(player), group.tier)}%` }"
                   />
                 </div>
               </div>
 
-              <!-- LP / MMR + streak -->
+              <!-- LP / MMR + streak. Streaks describe the player's state right now, so
+                   they are meaningless next to a season-wide aggregate. -->
               <div class="text-right shrink-0">
-                <div class="font-black text-sm tabular-nums">{{ player.currentMmr }}</div>
-                <div v-if="player.winStreak > 1" class="text-[10px] text-orange-400">
-                  🔥 {{ player.winStreak }}
-                </div>
-                <div v-else-if="player.lossStreak > 1" class="text-[10px] text-blue-400">
-                  💀 {{ player.lossStreak }}
-                </div>
+                <div class="font-black text-sm tabular-nums">{{ displayMmr(player) }}</div>
+                <template v-if="!isSeasonMode">
+                  <div v-if="player.winStreak > 1" class="text-[10px] text-orange-400">
+                    🔥 {{ player.winStreak }}
+                  </div>
+                  <div v-else-if="player.lossStreak > 1" class="text-[10px] text-blue-400">
+                    💀 {{ player.lossStreak }}
+                  </div>
+                </template>
               </div>
             </RouterLink>
           </template>
@@ -143,9 +166,22 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { playerLink } from '@/utils/player-link'
+import type Menu from 'primevue/menu'
+import type { MenuItem } from 'primevue/menuitem'
 import { useSwipe } from '@vueuse/core'
-import type { ClientPlayerMmr, ClientRankTier } from '@skol-arena/shared/types/index'
-import { isTopTier, getNextTier, getPrevTier, getTierForMmr } from '@/composables/ranked/ranked.service'
+import type {
+  ClientPlayerMmr,
+  ClientSeasonMmrPlayer,
+  ClientRankTier,
+} from '@skol-arena/shared/types/index'
+import {
+  isTopTier,
+  getNextTier,
+  getPrevTier,
+  getTierForMmr,
+  sortBySeasonMetric,
+} from '@/composables/ranked/ranked.service'
+import InfoTooltip from '@/components/InfoTooltip.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 
@@ -159,56 +195,146 @@ import {
 
 const { t } = useI18n()
 
+type LeaderboardMode = 'official' | 'provisional' | 'peak' | 'average'
+
 const props = defineProps<{
   players: ClientPlayerMmr[]
   provisionalPlayers?: ClientPlayerMmr[]
+  seasonMmrPlayers?: ClientSeasonMmrPlayer[]
   tiers: ClientRankTier[]
   loading?: boolean
   provisionalLoading?: boolean
+  seasonMmrLoading?: boolean
   isRecalculating?: boolean
   currentUserId?: string
   showModeToggle?: boolean
+  showSeasonStats?: boolean
   tournamentId?: string
 }>()
 
 const emit = defineEmits<{
   'load-provisional': []
+  'load-season-stats': []
 }>()
 
-const leaderboardMode = ref<'official' | 'provisional'>('official')
+const MODE_MENU_ID = 'leaderboard-mode-menu'
+
+const leaderboardMode = ref<LeaderboardMode>('official')
+const modeMenu = ref<InstanceType<typeof Menu> | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
 const provisionalLoaded = ref(false)
+const seasonStatsLoaded = ref(false)
 
-const modeOptions = computed(() => [
-  { label: t('rankedLeaderboard.modeOfficial'), value: 'official' },
-  { label: t('rankedLeaderboard.modeProvisional'), value: 'provisional' },
-])
+// Season-wide rankings only exist once the season is over, so the toggle is driven by
+// the option list itself rather than by `showModeToggle` alone: a finished season with
+// validation disabled still has three views to switch between.
+const modeOptions = computed(() => {
+  // A finished season has nothing left to validate: the provisional view would only
+  // ever repeat the official one.
+  const provisional =
+    props.showModeToggle === false || props.showSeasonStats
+      ? []
+      : [
+          {
+            label: t('rankedLeaderboard.modeProvisional'),
+            hint: t('rankedLeaderboard.hintProvisional'),
+            value: 'provisional' as const,
+          },
+        ]
+  const seasonStats = props.showSeasonStats
+    ? [
+        {
+          label: t('rankedLeaderboard.modePeak'),
+          hint: t('rankedLeaderboard.hintPeak'),
+          value: 'peak' as const,
+        },
+        {
+          label: t('rankedLeaderboard.modeAverage'),
+          hint: t('rankedLeaderboard.hintAverage'),
+          value: 'average' as const,
+        },
+      ]
+    : []
+  return [
+    {
+      label: t('rankedLeaderboard.modeOfficial'),
+      hint: t('rankedLeaderboard.hintOfficial'),
+      value: 'official' as const,
+    },
+    ...provisional,
+    ...seasonStats,
+  ]
+})
+
+// One line per view actually offered, so the tooltip never describes a view the
+// user cannot reach.
+const modesHint = computed(() =>
+  modeOptions.value.map((option) => `<b>${option.label}</b> — ${option.hint}`).join('<br>'),
+)
+
+const activeModeLabel = computed(
+  () => modeOptions.value.find((option) => option.value === leaderboardMode.value)?.label ?? '',
+)
+
+// A check marks the active view; the others keep a blank fixed-width icon so the
+// labels stay aligned.
+const modeMenuItems = computed<MenuItem[]>(() =>
+  modeOptions.value.map((option) => ({
+    label: option.label,
+    icon: option.value === leaderboardMode.value ? 'fa fa-fw fa-check' : 'fa fa-fw',
+    command: () => {
+      leaderboardMode.value = option.value
+    },
+  })),
+)
+
+const isSeasonMode = computed(
+  () => leaderboardMode.value === 'peak' || leaderboardMode.value === 'average',
+)
 
 watch(leaderboardMode, (val) => {
   if (val === 'provisional' && !provisionalLoaded.value) {
     provisionalLoaded.value = true
     emit('load-provisional')
   }
+  if ((val === 'peak' || val === 'average') && !seasonStatsLoaded.value) {
+    seasonStatsLoaded.value = true
+    emit('load-season-stats')
+  }
 })
 
 useSwipe(contentRef, {
   onSwipeEnd(_e, direction) {
-    if (props.showModeToggle === false) return
-    if (direction === 'left' && leaderboardMode.value === 'official') {
-      leaderboardMode.value = 'provisional'
-    } else if (direction === 'right' && leaderboardMode.value === 'provisional') {
-      leaderboardMode.value = 'official'
-    }
+    const values = modeOptions.value.map((o) => o.value)
+    const idx = values.indexOf(leaderboardMode.value)
+    if (idx === -1) return
+    const next = direction === 'left' ? idx + 1 : direction === 'right' ? idx - 1 : idx
+    const target = values[next]
+    if (target) leaderboardMode.value = target as LeaderboardMode
   },
 })
 
-const activeLoading = computed(() =>
-  leaderboardMode.value === 'provisional' ? props.provisionalLoading : props.loading,
-)
+const activeLoading = computed(() => {
+  if (isSeasonMode.value) return props.seasonMmrLoading
+  return leaderboardMode.value === 'provisional' ? props.provisionalLoading : props.loading
+})
 
-const activePlayers = computed(() =>
-  leaderboardMode.value === 'provisional' ? (props.provisionalPlayers ?? []) : props.players,
-)
+const activePlayers = computed<ClientPlayerMmr[]>(() => {
+  if (isSeasonMode.value) {
+    return sortBySeasonMetric(
+      props.seasonMmrPlayers ?? [],
+      leaderboardMode.value === 'peak' ? 'peak' : 'average',
+    )
+  }
+  return leaderboardMode.value === 'provisional' ? (props.provisionalPlayers ?? []) : props.players
+})
+
+// The ranked value of the active view: current MMR, or the season aggregate.
+function displayMmr(player: ClientPlayerMmr): number {
+  if (!isSeasonMode.value) return player.currentMmr
+  const seasonPlayer = player as ClientSeasonMmrPlayer
+  return leaderboardMode.value === 'peak' ? seasonPlayer.peakMmr : seasonPlayer.avgMmr
+}
 
 // Full-screen spinner only on first load (no data yet). A refresh of an
 // already-shown leaderboard keeps the list visible and shows a subtle banner.
@@ -228,7 +354,7 @@ const sortedTiers = computed(() => [...props.tiers].sort((a, b) => b.level - a.l
 const tierGroups = computed(() =>
   sortedTiers.value.map((tier) => ({
     tier,
-    players: activePlayers.value.filter((p) => getPlayerTier(p.currentMmr)?.id === tier.id),
+    players: activePlayers.value.filter((p) => getPlayerTier(displayMmr(p))?.id === tier.id),
   })),
 )
 

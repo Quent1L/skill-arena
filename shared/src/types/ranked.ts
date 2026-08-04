@@ -120,6 +120,13 @@ export interface ClientPlayerMmr extends PlayerMmr {
   opponentQuality?: OpponentQualityStats;
 }
 
+// A leaderboard row for a finished season, ranked on a metric aggregated over the
+// whole season instead of the player's MMR at the closing bell.
+export interface ClientSeasonMmrPlayer extends ClientPlayerMmr {
+  peakMmr: number;
+  avgMmr: number;
+}
+
 export interface HistoryMatchSidePlayer {
   id: string;
   displayName: string;

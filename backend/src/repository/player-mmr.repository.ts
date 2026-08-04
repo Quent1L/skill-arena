@@ -34,6 +34,20 @@ export interface CreateMmrHistoryData {
   matchesPlayedAfter: number;
 }
 
+export interface SeasonMmrStatsRow {
+  playerId: string;
+  peakMmr: number;
+  avgMmr: number;
+  matchesPlayed: number;
+}
+
+type SeasonMmrStatsRawRow = {
+  player_id: string;
+  peak_mmr: number;
+  avg_mmr: number;
+  matches_played: number;
+};
+
 export class PlayerMmrRepository {
   async getBySeasonAndPlayer(seasonId: string, playerId: string) {
     return await db.query.playerMmr.findFirst({
@@ -458,6 +472,39 @@ export class PlayerMmrRepository {
       .innerJoin(appUsers, eq(mmrHistory.playerId, appUsers.id))
       .where(and(eq(mmrHistory.seasonId, seasonId), gte(matches.playedAt, from)))
       .groupBy(mmrHistory.playerId, appUsers.displayName, appUsers.shortName);
+  }
+
+  // Season-wide MMR aggregates, seeded with the player's entry MMR (the mmr_before of
+  // their first match) so a player who only ever lost still peaks at their entry level
+  // — same convention as the client-side getPeakMmr. mmr_history has no timestamp, so
+  // "first match" is resolved through the join on matches.
+  async getSeasonMmrStats(seasonId: string, minMatches: number): Promise<SeasonMmrStatsRow[]> {
+    const result = await db.execute(sql`
+      WITH ordered AS (
+        SELECT mh.player_id, mh.mmr_before, mh.mmr_after,
+               ROW_NUMBER() OVER (PARTITION BY mh.player_id
+                                  ORDER BY m.played_at ASC, m.id ASC) AS rn
+        FROM mmr_history mh
+        INNER JOIN matches m ON m.id = mh.match_id
+        WHERE mh.season_id = ${seasonId}
+      ),
+      seed AS (SELECT player_id, mmr_before FROM ordered WHERE rn = 1)
+      SELECT o.player_id,
+             GREATEST(MAX(o.mmr_after), MIN(s.mmr_before))::int AS peak_mmr,
+             ROUND((SUM(o.mmr_after) + MIN(s.mmr_before))::numeric / (COUNT(*) + 1))::int AS avg_mmr,
+             COUNT(*)::int AS matches_played
+      FROM ordered o
+      JOIN seed s ON s.player_id = o.player_id
+      GROUP BY o.player_id
+      HAVING COUNT(*) >= ${minMatches}
+    `);
+
+    return (result.rows as SeasonMmrStatsRawRow[]).map((row) => ({
+      playerId: row.player_id,
+      peakMmr: Number(row.peak_mmr),
+      avgMmr: Number(row.avg_mmr),
+      matchesPlayed: Number(row.matches_played),
+    }));
   }
 
   async getOpponentQualityStats(seasonId: string, playerId: string): Promise<OpponentQualityStats> {

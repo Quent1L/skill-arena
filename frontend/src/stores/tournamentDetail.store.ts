@@ -39,12 +39,14 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const loadingParticipants = participantSvc.loading
   const rankedLeaderboard = rankedSvc.leaderboard
   const rankedProvisionalLeaderboard = rankedSvc.provisionalLeaderboard
+  const rankedSeasonMmrLeaderboard = rankedSvc.seasonMmrLeaderboard
   const rankedTiers = rankedSvc.tiers
   const playerMmr = rankedSvc.playerMmr
   const playerOpponentQuality = rankedSvc.playerOpponentQuality
   const weeklyMmrLeaders = rankedSvc.weeklyMmrLeaders
   const rankedLoading = rankedSvc.loading
   const rankedProvisionalLoading = rankedSvc.provisionalLoading
+  const rankedSeasonMmrLoading = rankedSvc.seasonMmrLoading
   const tournamentStats = statsSvc.stats
   const tournamentStatsLoading = statsSvc.loading
   const statsError = statsSvc.error
@@ -127,6 +129,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     profileChartHistory.value = []
     rankedLeaderboard.value = []
     rankedProvisionalLeaderboard.value = []
+    rankedSeasonMmrLeaderboard.value = []
     isLeaderboardRecalculating.value = false
   }
 
@@ -289,6 +292,11 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     await rankedSvc.loadProvisionalLeaderboard(tournamentId.value)
   }
 
+  async function loadSeasonMmrLeaderboard() {
+    if (!tournamentId.value) return
+    await rankedSvc.loadSeasonMmrLeaderboard(tournamentId.value)
+  }
+
   return {
     // Identity
     tournamentId,
@@ -307,12 +315,14 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     // Ranked
     rankedLeaderboard,
     rankedProvisionalLeaderboard,
+    rankedSeasonMmrLeaderboard,
     rankedTiers,
     playerMmr,
     playerOpponentQuality,
     playerStats,
     rankedLoading,
     rankedProvisionalLoading,
+    rankedSeasonMmrLoading,
     isLeaderboardRecalculating,
     profileChartHistory,
     playerLeaderboardRank,
@@ -349,5 +359,6 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     reloadPlayerProfile,
     refreshSilently,
     loadProvisionalLeaderboard,
+    loadSeasonMmrLeaderboard,
   }
 })

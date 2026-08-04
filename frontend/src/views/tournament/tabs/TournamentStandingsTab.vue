@@ -25,14 +25,18 @@
       v-else-if="store.tournament!.mode === 'ranked'"
       :players="store.rankedLeaderboard"
       :provisional-players="store.rankedProvisionalLeaderboard"
+      :season-mmr-players="store.rankedSeasonMmrLeaderboard"
       :tiers="store.rankedTiers"
       :loading="store.rankedLoading"
       :provisional-loading="store.rankedProvisionalLoading"
+      :season-mmr-loading="store.rankedSeasonMmrLoading"
       :is-recalculating="store.isLeaderboardRecalculating"
       :current-user-id="store.appUser?.id"
       :show-mode-toggle="store.tournament!.validationMode !== 'none'"
+      :show-season-stats="store.tournament!.status === 'finished'"
       :tournament-id="store.tournamentId"
       @load-provisional="store.loadProvisionalLeaderboard()"
+      @load-season-stats="store.loadSeasonMmrLeaderboard()"
     />
   </div>
 </template>
