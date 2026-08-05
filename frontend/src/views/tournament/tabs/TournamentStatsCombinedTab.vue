@@ -1,30 +1,6 @@
 <template>
   <div v-if="isRankedAndAuth" class="flex gap-6">
-    <!-- Sidebar -->
-    <nav class="w-48 shrink-0 flex flex-col gap-1">
-      <button
-        class="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-        :class="
-          sub === 'profile'
-            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-        "
-        @click="setSub('profile')"
-      >
-        {{ t('tournamentStatsCombinedTab.nav.myProfile') }}
-      </button>
-      <button
-        class="block w-full text-left px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors"
-        :class="
-          sub === 'global'
-            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-        "
-        @click="setSub('global')"
-      >
-        {{ t('tournamentStatsCombinedTab.nav.global') }}
-      </button>
-    </nav>
+    <SubTabSidebar :options="subTabs" :model-value="sub" @update:model-value="setSub" />
 
     <!-- Content -->
     <div class="flex-1 min-w-0">
@@ -61,29 +37,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
+import { useSubTabs } from '@/composables/ui/useSubTabs'
+import SubTabSidebar from '@/components/ui/SubTabSidebar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
 import TournamentStatsTab from './TournamentStatsTab.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 
 const store = useTournamentDetailStore()
-const route = useRoute()
-const router = useRouter()
-const sub = ref<'profile' | 'global'>(route.query.statsSub === 'global' ? 'global' : 'profile')
 const { t } = useI18n()
+
+// Same values and same query param as the mobile switcher, so a link opened on the
+// other form factor lands on the same pane.
+const subTabs = computed(() => [
+  { value: 'profile' as const, label: t('tournamentStatsCombinedTab.nav.myProfile') },
+  { value: 'global' as const, label: t('tournamentStatsCombinedTab.nav.global') },
+])
+
+const { active: sub, setActive: setSub } = useSubTabs({ options: subTabs, queryKey: 'statsSub' })
 
 const isRankedAndAuth = computed(
   () => store.tournament?.mode === 'ranked' && store.isAuthenticated && !!store.appUser,
 )
-
-function setSub(value: 'profile' | 'global') {
-  sub.value = value
-  const query = { ...route.query, statsSub: value === 'global' ? 'global' : undefined }
-  router.replace({ query })
-}
 
 onMounted(async () => {
   if (isRankedAndAuth.value) await store.ensurePlayerProfile()

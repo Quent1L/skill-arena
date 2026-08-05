@@ -1,14 +1,21 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { RouterLinkStub } from '@vue/test-utils'
 import { mountWithPrime } from '@/test-support/mount'
 import { makeTier, makePlayerMmr } from '@/test-support/factories'
 import RankedLeaderboard from '../RankedLeaderboard.vue'
-import InfoTooltip from '@/components/InfoTooltip.vue'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
   createI18n: () => ({ global: { t: (key: string) => key }, install: () => {} }),
 }))
+
+// jsdom reports a 0x0 screen, which `useViewport` reads as mobile: the form factor is
+// pinned here instead, so each test states which switcher it exercises.
+const viewport = vi.hoisted(() => ({ mobile: false }))
+vi.mock('@/composables/useViewport', async () => {
+  const { ref } = await import('vue')
+  return { useViewport: () => ({ isMobile: ref(viewport.mobile), width: ref(1024) }) }
+})
 
 const tiers = [
   makeTier({ id: 'bronze', level: 1, name: 'Bronze', minMmr: 700 }),
@@ -26,17 +33,13 @@ const players = [
   }),
 ]
 
-type ModeItem = { label: string; icon: string; command: () => void }
-
-// The view switcher is a popup menu: its model is readable without opening it.
-function modeItems(wrapper: ReturnType<typeof mountBoard>): ModeItem[] {
-  const menu = wrapper.findComponent({ name: 'Menu' })
-  return menu.exists() ? (menu.props('model') as ModeItem[]) : []
+// Unless a test says otherwise the switcher under test is the desktop sidebar.
+function modeLabels(wrapper: ReturnType<typeof mountBoard>): string[] {
+  return wrapper.findAll('[data-test^="subtab-"]').map((button) => button.text())
 }
 
 async function selectMode(wrapper: ReturnType<typeof mountBoard>, mode: string) {
-  modeItems(wrapper).find((item) => item.label === `rankedLeaderboard.mode${mode}`)!.command()
-  await wrapper.vm.$nextTick()
+  await wrapper.find(`[data-test="subtab-${mode.toLowerCase()}"]`).trigger('click')
 }
 
 function mountBoard(props: Record<string, unknown> = {}) {
@@ -70,18 +73,19 @@ describe('RankedLeaderboard', () => {
     expect(wrapper.emitted('load-provisional')).toHaveLength(1)
   })
 
-  it('la vue active est écrite sur le déclencheur et cochée dans le menu', async () => {
+  it('la vue active est la seule marquée sélectionnée dans la navigation', async () => {
     const wrapper = mountBoard()
-    const trigger = wrapper.find('[data-test="leaderboard-mode-trigger"]')
-    expect(wrapper.text()).toContain('rankedLeaderboard.modeLabel')
-    expect(trigger.attributes('aria-label')).toContain('rankedLeaderboard.modeOfficial')
-    expect(trigger.text()).toContain('rankedLeaderboard.modeOfficial')
+    const selected = () =>
+      wrapper
+        .findAll('[data-test^="subtab-"]')
+        .filter((button) => button.attributes('aria-selected') === 'true')
+        .map((button) => button.text())
+
+    expect(selected()).toEqual(['rankedLeaderboard.modeOfficial'])
 
     await selectMode(wrapper, 'Provisional')
 
-    expect(trigger.text()).toContain('rankedLeaderboard.modeProvisional')
-    const checked = modeItems(wrapper).filter((item) => item.icon.includes('fa-check'))
-    expect(checked.map((item) => item.label)).toEqual(['rankedLeaderboard.modeProvisional'])
+    expect(selected()).toEqual(['rankedLeaderboard.modeProvisional'])
   })
 
   it('premier chargement: spinner plein écran', () => {
@@ -109,20 +113,11 @@ describe('RankedLeaderboard', () => {
     expect(aliceRow!.text()).toContain('rankedLeaderboard.you')
   })
 
-  it("l'infobulle ne décrit que les vues réellement proposées", () => {
-    const ongoing = mountBoard().findComponent(InfoTooltip).props('text')
-    expect(ongoing).toContain('rankedLeaderboard.hintOfficial')
-    expect(ongoing).toContain('rankedLeaderboard.hintProvisional')
-    expect(ongoing).not.toContain('rankedLeaderboard.hintPeak')
-
-    const finished = mountBoard({ showSeasonStats: true }).findComponent(InfoTooltip).props('text')
-    expect(finished).toContain('rankedLeaderboard.hintPeak')
-    expect(finished).not.toContain('rankedLeaderboard.hintProvisional')
-  })
-
+  // Une seule vue: pas de navigation du tout, juste le classement.
   it('masquage de la bascule via showModeToggle', () => {
     const wrapper = mountBoard({ showModeToggle: false })
-    expect(wrapper.find('[data-test="leaderboard-mode-trigger"]').exists()).toBe(false)
+    expect(modeLabels(wrapper)).toEqual([])
+    expect(wrapper.text()).toContain('Alice')
   })
 
   // Peak et moyenne n'ont de sens qu'une fois la saison terminée.
@@ -145,13 +140,16 @@ describe('RankedLeaderboard', () => {
     }
 
     it('saison en cours: pas de modes peak/moyenne', () => {
-      expect(modeItems(mountBoard())).toHaveLength(2)
+      expect(modeLabels(mountBoard())).toEqual([
+        'rankedLeaderboard.modeOfficial',
+        'rankedLeaderboard.modeProvisional',
+      ])
     })
 
     // Rien ne reste à valider une fois la saison close: le provisoire ne ferait que
     // répéter l'officiel.
     it('saison terminée: officiel, peak et moyenne, sans provisoire', () => {
-      expect(modeItems(mountFinished()).map((item) => item.label)).toEqual([
+      expect(modeLabels(mountFinished())).toEqual([
         'rankedLeaderboard.modeOfficial',
         'rankedLeaderboard.modePeak',
         'rankedLeaderboard.modeAverage',
@@ -159,9 +157,7 @@ describe('RankedLeaderboard', () => {
     })
 
     it('bascule visible même quand le provisoire est désactivé côté tournoi', () => {
-      const wrapper = mountFinished({ showModeToggle: false })
-      expect(wrapper.find('[data-test="leaderboard-mode-trigger"]').exists()).toBe(true)
-      expect(modeItems(wrapper)).toHaveLength(3)
+      expect(modeLabels(mountFinished({ showModeToggle: false }))).toHaveLength(3)
     })
 
     it('émet load-season-stats une seule fois pour les deux vues', async () => {
@@ -197,6 +193,36 @@ describe('RankedLeaderboard', () => {
       expect(wrapper.text()).toContain('🔥')
       await selectMode(wrapper, 'Peak')
       expect(wrapper.text()).not.toContain('🔥')
+    })
+  })
+
+  // Sur mobile les vues sont des volets voisins dans une piste draggable, pas un
+  // rendu unique: elles sont montées ensemble pour que le doigt puisse les faire glisser.
+  describe('mobile', () => {
+    beforeEach(() => {
+      viewport.mobile = true
+    })
+    afterEach(() => {
+      viewport.mobile = false
+    })
+
+    it('monte les vues voisines et bascule au tap', async () => {
+      const wrapper = mountBoard({ provisionalPlayers: [] })
+      expect(modeLabels(wrapper)).toEqual([
+        'rankedLeaderboard.modeOfficial',
+        'rankedLeaderboard.modeProvisional',
+      ])
+
+      // La vue provisoire est déjà montée, donc ses données sont demandées d'emblée.
+      expect(wrapper.emitted('load-provisional')).toHaveLength(1)
+
+      await selectMode(wrapper, 'Provisional')
+      const selected = wrapper
+        .findAll('[data-test^="subtab-"]')
+        .filter((button) => button.attributes('aria-selected') === 'true')
+      expect(selected.map((button) => button.text())).toEqual([
+        'rankedLeaderboard.modeProvisional',
+      ])
     })
   })
 

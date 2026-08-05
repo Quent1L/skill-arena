@@ -1132,10 +1132,6 @@
     "title": "Install Skol"
   },
   "rankedLeaderboard": {
-    "hintAverage": "Average MMR held over the season, starting MMR included.",
-    "hintOfficial": "Current MMR, computed from validated matches.",
-    "hintPeak": "Highest MMR reached during the season.",
-    "hintProvisional": "Current MMR including matches awaiting validation.",
     "matchPlural": "{number} matches",
     "matchSingular": "{number} match",
     "modeAverage": "Average",
