@@ -6,6 +6,8 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
+import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
+import { logger } from "../utils/logger";
 import { db } from "../config/database";
 import { matches, appUsers } from "../db/schema";
 import type {
@@ -211,7 +213,29 @@ export class RankedSeasonService {
     }
 
     await tournamentRepository.update(id, { status: "finished" });
+
+    // Warm the official leaderboard first: the rewind reads the final standings,
+    // and the peak/average views only unlock once the season is finished.
+    await this.computeAndCacheOfficial(id).catch((err) =>
+      logger.error({ err, id }, "[RankedSeason] final leaderboard cache failed"),
+    );
+    await enqueueSeasonRewindGeneration(id);
+
     return await rankedSeasonRepository.getSeasonWithConfig(id);
+  }
+
+  /**
+   * Queues a rewind rebuild for an already finished season. Safe to call at
+   * will: the upsert preserves every player's promotion window and viewed state.
+   */
+  async regenerateRewind(id: string, userId: string) {
+    await this.assertCanManage(userId);
+    const season = await this.getSeasonOrThrow(id);
+
+    if (season.status !== "finished") {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
+    }
+    await enqueueSeasonRewindGeneration(id);
   }
 
   async updateSeason(

@@ -7,6 +7,9 @@ import { rankedSeasonService } from '../services/ranked-season.service';
 import { webSocketService } from '../services/websocket.service';
 import { rulesEvaluationService } from '../services/rules-evaluation.service';
 import { badgeReconciliationService } from '../services/badge-reconciliation.service';
+import { seasonRewindService } from '../services/season-rewind.service';
+import { enqueueSeasonRewindGeneration } from '../services/mmr-job-queue.service';
+import { tournamentRepository } from '../repository/tournament.repository';
 import { logger } from '../utils/logger';
 
 interface FinalizeMmrPayload {
@@ -153,7 +156,32 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
     data: { seasonId: tournamentId },
   });
 
+  // A finished season's rewind was computed from the MMR we just rewrote, so it
+  // no longer matches reality. Rebuild it — the upsert keeps every player's
+  // promotion window and viewed state.
+  await regenerateRewindIfFinished(tournamentId);
+
   logger.info({ tournamentId, playerCount: players.length }, '[Worker] recalculate_season_mmr done');
+};
+
+async function regenerateRewindIfFinished(seasonId: string): Promise<void> {
+  const season = await tournamentRepository.getById(seasonId);
+  if (season?.status !== 'finished') return;
+  await enqueueSeasonRewindGeneration(seasonId);
+}
+
+const generateSeasonRewind: Task = async (rawPayload) => {
+  const { seasonId } = rawPayload as { seasonId: string };
+  logger.info({ seasonId }, '[Worker] generate_season_rewind start');
+
+  await seasonRewindService.generateForSeason(seasonId);
+
+  webSocketService.broadcastToTournament(seasonId, {
+    event: 'rewind_ready',
+    data: { seasonId },
+  });
+
+  logger.info({ seasonId }, '[Worker] generate_season_rewind done');
 };
 
 export const taskList = {
@@ -161,4 +189,5 @@ export const taskList = {
   cancel_match_mmr: cancelMatchMmr,
   recalculate_season_mmr: recalculateSeasonMmr,
   reconcile_pending_badges: reconcilePendingBadges,
+  generate_season_rewind: generateSeasonRewind,
 };

@@ -23,6 +23,7 @@ export * from "./player";
 export * from "./game-rules";
 export * from "./rules-engine";
 export * from "./ranked";
+export * from "./rewind";
 export * from "./tournament-stats";
 export * from "./organization";
 

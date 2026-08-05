@@ -111,6 +111,14 @@ const menuItems = computed<MenuItem[]>(() => [
     visible: appUser.value?.role !== 'kiosk',
   },
   {
+    label: t('appHeader.menu.rewinds'),
+    icon: 'fas fa-film',
+    command: () => {
+      router.push({ name: 'rewinds' })
+    },
+    visible: appUser.value?.role !== 'kiosk',
+  },
+  {
     label: t('appHeader.menu.settings'),
     icon: 'fas fa-cog',
     command: () => {

@@ -98,6 +98,16 @@
               @click="confirmEnd(data)"
               v-tooltip.top="t('rankedSeasonsList.tooltipEnd')"
             />
+            <Button
+              v-if="data.status === 'finished'"
+              icon="fa fa-film"
+              size="small"
+              text
+              rounded
+              :loading="regeneratingId === data.id"
+              @click="handleRegenerateRewind(data)"
+              v-tooltip.top="t('rankedSeasonsList.tooltipRegenerateRewind')"
+            />
           </div>
         </template>
       </Column>
@@ -143,14 +153,18 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
+import { rewindApi } from '@/composables/ranked/rewind.api'
+import { useAppToast } from '@/composables/useAppToast'
 import type { RankedSeason } from '@/composables/ranked/ranked.api'
 
 const router = useRouter()
 const { t } = useI18n()
+const toast = useAppToast()
 const { seasons, loading, error, loadSeasons, startSeason, endSeason } = useRankedService()
 
 const endDialogVisible = ref(false)
 const seasonToEnd = ref<RankedSeason | null>(null)
+const regeneratingId = ref<string | null>(null)
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('fr-FR', {
@@ -190,6 +204,26 @@ async function handleStart(season: RankedSeason) {
 function confirmEnd(season: RankedSeason) {
   seasonToEnd.value = season
   endDialogVisible.value = true
+}
+
+/**
+ * Queues a rebuild of the season rewind. Only useful after the underlying data
+ * moved (an MMR recalculation, a cancelled match); players keep their promotion
+ * window and their viewed state across a rebuild.
+ */
+async function handleRegenerateRewind(season: RankedSeason) {
+  regeneratingId.value = season.id
+  try {
+    await rewindApi.regenerate(season.id)
+    toast.add({
+      severity: 'success',
+      summary: t('rankedSeasonsList.rewindQueued'),
+      detail: t('rankedSeasonsList.rewindQueuedDetail'),
+      life: 4000,
+    })
+  } finally {
+    regeneratingId.value = null
+  }
 }
 
 async function handleEnd() {

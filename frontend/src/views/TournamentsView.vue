@@ -17,6 +17,8 @@
       />
     </div>
 
+    <RewindPromoCard />
+
     <Message v-if="error" severity="error" :closable="true" class="mb-6">{{ error }}</Message>
 
     <!-- Tag filters + switch -->
@@ -90,6 +92,7 @@ import { useTournamentService } from '@/composables/tournament/tournament.servic
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { useAuth } from '@/composables/useAuth'
 import TournamentCard from '@/components/TournamentCard.vue'
+import RewindPromoCard from '@/components/rewind/RewindPromoCard.vue'
 import type { ClientTournamentSummary } from '@skol-arena/shared'
 
 const router = useRouter()

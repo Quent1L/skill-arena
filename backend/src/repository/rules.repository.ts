@@ -149,6 +149,20 @@ export class RulesRepository {
     });
   }
 
+  /**
+   * Every badge awarded in a season, all players at once. The rewind generator
+   * needs one deck per player and would otherwise fire one query per player.
+   */
+  async listBadgesBySeason(seasonId: string) {
+    return await db.query.playerBadges.findMany({
+      where: inArray(
+        playerBadges.matchId,
+        db.select({ id: matches.id }).from(matches).where(eq(matches.tournamentId, seasonId)),
+      ),
+      with: { rule: true },
+    });
+  }
+
   /** Number of players currently holding the badge produced by a rule. */
   async countBadgeHolders(ruleId: string): Promise<number> {
     const [row] = await db

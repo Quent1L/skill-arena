@@ -211,6 +211,8 @@
       :badge="animationQueue.currentBadge.value"
       @close="animationQueue.acknowledgeCurrentBadge()"
     />
+
+    <RewindLauncher v-model:open="showRewind" :season-id="tournamentId" />
   </div>
 </template>
 
@@ -230,6 +232,8 @@ import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
+import RewindLauncher from '@/components/rewind/RewindLauncher.vue'
+import { useRewindService } from '@/composables/ranked/rewind.service'
 
 const route = useRoute()
 const router = useRouter()
@@ -246,7 +250,27 @@ const indicatorStyle = ref({ left: '0px', width: '0px' })
 const animationQueue = useMMrAnimationQueue()
 const notificationSocket = useNotificationSocket()
 
+const { promoted: promotedRewind, loadPromoted } = useRewindService()
+const showRewind = ref(false)
+
 const tournamentId = computed(() => route.params.id as string)
+
+/**
+ * Plays the rewind straight away the first time a player lands on their finished
+ * season, while it is still being promoted. `openedAt` is what makes this happen
+ * exactly once: quitting halfway leaves the deck reachable from the banner and
+ * the stats tab, but never ambushes the player again.
+ */
+async function maybeAutoOpenRewind() {
+  if (store.tournament?.mode !== 'ranked' || store.tournament.status !== 'finished') return
+  if (!store.isAuthenticated) return
+
+  await loadPromoted()
+  const promotion = promotedRewind.value
+  if (promotion?.seasonId === tournamentId.value && !promotion.openedAt) {
+    showRewind.value = true
+  }
+}
 const activeTabName = computed(() => route.params.tab as string | undefined)
 const isScrolled = computed(() => scrollY.value > 80)
 
@@ -344,6 +368,7 @@ onMounted(async () => {
   }
 
   await updateIndicator()
+  await maybeAutoOpenRewind()
 
   offWsHandlers.push(
     onWsOpen(() => sendWsMessage({ event: 'subscribe_tournament', tournamentId: tournamentId.value })),

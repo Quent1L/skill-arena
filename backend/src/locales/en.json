@@ -103,7 +103,8 @@
     "TEAM_HAS_MATCH": "This team already has a match and cannot be modified",
     "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} is already in another match at this exact time — bilocation isn't on the feature list yet!",
     "RANKED_MATCH_TOO_OLD": "Ranked matches must be reported within 48 hours of being played",
-    "RANDOM_NOT_ALLOWED_ON_BADGE": "The random roll cannot be used in a badge rule"
+    "RANDOM_NOT_ALLOWED_ON_BADGE": "The random roll cannot be used in a badge rule",
+    "REWIND_NOT_FOUND": "This Rewind is not available yet"
   },
   "ranked": {
     "PROVISIONAL": "Match recorded!",

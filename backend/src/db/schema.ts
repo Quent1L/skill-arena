@@ -978,6 +978,7 @@ export const appUsersRelations = relations(appUsers, ({ one, many }) => ({
   playerMmrs: many(playerMmr),
   matchPlayerPoints: many(matchPlayerPoints),
   playerComputedData: many(playerComputedData),
+  seasonRewinds: many(playerSeasonRewinds),
   organizationMemberships: many(organizationMembers),
   createdOrganizations: many(organizations),
   mmrAnimationEvents: many(mmrAnimationEvents),
@@ -1050,6 +1051,7 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   rankTiers: many(rankTiers),
   playerMmrs: many(playerMmr),
   computedData: many(computedData),
+  rewinds: many(seasonRewinds),
   organization: one(organizations, {
     fields: [tournaments.organizationId],
     references: [organizations.id],
@@ -1544,3 +1546,85 @@ export const playerComputedDataRelations = relations(playerComputedData, ({ one 
     references: [appUsers.id],
   }),
 }));
+
+// ***************************************************************
+// [Start] Season rewind tables (end-of-season recap snapshots)
+// ***************************************************************
+
+// 'year' is unused for now but declared upfront: adding a value to an enum in a
+// live database is a migration we would rather not owe ourselves later.
+export const rewindScopeEnum = pgEnum("rewind_scope", ["season", "year"]);
+
+// Immutable snapshot of a finished season, computed once by the rewind worker.
+// seasonId is nullable because a future 'year' rewind aggregates several seasons
+// and belongs to no single tournament; it is carried by (discipline, periodKey)
+// instead. A CHECK constraint in the migration enforces that exclusivity.
+export const seasonRewinds = pgTable("season_rewinds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  seasonId: uuid("season_id").references(() => tournaments.id, { onDelete: "cascade" }),
+  scope: rewindScopeEnum("scope").notNull().default("season"),
+  // null when scope = 'season'; the calendar year ('2026') when scope = 'year'.
+  periodKey: text("period_key"),
+  disciplineId: uuid("discipline_id").references(() => disciplines.id, { onDelete: "cascade" }),
+  payload: jsonb("payload").notNull(),
+  version: integer("version").notNull().default(1),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// One deck per player. Points at the rewind rather than the season so a 'year'
+// rewind can carry player payloads without duplicating the scope logic.
+export const playerSeasonRewinds = pgTable(
+  "player_season_rewinds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rewindId: uuid("rewind_id")
+      .notNull()
+      .references(() => seasonRewinds.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    payload: jsonb("payload").notNull(),
+    version: integer("version").notNull().default(1),
+    generatedAt: timestamp("generated_at", { withTimezone: true }).defaultNow().notNull(),
+    // End of the window during which the rewind is promoted on the home page.
+    // Frozen on first generation: regenerating must not restart the countdown.
+    promotedUntil: timestamp("promoted_until", { withTimezone: true }).notNull(),
+    // Set on first open. The season page only auto-opens the rewind while null,
+    // so quitting halfway never turns into a rewind ambush on every visit.
+    openedAt: timestamp("opened_at", { withTimezone: true }),
+    // Set when the deck is watched through to the end — that is what retires
+    // the promo card, not merely opening it.
+    viewedAt: timestamp("viewed_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique().on(table.rewindId, table.playerId),
+    index("idx_player_season_rewinds_promoted").on(table.playerId, table.promotedUntil),
+  ],
+);
+
+export const seasonRewindsRelations = relations(seasonRewinds, ({ one, many }) => ({
+  season: one(tournaments, {
+    fields: [seasonRewinds.seasonId],
+    references: [tournaments.id],
+  }),
+  discipline: one(disciplines, {
+    fields: [seasonRewinds.disciplineId],
+    references: [disciplines.id],
+  }),
+  playerRewinds: many(playerSeasonRewinds),
+}));
+
+export const playerSeasonRewindsRelations = relations(playerSeasonRewinds, ({ one }) => ({
+  rewind: one(seasonRewinds, {
+    fields: [playerSeasonRewinds.rewindId],
+    references: [seasonRewinds.id],
+  }),
+  player: one(appUsers, {
+    fields: [playerSeasonRewinds.playerId],
+    references: [appUsers.id],
+  }),
+}));
+
+// ***************************************************************
+// [End] Season rewind tables
+// ***************************************************************

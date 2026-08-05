@@ -1,5 +1,6 @@
 <template>
   <div>
+    <RewindEntryCard :season-id="store.tournamentId" :season-status="store.tournament?.status" />
     <PlayerMmrProfile
       v-if="store.playerMmr"
       :mmr="store.playerMmr"
@@ -34,6 +35,7 @@
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import RewindEntryCard from '@/components/rewind/RewindEntryCard.vue'
 
 const { t } = useI18n()
 const store = useTournamentDetailStore()

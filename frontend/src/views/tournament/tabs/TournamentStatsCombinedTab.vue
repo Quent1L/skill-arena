@@ -5,6 +5,10 @@
     <!-- Content -->
     <div class="flex-1 min-w-0">
       <div v-if="sub === 'profile'">
+        <RewindEntryCard
+          :season-id="store.tournamentId"
+          :season-status="store.tournament?.status"
+        />
         <PlayerMmrProfile
           v-if="store.playerMmr"
           :mmr="store.playerMmr"
@@ -43,6 +47,7 @@ import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useSubTabs } from '@/composables/ui/useSubTabs'
 import SubTabSidebar from '@/components/ui/SubTabSidebar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import RewindEntryCard from '@/components/rewind/RewindEntryCard.vue'
 import TournamentStatsTab from './TournamentStatsTab.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 

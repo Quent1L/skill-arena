@@ -351,6 +351,16 @@ const routes: RouteRecordRaw[] = [
     redirect: (to) => ({ path: `/tournaments/${to.params.id}` }),
   },
   {
+    path: '/rewinds',
+    name: 'rewinds',
+    component: () => import('@/views/RewindArchiveView.vue'),
+    beforeEnter: requireAuth,
+    meta: {
+      title: t('routes.rewinds'),
+      requiresAuth: true,
+    },
+  },
+  {
     path: '/',
     name: 'tournaments',
     component: () => import('@/views/TournamentsView.vue'),

@@ -193,7 +193,8 @@
       "comparePlayers": "Comparer des joueurs",
       "logout": "Se déconnecter",
       "myStats": "Mes stats",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "rewinds": "Mes Rewinds"
     },
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
@@ -1203,7 +1204,10 @@
     "tooltipEnd": "Terminer",
     "tooltipManageRanks": "Gérer les rangs",
     "tooltipStart": "Démarrer",
-    "tooltipView": "Voir"
+    "tooltipView": "Voir",
+    "tooltipRegenerateRewind": "Recalculer le Rewind",
+    "rewindQueued": "Recalcul lancé",
+    "rewindQueuedDetail": "Le Rewind sera régénéré en tâche de fond. Les joueurs gardent leur état de visionnage."
   },
   "rankedService": {
     "errors": {
@@ -1381,7 +1385,8 @@
     "settings": "Paramètres",
     "signup": "Inscription",
     "tournamentDetail": "Détails du tournoi",
-    "tournaments": "Évènements compétitifs"
+    "tournaments": "Évènements compétitifs",
+    "rewinds": "Mes Rewinds"
   },
   "rulesContent": {
     "noRules": "Aucun règlement disponible."
@@ -2089,5 +2094,194 @@
     "next": "Suivant",
     "now": "Maintenant",
     "title": "Date du match"
+  },
+  "rewind": {
+    "promo": {
+      "eyebrow": "Saison terminée",
+      "title": "Ta saison {season} est terminée",
+      "action": "Voir mon Rewind",
+      "daysLeft": "encore 1 jour | encore {count} jours"
+    },
+    "entry": {
+      "title": "Rewind de la saison",
+      "subtitle": "Revis ta saison en images",
+      "action": "Rejouer",
+      "new": "Nouveau"
+    },
+    "overlay": {
+      "title": "Season Rewind",
+      "close": "Fermer",
+      "next": "Carte suivante",
+      "previous": "Carte précédente",
+      "finish": "Terminer",
+      "unavailable": "Ce Rewind n'est pas encore disponible."
+    },
+    "intro": {
+      "eyebrow": "C'est fini",
+      "period": "Du {start} au {end}",
+      "players": "Joueurs",
+      "matches": "Matchs"
+    },
+    "finalRank": {
+      "eyebrow": "Classement final",
+      "title": "Ta place au classement",
+      "outOf": "sur {total} joueurs",
+      "finalMmr": "MMR final",
+      "bestRank": "Meilleur rang"
+    },
+    "totals": {
+      "eyebrow": "Ta saison",
+      "title": "Ce que tu as joué",
+      "subtitle": "Le bilan complet de ta saison",
+      "matches": "Matchs joués",
+      "wins": "Victoires",
+      "draws": "Nuls",
+      "losses": "Défaites",
+      "winRate": "Taux de victoire"
+    },
+    "journey": {
+      "eyebrow": "Évolution",
+      "title": "Ton parcours MMR",
+      "subtitle": "D'où tu pars, où tu arrives",
+      "start": "Départ",
+      "end": "Arrivée",
+      "netDelta": "Variation totale"
+    },
+    "bestRank": {
+      "eyebrow": "Sommet",
+      "title": "Ton meilleur classement",
+      "subtitle": "Le plus haut que tu sois monté",
+      "peakPosition": "Meilleure position",
+      "top1": "Matchs en Top 1",
+      "top3": "Matchs en Top 3",
+      "top5": "Matchs en Top 5",
+      "measuredInMatches": "Mesuré en nombre de matchs passés dans le classement"
+    },
+    "peak": {
+      "eyebrow": "Pic de MMR",
+      "title": "Ton plus haut niveau",
+      "reachedOn": "Atteint le {date}"
+    },
+    "streaks": {
+      "eyebrow": "Séries",
+      "title": "Tes meilleures séries",
+      "subtitle": "Quand tout s'enchaînait",
+      "wins": "Victoires consécutives",
+      "unbeaten": "Sans défaite",
+      "losses": "Défaites consécutives"
+    },
+    "feats": {
+      "eyebrow": "Exploits",
+      "title": "Tes faits d'armes",
+      "biggestUpset": "Plus gros exploit",
+      "biggestUpsetText": "Tu as battu {opponent}, à +{gap} MMR au-dessus de toi.",
+      "anOpponent": "un adversaire",
+      "giantKiller": "Victoires contre plus fort",
+      "bestPartner": "Meilleur partenaire",
+      "mostFaced": "Adversaire le plus affronté",
+      "nemesis": "Ta némésis",
+      "matches": "{count} match | {count} matchs"
+    },
+    "badges": {
+      "eyebrow": "Badges",
+      "title": "1 badge décroché | {count} badges décrochés"
+    },
+    "percentiles": {
+      "eyebrow": "Comparaison",
+      "title": "Face aux autres",
+      "subtitle": "Ta position parmi tous les joueurs de la saison",
+      "top": "Top {percent} %",
+      "matches": "Matchs joués",
+      "winRate": "Taux de victoire",
+      "progression": "Progression",
+      "winStreak": "Série de victoires"
+    },
+    "awards": {
+      "eyebrow": "Palmarès de la saison",
+      "yours": "C'est toi",
+      "matchesPlayed": "1 match | {count} matchs",
+      "performance": {
+        "title": "🏆 Performance",
+        "subtitle": "Ceux qui ont dominé le classement",
+        "king": "Roi de la saison",
+        "peak": "Plus haut pic de MMR",
+        "progression": "Plus forte progression",
+        "sniper": "Sniper"
+      },
+      "combat": {
+        "title": "⚔️ Combat",
+        "subtitle": "Ceux qui ont fait tomber les têtes",
+        "biggestUpset": "Plus gros exploit",
+        "biggestUpsetDetail": "contre {opponent}",
+        "giantKiller": "Giant Killer",
+        "giantKillerDetail": "victoires contre plus fort",
+        "leaderHunter": "Chasseur de leaders",
+        "leaderHunterDetail": "victoires contre le n°1",
+        "rivalry": "Rivalité de la saison",
+        "nemesis": "Némésis de la saison",
+        "nemesisDetail": "joueurs dominés"
+      },
+      "endurance": {
+        "title": "🔥 Endurance",
+        "subtitle": "Ceux qui ne lâchent rien",
+        "marathon": "Marathonien",
+        "marathonDetail": "matchs disputés",
+        "topFive": "Roi du Top 5",
+        "topThree": "Roi du Top 3",
+        "topOne": "Roi du Top 1",
+        "residencyDetail": "matchs passés dedans",
+        "longestStreak": "Plus longue série",
+        "streakDetail": "victoires d'affilée"
+      },
+      "cooperation": {
+        "title": "🤝 Coopération",
+        "subtitle": "Ceux qui jouent mieux à deux",
+        "duo": "Duo de la saison",
+        "duoDetail": "{wins} victoires en {matches} matchs",
+        "bestPartner": "Meilleur partenaire",
+        "bestPartnerDetail": "coéquipiers gagnants"
+      }
+    },
+    "conclusion": {
+      "eyebrow": "À bientôt",
+      "title": "Merci pour cette saison",
+      "subtitle": "On remet ça ?",
+      "nextSeason": "Prochaine saison",
+      "startsOn": "Démarre le {date}",
+      "join": "Rejoindre la saison",
+      "noNextSeason": "Aucune nouvelle saison n'est encore programmée."
+    },
+    "share": {
+      "eyebrow": "Partage",
+      "title": "Ta carte de saison",
+      "subtitle": "À poster où tu veux",
+      "action": "Partager",
+      "working": "Génération…",
+      "shared": "Partagé",
+      "downloaded": "Téléchargé",
+      "failed": "Impossible de générer l'image.",
+      "unranked": "Non classé",
+      "finalRank": "Classement final",
+      "mmr": "MMR",
+      "peak": "Pic",
+      "matches": "Matchs joués",
+      "streak": "Meilleure série"
+    },
+    "archive": {
+      "title": "Mes Rewinds",
+      "subtitle": "Tous tes récapitulatifs de saison, à revoir quand tu veux.",
+      "unwatched": "Non vu",
+      "noDiscipline": "Sans discipline",
+      "empty": {
+        "title": "Aucun Rewind pour le moment",
+        "hint": "Ton premier Rewind apparaîtra à la fin de ta première saison classée."
+      }
+    }
+  },
+  "rewindService": {
+    "errors": {
+      "loadFailed": "Impossible de charger le Rewind",
+      "loadArchiveFailed": "Impossible de charger les Rewinds"
+    }
   }
 }

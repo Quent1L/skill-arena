@@ -46,6 +46,24 @@ export async function enqueueMmrSeasonRecalculation(tournamentId: string): Promi
   }
 }
 
+/**
+ * Queues the end-of-season rewind build. Shares the season's MMR queue so it can
+ * never run ahead of a pending recalculation: a rewind computed on stale MMR
+ * would freeze the wrong story into an immutable snapshot.
+ */
+export async function enqueueSeasonRewindGeneration(seasonId: string): Promise<void> {
+  try {
+    const utils = await getUtils();
+    await utils.addJob(
+      'generate_season_rewind',
+      { seasonId },
+      { jobKey: `rewind:${seasonId}`, queueName: `mmr:${seasonId}` },
+    );
+  } catch (err) {
+    logger.error({ err, seasonId }, '[MMRQueue] Failed to enqueue rewind generation');
+  }
+}
+
 export async function enqueueBadgeReconciliation(force = false): Promise<void> {
   try {
     const utils = await getUtils();

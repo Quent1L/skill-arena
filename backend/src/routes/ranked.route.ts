@@ -3,6 +3,7 @@ import { z } from "zod";
 import { rankedSeasonService, startOfWeekUtc } from "../services/ranked-season.service";
 import { mmrAnimationEventService } from "../services/mmr-animation-event.service";
 import { rulesService } from "../services/rules.service";
+import { seasonRewindService } from "../services/season-rewind.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
@@ -290,5 +291,59 @@ ranked.post(
     return c.json({ success: true, markedCount: ids.length });
   },
 );
+
+// ============================================
+// Season Rewind
+// ============================================
+
+// GET /ranked/rewinds/promoted - The rewind worth showing the player right now.
+// Declared before /rewinds so the static segment is not eaten by a later route.
+ranked.get("/rewinds/promoted", requireAuth, async (c) => {
+  const playerId = c.get("appUserId");
+  const promotion = await seasonRewindService.getPromoted(playerId);
+  return c.json(promotion);
+});
+
+// GET /ranked/rewinds - Every rewind the player owns, no promotion window applied
+ranked.get("/rewinds", requireAuth, async (c) => {
+  const playerId = c.get("appUserId");
+  const rewinds = await seasonRewindService.listArchive(playerId);
+  return c.json(rewinds);
+});
+
+// GET /ranked/seasons/:id/rewind - Global season recap (public, like the leaderboard)
+ranked.get("/seasons/:id/rewind", async (c) => {
+  const seasonId = c.req.param("id")!;
+  const bundle = await seasonRewindService.getBundle(seasonId, null);
+  return c.json(bundle);
+});
+
+// GET /ranked/seasons/:id/rewind/me - Global recap + the caller's own deck, in one call
+ranked.get("/seasons/:id/rewind/me", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  const bundle = await seasonRewindService.getBundle(seasonId, c.get("appUserId"));
+  return c.json(bundle);
+});
+
+// POST /ranked/seasons/:id/rewind/opened - First open; stops the season page auto-opening it
+ranked.post("/seasons/:id/rewind/opened", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  await seasonRewindService.markOpened(seasonId, c.get("appUserId"));
+  return c.json({ success: true });
+});
+
+// POST /ranked/seasons/:id/rewind/viewed - Deck watched to the end; retires the promo card
+ranked.post("/seasons/:id/rewind/viewed", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  await seasonRewindService.markViewed(seasonId, c.get("appUserId"));
+  return c.json({ success: true });
+});
+
+// POST /ranked/seasons/:id/rewind/regenerate - Admin rebuild (keeps per-player state)
+ranked.post("/seasons/:id/rewind/regenerate", requireAuth, async (c) => {
+  const seasonId = c.req.param("id")!;
+  await rankedSeasonService.regenerateRewind(seasonId, c.get("appUserId"));
+  return c.json({ success: true });
+});
 
 export default ranked;
