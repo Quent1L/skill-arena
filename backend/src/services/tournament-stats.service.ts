@@ -1,10 +1,18 @@
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
 import {
+  assignCompetitionRanks,
+  cutWholeRankGroups,
+  isFlatRanking,
+  MAX_DISTINCT_RANKS,
+  MAX_HONOUR_ROLL,
+  MAX_LEADER_ROWS,
   MIN_WEIGHTED_RATE_MATCHES,
+  omittedTiedWithLast,
   rankByWeightedRate,
   rankByWeightedRateOrFallback,
-  TOP_WEIGHTED_RATE,
+  weightedRateTie,
+  type RankedEntry,
 } from "./stats-ranking";
 import type {
   TournamentStats,
@@ -12,9 +20,24 @@ import type {
   BestTeamEntry,
   WinStreakEntry,
   BestDuoEntry,
+  CompetitionRank,
   OutcomeTypeFunStat,
   OutcomeTypeLeader,
+  OutcomeTypeLeaderboard,
 } from "@skol-arena/shared";
+
+/** How many names an "and N others" tooltip carries before the count speaks alone. */
+const MAX_OMITTED_NAMES = 20;
+
+/** Best-player cards show five places; ties may push the list a little past that. */
+const MAX_BEST_PLAYER_ROWS = 8;
+
+/** A payload entry before it is ranked — ranks are assigned once the list is sorted. */
+type Unranked<T extends CompetitionRank> = Omit<T, keyof CompetitionRank>;
+
+function withRanks<T>(ranked: RankedEntry<T>[]): (T & CompetitionRank)[] {
+  return ranked.map(({ item, rank, tiedCount }) => ({ ...item, rank, tiedCount }));
+}
 
 type MatchData = Awaited<
   ReturnType<typeof tournamentStatsRepository.getMatchesWithSidesAndPlayers>
@@ -65,7 +88,7 @@ const TOP_BEST_PLAYERS = 5;
  * total. Display names stay out of it: a card must not reshuffle because a
  * player renamed themselves.
  */
-function compareBestPlayers(a: BestDuoEntry, b: BestDuoEntry): number {
+function compareBestPlayers(a: Unranked<BestDuoEntry>, b: Unranked<BestDuoEntry>): number {
   if (a.wins !== b.wins) return b.wins - a.wins;
   return a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0;
 }
@@ -86,12 +109,21 @@ function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
     winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
   }));
 
-  return rankByWeightedRateOrFallback(
+  const rate = (entry: (typeof entries)[number]) =>
+    entry.matchesPlayed > 0 ? entry.wins / entry.matchesPlayed : 0;
+  const played = (entry: (typeof entries)[number]) => entry.matchesPlayed;
+
+  // Rank the whole list before cutting: a tie straddling the cut is invisible otherwise.
+  const sorted = rankByWeightedRateOrFallback(
     entries,
-    (entry) => (entry.matchesPlayed > 0 ? entry.wins / entry.matchesPlayed : 0),
-    (entry) => entry.matchesPlayed,
+    rate,
+    played,
     compareBestPlayers,
-    TOP_BEST_PLAYERS,
+    Number.POSITIVE_INFINITY,
+  );
+  const ranked = assignCompetitionRanks(sorted, weightedRateTie(rate, played));
+  return withRanks(
+    cutWholeRankGroups(ranked, TOP_BEST_PLAYERS, MAX_BEST_PLAYER_ROWS).shown,
   );
 }
 
@@ -175,14 +207,21 @@ export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
       };
     });
 
+  const rate = (team: (typeof teams)[number]) =>
+    team.matchesPlayed > 0 ? team.wins / team.matchesPlayed : 0;
+  const played = (team: (typeof teams)[number]) => team.matchesPlayed;
+
   // Same weighting as the player cards: a team that played once and won is not
   // the best team of the tournament.
-  return rankByWeightedRateOrFallback(
+  const sorted = rankByWeightedRateOrFallback(
     teams,
-    (team) => (team.matchesPlayed > 0 ? team.wins / team.matchesPlayed : 0),
-    (team) => team.matchesPlayed,
+    rate,
+    played,
     (a, b) => b.wins - a.wins || (a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0),
+    Number.POSITIVE_INFINITY,
   );
+  const ranked = assignCompetitionRanks(sorted, weightedRateTie(rate, played));
+  return withRanks(cutWholeRankGroups(ranked, MAX_DISTINCT_RANKS, MAX_LEADER_ROWS).shown);
 }
 
 function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
@@ -339,7 +378,7 @@ function countOutcomePlayers(match: MatchData, entry: OutcomeTypeAcc): void {
 }
 
 /** A player's record for one outcome type, viewed from either the win or the loss angle. */
-type LeaderCandidate = OutcomeTypeLeader & { rate: number };
+type LeaderCandidate = Unranked<OutcomeTypeLeader> & { rate: number };
 
 function toCandidates(
   players: Map<string, OutcomeTypePlayerAcc>,
@@ -365,15 +404,52 @@ function toCandidates(
     });
 }
 
-function stripRate(candidates: LeaderCandidate[]): OutcomeTypeLeader[] {
+function stripRate(candidates: (LeaderCandidate & CompetitionRank)[]): OutcomeTypeLeader[] {
   return candidates.map(({ rate: _rate, ...leader }) => leader);
 }
 
-function rankByVolume(candidates: LeaderCandidate[]): OutcomeTypeLeader[] {
-  const ranked = [...candidates]
-    .sort((a, b) => b.count - a.count || b.ratePct - a.ratePct)
-    .slice(0, TOP_WEIGHTED_RATE);
-  return stripRate(ranked);
+/**
+ * Turns a ranked candidate list into the payload the card renders. A flat ranking — one
+ * everybody shares rank 1 in, which is what a rare outcome type produces — is not cut to
+ * a podium: the UI lists the names instead, so it gets more of them.
+ */
+function toLeaderboard(
+  ranked: RankedEntry<LeaderCandidate>[],
+  isLowSample: boolean,
+): OutcomeTypeLeaderboard {
+  const isFlat = isFlatRanking(ranked);
+  const { shown, omitted } = cutWholeRankGroups(
+    ranked,
+    MAX_DISTINCT_RANKS,
+    isFlat ? MAX_HONOUR_ROLL : MAX_LEADER_ROWS,
+  );
+  // Only players the cut separated from their own rank are ex aequo. The rest of the
+  // ranking is simply below the podium, and announcing it as tied would be a lie.
+  const tied = omittedTiedWithLast(shown, omitted);
+
+  return {
+    leaders: stripRate(withRanks(shown)),
+    omittedNames: tied.slice(0, MAX_OMITTED_NAMES).map((c) => c.displayName),
+    omittedCount: tied.length,
+    isFlat,
+    isLowSample,
+  };
+}
+
+/**
+ * The volume column ranks on the raw count and nothing else: 63 wins are 63 wins. The
+ * rate still orders the tied group so the list is stable, but separating ranks on it
+ * would answer a question this column is not asking — that is the rate column's job.
+ */
+function volumeTie(a: LeaderCandidate, b: LeaderCandidate): boolean {
+  return a.count === b.count;
+}
+
+function rankByVolume(candidates: LeaderCandidate[]): OutcomeTypeLeaderboard {
+  const sorted = [...candidates].sort(
+    (a, b) => b.count - a.count || b.ratePct - a.ratePct || compareLeaders(a, b),
+  );
+  return toLeaderboard(assignCompetitionRanks(sorted, volumeTie), false);
 }
 
 /**
@@ -381,24 +457,25 @@ function rankByVolume(candidates: LeaderCandidate[]): OutcomeTypeLeader[] {
  * leaves nobody. Rare outcome types (fanny, win on foul…) would otherwise show an empty
  * column; the flag lets the UI label the result as a small sample instead of hiding it.
  */
-function rankByRate(candidates: LeaderCandidate[]): {
-  leaders: OutcomeTypeLeader[];
-  isLowSample: boolean;
-} {
+function rankByRate(candidates: LeaderCandidate[]): OutcomeTypeLeaderboard {
   const rate = (c: LeaderCandidate) => c.rate;
   const played = (c: LeaderCandidate) => c.matchesPlayed;
+  const tie = weightedRateTie(rate, played);
+  const rankAll = (minMatches: number) =>
+    rankByWeightedRate(
+      candidates,
+      rate,
+      played,
+      minMatches,
+      compareLeaders,
+      Number.POSITIVE_INFINITY,
+    );
 
-  const filtered = rankByWeightedRate(
-    candidates,
-    rate,
-    played,
-    MIN_WEIGHTED_RATE_MATCHES,
-    compareLeaders,
-  );
-  if (filtered.length > 0) return { leaders: stripRate(filtered), isLowSample: false };
+  const filtered = rankAll(MIN_WEIGHTED_RATE_MATCHES);
+  if (filtered.length > 0) return toLeaderboard(assignCompetitionRanks(filtered, tie), false);
 
-  const fallback = rankByWeightedRate(candidates, rate, played, 0, compareLeaders);
-  return { leaders: stripRate(fallback), isLowSample: fallback.length > 0 };
+  const fallback = rankAll(0);
+  return toLeaderboard(assignCompetitionRanks(fallback, tie), fallback.length > 0);
 }
 
 /**
@@ -431,19 +508,15 @@ export function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTyp
     .map(([outcomeTypeId, data]) => {
       const winners = toCandidates(data.players, (p) => p.wins);
       const losers = toCandidates(data.players, (p) => p.losses);
-      const winnersByRate = rankByRate(winners);
-      const losersByRate = rankByRate(losers);
 
       return {
         outcomeTypeId,
         outcomeTypeName: data.name,
         totalMatches: data.totalMatches,
         topWinnersByVolume: rankByVolume(winners),
-        topWinnersByRate: winnersByRate.leaders,
+        topWinnersByRate: rankByRate(winners),
         topLosersByVolume: rankByVolume(losers),
-        topLosersByRate: losersByRate.leaders,
-        winnersRateIsLowSample: winnersByRate.isLowSample,
-        losersRateIsLowSample: losersByRate.isLowSample,
+        topLosersByRate: rankByRate(losers),
       };
     })
     .sort((a, b) => b.totalMatches - a.totalMatches || a.outcomeTypeName.localeCompare(b.outcomeTypeName));

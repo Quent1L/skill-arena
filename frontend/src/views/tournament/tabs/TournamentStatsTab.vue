@@ -178,7 +178,8 @@ import Chart from 'primevue/chart'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
-import TopPlayersCard from '@/components/tournament/TopPlayersCard.vue'
+import type { BestDuoEntry } from '@skol-arena/shared/types/index'
+import TopPlayersCard, { type TopPlayerItem } from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import OutcomeTypeFunStats from '@/components/stats/OutcomeTypeFunStats.vue'
 import StreakLeadersCard from '@/components/stats/StreakLeadersCard.vue'
@@ -249,33 +250,28 @@ const bestTeamsItems = computed(() =>
     displayName: team.displayName,
     secondaryText: `${team.wins}V ${team.losses}D`,
     winRate: team.winRate,
+    rank: team.rank,
+    tiedCount: team.tiedCount,
   })),
 )
 
-const bestDuoItems = computed(() =>
-  (store.tournamentStats?.bestDuoPlayers ?? []).map((p) => ({
+/** The player cards differ only by which list they read: same row shape for all three. */
+function toPlayerItems(players: BestDuoEntry[] | undefined): TopPlayerItem[] {
+  return (players ?? []).map((p) => ({
     id: p.playerId,
     displayName: p.displayName,
     secondaryText: `${p.matchesPlayed} matchs`,
     winRate: p.winRate,
-  })),
-)
+    rank: p.rank,
+    tiedCount: p.tiedCount,
+  }))
+}
 
-const bestSoloItems = computed(() =>
-  (store.tournamentStats?.bestSoloPlayers ?? []).map((p) => ({
-    id: p.playerId,
-    displayName: p.displayName,
-    secondaryText: `${p.matchesPlayed} matchs`,
-    winRate: p.winRate,
-  })),
-)
+const bestDuoItems = computed(() => toPlayerItems(store.tournamentStats?.bestDuoPlayers))
+
+const bestSoloItems = computed(() => toPlayerItems(store.tournamentStats?.bestSoloPlayers))
 
 const bestAsymmetricSoloItems = computed(() =>
-  (store.tournamentStats?.bestAsymmetricSoloPlayers ?? []).map((p) => ({
-    id: p.playerId,
-    displayName: p.displayName,
-    secondaryText: `${p.matchesPlayed} matchs`,
-    winRate: p.winRate,
-  })),
+  toPlayerItems(store.tournamentStats?.bestAsymmetricSoloPlayers),
 )
 </script>

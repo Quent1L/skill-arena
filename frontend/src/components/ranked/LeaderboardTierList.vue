@@ -141,6 +141,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { playerLink } from '@/utils/player-link'
+import { assignCompetitionRanks } from '@/utils/competition-rank'
 import type {
   ClientPlayerMmr,
   ClientSeasonMmrPlayer,
@@ -184,11 +185,12 @@ function displayMmr(player: ClientPlayerMmr): number {
 const showFullSpinner = computed(() => props.loading && props.players.length === 0)
 const isRefreshing = computed(() => props.loading && props.players.length > 0)
 
+// Competition ranks: two players on the same MMR are joint Nth, not Nth and N+1th.
 const rankMap = computed(() => {
   const map = new Map<string, number>()
-  props.players.forEach((p, i) => {
-    if (p.player?.id) map.set(p.player.id, i + 1)
-  })
+  for (const { item, rank } of assignCompetitionRanks(props.players, displayMmr)) {
+    if (item.player?.id) map.set(item.player.id, rank)
+  }
   return map
 })
 

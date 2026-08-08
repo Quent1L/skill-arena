@@ -6,19 +6,26 @@
     </h2>
     <div class="space-y-2">
       <div
-        v-for="(item, i) in items"
+        v-for="item in items"
         :key="item.id"
         class="flex items-center gap-3 p-3 rounded-lg"
-        :class="i === 0 ? firstRowClass : 'bg-gray-50 dark:bg-gray-800'"
+        :class="item.rank === 1 ? firstRowClass : 'bg-gray-50 dark:bg-gray-800'"
       >
         <span
           class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-          :class="podiumClass(i)"
-          >{{ i + 1 }}</span
+          :class="podiumClass(item.rank)"
+          >{{ item.rank }}</span
         >
-        <span class="flex-1 font-medium text-gray-900 dark:text-white wrap-break-word min-w-0">{{
-          item.displayName
-        }}</span>
+        <span class="flex-1 font-medium text-gray-900 dark:text-white wrap-break-word min-w-0">
+          {{ item.displayName }}
+          <span
+            v-if="item.tiedCount > 1"
+            v-tooltip.top="t('common.exAequoTooltip', { count: item.tiedCount })"
+            class="ml-1 text-[10px] font-normal text-amber-600 dark:text-amber-400 whitespace-nowrap"
+            data-test="ex-aequo"
+            >{{ t('common.exAequo') }}</span
+          >
+        </span>
         <span class="text-sm text-gray-500 dark:text-gray-400">{{ item.secondaryText }}</span>
         <span class="text-sm font-semibold" :class="winRateClass(item.winRate)"
           >{{ item.winRate }}%</span
@@ -29,7 +36,10 @@
 </template>
 
 <script setup lang="ts">
-export interface TopPlayerItem {
+import { useI18n } from 'vue-i18n'
+import type { CompetitionRank } from '@skol-arena/shared/types/index'
+
+export interface TopPlayerItem extends CompetitionRank {
   id: string
   displayName: string
   secondaryText: string
@@ -44,11 +54,14 @@ const props = defineProps<{
   items: TopPlayerItem[]
 }>()
 
+const { t } = useI18n()
+
 const firstRowClass = props.firstRowClass ?? 'bg-gray-50 dark:bg-gray-800'
 
-function podiumClass(i: number) {
-  if (i === 0) return 'bg-yellow-400 text-yellow-900'
-  if (i === 1) return 'bg-gray-300 text-gray-700'
+// Keyed on the rank, not the row: players nothing separates get the same medal.
+function podiumClass(rank: number) {
+  if (rank === 1) return 'bg-yellow-400 text-yellow-900'
+  if (rank === 2) return 'bg-gray-300 text-gray-700'
   return 'bg-amber-600 text-white'
 }
 

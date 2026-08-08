@@ -86,6 +86,14 @@ describe("computeBestDuoPlayers", () => {
     expect(entryOf(best, "a")).toMatchObject({ matchesPlayed: 2, winRate: 100 });
   });
 
+  it("gives the same rank to players nothing separates", () => {
+    // The two winners share every match, so no criterion can put one above the other.
+    const best = computeBestDuoPlayers(series(["a", "b"], ["c", "d"], 4) as any);
+
+    expect(entryOf(best, "a")).toMatchObject({ rank: 1, tiedCount: 2 });
+    expect(entryOf(best, "b")).toMatchObject({ rank: 1, tiedCount: 2 });
+  });
+
   it("counts draws in the denominator", () => {
     const matches = [...series(["a", "b"], ["c", "d"], 3), match(null, ["a", "b"], ["c", "d"])];
 

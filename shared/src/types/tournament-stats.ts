@@ -5,7 +5,14 @@ export interface OutcomeTypeCount {
   count: number
 }
 
-export interface BestTeamEntry {
+/** Competition ranking (1,1,1,4): entries no criterion separates share a rank. */
+export interface CompetitionRank {
+  rank: number
+  /** How many entries share this rank, this one included. */
+  tiedCount: number
+}
+
+export interface BestTeamEntry extends CompetitionRank {
   entryId: string
   displayName: string
   wins: number
@@ -27,7 +34,7 @@ export interface WinStreakEntry {
   currentStreak: number
 }
 
-export interface BestDuoEntry {
+export interface BestDuoEntry extends CompetitionRank {
   playerId: string
   displayName: string
   shortName: string
@@ -37,7 +44,7 @@ export interface BestDuoEntry {
   winRate: number
 }
 
-export interface OutcomeTypeLeader {
+export interface OutcomeTypeLeader extends CompetitionRank {
   playerId: string
   displayName: string
   shortName: string
@@ -51,19 +58,27 @@ export interface OutcomeTypeLeader {
   sharePct: number
 }
 
+export interface OutcomeTypeLeaderboard {
+  leaders: OutcomeTypeLeader[]
+  /** Names of the players tied with the last shown rank but cut for space */
+  omittedNames: string[]
+  /** Total cut for space — omittedNames is capped, this is not */
+  omittedCount: number
+  /** True when every candidate shares rank 1: no podium, an honour roll instead */
+  isFlat: boolean
+  /** Rate boards only: no player reached the match threshold, so the board is unfiltered */
+  isLowSample: boolean
+}
+
 export interface OutcomeTypeFunStat {
   outcomeTypeId: string
   outcomeTypeName: string
   /** Finalized matches settled with this outcome type */
   totalMatches: number
-  topWinnersByVolume: OutcomeTypeLeader[]
-  topWinnersByRate: OutcomeTypeLeader[]
-  topLosersByVolume: OutcomeTypeLeader[]
-  topLosersByRate: OutcomeTypeLeader[]
-  /** True when no player reached the match threshold, so topWinnersByRate is unfiltered */
-  winnersRateIsLowSample: boolean
-  /** True when no player reached the match threshold, so topLosersByRate is unfiltered */
-  losersRateIsLowSample: boolean
+  topWinnersByVolume: OutcomeTypeLeaderboard
+  topWinnersByRate: OutcomeTypeLeaderboard
+  topLosersByVolume: OutcomeTypeLeaderboard
+  topLosersByRate: OutcomeTypeLeaderboard
 }
 
 export interface TournamentStats {

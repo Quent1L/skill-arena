@@ -80,6 +80,7 @@ declare module 'vue' {
     NotificationsInit: typeof import('./src/components/NotificationsInit.vue')['default']
     OutcomeSelector: typeof import('./src/components/match/OutcomeSelector.vue')['default']
     OutcomeTypeFunStats: typeof import('./src/components/stats/OutcomeTypeFunStats.vue')['default']
+    OutcomeTypeLeaderColumn: typeof import('./src/components/stats/OutcomeTypeLeaderColumn.vue')['default']
     OutcomeTypeStats: typeof import('./src/components/player/OutcomeTypeStats.vue')['default']
     OverflowMenuButton: typeof import('./src/components/OverflowMenuButton.vue')['default']
     OverlayBadge: typeof import('primevue/overlaybadge')['default']

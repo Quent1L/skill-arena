@@ -3,6 +3,13 @@ import { db } from "../config/database";
 import { matches, tournaments, outcomeTypes, computedData } from "../db/schema";
 import type { TournamentStats } from "@skol-arena/shared";
 
+/**
+ * Cached stats are returned verbatim, so a change to the TournamentStats shape must come
+ * with a migration flushing this key — otherwise every already-computed tournament keeps
+ * serving the previous shape. The cache is read-through, so a flush costs one recompute.
+ */
+const STATS_CACHE_KEY = "stats";
+
 export class TournamentStatsRepository {
   async getTournamentMode(tournamentId: string) {
     return db.query.tournaments.findFirst({
@@ -82,7 +89,10 @@ export class TournamentStatsRepository {
 
   async getComputedStats(tournamentId: string): Promise<TournamentStats | null> {
     const row = await db.query.computedData.findFirst({
-      where: and(eq(computedData.tournamentId, tournamentId), eq(computedData.key, "stats")),
+      where: and(
+        eq(computedData.tournamentId, tournamentId),
+        eq(computedData.key, STATS_CACHE_KEY),
+      ),
     });
     if (!row) return null;
     return row.data as TournamentStats;
@@ -91,7 +101,7 @@ export class TournamentStatsRepository {
   async setComputedStats(tournamentId: string, data: TournamentStats): Promise<void> {
     await db
       .insert(computedData)
-      .values({ tournamentId, key: "stats", data, computedAt: new Date() })
+      .values({ tournamentId, key: STATS_CACHE_KEY, data, computedAt: new Date() })
       .onConflictDoUpdate({
         target: [computedData.tournamentId, computedData.key],
         set: { data, computedAt: new Date() },
@@ -101,7 +111,9 @@ export class TournamentStatsRepository {
   async deleteComputedStats(tournamentId: string): Promise<void> {
     await db
       .delete(computedData)
-      .where(and(eq(computedData.tournamentId, tournamentId), eq(computedData.key, "stats")));
+      .where(
+        and(eq(computedData.tournamentId, tournamentId), eq(computedData.key, STATS_CACHE_KEY)),
+      );
   }
 }
 

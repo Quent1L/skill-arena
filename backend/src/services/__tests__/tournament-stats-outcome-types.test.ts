@@ -70,11 +70,11 @@ describe("computeOutcomeTypeFunStats", () => {
 
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
 
-    expect(normal.topWinnersByVolume[0]!.playerId).toBe("filler");
-    expect(normal.topWinnersByVolume[1]!.playerId).toBe("grinder");
-    expect(normal.topWinnersByRate[0]!.playerId).toBe("sniper");
-    expect(normal.topWinnersByRate[0]!.ratePct).toBe(90);
-    expect(normal.winnersRateIsLowSample).toBe(false);
+    expect(normal.topWinnersByVolume.leaders[0]!.playerId).toBe("filler");
+    expect(normal.topWinnersByVolume.leaders[1]!.playerId).toBe("grinder");
+    expect(normal.topWinnersByRate.leaders[0]!.playerId).toBe("sniper");
+    expect(normal.topWinnersByRate.leaders[0]!.ratePct).toBe(90);
+    expect(normal.topWinnersByRate.isLowSample).toBe(false);
   });
 
   it("expose le contexte de chaque entrée : matchs joués, taux et part du total", () => {
@@ -84,7 +84,7 @@ describe("computeOutcomeTypeFunStats", () => {
     ];
 
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
-    const leader = normal.topWinnersByVolume[0]!;
+    const leader = normal.topWinnersByVolume.leaders[0]!;
 
     expect(normal.totalMatches).toBe(8);
     expect(leader.playerId).toBe("a");
@@ -102,7 +102,7 @@ describe("computeOutcomeTypeFunStats", () => {
     ];
 
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
-    const a = normal.topWinnersByVolume[0]!;
+    const a = normal.topWinnersByVolume.leaders[0]!;
 
     expect(a.count).toBe(3);
     expect(a.matchesPlayed).toBe(4);
@@ -117,9 +117,9 @@ describe("computeOutcomeTypeFunStats", () => {
 
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
 
-    expect(normal.topWinnersByRate.map((p) => p.playerId)).toEqual(["regular"]);
-    expect(normal.topWinnersByVolume.map((p) => p.playerId)).toContain("rookie");
-    expect(normal.winnersRateIsLowSample).toBe(false);
+    expect(normal.topWinnersByRate.leaders.map((p) => p.playerId)).toEqual(["regular"]);
+    expect(normal.topWinnersByVolume.leaders.map((p) => p.playerId)).toContain("rookie");
+    expect(normal.topWinnersByRate.isLowSample).toBe(false);
   });
 
   it("lève le seuil et signale l'échantillon faible sur un type de résultat rare", () => {
@@ -132,9 +132,9 @@ describe("computeOutcomeTypeFunStats", () => {
 
     const fanny = stat(computeOutcomeTypeFunStats(matches as any), "fanny");
 
-    expect(fanny.topWinnersByRate.length).toBeGreaterThan(0);
-    expect(fanny.topWinnersByRate[0]!.playerId).toBe("a");
-    expect(fanny.winnersRateIsLowSample).toBe(true);
+    expect(fanny.topWinnersByRate.leaders.length).toBeGreaterThan(0);
+    expect(fanny.topWinnersByRate.leaders[0]!.playerId).toBe("a");
+    expect(fanny.topWinnersByRate.isLowSample).toBe(true);
   });
 
   it("gère indépendamment les drapeaux gagnants et perdants", () => {
@@ -149,9 +149,9 @@ describe("computeOutcomeTypeFunStats", () => {
 
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
 
-    expect(normal.winnersRateIsLowSample).toBe(false);
-    expect(normal.losersRateIsLowSample).toBe(true);
-    expect(normal.topLosersByRate.length).toBeGreaterThan(0);
+    expect(normal.topWinnersByRate.isLowSample).toBe(false);
+    expect(normal.topLosersByRate.isLowSample).toBe(true);
+    expect(normal.topLosersByRate.leaders.length).toBeGreaterThan(0);
   });
 
   it("renvoie des listes de taux vides sans drapeau quand le type n'a que des nuls", () => {
@@ -163,11 +163,11 @@ describe("computeOutcomeTypeFunStats", () => {
 
     const drawType = stat(computeOutcomeTypeFunStats(matches as any), "draw");
 
-    expect(drawType.topWinnersByVolume).toEqual([]);
-    expect(drawType.topWinnersByRate).toEqual([]);
-    expect(drawType.topLosersByRate).toEqual([]);
-    expect(drawType.winnersRateIsLowSample).toBe(false);
-    expect(drawType.losersRateIsLowSample).toBe(false);
+    expect(drawType.topWinnersByVolume.leaders).toEqual([]);
+    expect(drawType.topWinnersByRate.leaders).toEqual([]);
+    expect(drawType.topLosersByRate.leaders).toEqual([]);
+    expect(drawType.topWinnersByRate.isLowSample).toBe(false);
+    expect(drawType.topLosersByRate.isLowSample).toBe(false);
   });
 
   it("calcule la part du total sur les deux gagnants d'un match 2v2", () => {
@@ -179,7 +179,7 @@ describe("computeOutcomeTypeFunStats", () => {
     const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
 
     // 8 wins recorded across 4 matches, split evenly between the two team mates
-    expect(normal.topWinnersByVolume.map((p) => p.sharePct)).toEqual([50, 50]);
+    expect(normal.topWinnersByVolume.leaders.map((p) => p.sharePct)).toEqual([50, 50]);
   });
 
   it("trie les types de résultat par nombre de matchs décroissant", () => {
@@ -194,7 +194,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(stats.map((s) => s.outcomeTypeId)).toEqual(["common", "medium", "rare"]);
   });
 
-  it("ignore les matchs sans type de résultat et ne garde que 3 joueurs par liste", () => {
+  it("ignore les matchs sans type de résultat et ne garde que 3 rangs par liste", () => {
     const matches = [
       match(null, "A", ["a"], ["b"]),
       ...series("normal", "a", "z", 5),
@@ -204,8 +204,99 @@ describe("computeOutcomeTypeFunStats", () => {
     ];
 
     const stats = computeOutcomeTypeFunStats(matches as any);
+    const volume = stats[0]!.topWinnersByVolume;
 
     expect(stats).toHaveLength(1);
-    expect(stats[0]!.topWinnersByVolume.map((p) => p.playerId)).toEqual(["a", "b", "c"]);
+    expect(volume.leaders.map((p) => p.playerId)).toEqual(["a", "b", "c"]);
+    // "d" has fewer wins than everyone shown: cut for space, but tied with nobody.
+    expect(volume.omittedCount).toBe(0);
+    expect(volume.omittedNames).toEqual([]);
+  });
+});
+
+describe("computeOutcomeTypeFunStats — ex aequo", () => {
+  it("donne le même rang aux joueurs qu'aucun critère ne départage", () => {
+    const matches = [
+      ...series("normal", "a", "z", 5),
+      ...series("normal", "b", "z", 5),
+      ...series("normal", "c", "z", 2),
+    ];
+
+    const volume = stat(computeOutcomeTypeFunStats(matches as any), "normal").topWinnersByVolume;
+
+    expect(volume.leaders.map((p) => p.rank)).toEqual([1, 1, 3]);
+    expect(volume.leaders.map((p) => p.tiedCount)).toEqual([2, 2, 1]);
+    expect(volume.isFlat).toBe(false);
+  });
+
+  it("ne coupe pas un groupe d'ex aequo au milieu", () => {
+    // Ranks 1, 2, 3, 3: the third rank is two players wide and must come whole.
+    const matches = [
+      ...series("normal", "a", "z", 5),
+      ...series("normal", "b", "z", 4),
+      ...series("normal", "c", "z", 3),
+      ...series("normal", "d", "z", 3),
+    ];
+
+    const volume = stat(computeOutcomeTypeFunStats(matches as any), "normal").topWinnersByVolume;
+
+    expect(volume.leaders.map((p) => p.playerId)).toEqual(["a", "b", "c", "d"]);
+    expect(volume.leaders.map((p) => p.rank)).toEqual([1, 2, 3, 3]);
+    expect(volume.omittedCount).toBe(0);
+  });
+
+  it("bascule en tableau d'honneur quand le classement ne départage personne", () => {
+    // A rare outcome type: four players, one win each, nothing between them.
+    const matches = [
+      match("fanny", "A", ["a"], ["z"]),
+      match("fanny", "A", ["b"], ["z"]),
+      match("fanny", "A", ["c"], ["z"]),
+      match("fanny", "A", ["d"], ["z"]),
+    ];
+
+    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+
+    expect(volume.isFlat).toBe(true);
+    expect(volume.leaders).toHaveLength(4);
+    expect(volume.leaders.every((p) => p.rank === 1 && p.tiedCount === 4)).toBe(true);
+  });
+
+  it("garde son podium au joueur seul à avoir réussi le coup", () => {
+    const volume = stat(
+      computeOutcomeTypeFunStats([match("fanny", "A", ["a"], ["z"])] as any),
+      "fanny",
+    ).topWinnersByVolume;
+
+    // One winner is not a tie: being alone up there is an achievement, not an ex aequo.
+    expect(volume.isFlat).toBe(false);
+    expect(volume.leaders).toHaveLength(1);
+    expect(volume.leaders[0]).toMatchObject({ playerId: "a", rank: 1, tiedCount: 1 });
+  });
+
+  it("ne présente comme ex aequo que les joueurs coupés de leur propre rang", () => {
+    // Seven players on two wins each, then "h" on one: only the seven are tied.
+    const winners = ["a", "b", "c", "d", "e", "f", "g"];
+    const matches = [
+      ...winners.flatMap((w) => series("fanny", w, "z", 2)),
+      match("fanny", "A", ["h"], ["z"]),
+    ];
+
+    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+
+    expect(volume.leaders).toHaveLength(6);
+    expect(volume.omittedCount).toBe(1);
+    expect(volume.leaders.every((p) => p.rank === 1)).toBe(true);
+  });
+
+  it("plafonne le tableau d'honneur et compte le reste", () => {
+    const winners = Array.from({ length: 15 }, (_, i) => `p${i}`);
+    const matches = winners.map((w) => match("fanny", "A", [w], ["z"]));
+
+    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+
+    expect(volume.isFlat).toBe(true);
+    expect(volume.leaders).toHaveLength(12);
+    expect(volume.omittedCount).toBe(3);
+    expect(volume.omittedNames).toHaveLength(3);
   });
 });
