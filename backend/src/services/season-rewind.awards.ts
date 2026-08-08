@@ -1,6 +1,7 @@
 import {
   REWIND_MIN_MATCHES_DUO,
   REWIND_MIN_MATCHES_NEMESIS,
+  REWIND_MIN_MATCHES_PERCENTILE,
   REWIND_MIN_MATCHES_RIVALRY,
   REWIND_MIN_MATCHES_SNIPER,
   type RewindAward,
@@ -11,15 +12,26 @@ import {
   type RewindDuoAward,
   type RewindEnduranceAwards,
   type RewindPairAward,
+  type RewindPercentileEntry,
   type RewindPercentiles,
   type RewindPerformanceAwards,
   type RewindPlayerRef,
 } from "@skol-arena/shared/types/index";
+import { logger } from "../utils/logger";
+import { SCORE_EPSILON } from "./stats-ranking";
 import type { PairTally, PlayerAggregate } from "./season-rewind.replay";
 
 /**
- * Every award ranks on a single metric, and every tie is broken the same way:
- * more matches first, then the lower player id. Determinism is not cosmetic
+ * Every award ranks on a single metric, and every tie runs down the same chain:
+ * the season a player actually had — more matches, more wins, higher final MMR,
+ * higher peak — and only then their id.
+ *
+ * Nothing in that chain reads an identity. Display names in particular are kept
+ * out: they can be edited, and an award that moved because someone renamed
+ * themselves would contradict the whole point of a snapshot. The id is a uuid
+ * and settles nothing a player could recognise as fair; it sits at the very end,
+ * present only to guarantee the order is total, since a chain that can still
+ * return "equal" hands the award to iteration order. Determinism is not cosmetic
  * here — a rewind can be regenerated after an MMR recalculation, and the same
  * data must always crown the same player.
  */
@@ -45,11 +57,14 @@ function bestCandidate(candidates: Candidate[]): Candidate | null {
 }
 
 function outranks(candidate: Candidate, best: Candidate): boolean {
+  const a = candidate.aggregate;
+  const b = best.aggregate;
   if (candidate.value !== best.value) return candidate.value > best.value;
-  if (candidate.aggregate.matchesPlayed !== best.aggregate.matchesPlayed) {
-    return candidate.aggregate.matchesPlayed > best.aggregate.matchesPlayed;
-  }
-  return candidate.aggregate.playerId < best.aggregate.playerId;
+  if (a.matchesPlayed !== b.matchesPlayed) return a.matchesPlayed > b.matchesPlayed;
+  if (a.wins !== b.wins) return a.wins > b.wins;
+  if (a.finalMmr !== b.finalMmr) return a.finalMmr > b.finalMmr;
+  if (a.peakMmr !== b.peakMmr) return a.peakMmr > b.peakMmr;
+  return a.playerId < b.playerId;
 }
 
 function toAward(
@@ -99,13 +114,37 @@ function peakAward(aggregates: PlayerAggregate[], directory: Directory): RewindD
   };
 }
 
+/**
+ * The highest-ranked player who actually played. The final ranking comes from
+ * player_mmr, which also holds players auto-registered by a match they were
+ * later removed from and players who never played: in a small season those sit
+ * at the starting MMR and can top a ladder where everyone else finished below
+ * it. Falling through to the next entry keeps the card from silently rendering
+ * no king at all while the leaderboard beside it shows one.
+ */
+function findKing(aggregates: PlayerAggregate[], finalRanking: string[]): PlayerAggregate | null {
+  const byId = new Map(aggregates.map((agg) => [agg.playerId, agg]));
+  for (const playerId of finalRanking) {
+    const agg = byId.get(playerId);
+    if (agg && agg.matchesPlayed > 0) {
+      if (playerId !== finalRanking[0]) {
+        logger.warn(
+          { rankedFirst: finalRanking[0], king: playerId },
+          "[Rewind] ladder leader has no match in the season, king falls to the next player",
+        );
+      }
+      return agg;
+    }
+  }
+  return null;
+}
+
 export function computePerformanceAwards(
   aggregates: PlayerAggregate[],
   directory: Directory,
   finalRanking: string[],
 ): RewindPerformanceAwards {
-  const kingId = finalRanking[0];
-  const kingAgg = aggregates.find((agg) => agg.playerId === kingId);
+  const kingAgg = findKing(aggregates, finalRanking);
 
   return {
     king:
@@ -138,7 +177,44 @@ function upsetAward(aggregates: PlayerAggregate[], directory: Directory): Rewind
     matchId: feat.matchId,
     playedAt: feat.playedAt,
     opponent: feat.opponentId ? (directory.get(feat.opponentId) ?? null) : null,
+    format: { teamSize: feat.teamSize, opponentTeamSize: feat.opponentTeamSize },
   };
+}
+
+interface PairCandidate {
+  tally: PairTally;
+  score: number;
+}
+
+/**
+ * Total order over pairs: score, sample size, wins, then the more decisive
+ * record, and the two ids only once none of that separates them.
+ */
+function pairOutranks(candidate: PairCandidate, best: PairCandidate): boolean {
+  const a = candidate.tally;
+  const b = best.tally;
+  if (Math.abs(candidate.score - best.score) > SCORE_EPSILON) {
+    return candidate.score > best.score;
+  }
+  if (a.matches !== b.matches) return a.matches > b.matches;
+  if (a.aWins !== b.aWins) return a.aWins > b.aWins;
+  if (a.aLosses !== b.aLosses) return a.aLosses < b.aLosses;
+  if (a.aId !== b.aId) return a.aId < b.aId;
+  return a.bId < b.bId;
+}
+
+function bestPair(
+  tallies: PairTally[],
+  minMatches: number,
+  scoreOf: (tally: PairTally) => number,
+): PairTally | null {
+  let best: PairCandidate | null = null;
+  for (const tally of tallies) {
+    if (tally.matches < minMatches) continue;
+    const candidate = { tally, score: scoreOf(tally) };
+    if (!best || pairOutranks(candidate, best)) best = candidate;
+  }
+  return best?.tally ?? null;
 }
 
 /** The most played duel of the season, whoever won it. */
@@ -146,13 +222,7 @@ export function computeRivalry(
   rivalries: PairTally[],
   directory: Directory,
 ): RewindPairAward | null {
-  let best: PairTally | null = null;
-  for (const tally of rivalries) {
-    if (tally.matches < REWIND_MIN_MATCHES_RIVALRY) continue;
-    if (!best || tally.matches > best.matches || (tally.matches === best.matches && tally.aId < best.aId)) {
-      best = tally;
-    }
-  }
+  const best = bestPair(rivalries, REWIND_MIN_MATCHES_RIVALRY, (tally) => tally.matches);
   if (!best) return null;
 
   const a = directory.get(best.aId);
@@ -242,26 +312,21 @@ export function computeEnduranceAwards(
  * out a 40-match partnership on a technicality.
  */
 export function computeDuoAward(duos: PairTally[], directory: Directory): RewindDuoAward | null {
-  let best: { tally: PairTally; score: number } | null = null;
-
-  for (const tally of duos) {
-    if (tally.matches < REWIND_MIN_MATCHES_DUO) continue;
-    const rate = tally.aWins / tally.matches;
-    const score = rate * Math.sqrt(tally.matches);
-    if (!best || score > best.score || (score === best.score && tally.aId < best.tally.aId)) {
-      best = { tally, score };
-    }
-  }
+  const best = bestPair(
+    duos,
+    REWIND_MIN_MATCHES_DUO,
+    (tally) => (tally.aWins / tally.matches) * Math.sqrt(tally.matches),
+  );
   if (!best) return null;
 
-  const a = directory.get(best.tally.aId);
-  const b = directory.get(best.tally.bId);
+  const a = directory.get(best.aId);
+  const b = directory.get(best.bId);
   if (!a || !b) return null;
   return {
     players: [a, b],
-    matchesTogether: best.tally.matches,
-    wins: best.tally.aWins,
-    winRate: Math.round((best.tally.aWins / best.tally.matches) * 100),
+    matchesTogether: best.matches,
+    wins: best.aWins,
+    winRate: Math.round((best.aWins / best.matches) * 100),
   };
 }
 
@@ -282,14 +347,42 @@ export function computeCooperationAwards(
 // ============================================
 
 /**
- * "Top X %" on a metric where higher is better. Rank 1 of 100 yields 1, the
- * last player yields 100. Ties share the best position, so two players with the
- * same win rate are told the same thing.
+ * Where a value sits on a metric where higher is better: the absolute position,
+ * the population it was taken among, and the "top X %" that follows from both.
+ * Rank 1 of 100 yields 1 %, the last player yields 100 %. Ties share the best
+ * position, so two players with the same win rate are told the same thing.
+ *
+ * The position travels with the percentage because a percentage alone is
+ * unreadable in a small league: "top 25 %" of eight players is second place.
  */
-export function topPercentile(values: number[], value: number): number {
-  if (values.length === 0) return 100;
-  const better = values.filter((other) => other > value).length;
-  return Math.max(1, Math.round(((better + 1) / values.length) * 100));
+export function percentileEntry(values: number[], value: number): RewindPercentileEntry {
+  if (values.length === 0) return { topPercent: 100, rank: 1, poolSize: 0 };
+  const rank = values.filter((other) => other > value).length + 1;
+  return {
+    topPercent: Math.max(1, Math.round((rank / values.length) * 100)),
+    rank,
+    poolSize: values.length,
+  };
+}
+
+/**
+ * Who a rate percentile is measured against. Players below the threshold are
+ * dropped — one 1-0 player sits at a 100% win rate and pushes every season
+ * regular down a band — but the target always stays in, otherwise the population
+ * it is being ranked within would not contain it. If the threshold leaves too
+ * few players to compare against, the whole field is used: a distorted
+ * percentile still beats one computed against nobody.
+ */
+export function percentilePool(
+  aggregates: PlayerAggregate[],
+  target: PlayerAggregate,
+): PlayerAggregate[] {
+  const eligible = aggregates.filter(
+    (agg) => agg.matchesPlayed >= REWIND_MIN_MATCHES_PERCENTILE,
+  );
+  if (eligible.length < 2) return aggregates;
+  if (eligible.some((agg) => agg.playerId === target.playerId)) return eligible;
+  return [...eligible, target];
 }
 
 export function computePercentiles(
@@ -297,15 +390,18 @@ export function computePercentiles(
   target: PlayerAggregate,
 ): RewindPercentiles {
   const progression = (agg: PlayerAggregate) => agg.finalMmr - agg.initialMmr;
+  // Activity is not a rate: a player with one match genuinely is last on matches
+  // played, so that percentile keeps the whole field.
+  const rated = percentilePool(aggregates, target);
   return {
-    matchesPlayed: topPercentile(
+    matchesPlayed: percentileEntry(
       aggregates.map((agg) => agg.matchesPlayed),
       target.matchesPlayed,
     ),
-    winRate: topPercentile(aggregates.map(winRateOf), winRateOf(target)),
-    progression: topPercentile(aggregates.map(progression), progression(target)),
-    winStreak: topPercentile(
-      aggregates.map((agg) => agg.bestWinStreak),
+    winRate: percentileEntry(rated.map(winRateOf), winRateOf(target)),
+    progression: percentileEntry(rated.map(progression), progression(target)),
+    winStreak: percentileEntry(
+      rated.map((agg) => agg.bestWinStreak),
       target.bestWinStreak,
     ),
   };

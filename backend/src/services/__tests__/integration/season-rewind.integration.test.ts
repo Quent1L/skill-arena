@@ -7,6 +7,7 @@ import * as schema from "../../../db/schema";
 const testDb: PgliteDatabase<typeof schema> = await createTestDatabase();
 
 import { and, eq, sql } from "drizzle-orm";
+import { REWIND_VERSION } from "@skol-arena/shared/types/index";
 import { seasonRewindService } from "../../season-rewind.service";
 import { seasonRewindRepository } from "../../../repository/season-rewind.repository";
 import {
@@ -19,6 +20,7 @@ import {
   playerMmr,
   playerSeasonRewinds,
   rankedSeasonConfigs,
+  rankTiers,
   seasonRewinds,
   tournaments,
   tournamentEntries,
@@ -50,12 +52,16 @@ describe("Season rewind generation (integration)", () => {
     return appUser!.id;
   }
 
-  async function createSeason(status: "ongoing" | "finished" = "finished") {
+  async function createSeason(
+    status: "ongoing" | "finished" = "finished",
+    options: { allowDraw?: boolean } = {},
+  ) {
     const [season] = await testDb
       .insert(tournaments)
       .values({
         name: `Rewind Season ${Date.now()}-${Math.random().toString(16).slice(2)}`,
         mode: "ranked",
+        allowDraw: options.allowDraw ?? true,
         teamMode: "flex",
         minTeamSize: 1,
         maxTeamSize: 1,
@@ -131,6 +137,55 @@ describe("Season rewind generation (integration)", () => {
     return match!.id;
   }
 
+  /** One finalized 2v2, so the duo and rivalry tallies have pairs to work on. */
+  async function playTeamMatch(params: { winners: [string, string]; losers: [string, string] }) {
+    playedAtCursor += 60_000;
+    const [match] = await testDb
+      .insert(matches)
+      .values({
+        tournamentId: seasonId,
+        status: "finalized",
+        winnerSide: "A",
+        playedAt: new Date(playedAtCursor),
+        createdBy: adminId,
+      })
+      .returning();
+
+    const sides: [string[], number][] = [
+      [params.winners, 1],
+      [params.losers, 2],
+    ];
+
+    for (const [players, position] of sides) {
+      const [entry] = await testDb
+        .insert(tournamentEntries)
+        .values({ tournamentId: seasonId, entryType: "TEAM" })
+        .returning();
+      await testDb
+        .insert(tournamentEntryPlayers)
+        .values(players.map((playerId) => ({ entryId: entry!.id, playerId })));
+      await testDb
+        .insert(matchSides)
+        .values({ matchId: match!.id, entryId: entry!.id, position });
+
+      for (const playerId of players) {
+        await testDb.insert(mmrHistory).values({
+          seasonId,
+          playerId,
+          matchId: match!.id,
+          mmrBefore: 1000,
+          mmrAfter: position === 1 ? 1016 : 984,
+          mmrDelta: position === 1 ? 16 : -16,
+          kEffective: 32,
+          opponentAvgMmr: 1000,
+          isPlacement: false,
+          outcome: position === 1 ? "win" : "loss",
+        });
+      }
+    }
+    return match!.id;
+  }
+
   beforeAll(async () => {
     adminId = await createPlayer("Admin");
   });
@@ -170,6 +225,41 @@ describe("Season rewind generation (integration)", () => {
     expect(bundle.player!.journey).toMatchObject({ initialMmr: 1000, finalMmr: 1100, netDelta: 100 });
     expect(bundle.player!.finalRank.rank).toBe(1);
     expect(bundle.player!.streaks.bestWinStreak).toBe(2);
+    expect(bundle.player!.percentiles.winRate).toMatchObject({ rank: 1, poolSize: 2 });
+  });
+
+  it("carries the season's draw rule so the deck can hide the draw figures", async () => {
+    seasonId = await createSeason("finished", { allowDraw: false });
+    await registerPlayer(seasonId, alice, 1100);
+    await registerPlayer(seasonId, bob, 900);
+    await playMatch({ winner: alice, loser: bob, winnerMmr: [1000, 1050], loserMmr: [1000, 950] });
+
+    await seasonRewindService.generateForSeason(seasonId);
+    const bundle = await seasonRewindService.getBundle(seasonId, alice);
+
+    expect(bundle.season.season.allowDraw).toBe(false);
+  });
+
+  it("names the tier of the final standing and of the peak separately", async () => {
+    await testDb.insert(rankTiers).values([
+      { seasonId, level: 1, name: "Rookie", percentile: 50, minMmr: 0, iconClass: "fa fa-seedling" },
+      { seasonId, level: 2, name: "Expert", percentile: 10, minMmr: 1080, iconClass: null },
+    ]);
+    // Alice ends the season at 1100 after peaking there; Bob ends below the cut.
+    await seasonRewindService.generateForSeason(seasonId);
+
+    const winner = await seasonRewindService.getBundle(seasonId, alice);
+    expect(winner.player!.finalRank.tier).toEqual({
+      name: "Expert",
+      level: 2,
+      iconClass: null,
+    });
+    expect(winner.player!.peak!.tier).toEqual({ name: "Expert", level: 2, iconClass: null });
+
+    const loser = await seasonRewindService.getBundle(seasonId, bob);
+    expect(loser.player!.finalRank.tier!.name).toBe("Rookie");
+    // Bob started at 1000 and only went down: the peak is the starting MMR.
+    expect(loser.player!.peak).toMatchObject({ mmr: 1000, tier: { name: "Rookie" } });
   });
 
   it("hands the season awards to the players who earned them", async () => {
@@ -178,6 +268,37 @@ describe("Season rewind generation (integration)", () => {
 
     expect(bundle.season.performance.king!.player.playerId).toBe(alice);
     expect(bundle.player!.awardsWon).toContain("king");
+  });
+
+  it("reads a duo's record the same way for both of its members", async () => {
+    // Teammates share an outcome — unlike opponents, whose record mirrors. Player
+    // ids are random uuids, so this covers both orders across runs.
+    const carol = await createPlayer("Carol");
+    const dave = await createPlayer("Dave");
+    await registerPlayer(seasonId, carol, 1000);
+    await registerPlayer(seasonId, dave, 1000);
+    for (let i = 0; i < 3; i++) {
+      await playTeamMatch({ winners: [alice, carol], losers: [bob, dave] });
+    }
+
+    await seasonRewindService.generateForSeason(seasonId);
+
+    for (const [playerId, partnerId] of [
+      [alice, carol],
+      [carol, alice],
+    ]) {
+      const partner = (await seasonRewindService.getBundle(seasonId, playerId!)).player!.feats
+        .bestPartner;
+      expect(partner!.playerId).toBe(partnerId!);
+      expect(partner).toMatchObject({ count: 3, wins: 3, losses: 0 });
+    }
+
+    // The losing duo is losing for both of them, not 3-0 for one of the two.
+    for (const playerId of [bob, dave]) {
+      const partner = (await seasonRewindService.getBundle(seasonId, playerId)).player!.feats
+        .bestPartner;
+      expect(partner).toMatchObject({ count: 3, wins: 0, losses: 3 });
+    }
   });
 
   describe("next season", () => {
@@ -342,6 +463,105 @@ describe("Season rewind generation (integration)", () => {
         .from(seasonRewinds)
         .where(and(eq(seasonRewinds.seasonId, seasonId), eq(seasonRewinds.scope, "season")));
       expect(rows[0]!.count).toBe(1);
+    });
+  });
+
+  describe("frozen formats", () => {
+    /** Pretends the stored rewind was produced by a different build. */
+    async function storeAsVersion(version: number) {
+      await testDb
+        .update(seasonRewinds)
+        .set({ version })
+        .where(eq(seasonRewinds.seasonId, seasonId));
+    }
+
+    beforeEach(async () => {
+      await seasonRewindService.generateForSeason(seasonId);
+    });
+
+    it("leaves a rewind stored in another format exactly as it was", async () => {
+      const before = await seasonRewindRepository.getSeasonRewind(seasonId);
+      await storeAsVersion(REWIND_VERSION + 1);
+
+      // New match, and a regeneration that would normally pick it up.
+      await playMatch({ winner: bob, loser: alice, winnerMmr: [900, 950], loserMmr: [1100, 1050] });
+      await seasonRewindService.generateForSeason(seasonId);
+
+      const after = await seasonRewindRepository.getSeasonRewind(seasonId);
+      expect(after!.version).toBe(REWIND_VERSION + 1);
+      expect(after!.payload.totals.matchCount).toBe(before!.payload.totals.matchCount);
+    });
+
+    it("keeps the player decks of a frozen rewind untouched", async () => {
+      const before = await seasonRewindRepository.getPlayerRewind(seasonId, alice);
+      await storeAsVersion(REWIND_VERSION + 1);
+
+      await playMatch({ winner: bob, loser: alice, winnerMmr: [900, 950], loserMmr: [1100, 1050] });
+      await seasonRewindService.generateForSeason(seasonId);
+
+      const after = await seasonRewindRepository.getPlayerRewind(seasonId, alice);
+      expect(after!.payload.totals).toEqual(before!.payload.totals);
+      expect(after!.payload.journey).toEqual(before!.payload.journey);
+    });
+
+    it("still regenerates a rewind stored in the current format", async () => {
+      await playMatch({ winner: bob, loser: alice, winnerMmr: [900, 950], loserMmr: [1100, 1050] });
+      await seasonRewindService.generateForSeason(seasonId);
+
+      const after = await seasonRewindRepository.getSeasonRewind(seasonId);
+      expect(after!.payload.totals.matchCount).toBe(3);
+    });
+  });
+
+  describe("identity refresh", () => {
+    beforeEach(async () => {
+      await seasonRewindService.generateForSeason(seasonId);
+    });
+
+    async function rename(playerId: string, displayName: string, shortName: string) {
+      await testDb
+        .update(appUsers)
+        .set({ displayName, shortName })
+        .where(eq(appUsers.id, playerId));
+    }
+
+    it("rewrites an anonymised player's name in every payload of the rewind", async () => {
+      await rename(alice, "Archive 7", "ARCH7");
+      await seasonRewindService.refreshPlayerIdentities([alice]);
+
+      const bundle = await seasonRewindService.getBundle(seasonId, alice);
+      expect(bundle.season.performance.king!.player.displayName).toBe("Archive 7");
+      expect(bundle.player!.player.displayName).toBe("Archive 7");
+      expect(bundle.player!.player.shortName).toBe("ARCH7");
+    });
+
+    it("reaches the decks of the players they faced, not only their own", async () => {
+      await rename(alice, "Archive 7", "ARCH7");
+      await seasonRewindService.refreshPlayerIdentities([alice]);
+
+      const bobDeck = (await seasonRewindService.getBundle(seasonId, bob)).player!;
+      expect(bobDeck.feats.mostFacedOpponent!.displayName).toBe("Archive 7");
+    });
+
+    it("patches a rewind frozen in another format without regenerating it", async () => {
+      // The whole point: a name has to be removable from a souvenir that the
+      // generator is no longer allowed to rebuild.
+      await testDb
+        .update(seasonRewinds)
+        .set({ version: REWIND_VERSION + 1 })
+        .where(eq(seasonRewinds.seasonId, seasonId));
+
+      await rename(alice, "Archive 7", "ARCH7");
+      await seasonRewindService.refreshPlayerIdentities([alice]);
+
+      const rewind = await seasonRewindRepository.getSeasonRewind(seasonId);
+      expect(rewind!.version).toBe(REWIND_VERSION + 1);
+      expect(rewind!.payload.performance.king!.player.displayName).toBe("Archive 7");
+    });
+
+    it("does nothing for a player who appears in no rewind", async () => {
+      const carol = await createPlayer("Carol");
+      await expect(seasonRewindService.refreshPlayerIdentities([carol])).resolves.toBeUndefined();
     });
   });
 

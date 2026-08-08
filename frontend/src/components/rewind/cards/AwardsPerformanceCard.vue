@@ -26,6 +26,7 @@
         :icon="AWARD_STYLE.peakMmr.icon"
         :accent="AWARD_STYLE.peakMmr.accent"
         :is-mine="won.has('peakMmr')"
+        suffix=" MMR"
       />
       <AwardRow
         v-if="season.performance.progression"

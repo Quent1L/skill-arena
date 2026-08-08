@@ -2168,15 +2168,19 @@
       "subtitle": "When everything clicked",
       "wins": "Consecutive wins",
       "unbeaten": "Unbeaten run",
-      "losses": "Consecutive losses"
+      "losses": "Consecutive losses",
+      "onTheRun": "MMR over the run"
     },
     "feats": {
       "eyebrow": "Feats",
       "title": "Your highlights",
       "biggestUpset": "Biggest upset",
-      "biggestUpsetText": "You beat {opponent}, rated +{gap} MMR above you.",
+      "biggestUpsetText": "You beat {opponent}: a {gap} MMR gap between the two sides.",
       "anOpponent": "an opponent",
-      "giantKiller": "Wins against stronger players",
+      "giantKiller": "Wins against stronger sides",
+      "giantKillerHint": "Opposing side rated +100 MMR above yours",
+      "bestGain": "Best MMR gain",
+      "bestGainText": "Against {opponent}, on {date}.",
       "bestPartner": "Best teammate",
       "mostFaced": "Most faced opponent",
       "nemesis": "Your nemesis",
@@ -2191,6 +2195,8 @@
       "title": "Against everyone else",
       "subtitle": "Where you stand among the season's players",
       "top": "Top {percent} %",
+      "position": "#{rank} / {total}",
+      "betterThan": "Ahead of {percent} % of the players compared",
       "matches": "Matches played",
       "winRate": "Win rate",
       "progression": "Progression",
@@ -2206,15 +2212,15 @@
         "king": "King of the season",
         "peak": "Highest MMR peak",
         "progression": "Biggest climb",
-        "sniper": "Sniper"
+        "sniper": "Sniper (win %)"
       },
       "combat": {
         "title": "⚔️ Combat",
         "subtitle": "Those who took heads",
         "biggestUpset": "Biggest upset",
-        "biggestUpsetDetail": "against {opponent}",
+        "biggestUpsetDetail": "{format} against {opponent}",
         "giantKiller": "Giant Killer",
-        "giantKillerDetail": "wins against stronger players",
+        "giantKillerDetail": "wins at a +100 MMR gap",
         "leaderHunter": "Leader hunter",
         "leaderHunterDetail": "wins against the #1",
         "rivalry": "Rivalry of the season",
@@ -2238,7 +2244,7 @@
         "subtitle": "Those who play better together",
         "duo": "Duo of the season",
         "duoDetail": "{wins} wins in {matches} matches",
-        "bestPartner": "Best teammate",
+        "bestPartner": "Most appreciated teammate",
         "bestPartnerDetail": "winning teammates"
       }
     },
@@ -2250,22 +2256,6 @@
       "startsOn": "Starts on {date}",
       "join": "Join the season",
       "noNextSeason": "No new season has been scheduled yet."
-    },
-    "share": {
-      "eyebrow": "Share",
-      "title": "Your season card",
-      "subtitle": "Post it wherever you like",
-      "action": "Share",
-      "working": "Generating…",
-      "shared": "Shared",
-      "downloaded": "Downloaded",
-      "failed": "Could not generate the image.",
-      "unranked": "Unranked",
-      "finalRank": "Final rank",
-      "mmr": "MMR",
-      "peak": "Peak",
-      "matches": "Matches played",
-      "streak": "Best streak"
     },
     "archive": {
       "title": "My Rewinds",

@@ -96,6 +96,52 @@ describe("rankRelationsByWeightedRate", () => {
     const all = ["a", "b", "c", "d", "e"].map((id) => relation(id, 10, 5));
     expect(rankRelationsByWeightedRate(all, byWinRate)).toHaveLength(3);
   });
+
+  it("breaks a full tie on the record before falling back to the id", () => {
+    const named = (playerId: string, displayName: string, draws = 0) => ({
+      ...relation(playerId, 10, 5),
+      losses: 5 - draws,
+      displayName,
+    });
+
+    // Same rate, same sample: the more decisive record wins, id or not.
+    const byDraws = rankRelationsByWeightedRate(
+      [named("a", "Zoe"), named("z", "Alice", 2)],
+      byWinRate,
+    );
+    expect(byDraws[0]!.playerId).toBe("z");
+
+    // Nothing left to compare: the id closes the chain.
+    expect(
+      rankRelationsByWeightedRate([named("z", "Zoe"), named("a", "Alice")], byWinRate)[0]!.playerId,
+    ).toBe("a");
+  });
+
+  it("ignores display names, so renaming never reshuffles the ranking", () => {
+    const named = (playerId: string, displayName: string) => ({
+      ...relation(playerId, 10, 5),
+      displayName,
+    });
+
+    for (const [nameOfA, nameOfZ] of [
+      ["Alice", "Zoe"],
+      ["Zoe", "Alice"],
+    ]) {
+      const ranked = rankRelationsByWeightedRate(
+        [named("z", nameOfZ!), named("a", nameOfA!)],
+        byWinRate,
+      );
+      expect(ranked.map((r) => r.playerId)).toEqual(["a", "z"]);
+    }
+  });
+
+  it("crowns the same relation whatever order the list arrives in", () => {
+    const tied = [relation("z", 10, 5), relation("a", 10, 5), relation("m", 10, 5)];
+
+    expect(rankRelationsByWeightedRate(tied, byWinRate).map((r) => r.playerId)).toEqual(
+      rankRelationsByWeightedRate([...tied].reverse(), byWinRate).map((r) => r.playerId),
+    );
+  });
 });
 
 describe("computePartnerStats", () => {

@@ -18,6 +18,7 @@ function seasonPayload(overrides: Partial<SeasonRewindPayload> = {}): SeasonRewi
       disciplineName: 'Babyfoot',
       startDate: new Date('2026-01-01'),
       endDate: new Date('2026-06-30'),
+      allowDraw: true,
     },
     totals: { playerCount: 12, matchCount: 240, averageMmr: 1000 },
     performance: { king: null, peakMmr: null, progression: null, sniper: null },
@@ -46,7 +47,12 @@ function playerPayload(overrides: Partial<PlayerRewindPayload> = {}): PlayerRewi
   return {
     version: 1,
     player,
-    finalRank: { rank: 2, totalPlayers: 12, mmr: 1200, tierName: 'Expert', tierLevel: 4 },
+    finalRank: {
+      rank: 2,
+      totalPlayers: 12,
+      mmr: 1200,
+      tier: { name: 'Expert', level: 4, iconClass: null },
+    },
     totals: { matchesPlayed: 40, wins: 25, losses: 14, draws: 1, winRate: 63 },
     journey: {
       initialMmr: 1000,
@@ -58,10 +64,21 @@ function playerPayload(overrides: Partial<PlayerRewindPayload> = {}): PlayerRewi
       ],
     },
     bestRank: { bestRank: 1, matchesInTop1: 5, matchesInTop3: 20, matchesInTop5: 30 },
-    peak: { mmr: 1250, matchId: 'm9', playedAt: new Date() },
-    streaks: { bestWinStreak: 6, bestUnbeatenStreak: 8, worstLossStreak: 3 },
+    peak: {
+      mmr: 1250,
+      matchId: 'm9',
+      playedAt: new Date(),
+      tier: { name: 'Expert', level: 4, iconClass: null },
+    },
+    streaks: {
+      bestWinStreak: 6,
+      bestWinStreakMmr: 132,
+      bestUnbeatenStreak: 8,
+      worstLossStreak: 3,
+      worstLossStreakMmr: -58,
+    },
     feats: {
-      biggestUpsetWin: null,
+      bestMmrGain: null,
       biggestUpsetGap: null,
       giantKillerWins: 0,
       bestPartner: null,
@@ -69,7 +86,12 @@ function playerPayload(overrides: Partial<PlayerRewindPayload> = {}): PlayerRewi
       nemesis: null,
     },
     badges: [],
-    percentiles: { matchesPlayed: 20, winRate: 10, progression: 15, winStreak: 25 },
+    percentiles: {
+      matchesPlayed: { topPercent: 20, rank: 3, poolSize: 12 },
+      winRate: { topPercent: 10, rank: 1, poolSize: 8 },
+      progression: { topPercent: 15, rank: 2, poolSize: 8 },
+      winStreak: { topPercent: 25, rank: 2, poolSize: 8 },
+    },
     conclusion: { nextSeason: null },
     awardsWon: [],
     ...overrides,
@@ -134,7 +156,9 @@ describe('buildRewindCards', () => {
   })
 
   it('hides the peak card when the player never climbed above their start', () => {
-    const flat = playerPayload({ peak: { mmr: 1000, matchId: null, playedAt: null } })
+    const flat = playerPayload({
+      peak: { mmr: 1000, matchId: null, playedAt: null, tier: null },
+    })
     expect(buildRewindCards(bundleOf({ player: flat }))).not.toContain('peak')
   })
 
@@ -162,7 +186,35 @@ describe('buildRewindCards', () => {
     const cards = buildRewindCards(bundleOf())
     expect(cards.indexOf('intro')).toBeLessThan(cards.indexOf('finalRank'))
     expect(cards.indexOf('finalRank')).toBeLessThan(cards.indexOf('totals'))
-    expect(cards.at(-1)).toBe('share')
+    expect(cards.at(-1)).toBe('conclusion')
+  })
+
+  // A stored rewind keeps the format it was generated in, so a deck watched
+  // years ago must still be that deck — never today's cards fed with a payload
+  // that predates them.
+  it('shows every current card on a payload of the current version', () => {
+    expect(buildRewindCards(bundleOf())).toContain('percentiles')
+  })
+
+  it('hides cards a stored payload is too old to feed', () => {
+    // What a v1 payload looks like once the deck has moved on to v2.
+    const bundle = bundleOf({
+      season: seasonPayload({ version: 0 }),
+      player: playerPayload({ version: 0 }),
+    })
+
+    expect(buildRewindCards(bundle)).toEqual([])
+  })
+
+  it('gates player cards and award cards on their own payload version', () => {
+    const season = seasonPayload({
+      version: 1,
+      cooperation: { duo: null, bestPartner: { player, value: 3, detail: 40 } },
+    })
+    const cards = buildRewindCards({ season, player: playerPayload({ version: 0 }) })
+
+    expect(cards).toContain('awardsCooperation')
+    expect(cards).not.toContain('finalRank')
   })
 })
 

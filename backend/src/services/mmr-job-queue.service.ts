@@ -64,6 +64,27 @@ export async function enqueueSeasonRewindGeneration(seasonId: string): Promise<v
   }
 }
 
+/**
+ * Queues the repair of the names a player left frozen inside stored rewinds.
+ * Keyed per player so renaming the same person twice collapses into one run,
+ * and off the season queues because it spans every season they ever played.
+ */
+export async function enqueueRewindIdentityRefresh(playerIds: string[]): Promise<void> {
+  if (playerIds.length === 0) return;
+  try {
+    const utils = await getUtils();
+    for (const playerId of playerIds) {
+      await utils.addJob(
+        'refresh_rewind_identities',
+        { playerIds: [playerId] },
+        { jobKey: `rewind-identity:${playerId}` },
+      );
+    }
+  } catch (err) {
+    logger.error({ err, playerIds }, '[MMRQueue] Failed to enqueue rewind identity refresh');
+  }
+}
+
 export async function enqueueBadgeReconciliation(force = false): Promise<void> {
   try {
     const utils = await getUtils();

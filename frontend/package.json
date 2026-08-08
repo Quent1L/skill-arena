@@ -41,7 +41,6 @@
     "better-auth": "catalog:",
     "chart.js": "^4.5.1",
     "date-fns": "^4.4.0",
-    "html-to-image": "^1.11.13",
     "pinia": "^3.0.4",
     "primelocale": "^2.4.0",
     "primevue": "^4.5.5",

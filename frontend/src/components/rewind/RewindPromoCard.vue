@@ -18,7 +18,6 @@
         </h2>
         <p class="text-sm text-indigo-100">
           {{ promoted.disciplineName ? `${promoted.disciplineName} · ` : '' }}
-          {{ t('rewind.promo.daysLeft', remainingDays) }}
         </p>
       </div>
 
@@ -27,30 +26,36 @@
         icon="fa fa-play"
         severity="contrast"
         class="shrink-0"
-        @click="open = true"
+        @click="launch(promoted.seasonId)"
       />
     </div>
-
-    <RewindLauncher v-model:open="open" :season-id="promoted.seasonId" />
   </div>
+
+  <!--
+    Outside the banner on purpose: watching the deck through clears the
+    promotion, so a launcher nested in `v-if="promoted"` would unmount itself —
+    and the overlay with it — the moment the player reaches the last card.
+  -->
+  <RewindLauncher v-if="launchedSeasonId" v-model:open="open" :season-id="launchedSeasonId" />
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
-import { daysUntil, useRewindService } from '@/composables/ranked/rewind.service'
+import { useRewindService } from '@/composables/ranked/rewind.service'
 import RewindLauncher from './RewindLauncher.vue'
 
 const { t } = useI18n()
 const { promoted, loadPromoted } = useRewindService()
 
 const open = ref(false)
+const launchedSeasonId = ref<string | null>(null)
 
-// The window itself is decided server-side; this is only how it is worded.
-const remainingDays = computed(() =>
-  promoted.value ? daysUntil(new Date(promoted.value.promotedUntil)) : 0,
-)
+function launch(seasonId: string): void {
+  launchedSeasonId.value = seasonId
+  open.value = true
+}
 
 onMounted(loadPromoted)
 </script>

@@ -4,17 +4,17 @@
     eyebrow-class="bg-amber-500/20 text-amber-300"
     :title="t('rewind.badges.title', player.badges.length)"
   >
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 gap-2">
       <TransitionGroup name="badge-pop" appear>
         <div
           v-for="(badge, index) in player.badges"
           :key="badge.id"
-          class="flex flex-col items-center gap-2 rounded-2xl bg-white/5 px-3 py-4 text-center"
+          class="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-3 py-3 text-center"
           :style="{ transitionDelay: `${index * 90}ms` }"
         >
-          <i :class="badge.icon || 'fa fa-medal'" class="text-3xl text-amber-400" />
+          <i :class="badge.icon || 'fa fa-medal'" class="text-2xl text-amber-400" />
           <span class="text-sm font-semibold leading-tight">{{ badge.label }}</span>
-          <span class="text-[11px] leading-tight text-gray-500">{{ badge.description }}</span>
+          <span class="text-xs leading-tight text-gray-400">{{ badge.description }}</span>
         </div>
       </TransitionGroup>
     </div>

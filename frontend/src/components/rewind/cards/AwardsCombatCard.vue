@@ -71,6 +71,7 @@ import RewindCardShell from '../RewindCardShell.vue'
 import AwardHero from '../AwardHero.vue'
 import AwardRow from '../AwardRow.vue'
 import { AWARD_STYLE } from '../award-display'
+import { formatMatchup } from '@/composables/ranked/rewind.service'
 
 const props = withDefaults(
   defineProps<{ season: SeasonRewindPayload; awardsWon?: RewindAwardKey[] }>(),
@@ -83,7 +84,11 @@ const won = computed(() => new Set(props.awardsWon))
 const upsetDetail = computed(() => {
   const upset = props.season.combat.biggestUpset
   if (!upset?.opponent) return undefined
-  return t('rewind.awards.combat.biggestUpsetDetail', { opponent: upset.opponent.displayName })
+  return t('rewind.awards.combat.biggestUpsetDetail', {
+    // The gap is measured between side averages, so the format is part of it.
+    format: upset.format ? formatMatchup(upset.format) : '1v1',
+    opponent: upset.opponent.displayName,
+  })
 })
 
 const rivalryName = computed(() => {

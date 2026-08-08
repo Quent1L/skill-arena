@@ -5,11 +5,13 @@ import type { SeasonMmrStatsRow } from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
+import { seasonRewindRepository } from "../repository/season-rewind.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
 import { logger } from "../utils/logger";
 import { db } from "../config/database";
 import { matches, appUsers } from "../db/schema";
+import { REWIND_VERSION } from "@skol-arena/shared/types/index";
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
@@ -234,6 +236,13 @@ export class RankedSeasonService {
 
     if (season.status !== "finished") {
       throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
+    }
+    // The generator would skip a rewind frozen at an older format anyway; failing
+    // here instead tells the admin why nothing happened rather than queueing a
+    // job that quietly does nothing.
+    const storedVersion = await seasonRewindRepository.getStoredVersion(id);
+    if (storedVersion !== null && storedVersion !== REWIND_VERSION) {
+      throw new BadRequestError(ErrorCode.REWIND_VERSION_FROZEN);
     }
     await enqueueSeasonRewindGeneration(id);
   }

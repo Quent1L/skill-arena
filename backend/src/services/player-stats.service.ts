@@ -2,7 +2,7 @@ import { playerStatsRepository } from "../repository/player-stats.repository";
 import { matchSidesRepository } from "../repository/match-sides.repository";
 import { playerComputedDataRepository } from "../repository/player-computed-data.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
-import { rankByWeightedRate, TOP_WEIGHTED_RATE } from "./stats-ranking";
+import { MIN_WEIGHTED_RATE_MATCHES, rankByWeightedRate, TOP_WEIGHTED_RATE } from "./stats-ranking";
 import type {
   PlayerProfile,
   PlayerDetailStats,
@@ -141,6 +141,22 @@ function tallyRelations(
 const TOP_RELATIONS = TOP_WEIGHTED_RATE;
 
 /**
+ * Separates two relations the weighted rate and the sample size cannot: the more
+ * decisive record first, and only then the player id.
+ *
+ * Display names are not part of the chain even though they would read better
+ * than a uuid: they are editable, and a ranking that reshuffles because someone
+ * changed their name is a ranking nobody can trust. The id carries no meaning
+ * whatsoever, which is exactly why it belongs at the very end — it guarantees a
+ * total order rather than acting as a criterion.
+ */
+export function compareRelations(a: PlayerRelationStat, b: PlayerRelationStat): number {
+  if (a.wins !== b.wins) return b.wins - a.wins;
+  if (a.losses !== b.losses) return a.losses - b.losses;
+  return a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0;
+}
+
+/**
  * Ranks relations by success rate weighted by sample size (rate × √matches), so a
  * single lucky match never outranks a long, consistently good record. Relations below
  * MIN_WEIGHTED_RATE_MATCHES are dropped entirely: an empty list hides the card
@@ -150,7 +166,13 @@ export function rankRelationsByWeightedRate(
   relations: PlayerRelationStat[],
   rateOf: (r: PlayerRelationStat) => number,
 ): PlayerRelationStat[] {
-  return rankByWeightedRate(relations, rateOf, (r) => r.count);
+  return rankByWeightedRate(
+    relations,
+    rateOf,
+    (r) => r.count,
+    MIN_WEIGHTED_RATE_MATCHES,
+    compareRelations,
+  );
 }
 
 function accumulateTournamentMatches(

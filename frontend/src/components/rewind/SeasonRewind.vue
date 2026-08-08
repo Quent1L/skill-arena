@@ -1,8 +1,12 @@
 <template>
   <Teleport to="body">
+    <!-- Sized on the *dynamic* viewport, not `inset-0`: the initial containing
+         block follows the URL-bar-hidden viewport, so a plain `fixed inset-0`
+         overlay stops short of the visible bottom while the bar is out and lets
+         the app's bottom nav show through the gap. -->
     <div
       ref="rootRef"
-      class="fixed inset-0 z-[600] flex flex-col bg-gradient-to-b from-gray-900 to-black"
+      class="fixed left-0 top-0 z-[600] flex h-[100dvh] w-full flex-col overscroll-none bg-gradient-to-b from-gray-900 to-black"
       role="dialog"
       aria-modal="true"
     >
@@ -33,7 +37,10 @@
         </button>
       </div>
 
-      <div class="relative min-h-0 flex-1 overflow-y-auto">
+      <!-- `overscroll-contain` stops the card area from chaining its scroll to
+           the page behind the overlay, which is what made the URL bar — and the
+           bottom nav with it — slide in and out mid-swipe. -->
+      <div class="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div v-if="loading" class="flex h-full items-center justify-center">
           <i class="fa fa-spinner fa-spin text-2xl text-gray-500" />
         </div>
@@ -54,28 +61,31 @@
       </div>
 
       <!-- Story-style tap zones, mobile only. They sit at z-20 while a card's own
-           controls opt out with `data-rewind-control` (z-30), so tapping "share"
-           or "join a season" never registers as "next card". -->
+           controls sit at z-30, so tapping "join a season" never registers as
+           "next card". -->
       <template v-if="isMobile">
         <button
           class="absolute inset-y-28 left-0 z-20 w-1/4 cursor-default"
           :aria-label="t('rewind.overlay.previous')"
-          @click="deck.previous"
+          @click="onPrevious"
         />
         <button
           class="absolute inset-y-28 right-0 z-20 w-1/4 cursor-default"
           :aria-label="t('rewind.overlay.next')"
           @click="onNext"
         />
+        <RewindTapHint :visible="tapHint.visible.value" />
       </template>
 
-      <div class="relative z-30 flex shrink-0 items-center justify-between gap-3 px-6 pb-6 pt-2">
+      <div
+        class="relative z-30 flex shrink-0 items-center justify-between gap-3 px-6 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
+      >
         <button
           v-if="!isMobile"
           class="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-30"
           :disabled="deck.isFirst.value"
           :aria-label="t('rewind.overlay.previous')"
-          @click="deck.previous"
+          @click="onPrevious"
         >
           <i class="fa fa-chevron-left" />
         </button>
@@ -100,13 +110,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, useTemplateRef, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, useTemplateRef, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSwipe } from '@vueuse/core'
+import { useScrollLock, useSwipe } from '@vueuse/core'
 import type { RewindBundle } from '@skol-arena/shared/types/index'
 import { useViewport } from '@/composables/useViewport'
 import { useRewindDeck } from '@/composables/ranked/useRewindDeck'
+import { useRewindTapHint } from '@/composables/ranked/useRewindTapHint'
 import type { RewindCardKey } from '@/composables/ranked/rewind.service'
+import RewindTapHint from './RewindTapHint.vue'
 import IntroCard from './cards/IntroCard.vue'
 import FinalRankCard from './cards/FinalRankCard.vue'
 import TotalsCard from './cards/TotalsCard.vue'
@@ -122,7 +134,6 @@ import AwardsCombatCard from './cards/AwardsCombatCard.vue'
 import AwardsEnduranceCard from './cards/AwardsEnduranceCard.vue'
 import AwardsCooperationCard from './cards/AwardsCooperationCard.vue'
 import ConclusionCard from './cards/ConclusionCard.vue'
-import ShareCard from './cards/ShareCard.vue'
 
 const props = defineProps<{ bundle: RewindBundle | null; loading?: boolean }>()
 const emit = defineEmits<{
@@ -157,7 +168,6 @@ const CARD_COMPONENTS: Record<RewindCardKey, Component> = {
   awardsEndurance: AwardsEnduranceCard,
   awardsCooperation: AwardsCooperationCard,
   conclusion: ConclusionCard,
-  share: ShareCard,
 }
 
 const SEASON_CARDS = new Set<RewindCardKey>([
@@ -177,19 +187,28 @@ const cardProps = computed(() => {
   if (!key || !props.bundle) return {}
 
   const { season, player } = props.bundle
-  if (key === 'share') return { player, season }
   if (key === 'conclusion') return { player }
   if (SEASON_CARDS.has(key)) return { season, awardsWon: player?.awardsWon ?? [] }
-  return { player }
+  // Whether the season ever produced a draw decides which figures a card shows,
+  // so it travels with every player card rather than with the season ones.
+  return { player, allowDraw: season.season.allowDraw }
 })
 
+const tapHint = useRewindTapHint({ enabled: isMobile, index: deck.index })
+
 function onNext(): void {
+  tapHint.notifyNavigation()
   if (deck.isLast.value) {
     emit('complete')
     emit('close')
     return
   }
   deck.next()
+}
+
+function onPrevious(): void {
+  tapHint.notifyNavigation()
+  deck.previous()
 }
 
 function onJoin(seasonId: string): void {
@@ -202,8 +221,18 @@ function onJoin(seasonId: string): void {
 useSwipe(rootRef, {
   threshold: 60,
   onSwipeEnd(_event, swipeDirection) {
-    if (swipeDirection === 'left') deck.next()
-    else if (swipeDirection === 'right') deck.previous()
+    if (swipeDirection === 'left') {
+      tapHint.notifyNavigation()
+      deck.next()
+    } else if (swipeDirection === 'right') {
+      onPrevious()
+    }
   },
 })
+
+// The deck owns the whole screen: the page behind it must not scroll under it,
+// or the bottom nav resurfaces as soon as a swipe reaches the end of a card.
+const bodyLocked = useScrollLock(document.body)
+onMounted(() => (bodyLocked.value = true))
+onUnmounted(() => (bodyLocked.value = false))
 </script>

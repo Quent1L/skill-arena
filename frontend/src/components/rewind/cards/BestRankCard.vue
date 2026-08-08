@@ -4,10 +4,10 @@
     :title="t('rewind.bestRank.title')"
     :subtitle="t('rewind.bestRank.subtitle')"
   >
-    <div class="flex flex-col gap-4">
-      <div class="flex flex-col items-center gap-1 rounded-3xl bg-white/5 px-5 py-6">
+    <div class="flex flex-col gap-2.5">
+      <div class="flex flex-col items-center gap-0.5 rounded-3xl bg-white/5 px-5 py-4">
         <i class="fa fa-ranking-star text-3xl text-cyan-300" />
-        <span class="text-5xl font-black tabular-nums text-cyan-300">#{{ best }}</span>
+        <span class="text-4xl font-black tabular-nums text-cyan-300">#{{ best }}</span>
         <span class="text-xs uppercase tracking-wide text-gray-400">
           {{ t('rewind.bestRank.peakPosition') }}
         </span>
@@ -31,7 +31,7 @@
         />
       </div>
 
-      <p class="text-center text-xs text-gray-500">{{ t('rewind.bestRank.measuredInMatches') }}</p>
+      <p class="text-center text-xs text-gray-400">{{ t('rewind.bestRank.measuredInMatches') }}</p>
     </div>
   </RewindCardShell>
 </template>

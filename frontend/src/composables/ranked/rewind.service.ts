@@ -4,6 +4,7 @@ import { rewindApi } from './rewind.api'
 import type {
   RewindArchiveEntry,
   RewindBundle,
+  RewindMatchFormat,
   RewindPromotion,
   SeasonRewindPayload,
 } from '@skol-arena/shared/types/index'
@@ -24,26 +25,37 @@ export type RewindCardKey =
   | 'awardsEndurance'
   | 'awardsCooperation'
   | 'conclusion'
-  | 'share'
 
-/** Canonical deck order. Cards without data are dropped, never rendered empty. */
-const CARD_ORDER: RewindCardKey[] = [
-  'intro',
-  'finalRank',
-  'totals',
-  'journey',
-  'bestRank',
-  'peak',
-  'streaks',
-  'feats',
-  'badges',
-  'percentiles',
-  'awardsPerformance',
-  'awardsCombat',
-  'awardsEndurance',
-  'awardsCooperation',
-  'conclusion',
-  'share',
+/**
+ * Canonical deck order. Cards without data are dropped, never rendered empty.
+ *
+ * `since` is the first payload version that carries what the card needs. Stored
+ * rewinds keep the format they were generated in — a 2026 deck stays a 2026 deck
+ * — so a card added later must not appear on them, reading fields its payload
+ * never had. Adding a card therefore means bumping REWIND_VERSION and declaring
+ * that version here.
+ */
+interface RewindCardSpec {
+  key: RewindCardKey
+  since: number
+}
+
+const CARD_ORDER: RewindCardSpec[] = [
+  { key: 'intro', since: 1 },
+  { key: 'finalRank', since: 1 },
+  { key: 'totals', since: 1 },
+  { key: 'journey', since: 1 },
+  { key: 'bestRank', since: 1 },
+  { key: 'peak', since: 1 },
+  { key: 'streaks', since: 1 },
+  { key: 'feats', since: 1 },
+  { key: 'badges', since: 1 },
+  { key: 'percentiles', since: 1 },
+  { key: 'awardsPerformance', since: 1 },
+  { key: 'awardsCombat', since: 1 },
+  { key: 'awardsEndurance', since: 1 },
+  { key: 'awardsCooperation', since: 1 },
+  { key: 'conclusion', since: 1 },
 ]
 
 /** Cards that only make sense for the player the deck belongs to. */
@@ -57,7 +69,6 @@ const PLAYER_CARDS = new Set<RewindCardKey>([
   'feats',
   'badges',
   'percentiles',
-  'share',
 ])
 
 function hasAward(group: Record<string, unknown>): boolean {
@@ -80,8 +91,12 @@ function groupOf(season: SeasonRewindPayload, key: RewindCardKey): Record<string
 export function buildRewindCards(bundle: RewindBundle): RewindCardKey[] {
   const { season, player } = bundle
 
-  return CARD_ORDER.filter((key) => {
+  return CARD_ORDER.filter(({ key, since }) => {
     if (!player && PLAYER_CARDS.has(key)) return false
+    // Award cards read the season payload, the rest the player's own: each is
+    // gated on the version of the payload it actually renders.
+    const version = PLAYER_CARDS.has(key) ? (player?.version ?? 0) : season.version
+    if (since > version) return false
 
     const group = groupOf(season, key)
     if (group) return hasAward(group)
@@ -92,6 +107,7 @@ export function buildRewindCards(bundle: RewindBundle): RewindCardKey[] {
     if (key === 'badges') return player.badges.length > 0
     if (key === 'feats') {
       return (
+        player.feats.bestMmrGain !== null ||
         player.feats.biggestUpsetGap !== null ||
         player.feats.bestPartner !== null ||
         player.feats.nemesis !== null ||
@@ -99,7 +115,7 @@ export function buildRewindCards(bundle: RewindBundle): RewindCardKey[] {
       )
     }
     return true
-  })
+  }).map(({ key }) => key)
 }
 
 /** Whole days left in the promotion window, floored at 0. */
@@ -119,6 +135,14 @@ export function formatRewindDate(value: Date | string, locale: string): string {
     month: 'short',
     year: 'numeric',
   })
+}
+
+/**
+ * "1v1", "2v2", "1v2"… An MMR gap between two sides only reads next to the
+ * format it was taken in, so every figure built on one is shown with it.
+ */
+export function formatMatchup(format: RewindMatchFormat): string {
+  return `${format.teamSize}v${format.opponentTeamSize}`
 }
 
 /** Groups an archive by discipline, preserving the newest-first order within each. */

@@ -1,6 +1,7 @@
 import { eq, and, or, desc, asc, sql, inArray, lt, gte, gt } from "drizzle-orm";
 import { db } from "../config/database";
 import { playerMmr, mmrHistory, matches, matchSides, appUsers } from "../db/schema";
+import { STRONGER_OPPONENT_MMR_GAP } from "@skol-arena/shared";
 import type { MmrHistoryOutcome, OpponentQualityStats, WeeklyMmrLeader } from "@skol-arena/shared";
 
 export interface UpsertPlayerMmrData {
@@ -63,7 +64,10 @@ export class PlayerMmrRepository {
       const players = await tx.query.playerMmr.findMany({
         where: eq(playerMmr.seasonId, seasonId),
         with: { player: true },
-        orderBy: (p, { desc }) => [desc(p.currentMmr)],
+        // Player id as a tie-break: equal MMR is common at the start of a season
+        // and an unordered tie makes the final ranking — and the rewind awards
+        // derived from it — differ between two reads of the same data.
+        orderBy: (p, { asc, desc }) => [desc(p.currentMmr), asc(p.playerId)],
       });
 
       if (players.length === 0) return players;
@@ -516,12 +520,11 @@ export class PlayerMmrRepository {
       .from(mmrHistory)
       .where(and(eq(mmrHistory.seasonId, seasonId), eq(mmrHistory.playerId, playerId)));
 
-    const THRESHOLD = 100;
     for (const row of rows) {
       const diff = row.opponentAvgMmr - row.mmrBefore;
       let bucket = result.vsEqual;
-      if (diff > THRESHOLD) bucket = result.vsStronger;
-      else if (diff < -THRESHOLD) bucket = result.vsWeaker;
+      if (diff > STRONGER_OPPONENT_MMR_GAP) bucket = result.vsStronger;
+      else if (diff < -STRONGER_OPPONENT_MMR_GAP) bucket = result.vsWeaker;
       bucket.matchesPlayed++;
       if (row.outcome === 'win') bucket.wins++;
       else if (row.outcome === 'loss') bucket.losses++;

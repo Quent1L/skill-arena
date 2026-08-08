@@ -4,15 +4,15 @@
     :title="t('rewind.conclusion.title')"
     :subtitle="t('rewind.conclusion.subtitle')"
   >
-    <div class="flex flex-col items-center gap-5">
-      <div class="relative flex h-24 w-24 items-center justify-center">
+    <div class="flex flex-col items-center gap-3">
+      <div class="relative flex h-16 w-16 items-center justify-center">
         <div class="absolute inset-0 rounded-full bg-indigo-500/20 blur-2xl" />
-        <i class="fa fa-hand-peace relative text-5xl text-indigo-300" />
+        <i class="fa fa-hand-peace relative text-4xl text-indigo-300" />
       </div>
 
       <div
         v-if="nextSeason"
-        class="flex w-full flex-col items-center gap-3 rounded-2xl bg-white/5 px-4 py-5"
+        class="flex w-full flex-col items-center gap-2 rounded-2xl bg-white/5 px-4 py-4"
       >
         <span class="text-xs uppercase tracking-wide text-gray-400">
           {{ t('rewind.conclusion.nextSeason') }}

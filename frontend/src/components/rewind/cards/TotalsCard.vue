@@ -4,20 +4,22 @@
     :title="t('rewind.totals.title')"
     :subtitle="t('rewind.totals.subtitle')"
   >
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-2.5">
       <RewindStat
         :value="player.totals.matchesPlayed"
         :label="t('rewind.totals.matches')"
         value-class="text-indigo-300"
       />
 
-      <div class="grid grid-cols-3 gap-2">
+      <!-- A discipline without draws has no reason to be shown a "0 draws" tile. -->
+      <div class="grid gap-2" :class="allowDraw ? 'grid-cols-3' : 'grid-cols-2'">
         <RewindStat
           :value="player.totals.wins"
           :label="t('rewind.totals.wins')"
           value-class="text-emerald-400"
         />
         <RewindStat
+          v-if="allowDraw"
           :value="player.totals.draws"
           :label="t('rewind.totals.draws')"
           value-class="text-gray-300"
@@ -29,12 +31,12 @@
         />
       </div>
 
-      <div class="flex flex-col gap-2 rounded-2xl bg-white/5 px-4 py-4">
+      <div class="flex flex-col gap-2 rounded-2xl bg-white/5 px-4 py-3">
         <div class="flex items-baseline justify-between">
           <span class="text-xs uppercase tracking-wide text-gray-400">
             {{ t('rewind.totals.winRate') }}
           </span>
-          <span class="text-2xl font-black tabular-nums">{{ player.totals.winRate }} %</span>
+          <span class="text-xl font-black tabular-nums">{{ player.totals.winRate }} %</span>
         </div>
         <div class="h-2 overflow-hidden rounded-full bg-white/10">
           <div
@@ -54,7 +56,10 @@ import type { PlayerRewindPayload } from '@skol-arena/shared/types/index'
 import RewindCardShell from '../RewindCardShell.vue'
 import RewindStat from '../RewindStat.vue'
 
-const props = defineProps<{ player: PlayerRewindPayload }>()
+const props = withDefaults(
+  defineProps<{ player: PlayerRewindPayload; allowDraw?: boolean }>(),
+  { allowDraw: true },
+)
 
 const { t } = useI18n()
 

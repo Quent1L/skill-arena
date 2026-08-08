@@ -15,16 +15,23 @@ export const TIER_CARD_BG_CLASS = [
 ]
 export const TIER_PROGRESS_BAR_CLASS = ['bg-gray-500', 'bg-blue-500', 'bg-amber-400', 'bg-orange-500', 'bg-purple-500']
 
-export function tierStyleIdx(tier: ClientRankTier | null): number {
+/**
+ * Everything the styling reads off a tier. Narrower than `ClientRankTier` so a
+ * rewind's frozen tier reference — which carries no thresholds — styles itself
+ * through the very same table as a live one.
+ */
+export type StyleableTier = Pick<ClientRankTier, 'level' | 'iconClass'>
+
+export function tierStyleIdx(tier: StyleableTier | null): number {
   if (!tier) return 0
   return Math.min(tier.level - 1, TIER_ICON.length - 1)
 }
 
-export function getTierIconClass(tier: ClientRankTier | null): string {
+export function getTierIconClass(tier: StyleableTier | null): string {
   if (tier?.iconClass) return tier.iconClass
   return TIER_ICON[tierStyleIdx(tier)] ?? 'fa fa-circle'
 }
 
-export function getTierTextHex(tier: ClientRankTier | null): string {
+export function getTierTextHex(tier: StyleableTier | null): string {
   return TIER_TEXT_HEX[tierStyleIdx(tier)] ?? '#9ca3af'
 }

@@ -1,9 +1,10 @@
 <template>
-  <div class="flex flex-col items-center gap-1 rounded-2xl bg-white/5 px-4 py-4">
-    <span class="text-3xl font-black tabular-nums" :class="valueClass">
+  <div class="flex flex-col items-center gap-0.5 rounded-2xl bg-white/5 px-3 py-3">
+    <i v-if="icon" :class="[icon, valueClass]" class="text-base" />
+    <span class="text-3xl font-black tabular-nums leading-tight" :class="valueClass">
       {{ prefix }}{{ display }}{{ suffix }}
     </span>
-    <span class="text-center text-xs uppercase tracking-wide text-gray-400">{{ label }}</span>
+    <span class="text-center text-xs uppercase tracking-wide text-gray-300">{{ label }}</span>
   </div>
 </template>
 
@@ -20,6 +21,8 @@ const props = withDefaults(
     suffix?: string
     valueClass?: string
     from?: number
+    /** Font Awesome class, shown above the value in the same colour. */
+    icon?: string
   }>(),
   { prefix: '', suffix: '', valueClass: 'text-white', from: 0 },
 )

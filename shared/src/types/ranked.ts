@@ -96,6 +96,14 @@ export interface ClientRankTier {
 // Client types (dates converted to Date)
 // ============================================
 
+/**
+ * MMR gap past which an opposition counts as "stronger" rather than "even".
+ * Shared so the profile's win rate by opponent level and the rewind's giant
+ * killing answer to the same definition — a win over someone five points above
+ * is not a feat.
+ */
+export const STRONGER_OPPONENT_MMR_GAP = 100;
+
 export interface OpponentQualityBucket {
   wins: number;
   losses: number;

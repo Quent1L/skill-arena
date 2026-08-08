@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, isNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type {
   MmrHistoryOutcome,
@@ -10,10 +10,12 @@ import type {
 import { db } from "../config/database";
 import type * as schema from "../db/schema";
 import {
+  appUsers,
   disciplines,
   matches,
   matchSides,
   mmrHistory,
+  playerMmr,
   playerSeasonRewinds,
   seasonRewinds,
   tournamentEntryPlayers,
@@ -22,8 +24,12 @@ import {
 
 type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
 
-/** Postgres caps a statement's parameters, so player payloads go in by chunks. */
-const UPSERT_CHUNK_SIZE = 100;
+/**
+ * Postgres caps a statement's parameters, so player payloads go in by chunks.
+ * The caller owns the chunking: building every payload up front just to slice it
+ * here would hold the whole season's decks in memory at once.
+ */
+export const REWIND_UPSERT_CHUNK_SIZE = 100;
 
 export interface PlayerRewindRow {
   playerId: string;
@@ -90,7 +96,14 @@ export class SeasonRewindRepository {
     }));
   }
 
-  /** Side composition of every season match that has MMR history. */
+  /**
+   * Side composition of every season match that has MMR history.
+   *
+   * Ordered, and not incidentally: without an ORDER BY, Postgres is free to hand
+   * back a team's members in any order, and that order decides which opponent an
+   * upset feat names and which teammate a pair tally is keyed on. Two
+   * regenerations over the same data would otherwise produce different awards.
+   */
   async getSeasonSides(seasonId: string): Promise<SeasonSideRow[]> {
     return await db
       .selectDistinct({
@@ -104,7 +117,12 @@ export class SeasonRewindRepository {
         tournamentEntryPlayers,
         eq(tournamentEntryPlayers.entryId, matchSides.entryId),
       )
-      .where(eq(matches.tournamentId, seasonId));
+      .where(eq(matches.tournamentId, seasonId))
+      .orderBy(
+        asc(matchSides.matchId),
+        asc(matchSides.position),
+        asc(tournamentEntryPlayers.playerId),
+      );
   }
 
   async getSeasonRewind(seasonId: string): Promise<{
@@ -123,6 +141,105 @@ export class SeasonRewindRepository {
       version: row.version,
       disciplineId: row.disciplineId,
     };
+  }
+
+  /**
+   * The format a season's rewind is already stored in, without dragging its
+   * payload along. Generation reads this to decide whether it is allowed to
+   * touch the season at all.
+   */
+  async getStoredVersion(seasonId: string): Promise<number | null> {
+    const [row] = await db
+      .select({ version: seasonRewinds.version })
+      .from(seasonRewinds)
+      .where(and(eq(seasonRewinds.seasonId, seasonId), eq(seasonRewinds.scope, "season")))
+      .limit(1);
+
+    return row?.version ?? null;
+  }
+
+  /**
+   * Every rewind covering a season those players took part in. Their name can
+   * appear in the season payload (as an award holder), in their own deck and in
+   * the decks of everyone they played with or against, so the unit of repair is
+   * the whole rewind, not the player's own row.
+   */
+  async listRewindIdsForPlayers(playerIds: string[]): Promise<string[]> {
+    if (playerIds.length === 0) return [];
+    const rows = await db
+      .selectDistinct({ id: seasonRewinds.id })
+      .from(seasonRewinds)
+      .innerJoin(playerMmr, eq(playerMmr.seasonId, seasonRewinds.seasonId))
+      .where(inArray(playerMmr.playerId, playerIds));
+
+    return rows.map((row) => row.id);
+  }
+
+  /** Current names of the given players, to write over the ones a payload froze. */
+  async getIdentities(
+    playerIds: string[],
+  ): Promise<Map<string, { displayName: string; shortName: string }>> {
+    if (playerIds.length === 0) return new Map();
+    const rows = await db
+      .select({
+        id: appUsers.id,
+        displayName: appUsers.displayName,
+        shortName: appUsers.shortName,
+      })
+      .from(appUsers)
+      .where(inArray(appUsers.id, playerIds));
+
+    return new Map(
+      rows.map((row) => [row.id, { displayName: row.displayName, shortName: row.shortName }]),
+    );
+  }
+
+  /** Payloads of one rewind, in the shape the identity rewrite works on. */
+  async getPayloadsForRewind(rewindId: string): Promise<{
+    season: SeasonRewindPayload | null;
+    players: { id: string; payload: PlayerRewindPayload }[];
+  }> {
+    const [season] = await db
+      .select({ payload: seasonRewinds.payload })
+      .from(seasonRewinds)
+      .where(eq(seasonRewinds.id, rewindId))
+      .limit(1);
+
+    const players = await db
+      .select({ id: playerSeasonRewinds.id, payload: playerSeasonRewinds.payload })
+      .from(playerSeasonRewinds)
+      .where(eq(playerSeasonRewinds.rewindId, rewindId));
+
+    return {
+      season: (season?.payload as SeasonRewindPayload | undefined) ?? null,
+      players: players.map((row) => ({ id: row.id, payload: row.payload as PlayerRewindPayload })),
+    };
+  }
+
+  /**
+   * Writes payloads back without touching `version` or `generated_at`: this is a
+   * repair of the names inside a stored format, not a regeneration, and it has
+   * to stay legal on a rewind frozen at an older version.
+   */
+  async rewritePayloads(
+    rewindId: string,
+    season: SeasonRewindPayload | null,
+    players: { id: string; payload: PlayerRewindPayload }[],
+  ): Promise<void> {
+    await db.transaction(async (tx) => {
+      if (season) {
+        await tx
+          .update(seasonRewinds)
+          .set({ payload: season })
+          .where(eq(seasonRewinds.id, rewindId));
+      }
+      for (const player of players) {
+        await tx
+          .update(playerSeasonRewinds)
+          .set({ payload: player.payload })
+          .where(eq(playerSeasonRewinds.id, player.id));
+      }
+    });
   }
 
   async getPlayerRewind(
@@ -192,29 +309,27 @@ export class SeasonRewindRepository {
     version: number,
     tx: DbTransaction = db,
   ): Promise<void> {
-    for (let i = 0; i < rows.length; i += UPSERT_CHUNK_SIZE) {
-      const chunk = rows.slice(i, i + UPSERT_CHUNK_SIZE);
-      await tx
-        .insert(playerSeasonRewinds)
-        .values(
-          chunk.map((row) => ({
-            rewindId,
-            playerId: row.playerId,
-            payload: row.payload,
-            version,
-            generatedAt: new Date(),
-            promotedUntil: row.promotedUntil,
-          })),
-        )
-        .onConflictDoUpdate({
-          target: [playerSeasonRewinds.rewindId, playerSeasonRewinds.playerId],
-          set: {
-            payload: sql`excluded.payload`,
-            version: sql`excluded.version`,
-            generatedAt: sql`excluded.generated_at`,
-          },
-        });
-    }
+    if (rows.length === 0) return;
+    await tx
+      .insert(playerSeasonRewinds)
+      .values(
+        rows.map((row) => ({
+          rewindId,
+          playerId: row.playerId,
+          payload: row.payload,
+          version,
+          generatedAt: new Date(),
+          promotedUntil: row.promotedUntil,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [playerSeasonRewinds.rewindId, playerSeasonRewinds.playerId],
+        set: {
+          payload: sql`excluded.payload`,
+          version: sql`excluded.version`,
+          generatedAt: sql`excluded.generated_at`,
+        },
+      });
   }
 
   /** Drops player decks that no longer belong to the rewind (players wiped by a recalculation). */

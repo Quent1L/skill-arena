@@ -184,10 +184,20 @@ const generateSeasonRewind: Task = async (rawPayload) => {
   logger.info({ seasonId }, '[Worker] generate_season_rewind done');
 };
 
+const refreshRewindIdentities: Task = async (rawPayload) => {
+  const { playerIds } = rawPayload as { playerIds: string[] };
+  logger.info({ players: playerIds.length }, '[Worker] refresh_rewind_identities start');
+
+  await seasonRewindService.refreshPlayerIdentities(playerIds);
+
+  logger.info({ players: playerIds.length }, '[Worker] refresh_rewind_identities done');
+};
+
 export const taskList = {
   finalize_match_mmr: finalizeMatchMmr,
   cancel_match_mmr: cancelMatchMmr,
   recalculate_season_mmr: recalculateSeasonMmr,
   reconcile_pending_badges: reconcilePendingBadges,
   generate_season_rewind: generateSeasonRewind,
+  refresh_rewind_identities: refreshRewindIdentities,
 };

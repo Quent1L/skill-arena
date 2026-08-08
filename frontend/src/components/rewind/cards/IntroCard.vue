@@ -4,10 +4,10 @@
     :title="season.season.name"
     :subtitle="season.season.disciplineName ?? undefined"
   >
-    <div class="flex flex-col items-center gap-6">
-      <div class="relative flex h-28 w-28 items-center justify-center">
+    <div class="flex flex-col items-center gap-4">
+      <div class="relative flex h-20 w-20 items-center justify-center">
         <div class="absolute inset-0 rounded-full bg-indigo-500/20 blur-2xl" />
-        <i class="fa fa-film relative text-6xl text-indigo-300" />
+        <i class="fa fa-film relative text-5xl text-indigo-300" />
       </div>
 
       <p class="text-center text-sm text-gray-400">

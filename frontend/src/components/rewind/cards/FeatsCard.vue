@@ -7,11 +7,14 @@
     <div class="flex flex-col gap-2">
       <div
         v-if="feats.biggestUpsetGap"
-        class="flex flex-col gap-1 rounded-2xl bg-orange-500/10 px-4 py-4"
+        class="flex flex-col gap-0.5 rounded-2xl bg-orange-500/10 px-4 py-3"
       >
-        <div class="flex items-center gap-2 text-[11px] uppercase tracking-wide text-orange-300">
+        <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-orange-300">
           <i class="fa fa-bolt" />
           {{ t('rewind.feats.biggestUpset') }}
+          <span class="rounded-full bg-orange-500/20 px-2 py-0.5 tabular-nums">
+            {{ formatMatchup(feats.biggestUpsetGap.format) }}
+          </span>
         </div>
         <div class="text-sm">
           {{
@@ -24,14 +27,45 @@
       </div>
 
       <div
-        v-if="feats.giantKillerWins > 0"
-        class="flex items-center justify-between rounded-2xl bg-white/5 px-4 py-3"
+        v-if="feats.bestMmrGain"
+        class="flex flex-col gap-0.5 rounded-2xl bg-emerald-500/10 px-4 py-3"
       >
-        <span class="flex items-center gap-2 text-sm text-gray-300">
-          <i class="fa fa-hammer w-4 text-center text-red-400" />
-          {{ t('rewind.feats.giantKiller') }}
-        </span>
-        <span class="text-lg font-black tabular-nums text-red-400">
+        <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-300">
+          <i class="fa fa-arrow-trend-up" />
+          {{ t('rewind.feats.bestGain') }}
+          <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 tabular-nums">
+            {{ formatMatchup(feats.bestMmrGain.format) }}
+          </span>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-2xl font-black tabular-nums text-emerald-400">
+            +{{ feats.bestMmrGain.mmrDelta }}
+          </span>
+          <span class="text-xs uppercase tracking-widest text-gray-400">MMR</span>
+        </div>
+        <div class="text-sm text-gray-300">
+          {{
+            t('rewind.feats.bestGainText', {
+              opponent: feats.bestMmrGain.opponent?.displayName ?? t('rewind.feats.anOpponent'),
+              date: formatRewindDate(feats.bestMmrGain.playedAt, locale),
+            })
+          }}
+        </div>
+      </div>
+
+      <!-- Two lines rather than one: the count needs the gap it was measured at
+           to mean anything, and both on a single line read as a sentence with a
+           number dropped in the middle. -->
+      <div
+        v-if="feats.giantKillerWins > 0"
+        class="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-2.5"
+      >
+        <i class="fa fa-hammer w-4 shrink-0 text-center text-red-400" />
+        <div class="min-w-0 flex-1">
+          <div class="text-sm text-gray-300">{{ t('rewind.feats.giantKiller') }}</div>
+          <div class="text-xs text-gray-400">{{ t('rewind.feats.giantKillerHint') }}</div>
+        </div>
+        <span class="shrink-0 text-lg font-black tabular-nums text-red-400">
           {{ feats.giantKillerWins }}
         </span>
       </div>
@@ -67,9 +101,10 @@ import { useI18n } from 'vue-i18n'
 import type { PlayerRewindPayload } from '@skol-arena/shared/types/index'
 import RewindCardShell from '../RewindCardShell.vue'
 import RelationRow from '../RelationRow.vue'
+import { formatMatchup, formatRewindDate } from '@/composables/ranked/rewind.service'
 
 const props = defineProps<{ player: PlayerRewindPayload }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const feats = computed(() => props.player.feats)
 </script>

@@ -1,6 +1,11 @@
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
 import { NotFoundError, ErrorCode } from "../types/errors";
-import { rankByWeightedRate, TOP_WEIGHTED_RATE } from "./stats-ranking";
+import {
+  MIN_WEIGHTED_RATE_MATCHES,
+  rankByWeightedRate,
+  rankByWeightedRateOrFallback,
+  TOP_WEIGHTED_RATE,
+} from "./stats-ranking";
 import type {
   TournamentStats,
   OutcomeTypeCount,
@@ -51,20 +56,43 @@ function recordPlayerResult(
   if (lost) s.losses++;
 }
 
+/** How many players a "best players in this format" card shows. */
+const TOP_BEST_PLAYERS = 5;
+
+/**
+ * Separates two records the weighted rate and the sample size cannot: the raw
+ * wins first, then the uuid — which decides nothing, it only makes the order
+ * total. Display names stay out of it: a card must not reshuffle because a
+ * player renamed themselves.
+ */
+function compareBestPlayers(a: BestDuoEntry, b: BestDuoEntry): number {
+  if (a.wins !== b.wins) return b.wins - a.wins;
+  return a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0;
+}
+
+/**
+ * Ranked on win rate weighted by sample size, like every other rate leaderboard
+ * of the app: a 2-0 evening must not outrank a 30-match season. Two matches used
+ * to be enough to top this card, which is exactly the reading it now avoids.
+ */
 function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
-  return Array.from(stats.entries())
-    .filter(([, s]) => s.played >= 2)
-    .map(([playerId, s]) => ({
-      playerId,
-      displayName: s.displayName,
-      shortName: s.shortName,
-      wins: s.wins,
-      losses: s.losses,
-      matchesPlayed: s.played,
-      winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
-    }))
-    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
-    .slice(0, 5);
+  const entries = Array.from(stats.entries()).map(([playerId, s]) => ({
+    playerId,
+    displayName: s.displayName,
+    shortName: s.shortName,
+    wins: s.wins,
+    losses: s.losses,
+    matchesPlayed: s.played,
+    winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
+  }));
+
+  return rankByWeightedRateOrFallback(
+    entries,
+    (entry) => (entry.matchesPlayed > 0 ? entry.wins / entry.matchesPlayed : 0),
+    (entry) => entry.matchesPlayed,
+    compareBestPlayers,
+    TOP_BEST_PLAYERS,
+  );
 }
 
 function accumulateSides(
@@ -105,7 +133,7 @@ function collectPlayerResults<T>(
   return map;
 }
 
-function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
+export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
   const entryStats = new Map<
     string,
     { displayName: string; wins: number; losses: number; draws: number; playerCount: number }
@@ -132,7 +160,7 @@ function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
     }
   }
 
-  return Array.from(entryStats.entries())
+  const teams = Array.from(entryStats.entries())
     .filter(([, s]) => s.playerCount > 1)
     .map(([entryId, s]) => {
       const matchesPlayed = s.wins + s.losses + s.draws;
@@ -145,9 +173,16 @@ function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
         matchesPlayed,
         winRate: matchesPlayed > 0 ? Math.round((s.wins / matchesPlayed) * 100) : 0,
       };
-    })
-    .sort((a, b) => b.winRate - a.winRate || b.wins - a.wins)
-    .slice(0, 3);
+    });
+
+  // Same weighting as the player cards: a team that played once and won is not
+  // the best team of the tournament.
+  return rankByWeightedRateOrFallback(
+    teams,
+    (team) => (team.matchesPlayed > 0 ? team.wins / team.matchesPlayed : 0),
+    (team) => team.matchesPlayed,
+    (a, b) => b.wins - a.wins || (a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0),
+  );
 }
 
 function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
@@ -209,7 +244,7 @@ function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): Be
   return rankBestPlayers(playerStats);
 }
 
-function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+export function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
   return computeSymmetricPlayers(matchesData, 2);
 }
 
@@ -350,11 +385,31 @@ function rankByRate(candidates: LeaderCandidate[]): {
   leaders: OutcomeTypeLeader[];
   isLowSample: boolean;
 } {
-  const filtered = rankByWeightedRate(candidates, (c) => c.rate, (c) => c.matchesPlayed);
+  const rate = (c: LeaderCandidate) => c.rate;
+  const played = (c: LeaderCandidate) => c.matchesPlayed;
+
+  const filtered = rankByWeightedRate(
+    candidates,
+    rate,
+    played,
+    MIN_WEIGHTED_RATE_MATCHES,
+    compareLeaders,
+  );
   if (filtered.length > 0) return { leaders: stripRate(filtered), isLowSample: false };
 
-  const fallback = rankByWeightedRate(candidates, (c) => c.rate, (c) => c.matchesPlayed, 0);
+  const fallback = rankByWeightedRate(candidates, rate, played, 0, compareLeaders);
   return { leaders: stripRate(fallback), isLowSample: fallback.length > 0 };
+}
+
+/**
+ * Separates two leaders the rate and the sample size cannot: the raw count
+ * first, and only then the uuid — which decides nothing, it only guarantees the
+ * order is total. Display names stay out of it: a leaderboard must not reshuffle
+ * because a player renamed themselves.
+ */
+function compareLeaders(a: LeaderCandidate, b: LeaderCandidate): number {
+  if (a.count !== b.count) return b.count - a.count;
+  return a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0;
 }
 
 export function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
