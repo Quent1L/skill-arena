@@ -88,6 +88,7 @@ declare module 'vue' {
     Password: typeof import('primevue/password')['default']
     PeakCard: typeof import('./src/components/rewind/cards/PeakCard.vue')['default']
     PercentilesCard: typeof import('./src/components/rewind/cards/PercentilesCard.vue')['default']
+    PlacementPlayersList: typeof import('./src/components/ranked/PlacementPlayersList.vue')['default']
     PlayerAvatar: typeof import('./src/components/PlayerAvatar.vue')['default']
     PlayerAvatarStack: typeof import('./src/components/PlayerAvatarStack.vue')['default']
     PlayerBadges: typeof import('./src/components/player/PlayerBadges.vue')['default']

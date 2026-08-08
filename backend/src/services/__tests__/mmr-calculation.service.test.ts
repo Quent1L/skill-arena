@@ -68,6 +68,16 @@ mock.module("../../repository/player-mmr.repository", () => ({
   playerMmrRepository: mockPlayerMmrRepo,
 }));
 
+// Carried-over entry MMR. Empty by default: a season without carry-over.
+const mockMmrSeedRepo = {
+  getMapBySeason: mock(() => Promise.resolve(new Map<string, number>())),
+  getSeedMmr: mock((_seasonId: any, _playerId: any) => Promise.resolve(null as number | null)),
+};
+
+mock.module("../../repository/mmr-seed.repository", () => ({
+  mmrSeedRepository: mockMmrSeedRepo,
+}));
+
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = {
@@ -107,7 +117,10 @@ function clearMock(m: ReturnType<typeof mock>) {
 function resetMocks() {
   for (const m of Object.values(mockRankedRepo) as ReturnType<typeof mock>[]) clearMock(m);
   for (const m of Object.values(mockPlayerMmrRepo) as ReturnType<typeof mock>[]) clearMock(m);
+  for (const m of Object.values(mockMmrSeedRepo) as ReturnType<typeof mock>[]) clearMock(m);
 
+  mockMmrSeedRepo.getMapBySeason.mockImplementation(() => Promise.resolve(new Map()));
+  mockMmrSeedRepo.getSeedMmr.mockImplementation(() => Promise.resolve(null));
   mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(DEFAULT_CONFIG));
   mockRankedRepo.getRankTiers.mockImplementation(() => Promise.resolve([]));
   mockRankedRepo.upsertRankTier.mockImplementation(() => Promise.resolve());
@@ -845,6 +858,69 @@ describe("MmrCalculationService", () => {
         maxWinStreak: 0,
       });
     });
+
+    it("joueur repris de la saison précédente → upsert au MMR seedé, pas au baseMmr", async () => {
+      mockMmrSeedRepo.getSeedMmr.mockImplementation(() => Promise.resolve(1180));
+      await (service as any).ensurePlayerMmrExists("s1", 1000, "p1");
+      expect(mockPlayerMmrRepo.upsert.mock.calls[0][0]).toMatchObject({ currentMmr: 1180 });
+    });
+  });
+
+  // ── MMR d'entrée repris de la saison précédente ─────────────────────────────
+
+  describe("carried-over entry MMR", () => {
+    it("recalculatePlayerMmr → le 1er match part du MMR seedé, pas de baseMmr", async () => {
+      mockMmrSeedRepo.getMapBySeason.mockImplementation(() =>
+        Promise.resolve(new Map([["p1", 1180]])),
+      );
+      (service as any).getPlayerMatchesForSeason = async () => [makeMatch("m1")];
+      (service as any).preloadMatchSides = async () =>
+        new Map([["m1", makeSideResult({ playerWon: false })]]);
+
+      await service.recalculatePlayerMmr("s1", "p1");
+
+      // Une défaite depuis 1180 laisse le joueur au-dessus de baseMmr : un départ à
+      // baseMmr l'aurait fait finir en dessous.
+      const call = mockPlayerMmrRepo.upsert.mock.calls.at(-1)!;
+      expect(call[0].currentMmr).toBeGreaterThan(1000);
+      expect(call[0].currentMmr).toBeLessThan(1180);
+      const history = mockPlayerMmrRepo.createMmrHistory.mock.calls.at(-1)!;
+      expect(history[0].mmrBefore).toBe(1180);
+    });
+
+    it("recalculateSeasonMmrDeterministic → le replay démarre au MMR seedé", async () => {
+      mockMmrSeedRepo.getMapBySeason.mockImplementation(() =>
+        Promise.resolve(new Map([["p1", 1180], ["p2", 820]])),
+      );
+      let served = false;
+      mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(() => {
+        if (served) return Promise.resolve([]);
+        served = true;
+        return Promise.resolve([
+          {
+            id: "m1",
+            playedAt: new Date("2026-01-01T10:00:00Z"),
+            winnerSide: "A",
+            outcomeType: { scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null },
+            sides: [
+              { score: 0, entry: { players: [{ playerId: "p1" }] } },
+              { score: 0, entry: { players: [{ playerId: "p2" }] } },
+            ],
+          },
+        ]);
+      });
+
+      await service.recalculateSeasonMmrDeterministic("s1");
+
+      const history = mockPlayerMmrRepo.createMmrHistoryBatch.mock.calls[0][0] as any[];
+      const p1 = history.find((row) => row.playerId === "p1");
+      const p2 = history.find((row) => row.playerId === "p2");
+      expect(p1.mmrBefore).toBe(1180);
+      expect(p2.mmrBefore).toBe(820);
+      // Le favori gagne : le gain est plus faible que celui d'un match équilibré.
+      expect(p1.mmrDelta).toBeGreaterThan(0);
+      expect(p2.mmrDelta).toBeLessThan(0);
+    });
   });
 
   // ── getMatchPlayerIds ──────────────────────────────────────────────────────
@@ -962,58 +1038,6 @@ describe("MmrCalculationService", () => {
       );
       const result = await (service as any).extractMatchSidesForPlayer("m1", "p1");
       expect(result.playerWon).toBeNull();
-    });
-  });
-
-  // ── recalculateBoundaries ──────────────────────────────────────────────────
-
-  describe("recalculateBoundaries", () => {
-    it("aucun tier → retourne sans appeler upsertRankTier", async () => {
-      mockRankedRepo.getRankTiers.mockImplementation(() => Promise.resolve([]));
-      await (service as any).recalculateBoundaries("s1", 1000);
-      expect(mockRankedRepo.upsertRankTier.mock.calls).toHaveLength(0);
-    });
-
-    it("tiers présents, aucun joueur → tous les tiers reçoivent baseMmr", async () => {
-      mockRankedRepo.getRankTiers.mockImplementation(() =>
-        Promise.resolve([
-          { level: 1, percentile: 0 },
-          { level: 2, percentile: 0.5 },
-        ]),
-      );
-      mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() => Promise.resolve([]));
-      await (service as any).recalculateBoundaries("s1", 1000);
-      expect(mockRankedRepo.upsertRankTier.mock.calls).toHaveLength(2);
-      expect(mockRankedRepo.upsertRankTier.mock.calls[0][2]).toEqual({ minMmr: 1000 });
-      expect(mockRankedRepo.upsertRankTier.mock.calls[1][2]).toEqual({ minMmr: 1000 });
-    });
-
-    it("percentile=0 → toujours baseMmr même avec des joueurs", async () => {
-      mockRankedRepo.getRankTiers.mockImplementation(() =>
-        Promise.resolve([{ level: 1, percentile: 0 }]),
-      );
-      mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() =>
-        Promise.resolve([{ currentMmr: 1500 }, { currentMmr: 800 }]),
-      );
-      await (service as any).recalculateBoundaries("s1", 1000);
-      expect(mockRankedRepo.upsertRankTier.mock.calls[0][2]).toEqual({ minMmr: 1000 });
-    });
-
-    it("percentile=0.5, 4 joueurs → index 2 du tri ascendant", async () => {
-      // sorted: [800, 900, 1200, 1500], Math.floor(4*0.5)=2 → sorted[2]=1200
-      mockRankedRepo.getRankTiers.mockImplementation(() =>
-        Promise.resolve([{ level: 2, percentile: 0.5 }]),
-      );
-      mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() =>
-        Promise.resolve([
-          { currentMmr: 1200 },
-          { currentMmr: 800 },
-          { currentMmr: 1500 },
-          { currentMmr: 900 },
-        ]),
-      );
-      await (service as any).recalculateBoundaries("s1", 1000);
-      expect(mockRankedRepo.upsertRankTier.mock.calls[0][2]).toEqual({ minMmr: 1200 });
     });
   });
 

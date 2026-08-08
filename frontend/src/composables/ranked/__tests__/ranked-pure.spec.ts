@@ -12,6 +12,7 @@ import {
   getTierForMmr,
   getPeakMmr,
   sortBySeasonMetric,
+  splitByPlacement,
   getWeeklyMmrGain,
   getCurrentWeekStart,
   useRankedService,
@@ -244,6 +245,34 @@ describe('sortBySeasonMetric', () => {
 
   it('tolère une liste vide', () => {
     expect(sortBySeasonMetric([], 'peak')).toEqual([])
+  })
+})
+
+describe('splitByPlacement', () => {
+  const player = (id: string, matchesPlayed: number) =>
+    makePlayerMmr({ matchesPlayed, player: { id, displayName: id, shortName: id } })
+
+  const players = [player('a', 10), player('b', 4), player('c', 5), player('d', 0)]
+
+  it('sépare les joueurs ayant fini leur placement des autres', () => {
+    const { placed, inPlacement } = splitByPlacement(players, 5)
+    expect(placed.map((p) => p.player?.id)).toEqual(['a', 'c'])
+    expect(inPlacement.map((p) => p.player?.id)).toEqual(['b', 'd'])
+  })
+
+  it('conserve l’ordre reçu dans chaque groupe', () => {
+    const { placed } = splitByPlacement([player('z', 9), player('y', 8)], 5)
+    expect(placed.map((p) => p.player?.id)).toEqual(['z', 'y'])
+  })
+
+  it('sans matchs de placement, tout le monde est classé', () => {
+    const { placed, inPlacement } = splitByPlacement(players, 0)
+    expect(placed).toHaveLength(4)
+    expect(inPlacement).toEqual([])
+  })
+
+  it('tolère une liste vide', () => {
+    expect(splitByPlacement([], 5)).toEqual({ placed: [], inPlacement: [] })
   })
 })
 

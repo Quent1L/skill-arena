@@ -46,8 +46,11 @@ export type RankedSeason = {
     kFactor: number
     placementMatches: number
     usePreviousMmr: boolean
+    softResetFactor: number
     allowAsymmetricMatches: boolean
     sourceTierSeasonId?: string | null
+    tierScalingMode?: 'keep' | 'percentile'
+    sourceMmrSeasonId?: string | null
   } | null
   rankTiers?: ClientRankTier[]
   discipline?: { id: string; name: string } | null
@@ -56,6 +59,8 @@ export type RankedSeason = {
 
 export type LeaderboardResponse = {
   players: ClientPlayerMmr[]
+  /** Matches needed to be ranked; players below it are listed apart. */
+  placementMatches?: number
 }
 
 export type SeasonMmrLeaderboardResponse = {
@@ -67,6 +72,8 @@ export type PlayerMmrResponse = {
   tiers: ClientRankTier[]
   opponentQuality?: OpponentQualityStats
   chartHistory: MmrChartPoint[]
+  /** Matches needed to be ranked; below it the player holds no position. */
+  placementMatches?: number
 }
 
 /**

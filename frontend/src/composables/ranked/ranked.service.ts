@@ -47,6 +47,23 @@ export function sortBySeasonMetric(
   return [...players].sort((a, b) => value(b) - value(a))
 }
 
+// A player still doing their placement matches is not ranked: their MMR is
+// unsettled, so showing it next to settled ones would read as a real standing.
+// They are listed apart instead, with their placement progress only.
+export function splitByPlacement<T extends { matchesPlayed: number }>(
+  players: T[],
+  placementMatches: number,
+): { placed: T[]; inPlacement: T[] } {
+  if (placementMatches <= 0) return { placed: players, inPlacement: [] }
+  const placed: T[] = []
+  const inPlacement: T[] = []
+  for (const player of players) {
+    if (player.matchesPlayed >= placementMatches) placed.push(player)
+    else inPlacement.push(player)
+  }
+  return { placed, inPlacement }
+}
+
 export function getWeeklyMmrGain(
   history: MmrChartPoint[],
   weekStart: Date,
@@ -128,6 +145,9 @@ export function useRankedService() {
   const leaderboard = ref<ClientPlayerMmr[]>([])
   const provisionalLeaderboard = ref<ClientPlayerMmr[]>([])
   const tiers = ref<ClientRankTier[]>([])
+  // Shipped with the leaderboard: the threshold under which a player is listed
+  // apart instead of ranked.
+  const placementMatches = ref(0)
   const playerMmr = ref<ClientPlayerMmr | null>(null)
   const playerOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
   const playerHistory = ref<ClientMmrHistoryEntry[]>([])
@@ -248,6 +268,7 @@ export function useRankedService() {
         rankedApi.getTiers(seasonId),
       ])
       leaderboard.value = data.players
+      placementMatches.value = data.placementMatches ?? 0
       tiers.value = tiersData
     } catch (err) {
       error.value = err instanceof Error ? err.message : i18n.global.t('rankedService.errors.loadLeaderboardFailed')
@@ -444,6 +465,7 @@ export function useRankedService() {
     provisionalLeaderboard,
     seasonMmrLeaderboard,
     tiers,
+    placementMatches,
     playerMmr,
     playerOpponentQuality,
     playerHistory,

@@ -3,6 +3,7 @@ import { eq, and, inArray, notInArray, gt, gte } from "drizzle-orm";
 import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import type { CreateMmrHistoryData } from "../repository/player-mmr.repository";
+import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import type { Discipline, MmrAnimationEventReason, MmrHistoryOutcome, OutcomeType } from "@skol-arena/shared";
 
@@ -55,6 +56,8 @@ interface MmrLookups {
   sidesMap: Map<string, MatchSideData>;
   historiesMap: Map<string, number>;
   currentMmrMap: Map<string, number>;
+  /** Carried-over entry MMR per player, when the season inherits ranks. */
+  entryMmrMap: Map<string, number>;
 }
 
 type MatchResult = 1 | 0 | 0.5;
@@ -116,13 +119,19 @@ export class MmrCalculationService {
     const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
     if (!config) return;
 
+    // A season that carries the previous ranks over starts its players at their
+    // seeded MMR, not at baseMmr. Reading it here is what makes the carry-over
+    // survive every recalculation instead of being flattened by the first match.
+    const entryMmrMap = await mmrSeedRepository.getMapBySeason(seasonId);
+    const entryMmr = entryMmrMap.get(playerId) ?? config.baseMmr;
+
     let checkpoint: CheckpointState | null = null;
     let state: CheckpointState;
     if (fromPlayedAt) {
       checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, fromPlayedAt);
-      state = checkpoint ?? { mmr: config.baseMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
+      state = checkpoint ?? { mmr: entryMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     } else {
-      state = { mmr: config.baseMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
+      state = { mmr: entryMmr, wins: 0, losses: 0, draws: 0, winStreak: 0, maxWinStreak: 0, lossStreak: 0, maxLossStreak: 0 };
     }
 
     await playerMmrRepository.deleteMmrHistoryForPlayer(seasonId, playerId, fromPlayedAt);
@@ -141,6 +150,7 @@ export class MmrCalculationService {
           sidesMap,
           historiesMap,
           currentMmrMap,
+          entryMmrMap,
         });
       }
     }
@@ -173,14 +183,17 @@ export class MmrCalculationService {
     state: CheckpointState,
     lookups: MmrLookups,
   ): Promise<CheckpointState> {
-    const { sidesMap, historiesMap, currentMmrMap } = lookups;
+    const { sidesMap, historiesMap, currentMmrMap, entryMmrMap } = lookups;
     const isPlacement = state.wins + state.losses + state.draws < config.placementMatches;
     const raw = sidesMap.get(match.id) ?? { opponentPlayerIds: [], sameTeamPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
     const { opponentPlayerIds, playerWon } = raw;
     const sameTeamPlayerIds = raw.sameTeamPlayerIds ?? [];
 
     const getOtherPlayerMmr = (id: string) =>
-      historiesMap.get(`${id}:${match.id}`) ?? currentMmrMap.get(id) ?? config.baseMmr;
+      historiesMap.get(`${id}:${match.id}`) ??
+      currentMmrMap.get(id) ??
+      entryMmrMap.get(id) ??
+      config.baseMmr;
 
     const mySidePlayers: SidePlayerInput[] = [
       { id: playerId, currentMmr: state.mmr },
@@ -442,6 +455,9 @@ export class MmrCalculationService {
 
     const existingPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
     const existingPlayerIds = new Set(existingPlayers.map((p) => p.playerId));
+    // One read for the whole replay: every player's starting MMR, carried over
+    // from the previous season when the season inherits ranks.
+    const entryMmrMap = await mmrSeedRepository.getMapBySeason(seasonId);
 
     await playerMmrRepository.deleteAllMmrHistoryForSeason(seasonId);
 
@@ -454,7 +470,7 @@ export class MmrCalculationService {
 
       const historyBatch: CreateMmrHistoryData[] = [];
       for (const match of page) {
-        this.processMatchGlobal(match, seasonId, config, stateMap, historyBatch);
+        this.processMatchGlobal(match, seasonId, config, stateMap, historyBatch, entryMmrMap);
       }
       await playerMmrRepository.createMmrHistoryBatch(historyBatch);
 
@@ -501,6 +517,7 @@ export class MmrCalculationService {
     config: { baseMmr: number; kFactor: number; placementMatches: number },
     stateMap: Map<string, CheckpointState>,
     historyBatch: CreateMmrHistoryData[],
+    entryMmrMap: Map<string, number>,
   ): void {
     const sides = match.sides;
     if (!sides || sides.length < 2) return;
@@ -515,7 +532,7 @@ export class MmrCalculationService {
       preState.set(
         id,
         stateMap.get(id) ?? {
-          mmr: config.baseMmr,
+          mmr: entryMmrMap.get(id) ?? config.baseMmr,
           wins: 0,
           losses: 0,
           draws: 0,
@@ -529,7 +546,8 @@ export class MmrCalculationService {
 
     const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null };
     const discipline = outcomeType.discipline ?? { id: "", name: "", teamInteractionMode: null };
-    const getOtherMmr = (id: string) => preState.get(id)?.mmr ?? config.baseMmr;
+    const getOtherMmr = (id: string) =>
+      preState.get(id)?.mmr ?? entryMmrMap.get(id) ?? config.baseMmr;
 
     for (const playerId of participantIds) {
       const playerState = preState.get(playerId)!;
@@ -593,23 +611,6 @@ export class MmrCalculationService {
       });
 
       stateMap.set(playerId, newState);
-    }
-  }
-
-  private async recalculateBoundaries(seasonId: string, baseMmr: number): Promise<void> {
-    const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
-    if (tiers.length === 0) return;
-
-    const allPlayers = await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
-    const sorted = allPlayers.map((p) => p.currentMmr).sort((a, b) => a - b);
-    const n = sorted.length;
-
-    for (const tier of tiers) {
-      const minMmr =
-        tier.percentile === 0 || n === 0
-          ? baseMmr
-          : (sorted[Math.floor(n * tier.percentile)] ?? baseMmr);
-      await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, { minMmr });
     }
   }
 
@@ -766,10 +767,13 @@ export class MmrCalculationService {
   ): Promise<void> {
     const existing = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
     if (!existing) {
+      // A carried-over player enters the season at their seeded MMR: this is the
+      // row the cascade recalculation starts from.
+      const seedMmr = await mmrSeedRepository.getSeedMmr(seasonId, playerId);
       await playerMmrRepository.upsert({
         seasonId,
         playerId,
-        currentMmr: baseMmr,
+        currentMmr: seedMmr ?? baseMmr,
         matchesPlayed: 0,
         wins: 0,
         losses: 0,

@@ -5,6 +5,7 @@
       :mmr="store.playerMmr"
       :tiers="store.rankedTiers"
       :leaderboard-rank="store.playerLeaderboardRank"
+      :placement-matches="store.rankedPlacementMatches"
       :history="store.profileChartHistory"
       :opponent-quality="store.playerOpponentQuality"
       :recent-form="store.playerStats?.stats?.recentForm"

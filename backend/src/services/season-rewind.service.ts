@@ -258,6 +258,11 @@ export class SeasonRewindService {
       if (tier) tierByPlayer.set(entry.playerId, tier);
     }
 
+    // Everyone who played is ranked here, placement matches included: the season is
+    // over, so there is no unsettled MMR left to protect — and a small season where
+    // nobody reached the threshold would otherwise end with no ranking and no
+    // awards at all. Players who never played hold no player_mmr row and are
+    // therefore already absent.
     const totalMmr = players.reduce((sum, entry) => sum + entry.currentMmr, 0);
     const finalRanking = players.map((entry) => entry.playerId);
     return {

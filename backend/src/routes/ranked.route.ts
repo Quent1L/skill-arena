@@ -159,11 +159,14 @@ ranked.get("/seasons/:id/leaderboard", async (c) => {
   if (!season) {
     throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
   }
+  // placementMatches ships with the leaderboard so the client can list unplaced
+  // players apart without a second round trip; the season is already loaded here.
+  const placementMatches = season.rankedConfig?.placementMatches ?? 0;
   const cached = await rankedCacheRepository.getOfficial(id);
-  if (cached) return c.json({ players: cached.players });
+  if (cached) return c.json({ players: cached.players, placementMatches });
   await rankedSeasonService.computeAndCacheOfficial(id);
   const fresh = await rankedCacheRepository.getOfficial(id);
-  return c.json({ players: fresh?.players ?? [] });
+  return c.json({ players: fresh?.players ?? [], placementMatches });
 });
 
 // GET /ranked/seasons/:id/leaderboard/provisional - Provisional leaderboard (cached)
@@ -173,11 +176,12 @@ ranked.get("/seasons/:id/leaderboard/provisional", async (c) => {
   if (!season) {
     throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
   }
+  const placementMatches = season.rankedConfig?.placementMatches ?? 0;
   const cached = await rankedCacheRepository.getProvisional(id);
-  if (cached) return c.json({ players: cached.players });
+  if (cached) return c.json({ players: cached.players, placementMatches });
   await rankedSeasonService.computeAndCacheProvisional(id);
   const fresh = await rankedCacheRepository.getProvisional(id);
-  return c.json({ players: fresh?.players ?? [] });
+  return c.json({ players: fresh?.players ?? [], placementMatches });
 });
 
 // GET /ranked/seasons/:id/leaderboard/season-stats - Peak + average MMR over the whole
@@ -192,16 +196,23 @@ ranked.get("/seasons/:id/leaderboard/season-stats", async (c) => {
 // GET /ranked/seasons/:id/players/:playerId - Player MMR profile
 ranked.get("/seasons/:id/players/:playerId", async (c) => {
   const { id, playerId } = c.req.param();
-  const [mmr, tiers, opponentQuality, chartHistory] = await Promise.all([
+  const [mmr, tiers, opponentQuality, chartHistory, config] = await Promise.all([
     playerMmrRepository.getBySeasonAndPlayer(id, playerId),
     rankedSeasonRepository.getRankTiers(id),
     playerMmrRepository.getOpponentQualityStats(id, playerId),
     playerMmrRepository.getMmrChartSeries(id, playerId),
+    rankedSeasonRepository.getConfigByTournamentId(id),
   ]);
   if (!mmr) {
     throw new NotFoundError(ErrorCode.NOT_FOUND);
   }
-  return c.json({ mmr, tiers, opponentQuality, chartHistory });
+  return c.json({
+    mmr,
+    tiers,
+    opponentQuality,
+    chartHistory,
+    placementMatches: config?.placementMatches ?? 0,
+  });
 });
 
 // GET /ranked/seasons/:id/players/:playerId/history - MMR history

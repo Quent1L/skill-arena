@@ -27,6 +27,7 @@
       :provisional-players="store.rankedProvisionalLeaderboard"
       :season-mmr-players="store.rankedSeasonMmrLeaderboard"
       :tiers="store.rankedTiers"
+      :placement-matches="store.rankedPlacementMatches"
       :loading="store.rankedLoading"
       :provisional-loading="store.rankedProvisionalLoading"
       :season-mmr-loading="store.rankedSeasonMmrLoading"

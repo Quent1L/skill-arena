@@ -132,6 +132,15 @@
 
         <!-- Empty state -->
       </div>
+
+      <!-- Players still in placement: listed apart, without MMR nor rank. -->
+      <PlacementPlayersList
+        v-if="inPlacement.length"
+        :players="inPlacement"
+        :placement-matches="props.placementMatches ?? 0"
+        :current-user-id="props.currentUserId"
+        :tournament-id="props.tournamentId"
+      />
     </div>
   </template>
 </template>
@@ -147,8 +156,15 @@ import type {
   ClientSeasonMmrPlayer,
   ClientRankTier,
 } from '@skol-arena/shared/types/index'
-import { isTopTier, getNextTier, getPrevTier, getTierForMmr } from '@/composables/ranked/ranked.service'
+import {
+  isTopTier,
+  getNextTier,
+  getPrevTier,
+  getTierForMmr,
+  splitByPlacement,
+} from '@/composables/ranked/ranked.service'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import PlacementPlayersList from '@/components/ranked/PlacementPlayersList.vue'
 import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
 import {
   TIER_BAR_CLASS as TIER_BAR,
@@ -169,9 +185,21 @@ const props = defineProps<{
   tournamentId?: string
   loading?: boolean
   isRecalculating?: boolean
+  /** Matches needed to be ranked. 0 disables the placement section entirely. */
+  placementMatches?: number
 }>()
 
 const isSeasonMode = computed(() => props.metric !== 'current')
+
+// Season views (peak/average) are already restricted to players past the
+// placement threshold server-side, so everything they carry is ranked.
+const split = computed(() =>
+  isSeasonMode.value
+    ? { placed: props.players, inPlacement: [] }
+    : splitByPlacement(props.players, props.placementMatches ?? 0),
+)
+const rankedPlayers = computed(() => split.value.placed)
+const inPlacement = computed(() => split.value.inPlacement)
 
 // The ranked value of this view: current MMR, or the season aggregate.
 function displayMmr(player: ClientPlayerMmr): number {
@@ -188,7 +216,7 @@ const isRefreshing = computed(() => props.loading && props.players.length > 0)
 // Competition ranks: two players on the same MMR are joint Nth, not Nth and N+1th.
 const rankMap = computed(() => {
   const map = new Map<string, number>()
-  for (const { item, rank } of assignCompetitionRanks(props.players, displayMmr)) {
+  for (const { item, rank } of assignCompetitionRanks(rankedPlayers.value, displayMmr)) {
     if (item.player?.id) map.set(item.player.id, rank)
   }
   return map
@@ -199,7 +227,7 @@ const sortedTiers = computed(() => [...props.tiers].sort((a, b) => b.level - a.l
 const tierGroups = computed(() =>
   sortedTiers.value.map((tier) => ({
     tier,
-    players: props.players.filter((p) => getPlayerTier(displayMmr(p))?.id === tier.id),
+    players: rankedPlayers.value.filter((p) => getPlayerTier(displayMmr(p))?.id === tier.id),
   })),
 )
 

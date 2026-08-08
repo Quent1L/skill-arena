@@ -2,6 +2,7 @@ import { eq, and, inArray, asc, sql } from "drizzle-orm";
 import type {
   CreateRankTierInput,
   UpdateRankTierInput,
+  TierScalingMode,
 } from "@skol-arena/shared/types/index";
 import { db } from "../config/database";
 import {
@@ -45,8 +46,20 @@ export interface CreateRankedConfigData {
   kFactor: number;
   placementMatches: number;
   usePreviousMmr: boolean;
+  softResetFactor: number;
   allowAsymmetricMatches: boolean;
   sourceTierSeasonId?: string | null;
+  tierScalingMode?: TierScalingMode;
+  sourceMmrSeasonId?: string | null;
+}
+
+export interface InsertRankTierData {
+  level: number;
+  name: string;
+  percentile: number;
+  minMmr: number;
+  subRanks?: number;
+  iconClass?: string | null;
 }
 
 export interface UpdateRankedConfigData {
@@ -54,8 +67,11 @@ export interface UpdateRankedConfigData {
   kFactor?: number;
   placementMatches?: number;
   usePreviousMmr?: boolean;
+  softResetFactor?: number;
   allowAsymmetricMatches?: boolean;
   sourceTierSeasonId?: string | null;
+  tierScalingMode?: TierScalingMode;
+  sourceMmrSeasonId?: string | null;
 }
 
 export class RankedSeasonRepository {
@@ -197,22 +213,23 @@ export class RankedSeasonRepository {
     }
   }
 
-  async copyTiersFromSeason(
-    sourceSeasonId: string,
-    targetSeasonId: string,
-    baseMmr: number,
-  ) {
-    const sourceTiers = await this.getRankTiers(sourceSeasonId);
-    for (const tier of sourceTiers) {
+  /**
+   * Inserts a ready-made ladder. The caller owns the MMR thresholds — copying a
+   * ladder from another season means rescaling them onto the new season's MMR
+   * scale, which is business logic, not a repository concern.
+   */
+  async insertTiers(seasonId: string, rows: InsertRankTierData[]) {
+    for (const tier of rows) {
       await db
         .insert(rankTiers)
         .values({
-          seasonId: targetSeasonId,
+          seasonId,
           level: tier.level,
           name: tier.name,
           percentile: tier.percentile,
-          subRanks: tier.subRanks,
-          minMmr: baseMmr,
+          subRanks: tier.subRanks ?? 1,
+          minMmr: tier.minMmr,
+          iconClass: tier.iconClass ?? null,
         })
         .onConflictDoNothing();
     }

@@ -4,7 +4,11 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useParticipantService } from '@/composables/participant.service'
-import { useRankedService, getCurrentWeekStart } from '@/composables/ranked/ranked.service'
+import {
+  useRankedService,
+  getCurrentWeekStart,
+  splitByPlacement,
+} from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
@@ -41,6 +45,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const rankedProvisionalLeaderboard = rankedSvc.provisionalLeaderboard
   const rankedSeasonMmrLeaderboard = rankedSvc.seasonMmrLeaderboard
   const rankedTiers = rankedSvc.tiers
+  const rankedPlacementMatches = rankedSvc.placementMatches
   const playerMmr = rankedSvc.playerMmr
   const playerOpponentQuality = rankedSvc.playerOpponentQuality
   const weeklyMmrLeaders = rankedSvc.weeklyMmrLeaders
@@ -81,9 +86,12 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     return calculateDuration(tournament.value.startDate, tournament.value.endDate)
   })
 
+  // Players still in placement hold no rank: the leaderboard lists them apart, so
+  // the ranking is computed on the settled players only.
   const playerLeaderboardRank = computed(() => {
     if (!appUser.value || !rankedLeaderboard.value.length) return undefined
-    const idx = rankedLeaderboard.value.findIndex((p) => p.player?.id === appUser.value?.id)
+    const { placed } = splitByPlacement(rankedLeaderboard.value, rankedPlacementMatches.value)
+    const idx = placed.findIndex((p) => p.player?.id === appUser.value?.id)
     return idx >= 0 ? idx + 1 : undefined
   })
 
@@ -317,6 +325,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     rankedProvisionalLeaderboard,
     rankedSeasonMmrLeaderboard,
     rankedTiers,
+    rankedPlacementMatches,
     playerMmr,
     playerOpponentQuality,
     playerStats,

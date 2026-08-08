@@ -27,8 +27,22 @@
           {{ t('playerMmrProfile.mmrLabel') }}
         </div>
         <div class="flex items-center justify-center gap-3 mt-3">
+          <!-- Unranked until the placement matches are done: says so, rather than
+               leaving the missing position unexplained. -->
           <div
-            v-if="leaderboardRank"
+            v-if="placementRemaining > 0"
+            class="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-sm font-bold text-white/70"
+          >
+            <i class="fa fa-hourglass-half text-xs" />
+            {{
+              t('playerMmrProfile.placementProgress', {
+                played: mmr.matchesPlayed,
+                total: props.placementMatches,
+              })
+            }}
+          </div>
+          <div
+            v-else-if="leaderboardRank"
             class="inline-flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1 text-sm font-bold text-white"
           >
             <i class="fa fa-trophy text-amber-400 text-xs" />
@@ -349,7 +363,13 @@ const props = defineProps<{
   recentForm?: Array<'V' | 'D' | 'N'>
   outcomeTypeStats?: PlayerOutcomeTypeStat[]
   allowDraw?: boolean
+  /** Matches needed to be ranked; below it the player holds no position. */
+  placementMatches?: number
 }>()
+
+const placementRemaining = computed(() =>
+  Math.max(0, (props.placementMatches ?? 0) - props.mmr.matchesPlayed),
+)
 
 const showDraws = computed(() => props.allowDraw === true || props.mmr.draws > 0)
 

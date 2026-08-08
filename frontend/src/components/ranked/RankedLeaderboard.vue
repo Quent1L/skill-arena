@@ -71,6 +71,8 @@ const props = defineProps<{
   showModeToggle?: boolean
   showSeasonStats?: boolean
   tournamentId?: string
+  /** Matches needed to be ranked; players below it are listed apart. */
+  placementMatches?: number
 }>()
 
 const emit = defineEmits<{
@@ -134,6 +136,7 @@ function listPropsFor(value: LeaderboardMode) {
     tournamentId: props.tournamentId,
     loading: loadingFor(value),
     isRecalculating: props.isRecalculating,
+    placementMatches: props.placementMatches,
   }
 }
 

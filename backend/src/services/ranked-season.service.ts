@@ -1,6 +1,7 @@
 import { eq, and, inArray } from "drizzle-orm";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
+import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import type { SeasonMmrStatsRow } from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
@@ -20,6 +21,7 @@ import type {
   TournamentStatus,
   WeeklyMmrLeader,
   WeeklyMmrLeaders,
+  TierScalingMode,
 } from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
@@ -36,8 +38,14 @@ type SeasonPlayers = Awaited<ReturnType<typeof playerMmrRepository.getBySeasonOr
 interface ProvisionalReplayCtx {
   baseMmr: number;
   kFactor: number;
+  /** Carried-over entry MMR: the starting point of a player with no match yet. */
+  entryMmr: Map<string, number>;
   provisionalMmr: Map<string, number>;
   provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
+}
+
+function entryMmrOf(playerId: string, ctx: ProvisionalReplayCtx): number {
+  return ctx.entryMmr.get(playerId) ?? ctx.baseMmr;
 }
 
 export const TOP_WEEKLY_GAINERS = 3;
@@ -75,6 +83,67 @@ export function mergeSeasonMmrStats(
     if (!stat) return [];
     return [{ ...player, peakMmr: stat.peakMmr, avgMmr: stat.avgMmr }];
   });
+}
+
+// Median MMR of a season, the anchor a soft reset compresses towards. The median
+// rather than the mean because a handful of runaway players must not drag the
+// whole ladder's reset point up with them. Null for an empty season.
+export function medianMmr(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// Soft reset: keep `factor` of the player's distance to the previous season's
+// median, re-centred on the new season's baseMmr. Anchoring on the source
+// distribution instead of baseMmr is what makes the reset meaningful — tiers are
+// percentiles, so absolute MMR values drift from one season to the next and the
+// same absolute formula would push everyone up or down depending on how far the
+// previous ladder had spread.
+export function computeSoftResetMmr(input: {
+  mmr: number;
+  anchor: number;
+  baseMmr: number;
+  factor: number;
+}): number {
+  const { mmr, anchor, baseMmr, factor } = input;
+  return Math.max(1, Math.round(baseMmr + (mmr - anchor) * factor));
+}
+
+/**
+ * Rebuilds the MMR thresholds of a ladder from a distribution of the source
+ * season, then maps them onto the new season's scale with `transform` — the same
+ * transform the player seeds go through, so a player who ended N-1 in the top
+ * `1 - percentile` starts the new season in that very tier.
+ *
+ * `percentile` 0 marks the bottom tier: it is a floor, not a cut. It lands under
+ * the weakest player of the distribution *and* under `floorBase` — pass the
+ * lowest MMR anyone can enter the season with, so nobody starts outside the
+ * ladder.
+ */
+export function computePercentileLadder<T extends { level: number; percentile: number }>(
+  tiers: T[],
+  values: number[],
+  floorBase: number,
+  transform: (mmr: number) => number,
+): Map<number, number> {
+  const result = new Map<number, number>();
+  if (values.length === 0) return result;
+
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const floor = Math.min(floorBase, transform(sorted[0]));
+
+  for (const tier of tiers) {
+    if (tier.percentile === 0) {
+      result.set(tier.level, floor);
+      continue;
+    }
+    const cut = sorted[Math.floor(n * tier.percentile)] ?? sorted[n - 1];
+    result.set(tier.level, Math.max(floor, transform(cut)));
+  }
+  return result;
 }
 
 // Monday 00:00 UTC of the week containing `now`. Only a fallback: clients send
@@ -165,17 +234,16 @@ export class RankedSeasonService {
         kFactor: input.kFactor ?? 32,
         placementMatches: input.placementMatches ?? 5,
         usePreviousMmr: input.usePreviousMmr ?? false,
+        softResetFactor: input.softResetFactor ?? 0.5,
         allowAsymmetricMatches: input.allowAsymmetricMatches ?? false,
         sourceTierSeasonId: input.sourceTierSeasonId ?? null,
+        tierScalingMode: input.tierScalingMode ?? "keep",
+        sourceMmrSeasonId: input.sourceMmrSeasonId ?? null,
       },
     );
 
     if (input.usePreviousMmr) {
-      await this.importPreviousMmr(
-        result.tournament.id,
-        input.disciplineId,
-        input.baseMmr ?? 1000,
-      );
+      await this.syncMmrSeeds(result.tournament.id);
     }
 
     return result;
@@ -192,18 +260,95 @@ export class RankedSeasonService {
     const config = await rankedSeasonRepository.getConfigByTournamentId(id);
     const baseMmr = config?.baseMmr ?? 1000;
 
+    // Last chance to pick up a source season that only finished after this one
+    // was drafted.
+    await this.syncMmrSeeds(id);
+
     await tournamentRepository.update(id, { status: "ongoing" });
-    if (config?.sourceTierSeasonId) {
-      await rankedSeasonRepository.copyTiersFromSeason(
-        config.sourceTierSeasonId,
-        id,
-        baseMmr,
-      );
-    } else {
+    const copied = config?.sourceTierSeasonId
+      ? await this.copyTiersFromSeason(id, config.sourceTierSeasonId, config)
+      : false;
+    if (!copied) {
       await rankedSeasonRepository.initDefaultTiers(id, baseMmr);
     }
 
     return await rankedSeasonRepository.getSeasonWithConfig(id);
+  }
+
+  /**
+   * Reuses another season's ladder: same names, percentiles, sub-ranks and icons.
+   *
+   * The MMR thresholds follow `tierScalingMode`:
+   * - `keep` (default) copies them verbatim. Nothing rewrites a ladder the admin
+   *   set up, and the admin recalculation stays a manual action.
+   * - `percentile` rebuilds them from the source season's peak-MMR distribution,
+   *   mapped onto the new scale by the same transform as the player seeds.
+   *
+   * Returns false when the source has no ladder to copy, so the caller can fall
+   * back to the default tiers instead of leaving the season with none.
+   */
+  private async copyTiersFromSeason(
+    seasonId: string,
+    sourceTierSeasonId: string,
+    config: {
+      baseMmr: number;
+      softResetFactor: number;
+      usePreviousMmr: boolean;
+      tierScalingMode: TierScalingMode;
+    },
+  ): Promise<boolean> {
+    const sourceTiers = await rankedSeasonRepository.getRankTiers(sourceTierSeasonId);
+    if (sourceTiers.length === 0) return false;
+
+    const thresholds =
+      config.tierScalingMode === "percentile"
+        ? await this.percentileThresholdsFrom(seasonId, sourceTierSeasonId, sourceTiers, config)
+        : new Map<number, number>();
+
+    await rankedSeasonRepository.insertTiers(
+      seasonId,
+      sourceTiers.map((tier) => ({
+        level: tier.level,
+        name: tier.name,
+        percentile: tier.percentile,
+        subRanks: tier.subRanks,
+        iconClass: tier.iconClass,
+        minMmr: thresholds.get(tier.level) ?? tier.minMmr,
+      })),
+    );
+    return true;
+  }
+
+  /**
+   * Thresholds derived from the peak MMR the source season's settled players
+   * reached — a steadier measure of level than the closing snapshot, which only
+   * captures where a player happened to end. Empty when the source season has no
+   * eligible player, which leaves the copied thresholds untouched.
+   */
+  private async percentileThresholdsFrom(
+    seasonId: string,
+    sourceSeasonId: string,
+    tiers: { level: number; percentile: number }[],
+    config: { baseMmr: number; softResetFactor: number; usePreviousMmr: boolean },
+  ): Promise<Map<number, number>> {
+    const minMatches = await this.getCarryOverMinMatches(sourceSeasonId);
+    const stats = await playerMmrRepository.getSeasonMmrStats(sourceSeasonId, minMatches);
+    const peaks = stats.map((row) => row.peakMmr);
+    const anchor = medianMmr(peaks);
+    if (anchor === null) return new Map();
+
+    // The seeds come from the closing MMR, the thresholds from the peaks: someone
+    // who ended far below their peak would otherwise start under the bottom tier.
+    // Their seed is what the ladder has to reach down to.
+    const seeds = await mmrSeedRepository.getMapBySeason(seasonId);
+    const floorBase = Math.min(config.baseMmr, ...seeds.values());
+
+    // Without carry-over everyone restarts at baseMmr and will spread out from
+    // there with last season's amplitude: the ladder is shifted, not squeezed.
+    const factor = config.usePreviousMmr ? config.softResetFactor : 1;
+    return computePercentileLadder(tiers, peaks, floorBase, (mmr) =>
+      computeSoftResetMmr({ mmr, anchor, baseMmr: config.baseMmr, factor }),
+    );
   }
 
   async endSeason(id: string, userId: string) {
@@ -312,13 +457,31 @@ export class RankedSeasonService {
       configUpdate.placementMatches = input.placementMatches;
     if (input.usePreviousMmr !== undefined)
       configUpdate.usePreviousMmr = input.usePreviousMmr;
+    if (input.softResetFactor !== undefined)
+      configUpdate.softResetFactor = input.softResetFactor;
     if (input.allowAsymmetricMatches !== undefined)
       configUpdate.allowAsymmetricMatches = input.allowAsymmetricMatches;
     if (input.sourceTierSeasonId !== undefined)
       configUpdate.sourceTierSeasonId = input.sourceTierSeasonId;
+    if (input.tierScalingMode !== undefined)
+      configUpdate.tierScalingMode = input.tierScalingMode;
+    if (input.sourceMmrSeasonId !== undefined)
+      configUpdate.sourceMmrSeasonId = input.sourceMmrSeasonId;
 
-    if (Object.keys(configUpdate).length > 0) {
-      await rankedSeasonRepository.updateConfig(id, configUpdate);
+    if (Object.keys(configUpdate).length === 0) return;
+
+    await rankedSeasonRepository.updateConfig(id, configUpdate);
+
+    // The seeds depend on the carry-over flag, its source season, the reset
+    // factor and baseMmr. Recomputing on any config change also makes the toggle
+    // reversible, which the create-only import never was.
+    const affectsSeeds =
+      input.usePreviousMmr !== undefined ||
+      input.softResetFactor !== undefined ||
+      input.sourceMmrSeasonId !== undefined ||
+      input.baseMmr !== undefined;
+    if (affectsSeeds) {
+      await this.syncMmrSeeds(id);
     }
   }
 
@@ -338,15 +501,29 @@ export class RankedSeasonService {
     const tiers = await rankedSeasonRepository.getRankTiers(seasonId);
     if (tiers.length === 0) return;
 
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    const placementMatches = config?.placementMatches ?? 0;
     const allPlayers =
       await playerMmrRepository.getAllPlayersBySeasonId(seasonId);
-    const sorted = allPlayers.map((p) => p.currentMmr).sort((a, b) => a - b);
+    // Players still in placement are not ranked, so they must not shape the
+    // percentile boundaries either: their MMR is by definition unsettled.
+    const sorted = allPlayers
+      .filter((p) => p.matchesPlayed >= placementMatches)
+      .map((p) => p.currentMmr)
+      .sort((a, b) => a - b);
     const n = sorted.length;
 
+    // Nobody settled yet: percentiles of an empty distribution say nothing, and
+    // writing baseMmr everywhere would flatten a perfectly good ladder into a
+    // single tier. The existing thresholds are left alone until someone is ranked.
+    if (n === 0) return;
+
     for (const tier of tiers) {
+      // The bottom tier is a floor, not a percentile: it has to catch the weakest
+      // player, who may well sit below baseMmr.
       const minMmr =
-        tier.percentile === 0 || n === 0
-          ? baseMmr
+        tier.percentile === 0
+          ? Math.min(baseMmr, sorted[0])
           : (sorted[Math.floor(n * tier.percentile)] ?? baseMmr);
       await rankedSeasonRepository.upsertRankTier(seasonId, tier.level, {
         minMmr,
@@ -355,36 +532,76 @@ export class RankedSeasonService {
   }
 
   /**
-   * Import MMR from previous season with soft reset: newMmr = baseMmr + (oldMmr - baseMmr) * 0.5
+   * (Re)computes the entry MMR of every player carried over from the source
+   * season. Writes to `season_mmr_seeds` only: a seed must not create a
+   * `player_mmr` row, or a player who never plays this season would show up in
+   * the leaderboard, in the tier percentiles and in the rewind ranking.
+   *
+   * Idempotent — the source season is finished, so its MMR is frozen. Safe to
+   * call again on every config change, and reversible: unchecking the carry-over
+   * drops the seeds.
    */
-  private async importPreviousMmr(
-    newSeasonId: string,
-    disciplineId: string,
-    baseMmr: number,
-  ) {
-    const lastSeason =
-      await rankedSeasonRepository.getLastFinishedSeason(disciplineId);
-    if (!lastSeason) return;
-
-    const prevPlayers = await playerMmrRepository.getAllPlayersBySeasonId(
-      lastSeason.id,
-    );
-
-    for (const prev of prevPlayers) {
-      const newMmr = Math.round(baseMmr + (prev.currentMmr - baseMmr) * 0.5);
-      await playerMmrRepository.upsert({
-        seasonId: newSeasonId,
-        playerId: prev.playerId,
-        currentMmr: newMmr,
-        matchesPlayed: 0,
-        wins: 0,
-        losses: 0,
-        winStreak: 0,
-        maxWinStreak: 0,
-        lossStreak: 0,
-        maxLossStreak: 0,
-      });
+  async syncMmrSeeds(seasonId: string): Promise<void> {
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    if (!config?.usePreviousMmr) {
+      await mmrSeedRepository.deleteBySeason(seasonId);
+      return;
     }
+
+    const source = await this.resolveMmrSourceSeasonId(seasonId, config.sourceMmrSeasonId);
+    if (!source) {
+      await mmrSeedRepository.deleteBySeason(seasonId);
+      return;
+    }
+
+    const eligible = await this.getCarryOverEligiblePlayers(source);
+    const anchor = medianMmr(eligible.map((p) => p.currentMmr));
+    if (anchor === null) {
+      await mmrSeedRepository.deleteBySeason(seasonId);
+      return;
+    }
+
+    await mmrSeedRepository.replaceForSeason(
+      seasonId,
+      source,
+      eligible.map((player) => ({
+        playerId: player.playerId,
+        seedMmr: computeSoftResetMmr({
+          mmr: player.currentMmr,
+          anchor,
+          baseMmr: config.baseMmr,
+          factor: config.softResetFactor,
+        }),
+      })),
+    );
+  }
+
+  private async resolveMmrSourceSeasonId(
+    seasonId: string,
+    configuredSourceId: string | null,
+  ): Promise<string | null> {
+    if (configuredSourceId) return configuredSourceId;
+    const season = await rankedSeasonRepository.getSeasonWithConfig(seasonId);
+    if (!season?.disciplineId) return null;
+    const lastSeason = await rankedSeasonRepository.getLastFinishedSeason(
+      season.disciplineId,
+    );
+    return lastSeason?.id ?? null;
+  }
+
+  // Only players who completed their placement in the source season carry their
+  // MMR over: below that threshold the value says more about who they happened to
+  // meet than about their level, so they are better off starting at baseMmr.
+  private async getCarryOverEligiblePlayers(sourceSeasonId: string) {
+    const minMatches = await this.getCarryOverMinMatches(sourceSeasonId);
+    const players = await playerMmrRepository.getAllPlayersBySeasonId(sourceSeasonId);
+    return players.filter((p) => p.matchesPlayed >= minMatches);
+  }
+
+  private async getCarryOverMinMatches(sourceSeasonId: string): Promise<number> {
+    const sourceConfig =
+      await rankedSeasonRepository.getConfigByTournamentId(sourceSeasonId);
+    return Math.max(1, sourceConfig?.placementMatches ?? 1);
   }
 
   // Deliberately uncached: the computed_data cache is only invalidated on match
@@ -440,6 +657,7 @@ export class RankedSeasonService {
     const ctx: ProvisionalReplayCtx = {
       baseMmr: config.baseMmr,
       kFactor: config.kFactor,
+      entryMmr: await mmrSeedRepository.getMapBySeason(seasonId),
       provisionalMmr: new Map(players.map((p) => [p.playerId, p.currentMmr])),
       provisionalResults: new Map(
         players.map((p) => [p.playerId, [...((p as ClientPlayerMmr).recentResults ?? [])].reverse()]),
@@ -509,7 +727,10 @@ export class RankedSeasonService {
   }
 
   private averageMmr(ids: string[], ctx: ProvisionalReplayCtx): number {
-    const total = ids.reduce((s, id) => s + (ctx.provisionalMmr.get(id) ?? ctx.baseMmr), 0);
+    const total = ids.reduce(
+      (s, id) => s + (ctx.provisionalMmr.get(id) ?? entryMmrOf(id, ctx)),
+      0,
+    );
     return total / ids.length;
   }
 
@@ -535,7 +756,7 @@ export class RankedSeasonService {
     );
 
     for (const playerId of playerIds) {
-      const mmr = ctx.provisionalMmr.get(playerId) ?? ctx.baseMmr;
+      const mmr = ctx.provisionalMmr.get(playerId) ?? entryMmrOf(playerId, ctx);
       const delta = mmrCalculationService.calculateMmrDelta(mmr, oppAvgMmr, result, kEff);
       ctx.provisionalMmr.set(playerId, Math.max(1, mmr + delta));
       const prev = ctx.provisionalResults.get(playerId) ?? [];
@@ -575,7 +796,7 @@ export class RankedSeasonService {
       id: `provisional-${user.id}`,
       seasonId,
       playerId: user.id,
-      currentMmr: ctx.provisionalMmr.get(user.id) ?? ctx.baseMmr,
+      currentMmr: ctx.provisionalMmr.get(user.id) ?? entryMmrOf(user.id, ctx),
       matchesPlayed: 0,
       wins: 0,
       losses: 0,

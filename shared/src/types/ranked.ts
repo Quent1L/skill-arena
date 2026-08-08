@@ -15,6 +15,16 @@ import {
 // Types and interfaces for Ranked mode
 // ============================================
 
+/**
+ * What happens to the MMR thresholds of a ladder copied from another season.
+ * `keep` copies them verbatim; `percentile` rebuilds them from the source
+ * season's peak-MMR distribution. Nothing else ever rewrites them on its own —
+ * the admin recalculation stays a manual action.
+ */
+export type TierScalingMode = "keep" | "percentile";
+
+export const tierScalingModes: readonly TierScalingMode[] = ["keep", "percentile"];
+
 export interface RankedSeasonConfig {
   id: string;
   tournamentId: string;
@@ -22,8 +32,13 @@ export interface RankedSeasonConfig {
   kFactor: number;
   placementMatches: number;
   usePreviousMmr: boolean;
+  /** Share of a player's distance to the source season's median MMR that is kept. */
+  softResetFactor: number;
   allowAsymmetricMatches: boolean;
   sourceTierSeasonId?: string | null;
+  tierScalingMode: TierScalingMode;
+  /** Season the MMR is carried over from. Null = last finished season. */
+  sourceMmrSeasonId?: string | null;
 }
 
 export interface PlayerMmr {
@@ -172,8 +187,11 @@ const rankedSeasonExtraFields = {
   kFactor: z.number().int().min(8).max(128),
   placementMatches: z.number().int().min(0).max(20),
   usePreviousMmr: z.boolean(),
+  softResetFactor: z.number().min(0).max(1),
   allowAsymmetricMatches: z.boolean(),
   sourceTierSeasonId: z.string().uuid().nullable().optional(),
+  tierScalingMode: z.enum(["keep", "percentile"]),
+  sourceMmrSeasonId: z.string().uuid().nullable().optional(),
 };
 
 export const baseRankedSeasonFormSchema =
@@ -185,8 +203,11 @@ export const baseRankedSeasonUpdateFormSchema =
     kFactor: z.number().int().min(8).max(128).optional(),
     placementMatches: z.number().int().min(0).max(20).optional(),
     usePreviousMmr: z.boolean().optional(),
+    softResetFactor: z.number().min(0).max(1).optional(),
     allowAsymmetricMatches: z.boolean().optional(),
     sourceTierSeasonId: z.string().uuid().nullable().optional(),
+    tierScalingMode: z.enum(["keep", "percentile"]).optional(),
+    sourceMmrSeasonId: z.string().uuid().nullable().optional(),
   });
 
 export const createRankedSeasonFormSchema = baseRankedSeasonFormSchema
@@ -288,8 +309,11 @@ export const updateRankedSeasonSchema = z.object({
   kFactor: z.number().int().min(8).max(128).optional(),
   placementMatches: z.number().int().min(1).max(20).optional(),
   usePreviousMmr: z.boolean().optional(),
+  softResetFactor: z.number().min(0).max(1).optional(),
   allowAsymmetricMatches: z.boolean().optional(),
   sourceTierSeasonId: z.string().uuid().nullable().optional(),
+  tierScalingMode: z.enum(["keep", "percentile"]).optional(),
+  sourceMmrSeasonId: z.string().uuid().nullable().optional(),
   validationMode: validationModeSchema.optional(),
   validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });

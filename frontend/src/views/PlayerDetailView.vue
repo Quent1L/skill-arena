@@ -86,6 +86,7 @@
             :best-partners="stats?.bestPartners"
             :nemeses="stats?.nemeses"
             :opponent-quality="rankedOpponentQuality"
+            :placement-matches="rankedPlacementMatches"
             :recent-form="stats?.recentForm"
             :outcome-type-stats="stats?.outcomeTypeStats"
           />
@@ -363,6 +364,7 @@ const rankedMmr = ref<ClientPlayerMmr | null>(null)
 const rankedTiers = ref<ClientRankTier[]>([])
 const rankedHistory = ref<MmrChartPoint[]>([])
 const rankedOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
+const rankedPlacementMatches = ref(0)
 const rankedLoading = ref(false)
 
 async function loadRankedData(seasonId: string, pid: string) {
@@ -377,10 +379,12 @@ async function loadRankedData(seasonId: string, pid: string) {
     rankedTiers.value = mmrData.tiers
     rankedOpponentQuality.value = mmrData.opponentQuality
     rankedHistory.value = mmrData.chartHistory
+    rankedPlacementMatches.value = mmrData.placementMatches ?? 0
   } catch {
     rankedMmr.value = null
     rankedTiers.value = []
     rankedOpponentQuality.value = undefined
+    rankedPlacementMatches.value = 0
   } finally {
     rankedLoading.value = false
   }

@@ -5,6 +5,7 @@ import { matches, matchSides, tournamentEntries, tournamentEntryPlayers } from "
 import { mmrAnimationEventRepository } from "../repository/mmr-animation-event.repository";
 import type { UpsertMmrAnimationEventData } from "../repository/mmr-animation-event.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
+import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { mmrCalculationService } from "./mmr-calculation.service";
 import { webSocketService } from "./websocket.service";
@@ -120,10 +121,13 @@ export class MmrAnimationEventService {
     baseMmr: number,
   ): Promise<Map<string, MmrRecord>> {
     const records = new Map<string, MmrRecord>();
+    // No row yet means the player has not played this season: their MMR is the one
+    // carried over from the previous season, if any, not baseMmr.
+    const entryMmr = await mmrSeedRepository.getMapBySeason(seasonId);
     for (const playerId of playerIds) {
       const record = await playerMmrRepository.getBySeasonAndPlayer(seasonId, playerId);
       records.set(playerId, {
-        currentMmr: record?.currentMmr ?? baseMmr,
+        currentMmr: record?.currentMmr ?? entryMmr.get(playerId) ?? baseMmr,
         matchesPlayed: record?.matchesPlayed ?? 0,
       });
     }

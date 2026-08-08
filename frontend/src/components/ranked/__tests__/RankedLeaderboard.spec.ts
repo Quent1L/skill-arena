@@ -196,6 +196,64 @@ describe('RankedLeaderboard', () => {
     })
   })
 
+  // Un joueur en placement n'a pas de MMR arrêté: il est listé à part, sans rang ni
+  // MMR, et ne compte pas dans le classement des autres.
+  describe('joueurs en placement', () => {
+    const inPlacement = makePlayerMmr({
+      currentMmr: 1450,
+      matchesPlayed: 2,
+      recentResults: [],
+      player: { id: 'u3', displayName: 'Charlie', shortName: 'CH' },
+    })
+
+    function mountWithPlacement(props: Record<string, unknown> = {}) {
+      return mountBoard({ players: [...players, inPlacement], placementMatches: 5, ...props })
+    }
+
+    it('les sort des tiers et les liste dans une section dédiée, en bas', () => {
+      const wrapper = mountWithPlacement()
+      const text = wrapper.text()
+      expect(text).toContain('rankedLeaderboard.placementSection')
+      expect(text.indexOf('Gold')).toBeLessThan(text.indexOf('rankedLeaderboard.placementSection'))
+      expect(text.indexOf('rankedLeaderboard.placementSection')).toBeLessThan(
+        text.indexOf('Charlie'),
+      )
+    })
+
+    it("n'affiche jamais leur MMR, seulement leur progression", () => {
+      const wrapper = mountWithPlacement()
+      const row = wrapper
+        .findAllComponents(RouterLinkStub)
+        .find((r) => r.text().includes('Charlie'))!
+      expect(row.text()).not.toContain('1450')
+      expect(row.text()).toContain('rankedLeaderboard.placementProgress')
+    })
+
+    it('ne décale pas les rangs des joueurs classés', () => {
+      const wrapper = mountWithPlacement()
+      const rankOf = (name: string) =>
+        wrapper
+          .findAllComponents(RouterLinkStub)
+          .find((r) => r.text().includes(name))!
+          .find('.w-5')
+          .text()
+      // Charlie serait 1er sur son MMR: il ne prend la place de personne.
+      expect(rankOf('Alice')).toBe('1')
+      expect(rankOf('Bob')).toBe('2')
+    })
+
+    it('sans matchs de placement configurés, tout le monde est classé', () => {
+      const wrapper = mountWithPlacement({ placementMatches: 0 })
+      expect(wrapper.text()).not.toContain('rankedLeaderboard.placementSection')
+      expect(wrapper.text()).toContain('1450')
+    })
+
+    it('la section disparaît quand plus personne n’est en placement', () => {
+      const wrapper = mountBoard({ players, placementMatches: 5 })
+      expect(wrapper.text()).not.toContain('rankedLeaderboard.placementSection')
+    })
+  })
+
   // Sur mobile les vues sont des volets voisins dans une piste draggable, pas un
   // rendu unique: elles sont montées ensemble pour que le doigt puisse les faire glisser.
   describe('mobile', () => {

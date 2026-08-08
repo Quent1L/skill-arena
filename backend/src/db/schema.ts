@@ -16,6 +16,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import type { TierScalingMode } from "@skol-arena/shared/types/index";
 
 // ********************************************************************
 // [Start] Database schema for Better Auth with Drizzle ORM and PostgreSQL
@@ -671,13 +672,53 @@ export const rankedSeasonConfigs = pgTable("ranked_season_configs", {
   kFactor: integer("k_factor").notNull().default(32),
   placementMatches: integer("placement_matches").notNull().default(5),
   usePreviousMmr: boolean("use_previous_mmr").notNull().default(false),
+  // How much of a player's distance to the previous season's median is kept when
+  // seeding the new season. 0 = everyone starts at baseMmr, 1 = no compression.
+  softResetFactor: real("soft_reset_factor").notNull().default(0.5),
   allowAsymmetricMatches: boolean("allow_asymmetric_matches")
     .notNull()
     .default(false),
   sourceTierSeasonId: uuid("source_tier_season_id").references(() => tournaments.id, {
     onDelete: "set null",
   }),
+  // What to do with the MMR thresholds of a copied ladder: keep them as they are,
+  // or rebuild them from the source season's peak-MMR percentiles.
+  tierScalingMode: text("tier_scaling_mode")
+    .$type<TierScalingMode>()
+    .notNull()
+    .default("keep"),
+  // Season the MMR is carried over from. Null falls back to the last finished
+  // season of the discipline.
+  sourceMmrSeasonId: uuid("source_mmr_season_id").references(() => tournaments.id, {
+    onDelete: "set null",
+  }),
 });
+
+/**
+ * Entry MMR of a player for a season, computed once when the season carries the
+ * previous season's ranks over. Kept out of `player_mmr` on purpose: a seed must
+ * not put anyone in the leaderboard, in the tier percentiles or in the rewind
+ * ranking before they have played. Every recalculation reads it as the starting
+ * point instead of `base_mmr`, which is what makes the carry-over survive.
+ */
+export const seasonMmrSeeds = pgTable(
+  "season_mmr_seeds",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seasonId: uuid("season_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    seedMmr: integer("seed_mmr").notNull(),
+    sourceSeasonId: uuid("source_season_id").references(() => tournaments.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.seasonId, table.playerId)],
+);
 
 export const playerMmr = pgTable(
   "player_mmr",
@@ -1358,6 +1399,17 @@ export const mmrHistoryRelations = relations(mmrHistory, ({ one }) => ({
   match: one(matches, {
     fields: [mmrHistory.matchId],
     references: [matches.id],
+  }),
+}));
+
+export const seasonMmrSeedsRelations = relations(seasonMmrSeeds, ({ one }) => ({
+  season: one(tournaments, {
+    fields: [seasonMmrSeeds.seasonId],
+    references: [tournaments.id],
+  }),
+  player: one(appUsers, {
+    fields: [seasonMmrSeeds.playerId],
+    references: [appUsers.id],
   }),
 }));
 
