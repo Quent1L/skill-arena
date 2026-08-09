@@ -164,9 +164,20 @@ function toggleMenu(event: Event) {
   menu.value.toggle(event)
 }
 
-function handleLogout() {
-  logout()
-  router.push('/login')
+/**
+ * The await is load-bearing: /login is behind `redirectIfAuthenticated`, so
+ * navigating before `signOut()` has resolved leaves the session still set and
+ * the guard bounces the user straight back into the app.
+ * `replace` rather than `push`, so Back does not lead into a logged-out shell.
+ */
+async function handleLogout() {
+  try {
+    await logout()
+  } catch {
+    // The error is already surfaced through the auth state. Either way the user
+    // asked to leave, so send them out instead of stranding them mid-session.
+  }
+  await router.replace('/login')
 }
 
 function toggleNotifications(event: Event) {
