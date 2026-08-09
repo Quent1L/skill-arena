@@ -25,6 +25,14 @@ mock.module("../../repository/player-computed-data.repository", () => ({
   playerComputedDataRepository: mockPlayerComputedDataRepo,
 }));
 
+// Unmocked, this one reaches graphile-worker and inserts a job carrying the
+// fixture id into whatever DATABASE_URL points at — a poison job the real
+// worker then retries 25 times.
+const mockEnqueueRewindIdentityRefresh = mock((_ids: any) => Promise.resolve());
+mock.module("../mmr-job-queue.service", () => ({
+  enqueueRewindIdentityRefresh: mockEnqueueRewindIdentityRefresh,
+}));
+
 import { PlayerCacheService } from "../player-cache.service";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
@@ -37,6 +45,7 @@ beforeEach(() => {
   mockPlayerStatsRepo.getTournamentIdsByPlayers.mockClear();
   mockPlayerStatsRepo.getPlayerIdsByTournaments.mockClear();
   mockPlayerComputedDataRepo.deleteMany.mockClear();
+  mockEnqueueRewindIdentityRefresh.mockClear();
 
   mockPlayerStatsRepo.getTournamentIdsByPlayers.mockImplementation(() => Promise.resolve([]));
   mockPlayerStatsRepo.getPlayerIdsByTournaments.mockImplementation(() => Promise.resolve([]));
@@ -92,11 +101,18 @@ describe("PlayerCacheService", () => {
     expect(mockPlayerComputedDataRepo.deleteMany).toHaveBeenCalledWith([PLAYER_ID]);
   });
 
+  it("queues the rewind identity refresh for the renamed players", async () => {
+    await service.invalidateDenormalizedNames([PLAYER_ID]);
+
+    expect(mockEnqueueRewindIdentityRefresh).toHaveBeenCalledWith([PLAYER_ID]);
+  });
+
   it("does nothing without a player", async () => {
     await service.invalidateDenormalizedNames([]);
 
     expect(mockPlayerStatsRepo.getTournamentIdsByPlayers).not.toHaveBeenCalled();
     expect(mockStandingsRepo.deleteComputedDataMany).not.toHaveBeenCalled();
     expect(mockPlayerComputedDataRepo.deleteMany).not.toHaveBeenCalled();
+    expect(mockEnqueueRewindIdentityRefresh).not.toHaveBeenCalled();
   });
 });
