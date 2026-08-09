@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.20.2](https://github.com/Quent1L/skol-arena/compare/1.20.1...1.20.2) (2026-08-09)
+
+### 🎨 Style
+
+* **stats:** stack outcome-type card header on mobile ([b957724](https://github.com/Quent1L/skol-arena/commit/b9577240f6a97a1810ddb6b36bcaddd460ef5564))
+
 ## [1.20.1](https://github.com/Quent1L/skol-arena/compare/1.20.0...1.20.1) (2026-08-09)
 
 ### 🔧 Maintenance
