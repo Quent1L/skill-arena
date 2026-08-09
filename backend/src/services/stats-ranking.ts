@@ -124,14 +124,16 @@ export function cutWholeRankGroups<T>(
   maxRows: number,
 ): { shown: RankedEntry<T>[]; omitted: RankedEntry<T>[] } {
   const shown: RankedEntry<T>[] = [];
-  let ranks = 0;
   let cursor = 0;
 
-  while (cursor < ranked.length && ranks < maxRanks) {
+  // Compare against the entry's actual competition rank, not the number of groups
+  // visited: a tie at rank 1 consumes two rank *slots*, so the next group already
+  // starts at rank 3 — counting groups instead would let it through as if it were
+  // still within the top 3.
+  while (cursor < ranked.length && ranked[cursor]!.rank <= maxRanks) {
     const size = ranked[cursor]!.tiedCount;
     if (shown.length + size > maxRows) break;
     shown.push(...ranked.slice(cursor, cursor + size));
-    ranks++;
     cursor += size;
   }
 

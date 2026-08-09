@@ -60,6 +60,16 @@ describe("cutWholeRankGroups", () => {
     expect(shown).toHaveLength(2);
     expect(omitted).toHaveLength(2);
   });
+
+  it("counts rank slots consumed by an earlier tie, not groups visited", () => {
+    // Ranks 1, 1, 3, 4: the tie at rank 1 already fills two of the three rank
+    // slots, so only rank 3 fits — rank 4 must be dropped even though it's only
+    // the third *group* seen.
+    const { shown, omitted } = cutWholeRankGroups(rank([63, 63, 54, 53]), 3, 6);
+
+    expect(shown.map((e) => e.item.score)).toEqual([63, 63, 54]);
+    expect(omitted.map((e) => e.item.score)).toEqual([53]);
+  });
 });
 
 describe("omittedTiedWithLast", () => {
