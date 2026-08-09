@@ -358,6 +358,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: t('routes.rewinds'),
       requiresAuth: true,
+      hideBreadcrumb: true,
     },
   },
   {
@@ -386,6 +387,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'tournament-detail',
+        component: () => import('@/views/tournament/tabs/TournamentTabView.vue'),
       },
       {
         path: ':tab',
