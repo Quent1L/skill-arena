@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, beforeEach } from "bun:test";
-import { createTestDatabase } from "../../../config/test-database";
+import { describe, it, expect, afterAll, beforeAll, beforeEach } from "bun:test";
+import { createTestDatabase, closeTestDatabase } from "../../../config/test-database";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import * as schema from "../../../db/schema";
 
@@ -188,6 +188,12 @@ describe("Season rewind generation (integration)", () => {
 
   beforeAll(async () => {
     adminId = await createPlayer("Admin");
+  });
+
+  // Without this the PGlite instance is still open at exit and bun leaves the
+  // process with code 99, even though every test passed.
+  afterAll(async () => {
+    await closeTestDatabase();
   });
 
   beforeEach(async () => {
