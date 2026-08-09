@@ -9,13 +9,15 @@
       <Card>
         <template #content>
           <div v-if="!submitted">
-            <p class="text-gray-700 mb-6">
+            <p class="text-white mb-6">
               {{ t('forgotPasswordView.instructions') }}
             </p>
 
             <form @submit="onSubmit" class="space-y-6">
               <div class="flex flex-col gap-2">
-                <label for="email" class="font-medium">{{ t('forgotPasswordView.emailLabel') }}</label>
+                <label for="email" class="font-medium">{{
+                  t('forgotPasswordView.emailLabel')
+                }}</label>
                 <InputText
                   id="email"
                   v-model="email"
@@ -58,13 +60,16 @@
           <div v-else class="text-center py-4">
             <i class="fa fa-check-circle text-green-500 text-5xl mb-4"></i>
             <h3 class="text-xl font-semibold mb-2">{{ t('forgotPasswordView.successTitle') }}</h3>
-            <p class="text-gray-700 mb-6">
+            <p class="text-white mb-6">
               {{ t('forgotPasswordView.successMessage') }}
             </p>
-            <p class="text-sm text-gray-600 mb-6">
+            <p class="text-sm text-white mb-6">
               {{ t('forgotPasswordView.spamNote') }}
             </p>
-            <Button :label="t('forgotPasswordView.backToLoginButton')" @click="router.push('/login')" />
+            <Button
+              :label="t('forgotPasswordView.backToLoginButton')"
+              @click="router.push('/login')"
+            />
           </div>
         </template>
       </Card>
