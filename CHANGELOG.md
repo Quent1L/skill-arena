@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.20.1](https://github.com/Quent1L/skol-arena/compare/1.20.0...1.20.1) (2026-08-09)
+
+### 🔧 Maintenance
+
+* **docker:** switch base image to bun slim ([2f7c162](https://github.com/Quent1L/skol-arena/commit/2f7c1626ceec0c17c7fe722814742bcacbbefc80))
+
 ## [1.20.0](https://github.com/Quent1L/skol-arena/compare/1.19.0...1.20.0) (2026-08-09)
 
 ### ✨ New Features
