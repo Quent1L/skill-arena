@@ -57,10 +57,18 @@ jobs:
             echo "proceed=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Run the suite as its own step: release-it swallows the pre-commit hook
+      # output into a single error string, which GitHub truncates, hiding which
+      # test actually failed. HUSKY=0 below stops it running a second time.
+      - name: Tests
+        if: steps.gate.outputs.proceed == 'true'
+        run: bun run test:unit
+
       - if: steps.gate.outputs.proceed == 'true'
         run: bunx release-it --ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: "0"
 
       - name: Read released version
         if: steps.gate.outputs.proceed == 'true'
