@@ -2022,7 +2022,6 @@
       "honourRollWinners": "Pulled it off ({count})",
       "king": "Kings of {name}",
       "lossCount": "{count} loss | {count} losses",
-      "losers": "Losers",
       "lowSample": "Small sample",
       "lowSampleTooltip": "No player reached {count} matches on this outcome type, so the usual threshold was lifted rather than hiding the ranking. Take it with a pinch of salt.",
       "matchCount": "{count} match | {count} matches",
@@ -2032,12 +2031,13 @@
       "shareOfTotal": "{pct} % of total",
       "title": "Stats by outcome type",
       "victim": "Victims of {name}",
+      "viewLosers": "View losers",
+      "viewWinners": "View winners",
       "volume": "Volume",
       "volumeTooltip": "Ranked by the raw number of results of this type, with no weighting by matches played. An equal count means a shared rank: separating players on their rate is the neighbouring column's job.",
       "vulnerability": "Vulnerability",
       "vulnerabilityTooltip": "Ranked by loss rate weighted by match count (rate × √matches), from {count} matches on this outcome type. A perfect rate over 3 matches therefore stays behind a high rate over 30.",
-      "winCount": "{count} win | {count} wins",
-      "winners": "Winners"
+      "winCount": "{count} win | {count} wins"
     },
     "weeklyMmr": {
       "empty": "No data",

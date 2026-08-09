@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { RouterLinkStub } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { RouterLinkStub, type VueWrapper } from '@vue/test-utils'
 import type {
   OutcomeTypeFunStat,
   OutcomeTypeLeader,
@@ -68,7 +68,17 @@ function rateTooltip(wrapper: ReturnType<typeof mountWithPrime>) {
   return wrapper.findAllComponents(InfoTooltip)[1]!
 }
 
+/** Clicks a card's flip button and fast-forwards past the mid-flip content swap. */
+async function flipCard(wrapper: VueWrapper, index = 0): Promise<void> {
+  await wrapper.findAll('[data-test="outcome-type-side-toggle"]')[index]!.trigger('click')
+  await vi.advanceTimersByTimeAsync(150)
+}
+
 describe('OutcomeTypeFunStats', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('affiche volume et efficacité côte à côte pour chaque type de résultat', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
@@ -84,13 +94,21 @@ describe('OutcomeTypeFunStats', () => {
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.matchCount:40')
   })
 
-  it('bascule les deux colonnes sur les perdants via le sélecteur', async () => {
+  it('le bouton de la carte nomme la vue vers laquelle il mène', () => {
+    const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
+
+    expect(wrapper.find('[data-test="outcome-type-side-toggle"]').text()).toContain(
+      'tournamentStatsTab.outcomeTypeFunStats.viewLosers',
+    )
+  })
+
+  it('bascule les deux colonnes de la carte sur les perdants au clic', async () => {
+    vi.useFakeTimers()
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     expect(wrapper.text()).toContain('Thomas')
 
-    const toggle = wrapper.findComponent({ name: 'SelectButton' })
-    await toggle.vm.$emit('update:modelValue', 'losers')
+    await flipCard(wrapper)
 
     const text = wrapper.text()
     expect(text).toContain('Matéo')
@@ -100,9 +118,38 @@ describe('OutcomeTypeFunStats', () => {
     // the card title follows the side too
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Fin normale')
     expect(text).not.toContain('tournamentStatsTab.outcomeTypeFunStats.king')
+    // and the button now offers to flip back
+    expect(wrapper.find('[data-test="outcome-type-side-toggle"]').text()).toContain(
+      'tournamentStatsTab.outcomeTypeFunStats.viewWinners',
+    )
+  })
+
+  it('ne bascule que la carte cliquée, pas les autres', async () => {
+    vi.useFakeTimers()
+    const statA = funStat({ outcomeTypeId: 'ot1', outcomeTypeName: 'Fin normale' })
+    const statB = funStat({
+      outcomeTypeId: 'ot2',
+      outcomeTypeName: 'Fin critique',
+      topWinnersByVolume: board([leader({ playerId: 'p5', displayName: 'Sacha' })]),
+    })
+    const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [statA, statB] } })
+
+    expect(wrapper.text()).toContain('Thomas')
+    expect(wrapper.text()).toContain('Sacha')
+
+    await flipCard(wrapper, 0)
+
+    const text = wrapper.text()
+    expect(text).toContain('Matéo') // first card switched to losers
+    expect(text).not.toContain('Thomas')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Fin normale')
+    // second card untouched, stays on winners
+    expect(text).toContain('Sacha')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.king:Fin critique')
   })
 
   it('parle de vulnérabilité et non d’efficacité côté perdants', async () => {
+    vi.useFakeTimers()
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     expect(wrapper.text()).toContain('tournamentStatsTab.outcomeTypeFunStats.efficiency')
@@ -110,7 +157,7 @@ describe('OutcomeTypeFunStats', () => {
       'tournamentStatsTab.outcomeTypeFunStats.efficiencyTooltip:3',
     )
 
-    await wrapper.findComponent({ name: 'SelectButton' }).vm.$emit('update:modelValue', 'losers')
+    await flipCard(wrapper)
 
     const text = wrapper.text()
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.vulnerability')

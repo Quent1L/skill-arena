@@ -2022,7 +2022,6 @@
       "honourRollWinners": "Ont réussi ce coup ({count})",
       "king": "Rois de {name}",
       "lossCount": "{count} défaite | {count} défaites",
-      "losers": "Perdants",
       "lowSample": "Échantillon faible",
       "lowSampleTooltip": "Aucun joueur n'atteint {count} matchs sur ce type de résultat : le seuil habituel a été levé pour ne pas masquer le classement. À prendre avec des pincettes.",
       "matchCount": "{count} match | {count} matchs",
@@ -2032,12 +2031,13 @@
       "shareOfTotal": "{pct} % du total",
       "title": "Stats par type de résultat",
       "victim": "Victimes de {name}",
+      "viewLosers": "Voir les perdants",
+      "viewWinners": "Voir les gagnants",
       "volume": "Volume",
       "volumeTooltip": "Classement au nombre brut de résultats de ce type, sans pondération par le nombre de matchs joués. À nombre égal, les joueurs partagent le même rang : c'est la colonne voisine qui les départage au taux.",
       "vulnerability": "Vulnérabilité",
       "vulnerabilityTooltip": "Classement par taux de défaite pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs sur ce type de résultat. Un 100 % sur 3 matchs reste donc derrière un 90 % sur 30.",
-      "winCount": "{count} victoire | {count} victoires",
-      "winners": "Gagnants"
+      "winCount": "{count} victoire | {count} victoires"
     },
     "weeklyMmr": {
       "empty": "Aucune donnée",
