@@ -7,6 +7,7 @@ import { seasonRewindService } from "../services/season-rewind.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
+import { userRepository } from "../repository/user.repository";
 import {
   createRankedSeasonSchema,
   updateRankedSeasonSchema,
@@ -44,10 +45,22 @@ ranked.post(
 );
 
 // GET /ranked/seasons - List ranked seasons
+// Public on purpose: the session is resolved when present only to fill
+// `isParticipant`, an anonymous caller gets the list with `false`.
 ranked.get("/seasons", async (c) => {
   const disciplineId = c.req.query("disciplineId");
   const status = c.req.query("status") as TournamentStatus | undefined;
-  const seasons = await rankedSeasonService.listSeasons({ disciplineId, status });
+
+  const betterAuthUser = c.get("user");
+  const appUser = betterAuthUser
+    ? await userRepository.getByExternalId(betterAuthUser.id)
+    : null;
+
+  const seasons = await rankedSeasonService.listSeasons({
+    disciplineId,
+    status,
+    ...(appUser && { viewerId: appUser.id }),
+  });
   return c.json(seasons);
 });
 

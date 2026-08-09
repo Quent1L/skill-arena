@@ -190,6 +190,7 @@ export class TournamentService {
       ...(!isAdmin && { excludeDraft: true }),
       // Exclude ranked seasons from the main tournament list (they have their own section)
       ...(!filters?.mode && { excludeRanked: true }),
+      ...(appUser && { viewerId: appUser.id }),
     };
     const allTournaments = await tournamentRepository.list(repoFilters);
 

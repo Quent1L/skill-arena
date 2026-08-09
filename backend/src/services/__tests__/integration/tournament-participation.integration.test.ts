@@ -308,6 +308,65 @@ describe("Tournament Participation Integration Tests", () => {
     });
   });
 
+  describe("listTournaments participation fields", () => {
+    function findTest(list: Awaited<ReturnType<typeof tournamentService.listTournaments>>) {
+      const found = list.find((t) => t.id === testTournamentId);
+      expect(found).toBeDefined();
+      return found!;
+    }
+
+    it("should report the viewer as a participant only once they joined", async () => {
+      const viewer = { id: testUserId, role: "player" };
+
+      let listed = findTest(await tournamentService.listTournaments({}, viewer));
+      expect(listed.isParticipant).toBe(false);
+      expect(listed.participantCount).toBe(0);
+
+      await tournamentService.joinTournament(testUserId, {
+        tournamentId: testTournamentId,
+      });
+
+      listed = findTest(await tournamentService.listTournaments({}, viewer));
+      expect(listed.isParticipant).toBe(true);
+      expect(listed.participantCount).toBe(1);
+    });
+
+    it("should not leak another player's participation to the viewer", async () => {
+      await tournamentService.joinTournament(anotherUserId, {
+        tournamentId: testTournamentId,
+      });
+
+      const listed = findTest(
+        await tournamentService.listTournaments({}, { id: testUserId, role: "player" }),
+      );
+      expect(listed.isParticipant).toBe(false);
+      expect(listed.participantCount).toBe(1);
+    });
+
+    it("should drop a withdrawn player from both the flag and the count", async () => {
+      const viewer = { id: testUserId, role: "player" };
+
+      await tournamentService.joinTournament(testUserId, {
+        tournamentId: testTournamentId,
+      });
+      await tournamentService.leaveTournament(testUserId, testTournamentId);
+
+      const listed = findTest(await tournamentService.listTournaments({}, viewer));
+      expect(listed.isParticipant).toBe(false);
+      expect(listed.participantCount).toBe(0);
+    });
+
+    it("should stay anonymous-safe when no user is resolved", async () => {
+      await tournamentService.joinTournament(testUserId, {
+        tournamentId: testTournamentId,
+      });
+
+      const listed = findTest(await tournamentService.listTournaments({}, null));
+      expect(listed.isParticipant).toBe(false);
+      expect(listed.participantCount).toBe(1);
+    });
+  });
+
   describe("countActiveParticipants", () => {
     it("should count active participants correctly", async () => {
       let count =

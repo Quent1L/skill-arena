@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="promoted"
-    class="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 p-5 text-white shadow-lg"
+    class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 p-5 text-white shadow-lg"
   >
     <i
       class="fa fa-film pointer-events-none absolute -right-4 -top-4 text-8xl text-white/10"

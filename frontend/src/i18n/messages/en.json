@@ -1779,6 +1779,7 @@
       "championship": "Championship",
       "ranked": "Ranked"
     },
+    "participants": "no player | {count} player | {count} players",
     "period": {
       "daysLeft": "{days}d left",
       "endingSoon": "Ending soon",
@@ -1793,7 +1794,10 @@
       "finished": "Finished",
       "ongoing": "Ongoing",
       "open": "Open"
-    }
+    },
+    "viewResults": "View results",
+    "youParticipate": "You're in",
+    "youParticipated": "You took part"
   },
   "tournamentDetailMobile": {
     "declareFirstMatch": "Enter your first match to join the leaderboard!",
@@ -2051,20 +2055,36 @@
   },
   "tournamentsView": {
     "adminTooltip": "Administration",
+    "archives": {
+      "toggle": "Archives ({count})"
+    },
     "clearFilters": "Clear filters",
+    "discover": {
+      "title": "Discover"
+    },
     "empty": {
       "noFilters": "There are currently no events available.",
       "title": "No events found",
       "withFilters": "No events match your filters."
     },
-    "showFinished": "Finished",
-    "subtitle": "Find and join tournaments",
+    "filters": {
+      "reset": "Reset"
+    },
+    "greetings": {
+      "goodToSeeYou": "Good to see you, {name}!",
+      "hey": "Hey {name}!",
+      "re": "Back again, {name}!",
+      "salut": "Hi {name}!",
+      "welcomeBack": "Welcome back, {name}!"
+    },
+    "myEvents": {
+      "title": "My events"
+    },
     "tags": {
       "bracket": "Bracket",
       "championship": "Championship",
       "ranked": "Ranked"
-    },
-    "title": "Competitive events"
+    }
   },
   "updateOverlay": {
     "continueAnyway": "Continue anyway",

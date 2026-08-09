@@ -1,6 +1,11 @@
-import { eq, and, count, ne } from "drizzle-orm";
+import { eq, and, count, ne, inArray } from "drizzle-orm";
 import { db } from "../config/database";
-import { tournaments, tournamentAdmins, appUsers } from "../db/schema";
+import {
+  tournaments,
+  tournamentAdmins,
+  appUsers,
+  tournamentParticipants,
+} from "../db/schema";
 import {
   type TournamentMode,
   type TeamMode,
@@ -66,6 +71,8 @@ export interface TournamentFilters {
   createdBy?: string;
   excludeDraft?: boolean;
   excludeRanked?: boolean;
+  /** Requesting user, used to resolve `isParticipant`. Omit for anonymous callers. */
+  viewerId?: string;
 }
 
 export class TournamentRepository {
@@ -201,7 +208,62 @@ export class TournamentRepository {
       orderBy: (tournaments, { desc }) => [desc(tournaments.createdAt)],
     });
 
-    return result;
+    return await this.withParticipation(result, filters?.viewerId);
+  }
+
+  /**
+   * Attach `participantCount` / `isParticipant` to a batch of tournament rows.
+   *
+   * Two grouped queries rather than correlated subqueries: the relational query
+   * builder aliases its root table, so a subquery correlating on
+   * `tournaments.id` is not guaranteed to bind to the right alias.
+   */
+  async withParticipation<T extends { id: string }>(
+    rows: T[],
+    viewerId?: string,
+  ): Promise<(T & { participantCount: number; isParticipant: boolean })[]> {
+    if (rows.length === 0) return [];
+
+    const ids = rows.map((row) => row.id);
+
+    const counts = await db
+      .select({
+        tournamentId: tournamentParticipants.tournamentId,
+        total: count(),
+      })
+      .from(tournamentParticipants)
+      .where(
+        and(
+          inArray(tournamentParticipants.tournamentId, ids),
+          eq(tournamentParticipants.status, "active"),
+        ),
+      )
+      .groupBy(tournamentParticipants.tournamentId);
+
+    const countByTournament = new Map(
+      counts.map((row) => [row.tournamentId, Number(row.total)]),
+    );
+
+    const joined = viewerId
+      ? await db
+          .select({ tournamentId: tournamentParticipants.tournamentId })
+          .from(tournamentParticipants)
+          .where(
+            and(
+              inArray(tournamentParticipants.tournamentId, ids),
+              eq(tournamentParticipants.userId, viewerId),
+              eq(tournamentParticipants.status, "active"),
+            ),
+          )
+      : [];
+
+    const joinedIds = new Set(joined.map((row) => row.tournamentId));
+
+    return rows.map((row) => ({
+      ...row,
+      participantCount: countByTournament.get(row.id) ?? 0,
+      isParticipant: joinedIds.has(row.id),
+    }));
   }
 
   /**

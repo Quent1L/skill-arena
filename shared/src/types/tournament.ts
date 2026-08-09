@@ -397,6 +397,10 @@ export interface TournamentSummary {
   startDate: string;
   endDate: string;
   discipline?: { id: string; name: string; icon?: string | null } | null;
+  /** Active registrations for a tournament, ranked players for a season */
+  participantCount: number;
+  /** Whether the requesting user takes part in this event (false when unauthenticated) */
+  isParticipant: boolean;
 }
 
 export interface ClientTournamentSummary extends Omit<

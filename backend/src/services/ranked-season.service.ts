@@ -489,7 +489,11 @@ export class RankedSeasonService {
     return this.getSeasonOrThrow(id);
   }
 
-  async listSeasons(filters?: { disciplineId?: string; status?: TournamentStatus }) {
+  async listSeasons(filters?: {
+    disciplineId?: string;
+    status?: TournamentStatus;
+    viewerId?: string;
+  }) {
     return await rankedSeasonRepository.listSeasons(filters);
   }
 

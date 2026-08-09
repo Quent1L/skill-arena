@@ -1,4 +1,4 @@
-import { eq, and, inArray, asc, sql } from "drizzle-orm";
+import { eq, and, inArray, asc, sql, count } from "drizzle-orm";
 import type {
   CreateRankTierInput,
   UpdateRankTierInput,
@@ -11,6 +11,7 @@ import {
   rankedSeasonConfigs,
   rankTiers,
   mmrAnimationEvents,
+  playerMmr,
 } from "../db/schema";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
@@ -424,6 +425,8 @@ export class RankedSeasonRepository {
   async listSeasons(filters?: {
     disciplineId?: string;
     status?: TournamentStatus;
+    /** Requesting user, used to resolve `isParticipant`. Omit for anonymous callers. */
+    viewerId?: string;
   }) {
     const conditions = [eq(tournaments.mode, "ranked")];
     if (filters?.disciplineId) {
@@ -432,7 +435,7 @@ export class RankedSeasonRepository {
     if (filters?.status) {
       conditions.push(eq(tournaments.status, filters.status));
     }
-    return await db.query.tournaments.findMany({
+    const seasons = await db.query.tournaments.findMany({
       where: and(...conditions),
       columns: {
         id: true,
@@ -449,6 +452,54 @@ export class RankedSeasonRepository {
       },
       orderBy: (t, { desc }) => [desc(t.startDate)],
     });
+
+    return await this.withSeasonParticipation(seasons, filters?.viewerId);
+  }
+
+  /**
+   * Attach `participantCount` / `isParticipant` to a batch of season rows.
+   *
+   * A ranked season has no registration table: taking part means owning a
+   * `player_mmr` row, which `mmrCalculationService` creates on the first
+   * finalized match.
+   */
+  private async withSeasonParticipation<T extends { id: string }>(
+    rows: T[],
+    viewerId?: string,
+  ): Promise<(T & { participantCount: number; isParticipant: boolean })[]> {
+    if (rows.length === 0) return [];
+
+    const ids = rows.map((row) => row.id);
+
+    const counts = await db
+      .select({ seasonId: playerMmr.seasonId, total: count() })
+      .from(playerMmr)
+      .where(inArray(playerMmr.seasonId, ids))
+      .groupBy(playerMmr.seasonId);
+
+    const countBySeason = new Map(
+      counts.map((row) => [row.seasonId, Number(row.total)]),
+    );
+
+    const joined = viewerId
+      ? await db
+          .select({ seasonId: playerMmr.seasonId })
+          .from(playerMmr)
+          .where(
+            and(
+              inArray(playerMmr.seasonId, ids),
+              eq(playerMmr.playerId, viewerId),
+            ),
+          )
+      : [];
+
+    const joinedIds = new Set(joined.map((row) => row.seasonId));
+
+    return rows.map((row) => ({
+      ...row,
+      participantCount: countBySeason.get(row.id) ?? 0,
+      isParticipant: joinedIds.has(row.id),
+    }));
   }
 }
 

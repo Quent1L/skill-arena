@@ -18,10 +18,15 @@ export function apiConfigMock() {
   }
 }
 
-/** vue-i18n mock where t echoes the key, appending #count for pluralized calls. */
+/**
+ * vue-i18n mock where t echoes the key, appending #count for pluralized calls.
+ * Covers both plural forms: `t(key, { count })` and `t(key, n)`.
+ */
 export function i18nEchoMock() {
-  const t = (key: string, params?: { count?: number }) =>
-    params?.count !== undefined ? `${key}#${params.count}` : key
+  const t = (key: string, params?: { count?: number } | number) => {
+    if (typeof params === 'number') return `${key}#${params}`
+    return params?.count !== undefined ? `${key}#${params.count}` : key
+  }
   return {
     useI18n: () => ({ t, locale: ref('fr') }),
     createI18n: () => ({ global: { t }, install: () => {} }),

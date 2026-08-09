@@ -1779,6 +1779,7 @@
       "championship": "Championnat",
       "ranked": "Ranked"
     },
+    "participants": "aucun joueur | {count} joueur | {count} joueurs",
     "period": {
       "daysLeft": "{days} j restants",
       "endingSoon": "Fin imminente",
@@ -1793,7 +1794,10 @@
       "finished": "Terminé",
       "ongoing": "En cours",
       "open": "Ouvert"
-    }
+    },
+    "viewResults": "Voir le bilan",
+    "youParticipate": "Vous participez",
+    "youParticipated": "Vous avez participé"
   },
   "tournamentDetailMobile": {
     "declareFirstMatch": "Déclarez votre premier match pour rejoindre le classement !",
@@ -2051,20 +2055,36 @@
   },
   "tournamentsView": {
     "adminTooltip": "Administration",
+    "archives": {
+      "toggle": "Archives ({count})"
+    },
     "clearFilters": "Effacer les filtres",
+    "discover": {
+      "title": "À découvrir"
+    },
     "empty": {
       "noFilters": "Il n'y a actuellement aucun évènement disponible.",
       "title": "Aucun évènement trouvé",
       "withFilters": "Aucun évènement ne correspond à vos filtres."
     },
-    "showFinished": "Terminés",
-    "subtitle": "Découvrez et participez aux évènements en cours",
+    "filters": {
+      "reset": "Réinitialiser"
+    },
+    "greetings": {
+      "goodToSeeYou": "Ravi de te revoir, {name} !",
+      "hey": "Hey {name} !",
+      "re": "Re {name} !",
+      "salut": "Salut {name} !",
+      "welcomeBack": "Content de te revoir, {name} !"
+    },
+    "myEvents": {
+      "title": "Mes évènements"
+    },
     "tags": {
       "bracket": "Bracket",
       "championship": "Championnat",
       "ranked": "Ranked"
-    },
-    "title": "Évènements compétitifs"
+    }
   },
   "updateOverlay": {
     "continueAnyway": "Continuer sans attendre",
