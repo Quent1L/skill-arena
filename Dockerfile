@@ -1,21 +1,18 @@
 # --- Base ------------------------------------------------------
-FROM oven/bun:1.3-alpine AS base
+FROM oven/bun:1.3.14-slim AS base
 WORKDIR /app
 
 
 # --- Dependencies ---------------------------------------------
 FROM base AS deps
 
-# Copier uniquement ce qui est nécessaire à l'installation
 COPY package.json bun.lock ./
-
-# Copier les package.json des workspaces
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
 COPY docs/package.json ./docs/
 
-# Installer TOUTES les deps (y compris devDependencies pour le build)
+# devDependencies included: needed by the build stage
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
@@ -23,19 +20,14 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 FROM base AS build
 WORKDIR /app
 
-# Copier dépendances
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copier l'intégralité du workspace
 COPY . .
 
-# Build shared
 RUN bun run --cwd ./shared build
 
-# Build frontend
 RUN bun run --cwd ./frontend build-only
 
-# Build backend en JS bundlé (sans node_modules)
+# Bundle the backend so the runtime stage needs no node_modules
 RUN bun build ./backend/src/index.ts \
     --target bun \
     --outdir ./backend/dist \
@@ -45,20 +37,16 @@ RUN bun build ./backend/src/index.ts \
 
 
 # --- Production ------------------------------------------------
-FROM oven/bun:1.3-alpine AS production
+FROM oven/bun:1.3.14-slim AS production
 WORKDIR /app
 
-# Créer un utilisateur non-root pour la sécurité
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# --create-home matters: bun writes caches under $HOME and fails without it
+RUN groupadd --system --gid 1001 skol && \
+    useradd --system --uid 1001 --gid skol --create-home --shell /usr/sbin/nologin skol
 
-# Copier uniquement ce qui est nécessaire à l'exécution
-COPY --from=build --chown=nodejs:nodejs /app/backend/dist ./backend/dist
-COPY --from=build --chown=nodejs:nodejs /app/backend/drizzle ./backend/drizzle
-COPY --from=build --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
-
-# Si le backend a vraiment besoin du package.json (rare avec un build bundlé)
-# COPY --chown=nodejs:nodejs backend/package.json ./backend/
+COPY --from=build --chown=skol:skol /app/backend/dist ./backend/dist
+COPY --from=build --chown=skol:skol /app/backend/drizzle ./backend/drizzle
+COPY --from=build --chown=skol:skol /app/frontend/dist ./frontend/dist
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -67,7 +55,6 @@ ENV FRONTEND_BUILD_PATH=/app/frontend/dist
 
 EXPOSE 3000
 
-# Utiliser l'utilisateur non-root
-USER nodejs
+USER skol
 
 CMD ["bun", "./backend/dist/index.js"]
