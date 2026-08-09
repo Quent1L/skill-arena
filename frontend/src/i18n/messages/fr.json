@@ -2158,7 +2158,8 @@
       "next": "Carte suivante",
       "previous": "Carte précédente",
       "finish": "Terminer",
-      "unavailable": "Ce Rewind n'est pas encore disponible."
+      "unavailable": "Ce Rewind n'est pas encore disponible.",
+      "tapHint": "Touche à droite pour passer à la suivante"
     },
     "intro": {
       "eyebrow": "C'est fini",
