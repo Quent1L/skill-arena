@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.20.0](https://github.com/Quent1L/skol-arena/compare/1.19.0...1.20.0) (2026-08-09)
+
+### ✨ New Features
+
+* **home:** rebuild the tournaments hub around the player ([3f35fce](https://github.com/Quent1L/skol-arena/commit/3f35fcef163ff348534d3ddadabeb635e467ad58))
+* **ranked:** add end-of-season rewind ([c03de5f](https://github.com/Quent1L/skol-arena/commit/c03de5f4c5a59e7b7c955059de7ef355d01f80ed)), closes [#1](https://github.com/Quent1L/skol-arena/issues/1)
+* **ranked:** add peak and average MMR season leaderboards ([0ced6f8](https://github.com/Quent1L/skol-arena/commit/0ced6f89115cbe1a502839788a20e0f9fc662e11))
+* **ranked:** fix cross-season MMR carry-over ([566961a](https://github.com/Quent1L/skol-arena/commit/566961aea4b85612b8df9b0a1917b5d9a423c7c9))
+* **ranked:** give leaderboard views the stats sub-tab system ([c058d3a](https://github.com/Quent1L/skol-arena/commit/c058d3af91fbc6567284ac40ccf17203f573bb74))
+* **ranked:** make mobile stats sub-tabs draggable ([49b52cd](https://github.com/Quent1L/skol-arena/commit/49b52cd6ce42c4b73a179c835e29c700bb8ec990))
+* **rewind:** refine deck stats, layout and mobile UX ([c6dd97f](https://github.com/Quent1L/skol-arena/commit/c6dd97f6d6e52df61a50fb80272c00af77353686))
+* **stats:** rank leaderboards on competition ranks ([5a14290](https://github.com/Quent1L/skol-arena/commit/5a14290557574d9f3eb1aff4dc730044a0fb2f72))
+* **users:** record last activity, not just last login ([9c4e5a2](https://github.com/Quent1L/skol-arena/commit/9c4e5a2d5523b0e1bfa8cad8b52d2b64d8156588))
+
+### 🐛 Bug Fixes
+
+* **auth:** await sign-out before leaving for the login page ([ef37523](https://github.com/Quent1L/skol-arena/commit/ef3752397e5148912350519e5c9cd29d461b1841))
+* **auth:** forward refreshed session cookies to the client ([b1c04fe](https://github.com/Quent1L/skol-arena/commit/b1c04fe7acba525debaa0f993b4fd337c47aa2a0))
+* **ranked:** persist stats sub-tab in URL ([64b3b33](https://github.com/Quent1L/skol-arena/commit/64b3b337ff48b3699e202ed32fdfa2cd7302c019))
+* resolve code review findings on beta ([5bc7dd8](https://github.com/Quent1L/skol-arena/commit/5bc7dd8c8b43d2027101ef1d987f4f43f8160958))
+* **router:** add component to empty tournament-detail child route ([8b4a324](https://github.com/Quent1L/skol-arena/commit/8b4a32499b858196045d4651489c37ca23551da8))
+* **stats:** stop leaderboard cutoff from counting groups instead of ranks ([e0f166d](https://github.com/Quent1L/skol-arena/commit/e0f166d0ee6293f15c952d0cea9bebdc768d0401))
+
+### 🎨 Style
+
+* **auth:** update text color for better readability ([0a5bfcb](https://github.com/Quent1L/skol-arena/commit/0a5bfcbce64574fb699f308eb3e56c7e221c894e))
+* **ranked:** center MMR explainer row icons ([7eff606](https://github.com/Quent1L/skol-arena/commit/7eff606d66613dc4b060cd274bdb76f95a4f5a84))
+* **rewind:** add tap-hint label, keep it on screen ([bfa078a](https://github.com/Quent1L/skol-arena/commit/bfa078a05f8bea4790cb251b68bd0d1ec6365c29))
+* **stats:** move outcome-type winners/losers toggle onto each card ([57da769](https://github.com/Quent1L/skol-arena/commit/57da7691489caf1394b3ea4f03a2cc28aa464da7))
+
 ## [1.19.0](https://github.com/Quent1L/skol-arena/compare/1.18.1...1.19.0) (2026-08-03)
 
 ### ✨ New Features
