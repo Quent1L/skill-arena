@@ -3,18 +3,19 @@
     <div
       v-for="stat in stats"
       :key="stat.outcomeTypeId"
-      class="rounded-xl p-4 bg-gray-900/40 border border-gray-700/60"
+      class="rounded-xl p-3 sm:p-4 bg-gray-900/40 border border-gray-700/60"
       data-test="outcome-type-card"
     >
       <div
         class="transition-all duration-150 ease-out"
         :class="isSwapping(stat) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'"
       >
-        <div class="flex items-baseline justify-between gap-2 mb-3">
-          <h3 class="text-sm font-bold text-gray-200 uppercase tracking-wide truncate">
+        <!-- Mobile stacks the title on its own row: truncating it hid which outcome type the card is about. -->
+        <div class="flex flex-col gap-2 mb-3 sm:flex-row sm:items-baseline sm:justify-between">
+          <h3 class="text-sm font-bold text-gray-200 uppercase tracking-wide text-balance sm:truncate">
             {{ cardTitle(stat) }}
           </h3>
-          <div class="flex items-center gap-2 shrink-0">
+          <div class="flex items-center justify-between gap-2 sm:justify-end sm:shrink-0">
             <button
               type="button"
               class="inline-flex items-center gap-1.5 rounded-full border border-gray-600 bg-gray-800/80 px-2.5 py-1 text-[10px] font-semibold text-gray-300 cursor-pointer transition-colors hover:border-indigo-400 hover:text-indigo-300 hover:bg-gray-800 focus:outline-none focus-visible:outline-none"

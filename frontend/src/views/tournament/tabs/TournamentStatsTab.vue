@@ -144,7 +144,7 @@
         <!-- Fun stats by outcome type -->
         <div
           v-if="store.tournamentStats.outcomeTypeFunStats.length"
-          class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6"
+          class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-3 sm:p-6"
         >
           <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
             <i class="fa fa-star mr-2 text-amber-500" />
