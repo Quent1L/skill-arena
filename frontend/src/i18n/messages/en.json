@@ -104,7 +104,7 @@
     "columnAuth": "Sign-in",
     "columnCreatedAt": "Signed up",
     "columnEmail": "Email",
-    "columnLastLogin": "Last login",
+    "columnLastLogin": "Last activity",
     "columnMatches": "Matches",
     "columnName": "User",
     "columnRole": "Role",

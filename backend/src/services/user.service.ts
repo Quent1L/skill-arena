@@ -37,6 +37,27 @@ function resolveFrontendUrl(): string {
   return "http://localhost:5173";
 }
 
+/**
+ * A session lasts 30 days and is silently refreshed, so login events say almost
+ * nothing about who actually uses the app. Activity is therefore recorded on
+ * every authenticated request, throttled to one write per user per window.
+ */
+const ACTIVITY_THROTTLE_MS = 15 * 60 * 1000;
+const ACTIVITY_CACHE_SWEEP_THRESHOLD = 1000;
+const recentActivity = new Map<string, number>();
+
+/**
+ * Drop entries that fell out of the throttle window. Only runs once the map
+ * grew past the threshold, to keep the common path O(1).
+ */
+function pruneActivityCache(now: number): void {
+  if (recentActivity.size < ACTIVITY_CACHE_SWEEP_THRESHOLD) return;
+
+  for (const [userId, seenAt] of recentActivity) {
+    if (now - seenAt >= ACTIVITY_THROTTLE_MS) recentActivity.delete(userId);
+  }
+}
+
 export class UserService {
   /**
    * Get or create app_user from BetterAuth external ID
@@ -71,9 +92,31 @@ export class UserService {
       displayName: displayName,
       shortName: displayName.substring(0, 8).toUpperCase(),
       role: "player",
+      // The session-create hook already fired before this row existed, so the
+      // first login would otherwise be reported as "never".
+      lastLoginAt: new Date(),
     });
 
     return appUser.id;
+  }
+
+  /**
+   * Record that an authenticated request was seen. Throttled per process; the
+   * repository re-checks the interval in SQL so several instances converge.
+   */
+  async recordActivity(betterAuthUserId: string): Promise<void> {
+    const now = Date.now();
+    const lastSeen = recentActivity.get(betterAuthUserId);
+
+    if (lastSeen !== undefined && now - lastSeen < ACTIVITY_THROTTLE_MS) return;
+
+    recentActivity.set(betterAuthUserId, now);
+    pruneActivityCache(now);
+
+    await userRepository.touchLastSeen(
+      betterAuthUserId,
+      new Date(now - ACTIVITY_THROTTLE_MS)
+    );
   }
 
   /**

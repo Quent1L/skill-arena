@@ -73,5 +73,13 @@ export async function addUserContext(c: Context, next: Next) {
 
   c.set("user", session.user);
   c.set("session", session.session);
+
+  // Fire-and-forget: recording activity must never block or fail a request.
+  void userService
+    .recordActivity(session.user.id)
+    .catch((error) =>
+      logger.warn({ err: error, userId: session.user.id }, "Failed to record activity")
+    );
+
   await next();
 }

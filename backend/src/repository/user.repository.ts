@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNotNull, isNull, or, ilike, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, lt, or, ilike, sql } from "drizzle-orm";
 import { db } from "../config/database";
 import { appUsers, organizationMembers, organizations, session, user } from "../db/schema";
 import type {
@@ -104,6 +104,23 @@ export class UserRepository {
       .update(appUsers)
       .set({ lastLoginAt: new Date() })
       .where(eq(appUsers.externalId, externalId));
+  }
+
+  /**
+   * Refresh the last activity timestamp, but only if the stored value is older
+   * than `staleBefore`. The SQL guard makes the write idempotent across
+   * instances, so the in-memory throttle upstream is an optimisation only.
+   */
+  async touchLastSeen(externalId: string, staleBefore: Date): Promise<void> {
+    await db
+      .update(appUsers)
+      .set({ lastLoginAt: new Date() })
+      .where(
+        and(
+          eq(appUsers.externalId, externalId),
+          or(isNull(appUsers.lastLoginAt), lt(appUsers.lastLoginAt, staleBefore)),
+        ),
+      );
   }
 
   async countByRole(role: UserRole): Promise<number> {
