@@ -47,12 +47,13 @@ export function useRewindDeck(
 
   function next(): void {
     if (throttled()) return
+    // Only a forward move made *from* the last card completes the deck. Landing
+    // on it must not, or the conclusion would be marked read before it is shown.
     if (isLast.value) {
       options.onComplete?.()
       return
     }
     index.value++
-    if (isLast.value) options.onComplete?.()
   }
 
   function previous(): void {
@@ -63,7 +64,6 @@ export function useRewindDeck(
   function goTo(target: number): void {
     if (target < 0 || target >= cards.value.length) return
     index.value = target
-    if (isLast.value) options.onComplete?.()
   }
 
   function onKeydown(event: KeyboardEvent): void {

@@ -12,6 +12,7 @@ import {
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { playerApi } from '@/composables/player/player.api'
 import { calculateDuration } from '@/utils/DateUtils'
+import { assignCompetitionRanks } from '@/utils/competition-rank'
 import type { MmrChartPoint, PlayerStatsResponse } from '@skol-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
@@ -87,12 +88,15 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   })
 
   // Players still in placement hold no rank: the leaderboard lists them apart, so
-  // the ranking is computed on the settled players only.
+  // the ranking is computed on the settled players only. Competition ranks, to
+  // match what LeaderboardTierList renders — a tie must read the same in both.
   const playerLeaderboardRank = computed(() => {
     if (!appUser.value || !rankedLeaderboard.value.length) return undefined
     const { placed } = splitByPlacement(rankedLeaderboard.value, rankedPlacementMatches.value)
-    const idx = placed.findIndex((p) => p.player?.id === appUser.value?.id)
-    return idx >= 0 ? idx + 1 : undefined
+    const mine = assignCompetitionRanks(placed, (p) => p.currentMmr).find(
+      ({ item }) => item.player?.id === appUser.value?.id,
+    )
+    return mine?.rank
   })
 
   const menuItems = computed(() => {

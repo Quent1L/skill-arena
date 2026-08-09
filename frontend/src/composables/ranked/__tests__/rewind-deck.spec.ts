@@ -251,15 +251,31 @@ describe('useRewindDeck', () => {
     expect(api.index.value).toBe(1)
   })
 
-  it('fires onComplete only once the last card is reached', () => {
+  it('fires onComplete only once the last card is moved past', () => {
     const onComplete = vi.fn()
     const { api } = mountDeck(ref(bundleOf()), { onComplete })
 
     api.goTo(api.cards.value.length - 2)
     expect(onComplete).not.toHaveBeenCalled()
 
-    api.goTo(api.cards.value.length - 1)
+    // Landing on the conclusion is not watching it.
+    api.next()
+    expect(api.index.value).toBe(api.cards.value.length - 1)
+    expect(onComplete).not.toHaveBeenCalled()
+
+    vi.useFakeTimers()
+    vi.setSystemTime(Date.now() + 1000)
+    api.next()
     expect(onComplete).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
+  it('does not complete the deck on a jump straight to the last card', () => {
+    const onComplete = vi.fn()
+    const { api } = mountDeck(ref(bundleOf()), { onComplete })
+
+    api.goTo(api.cards.value.length - 1)
+    expect(onComplete).not.toHaveBeenCalled()
   })
 
   it('ignores a jump outside the deck', () => {

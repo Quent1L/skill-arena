@@ -15,7 +15,7 @@ import {
   index,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import type { TierScalingMode } from "@skol-arena/shared/types/index";
 
 // ********************************************************************
@@ -1650,7 +1650,12 @@ export const playerSeasonRewinds = pgTable(
   },
   (table) => [
     unique().on(table.rewindId, table.playerId),
-    index("idx_player_season_rewinds_promoted").on(table.playerId, table.promotedUntil),
+    // Partial on purpose, and it must stay that way: the promo lookup only ever
+    // asks for decks the player has not watched. Declared exactly as migration
+    // 0064 creates it, so a regenerated migration cannot silently widen it.
+    index("idx_player_season_rewinds_promoted")
+      .on(table.playerId, table.promotedUntil)
+      .where(sql`${table.viewedAt} IS NULL`),
   ],
 );
 

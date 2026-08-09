@@ -221,6 +221,17 @@ async function handleRegenerateRewind(season: RankedSeason) {
       detail: t('rankedSeasonsList.rewindQueuedDetail'),
       life: 4000,
     })
+  } catch (err) {
+    // The backend refuses a rebuild for a reason the admin needs to read
+    // (a frozen payload version, missing rights): the interceptor already
+    // carries the translated message, so surface it rather than drop it.
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail:
+        err instanceof Error ? err.message : t('rankedSeasonsList.rewindFailedDetail'),
+      life: 6000,
+    })
   } finally {
     regeneratingId.value = null
   }

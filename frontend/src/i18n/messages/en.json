@@ -1223,7 +1223,8 @@
     "tooltipView": "View",
     "tooltipRegenerateRewind": "Rebuild the Rewind",
     "rewindQueued": "Rebuild queued",
-    "rewindQueuedDetail": "The Rewind will be regenerated in the background. Players keep their viewed state."
+    "rewindQueuedDetail": "The Rewind will be regenerated in the background. Players keep their viewed state.",
+    "rewindFailedDetail": "The Rewind could not be rebuilt."
   },
   "rankedService": {
     "errors": {

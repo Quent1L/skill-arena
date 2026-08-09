@@ -16,8 +16,8 @@
         <h2 class="truncate text-lg font-black">
           {{ t('rewind.promo.title', { season: promoted.seasonName }) }}
         </h2>
-        <p class="text-sm text-indigo-100">
-          {{ promoted.disciplineName ? `${promoted.disciplineName} · ` : '' }}
+        <p v-if="subtitle" class="text-sm text-indigo-100">
+          {{ subtitle }}
         </p>
       </div>
 
@@ -40,14 +40,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Button from 'primevue/button'
-import { useRewindService } from '@/composables/ranked/rewind.service'
+import { useRewindService, daysUntil } from '@/composables/ranked/rewind.service'
 import RewindLauncher from './RewindLauncher.vue'
 
 const { t } = useI18n()
 const { promoted, loadPromoted } = useRewindService()
+
+// Discipline and remaining window, whichever of the two we actually have — the
+// separator only shows up when there is something on both sides of it.
+const subtitle = computed(() => {
+  if (!promoted.value) return ''
+  const parts: string[] = []
+  if (promoted.value.disciplineName) parts.push(promoted.value.disciplineName)
+  const days = daysUntil(promoted.value.promotedUntil)
+  if (days > 0) parts.push(t('rewind.promo.daysLeft', days))
+  return parts.join(' · ')
+})
 
 const open = ref(false)
 const launchedSeasonId = ref<string | null>(null)

@@ -110,13 +110,23 @@ export class UserService {
 
     if (lastSeen !== undefined && now - lastSeen < ACTIVITY_THROTTLE_MS) return;
 
+    // Stamped upfront so concurrent requests collapse into a single write, then
+    // rolled back if that write failed: a transient DB error must not silence
+    // every attempt for a whole window.
     recentActivity.set(betterAuthUserId, now);
     pruneActivityCache(now);
 
-    await userRepository.touchLastSeen(
-      betterAuthUserId,
-      new Date(now - ACTIVITY_THROTTLE_MS)
-    );
+    try {
+      await userRepository.touchLastSeen(
+        betterAuthUserId,
+        new Date(now - ACTIVITY_THROTTLE_MS)
+      );
+    } catch (error) {
+      if (recentActivity.get(betterAuthUserId) === now) {
+        recentActivity.delete(betterAuthUserId);
+      }
+      throw error;
+    }
   }
 
   /**

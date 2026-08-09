@@ -1223,7 +1223,8 @@
     "tooltipView": "Voir",
     "tooltipRegenerateRewind": "Recalculer le Rewind",
     "rewindQueued": "Recalcul lancé",
-    "rewindQueuedDetail": "Le Rewind sera régénéré en tâche de fond. Les joueurs gardent leur état de visionnage."
+    "rewindQueuedDetail": "Le Rewind sera régénéré en tâche de fond. Les joueurs gardent leur état de visionnage.",
+    "rewindFailedDetail": "Le Rewind n'a pas pu être régénéré."
   },
   "rankedService": {
     "errors": {
