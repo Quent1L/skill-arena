@@ -61,13 +61,36 @@ export async function requireAuth(c: AppContext, next: () => Promise<void>) {
   }
 }
 
+/**
+ * Better Auth slides the 30-day session inside getSession: past `updateAge` it
+ * extends the row AND re-emits the session cookie with a fresh maxAge. Since this
+ * middleware runs on every request, it consumes that refresh before the client's
+ * own /api/auth/get-session can; dropping its Set-Cookie headers would leave the
+ * browser cookie stuck on the maxAge issued at login, so the user gets logged out
+ * ~30 days after signing in no matter how active they are.
+ *
+ * Requests to /api/auth/* are skipped: the Better Auth handler answers them right
+ * after and emits its own, authoritative cookies.
+ */
+function forwardAuthCookies(c: Context, authHeaders: Headers): void {
+  if (c.req.path.startsWith("/api/auth/")) return;
+
+  for (const cookie of authHeaders.getSetCookie()) {
+    c.res.headers.append("set-cookie", cookie);
+  }
+}
+
 export async function addUserContext(c: Context, next: Next) {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  const { headers: authHeaders, response: session } = await auth.api.getSession({
+    headers: c.req.raw.headers,
+    returnHeaders: true,
+  });
 
   if (!session) {
     c.set("user", null);
     c.set("session", null);
     await next();
+    forwardAuthCookies(c, authHeaders);
     return;
   }
 
@@ -82,4 +105,5 @@ export async function addUserContext(c: Context, next: Next) {
     );
 
   await next();
+  forwardAuthCookies(c, authHeaders);
 }
