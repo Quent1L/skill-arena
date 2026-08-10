@@ -17,7 +17,11 @@
     "MATCH_POST_DISPUTE_TITLE": "{{disputerName}} has disputed the result",
     "MATCH_POST_DISPUTE_MESSAGE": "🚩 {{tournamentName}}\n📅 {{matchDate}}\n{{disputerName}} is contesting the result of this finalized match.",
     "MATCH_VALIDATION_TITLE": "{{reporterName}} reported the match result ({{matchFormat}})",
-    "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}\n✅ Please confirm or contest this result before the deadline."
+    "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Opponents: {{opponents}}\n👥 Teammates: {{teammates}}\n✅ Please confirm or contest this result before the deadline.",
+    "MATCH_DISPUTE_ESCALATED_TITLE": "Dispute to arbitrate: {{disputerName}} contests a result",
+    "MATCH_DISPUTE_ESCALATED_MESSAGE": "⚖️ {{tournamentName}}\n📅 {{matchDate}}\nThis match will not validate on its own: correct the entry or settle the result.",
+    "MATCH_MESSAGE_TITLE": "{{authorName}} wrote on a match",
+    "MATCH_MESSAGE_MESSAGE": "💬 New message in the match discussion."
   },
   "emails": {
     "password_reset_subject": "Password Reset",
@@ -105,7 +109,9 @@
     "RANKED_MATCH_TOO_OLD": "Ranked matches must be reported within 48 hours of being played",
     "RANDOM_NOT_ALLOWED_ON_BADGE": "The random roll cannot be used in a badge rule",
     "REWIND_NOT_FOUND": "This Rewind is not available yet",
-    "REWIND_VERSION_FROZEN": "This Rewind was built in an older format and is kept as it was"
+    "REWIND_VERSION_FROZEN": "This Rewind was built in an older format and is kept as it was",
+    "MATCH_MESSAGE_INVALID_BODY": "The message must be between 1 and 1000 characters",
+    "MATCH_THREAD_CLOSED": "The discussion for this match is closed"
   },
   "ranked": {
     "PROVISIONAL": "Match recorded!",
@@ -122,5 +128,12 @@
       "SHARED_RESOURCE": "Shared resource",
       "COLLABORATIVE": "Collaborative"
     }
+  },
+  "matchMessages": {
+    "RESULT_REPORTED": "{{authorName}} reported the result: {{score}}",
+    "RESULT_REVISED": "{{authorName}} corrected the result: {{previousScore}} → {{newScore}}. Previous validations are cleared.",
+    "RESULT_DISPUTED": "{{authorName}} contests the result. An organizer has been notified.",
+    "DISPUTE_WITHDRAWN": "{{authorName}} withdrew their dispute and accepted the result.",
+    "MATCH_FINALIZED": "Result finalized."
   }
 }

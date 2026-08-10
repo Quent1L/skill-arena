@@ -28,54 +28,30 @@
           </p>
         </div>
 
-        <!-- Disputed score with an active proposal -->
+        <!-- Contested: nothing moves until the entry is corrected or an organizer decides -->
         <div
-          v-if="activeProposal"
+          v-if="isDisputed"
           class="p-4 rounded-lg border-2 border-warn-400 dark:border-warn-500 bg-warn-50 dark:bg-warn-900/20 space-y-3"
         >
           <div class="flex items-center gap-2 text-warn-700 dark:text-warn-300 text-sm font-semibold">
-            <i class="fa fa-exclamation-triangle"></i>
-            {{ t('matchConfirmation.contestedScorePrefix') }}
-            <span class="font-bold">{{ activeProposal.player?.displayName || t('matchConfirmation.unknownPlayer') }}</span>
+            <i class="fa fa-gavel"></i>
+            {{ t('matchConfirmation.awaitingArbitration') }}
           </div>
-
-          <div v-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-6">
-            <div class="text-center">
-              <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">{{ t('matchConfirmation.originalScore') }}</p>
-              <p class="text-2xl font-bold text-surface-400 dark:text-surface-500 line-through">
-                {{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}
-              </p>
-            </div>
-
-            <i class="fa fa-arrow-right text-warn-500 text-xl"></i>
-
-            <div class="text-center">
-              <p class="text-xs text-warn-600 dark:text-warn-400 mb-1 uppercase tracking-wide font-semibold">{{ t('matchConfirmation.proposedScore') }}</p>
-              <p class="text-3xl font-bold text-warn-700 dark:text-warn-300">
-                {{ activeProposal.proposedScoreA }} - {{ activeProposal.proposedScoreB }}
-              </p>
-            </div>
-          </div>
-
-          <div v-if="activeProposal.contestationReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold">{{ t('matchConfirmation.reasonLabel') }}</span> {{ activeProposal.contestationReason }}
-          </div>
-          <div v-if="activeProposal.proposedWinnerPosition" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedWinner') }}</span>
-            <span class="ml-2 font-bold">{{ t('matchConfirmation.proposedWinnerTeam', { position: activeProposal.proposedWinnerPosition }) }}</span>
-          </div>
-          <div v-if="activeProposal.proposedOutcomeType" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedOutcomeType') }}</span>
-            <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeType.name }}</span>
-          </div>
-          <div v-if="activeProposal.proposedOutcomeReason" class="text-sm text-surface-600 dark:text-surface-400 border-t border-warn-200 dark:border-warn-700 pt-2">
-            <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedOutcomeReason') }}</span>
-            <span class="ml-2 font-bold">{{ activeProposal.proposedOutcomeReason.name }}</span>
-          </div>
+          <p class="text-sm text-surface-600 dark:text-surface-400">
+            {{ t('matchConfirmation.awaitingArbitrationHint') }}
+          </p>
+          <Button
+            v-if="canUserEditResult"
+            :label="t('matchConfirmation.fixMyEntryBtn')"
+            icon="fa fa-pen"
+            severity="warn"
+            outlined
+            @click="emit('editResult')"
+          />
         </div>
 
         <!-- Score normal -->
-        <div v-else-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
+        <div v-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
           <div class="text-center">
             <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">{{ t('matchConfirmation.score') }}</p>
             <p class="text-3xl font-bold text-primary">{{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}</p>
@@ -128,37 +104,6 @@
                   :value="t('matchConfirmation.tagPending')"
                 />
               </div>
-
-              <div
-                v-if="player.status === 'contested' && (player.contestationReason || player.contestationProof || player.hasProposal)"
-                class="mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 space-y-2"
-              >
-                <div v-if="player.hasProposal && match.tournament?.scoreEnabled !== false" class="text-sm">
-                  <span class="font-semibold text-warn-600 dark:text-warn-400">{{ t('matchConfirmation.proposedScoreInline') }}</span>
-                  <span class="ml-2 font-bold">{{ player.proposedScoreA }} - {{ player.proposedScoreB }}</span>
-                </div>
-                <div v-if="player.contestationReason" class="text-sm">
-                  <span class="font-semibold text-surface-700 dark:text-surface-300">{{ t('matchConfirmation.reasonLabel') }}</span>
-                  <p class="text-surface-600 dark:text-surface-400 mt-1 whitespace-pre-wrap">
-                    {{ player.contestationReason }}
-                  </p>
-                </div>
-                <div v-if="player.contestationProof" class="text-sm">
-                  <span class="font-semibold text-surface-700 dark:text-surface-300">{{ t('matchConfirmation.proofLabel') }}</span>
-                  <p class="text-surface-600 dark:text-surface-400 mt-1">
-                    <a
-                      v-if="isUrl(player.contestationProof)"
-                      :href="player.contestationProof"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-primary hover:underline"
-                    >
-                      {{ player.contestationProof }}
-                    </a>
-                    <span v-else>{{ player.contestationProof }}</span>
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -185,7 +130,7 @@
 
           <div v-if="!userResponse">
             <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
-              {{ activeProposal ? t('matchConfirmation.questionAcceptProposal') : t('matchConfirmation.questionConfirmResult') }}
+              {{ t('matchConfirmation.questionConfirmResult') }}
             </p>
 
             <div class="flex gap-3">
@@ -210,7 +155,7 @@
             </div>
           </div>
 
-          <div v-else class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+          <div v-else class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg space-y-3">
             <div class="flex items-center gap-2">
               <i
                 :class="[
@@ -223,6 +168,16 @@
                 {{ userResponse.isConfirmed ? t('matchConfirmation.userAccepted') : t('matchConfirmation.userDisputed') }}
               </span>
             </div>
+
+            <Button
+              v-if="canWithdrawDispute"
+              :label="t('matchConfirmation.withdrawDisputeBtn')"
+              icon="fa fa-check"
+              severity="success"
+              :loading="responding"
+              :disabled="responding"
+              @click="openResponseDialog('agree')"
+            />
           </div>
         </div>
       </div>
@@ -232,7 +187,7 @@
   <!-- Response dialog -->
   <Dialog
     v-model:visible="responseDialogVisible"
-    :header="responseIntent === 'agree' ? t('matchConfirmation.dialogAcceptTitle') : t('matchConfirmation.dialogDisputeTitle')"
+    :header="responseIntent === 'agree' ? acceptDialogTitle : t('matchConfirmation.dialogDisputeTitle')"
     :modal="true"
     :style="{ width: '480px' }"
   >
@@ -251,26 +206,14 @@
           />
         </div>
 
-        <div>
-          <label for="disputeProof" class="block text-sm font-medium mb-2">
-            {{ t('matchConfirmation.proofInputLabel') }}
-          </label>
-          <InputText
-            id="disputeProof"
-            v-model="disputeProof"
-            :placeholder="t('matchConfirmation.proofInputPlaceholder')"
-            class="w-full"
-          />
-        </div>
-
         <div class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm text-surface-600 dark:text-surface-400">
           <i class="fa fa-info-circle mr-2"></i>
-          {{ t('matchConfirmation.alternativeScoreHint') }}
+          {{ t('matchConfirmation.disputeHint') }}
         </div>
       </div>
 
       <div v-else class="text-sm text-surface-600 dark:text-surface-400">
-        {{ t('matchConfirmation.confirmationIrreversible') }}
+        {{ acceptDialogHint }}
       </div>
     </div>
 
@@ -279,13 +222,6 @@
         :label="t('common.cancel')"
         severity="secondary"
         @click="responseDialogVisible = false"
-      />
-      <Button
-        v-if="responseIntent === 'dispute'"
-        :label="t('matchConfirmation.enterCorrectedScoreBtn')"
-        severity="warn"
-        icon="fa fa-edit"
-        @click="redirectToScoreForm"
       />
       <Button
         :label="responseIntent === 'agree' ? t('matchConfirmation.confirmAcceptanceBtn') : t('matchConfirmation.submitDisputeBtn')"
@@ -314,8 +250,8 @@ interface Props {
 }
 
 interface Emits {
-  (event: 'respond', data: { type: 'agree' | 'dispute'; reason?: string; proof?: string }): void;
-  (event: 'redirectToScoreForm', data: { reason?: string }): void;
+  (event: 'respond', data: { type: 'agree' | 'dispute'; reason?: string }): void;
+  (event: 'editResult'): void;
 }
 
 const props = defineProps<Props>();
@@ -326,14 +262,15 @@ const { t } = useI18n();
 const responseDialogVisible = ref(false);
 const responseIntent = ref<'agree' | 'dispute'>('agree');
 const disputeReason = ref('');
-const disputeProof = ref('');
 
 const sideA = computed(() => props.match.sides.find((s) => s.position === 1));
 const sideB = computed(() => props.match.sides.find((s) => s.position === 2));
 
 const shouldShowConfirmation = computed(() => {
-  return ['reported', 'pending_confirmation', 'disputed'].includes(props.match.status);
+  return ['reported', 'disputed'].includes(props.match.status);
 });
+
+const isDisputed = computed(() => props.match.status === 'disputed');
 
 const confirmations = computed(() =>
   (props.match.confirmations ?? []).filter((c) => !c.isPostFinalization),
@@ -348,16 +285,6 @@ const participants = computed(() => {
 const totalPlayers = computed(() => participants.value.length);
 
 const confirmedCount = computed(() => confirmations.value.filter((c) => c.isConfirmed).length);
-
-const activeProposal = computed(() => {
-  return confirmations.value.find(
-    c => c.isContested && (
-      (c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
-       c.proposedScoreB !== null && c.proposedScoreB !== undefined) ||
-      (c.proposedOutcomeTypeId !== null && c.proposedOutcomeTypeId !== undefined)
-    )
-  ) ?? null;
-});
 
 const playersWithStatus = computed(() => {
   const confirmationsMap = new Map(confirmations.value.map((c) => [c.playerId, c]));
@@ -384,11 +311,6 @@ const playersWithStatus = computed(() => {
       displayName: participant.displayName || t('matchConfirmation.unknownPlayerName'),
       status,
       sideLabel,
-      contestationReason: confirmation?.contestationReason,
-      contestationProof: confirmation?.contestationProof,
-      hasProposal: confirmation?.proposedScoreA !== null && confirmation?.proposedScoreA !== undefined,
-      proposedScoreA: confirmation?.proposedScoreA,
-      proposedScoreB: confirmation?.proposedScoreB,
     };
   });
 });
@@ -402,8 +324,40 @@ const userResponse = computed(() => {
 
 const canUserRespond = computed(() => {
   if (!props.currentUserId) return false;
-  if (props.match.status === 'finalized') return false;
   return participants.value.some(p => p.playerId === props.currentUserId);
+});
+
+/**
+ * A player who contested keeps the last word: after the discussion they may accept the
+ * entry, which withdraws their contestation and re-opens the validation round.
+ */
+const canWithdrawDispute = computed(() => {
+  return isDisputed.value && userResponse.value?.isContested === true;
+});
+
+const isWithdrawing = computed(() => canWithdrawDispute.value && responseIntent.value === 'agree');
+
+const acceptDialogTitle = computed(() =>
+  isWithdrawing.value
+    ? t('matchConfirmation.withdrawDisputeTitle')
+    : t('matchConfirmation.dialogAcceptTitle'),
+);
+
+const acceptDialogHint = computed(() =>
+  isWithdrawing.value
+    ? t('matchConfirmation.withdrawHint')
+    : t('matchConfirmation.confirmationIrreversible'),
+);
+
+/**
+ * Only the author of the entry can fix it, and only while it is not finalized.
+ */
+const canUserEditResult = computed(() => {
+  if (!props.currentUserId) return false;
+  return (
+    props.match.result?.reportedBy === props.currentUserId ||
+    props.match.createdBy === props.currentUserId
+  );
 });
 
 const isExpired = computed(() => {
@@ -463,7 +417,6 @@ function formatDate(date?: Date | string) {
 function openResponseDialog(intent: 'agree' | 'dispute') {
   responseIntent.value = intent;
   disputeReason.value = '';
-  disputeProof.value = '';
   responseDialogVisible.value = true;
 }
 
@@ -471,23 +424,8 @@ function submitResponse() {
   emit('respond', {
     type: responseIntent.value,
     reason: disputeReason.value || undefined,
-    proof: disputeProof.value || undefined,
   });
   responseDialogVisible.value = false;
-}
-
-function redirectToScoreForm() {
-  emit('redirectToScoreForm', { reason: disputeReason.value || undefined });
-  responseDialogVisible.value = false;
-}
-
-function isUrl(str: string): boolean {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
 }
 </script>
 

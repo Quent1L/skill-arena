@@ -8,7 +8,13 @@ import type { RawNotification } from './notification.api'
  */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/
 
-const PLAYER_NAME_PARAMS = ['creatorName', 'reporterName', 'disputerName', 'proposerName']
+const PLAYER_NAME_PARAMS = [
+  'creatorName',
+  'reporterName',
+  'disputerName',
+  'proposerName',
+  'authorName',
+]
 
 type Params = Record<string, unknown> | null | undefined
 

@@ -1,4 +1,5 @@
 import { matchRepository } from '../repository/match.repository'
+import { tournamentRepository } from '../repository/tournament.repository'
 import { userRepository } from '../repository/user.repository'
 import { notificationService } from './notification.service'
 
@@ -91,33 +92,72 @@ export class MatchNotificationBuilder {
     }
   }
 
-  async notifyScoreProposal(
-    matchId: string,
-    proposedBy: string,
-    proposedScoreA: number,
-    proposedScoreB: number,
-  ): Promise<void> {
+  /**
+   * A contested match has no automatic way out: the timer never settles a
+   * disagreement. Organizers are the ones who arbitrate, so the dispute lands in
+   * their notification list as an action to complete.
+   */
+  async notifyDisputeEscalation(matchId: string, disputedBy: string): Promise<void> {
     const match = await matchRepository.getById(matchId)
     if (!match) return
 
-    const participants = await matchRepository.getParticipationsByMatchId(matchId)
-    const proposer = await userRepository.getById(proposedBy)
-    const proposerName = proposer?.displayName ?? null
+    const tournament = await matchRepository.getTournament(match.tournamentId)
+    const disputer = await userRepository.getById(disputedBy)
+    const admins = await tournamentRepository.getAdminUserIds(match.tournamentId)
+    const matchDate = this.serializeMatchDate(match.playedAt)
 
-    const recipients = this.recipientsExcept(participants, proposedBy)
-    for (const playerId of recipients) {
+    for (const adminId of admins) {
       await notificationService.send({
-        userId: playerId,
-        type: 'MATCH_SCORE_PROPOSAL',
-        titleKey: 'notifications.MATCH_SCORE_PROPOSAL_TITLE',
-        messageKey: 'notifications.MATCH_SCORE_PROPOSAL_MESSAGE',
+        userId: adminId,
+        type: 'MATCH_DISPUTE_ESCALATED',
+        titleKey: 'notifications.MATCH_DISPUTE_ESCALATED_TITLE',
+        messageKey: 'notifications.MATCH_DISPUTE_ESCALATED_MESSAGE',
         translationParams: {
-          proposerName,
-          scoreA: String(proposedScoreA),
-          scoreB: String(proposedScoreB),
+          disputerName: disputer?.displayName ?? null,
+          tournamentName: tournament?.name ?? '',
+          matchDate,
         },
         actionUrl: `/matches/${matchId}`,
         requiresAction: true,
+        matchId,
+      })
+    }
+  }
+
+  /**
+   * Notifies the other people on the thread that a message was posted. Recipients who
+   * still have an unread message notification for this match are skipped, so a back
+   * and forth produces one notification, not one per reply.
+   */
+  async notifyMatchMessage(matchId: string, authorId: string): Promise<void> {
+    const match = await matchRepository.getById(matchId)
+    if (!match) return
+
+    const author = await userRepository.getById(authorId)
+    const authorName = author?.displayName ?? null
+
+    const participants = await matchRepository.getParticipationsByMatchId(matchId)
+    const admins = await tournamentRepository.getAdminUserIds(match.tournamentId)
+    const recipients = [
+      ...new Set([...participants.map((p) => p.playerId), ...admins]),
+    ].filter((id) => id !== authorId)
+
+    for (const userId of recipients) {
+      const alreadyPending = await notificationService.hasUnreadOfTypeForMatch(
+        userId,
+        matchId,
+        'MATCH_MESSAGE',
+      )
+      if (alreadyPending) continue
+
+      await notificationService.send({
+        userId,
+        type: 'MATCH_MESSAGE',
+        titleKey: 'notifications.MATCH_MESSAGE_TITLE',
+        messageKey: 'notifications.MATCH_MESSAGE_MESSAGE',
+        translationParams: { authorName },
+        actionUrl: `/matches/${matchId}`,
+        requiresAction: false,
         matchId,
       })
     }

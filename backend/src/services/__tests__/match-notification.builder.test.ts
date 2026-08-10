@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 
 import { matchNotificationBuilder } from "../match-notification.builder";
 import { matchRepository } from "../../repository/match.repository";
+import { tournamentRepository } from "../../repository/tournament.repository";
 import { userRepository } from "../../repository/user.repository";
 import { notificationService } from "../notification.service";
 
@@ -22,6 +23,8 @@ beforeEach(() => {
     { playerId: "p3", teamSide: "B" },
     { playerId: "p4", teamSide: "B" },
   ];
+  (tournamentRepository as any).getAdminUserIds = async () => ["admin-1", "admin-2"];
+  (notificationService as any).hasUnreadOfTypeForMatch = async () => false;
 });
 
 afterEach(() => {
@@ -32,6 +35,7 @@ afterEach(() => {
     }
   };
   restore(matchRepository);
+  restore(tournamentRepository);
   restore(userRepository);
   restore(notificationService);
 });
@@ -140,23 +144,47 @@ describe("MatchNotificationBuilder", () => {
     expect(p4Notif.matchId).toBe("m-2");
   });
 
-  it("notifyScoreProposal sends MATCH_SCORE_PROPOSAL with proposer + scores", async () => {
+  it("notifyDisputeEscalation raises an actionable task for the tournament organizers", async () => {
     (matchRepository as any).getById = async () => ({
       id: "m-3",
       tournamentId: "t-1",
-      status: "pending_confirmation",
+      status: "disputed",
+      playedAt: new Date("2026-06-01T15:00:00Z"),
     });
+    (matchRepository as any).getTournament = async () => ({ name: "Tour" });
 
-    await matchNotificationBuilder.notifyScoreProposal("m-3", "p1", 5, 3);
+    await matchNotificationBuilder.notifyDisputeEscalation("m-3", "p3");
 
-    expect(sentPayloads).toHaveLength(3);
+    // Organizers only — the players are not asked to arbitrate their own dispute
+    expect(sentPayloads.map((p) => p.userId).sort()).toEqual(["admin-1", "admin-2"]);
     const sample = sentPayloads[0];
-    expect(sample.type).toBe("MATCH_SCORE_PROPOSAL");
-    expect(sample.translationParams.proposerName).toBe("User-p1");
-    expect(sample.translationParams.scoreA).toBe("5");
-    expect(sample.translationParams.scoreB).toBe("3");
+    expect(sample.type).toBe("MATCH_DISPUTE_ESCALATED");
+    expect(sample.translationParams.disputerName).toBe("User-p3");
+    expect(sample.translationParams.tournamentName).toBe("Tour");
     expect(sample.requiresAction).toBe(true);
     expect(sample.matchId).toBe("m-3");
+  });
+
+  it("notifyMatchMessage skips recipients who already have an unread message notification", async () => {
+    (matchRepository as any).getById = async () => ({
+      id: "m-7",
+      tournamentId: "t-1",
+      status: "disputed",
+    });
+    (notificationService as any).hasUnreadOfTypeForMatch = async (userId: string) =>
+      userId === "p3";
+
+    await matchNotificationBuilder.notifyMatchMessage("m-7", "p1");
+
+    // p1 is the author, p3 already has a pending one
+    expect(sentPayloads.map((p) => p.userId).sort()).toEqual([
+      "admin-1",
+      "admin-2",
+      "p2",
+      "p4",
+    ]);
+    expect(sentPayloads[0].type).toBe("MATCH_MESSAGE");
+    expect(sentPayloads[0].requiresAction).toBe(false);
   });
 
   it("returns silently when match not found", async () => {
@@ -164,7 +192,8 @@ describe("MatchNotificationBuilder", () => {
 
     await matchNotificationBuilder.notifyMatchCreated("missing", "p1", "Tour");
     await matchNotificationBuilder.notifyMatchValidationRequired("missing", "p1");
-    await matchNotificationBuilder.notifyScoreProposal("missing", "p1", 1, 0);
+    await matchNotificationBuilder.notifyDisputeEscalation("missing", "p1");
+    await matchNotificationBuilder.notifyMatchMessage("missing", "p1");
 
     expect(sentPayloads).toHaveLength(0);
   });

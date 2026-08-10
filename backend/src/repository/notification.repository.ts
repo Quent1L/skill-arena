@@ -150,6 +150,35 @@ export const notificationRepository = {
     }
   },
 
+  /**
+   * Whether a user still has an unread notification of a given type for a match.
+   * Used to avoid stacking one notification per message on a busy thread.
+   */
+  async hasUnreadOfTypeForMatch(
+    userId: string,
+    matchId: string,
+    type: CreateNotification["type"],
+  ): Promise<boolean> {
+    const [existing] = await db
+      .select({ id: notifications.id })
+      .from(notifications)
+      .innerJoin(
+        notificationStatus,
+        eq(notifications.id, notificationStatus.notificationId),
+      )
+      .where(
+        and(
+          eq(notifications.matchId, matchId),
+          eq(notifications.type, type),
+          eq(notificationStatus.userId, userId),
+          eq(notificationStatus.read, false),
+        ),
+      )
+      .limit(1);
+
+    return !!existing;
+  },
+
   async deleteActionsByMatchIdForUser(matchId: string, userId: string) {
     const toDelete = await db
       .select({ id: notifications.id, userId: notificationStatus.userId })
@@ -163,6 +192,33 @@ export const notificationRepository = {
           eq(notifications.matchId, matchId),
           eq(notifications.requiresAction, true),
           eq(notificationStatus.userId, userId),
+        ),
+      );
+
+    for (const notif of toDelete) {
+      await db.delete(notifications).where(eq(notifications.id, notif.id));
+    }
+
+    return toDelete;
+  },
+
+  /**
+   * Delete the actionable notifications of a single type for a match.
+   * Narrower than deleteActionsByMatchId: used when one situation is resolved
+   * (a withdrawn dispute) while other pending actions must survive.
+   */
+  async deleteActionsByMatchIdAndType(
+    matchId: string,
+    type: CreateNotification["type"],
+  ) {
+    const toDelete = await db
+      .select({ id: notifications.id, userId: notifications.userId })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.matchId, matchId),
+          eq(notifications.type, type),
+          eq(notifications.requiresAction, true),
         ),
       );
 

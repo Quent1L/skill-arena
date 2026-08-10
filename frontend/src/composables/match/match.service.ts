@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
+import { onWsEvent } from '@/composables/notification/notification.socket'
 import { matchApi } from './match.api'
 import { useParticipantService } from '../participant.service'
 import type {
@@ -22,6 +23,9 @@ import type {
   MatchSideInput,
   TournamentMode,
 } from '@skol-arena/shared/types/index'
+
+/** Window used to fold the events of a single action into one refetch. */
+const MATCH_UPDATE_COALESCE_MS = 200
 
 interface ValidationResult {
   valid: boolean
@@ -309,13 +313,10 @@ export function useMatchService() {
   ): Promise<ClientMatchModel> => {
     try {
       const match = await matchApi.contestResult(id, data)
-      const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
       toast.add({
         severity: 'warn',
-        summary: hasProposal ? t('matchService.toast.scoreProposedSummary') : t('matchService.toast.contestSuccessSummary'),
-        detail: hasProposal
-          ? t('matchService.toast.scoreProposedDetail', { scoreA: data.proposedScoreA, scoreB: data.proposedScoreB })
-          : t('matchService.toast.contestSuccessDetail'),
+        summary: t('matchService.toast.contestSuccessSummary'),
+        detail: t('matchService.toast.contestSuccessDetail'),
         life: 6000,
       })
       return match
@@ -334,24 +335,27 @@ export function useMatchService() {
   const respondToMatch = async (
     id: string,
     data: RespondToMatchRequestData,
+    options?: { withdrawingDispute?: boolean },
   ): Promise<ClientMatchDetail> => {
     try {
       const match = await matchApi.respondToMatch(id, data)
       if (data.type === 'agree') {
+        const withdrawing = options?.withdrawingDispute === true
         toast.add({
           severity: 'success',
-          summary: t('matchService.toast.agreeSuccessSummary'),
-          detail: t('matchService.toast.agreeSuccessDetail'),
+          summary: withdrawing
+            ? t('matchService.toast.withdrawDisputeSummary')
+            : t('matchService.toast.agreeSuccessSummary'),
+          detail: withdrawing
+            ? t('matchService.toast.withdrawDisputeDetail')
+            : t('matchService.toast.agreeSuccessDetail'),
           life: 3000,
         })
       } else {
-        const hasProposal = data.proposedScoreA !== undefined && data.proposedScoreB !== undefined
         toast.add({
           severity: 'warn',
-          summary: hasProposal ? t('matchService.toast.scoreProposedSummary') : t('matchService.toast.contestSuccessSummary'),
-          detail: hasProposal
-            ? t('matchService.toast.scoreProposedDetail', { scoreA: data.proposedScoreA, scoreB: data.proposedScoreB })
-            : t('matchService.toast.respondContestDetail'),
+          summary: t('matchService.toast.contestSuccessSummary'),
+          detail: t('matchService.toast.respondContestDetail'),
           life: 6000,
         })
       }
@@ -419,6 +423,29 @@ export function useMatchService() {
     return await matchApi.validate(data)
   }
 
+  /**
+   * Live updates for one match: the server signals that its state moved, the caller
+   * refetches. A single action can move the match twice (a validation that finalizes it),
+   * so the signals are coalesced into one refresh. Returns the unsubscribe function.
+   */
+  const subscribeToMatchUpdates = (matchId: string, onUpdate: () => void): (() => void) => {
+    let pending: ReturnType<typeof setTimeout> | null = null
+
+    const off = onWsEvent('match_updated', (payload) => {
+      if ((payload as { matchId?: string })?.matchId !== matchId) return
+      if (pending) clearTimeout(pending)
+      pending = setTimeout(() => {
+        pending = null
+        onUpdate()
+      }, MATCH_UPDATE_COALESCE_MS)
+    })
+
+    return () => {
+      if (pending) clearTimeout(pending)
+      off()
+    }
+  }
+
   return {
     // State
     validationResult,
@@ -449,5 +476,6 @@ export function useMatchService() {
     cancelMatch,
     finalizeMatch,
     validateMatch,
+    subscribeToMatchUpdates,
   }
 }

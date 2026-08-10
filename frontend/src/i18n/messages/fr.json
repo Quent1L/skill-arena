@@ -598,32 +598,21 @@
   },
   "matchConfirmation": {
     "acceptBtn": "Accepter",
-    "alternativeScoreHint": "Pour proposer un score alternatif, utilisez l'option \"Saisir un score corrigé\" ci-dessous.",
+    "awaitingArbitration": "Résultat contesté — en attente d'arbitrage",
+    "awaitingArbitrationHint": "Ce match ne se validera pas tout seul. L'auteur de la saisie peut la corriger, un joueur qui a contesté peut accepter le résultat après discussion, sinon un organisateur tranchera.",
     "confirmAcceptanceBtn": "Confirmer l'acceptation",
     "confirmationIrreversible": "Vous confirmez le résultat tel qu'il a été saisi. Cette action ne peut pas être annulée.",
-    "contestedScorePrefix": "Score contesté — correction proposée par",
     "deadlineLabel": "Deadline de confirmation :",
     "dialogAcceptTitle": "Accepter le résultat",
     "dialogDisputeTitle": "Contester le résultat",
     "disputeBtn": "Contester",
+    "disputeHint": "Expliquez ce qui ne va pas : votre message sera publié dans la discussion du match, où l'auteur de la saisie pourra répondre et la corriger.",
     "disputeReasonLabel": "Raison de la contestation (optionnel)",
     "disputeReasonPlaceholder": "Expliquez pourquoi vous contestez ce résultat...",
-    "enterCorrectedScoreBtn": "Saisir un score corrigé",
     "expired": "(Expirée)",
-    "originalScore": "Score original",
+    "fixMyEntryBtn": "Corriger ma saisie",
     "playerConfirmations": "Confirmations des joueurs ({confirmed}/{total})",
-    "proofInputLabel": "Preuve (optionnel)",
-    "proofInputPlaceholder": "Lien vers une capture d'écran, vidéo...",
-    "proofLabel": "Preuve :",
-    "proposedOutcomeReason": "Raison :",
-    "proposedOutcomeType": "Raison proposée :",
-    "proposedScore": "Score proposé",
-    "proposedScoreInline": "Score proposé :",
-    "proposedWinner": "Vainqueur proposé :",
-    "proposedWinnerTeam": "Type de résultat proposé :",
-    "questionAcceptProposal": "Accepter",
     "questionConfirmResult": "Accepter",
-    "reasonLabel": "Raison :",
     "reportedByPrefix": "Résultat saisi par",
     "reportedBySuffix": "Résultat saisi par",
     "score": "Score",
@@ -642,7 +631,10 @@
     "validationAdmin": "Ce score doit être validé par un administrateur du tournoi.",
     "validationAuto": "Ce score sera automatiquement validé dans {hours}h si non contesté.",
     "validationNone": "Les scores sont validés immédiatement. Contestation possible dans les 7 jours.",
-    "validationStrict": "Ce score doit être confirmé par au moins un adversaire."
+    "validationStrict": "Ce score doit être confirmé par au moins un adversaire.",
+    "withdrawDisputeBtn": "J'accepte finalement ce résultat",
+    "withdrawDisputeTitle": "Retirer ma contestation",
+    "withdrawHint": "Votre contestation sera retirée et le résultat repartira en validation. S'il n'y a plus aucune contestation, le match peut se finaliser immédiatement."
   },
   "matchDetailView": {
     "adminActionsDescription": "En tant qu'administrateur, vous pouvez finaliser manuellement ce match.",
@@ -681,7 +673,6 @@
     "outcomeType": "Type de résultat :",
     "overLimit": "hors limite",
     "postDisputesTitle": "Contestations post-finalisation",
-    "proof": "Preuve :",
     "reason": "Raison :",
     "rematchMatch": "Rejouer",
     "status": {
@@ -709,13 +700,12 @@
   "matchFormStepperMobile": {
     "back": "Retour",
     "next": "Suivant",
-    "proposeCorrection": "Proposer la correction",
     "scheduleMatch": "Programmer le match",
-    "titleContest": "Proposer une correction",
     "titleEdit": "Compléter le match",
     "titleNew": "Nouveau Match"
   },
   "matchList": {
+    "disputedOnly": "Litiges",
     "filterByPlayerPlaceholder": "Filtrer par joueur...",
     "filterByPlayerTitle": "Filtrer par joueur",
     "filters": "Filtres",
@@ -727,6 +717,24 @@
       "win": "Victoire"
     },
     "resetFilters": "Réinitialiser les filtres"
+  },
+  "matchMessageThread": {
+    "empty": "Aucun message pour l'instant.",
+    "errors": {
+      "postFailed": "Impossible d'envoyer le message"
+    },
+    "hint": "Visible par les joueurs du match et les organisateurs du tournoi.",
+    "placeholder": "Écrire un message…",
+    "sendBtn": "Envoyer",
+    "title": "Discussion",
+    "unknownAuthor": "Joueur inconnu"
+  },
+  "matchMessages": {
+    "DISPUTE_WITHDRAWN": "{authorName} a retiré sa contestation et accepté le résultat.",
+    "MATCH_FINALIZED": "Résultat finalisé.",
+    "RESULT_DISPUTED": "{authorName} conteste le résultat. Un organisateur a été prévenu.",
+    "RESULT_REPORTED": "{authorName} a saisi le résultat : {score}",
+    "RESULT_REVISED": "{authorName} a corrigé le résultat : {previousScore} → {newScore}. Les validations précédentes sont annulées."
   },
   "matchOutcomeDistribution": {
     "drawsLabel": "{count} N",
@@ -758,9 +766,9 @@
       "finalizeSuccessDetail": "Le match a été finalisé avec succès",
       "finalizeSuccessSummary": "Match finalisé",
       "respondContestDetail": "Votre contestation a été enregistrée.",
-      "scoreProposedDetail": "Vous avez proposé le score {scoreA} - {scoreB}. Les autres joueurs doivent reconfirmer.",
-      "scoreProposedSummary": "Score proposé",
-      "updateSuccessDetail": "Match mis à jour avec succès"
+      "updateSuccessDetail": "Match mis à jour avec succès",
+      "withdrawDisputeDetail": "Votre contestation a été retirée, le résultat repart en validation.",
+      "withdrawDisputeSummary": "Contestation retirée"
     },
     "unknownPlayer": "Joueur {id}"
   },
@@ -888,6 +896,10 @@
     "DATE_TBD": "À définir",
     "MATCH_CREATED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Adversaires : {opponents}\n👥 Coéquipiers : {teammates}",
     "MATCH_CREATED_TITLE": "{creatorName} vous a ajouté dans un match {matchFormat}",
+    "MATCH_DISPUTE_ESCALATED_MESSAGE": "⚖️ {tournamentName}\n📅 {matchDate}\nCe match ne se validera pas tout seul : corrigez la saisie ou tranchez le résultat.",
+    "MATCH_DISPUTE_ESCALATED_TITLE": "Litige à arbitrer : {disputerName} conteste un résultat",
+    "MATCH_MESSAGE_MESSAGE": "💬 Nouveau message dans la discussion du match.",
+    "MATCH_MESSAGE_TITLE": "{authorName} a écrit sur un match",
     "MATCH_POST_DISPUTE_MESSAGE": "🚩 {tournamentName}\n📅 {matchDate}\n{disputerName} conteste le résultat de ce match finalisé.",
     "MATCH_POST_DISPUTE_TITLE": "{disputerName} a contesté le résultat",
     "MATCH_SCHEDULED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Adversaires : {opponents}\n👥 Coéquipiers : {teammates}",

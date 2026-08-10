@@ -64,6 +64,7 @@ declare module 'vue' {
     MatchFormStepperDesktop: typeof import('./src/components/match/MatchFormStepperDesktop.vue')['default']
     MatchFormStepperMobile: typeof import('./src/components/match/mobile/MatchFormStepperMobile.vue')['default']
     MatchList: typeof import('./src/components/MatchList.vue')['default']
+    MatchMessageThread: typeof import('./src/components/match/MatchMessageThread.vue')['default']
     MatchOutcomeDistribution: typeof import('./src/components/stats/MatchOutcomeDistribution.vue')['default']
     Menu: typeof import('primevue/menu')['default']
     Message: typeof import('primevue/message')['default']

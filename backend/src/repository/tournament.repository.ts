@@ -322,6 +322,18 @@ export class TournamentRepository {
   }
 
   /**
+   * List the users who administrate a tournament (owner and co-admins).
+   */
+  async getAdminUserIds(tournamentId: string): Promise<string[]> {
+    const records = await db.query.tournamentAdmins.findMany({
+      where: eq(tournamentAdmins.tournamentId, tournamentId),
+      columns: { userId: true },
+    });
+
+    return records.map((record) => record.userId);
+  }
+
+  /**
    * Add tournament admin
    */
   async addAdmin(

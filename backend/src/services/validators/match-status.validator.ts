@@ -9,7 +9,8 @@ export class MatchStatusValidator {
      * Validate match status allows reporting
      */
     validateReportStatus(status: MatchStatus): void {
-        if (!["scheduled", "reported", "pending_confirmation"].includes(status)) {
+        // 'disputed' is included: re-reporting is how the author corrects a contested entry.
+        if (!["scheduled", "reported", "disputed"].includes(status)) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
         }
     }
@@ -18,7 +19,9 @@ export class MatchStatusValidator {
      * Validate match status allows confirmation
      */
     validateConfirmStatus(status: MatchStatus): void {
-        if (!["reported", "pending_confirmation"].includes(status)) {
+        // 'disputed' is included: a contester may accept after the discussion, which
+        // withdraws their contestation and re-opens the validation round.
+        if (!["reported", "disputed"].includes(status)) {
             throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS);
         }
     }

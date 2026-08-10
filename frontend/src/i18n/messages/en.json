@@ -598,32 +598,21 @@
   },
   "matchConfirmation": {
     "acceptBtn": "Accept",
-    "alternativeScoreHint": "To propose an alternative score, use the \"Enter corrected score\" option below.",
+    "awaitingArbitration": "Result contested — awaiting arbitration",
+    "awaitingArbitrationHint": "This match will not validate on its own. The author of the entry can correct it, a player who disputed can accept the result after the discussion, otherwise an organizer will settle it.",
     "confirmAcceptanceBtn": "Confirm acceptance",
     "confirmationIrreversible": "You are confirming the result as entered. This action cannot be undone.",
-    "contestedScorePrefix": "Disputed score — correction proposed by",
     "deadlineLabel": "Confirmation deadline:",
     "dialogAcceptTitle": "Accept result",
     "dialogDisputeTitle": "Dispute result",
     "disputeBtn": "Dispute",
+    "disputeHint": "Explain what is wrong: your message is posted in the match discussion, where the author of the entry can answer and correct it.",
     "disputeReasonLabel": "Dispute reason (optional)",
     "disputeReasonPlaceholder": "Describe the issue...",
-    "enterCorrectedScoreBtn": "Enter corrected score",
     "expired": "(Expired)",
-    "originalScore": "Original score",
+    "fixMyEntryBtn": "Correct my entry",
     "playerConfirmations": "Player confirmations ({confirmed}/{total})",
-    "proofInputLabel": "Proof (optional)",
-    "proofInputPlaceholder": "Link to a screenshot, video...",
-    "proofLabel": "Proof:",
-    "proposedOutcomeReason": "Reason:",
-    "proposedOutcomeType": "Proposed reason:",
-    "proposedScore": "Proposed score",
-    "proposedScoreInline": "Proposed score:",
-    "proposedWinner": "Proposed winner:",
-    "proposedWinnerTeam": "Proposed outcome type:",
-    "questionAcceptProposal": "Accept",
     "questionConfirmResult": "Accept",
-    "reasonLabel": "Reason:",
     "reportedByPrefix": "Result entered by",
     "reportedBySuffix": "Result entered by",
     "score": "Score",
@@ -642,7 +631,10 @@
     "validationAdmin": "This score must be validated by a tournament administrator.",
     "validationAuto": "This score will be automatically validated in {hours}h if not disputed.",
     "validationNone": "Scores are validated immediately. Dispute possible within 7 days.",
-    "validationStrict": "This score must be confirmed by at least one opponent."
+    "validationStrict": "This score must be confirmed by at least one opponent.",
+    "withdrawDisputeBtn": "I accept this result after all",
+    "withdrawDisputeTitle": "Withdraw my dispute",
+    "withdrawHint": "Your dispute will be withdrawn and the result goes back to validation. Once no dispute remains, the match can finalize right away."
   },
   "matchDetailView": {
     "adminActionsDescription": "As an administrator, you can manually finalize this match.",
@@ -681,7 +673,6 @@
     "outcomeType": "Outcome type:",
     "overLimit": "over limit",
     "postDisputesTitle": "Post-finalization disputes",
-    "proof": "Proof:",
     "reason": "Reason:",
     "rematchMatch": "Rematch",
     "status": {
@@ -709,13 +700,12 @@
   "matchFormStepperMobile": {
     "back": "Back",
     "next": "Next",
-    "proposeCorrection": "Propose correction",
     "scheduleMatch": "Schedule match",
-    "titleContest": "Propose a correction",
     "titleEdit": "Complete match",
     "titleNew": "New Match"
   },
   "matchList": {
+    "disputedOnly": "Disputes",
     "filterByPlayerPlaceholder": "Filter by player...",
     "filterByPlayerTitle": "Filter by player",
     "filters": "Filters",
@@ -727,6 +717,24 @@
       "win": "Win"
     },
     "resetFilters": "Reset filters"
+  },
+  "matchMessageThread": {
+    "empty": "No message yet.",
+    "errors": {
+      "postFailed": "Could not send the message"
+    },
+    "hint": "Visible to the players of this match and to the tournament organizers.",
+    "placeholder": "Write a message…",
+    "sendBtn": "Send",
+    "title": "Discussion",
+    "unknownAuthor": "Unknown player"
+  },
+  "matchMessages": {
+    "DISPUTE_WITHDRAWN": "{authorName} withdrew their dispute and accepted the result.",
+    "MATCH_FINALIZED": "Result finalized.",
+    "RESULT_DISPUTED": "{authorName} contests the result. An organizer has been notified.",
+    "RESULT_REPORTED": "{authorName} reported the result: {score}",
+    "RESULT_REVISED": "{authorName} corrected the result: {previousScore} → {newScore}. Previous validations are cleared."
   },
   "matchOutcomeDistribution": {
     "drawsLabel": "{count} D",
@@ -758,9 +766,9 @@
       "finalizeSuccessDetail": "The match has been finalized successfully",
       "finalizeSuccessSummary": "Match finalized",
       "respondContestDetail": "Your dispute has been recorded.",
-      "scoreProposedDetail": "You proposed the score {scoreA} - {scoreB}. Other players must reconfirm.",
-      "scoreProposedSummary": "Score proposed",
-      "updateSuccessDetail": "Match updated successfully"
+      "updateSuccessDetail": "Match updated successfully",
+      "withdrawDisputeDetail": "Your dispute has been withdrawn, the result is back in validation.",
+      "withdrawDisputeSummary": "Dispute withdrawn"
     },
     "unknownPlayer": "Player {id}"
   },
@@ -888,6 +896,10 @@
     "DATE_TBD": "To be defined",
     "MATCH_CREATED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Opponents: {opponents}\n👥 Teammates: {teammates}",
     "MATCH_CREATED_TITLE": "{creatorName} added you to a {matchFormat} match",
+    "MATCH_DISPUTE_ESCALATED_MESSAGE": "⚖️ {tournamentName}\n📅 {matchDate}\nThis match will not validate on its own: correct the entry or settle the result.",
+    "MATCH_DISPUTE_ESCALATED_TITLE": "Dispute to arbitrate: {disputerName} contests a result",
+    "MATCH_MESSAGE_MESSAGE": "💬 New message in the match discussion.",
+    "MATCH_MESSAGE_TITLE": "{authorName} wrote on a match",
     "MATCH_POST_DISPUTE_MESSAGE": "🚩 {tournamentName}\n📅 {matchDate}\n{disputerName} is contesting the result of this finalized match.",
     "MATCH_POST_DISPUTE_TITLE": "{disputerName} has disputed the result",
     "MATCH_SCHEDULED_MESSAGE": "🏆 {tournamentName}\n📅 {matchDate}\n⚔️ Opponents: {opponents}\n👥 Teammates: {teammates}",

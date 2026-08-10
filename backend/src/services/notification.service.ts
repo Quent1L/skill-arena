@@ -194,12 +194,41 @@ export const notificationService = {
     return await notificationRepository.delete(notificationId, userId);
   },
 
+  async hasUnreadOfTypeForMatch(
+    userId: string,
+    matchId: string,
+    type: CreateNotification["type"],
+  ) {
+    return await notificationRepository.hasUnreadOfTypeForMatch(
+      userId,
+      matchId,
+      type,
+    );
+  },
+
   async deleteActionsByMatchIdForUser(matchId: string, userId: string) {
     const deleted =
       await notificationRepository.deleteActionsByMatchIdForUser(
         matchId,
         userId,
       );
+    for (const notif of deleted) {
+      webSocketService.send(notif.userId, {
+        event: "notification_deleted",
+        data: { id: notif.id },
+      });
+    }
+    return deleted;
+  },
+
+  async deleteActionsByMatchIdAndType(
+    matchId: string,
+    type: CreateNotification["type"],
+  ) {
+    const deleted = await notificationRepository.deleteActionsByMatchIdAndType(
+      matchId,
+      type,
+    );
     for (const notif of deleted) {
       webSocketService.send(notif.userId, {
         event: "notification_deleted",

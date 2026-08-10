@@ -166,7 +166,7 @@ function loadUnfinalizedMatches(seasonId: string) {
   return db.query.matches.findMany({
     where: and(
       eq(matches.tournamentId, seasonId),
-      inArray(matches.status, ["reported", "pending_confirmation", "disputed"]),
+      inArray(matches.status, ["reported", "disputed"]),
     ),
     with: {
       outcomeType: { columns: { scoreCountsForMmr: true, points: true } },

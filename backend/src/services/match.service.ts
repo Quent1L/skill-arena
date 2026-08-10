@@ -43,6 +43,8 @@ import { rankedSeasonService } from './ranked-season.service'
 import { teamRepository } from '../repository/team.repository'
 import { matchNotificationBuilder } from './match-notification.builder'
 import { matchFinalizationOrchestrator } from './match-finalization.orchestrator'
+import { matchMessageService } from './match-message.service'
+import { matchRealtimeService } from './match-realtime.service'
 
 type TournamentFromRepository = Awaited<ReturnType<typeof matchRepository.getTournament>>
 
@@ -324,14 +326,46 @@ export class MatchService {
 
     await this.runUpdateValidations(id, match, updatedBy, tournament)
 
-    const updateData = await this.buildUpdateMatchData(id, input, match, tournament, updatedBy)
+    const isRevision = this.isResultRevision(match, input)
+    const updateData = await this.buildUpdateMatchData(
+      id,
+      input,
+      match,
+      tournament,
+      updatedBy,
+      isRevision,
+    )
     const result = await matchRepository.update(id, updateData)
     await notificationService.deleteActionsByMatchId(id)
 
-    if (input.status === 'reported') {
+    if (isRevision) {
+      await this.handleResultRevision(id, match, updatedBy)
+    } else if (input.status === 'reported') {
       await this.handleReportedUpdate(id, updatedBy)
     }
+
+    await matchRealtimeService.notifyMatchUpdated(id)
     return result
+  }
+
+  /**
+   * A revision is a change to the result of a match that already carries one. It is the
+   * replacement for the score counter-proposal: rather than an opponent submitting a
+   * rival score, the author fixes their own entry and the opponents vote again.
+   */
+  private isResultRevision(
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    input: UpdateMatchInput,
+  ): boolean {
+    if (match.status !== 'reported' && match.status !== 'disputed') return false
+
+    return (
+      input.scoreA !== undefined ||
+      input.scoreB !== undefined ||
+      input.winnerPosition !== undefined ||
+      input.outcomeTypeId !== undefined ||
+      input.outcomeReasonId !== undefined
+    )
   }
 
   private async runUpdateValidations(
@@ -343,7 +377,13 @@ export class MatchService {
     const canManage = await this.canManageMatches(match.tournamentId, updatedBy)
     if (!canManage) {
       const isParticipant = await matchRepository.isUserInMatch(id, updatedBy)
-      if (match.status !== 'scheduled' || !isParticipant) {
+      const isAuthor =
+        match.result?.reportedBy === updatedBy || match.createdBy === updatedBy
+      const isEditableByAuthor = ['reported', 'disputed'].includes(match.status)
+
+      const allowed =
+        isParticipant && (match.status === 'scheduled' || (isAuthor && isEditableByAuthor))
+      if (!allowed) {
         throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS)
       }
     }
@@ -368,6 +408,7 @@ export class MatchService {
     match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
     tournament: TournamentFromRepository,
     updatedBy: string,
+    isRevision = false,
   ): Promise<UpdateMatchData> {
     const updateData: UpdateMatchData = {}
     if (input.scoreA !== undefined) updateData.scoreA = input.scoreA
@@ -383,7 +424,7 @@ export class MatchService {
       await this.validateNoPlayerConflict(playerIds, input.playedAt, match.tournamentId, id)
     }
 
-    if (input.status === 'reported') {
+    if (input.status === 'reported' || isRevision) {
       const scoreA = input.scoreA ?? 0
       const scoreB = input.scoreB ?? 0
       matchInputValidator.validateScores(scoreA, scoreB)
@@ -400,10 +441,59 @@ export class MatchService {
         input.winnerPosition,
       )
 
+      // A corrected entry re-opens the validation round, including on a contested match.
+      updateData.status = 'reported'
       updateData.reportedBy = updatedBy
       updateData.confirmationDeadline = this.getDeadlineForTournament(tournament)
     }
     return updateData
+  }
+
+  /**
+   * Every confirmation collected on the previous score is dropped: opponents validated a
+   * result that no longer exists. Without this reset an organizer could finalize a
+   * corrected score on a stale approval.
+   */
+  private async handleResultRevision(
+    matchId: string,
+    previous: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    updatedBy: string,
+  ): Promise<void> {
+    await matchConfirmationRepository.resetConfirmationsExcept(matchId, updatedBy)
+
+    const isParticipant = await matchRepository.isUserInMatch(matchId, updatedBy)
+    const updater = await userRepository.getById(updatedBy)
+    if (isParticipant && updater?.role !== 'kiosk') {
+      await matchConfirmationRepository.upsert({
+        matchId,
+        playerId: updatedBy,
+        isConfirmed: true,
+        isContested: false,
+      })
+    }
+
+    const refreshed = await matchRepository.getById(matchId)
+    await matchMessageService.postSystem(matchId, 'matchMessages.RESULT_REVISED', {
+      authorName: updater?.displayName ?? null,
+      previousScore: this.formatScore(previous),
+      newScore: this.formatScore(refreshed),
+    })
+
+    await this.checkAndFinalizeMatch(matchId)
+
+    const afterCheck = await matchRepository.getById(matchId)
+    if (afterCheck?.status === 'reported') {
+      await matchNotificationBuilder.notifyMatchValidationRequired(matchId, updatedBy)
+      this.scheduleProvisionalRecompute(previous.tournamentId)
+    }
+  }
+
+  private formatScore(
+    match: Awaited<ReturnType<typeof matchRepository.getById>>,
+  ): string {
+    const sideA = match?.sides?.find((s) => s.position === 1)
+    const sideB = match?.sides?.find((s) => s.position === 2)
+    return `${sideA?.score ?? 0} - ${sideB?.score ?? 0}`
   }
 
   private async handleReportedUpdate(matchId: string, updatedBy: string): Promise<void> {
@@ -460,10 +550,22 @@ export class MatchService {
       isContested: false,
     })
 
+    // A re-report on a contested match is a correction: opponents vote again.
+    if (match.status === 'disputed') {
+      await matchConfirmationRepository.resetConfirmationsExcept(id, reportedBy)
+    }
+
+    const reporterUser = await userRepository.getById(reportedBy)
+    await matchMessageService.postSystem(id, 'matchMessages.RESULT_REPORTED', {
+      authorName: reporterUser?.displayName ?? null,
+      score: `${input.scoreA} - ${input.scoreB}`,
+    })
+
     if (tournament?.validationMode === 'none') {
       await this.finalizeMatch(id, { finalizationReason: 'auto_validation' }, reportedBy)
       return await matchRepository.getById(id)
     }
+
 
     if (tournament?.validationMode === 'auto') {
       const reporter = await userRepository.getById(reportedBy)
@@ -480,10 +582,11 @@ export class MatchService {
       await matchNotificationBuilder.notifyMatchValidationRequired(id, reportedBy)
     }
 
-    if (refreshed?.status === 'reported' || refreshed?.status === 'pending_confirmation') {
+    if (refreshed?.status === 'reported') {
       this.scheduleProvisionalRecompute(match.tournamentId)
     }
 
+    await matchRealtimeService.notifyMatchUpdated(id)
     return updatedMatch
   }
 
@@ -542,23 +645,11 @@ export class MatchService {
       throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT)
     }
 
-    if (!['reported', 'pending_confirmation'].includes(match.status)) {
+    if (!['reported', 'disputed'].includes(match.status)) {
       throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS)
     }
 
-    if (match.status === 'finalized') {
-      throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED)
-    }
-
-    await matchConfirmationRepository.upsert({
-      matchId: id,
-      playerId: confirmedBy,
-      isConfirmed: true,
-      isContested: false,
-    })
-
-    await notificationService.deleteActionsByMatchIdForUser(id, confirmedBy)
-    await this.checkAndFinalizeMatch(id)
+    await this.recordAgreement(id, match, confirmedBy)
 
     return await matchRepository.getById(id)
   }
@@ -576,28 +667,15 @@ export class MatchService {
       throw new ForbiddenError(ErrorCode.NOT_A_PARTICIPANT)
     }
 
-    if (!['reported', 'pending_confirmation'].includes(match.status)) {
+    if (!['reported', 'disputed'].includes(match.status)) {
       throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS)
     }
-
-    if (match.status === 'finalized') {
-      throw new BadRequestError(ErrorCode.MATCH_ALREADY_FINALIZED)
-    }
-
-    const proposal = this.proposedConfirmationFields(input)
 
     await matchConfirmationRepository.upsert({
       matchId: id,
       playerId: contestedBy,
       isConfirmed: false,
       isContested: true,
-      contestationReason: input.contestationReason,
-      contestationProof: input.contestationProof,
-      proposedScoreA: proposal.proposedScoreA,
-      proposedScoreB: proposal.proposedScoreB,
-      proposedWinner: proposal.proposedWinner,
-      proposedOutcomeTypeId: proposal.proposedOutcomeTypeId,
-      proposedOutcomeReasonId: proposal.proposedOutcomeReasonId,
     })
 
     const originalReporter = match.result?.reportedBy
@@ -605,7 +683,7 @@ export class MatchService {
       await userRepository.resetTrustScore(originalReporter)
     }
 
-    await this.applyDisputeOutcome(id, match.tournamentId, contestedBy, proposal)
+    await this.applyDisputeOutcome(id, match.tournamentId, contestedBy, input.contestationReason)
 
     return await matchRepository.getById(id)
   }
@@ -669,7 +747,6 @@ export class MatchService {
       isConfirmed: false,
       isContested: true,
       contestationReason: input.reason,
-      contestationProof: input.proof,
       sidePosition,
       isPostFinalization: true,
     })
@@ -685,44 +762,23 @@ export class MatchService {
     input: RespondToMatchInput,
     respondedBy: string,
   ) {
-    if (!['reported', 'pending_confirmation', 'disputed'].includes(match.status)) {
+    if (!['reported', 'disputed'].includes(match.status)) {
       throw new BadRequestError(ErrorCode.MATCH_INVALID_STATUS)
     }
 
-    const participants = await matchRepository.getParticipationsByMatchId(id)
-    const sidePosition = participants.find((p) => p.playerId === respondedBy)?.teamSide === 'A' ? 1 : 2
-
     if (input.type === 'agree') {
-      await matchConfirmationRepository.upsert({
-        matchId: id,
-        playerId: respondedBy,
-        isConfirmed: true,
-        isContested: false,
-        sidePosition,
-        isPostFinalization: false,
-      })
-
-      await notificationService.deleteActionsByMatchIdForUser(id, respondedBy)
-      await this.checkAndFinalizeMatch(id)
+      await this.recordAgreement(id, match, respondedBy)
 
       return await matchRepository.getById(id)
     }
 
     // dispute
-    const proposal = this.proposedConfirmationFields(input)
-
+    const sidePosition = await this.resolveSidePosition(id, respondedBy)
     await matchConfirmationRepository.upsert({
       matchId: id,
       playerId: respondedBy,
       isConfirmed: false,
       isContested: true,
-      contestationReason: input.reason,
-      contestationProof: input.proof,
-      proposedScoreA: proposal.proposedScoreA,
-      proposedScoreB: proposal.proposedScoreB,
-      proposedWinner: proposal.proposedWinner,
-      proposedOutcomeTypeId: proposal.proposedOutcomeTypeId,
-      proposedOutcomeReasonId: proposal.proposedOutcomeReasonId,
       sidePosition,
       isPostFinalization: false,
     })
@@ -732,9 +788,43 @@ export class MatchService {
       await userRepository.resetTrustScore(originalReporter)
     }
 
-    await this.applyDisputeOutcome(id, match.tournamentId, respondedBy, proposal)
+    await this.applyDisputeOutcome(id, match.tournamentId, respondedBy, input.reason)
 
     return await matchRepository.getById(id)
+  }
+
+  /**
+   * Record a player's approval of the current entry. Agreeing is also how a contester
+   * changes their mind after the discussion: their contestation is wiped, and once the
+   * last one is gone the match goes back to a normal validation round.
+   */
+  private async recordAgreement(
+    id: string,
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+    playerId: string,
+  ): Promise<void> {
+    const side = await this.resolveSidePosition(id, playerId)
+
+    await matchConfirmationRepository.upsert({
+      matchId: id,
+      playerId,
+      isConfirmed: true,
+      isContested: false,
+      contestationReason: null,
+      sidePosition: side,
+      isPostFinalization: false,
+    })
+
+    if (match.status === 'disputed') {
+      const confirmations = await matchConfirmationRepository.getByMatchId(id)
+      if (!this.detectContestation(confirmations)) {
+        await this.applyDisputeWithdrawal(id, match.tournamentId, playerId)
+      }
+    }
+
+    await notificationService.deleteActionsByMatchIdForUser(id, playerId)
+    await this.checkAndFinalizeMatch(id)
+    await matchRealtimeService.notifyMatchUpdated(id)
   }
 
   async validateMatch(input: CreateMatchInput & { matchId?: string; allPlayerIds?: string[] }) {
@@ -889,15 +979,14 @@ export class MatchService {
     const match = await matchRepository.getById(matchId)
     if (!match) return
 
-    if (match.status === 'finalized' || match.status === 'disputed') return
-    if (!['reported', 'pending_confirmation'].includes(match.status)) return
+    if (match.status !== 'reported') return
 
     const participants = await matchRepository.getParticipationsByMatchId(matchId)
     if (participants.length === 0) return
 
     const confirmations = await matchConfirmationRepository.getByMatchId(matchId)
 
-    if (this.detectSimpleContestation(confirmations)) {
+    if (this.detectContestation(confirmations)) {
       await matchRepository.update(matchId, { status: 'disputed' })
       return
     }
@@ -905,29 +994,16 @@ export class MatchService {
     const tournament = await matchRepository.getTournament(match.tournamentId)
     if (tournament?.validationMode === 'admin') return
 
-    const activeProposal = await matchConfirmationRepository.getActiveProposal(matchId)
-    const proposerPlayerId =
-      match.status === 'pending_confirmation' ? activeProposal?.playerId : undefined
+    const reporter = match.result?.reportedBy
+    const reporterSide = participants.find((p) => p.playerId === reporter)?.teamSide
 
-    const effectiveConfirmations = confirmations.map((c) =>
-      c.playerId === proposerPlayerId ? { ...c, isConfirmed: true } : c,
-    )
-
-    // Current score submitter: proposer (pending_confirmation) or original reporter
-    const currentReporter =
-      match.status === 'pending_confirmation'
-        ? proposerPlayerId
-        : match.result?.reportedBy
-    const reporterSide = participants.find((p) => p.playerId === currentReporter)?.teamSide
-
-    const opponentConfirmed = effectiveConfirmations.some((c) => {
+    const opponentConfirmed = confirmations.some((c) => {
       if (!c.isConfirmed || c.isContested) return false
       const side = participants.find((p) => p.playerId === c.playerId)?.teamSide
-      return reporterSide ? side !== reporterSide : c.playerId !== currentReporter
+      return reporterSide ? side !== reporterSide : c.playerId !== reporter
     })
 
     if (opponentConfirmed) {
-      await this.applyActiveProposal(matchId, activeProposal)
       await this.finalizeMatch(matchId, { finalizationReason: 'consensus' })
     }
   }
@@ -955,13 +1031,14 @@ export class MatchService {
 
     matchStatusValidator.validateCanCancel(match.status)
 
-    const wasUnfinalized = ['reported', 'pending_confirmation', 'disputed'].includes(match.status)
+    const wasUnfinalized = ['reported', 'disputed'].includes(match.status)
     await matchRepository.update(id, { status: 'cancelled' })
     await notificationService.deleteActionsByMatchId(id)
     if (wasUnfinalized) {
       this.scheduleProvisionalRecompute(match.tournamentId)
     }
 
+    await matchRealtimeService.notifyMatchUpdated(id)
     return await matchRepository.getById(id)
   }
 
@@ -1029,6 +1106,11 @@ export class MatchService {
       }
     }
 
+    await matchMessageService.postSystem(id, 'matchMessages.MATCH_FINALIZED', {
+      reason: input.finalizationReason,
+    })
+    await matchRealtimeService.notifyMatchUpdated(id)
+
     return result
   }
 
@@ -1046,13 +1128,11 @@ export class MatchService {
 
       const confirmations = await matchConfirmationRepository.getByMatchId(match.id)
 
-      if (this.detectSimpleContestation(confirmations)) {
+      if (this.detectContestation(confirmations)) {
         disputed.push(match.id)
         continue
       }
 
-      const activeProposal = await matchConfirmationRepository.getActiveProposal(match.id)
-      await this.applyActiveProposal(match.id, activeProposal)
       await this.finalizeMatch(
         match.id,
         { finalizationReason: 'auto_validation' },
@@ -1074,50 +1154,10 @@ export class MatchService {
     }
   }
 
-  private detectSimpleContestation(
+  private detectContestation(
     confirmations: Awaited<ReturnType<typeof matchConfirmationRepository.getByMatchId>>,
   ): boolean {
-    return confirmations.some(
-      (c) => c.isContested && (c.proposedScoreA === null || c.proposedScoreA === undefined),
-    )
-  }
-
-  private async applyActiveProposal(
-    matchId: string,
-    activeProposal: Awaited<
-      ReturnType<typeof matchConfirmationRepository.getActiveProposal>
-    > | null,
-  ): Promise<void> {
-    if (
-      activeProposal?.proposedScoreA == null ||
-      activeProposal?.proposedScoreB == null
-    ) {
-      return
-    }
-
-    const updateData: UpdateMatchData = {
-      scoreA: activeProposal.proposedScoreA,
-      scoreB: activeProposal.proposedScoreB,
-    }
-
-    if (activeProposal.proposedWinner !== null && activeProposal.proposedWinner !== undefined) {
-      const parsed = Number.parseInt(activeProposal.proposedWinner)
-      updateData.winnerPosition = Number.isNaN(parsed) ? null : parsed
-    }
-    if (
-      activeProposal.proposedOutcomeTypeId !== null &&
-      activeProposal.proposedOutcomeTypeId !== undefined
-    ) {
-      updateData.outcomeTypeId = activeProposal.proposedOutcomeTypeId
-    }
-    if (
-      activeProposal.proposedOutcomeReasonId !== null &&
-      activeProposal.proposedOutcomeReasonId !== undefined
-    ) {
-      updateData.outcomeReasonId = activeProposal.proposedOutcomeReasonId
-    }
-
-    await matchRepository.update(matchId, updateData)
+    return confirmations.some((c) => c.isContested && !c.isPostFinalization)
   }
 
   private deriveWinnerFromScores(
@@ -1160,59 +1200,66 @@ export class MatchService {
     )
   }
 
-  private proposedConfirmationFields(input: {
-    proposedScoreA?: number | null
-    proposedScoreB?: number | null
-    proposedWinnerPosition?: number | null
-    proposedOutcomeTypeId?: string | null
-    proposedOutcomeReasonId?: string | null
-  }): {
-    hasScoreProposal: boolean
-    proposedScoreA: number | null
-    proposedScoreB: number | null
-    proposedWinner: string | null
-    proposedOutcomeTypeId: string | null
-    proposedOutcomeReasonId: string | null
-  } {
-    const hasScoreProposal =
-      input.proposedScoreA !== undefined && input.proposedScoreB !== undefined
-    return {
-      hasScoreProposal,
-      proposedScoreA: hasScoreProposal ? input.proposedScoreA ?? null : null,
-      proposedScoreB: hasScoreProposal ? input.proposedScoreB ?? null : null,
-      proposedWinner: hasScoreProposal ? input.proposedWinnerPosition?.toString() ?? null : null,
-      proposedOutcomeTypeId: hasScoreProposal ? input.proposedOutcomeTypeId ?? null : null,
-      proposedOutcomeReasonId: hasScoreProposal ? input.proposedOutcomeReasonId ?? null : null,
-    }
-  }
-
+  /**
+   * A contested match stops moving on its own: the timer never settles a disagreement.
+   * It waits for the author to correct the entry or for an organizer to arbitrate, and
+   * both of them are told about it — the organizers through an actionable notification,
+   * everyone through the match thread.
+   */
   private async applyDisputeOutcome(
     id: string,
     tournamentId: string,
     disputerId: string,
-    proposal: { hasScoreProposal: boolean; proposedScoreA: number | null; proposedScoreB: number | null },
+    reason?: string,
   ): Promise<void> {
-    if (proposal.hasScoreProposal) {
-      await notificationService.deleteActionsByMatchIdForUser(id, disputerId)
-      await matchConfirmationRepository.resetConfirmationsExcept(id, disputerId)
+    await notificationService.deleteActionsByMatchIdForUser(id, disputerId)
+    await matchRepository.update(id, {
+      status: 'disputed',
+      confirmationDeadline: null,
+    })
 
-      const tournament = await matchRepository.getTournament(tournamentId)
-      await matchRepository.update(id, {
-        status: 'pending_confirmation',
-        confirmationDeadline: this.getDeadlineForTournament(tournament),
-      })
+    const disputer = await userRepository.getById(disputerId)
+    await matchMessageService.postSystem(id, 'matchMessages.RESULT_DISPUTED', {
+      authorName: disputer?.displayName ?? null,
+    })
+    // The reason belongs to the conversation, where it can be answered
+    await matchMessageService.postUserNote(id, disputerId, reason)
 
-      this.scheduleProvisionalRecompute(tournamentId)
-      await matchNotificationBuilder.notifyScoreProposal(
-        id,
-        disputerId,
-        proposal.proposedScoreA!,
-        proposal.proposedScoreB!,
-      )
-    } else {
-      await matchRepository.update(id, { status: 'disputed' })
-      this.scheduleProvisionalRecompute(tournamentId)
-    }
+    this.scheduleProvisionalRecompute(tournamentId)
+    await matchNotificationBuilder.notifyDisputeEscalation(id, disputerId)
+    await matchRealtimeService.notifyMatchUpdated(id)
+  }
+
+  /**
+   * Mirror of applyDisputeOutcome: the last contestation is gone, so the match rejoins a
+   * normal validation round. The organizers' arbitration request is dropped — narrowly,
+   * because the other players may still owe a validation.
+   */
+  private async applyDisputeWithdrawal(
+    id: string,
+    tournamentId: string,
+    withdrawerId: string,
+  ): Promise<void> {
+    const tournament = await matchRepository.getTournament(tournamentId)
+    await matchRepository.update(id, {
+      status: 'reported',
+      confirmationDeadline: this.getDeadlineForTournament(tournament),
+    })
+
+    await notificationService.deleteActionsByMatchIdAndType(id, 'MATCH_DISPUTE_ESCALATED')
+
+    const withdrawer = await userRepository.getById(withdrawerId)
+    await matchMessageService.postSystem(id, 'matchMessages.DISPUTE_WITHDRAWN', {
+      authorName: withdrawer?.displayName ?? null,
+    })
+
+    this.scheduleProvisionalRecompute(tournamentId)
+    await matchRealtimeService.notifyMatchUpdated(id)
+  }
+
+  private async resolveSidePosition(matchId: string, playerId: string): Promise<number> {
+    const participants = await matchRepository.getParticipationsByMatchId(matchId)
+    return participants.find((p) => p.playerId === playerId)?.teamSide === 'A' ? 1 : 2
   }
 
   private async resolvePlayerIds(

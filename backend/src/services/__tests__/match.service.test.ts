@@ -31,6 +31,8 @@ import { rankedSeasonRepository } from "../../repository/ranked-season.repositor
 import { rankedSeasonService } from "../ranked-season.service";
 import { tournamentStatsRepository } from "../../repository/tournament-stats.repository";
 import { matchSidesRepository } from "../../repository/match-sides.repository";
+import { matchMessageService } from "../match-message.service";
+import { matchRealtimeService } from "../match-realtime.service";
 import {
   NotFoundError,
   BadRequestError,
@@ -56,6 +58,7 @@ let tourRepo: Partial<TournamentRepository>;
 let usrRepo: Partial<UserRepository>;
 let confRepo: Partial<MatchConfirmationRepository>;
 let notifService: Partial<NotificationServiceType>;
+const matchUpdatesBroadcast: string[] = [];
 
 // MMR recalculation is offloaded to an async job queue (graphile-worker).
 // finalizeMatch only enqueues the job; mock the queue so tests neither hit a
@@ -91,6 +94,17 @@ beforeEach(() => {
 
   tourRepo = tournamentRepository as unknown as Partial<TournamentRepository>;
   tourRepo.isUserTournamentAdmin = async () => false;
+  tourRepo.getAdminUserIds = async () => [];
+
+  // The thread is written on every milestone of the flow; keep it out of unit tests.
+  (matchMessageService as any).postSystem = async () => undefined;
+  (matchMessageService as any).postUserNote = async () => undefined;
+
+  // Live match updates go through the socket; unit tests only assert they were asked for.
+  matchUpdatesBroadcast.length = 0;
+  (matchRealtimeService as any).notifyMatchUpdated = async (matchId: string) => {
+    matchUpdatesBroadcast.push(matchId);
+  };
 
   usrRepo = userRepository as unknown as Partial<UserRepository>;
   usrRepo.getById = async (id: string) =>
@@ -117,6 +131,7 @@ beforeEach(() => {
   notifService =
     notificationService as unknown as Partial<NotificationServiceType>;
   notifService.deleteActionsByMatchId = async () => [];
+  notifService.deleteActionsByMatchIdAndType = async () => [];
   notifService.deleteActionsByMatchIdForUser = async () => [];
   notifService.send = async () => undefined as any;
 
@@ -169,6 +184,8 @@ afterEach(() => {
   restore(tournamentRepository);
   restore(userRepository);
   restore(matchConfirmationRepository);
+  restore(matchMessageService);
+  restore(matchRealtimeService);
   restore(notificationService);
   restore(bracketRepository);
   restore(bracketService);
@@ -1229,10 +1246,7 @@ describe("MatchService - Contestation Flow", () => {
 
     const result = await matchService.contestMatch(
       "m-contest",
-      {
-        contestationReason: "Score incorrect",
-        contestationProof: "screenshot.png",
-      } as any,
+      { contestationReason: "Score incorrect" } as any,
       "u-other",
     );
 
@@ -1816,22 +1830,24 @@ describe("MatchService - Kiosk role permissions", () => {
   });
 });
 
-describe("MatchService - Score proposal contest", () => {
-  it("contestMatch with score proposal sets pending_confirmation, resets others, notifies", async () => {
+describe("MatchService - Dispute handling", () => {
+  it("a dispute parks the match on 'disputed', clears the deadline and alerts the organizers", async () => {
     repo.getById = async (id: string) =>
       ({
         id,
         tournamentId: "t-1",
         status: "reported",
+        result: { reportedBy: "p2" },
       }) as any;
     repo.getTournament = async () =>
-      ({ id: "t-1", validationMode: "auto", validationTimerHours: null }) as any;
+      ({ id: "t-1", validationMode: "auto", validationTimerHours: 24 }) as any;
     repo.isUserInMatch = async () => true;
     repo.getParticipationsByMatchId = async () =>
       [
         { playerId: "p1", teamSide: "A" },
         { playerId: "p2", teamSide: "B" },
       ] as any;
+    tourRepo.getAdminUserIds = async () => ["admin-1"];
 
     let updateCalledWith: UpdateMatchData | null = null;
     repo.update = async (_id: string, data: UpdateMatchData) => {
@@ -1839,46 +1855,139 @@ describe("MatchService - Score proposal contest", () => {
       return { id: _id, ...data } as any;
     };
 
-    let resetCalled = false;
-    confRepo.resetConfirmationsExcept = async () => {
-      resetCalled = true;
+    const notified: string[] = [];
+    notifService.send = async (payload: any) => {
+      notified.push(payload.userId);
       return undefined as any;
     };
 
-    let notifSendCount = 0;
-    notifService.send = async () => {
-      notifSendCount += 1;
-      return undefined as any;
+    await matchService.contestMatch("m-1", { contestationReason: "wrong" } as any, "p1");
+
+    expect(updateCalledWith!.status).toBe("disputed");
+    // No timer on a disagreement: it is settled by a human, never by expiry
+    expect(updateCalledWith!.confirmationDeadline).toBeNull();
+    expect(notified).toEqual(["admin-1"]);
+  });
+
+  it("the reason of a dispute is posted in the thread, not frozen on the confirmation", async () => {
+    repo.getById = async (id: string) =>
+      ({
+        id,
+        tournamentId: "t-1",
+        status: "reported",
+        result: { reportedBy: "p2" },
+      }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", validationMode: "auto", validationTimerHours: 24 }) as any;
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
+      [
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "B" },
+      ] as any;
+
+    const upserted: any[] = [];
+    confRepo.upsert = async (data: any) => {
+      upserted.push(data);
+      return { id: "conf-1", ...data } as any;
     };
 
-    await matchService.contestMatch(
+    const notes: Array<{ userId: string; body?: string | null }> = [];
+    (matchMessageService as any).postUserNote = async (
+      _matchId: string,
+      userId: string,
+      body?: string | null,
+    ) => {
+      notes.push({ userId, body });
+    };
+
+    await matchService.respondToMatch(
       "m-1",
-      {
-        contestationReason: "wrong",
-        proposedScoreA: 3,
-        proposedScoreB: 2,
-      } as any,
+      { type: "dispute", reason: "le score est inversé" } as any,
       "p1",
     );
 
-    expect(updateCalledWith!.status).toBe("pending_confirmation");
-    expect(updateCalledWith!.confirmationDeadline).toBeInstanceOf(Date);
-    expect(resetCalled).toBe(true);
-    expect(notifSendCount).toBeGreaterThan(0);
+    expect(upserted[0].contestationReason).toBeUndefined();
+    expect(notes).toEqual([{ userId: "p1", body: "le score est inversé" }]);
+    // Whoever has the match open sees it move to 'disputed' without reloading
+    expect(matchUpdatesBroadcast).toContain("m-1");
   });
-});
 
-describe("MatchService - Active proposal application", () => {
-  it("checkAndFinalizeMatch applies active proposal scores before finalize", async () => {
-    let getByIdCalls = 0;
-    repo.getById = async (id: string) => {
-      getByIdCalls += 1;
-      // After finalize, status returns finalized to short-circuit re-entry
-      if (getByIdCalls > 4) {
-        return { id, tournamentId: "t-1", status: "finalized" } as any;
-      }
-      return { id, tournamentId: "t-1", status: "pending_confirmation" } as any;
+  it("a disputed match is never auto-finalized when its deadline expires", async () => {
+    const pastDate = new Date();
+    pastDate.setHours(pastDate.getHours() - 100);
+
+    repo.getMatchesPendingFinalization = async () =>
+      [{ id: "m-exp", status: "reported", confirmationDeadline: pastDate }] as any[];
+    confRepo.getByMatchId = async () =>
+      [{ playerId: "p1", isContested: true, isPostFinalization: false }] as any;
+    repo.getById = async (id: string) =>
+      ({ id, tournamentId: "t-1", status: "reported" }) as any;
+
+    const result = await matchService.autoFinalizeExpiredMatches();
+
+    expect(result.disputed).toContain("m-exp");
+    expect(result.finalized).toHaveLength(0);
+  });
+
+  it("agreeing on a disputed match withdraws the contestation and re-opens validation", async () => {
+    let status = "disputed";
+    repo.getById = async (id: string) =>
+      ({ id, tournamentId: "t-1", status, result: { reportedBy: "p2" } }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", validationMode: "auto", validationTimerHours: 24 }) as any;
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
+      [
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "B" },
+      ] as any;
+    // p1 drops their contestation, nobody else contests
+    confRepo.getByMatchId = async () =>
+      [{ playerId: "p1", isConfirmed: true, isContested: false, isPostFinalization: false }] as any;
+
+    const upserted: any[] = [];
+    confRepo.upsert = async (data: any) => {
+      upserted.push(data);
+      return { id: "conf-1", ...data } as any;
     };
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      if (data.status) status = data.status;
+      return { id: _id, ...data } as any;
+    };
+
+    const purged: string[] = [];
+    notifService.deleteActionsByMatchIdAndType = async (_matchId: string, type: string) => {
+      purged.push(type);
+      return [];
+    };
+
+    await matchService.respondToMatch("m-dis", { type: "agree" } as any, "p1");
+
+    // The stale contestation is wiped, not just flagged as confirmed
+    expect(upserted[0].isContested).toBe(false);
+    expect(upserted[0].contestationReason).toBeNull();
+    expect(updateCalls[0].status).toBe("reported");
+    expect(updateCalls[0].confirmationDeadline).toBeInstanceOf(Date);
+    // Only the arbitration request is dropped: other players may still owe a validation
+    expect(purged).toEqual(["MATCH_DISPUTE_ESCALATED"]);
+  });
+
+  it("a withdrawal by the opponent finalizes the match by consensus", async () => {
+    let status = "disputed";
+    repo.getById = async (id: string) =>
+      ({
+        id,
+        tournamentId: "t-1",
+        status,
+        result: { reportedBy: "p2" },
+        sides: [{ position: 1 }, { position: 2 }],
+      }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", mode: "championship", validationMode: "auto", validationTimerHours: 24 }) as any;
     repo.isUserInMatch = async () => true;
     repo.getParticipationsByMatchId = async () =>
       [
@@ -1886,65 +1995,46 @@ describe("MatchService - Active proposal application", () => {
         { playerId: "p2", teamSide: "B" },
       ] as any;
     confRepo.getByMatchId = async () =>
-      [
-        { playerId: "p1", isConfirmed: false, isContested: true, proposedScoreA: 3, proposedScoreB: 2 },
-        { playerId: "p2", isConfirmed: true, isContested: false },
-      ] as any;
-    confRepo.getActiveProposal = async () =>
-      ({
-        playerId: "p1",
-        proposedScoreA: 3,
-        proposedScoreB: 2,
-        proposedWinner: "1",
-        proposedOutcomeTypeId: "ot-1",
-        proposedOutcomeReasonId: "or-1",
-      }) as any;
-
-    const updateCalls: UpdateMatchData[] = [];
+      [{ playerId: "p1", isConfirmed: true, isContested: false, isPostFinalization: false }] as any;
     repo.update = async (_id: string, data: UpdateMatchData) => {
-      updateCalls.push(data);
+      if (data.status) status = data.status;
       return { id: _id, ...data } as any;
     };
 
-    await matchService.confirmMatch("m-prop", {} as any, "p2");
+    const finalized: any[] = [];
+    const realFinalize = matchService.finalizeMatch.bind(matchService);
+    (matchService as any).finalizeMatch = async (id: string, input: any) => {
+      finalized.push(input);
+      return { id } as any;
+    };
 
-    const proposalUpdate = updateCalls.find((u) => u.scoreA === 3 && u.scoreB === 2);
-    expect(proposalUpdate).toBeDefined();
-    expect(proposalUpdate!.winnerPosition).toBe(1);
-    expect(proposalUpdate!.outcomeTypeId).toBe("ot-1");
-    expect(proposalUpdate!.outcomeReasonId).toBe("or-1");
+    try {
+      await matchService.respondToMatch("m-dis", { type: "agree" } as any, "p1");
+    } finally {
+      (matchService as any).finalizeMatch = realFinalize;
+    }
 
-    const finalizeUpdate = updateCalls.find((u) => u.status === "finalized");
-    expect(finalizeUpdate).toBeDefined();
+    expect(finalized).toHaveLength(1);
+    expect(finalized[0].finalizationReason).toBe("consensus");
   });
 
-  it("autoFinalizeExpiredMatches applies active proposal before finalize", async () => {
-    const pastDate = new Date();
-    pastDate.setHours(pastDate.getHours() - 100);
-
-    repo.getMatchesPendingFinalization = async () =>
+  it("the match stays disputed while another player still contests", async () => {
+    repo.getById = async (id: string) =>
+      ({ id, tournamentId: "t-1", status: "disputed", result: { reportedBy: "p3" } }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", validationMode: "auto", validationTimerHours: 24 }) as any;
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
       [
-        {
-          id: "m-exp-prop",
-          status: "pending_confirmation",
-          confirmationDeadline: pastDate,
-        },
-      ] as any[];
-
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "A" },
+        { playerId: "p3", teamSide: "B" },
+      ] as any;
     confRepo.getByMatchId = async () =>
       [
-        { playerId: "p1", isContested: true, proposedScoreA: 5, proposedScoreB: 4 },
+        { playerId: "p1", isConfirmed: true, isContested: false, isPostFinalization: false },
+        { playerId: "p2", isConfirmed: false, isContested: true, isPostFinalization: false },
       ] as any;
-    confRepo.getActiveProposal = async () =>
-      ({
-        playerId: "p1",
-        proposedScoreA: 5,
-        proposedScoreB: 4,
-        proposedWinner: "1",
-      }) as any;
-
-    repo.getById = async (id: string) =>
-      ({ id, tournamentId: "t-1", status: "pending_confirmation" }) as any;
 
     const updateCalls: UpdateMatchData[] = [];
     repo.update = async (_id: string, data: UpdateMatchData) => {
@@ -1952,12 +2042,94 @@ describe("MatchService - Active proposal application", () => {
       return { id: _id, ...data } as any;
     };
 
-    const result = await matchService.autoFinalizeExpiredMatches();
-    expect(result.finalized).toContain("m-exp-prop");
+    const purged: string[] = [];
+    notifService.deleteActionsByMatchIdAndType = async (_matchId: string, type: string) => {
+      purged.push(type);
+      return [];
+    };
 
-    const proposalApply = updateCalls.find((u) => u.scoreA === 5 && u.scoreB === 4);
-    expect(proposalApply).toBeDefined();
-    expect(proposalApply!.winnerPosition).toBe(1);
+    await matchService.respondToMatch("m-dis", { type: "agree" } as any, "p1");
+
+    expect(updateCalls).toHaveLength(0);
+    expect(purged).toHaveLength(0);
+  });
+});
+
+describe("MatchService - Author result revision", () => {
+  const reportedMatch = (id: string) =>
+    ({
+      id,
+      tournamentId: "t-1",
+      status: "reported",
+      createdBy: "p1",
+      result: { reportedBy: "p1" },
+      sides: [
+        { position: 1, score: 3 },
+        { position: 2, score: 1 },
+      ],
+    }) as any;
+
+  it("the author may fix a reported entry, which drops the opponents' confirmations", async () => {
+    repo.getById = async (id: string) => reportedMatch(id);
+    repo.getTournament = async () =>
+      ({ id: "t-1", mode: "championship", validationMode: "strict" }) as any;
+    repo.isUserInMatch = async () => true;
+
+    const resetExcept: { playerId: string | null } = { playerId: null };
+    confRepo.resetConfirmationsExcept = async (_matchId: string, playerId: string) => {
+      resetExcept.playerId = playerId;
+      return undefined as any;
+    };
+
+    const trust = { reset: false };
+    usrRepo.resetTrustScore = async () => {
+      trust.reset = true;
+    };
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    await matchService.updateMatch("m-rev", { scoreA: 2, scoreB: 5 } as any, "p1");
+
+    expect(updateCalls[0].scoreA).toBe(2);
+    // The corrected entry re-opens a validation round instead of staying half-approved
+    expect(updateCalls[0].status).toBe("reported");
+    expect(updateCalls[0].reportedBy).toBe("p1");
+    expect(resetExcept.playerId).toBe("p1");
+    // Correcting your own typo is not a contestation
+    expect(trust.reset).toBe(false);
+  });
+
+  it("a correction pulls a contested match back into the validation round", async () => {
+    repo.getById = async (id: string) =>
+      ({ ...reportedMatch(id), status: "disputed" }) as any;
+    repo.getTournament = async () =>
+      ({ id: "t-1", mode: "championship", validationMode: "strict" }) as any;
+    repo.isUserInMatch = async () => true;
+    confRepo.resetConfirmationsExcept = async () => undefined as any;
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    await matchService.updateMatch("m-rev2", { scoreA: 4, scoreB: 2 } as any, "p1");
+
+    expect(updateCalls[0].status).toBe("reported");
+  });
+
+  it("a participant who did not report the result cannot edit it", async () => {
+    repo.getById = async (id: string) => reportedMatch(id);
+    repo.getTournament = async () => ({ id: "t-1", mode: "championship" }) as any;
+    repo.isUserInMatch = async () => true;
+
+    await expect(
+      matchService.updateMatch("m-rev3", { scoreA: 9, scoreB: 0 } as any, "p2"),
+    ).rejects.toThrow(ForbiddenError);
   });
 });
 

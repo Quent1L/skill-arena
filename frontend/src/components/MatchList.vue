@@ -36,6 +36,20 @@
         </template>
 
         <button
+          v-if="props.showDisputedFilter"
+          @click="toggleDisputedOnly"
+          class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
+          :class="
+            disputedOnly
+              ? 'bg-warn-500 border-warn-500 text-primary-contrast'
+              : 'bg-surface-800 border-surface-700/20 text-muted-color'
+          "
+        >
+          <i class="fa fa-gavel text-xs"></i>
+          <span class="font-label text-xs font-bold uppercase tracking-wider">{{ t('matchList.disputedOnly') }}</span>
+        </button>
+
+        <button
           v-if="isAnyFilterActive"
           @click="resetFilters"
           class="flex items-center justify-center w-8 h-8 rounded-full border bg-surface-800 border-surface-700/20 text-muted-color hover:text-red-400 transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
@@ -146,6 +160,7 @@ interface Props {
   bracketMode?: boolean
   allowDraw?: boolean
   playerMode?: boolean
+  showDisputedFilter?: boolean
   noScroll?: boolean
   gridClass?: string
 }
@@ -165,7 +180,7 @@ let offset = 0
 const { isMobile } = useViewport()
 
 const filtersStore = useMatchListFiltersStore()
-const { myMatchesActive, selectedPlayers, activeOutcomes } = storeToRefs(filtersStore)
+const { myMatchesActive, selectedPlayers, activeOutcomes, disputedOnly } = storeToRefs(filtersStore)
 
 type OutcomeFilter = 'WIN' | 'LOSS' | 'DRAW'
 
@@ -194,8 +209,17 @@ const showFilters = computed(
 )
 
 const isAnyFilterActive = computed(
-  () => myMatchesActive.value || selectedPlayers.value.length > 0 || activeOutcomes.value.size > 0,
+  () =>
+    myMatchesActive.value ||
+    selectedPlayers.value.length > 0 ||
+    activeOutcomes.value.size > 0 ||
+    disputedOnly.value,
 )
+
+function toggleDisputedOnly() {
+  disputedOnly.value = !disputedOnly.value
+  loadMatches()
+}
 
 function toggleMyMatches() {
   myMatchesActive.value = !myMatchesActive.value
@@ -270,6 +294,7 @@ async function loadMatches(append = false) {
     const result = await matchApi.list({
       tournamentId: props.tournamentId,
       playerIds: buildPlayerIds(),
+      status: disputedOnly.value ? 'disputed' : undefined,
       bracketMode: props.bracketMode ? 'true' : undefined,
       limit: props.pageSize,
       offset,
@@ -302,6 +327,7 @@ useInfiniteScroll(
 
 function resetFilters() {
   filtersStore.reset()
+  disputedOnly.value = false
   loadMatches()
 }
 

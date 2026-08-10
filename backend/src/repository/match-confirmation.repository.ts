@@ -7,13 +7,7 @@ export interface CreateMatchConfirmationData {
   playerId: string;
   isConfirmed: boolean;
   isContested: boolean;
-  contestationReason?: string;
-  contestationProof?: string;
-  proposedScoreA?: number | null;
-  proposedScoreB?: number | null;
-  proposedWinner?: string | null;
-  proposedOutcomeTypeId?: string | null;
-  proposedOutcomeReasonId?: string | null;
+  contestationReason?: string | null;
   sidePosition?: number | null;
   isPostFinalization?: boolean;
 }
@@ -21,13 +15,7 @@ export interface CreateMatchConfirmationData {
 export interface UpdateMatchConfirmationData {
   isConfirmed?: boolean;
   isContested?: boolean;
-  contestationReason?: string;
-  contestationProof?: string;
-  proposedScoreA?: number | null;
-  proposedScoreB?: number | null;
-  proposedWinner?: string | null;
-  proposedOutcomeTypeId?: string | null;
-  proposedOutcomeReasonId?: string | null;
+  contestationReason?: string | null;
   sidePosition?: number | null;
 }
 
@@ -55,8 +43,6 @@ export class MatchConfirmationRepository {
       ),
       with: {
         player: true,
-        proposedOutcomeType: true,
-        proposedOutcomeReason: true,
       },
     });
     return confirmation;
@@ -70,8 +56,6 @@ export class MatchConfirmationRepository {
       where: eq(matchConfirmations.matchId, matchId),
       with: {
         player: true,
-        proposedOutcomeType: true,
-        proposedOutcomeReason: true,
       },
     });
     return confirmations;
@@ -107,12 +91,6 @@ export class MatchConfirmationRepository {
         isConfirmed: data.isConfirmed,
         isContested: data.isContested,
         contestationReason: data.contestationReason,
-        contestationProof: data.contestationProof,
-        proposedScoreA: data.proposedScoreA,
-        proposedScoreB: data.proposedScoreB,
-        proposedWinner: data.proposedWinner,
-        proposedOutcomeTypeId: data.proposedOutcomeTypeId,
-        proposedOutcomeReasonId: data.proposedOutcomeReasonId,
         sidePosition: data.sidePosition,
       }, isPost);
     }
@@ -122,7 +100,7 @@ export class MatchConfirmationRepository {
 
   /**
    * Reset all pre-finalization confirmations for a match except for the given player.
-   * Used when a new score proposal replaces the previous one.
+   * Used when the author revises the score: everyone else has to vote again.
    */
   async resetConfirmationsExcept(matchId: string, excludePlayerId: string) {
     const confirmations = await this.getByMatchId(matchId);
@@ -137,12 +115,6 @@ export class MatchConfirmationRepository {
           isConfirmed: false,
           isContested: false,
           contestationReason: null,
-          contestationProof: null,
-          proposedScoreA: null,
-          proposedScoreB: null,
-          proposedWinner: null,
-          proposedOutcomeTypeId: null,
-          proposedOutcomeReasonId: null,
         })
         .where(
           and(
@@ -173,23 +145,6 @@ export class MatchConfirmationRepository {
   async hasPlayerDisputedPostFinalization(matchId: string, playerId: string): Promise<boolean> {
     const record = await this.getByMatchAndPlayer(matchId, playerId, true);
     return record !== undefined && record !== null;
-  }
-
-  /**
-   * Get the most recent active score proposal for a match.
-   * Returns the confirmation with non-null proposedScoreA/B, ordered by updatedAt desc.
-   */
-  async getActiveProposal(matchId: string) {
-    const confirmations = await this.getByMatchId(matchId);
-    const proposals = confirmations.filter(
-      (c) => c.proposedScoreA !== null && c.proposedScoreA !== undefined &&
-             c.proposedScoreB !== null && c.proposedScoreB !== undefined
-    );
-    if (proposals.length === 0) return null;
-    // Most recently updated proposal (copy to avoid mutating the filtered array)
-    return [...proposals].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    )[0];
   }
 
   /**

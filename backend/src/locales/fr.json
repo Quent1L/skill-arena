@@ -17,7 +17,11 @@
     "MATCH_POST_DISPUTE_TITLE": "{{disputerName}} a contesté le résultat",
     "MATCH_POST_DISPUTE_MESSAGE": "🚩 {{tournamentName}}\n📅 {{matchDate}}\n{{disputerName}} conteste le résultat de ce match finalisé.",
     "MATCH_VALIDATION_TITLE": "{{reporterName}} a saisi le résultat ({{matchFormat}})",
-    "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}\n✅ Confirmez ou contestez ce résultat avant la deadline."
+    "MATCH_VALIDATION_MESSAGE": "🏆 {{tournamentName}}\n📅 {{matchDate}}\n⚔️ Adversaires : {{opponents}}\n👥 Coéquipiers : {{teammates}}\n✅ Confirmez ou contestez ce résultat avant la deadline.",
+    "MATCH_DISPUTE_ESCALATED_TITLE": "Litige à arbitrer : {{disputerName}} conteste un résultat",
+    "MATCH_DISPUTE_ESCALATED_MESSAGE": "⚖️ {{tournamentName}}\n📅 {{matchDate}}\nCe match ne se validera pas tout seul : corrigez la saisie ou tranchez le résultat.",
+    "MATCH_MESSAGE_TITLE": "{{authorName}} a écrit sur un match",
+    "MATCH_MESSAGE_MESSAGE": "💬 Nouveau message dans la discussion du match."
   },
   "emails": {
     "password_reset_subject": "Réinitialisation de votre mot de passe",
@@ -105,7 +109,9 @@
     "RANKED_MATCH_TOO_OLD": "Les matchs ranked doivent être déclarés dans les 48h suivant leur dispute",
     "RANDOM_NOT_ALLOWED_ON_BADGE": "Le tirage aléatoire ne peut pas être utilisé dans une règle de type badge",
     "REWIND_NOT_FOUND": "Ce Rewind n'est pas encore disponible",
-    "REWIND_VERSION_FROZEN": "Ce Rewind a été créé dans un format plus ancien et est conservé tel quel"
+    "REWIND_VERSION_FROZEN": "Ce Rewind a été créé dans un format plus ancien et est conservé tel quel",
+    "MATCH_MESSAGE_INVALID_BODY": "Le message doit contenir entre 1 et 1000 caractères",
+    "MATCH_THREAD_CLOSED": "La discussion de ce match est close"
   },
   "ranked": {
     "PROVISIONAL": "Partie comptabilisée !",
@@ -122,5 +128,12 @@
       "SHARED_RESOURCE": "Ressource partagée",
       "COLLABORATIVE": "Collaboratif"
     }
+  },
+  "matchMessages": {
+    "RESULT_REPORTED": "{{authorName}} a saisi le résultat : {{score}}",
+    "RESULT_REVISED": "{{authorName}} a corrigé le résultat : {{previousScore}} → {{newScore}}. Les validations précédentes sont annulées.",
+    "RESULT_DISPUTED": "{{authorName}} conteste le résultat. Un organisateur a été prévenu.",
+    "DISPUTE_WITHDRAWN": "{{authorName}} a retiré sa contestation et accepté le résultat.",
+    "MATCH_FINALIZED": "Résultat finalisé."
   }
 }

@@ -9,6 +9,13 @@ import {
   type VictoryQualityDetail,
 } from "@skol-arena/shared";
 
+/**
+ * Statuses a match must have to weigh on the provisional table. A contested result stays
+ * in: it already counted while it was merely reported, and pulling it out would make the
+ * standings flicker for the length of the arbitration.
+ */
+const PROVISIONAL_MATCH_STATUSES: MatchStatus[] = ["reported", "disputed", "finalized"];
+
 type FlexMatchRow = Awaited<
   ReturnType<typeof standingsRepository.getPlayerPointsForStandings>
 >[number];
@@ -56,7 +63,9 @@ export class StandingsService {
   async getProvisionalStandings(tournamentId: string): Promise<StandingsResult> {
     const cached = await standingsRepository.getComputedData(tournamentId, "standings:provisional");
     if (cached) return cached;
-    const result = await this.calculateStandings(tournamentId, ["reported", "finalized"]);
+    // 'disputed' counts too: a contested result keeps its provisional value until it is
+    // arbitrated, otherwise a match would drop out of the table and come back later.
+    const result = await this.calculateStandings(tournamentId, PROVISIONAL_MATCH_STATUSES);
     await standingsRepository.setComputedData(tournamentId, "standings:provisional", result);
     return result;
   }
@@ -634,7 +643,7 @@ export class StandingsService {
     const tournament = await standingsRepository.getTournamentWithScoring(tournamentId);
     if (!tournament) throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
 
-    const statuses: MatchStatus[] = ["reported", "finalized"];
+    const statuses: MatchStatus[] = PROVISIONAL_MATCH_STATUSES;
 
     const matchList = await standingsRepository.getMatchesForStandings(tournamentId, statuses);
     const allSides = await standingsRepository.getMatchSides(matchList.map((m) => m.id));
@@ -685,7 +694,7 @@ export class StandingsService {
     sidesMap: Map<string, RebuildSide[]>,
     tournament: PointsConfig & { maxMatchesPerPlayer: number | null }
   ) {
-    const statuses: MatchStatus[] = ["reported", "finalized"];
+    const statuses: MatchStatus[] = PROVISIONAL_MATCH_STATUSES;
     await standingsRepository.deletePlayerPointsForTournament(tournamentId, statuses);
 
     const maxMatches = tournament.maxMatchesPerPlayer ?? Infinity;

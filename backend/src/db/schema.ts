@@ -155,6 +155,11 @@ export const tournamentAdminRoleEnum = pgEnum("tournament_admin_role", [
   "co_admin",
 ]);
 
+/**
+ * `pending_confirmation` and `confirmed` are deprecated: no code path writes them
+ * since the score counter-proposal was removed. The values stay in the enum because
+ * PostgreSQL cannot drop an enum member without recreating the type.
+ */
 export const matchStatusEnum = pgEnum("match_status", [
   "scheduled",
   "reported",
@@ -185,10 +190,18 @@ export const ruleScopeEnum = pgEnum("rule_scope", ["global", "discipline"]);
 export const notificationTypeEnum = pgEnum("notification_type", [
   "MATCH_CREATED",
   "MATCH_VALIDATION",
+  // Deprecated: the score counter-proposal flow was removed.
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
+  "MATCH_DISPUTE_ESCALATED",
+  "MATCH_MESSAGE",
   "BADGE_AWARDED",
   "BADGE_REVOKED",
+]);
+
+export const matchMessageKindEnum = pgEnum("match_message_kind", [
+  "user",
+  "system",
 ]);
 
 export const deviceTypeEnum = pgEnum("device_type", ["WEB", "ANDROID", "IOS"]);
@@ -544,17 +557,6 @@ export const matchConfirmations = pgTable(
     isContested: boolean("is_contested").notNull().default(false),
     contestationReason: text("contestation_reason"),
     contestationProof: text("contestation_proof"),
-    proposedScoreA: integer("proposed_score_a"),
-    proposedScoreB: integer("proposed_score_b"),
-    proposedWinner: text("proposed_winner"),
-    proposedOutcomeTypeId: uuid("proposed_outcome_type_id").references(
-      () => outcomeTypes.id,
-      { onDelete: "set null" },
-    ),
-    proposedOutcomeReasonId: uuid("proposed_outcome_reason_id").references(
-      () => outcomeReasons.id,
-      { onDelete: "set null" },
-    ),
     sidePosition: integer("side_position"),
     isPostFinalization: boolean("is_post_finalization").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -564,6 +566,31 @@ export const matchConfirmations = pgTable(
       .notNull(),
   },
   (table) => [unique("match_confirmations_match_id_player_id_post_unique").on(table.matchId, table.playerId, table.isPostFinalization)],
+);
+
+/**
+ * Discussion thread attached to a match. `user` messages hold plain text typed by a
+ * participant; `system` messages hold an i18n key in `body` plus its interpolation
+ * values in `translationParams`, mirroring how notifications are stored.
+ */
+export const matchMessages = pgTable(
+  "match_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    kind: matchMessageKindEnum("kind").notNull().default("user"),
+    body: text("body").notNull(),
+    translationParams: jsonb("translation_params"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("match_messages_match_created_idx").on(table.matchId, table.createdAt)],
 );
 
 // ********************************************************************
@@ -1209,6 +1236,7 @@ export const matchesRelations = relations(matches, ({ one, many }) => ({
     references: [matchResults.matchId],
   }),
   confirmations: many(matchConfirmations),
+  messages: many(matchMessages),
   bracketMetadata: one(bracketMatchMetadata, {
     fields: [matches.id],
     references: [bracketMatchMetadata.matchId],
@@ -1280,16 +1308,19 @@ export const matchConfirmationsRelations = relations(
       fields: [matchConfirmations.playerId],
       references: [appUsers.id],
     }),
-    proposedOutcomeType: one(outcomeTypes, {
-      fields: [matchConfirmations.proposedOutcomeTypeId],
-      references: [outcomeTypes.id],
-    }),
-    proposedOutcomeReason: one(outcomeReasons, {
-      fields: [matchConfirmations.proposedOutcomeReasonId],
-      references: [outcomeReasons.id],
-    }),
   }),
 );
+
+export const matchMessagesRelations = relations(matchMessages, ({ one }) => ({
+  match: one(matches, {
+    fields: [matchMessages.matchId],
+    references: [matches.id],
+  }),
+  author: one(appUsers, {
+    fields: [matchMessages.authorId],
+    references: [appUsers.id],
+  }),
+}));
 
 // ********************************************************************
 // [Start] Bracket tournament relations

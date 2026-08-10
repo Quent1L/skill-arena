@@ -5,6 +5,7 @@
     :players="store.participants.map(p => ({ id: p.userId, displayName: p.user.displayName }))"
     :current-player-id="store.appUser?.id"
     :allow-draw="store.tournament!.allowDraw"
+    :show-disputed-filter="store.canManageTournament"
   />
 </template>
 

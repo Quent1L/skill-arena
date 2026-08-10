@@ -13,6 +13,8 @@ export const useMatchListFiltersStore = defineStore('matchListFilters', () => {
   const myMatchesActive = ref(false)
   const selectedPlayers = ref<Player[]>([])
   const activeOutcomes = ref(new Set<OutcomeFilter>())
+  // Organizers use this to pull up the matches waiting for their arbitration.
+  const disputedOnly = ref(false)
 
   function initContext(key: string) {
     if (contextKey.value !== key) {
@@ -25,7 +27,16 @@ export const useMatchListFiltersStore = defineStore('matchListFilters', () => {
     myMatchesActive.value = false
     selectedPlayers.value = []
     activeOutcomes.value = new Set()
+    disputedOnly.value = false
   }
 
-  return { contextKey, myMatchesActive, selectedPlayers, activeOutcomes, initContext, reset }
+  return {
+    contextKey,
+    myMatchesActive,
+    selectedPlayers,
+    activeOutcomes,
+    disputedOnly,
+    initContext,
+    reset,
+  }
 })

@@ -3,8 +3,11 @@ import { z } from "zod";
 export const NotificationTypeEnum = z.enum([
   "MATCH_CREATED",
   "MATCH_VALIDATION",
+  // Deprecated: the score counter-proposal flow was removed.
   "MATCH_SCORE_PROPOSAL",
   "MATCH_POST_DISPUTE",
+  "MATCH_DISPUTE_ESCALATED",
+  "MATCH_MESSAGE",
   "BADGE_AWARDED",
   "BADGE_REVOKED",
 ]);

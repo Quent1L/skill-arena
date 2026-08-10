@@ -6,7 +6,7 @@
     >
       <Button icon="fas fa-arrow-left" text rounded class="mr-2" @click="goBack" />
       <h1 class="text-lg font-bold">
-        {{ isContestMode ? t('matchFormStepperMobile.titleContest') : isEditMode ? t('matchFormStepperMobile.titleEdit') : t('matchFormStepperMobile.titleNew') }}
+        {{ isEditMode ? t('matchFormStepperMobile.titleEdit') : t('matchFormStepperMobile.titleNew') }}
       </h1>
     </div>
 
@@ -146,7 +146,7 @@
 
       <!-- Result step -->
       <template v-else>
-        <div v-if="!isContestMode" class="flex gap-3">
+        <div class="flex gap-3">
           <Button
             :label="t('matchFormStepperMobile.back')"
             severity="secondary"
@@ -163,22 +163,13 @@
             @click="submitMatch"
           />
         </div>
-        <Button
-          v-else
-          :label="t('matchFormStepperMobile.proposeCorrection')"
-          icon="fas fa-check"
-          :disabled="!canSubmit"
-          :loading="matchLoading"
-          class="w-full"
-          @click="submitMatch"
-        />
       </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
@@ -196,8 +187,6 @@ import type {
 interface Props {
   tournamentId: string
   matchId?: string
-  isContestMode?: boolean
-  contestReason?: string
   bracketLocked?: boolean
 }
 
@@ -209,7 +198,6 @@ const {
   loading: matchLoading,
   createMatchWithNavigation,
   updateMatchWithNavigation,
-  contestMatchResult,
 } = useMatchService()
 
 const isEditMode = computed(() => !!props.matchId)
@@ -369,7 +357,7 @@ async function currentStepNext() {
 }
 
 function goBack() {
-  if (activeStep.value === 'when' || (props.isContestMode && activeStep.value === 'result')) {
+  if (activeStep.value === 'when') {
     router.back()
   } else {
     currentStepBack()
@@ -377,19 +365,6 @@ function goBack() {
 }
 
 async function submitMatch() {
-  if (props.isContestMode && props.matchId) {
-    await contestMatchResult(props.matchId, {
-      proposedScoreA: formState.value.scorePerSide[1] ?? 0,
-      proposedScoreB: formState.value.scorePerSide[2] ?? 0,
-      proposedWinnerPosition: formState.value.winnerPosition,
-      proposedOutcomeTypeId: formState.value.outcomeTypeId ?? undefined,
-      proposedOutcomeReasonId: formState.value.outcomeReasonId ?? undefined,
-      contestationReason: props.contestReason,
-    })
-    router.replace(`/matches/${props.matchId}`)
-    return
-  }
-
   const isScheduled = isFutureDate.value
   const payload: ClientCreateMatchRequest = {
     tournamentId: props.tournamentId,
@@ -419,8 +394,4 @@ async function submitMatch() {
   }
 }
 
-
-onMounted(() => {
-  if (props.isContestMode) activeStep.value = 'result'
-})
 </script>

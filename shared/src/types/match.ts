@@ -143,14 +143,6 @@ export interface MatchConfirmation {
   isConfirmed: boolean;
   isContested: boolean;
   contestationReason?: string;
-  contestationProof?: string;
-  proposedScoreA?: number | null;
-  proposedScoreB?: number | null;
-  proposedWinnerPosition?: number | null;
-  proposedOutcomeTypeId?: string | null;
-  proposedOutcomeReasonId?: string | null;
-  proposedOutcomeType?: { id: string; name: string } | null;
-  proposedOutcomeReason?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   player?: {
@@ -205,12 +197,6 @@ export interface ConfirmMatchInput {
 
 export interface ContestMatchInput {
   contestationReason?: string;
-  contestationProof?: string;
-  proposedScoreA?: number;
-  proposedScoreB?: number;
-  proposedWinnerPosition?: number | null;
-  proposedOutcomeTypeId?: string;
-  proposedOutcomeReasonId?: string;
 }
 
 export interface FinalizeMatchInput {
@@ -275,65 +261,14 @@ export const confirmMatchSchema = z.object({
   // Empty - just confirms the match result
 });
 
-export const contestMatchSchema = z
-  .object({
-    contestationReason: z.string().optional(),
-    contestationProof: z.string().optional(),
-    proposedScoreA: z.number().int().min(0).optional(),
-    proposedScoreB: z.number().int().min(0).optional(),
-    proposedWinnerPosition: z.number().int().min(1).nullable().optional(),
-    proposedOutcomeTypeId: z
-      .string()
-      .uuid("ID de type de résultat invalide")
-      .optional(),
-    proposedOutcomeReasonId: z
-      .string()
-      .uuid("ID de raison de résultat invalide")
-      .optional(),
-  })
-  .refine(
-    (data) => {
-      const hasA = data.proposedScoreA !== undefined;
-      const hasB = data.proposedScoreB !== undefined;
-      return hasA === hasB; // both or neither
-    },
-    {
-      message: "proposedScoreA et proposedScoreB doivent être fournis ensemble",
-    },
-  );
+export const contestMatchSchema = z.object({
+  contestationReason: z.string().max(500).optional(),
+});
 
-export const respondToMatchSchema = z
-  .object({
-    type: z.enum(["agree", "dispute"]),
-    reason: z.string().max(500).optional(),
-    proof: z.string().optional(),
-    proposedScoreA: z.number().int().min(0).optional(),
-    proposedScoreB: z.number().int().min(0).optional(),
-    proposedWinnerPosition: z.number().int().min(1).nullable().optional(),
-    proposedOutcomeTypeId: z
-      .string()
-      .uuid("ID de type de résultat invalide")
-      .optional(),
-    proposedOutcomeReasonId: z
-      .string()
-      .uuid("ID de raison de résultat invalide")
-      .optional(),
-  })
-  .refine(
-    (data) => {
-      const hasA = data.proposedScoreA !== undefined;
-      const hasB = data.proposedScoreB !== undefined;
-      return hasA === hasB;
-    },
-    { message: "proposedScoreA et proposedScoreB doivent être fournis ensemble" },
-  )
-  .refine(
-    (data) => {
-      if (data.type === "agree") return data.proposedScoreA === undefined;
-      return true;
-    },
-    { message: "Impossible de proposer un score alternatif en acceptant le résultat" },
-  );
+export const respondToMatchSchema = z.object({
+  type: z.enum(["agree", "dispute"]),
+  reason: z.string().max(500).optional(),
+});
 
 export type RespondToMatchInput = z.infer<typeof respondToMatchSchema>;
 
@@ -347,6 +282,33 @@ export const listMatchesQuerySchema = z.object({
   round: z.number().int().min(1).optional(),
   playerId: z.string().uuid().optional(),
 });
+
+export const MATCH_MESSAGE_MAX_LENGTH = 1000;
+
+export const postMatchMessageSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Le message ne peut pas être vide")
+    .max(MATCH_MESSAGE_MAX_LENGTH),
+});
+
+export type PostMatchMessageRequestData = z.infer<typeof postMatchMessageSchema>;
+
+/**
+ * A `user` message carries plain text in `body`. A `system` message carries an i18n
+ * key in `body` plus its interpolation values in `translationParams`, so it renders
+ * in the reader's language — same convention as notifications.
+ */
+export interface ClientMatchMessage {
+  id: string;
+  matchId: string;
+  kind: "user" | "system";
+  body: string;
+  translationParams: Record<string, string | number | null> | null;
+  createdAt: Date;
+  author: { id: string; displayName: string } | null;
+}
 
 export const validateMatchSchema = z.object({
   tournamentId: z.string().uuid("ID de tournoi invalide"),
@@ -574,19 +536,11 @@ export interface MatchDetailConfirmation {
   isConfirmed: boolean;
   isContested: boolean;
   contestationReason: string | null;
-  contestationProof: string | null;
-  proposedScoreA: number | null;
-  proposedScoreB: number | null;
-  proposedWinnerPosition: number | null;
-  proposedOutcomeTypeId: string | null;
-  proposedOutcomeReasonId: string | null;
   sidePosition: number | null;
   isPostFinalization: boolean;
   createdAt: Date;
   updatedAt: Date;
   player: { id: string; displayName: string } | null;
-  proposedOutcomeType: { id: string; name: string } | null;
-  proposedOutcomeReason: { id: string; name: string } | null;
 }
 
 export interface ClientMatchDetail {

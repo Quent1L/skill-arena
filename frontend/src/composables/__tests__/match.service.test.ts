@@ -22,7 +22,10 @@ vi.mock('@/config/ApiConfig', () => ({
     delete: vi.fn(),
   },
 }))
-vi.mock('vue-i18n', () => ({
+// Only useI18n is swapped: the socket the service subscribes to pulls in the app's
+// real i18n instance, which needs createI18n to still exist.
+vi.mock('vue-i18n', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('vue-i18n')>()),
   useI18n: () => ({ t: (key: string) => key }),
 }))
 vi.mock('../match/match.api')

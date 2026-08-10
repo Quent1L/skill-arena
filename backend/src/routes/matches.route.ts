@@ -1,7 +1,9 @@
 import { zValidator } from "@hono/zod-validator";
 import { matchService } from "../services/match.service";
+import { matchMessageService } from "../services/match-message.service";
 import {
   createMatchSchema,
+  postMatchMessageSchema,
   updateMatchSchema,
   reportMatchResultSchema,
   confirmMatchSchema,
@@ -156,6 +158,30 @@ matches.post(
     const match = await matchService.respondToMatch(id, data, appUserId);
 
     return c.json(match);
+  }
+);
+
+// GET /matches/:id/messages - Discussion thread (participants and organizers)
+matches.get("/:id/messages", requireAuth, async (c) => {
+  const id = c.req.param("id")!;
+  const appUserId = c.get("appUserId");
+
+  const messages = await matchMessageService.list(id, appUserId);
+  return c.json(messages);
+});
+
+// POST /matches/:id/messages - Post a message on the thread
+matches.post(
+  "/:id/messages",
+  requireAuth,
+  zValidator("json", postMatchMessageSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
+    const { body } = c.req.valid("json");
+
+    const message = await matchMessageService.post(id, appUserId, body);
+    return c.json(message, 201);
   }
 );
 

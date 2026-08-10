@@ -207,8 +207,6 @@ export class MatchRepository {
         confirmations: {
           with: {
             player: true,
-            proposedOutcomeType: true,
-            proposedOutcomeReason: true,
           },
         },
       },
@@ -321,25 +319,11 @@ export class MatchRepository {
         isConfirmed: c.isConfirmed,
         isContested: c.isContested,
         contestationReason: c.contestationReason,
-        contestationProof: c.contestationProof,
-        proposedScoreA: c.proposedScoreA,
-        proposedScoreB: c.proposedScoreB,
-        proposedWinnerPosition: c.proposedWinner !== null && c.proposedWinner !== undefined
-          ? (Number.parseInt(c.proposedWinner) || null)
-          : null,
-        proposedOutcomeTypeId: c.proposedOutcomeTypeId,
-        proposedOutcomeReasonId: c.proposedOutcomeReasonId,
         sidePosition: c.sidePosition,
         isPostFinalization: c.isPostFinalization,
         createdAt: c.createdAt as unknown as Date,
         updatedAt: c.updatedAt as unknown as Date,
         player: c.player ? { id: c.player.id, displayName: c.player.displayName } : null,
-        proposedOutcomeType: c.proposedOutcomeType
-          ? { id: c.proposedOutcomeType.id, name: c.proposedOutcomeType.name }
-          : null,
-        proposedOutcomeReason: c.proposedOutcomeReason
-          ? { id: c.proposedOutcomeReason.id, name: c.proposedOutcomeReason.name }
-          : null,
       })),
       sides: builtSides,
       result: result
@@ -1295,13 +1279,14 @@ export class MatchRepository {
   }
 
   /**
-   * Get all matches with status 'reported' or 'pending_confirmation'.
+   * Get all matches with status 'reported'.
    * Used by auto-finalization job to find matches that may need to be finalized.
+   * Contested matches are excluded on purpose: a disagreement is settled by a human,
+   * never by the timer.
    */
   async getMatchesPendingFinalization() {
     return db.query.matches.findMany({
-      where: (m, { or, eq: eqOp }) =>
-        or(eqOp(m.status, "reported"), eqOp(m.status, "pending_confirmation")),
+      where: (m, { eq: eqOp }) => eqOp(m.status, "reported"),
     });
   }
 

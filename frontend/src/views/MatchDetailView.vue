@@ -298,7 +298,14 @@
         :current-user-id="currentUser?.id"
         :responding="responding"
         @respond="handleRespond"
-        @redirect-to-score-form="handleRedirectToScoreForm"
+        @edit-result="completeMatch"
+      />
+
+      <!-- Match discussion thread -->
+      <MatchMessageThread
+        v-if="canSeeThread"
+        :match-id="match.id"
+        :can-post="canPostOnThread"
       />
 
       <!-- Post-finalization dispute section -->
@@ -334,21 +341,6 @@
             >
               <span class="font-semibold">{{ t('matchDetailView.reason') }}</span>
               {{ dispute.contestationReason }}
-            </div>
-            <div
-              v-if="dispute.contestationProof"
-              class="text-sm text-surface-600 dark:text-surface-400"
-            >
-              <span class="font-semibold">{{ t('matchDetailView.proof') }}</span>
-              <a
-                v-if="isProofUrl(dispute.contestationProof)"
-                :href="dispute.contestationProof"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="ml-1 text-primary hover:underline"
-                >{{ dispute.contestationProof }}</a
-              >
-              <span v-else class="ml-1">{{ dispute.contestationProof }}</span>
             </div>
             <div class="text-xs text-surface-400 dark:text-surface-500">
               {{ formatDate(dispute.createdAt) }}
@@ -526,6 +518,7 @@ import type {
   BadgeAnimationWsPayload,
 } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
+import MatchMessageThread from '@/components/match/MatchMessageThread.vue'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
@@ -549,7 +542,8 @@ function goBack() {
     router.push('/')
   }
 }
-const { getMatch, respondToMatch, finalizeMatch, cancelMatch } = useMatchService()
+const { getMatch, respondToMatch, finalizeMatch, cancelMatch, subscribeToMatchUpdates } =
+  useMatchService()
 const { appUser } = useAuth()
 // Tiers drive the reveal animation's icon, colours and progress bar. This view never
 // loads the tournament, so they have to be fetched on their own.
@@ -563,7 +557,6 @@ const cancelling = ref(false)
 const showCancelDialog = ref(false)
 const showPostDisputeDialog = ref(false)
 const postDisputeReason = ref('')
-const postDisputeProof = ref('')
 const postDisputing = ref(false)
 
 // animationQueue is a plain object (not reactive), so computed refs need .value in template
@@ -571,6 +564,37 @@ const animationQueue = useMMrAnimationQueue()
 let offWs: (() => void) | null = null
 let offBadgeWs: (() => void) | null = null
 let offRecapWs: (() => void) | null = null
+let offMatchWs: (() => void) | null = null
+
+/**
+ * A match that is not finalized can still move under the player's feet: an opponent
+ * validates, disputes, or the author corrects the score. Listen while that is possible
+ * and drop the socket once the result is settled.
+ */
+function syncMatchSubscription() {
+  const isLive = !!match.value && match.value.status !== 'finalized'
+
+  if (!isLive) {
+    offMatchWs?.()
+    offMatchWs = null
+    return
+  }
+
+  if (offMatchWs) return
+  offMatchWs = subscribeToMatchUpdates(match.value!.id, () => {
+    refreshMatch()
+  })
+}
+
+async function refreshMatch() {
+  if (!match.value) return
+  try {
+    match.value = await getMatch(match.value.id)
+    syncMatchSubscription()
+  } catch (err) {
+    console.error('Error refreshing match:', err)
+  }
+}
 
 function initAnimationIfRanked() {
   if (!match.value || match.value.tournament?.mode !== 'ranked' || !appUser.value) return
@@ -594,6 +618,7 @@ onUnmounted(() => {
   if (offWs) offWs()
   if (offBadgeWs) offBadgeWs()
   if (offRecapWs) offRecapWs()
+  if (offMatchWs) offMatchWs()
 })
 
 const currentUser = computed(() => appUser.value)
@@ -664,9 +689,43 @@ const canCancelMatch = computed(() => {
   return canManageMatch.value || isParticipant.value
 })
 
+/**
+ * The author keeps the pen until the match is finalized: correcting the entry is how a
+ * disagreement is resolved, so it stays available on a contested match too.
+ */
 const canEditMatch = computed(() => {
   if (!match.value) return false
-  return match.value.status === 'scheduled' && (isParticipant.value || canManageMatch.value)
+  if (match.value.status === 'finalized' || match.value.status === 'cancelled') return false
+  if (match.value.status === 'scheduled') {
+    return isParticipant.value || canManageMatch.value
+  }
+  return canManageMatch.value || (isParticipant.value && isResultAuthor.value)
+})
+
+/**
+ * The thread is private to the people involved: participants and organizers.
+ */
+const canSeeThread = computed(() => isParticipant.value || canManageMatch.value)
+
+/**
+ * Writing stays open for a week after finalization, matching the window during which a
+ * result can still be disputed.
+ */
+const canPostOnThread = computed(() => {
+  if (!canSeeThread.value || !match.value) return false
+  if (match.value.status !== 'finalized') return true
+
+  const finalizedAt = match.value.result?.finalizedAt
+  if (!finalizedAt) return true
+
+  const daysSince = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
+  return daysSince <= 7
+})
+
+const isResultAuthor = computed(() => {
+  const userId = currentUser.value?.id
+  if (!userId || !match.value) return false
+  return match.value.result?.reportedBy === userId || match.value.createdBy === userId
 })
 
 const canRematchMatch = computed(() => {
@@ -683,6 +742,7 @@ async function loadMatch() {
     const matchId = route.params.id as string
     match.value = await getMatch(matchId)
     initAnimationIfRanked()
+    syncMatchSubscription()
   } catch (err) {
     console.error('Error loading match:', err)
     error.value = err instanceof Error ? err.message : t('matchDetailView.loadError')
@@ -691,34 +751,27 @@ async function loadMatch() {
   }
 }
 
-async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string; proof?: string }) {
+async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string }) {
   if (!match.value) return
+
+  const wasDisputed = match.value.status === 'disputed'
 
   try {
     responding.value = true
-    match.value = await respondToMatch(match.value.id, {
-      type: data.type,
-      reason: data.reason,
-      proof: data.proof,
-    })
+    match.value = await respondToMatch(
+      match.value.id,
+      {
+        type: data.type,
+        reason: data.reason,
+      },
+      { withdrawingDispute: wasDisputed && data.type === 'agree' },
+    )
+    syncMatchSubscription()
   } catch (err) {
     console.error('Error responding to match:', err)
   } finally {
     responding.value = false
   }
-}
-
-function handleRedirectToScoreForm(data: { reason?: string }) {
-  if (!match.value?.tournamentId) return
-
-  router.push({
-    path: `/tournaments/${match.value.tournamentId}/create-match`,
-    query: {
-      matchId: match.value.id,
-      contest: 'true',
-      ...(data.reason && { contestReason: data.reason }),
-    },
-  })
 }
 
 async function handlePostDispute() {
@@ -729,24 +782,13 @@ async function handlePostDispute() {
     match.value = await respondToMatch(match.value.id, {
       type: 'dispute',
       reason: postDisputeReason.value || undefined,
-      proof: postDisputeProof.value || undefined,
     })
     showPostDisputeDialog.value = false
     postDisputeReason.value = ''
-    postDisputeProof.value = ''
   } catch (err) {
     console.error('Error submitting post-finalization dispute:', err)
   } finally {
     postDisputing.value = false
-  }
-}
-
-function isProofUrl(str: string): boolean {
-  try {
-    new URL(str)
-    return true
-  } catch {
-    return false
   }
 }
 
@@ -758,6 +800,7 @@ async function handleCancel() {
 
     await cancelMatch(match.value.id)
     match.value = await getMatch(match.value.id)
+    syncMatchSubscription()
     showCancelDialog.value = false
   } catch (err) {
     console.error('Error cancelling match:', err)
@@ -774,6 +817,7 @@ async function handleFinalize(reason: MatchFinalizationReason) {
       finalizationReason: reason,
     })
     match.value = await getMatch(match.value.id)
+    syncMatchSubscription()
   } catch (err) {
     console.error('Error finalizing match:', err)
   }
