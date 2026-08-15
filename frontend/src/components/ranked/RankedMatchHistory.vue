@@ -66,7 +66,7 @@
               <!-- Match status badge -->
               <Tag
                 :severity="statusSeverity(entry.match?.status)"
-                :value="statusLabel(entry.match?.status)"
+                :value="statusLabel(entry.match?.status) || '—'"
                 class="text-xs shrink-0"
               />
 
@@ -173,11 +173,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useMatchStatus } from '@/composables/match/match-status-style'
 import { useInfiniteScroll } from '@vueuse/core'
 import type { ClientMmrHistoryEntry } from '@skol-arena/shared/types/index'
 import { getMatchLabel } from '@/composables/ranked/ranked.service'
 
 const { t } = useI18n()
+const { statusLabel } = useMatchStatus()
 
 const props = defineProps<{
   history: ClientMmrHistoryEntry[]
@@ -305,20 +307,6 @@ function statusSeverity(status?: string) {
   }
 }
 
-function statusLabel(status?: string) {
-  switch (status) {
-    case 'finalized':
-      return t('rankedMatchHistory.statusFinalized')
-    case 'ongoing':
-      return t('rankedMatchHistory.statusOngoing')
-    case 'contested':
-      return t('rankedMatchHistory.statusContested')
-    case 'cancelled':
-      return t('rankedMatchHistory.statusCancelled')
-    default:
-      return status ?? '—'
-  }
-}
 
 function matchLabel(entry: ClientMmrHistoryEntry): string | null {
   return getMatchLabel(entry.mmrBefore, entry.opponentAvgMmr, entry.mmrDelta)

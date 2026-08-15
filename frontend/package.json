@@ -26,7 +26,9 @@
   },
   "dependencies": {
     "@fontsource/exo-2": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
     "@fontsource/rajdhani": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
     "@fortawesome/fontawesome-free": "^7.3.1",
     "@primeuix/themes": "^2.0.3",
     "@skol-arena/shared": "workspace:*",

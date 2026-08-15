@@ -11,20 +11,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getInitials, getAvatarBg } from '@/utils/StringUtils'
+import { avatarSizeClass, type AvatarSize } from '@/components/avatar-size'
 
 const props = defineProps<{
   name: string
   colorKey?: string
-  size?: 'xs' | 'sm' | 'md' | 'lg'
+  size?: AvatarSize
   shape?: 'square' | 'circle'
 }>()
 
-const sizeClass = computed(() => {
-  switch (props.size) {
-    case 'xs': return 'w-6 h-6 text-[10px]'
-    case 'sm': return 'w-7 h-7 text-xs'
-    case 'lg': return 'w-16 h-16 text-xl'
-    default:   return 'w-9 h-9 text-sm'
-  }
-})
+const sizeClass = computed(() => avatarSizeClass(props.size))
 </script>

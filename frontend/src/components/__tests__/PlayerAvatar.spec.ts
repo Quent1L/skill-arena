@@ -51,4 +51,42 @@ describe('PlayerAvatarStack', () => {
     const single = mount(PlayerAvatarStack, { props: { players: players.slice(0, 1) } })
     expect(single.classes()).not.toContain('-space-x-2')
   })
+
+  const roster = (count: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      id: `p${i}`,
+      displayName: `Player ${i}`,
+      shortName: `P${i}`,
+    }))
+
+  it('affiche tous les avatars jusqu’à 3 joueurs', () => {
+    const wrapper = mount(PlayerAvatarStack, { props: { players: roster(3) } })
+
+    expect(wrapper.findAllComponents(PlayerAvatar)).toHaveLength(3)
+    expect(wrapper.text()).not.toContain('+')
+  })
+
+  it('au-delà de 3, garde les 3 premiers et compte le reste', () => {
+    const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5) } })
+
+    const avatars = wrapper.findAllComponents(PlayerAvatar)
+    expect(avatars).toHaveLength(3)
+    expect(avatars.map((a) => a.props('name'))).toEqual(['Player 0', 'Player 1', 'Player 2'])
+    expect(wrapper.text()).toContain('+2')
+  })
+
+  it('la pastille liste les joueurs masqués au survol et suit la taille demandée', () => {
+    const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5), size: 'xs' } })
+    const chip = wrapper.find('[title]')
+
+    expect(chip.attributes('title')).toBe('Player 3, Player 4')
+    expect(chip.classes()).toContain('w-6')
+  })
+
+  it('respecte une limite personnalisée', () => {
+    const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5), max: 4 } })
+
+    expect(wrapper.findAllComponents(PlayerAvatar)).toHaveLength(4)
+    expect(wrapper.text()).toContain('+1')
+  })
 })

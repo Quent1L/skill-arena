@@ -260,12 +260,6 @@
     "newBadge": "Nouveau badge"
   },
   "bracketMatchCard": {
-    "statusCancelled": "Annulé",
-    "statusContested": "Contesté",
-    "statusFinalized": "Validé",
-    "statusOngoing": "En cours",
-    "statusReported": "En attente",
-    "statusScheduled": "Planifié",
     "unknown": "Inconnu",
     "vs": "VS"
   },
@@ -587,12 +581,6 @@
   "matchCard": {
     "draw": "Égalité",
     "loss": "Défaite",
-    "statusCancelled": "Annulé",
-    "statusContested": "Contesté",
-    "statusFinalized": "Validé",
-    "statusOngoing": "En cours",
-    "statusReported": "En attente",
-    "statusScheduled": "Planifié",
     "vs": "VS",
     "win": "Victoire"
   },
@@ -611,23 +599,17 @@
     "disputeReasonPlaceholder": "Expliquez pourquoi vous contestez ce résultat...",
     "expired": "(Expirée)",
     "fixMyEntryBtn": "Corriger ma saisie",
-    "playerConfirmations": "Confirmations des joueurs ({confirmed}/{total})",
     "questionConfirmResult": "Accepter",
-    "reportedByPrefix": "Résultat saisi par",
-    "reportedBySuffix": "Résultat saisi par",
     "score": "Score",
-    "sideA": "Équipe A",
-    "sideB": "Équipe B",
     "submitDisputeBtn": "Soumettre la contestation",
     "tagAccepted": "Accepté",
     "tagContested": "Contesté",
     "tagPending": "En attente",
     "title": "Confirmation du résultat",
     "unknownPlayer": "Score original",
-    "unknownPlayerName": "Joueur inconnu",
-    "unknownReporter": "Inconnu",
     "userAccepted": "Vous avez accepté ce résultat",
     "userDisputed": "Vous avez contesté ce résultat",
+    "validatedCount": "{confirmed}/{total} ont validé",
     "validationAdmin": "Ce score doit être validé par un administrateur du tournoi.",
     "validationAuto": "Ce score sera automatiquement validé dans {hours}h si non contesté.",
     "validationNone": "Les scores sont validés immédiatement. Contestation possible dans les 7 jours.",
@@ -646,6 +628,7 @@
     "cancelNote": "Seul le joueur ayant saisi ce match ou un administrateur peut l'annuler.",
     "completeMatch": "Compléter le match",
     "confirmCancel": "Oui, annuler le match",
+    "declaredWinner": "Vainqueur annoncé",
     "disputeButton": "Contester",
     "disputeFinalizedDialogTitle": "Contester le résultat finalisé",
     "disputeReasonLabel": "Raison de la contestation (optionnel)",
@@ -675,15 +658,7 @@
     "postDisputesTitle": "Contestations post-finalisation",
     "reason": "Raison :",
     "rematchMatch": "Rejouer",
-    "status": {
-      "cancelled": "Annulé",
-      "confirmed": "Confirmé",
-      "disputed": "Contesté",
-      "finalized": "Finalisé",
-      "pendingConfirmation": "Proposition de score",
-      "reported": "Résultat saisi",
-      "scheduled": "Planifié"
-    },
+    "reportedAt": "Saisi le :",
     "submitDispute": "Soumettre la contestation",
     "teamA": "Équipe A",
     "teamB": "Équipe B",
@@ -771,6 +746,15 @@
       "withdrawDisputeSummary": "Contestation retirée"
     },
     "unknownPlayer": "Joueur {id}"
+  },
+  "matchStatus": {
+    "cancelled": "Annulé",
+    "confirmed": "Confirmé",
+    "disputed": "Contesté",
+    "finalized": "Validé",
+    "pendingConfirmation": "En attente",
+    "reported": "À valider",
+    "scheduled": "Planifié"
   },
   "mmrExplainerCard": {
     "baseGainLoss": "Gain ou perte de base",
@@ -1170,10 +1154,6 @@
     "filterDraw": "Nul",
     "loss": "Défaite",
     "seeMatch": "Voir le match",
-    "statusCancelled": "Annulé",
-    "statusContested": "Contesté",
-    "statusFinalized": "Finalisé",
-    "statusOngoing": "En cours",
     "vsLabel": "Contre :",
     "win": "Victoire",
     "withLabel": "Avec :"

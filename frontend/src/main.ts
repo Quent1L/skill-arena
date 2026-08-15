@@ -3,6 +3,12 @@ import '@/assets/css/main.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 import '@fontsource/exo-2/900.css'
 import '@fontsource/rajdhani/700.css'
+// Backs the --font-headline / --font-body tokens declared in tailwind-related.css.
+// Without these the `font-headline` utility silently falls back to system sans.
+import '@fontsource/space-grotesk/500.css'
+import '@fontsource/space-grotesk/700.css'
+import '@fontsource/manrope/400.css'
+import '@fontsource/manrope/600.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

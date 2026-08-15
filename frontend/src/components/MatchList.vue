@@ -41,7 +41,7 @@
           class="flex items-center gap-1.5 px-4 py-1.5 rounded-full border whitespace-nowrap transition-all duration-150 active:scale-95 shrink-0 cursor-pointer"
           :class="
             disputedOnly
-              ? 'bg-warn-500 border-warn-500 text-primary-contrast'
+              ? 'bg-amber-500 border-amber-500 text-surface-950'
               : 'bg-surface-800 border-surface-700/20 text-muted-color'
           "
         >

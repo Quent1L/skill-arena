@@ -143,6 +143,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import type { ClientMatchCard } from '@skol-arena/shared/types/index'
 import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
+import { useMatchStatus } from '@/composables/match/match-status-style'
 
 const props = defineProps<{
   entry: ClientMatchCard
@@ -150,7 +151,8 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { statusLabel, statusDotClass, statusTextClass } = useMatchStatus()
 
 // Determine left/right sides
 // Player mode: left = my side, right = opponent side
@@ -224,59 +226,6 @@ const formatBadge = computed(() => {
   return `${a}v${b}`
 })
 
-function statusDotClass(status: string) {
-  switch (status) {
-    case 'finalized':
-      return 'bg-match-win/80'
-    case 'ongoing':
-      return 'bg-yellow-400 animate-pulse'
-    case 'contested':
-      return 'bg-match-loss animate-pulse'
-    case 'reported':
-      return 'bg-orange-400'
-    case 'scheduled':
-      return 'bg-blue-200'
-    default:
-      return 'bg-surface-500'
-  }
-}
-
-function statusTextClass(status: string) {
-  switch (status) {
-    case 'finalized':
-      return 'text-match-win/80'
-    case 'ongoing':
-      return 'text-yellow-400'
-    case 'contested':
-      return 'text-match-loss'
-    case 'reported':
-      return 'text-orange-400'
-    case 'scheduled':
-      return 'text-blue-200'
-    default:
-      return 'text-muted-color'
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case 'finalized':
-      return t('matchCard.statusFinalized')
-    case 'ongoing':
-      return t('matchCard.statusOngoing')
-    case 'contested':
-      return t('matchCard.statusContested')
-    case 'cancelled':
-      return t('matchCard.statusCancelled')
-    case 'reported':
-      return t('matchCard.statusReported')
-    case 'scheduled':
-      return t('matchCard.statusScheduled')
-    default:
-      return status
-  }
-}
-
 function mmrPillClass(delta: number) {
   if (delta > 0) return 'bg-match-win/15 text-match-win border-match-win/30'
   if (delta < 0) return 'bg-match-loss/15 text-match-loss border-match-loss/30'
@@ -284,8 +233,8 @@ function mmrPillClass(delta: number) {
 }
 
 function formatDate(date: Date | string | undefined) {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('fr-FR', {
+  if (!date) return '-'
+  return new Date(date).toLocaleDateString(locale.value, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

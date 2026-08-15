@@ -1,299 +1,143 @@
 <template>
-  <div class="match-detail-view max-w-4xl mx-auto p-2 sm:p-3 sm:p-6">
-    <div v-if="loading" class="text-center">
-      <ProgressSpinner />
+  <div class="match-detail-view mx-auto w-full max-w-4xl px-3 py-4 sm:px-6 sm:py-6">
+    <!-- Skeleton mirrors the real layout so the page does not jump when data lands -->
+    <div v-if="loading" class="space-y-4">
+      <Skeleton height="2.5rem" class="rounded-xl!" />
+      <Skeleton height="15rem" class="rounded-2xl!" />
+      <Skeleton height="7rem" class="rounded-2xl!" />
     </div>
 
-    <div v-else-if="error" class="text-center text-red-500">
-      <p>{{ error }}</p>
-      <Button :label="t('matchDetailView.back')" @click="goBack()" />
-    </div>
+    <SurfacePanel v-else-if="error" tone="danger">
+      <div class="flex flex-col items-center gap-4 py-6 text-center">
+        <i class="fa fa-triangle-exclamation text-3xl text-match-loss" aria-hidden="true" />
+        <p class="text-sm text-white/80">{{ error }}</p>
+        <Button :label="t('matchDetailView.back')" icon="fa fa-arrow-left" severity="secondary" @click="goBack()" />
+      </div>
+    </SurfacePanel>
 
-    <div v-else-if="match" class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
+    <div v-else-if="match" class="space-y-4">
+      <!-- Top bar: back, context, status, actions. One line at every width. -->
+      <div
+        class="sticky top-0 z-20 -mx-3 flex items-center gap-2 border-b border-surface-700/40 bg-gray-900/85 px-3 py-2 backdrop-blur-md sm:-mx-6 sm:px-6"
+      >
         <Button
-          :label="t('matchDetailView.back')"
           icon="fa fa-arrow-left"
           severity="secondary"
+          text
+          rounded
+          :aria-label="t('matchDetailView.back')"
           @click="goBack()"
         />
 
-        <div class="flex items-center gap-3">
-          <Button
-            v-if="canEditMatch"
-            :label="t('matchDetailView.completeMatch')"
-            icon="fas fa-edit"
-            severity="info"
-            size="small"
-            @click="completeMatch"
-          />
-          <Button
-            v-if="canRematchMatch"
-            :label="t('matchDetailView.rematchMatch')"
-            icon="fa fa-redo"
-            severity="secondary"
-            outlined
-            size="small"
-            @click="rematchMatch"
-          />
-          <Button
-            v-if="canCancelMatch"
-            :label="t('matchDetailView.cancelMatch')"
-            icon="fa fa-ban"
-            severity="danger"
-            outlined
-            :loading="cancelling"
-            size="small"
-            @click="showCancelDialog = true"
-          />
+        <div class="min-w-0 flex-1">
+          <div class="font-label truncate text-sm font-semibold text-white/80">
+            {{ match.tournament?.name ?? t('matchDetailView.matchHeading') }}
+          </div>
         </div>
+
+        <div class="flex shrink-0 items-center gap-1.5">
+          <span class="flex h-1.5 w-1.5 rounded-full" :class="statusDotClass(match.status)" />
+          <span
+            class="font-label text-[10px] font-bold uppercase tracking-tighter"
+            :class="statusTextClass(match.status)"
+          >
+            {{ statusLabel(match.status) }}
+          </span>
+        </div>
+
+        <OverflowMenuButton v-if="actionItems.length > 0" :items="actionItems" menu-id="match-actions-menu" />
       </div>
 
-      <!-- Match Info Card -->
-      <div
-        class="rounded-xl border border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 overflow-hidden"
-      >
-        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
-          <div class="flex justify-between">
-            <div class="text-2xl font-bold">{{ t('matchDetailView.matchHeading') }}</div>
-            <Tag
-              :value="getStatusLabel(match.status)"
-              :severity="getStatusSeverity(match.status)"
+      <!-- Hero scoreboard -->
+      <SurfacePanel class="reveal" :style="revealDelay(0)" :padded="false">
+        <div class="relative overflow-hidden" :class="heroGlowClass">
+          <i
+            class="pointer-events-none absolute -right-4 -top-3 text-7xl text-white/[0.04]"
+            :class="isFinalized ? 'fa fa-trophy' : 'fa fa-hourglass-half'"
+            aria-hidden="true"
+          />
+
+          <div class="relative px-3 pt-3 sm:px-5 sm:pt-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                v-if="modeLabel"
+                class="font-label rounded-full border border-surface-600/60 bg-surface-900/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-color"
+              >
+                {{ modeLabel }}
+              </span>
+              <span v-if="match.outcomeType" class="font-label text-[11px] text-muted-color">
+                {{ match.outcomeType.name }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Phone: the score takes its own full-width row so the two sides split the
+               remaining width evenly and the names stay readable. From sm: the classic
+               A | score | B duel. -->
+          <div
+            class="relative grid grid-cols-2 items-start gap-2 px-2 pb-4 pt-2 sm:grid-cols-[1fr_auto_1fr] sm:gap-6 sm:px-5 sm:pb-6"
+          >
+            <MatchSidePanel
+              :side="sideA"
+              :fallback-name="t('matchDetailView.teamA')"
+              :mode="match.tournament?.mode"
+              :is-finalized="isFinalized"
+              :show-winner="hasReportedWinner"
+              :confirmation-statuses="confirmationStatuses"
+              :tournament-id="match.tournamentId"
+              :dimmed="hasReportedWinner && sideB?.isWinner === true"
+            />
+
+            <div
+              class="order-first col-span-2 flex flex-col items-center justify-center self-center pb-1 sm:order-none sm:col-span-1 sm:pb-0"
+            >
+              <div
+                v-if="showScore"
+                class="font-headline flex items-center gap-2 text-5xl font-black tabular-nums tracking-tighter sm:gap-4 sm:text-7xl"
+              >
+                <span :class="scoreClass(sideA)">{{ displayScoreA }}</span>
+                <span class="h-8 w-px shrink-0 bg-surface-600/60 sm:h-14" aria-hidden="true" />
+                <span :class="scoreClass(sideB)">{{ displayScoreB }}</span>
+              </div>
+              <div v-else class="font-headline text-2xl font-black tracking-tighter text-muted-color/40 sm:text-3xl">
+                {{ t('matchCard.vs') }}
+              </div>
+            </div>
+
+            <MatchSidePanel
+              :side="sideB"
+              :fallback-name="t('matchDetailView.teamB')"
+              :mode="match.tournament?.mode"
+              :is-finalized="isFinalized"
+              :show-winner="hasReportedWinner"
+              :confirmation-statuses="confirmationStatuses"
+              :tournament-id="match.tournamentId"
+              :dimmed="hasReportedWinner && sideA?.isWinner === true"
             />
           </div>
-
-          <p v-if="match.tournament" class="text-surface-500 dark:text-surface-400">
-            {{ match.tournament.name }}
-          </p>
         </div>
+      </SurfacePanel>
 
-        <div class="p-1 sm:p-4">
-          <div class="space-y-6">
-            <!-- Scores et Vainqueur -->
-            <div
-              class="flex justify-center items-start gap-3 py-3 px-1 sm:gap-8 sm:p-6 bg-surface-50 dark:bg-surface-900 rounded-lg"
-            >
-              <div class="text-center flex-1" :class="{ 'opacity-50': sideB?.isWinner }">
-                <div class="flex justify-center mb-2">
-                  <PlayerAvatarStack v-if="sideA?.players" :players="sideA.players" size="sm" />
-                </div>
-                <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ sideA?.entryName ?? t('matchDetailView.teamA') }}
-                </div>
-                <div
-                  v-if="match.tournament?.scoreEnabled !== false"
-                  class="text-3xl sm:text-5xl font-bold"
-                  :class="sideA?.isWinner ? 'text-green-600' : 'text-primary'"
-                >
-                  {{ sideA?.score }}
-                </div>
-                <div v-if="sideA?.players" class="mt-2 text-sm flex justify-center">
-                  <div class="inline-flex flex-col items-start">
-                    <div v-for="p in sideA.players" :key="p.id" class="flex items-center gap-1.5">
-                      <RouterLink
-                        v-if="p.id"
-                        :to="{
-                          path: `/players/${p.id}`,
-                          query: match.tournamentId ? { tournamentId: match.tournamentId } : {},
-                        }"
-                        class="hover:underline text-blue-600 dark:text-blue-400"
-                      >
-                        {{ p.displayName }}
-                      </RouterLink>
-                      <span v-else>{{ p.displayName }}</span>
-                      <template
-                        v-if="
-                          match.status === 'finalized' &&
-                          match.tournament?.mode === 'championship' &&
-                          p.effectivePointsAwarded !== undefined
-                        "
-                      >
-                        <Tag
-                          v-if="p.exceededMatchLimit"
-                          :value="t('matchDetailView.overLimit')"
-                          severity="secondary"
-                          class="text-xs"
-                        />
-                        <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                          +{{ p.effectivePointsAwarded }} pt{{
-                            p.effectivePointsAwarded !== 1 ? 's' : ''
-                          }}
-                        </span>
-                      </template>
-                      <template
-                        v-if="
-                          match.status === 'finalized' &&
-                          match.tournament?.mode === 'ranked' &&
-                          p.mmrDelta !== undefined
-                        "
-                      >
-                        <span
-                          class="font-semibold"
-                          :class="
-                            p.mmrDelta && p.mmrDelta > 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          "
-                        >
-                          {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
-                        </span>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-                <div class="mt-3 min-h-[32px]">
-                  <Tag
-                    v-if="sideA?.isWinner"
-                    :value="t('matchDetailView.winner')"
-                    severity="success"
-                    icon="fa fa-trophy"
-                  />
-                </div>
-              </div>
-
-              <div
-                v-if="match.tournament?.scoreEnabled !== false"
-                class="text-xl sm:text-3xl font-bold text-surface-400 pt-6 sm:pt-8"
-              >
-                -
-              </div>
-
-              <div class="text-center flex-1" :class="{ 'opacity-50': sideA?.isWinner }">
-                <div class="flex justify-center mb-2">
-                  <PlayerAvatarStack v-if="sideB?.players" :players="sideB.players" size="sm" />
-                </div>
-                <div class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {{ sideB?.entryName ?? t('matchDetailView.teamB') }}
-                </div>
-                <div
-                  v-if="match.tournament?.scoreEnabled !== false"
-                  class="text-3xl sm:text-5xl font-bold"
-                  :class="sideB?.isWinner ? 'text-green-600' : 'text-primary'"
-                >
-                  {{ sideB?.score }}
-                </div>
-                <div v-if="sideB?.players" class="mt-2 text-sm flex justify-center">
-                  <div class="inline-flex flex-col items-start">
-                    <div v-for="p in sideB.players" :key="p.id" class="flex items-center gap-1.5">
-                      <RouterLink
-                        v-if="p.id"
-                        :to="{
-                          path: `/players/${p.id}`,
-                          query: match.tournamentId ? { tournamentId: match.tournamentId } : {},
-                        }"
-                        class="hover:underline text-blue-600 dark:text-blue-400"
-                      >
-                        {{ p.displayName }}
-                      </RouterLink>
-                      <span v-else>{{ p.displayName }}</span>
-                      <template
-                        v-if="
-                          match.status === 'finalized' &&
-                          match.tournament?.mode === 'championship' &&
-                          p.effectivePointsAwarded !== undefined
-                        "
-                      >
-                        <Tag
-                          v-if="p.exceededMatchLimit"
-                          :value="t('matchDetailView.overLimit')"
-                          severity="secondary"
-                          class="text-xs"
-                        />
-                        <span v-else class="font-semibold text-green-600 dark:text-green-400">
-                          +{{ p.effectivePointsAwarded }} pt{{
-                            p.effectivePointsAwarded !== 1 ? 's' : ''
-                          }}
-                        </span>
-                      </template>
-                      <template
-                        v-if="
-                          match.status === 'finalized' &&
-                          match.tournament?.mode === 'ranked' &&
-                          p.mmrDelta !== undefined
-                        "
-                      >
-                        <span
-                          class="font-semibold"
-                          :class="
-                            p.mmrDelta && p.mmrDelta > 0
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
-                          "
-                        >
-                          {{ p.mmrDelta && p.mmrDelta > 0 ? '+' : '' }}{{ p.mmrDelta }}
-                        </span>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-                <div class="mt-3 min-h-[32px]">
-                  <Tag
-                    v-if="sideB?.isWinner"
-                    :value="t('matchDetailView.winner')"
-                    severity="success"
-                    icon="fa fa-trophy"
-                  />
-                </div>
-              </div>
+      <!-- Meta strip -->
+      <SurfacePanel v-if="metaItems.length > 0" class="reveal" :style="revealDelay(1)">
+        <div class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+          <div v-for="item in metaItems" :key="item.label" class="min-w-0">
+            <div class="font-label flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-color">
+              <i :class="item.icon" class="w-3 text-center" aria-hidden="true" />
+              {{ item.label }}
             </div>
-
-            <!-- Match Details -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm p-2">
-              <div>
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.matchDate')
-                }}</span>
-                <span class="ml-2 font-semibold">{{ formatDate(match.playedAt) }}</span>
-              </div>
-              <div v-if="match.creator">
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.enteredBy')
-                }}</span>
-                <span class="ml-2 font-semibold"> {{ match.creator.displayName }}</span>
-              </div>
-              <div v-if="match.outcomeType">
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.outcomeType')
-                }}</span>
-                <span class="ml-2 font-semibold">{{ match.outcomeType.name }}</span>
-              </div>
-              <div v-if="match.outcomeReason">
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.outcomeReason')
-                }}</span>
-                <span class="ml-2 font-semibold">{{ match.outcomeReason.name }}</span>
-              </div>
-              <div v-if="match.result?.finalizedAt">
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.finalizedAt')
-                }}</span>
-                <span class="ml-2 font-semibold">{{ formatDate(match.result.finalizedAt) }}</span>
-              </div>
-              <div v-if="match.result?.finalizationReason">
-                <span class="text-surface-500 dark:text-surface-400">{{
-                  t('matchDetailView.finalization')
-                }}</span>
-                <span class="ml-2 font-semibold">
-                  <template v-if="match.result.finalizationReason === 'trust_score'">
-                    {{
-                      t('matchDetailView.trustScoreBy', {
-                        name: match.result.reporter?.displayName ?? t('matchDetailView.unknown'),
-                      })
-                    }}
-                  </template>
-                  <template v-else>
-                    {{ getFinalizationReasonLabel(match.result.finalizationReason) }}
-                  </template>
-                </span>
-              </div>
+            <div class="mt-0.5 truncate text-sm font-semibold text-white/90" :title="item.value">
+              {{ item.value }}
             </div>
           </div>
         </div>
-      </div>
+      </SurfacePanel>
 
-      <!-- Match Confirmation Component -->
+      <!-- Both children are single-root with their own v-if, so a hidden one collapses to a
+           comment node and does not leave a gap in the space-y rhythm. -->
       <MatchConfirmation
+        class="reveal"
+        :style="revealDelay(2)"
         :match="match"
         :current-user-id="currentUser?.id"
         :responding="responding"
@@ -301,81 +145,123 @@
         @edit-result="completeMatch"
       />
 
-      <!-- Match discussion thread -->
       <MatchMessageThread
         v-if="canSeeThread"
+        class="reveal"
+        :style="revealDelay(3)"
         :match-id="match.id"
         :can-post="canPostOnThread"
+        :current-user-id="currentUser?.id"
+        :current-user-name="currentUser?.displayName"
       />
 
-      <!-- Post-finalization dispute section -->
-      <div
-        v-if="postFinalizationDisputes.length > 0"
-        class="rounded-xl border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 overflow-hidden"
-      >
-        <div class="p-4 border-b border-red-300 dark:border-red-700">
-          <h3 class="text-lg font-semibold text-red-700 dark:text-red-300">
-            <i class="fa fa-flag mr-2"></i>
-            {{ t('matchDetailView.postDisputesTitle') }}
-          </h3>
-        </div>
-        <div class="p-4 space-y-3">
-          <p class="text-xs text-red-600 dark:text-red-400">
-            <i class="fa fa-info-circle mr-1" />
+      <!-- Post-finalization disputes -->
+      <SurfacePanel v-if="postFinalizationDisputes.length > 0" tone="danger" class="reveal" :style="revealDelay(4)">
+        <template #header>
+          <SectionHeader
+            icon="fa fa-flag"
+            :title="t('matchDetailView.postDisputesTitle')"
+            :count="postFinalizationDisputes.length"
+            accent-class="bg-match-loss"
+          />
+        </template>
+
+        <div class="space-y-3">
+          <p class="text-xs text-match-loss/90">
+            <i class="fa fa-info-circle mr-1" aria-hidden="true" />
             {{ t('matchDetailView.cancelNote') }}
           </p>
           <div
             v-for="dispute in postFinalizationDisputes"
             :key="dispute.id"
-            class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-1"
+            class="space-y-1.5 rounded-xl border-l-2 border-match-loss bg-surface-900/40 p-3"
           >
-            <div class="flex items-center justify-between">
-              <span class="font-medium">{{
-                dispute.player?.displayName || t('matchDetailView.unknownPlayer')
-              }}</span>
-              <Tag severity="danger" :value="t('matchDetailView.disputed')" />
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex min-w-0 items-center gap-2">
+                <PlayerAvatar
+                  :name="dispute.player?.displayName || t('matchDetailView.unknownPlayer')"
+                  :color-key="dispute.playerId"
+                  size="sm"
+                />
+                <span class="truncate text-sm font-semibold">
+                  {{ dispute.player?.displayName || t('matchDetailView.unknownPlayer') }}
+                </span>
+              </div>
+              <span
+                class="font-label shrink-0 rounded-full border border-match-loss/30 bg-match-loss/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-match-loss"
+              >
+                {{ t('matchDetailView.disputed') }}
+              </span>
             </div>
-            <div
-              v-if="dispute.contestationReason"
-              class="text-sm text-surface-600 dark:text-surface-400"
-            >
-              <span class="font-semibold">{{ t('matchDetailView.reason') }}</span>
+            <p v-if="dispute.contestationReason" class="text-sm text-white/70">
               {{ dispute.contestationReason }}
-            </div>
-            <div class="text-xs text-surface-400 dark:text-surface-500">
-              {{ formatDate(dispute.createdAt) }}
-            </div>
+            </p>
+            <div class="font-label text-[11px] text-muted-color">{{ formatDate(dispute.createdAt) }}</div>
           </div>
         </div>
-      </div>
+      </SurfacePanel>
 
-      <!-- Post-finalization dispute button (auto mode, participant, within 7 days) -->
-      <div
-        v-if="canDisputePostFinalization"
-        class="rounded-xl border border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20 overflow-hidden"
-      >
-        <div class="p-4 border-b border-orange-300 dark:border-orange-700">
-          <h3 class="text-lg font-semibold text-orange-700 dark:text-orange-300">
-            <i class="fa fa-exclamation-circle mr-2"></i>
-            {{ t('matchDetailView.disputeResultTitle') }}
-          </h3>
-        </div>
-        <div class="p-4 space-y-3">
-          <p class="text-sm text-surface-600 dark:text-surface-400">
-            {{ t('matchDetailView.disputeResultDescription') }}
-          </p>
-          <p class="text-sm text-surface-500 dark:text-surface-500">
-            {{ t('matchDetailView.expiresIn', { time: postFinalizationTimeRemaining }) }}
-          </p>
-          <Button
-            :label="t('matchDetailView.disputeButton')"
-            icon="fa fa-flag"
-            severity="danger"
-            outlined
-            @click="showPostDisputeDialog = true"
+      <!-- Dispute call to action -->
+      <SurfacePanel v-if="canDisputePostFinalization" tone="warn" class="reveal" :style="revealDelay(5)">
+        <template #header>
+          <SectionHeader
+            icon="fa fa-exclamation-circle"
+            :title="t('matchDetailView.disputeResultTitle')"
+            accent-class="bg-amber-400"
           />
+        </template>
+
+        <div class="space-y-3">
+          <p class="text-sm text-white/70">{{ t('matchDetailView.disputeResultDescription') }}</p>
+          <div class="font-label inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
+            <i class="fa fa-clock" aria-hidden="true" />
+            {{ t('matchDetailView.expiresIn', { time: postFinalizationTimeRemaining }) }}
+          </div>
+          <div>
+            <Button
+              :label="t('matchDetailView.disputeButton')"
+              icon="fa fa-flag"
+              severity="danger"
+              outlined
+              @click="showPostDisputeDialog = true"
+            />
+          </div>
         </div>
-      </div>
+      </SurfacePanel>
+
+      <!-- Admin actions -->
+      <SurfacePanel
+        v-if="canManageMatch && match.status !== 'finalized'"
+        tone="warn"
+        class="reveal"
+        :style="revealDelay(6)"
+      >
+        <template #header>
+          <SectionHeader
+            icon="fa fa-shield-halved"
+            :title="t('matchDetailView.adminActionsTitle')"
+            accent-class="bg-amber-400"
+          />
+        </template>
+
+        <div class="space-y-3">
+          <p class="text-sm text-white/70">{{ t('matchDetailView.adminActionsDescription') }}</p>
+          <div class="flex flex-wrap gap-3">
+            <Button
+              :label="t('matchDetailView.finalizeConsensus')"
+              icon="fa fa-check"
+              severity="success"
+              @click="() => handleFinalize('consensus')"
+            />
+            <Button
+              :label="t('matchDetailView.finalizeOverride')"
+              icon="fa fa-gavel"
+              severity="warn"
+              @click="() => handleFinalize('admin_override')"
+            />
+          </div>
+        </div>
+      </SurfacePanel>
 
       <!-- Post-finalization dispute dialog -->
       <Dialog
@@ -386,7 +272,7 @@
       >
         <div class="space-y-4">
           <div>
-            <label for="postDisputeReason" class="block text-sm font-medium mb-2">
+            <label for="postDisputeReason" class="mb-2 block text-sm font-medium">
               {{ t('matchDetailView.disputeReasonLabel') }}
             </label>
             <Textarea
@@ -415,7 +301,7 @@
         </template>
       </Dialog>
 
-      <!-- Cancel Confirmation Dialog -->
+      <!-- Cancel confirmation dialog -->
       <Dialog
         v-model:visible="showCancelDialog"
         :header="t('matchDetailView.cancelMatch')"
@@ -423,16 +309,11 @@
         :closable="!cancelling"
         :style="{ maxWidth: '600px' }"
       >
-        <p
-          v-if="match.status === 'finalized'"
-          class="text-orange-600 dark:text-orange-400 font-semibold mb-2"
-        >
-          <i class="fa fa-triangle-exclamation mr-1" />
+        <p v-if="match.status === 'finalized'" class="mb-2 font-semibold text-amber-400">
+          <i class="fa fa-triangle-exclamation mr-1" aria-hidden="true" />
           {{ t('matchDetailView.cancelFinalizedWarning') }}
         </p>
-        <p class="text-surface-600 dark:text-surface-400">
-          {{ t('matchDetailView.cancelConfirmation') }}
-        </p>
+        <p class="text-white/70">{{ t('matchDetailView.cancelConfirmation') }}</p>
         <template #footer>
           <Button
             :label="t('matchDetailView.keepMatch')"
@@ -470,36 +351,6 @@
         :badge="animationQueue.currentBadge.value"
         @close="animationQueue.acknowledgeCurrentBadge()"
       />
-
-      <!-- Admin Actions -->
-      <div
-        v-if="canManageMatch && match.status !== 'finalized'"
-        class="rounded-xl border border-warn-300 dark:border-warn-700 bg-warn-50 dark:bg-warn-900/20 overflow-hidden"
-      >
-        <div class="p-4 border-b border-warn-300 dark:border-warn-700">
-          <h3 class="text-lg font-semibold text-warn-700 dark:text-warn-300">
-            <i class="fa fa-shield-alt mr-2"></i>
-            {{ t('matchDetailView.adminActionsTitle') }}
-          </h3>
-        </div>
-        <div class="p-4 space-y-3">
-          <p class="text-sm text-surface-600 dark:text-surface-400">
-            {{ t('matchDetailView.adminActionsDescription') }}
-          </p>
-          <div class="flex gap-3">
-            <Button
-              :label="t('matchDetailView.finalizeConsensus')"
-              severity="success"
-              @click="() => handleFinalize('consensus')"
-            />
-            <Button
-              :label="t('matchDetailView.finalizeOverride')"
-              severity="warn"
-              @click="() => handleFinalize('admin_override')"
-            />
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -510,8 +361,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMatchService } from '@/composables/match/match.service'
 import { useAuth } from '@/composables/useAuth'
+import type { MenuItem } from 'primevue/menuitem'
 import type {
   ClientMatchDetail,
+  MatchDetailSide,
   MatchFinalizationReason,
   MmrAnimationWsPayload,
   MmrRecapReadyPayload,
@@ -519,17 +372,25 @@ import type {
 } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import MatchMessageThread from '@/components/match/MatchMessageThread.vue'
+import MatchSidePanel from '@/components/match/MatchSidePanel.vue'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
-import PlayerAvatarStack from '@/components/PlayerAvatarStack.vue'
+import PlayerAvatar from '@/components/PlayerAvatar.vue'
+import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
+import SectionHeader from '@/components/ui/SectionHeader.vue'
+import SurfacePanel from '@/components/ui/SurfacePanel.vue'
+import { useMatchStatus } from '@/composables/match/match-status-style'
+import { buildConfirmationStatusMap } from '@/composables/match/match-confirmation-status'
+import { useCountUp } from '@/composables/ui/useCountUp'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const { statusLabel, statusDotClass, statusTextClass } = useMatchStatus()
 const route = useRoute()
 const router = useRouter()
 
@@ -625,6 +486,74 @@ const currentUser = computed(() => appUser.value)
 
 const sideA = computed(() => match.value?.sides.find((s) => s.position === 1))
 const sideB = computed(() => match.value?.sides.find((s) => s.position === 2))
+
+const isFinalized = computed(() => match.value?.status === 'finalized')
+
+/**
+ * A score does not always name the winner, so a participant asked to validate needs to
+ * see who the reporter designated. That claim exists from the moment a result is
+ * reported — only a scheduled or cancelled match has nothing to show.
+ */
+const hasReportedWinner = computed(
+  () => !!match.value && match.value.status !== 'scheduled' && match.value.status !== 'cancelled',
+)
+
+/**
+ * Who has validated is painted next to the names in the scoreboard, where the roster
+ * already is. Left undefined outside a validation round so the panels render exactly as
+ * they did before — no reserved slot, no empty column.
+ */
+const confirmationStatuses = computed(() => {
+  const m = match.value
+  if (!m || !['reported', 'disputed'].includes(m.status)) return undefined
+  return buildConfirmationStatusMap(m)
+})
+
+const showScore = computed(() => match.value?.tournament?.scoreEnabled !== false)
+
+const modeLabel = computed(() => {
+  const mode = match.value?.tournament?.mode
+  if (mode === 'championship') return t('tournamentCard.mode.championship')
+  if (mode === 'ranked') return t('tournamentCard.mode.ranked')
+  if (mode === 'bracket') return t('tournamentCard.mode.bracket')
+  return ''
+})
+
+/**
+ * The score is the payoff of the whole screen, so it counts up on a settled result to
+ * pull the eye there. useCountUp already collapses to an instant jump under
+ * prefers-reduced-motion.
+ */
+const scoreRevealActive = computed(() => isFinalized.value && showScore.value)
+const { value: countA } = useCountUp(() => sideA.value?.score ?? 0, {
+  durationMs: 900,
+  active: scoreRevealActive,
+})
+const { value: countB } = useCountUp(() => sideB.value?.score ?? 0, {
+  durationMs: 900,
+  active: scoreRevealActive,
+})
+
+const displayScoreA = computed(() => (scoreRevealActive.value ? countA.value : (sideA.value?.score ?? 0)))
+const displayScoreB = computed(() => (scoreRevealActive.value ? countB.value : (sideB.value?.score ?? 0)))
+
+function scoreClass(side?: MatchDetailSide): string {
+  if (!hasReportedWinner.value) return 'text-white/70'
+  if (side?.isWinner) return 'text-match-win'
+  return 'text-white/40'
+}
+
+const heroGlowClass = computed(() => {
+  if (!isFinalized.value) return ''
+  if (sideA.value?.isWinner) return 'hero-glow hero-glow-left'
+  if (sideB.value?.isWinner) return 'hero-glow hero-glow-right'
+  return ''
+})
+
+/** Sections fade in top to bottom, establishing the reading order once on load. */
+function revealDelay(index: number): Record<string, string> {
+  return { '--reveal-index': String(index) }
+}
 
 const canManageMatch = computed(() => {
   return appUser.value?.role === 'super_admin' || appUser.value?.role === 'tournament_admin'
@@ -733,6 +662,105 @@ const canRematchMatch = computed(() => {
   if (match.value.tournament?.status === 'finished') return false
   if (match.value.tournament?.mode === 'bracket') return false
   return canManageMatch.value || isParticipant.value
+})
+
+/**
+ * Three action buttons never fitted next to the back button on a phone. They live in an
+ * overflow menu now, which keeps the top bar on one line at every width.
+ */
+const actionItems = computed<MenuItem[]>(() => {
+  const items: MenuItem[] = []
+  if (canEditMatch.value) {
+    items.push({
+      label: t('matchDetailView.completeMatch'),
+      icon: 'fa fa-pen',
+      command: completeMatch,
+    })
+  }
+  if (canRematchMatch.value) {
+    items.push({
+      label: t('matchDetailView.rematchMatch'),
+      icon: 'fa fa-redo',
+      command: rematchMatch,
+    })
+  }
+  if (canCancelMatch.value) {
+    items.push({
+      label: t('matchDetailView.cancelMatch'),
+      icon: 'fa fa-ban',
+      command: () => {
+        showCancelDialog.value = true
+      },
+    })
+  }
+  return items
+})
+
+/**
+ * The label keys were written for an inline "Label : value" layout and carry a trailing
+ * colon. The meta strip stacks the label above the value, where that colon reads as a typo.
+ */
+function metaLabel(key: string): string {
+  return t(key).replace(/\s*:\s*$/, '')
+}
+
+const metaItems = computed<{ icon: string; label: string; value: string }[]>(() => {
+  const m = match.value
+  if (!m) return []
+
+  const items: { icon: string; label: string; value: string }[] = [
+    { icon: 'fa fa-calendar-day', label: metaLabel('matchDetailView.matchDate'), value: formatDate(m.playedAt) },
+  ]
+
+  if (m.creator) {
+    items.push({
+      icon: 'fa fa-user-pen',
+      label: metaLabel('matchDetailView.enteredBy'),
+      value: m.creator.displayName,
+    })
+  }
+  if (m.result?.reportedAt) {
+    items.push({
+      icon: 'fa fa-pen-to-square',
+      label: metaLabel('matchDetailView.reportedAt'),
+      value: formatDate(m.result.reportedAt),
+    })
+  }
+  if (m.outcomeType) {
+    items.push({
+      icon: 'fa fa-flag-checkered',
+      label: metaLabel('matchDetailView.outcomeType'),
+      value: m.outcomeType.name,
+    })
+  }
+  if (m.outcomeReason) {
+    items.push({
+      icon: 'fa fa-circle-info',
+      label: metaLabel('matchDetailView.outcomeReason'),
+      value: m.outcomeReason.name,
+    })
+  }
+  if (m.result?.finalizedAt) {
+    items.push({
+      icon: 'fa fa-lock',
+      label: metaLabel('matchDetailView.finalizedAt'),
+      value: formatDate(m.result.finalizedAt),
+    })
+  }
+  if (m.result?.finalizationReason) {
+    items.push({
+      icon: 'fa fa-gavel',
+      label: metaLabel('matchDetailView.finalization'),
+      value:
+        m.result.finalizationReason === 'trust_score'
+          ? t('matchDetailView.trustScoreBy', {
+              name: m.result.reporter?.displayName ?? t('matchDetailView.unknown'),
+            })
+          : getFinalizationReasonLabel(m.result.finalizationReason),
+    })
+  }
+
+  return items
 })
 
 async function loadMatch() {
@@ -846,36 +874,10 @@ function getFinalizationReasonLabel(reason: string): string {
   return labels[reason] || reason
 }
 
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    scheduled: t('matchDetailView.status.scheduled'),
-    reported: t('matchDetailView.status.reported'),
-    pending_confirmation: t('matchDetailView.status.pendingConfirmation'),
-    confirmed: t('matchDetailView.status.confirmed'),
-    disputed: t('matchDetailView.status.disputed'),
-    finalized: t('matchDetailView.status.finalized'),
-    cancelled: t('matchDetailView.status.cancelled'),
-  }
-  return labels[status] || status
-}
-
-function getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
-  const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary'> = {
-    scheduled: 'info',
-    reported: 'warn',
-    pending_confirmation: 'warn',
-    confirmed: 'success',
-    disputed: 'danger',
-    finalized: 'success',
-    cancelled: 'secondary',
-  }
-  return severities[status] || 'info'
-}
-
 function formatDate(date?: Date | string) {
   if (!date) return ''
   const d = typeof date === 'string' ? new Date(date) : date
-  return d.toLocaleDateString('fr-FR', {
+  return d.toLocaleDateString(locale.value, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -892,5 +894,51 @@ onMounted(() => {
 <style scoped>
 .match-detail-view {
   min-height: 100vh;
+}
+
+.hero-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-glow-left::before {
+  background: radial-gradient(
+    ellipse 60% 70% at 18% 45%,
+    color-mix(in srgb, var(--color-match-win) 12%, transparent),
+    transparent 70%
+  );
+}
+
+.hero-glow-right::before {
+  background: radial-gradient(
+    ellipse 60% 70% at 82% 45%,
+    color-mix(in srgb, var(--color-match-win) 12%, transparent),
+    transparent 70%
+  );
+}
+
+.reveal {
+  animation: reveal-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--reveal-index, 0) * 0.08s);
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
 }
 </style>

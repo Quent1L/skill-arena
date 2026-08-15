@@ -97,6 +97,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useMatchStatus } from '@/composables/match/match-status-style'
 import type { ClientMatchModel, MatchSideModel, ClientBracketSeed } from '@skol-arena/shared'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 
@@ -112,6 +113,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{ click: [matchId: string] }>()
 
 const { t } = useI18n()
+const { statusLabel, statusDotClass, statusTextClass } = useMatchStatus()
 
 const isClickable = computed(() => (props.match.sides?.length ?? 0) >= 2)
 
@@ -147,58 +149,6 @@ function isWinner(match: ClientMatchModel, side: MatchSideModel | null): boolean
   return null
 }
 
-function statusDotClass(status: string): string {
-  switch (status) {
-    case 'finalized':
-      return 'bg-match-win/80'
-    case 'ongoing':
-      return 'bg-yellow-400'
-    case 'contested':
-      return 'bg-match-loss'
-    case 'reported':
-      return 'bg-orange-400'
-    case 'scheduled':
-      return 'bg-blue-200'
-    default:
-      return 'bg-surface-500'
-  }
-}
-
-function statusTextClass(status: string): string {
-  switch (status) {
-    case 'finalized':
-      return 'text-match-win/80'
-    case 'ongoing':
-      return 'text-yellow-400'
-    case 'contested':
-      return 'text-match-loss'
-    case 'reported':
-      return 'text-orange-400'
-    case 'scheduled':
-      return 'text-blue-200'
-    default:
-      return 'text-muted-color'
-  }
-}
-
-function statusLabel(status: string): string {
-  switch (status) {
-    case 'finalized':
-      return t('bracketMatchCard.statusFinalized')
-    case 'ongoing':
-      return t('bracketMatchCard.statusOngoing')
-    case 'contested':
-      return t('bracketMatchCard.statusContested')
-    case 'cancelled':
-      return t('bracketMatchCard.statusCancelled')
-    case 'reported':
-      return t('bracketMatchCard.statusReported')
-    case 'scheduled':
-      return t('bracketMatchCard.statusScheduled')
-    default:
-      return status
-  }
-}
 </script>
 
 <style scoped>

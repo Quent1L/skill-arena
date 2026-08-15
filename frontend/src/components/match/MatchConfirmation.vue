@@ -1,196 +1,136 @@
 <template>
-  <Card v-if="shouldShowConfirmation" class="match-confirmation">
+  <SurfacePanel v-if="shouldShowConfirmation">
     <template #header>
-      <div class="flex items-center gap-3">
-        <i class="fa fa-check-circle text-2xl text-primary"></i>
-        <h3 class="text-xl font-semibold">{{ t('matchConfirmation.title') }}</h3>
-      </div>
+      <SectionHeader icon="fa fa-check-circle" :title="t('matchConfirmation.title')" />
     </template>
 
-    <template #content>
-      <div class="space-y-4">
-        <!-- Mode de validation banner -->
-        <div
+    <div class="space-y-4">
+      <!-- Validation mode + progress: the per-player detail lives in the scoreboard above,
+           next to the names, so this panel only carries the aggregate. -->
+      <div class="flex flex-wrap items-center gap-2">
+        <span
           v-if="match.tournament?.validationMode"
-          class="flex items-center gap-2 text-xs px-3 py-2 rounded-lg"
+          class="font-label inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
           :class="validationModeBannerClass"
         >
-          <i :class="['fa', validationModeIcon]" />
-          <span>{{ validationModeMessage }}</span>
-        </div>
+          <i :class="['fa', validationModeIcon]" aria-hidden="true" />
+          {{ validationModeMessage }}
+        </span>
 
-        <!-- Infos de saisie -->
-        <div class="bg-surface-50 dark:bg-surface-800 p-3 rounded-lg text-center text-sm text-surface-500 dark:text-surface-400">
-          <p>
-            {{ t('matchConfirmation.reportedByPrefix') }}
-            <span class="font-semibold">{{ match.result?.reporter?.displayName || t('matchConfirmation.unknownReporter') }}</span>
-            {{ t('matchConfirmation.reportedBySuffix') }} {{ formatDate(match.result?.reportedAt) }}
-          </p>
-        </div>
-
-        <!-- Contested: nothing moves until the entry is corrected or an organizer decides -->
-        <div
-          v-if="isDisputed"
-          class="p-4 rounded-lg border-2 border-warn-400 dark:border-warn-500 bg-warn-50 dark:bg-warn-900/20 space-y-3"
+        <span
+          v-if="totalPlayers > 0"
+          class="font-label inline-flex items-center gap-1.5 rounded-full border border-surface-600 bg-surface-900/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-color"
         >
-          <div class="flex items-center gap-2 text-warn-700 dark:text-warn-300 text-sm font-semibold">
-            <i class="fa fa-gavel"></i>
-            {{ t('matchConfirmation.awaitingArbitration') }}
-          </div>
-          <p class="text-sm text-surface-600 dark:text-surface-400">
-            {{ t('matchConfirmation.awaitingArbitrationHint') }}
+          <i class="fa fa-user-check" aria-hidden="true" />
+          {{ t('matchConfirmation.validatedCount', { confirmed: confirmedCount, total: totalPlayers }) }}
+        </span>
+      </div>
+
+      <!-- Contested: nothing moves until the entry is corrected or an organizer decides -->
+      <div
+        v-if="isDisputed"
+        class="space-y-3 rounded-xl border-l-2 border-amber-400 bg-amber-400/[0.08] p-3"
+      >
+        <div class="flex items-center gap-2 text-sm font-semibold text-amber-300">
+          <i class="fa fa-gavel" aria-hidden="true" />
+          {{ t('matchConfirmation.awaitingArbitration') }}
+        </div>
+        <p class="text-sm text-white/70">
+          {{ t('matchConfirmation.awaitingArbitrationHint') }}
+        </p>
+        <Button
+          v-if="canUserEditResult"
+          :label="t('matchConfirmation.fixMyEntryBtn')"
+          icon="fa fa-pen"
+          severity="warn"
+          outlined
+          size="small"
+          @click="emit('editResult')"
+        />
+      </div>
+
+      <!-- Deadline -->
+      <div v-if="match.confirmationDeadline" class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <span class="font-label text-[11px] uppercase tracking-wide text-muted-color">
+          {{ t('matchConfirmation.deadlineLabel') }}
+        </span>
+        <span class="font-semibold text-white/90">{{ formatDate(match.confirmationDeadline) }}</span>
+        <span
+          class="font-label inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-bold tabular-nums"
+          :class="
+            isExpired
+              ? 'border-match-loss/30 bg-match-loss/15 text-match-loss'
+              : 'border-amber-400/30 bg-amber-400/10 text-amber-300'
+          "
+        >
+          <i class="fa fa-clock" aria-hidden="true" />
+          {{ isExpired ? t('matchConfirmation.expired') : timeRemaining }}
+        </span>
+      </div>
+
+      <!-- Actions for the logged-in player -->
+      <div v-if="canUserRespond" class="space-y-3 border-t border-surface-700/40 pt-4">
+        <div v-if="!userResponse">
+          <p class="mb-3 text-sm text-white/70">
+            {{ t('matchConfirmation.questionConfirmResult') }}
           </p>
-          <Button
-            v-if="canUserEditResult"
-            :label="t('matchConfirmation.fixMyEntryBtn')"
-            icon="fa fa-pen"
-            severity="warn"
-            outlined
-            @click="emit('editResult')"
-          />
-        </div>
 
-        <!-- Score normal -->
-        <div v-if="match.tournament?.scoreEnabled !== false" class="flex items-center justify-center gap-4 py-2">
-          <div class="text-center">
-            <p class="text-xs text-surface-400 dark:text-surface-500 mb-1 uppercase tracking-wide">{{ t('matchConfirmation.score') }}</p>
-            <p class="text-3xl font-bold text-primary">{{ sideA?.score ?? 0 }} - {{ sideB?.score ?? 0 }}</p>
-          </div>
-        </div>
-
-        <!-- Statut des confirmations par side -->
-        <div v-if="playersWithStatus && playersWithStatus.length > 0" class="space-y-3">
-          <h4 class="font-semibold text-surface-700 dark:text-surface-300">
-            {{ t('matchConfirmation.playerConfirmations', { confirmed: confirmedCount, total: totalPlayers }) }}
-          </h4>
-
-          <div class="space-y-2">
-            <div
-              v-for="player in playersWithStatus"
-              :key="player.playerId"
-              class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg space-y-2"
-            >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <i
-                    :class="[
-                      'fa text-lg',
-                      player.status === 'confirmed' ? 'fa-check-circle text-green-500' :
-                      player.status === 'contested' ? 'fa-times-circle text-red-500' :
-                      'fa-clock text-surface-400'
-                    ]"
-                  ></i>
-                  <div>
-                    <span class="font-medium">{{ player.displayName }}</span>
-                    <span v-if="player.sideLabel" class="ml-2 text-xs text-surface-400 dark:text-surface-500">
-                      ({{ player.sideLabel }})
-                    </span>
-                  </div>
-                </div>
-
-                <Tag
-                  v-if="player.status === 'confirmed'"
-                  severity="success"
-                  :value="t('matchConfirmation.tagAccepted')"
-                />
-                <Tag
-                  v-else-if="player.status === 'contested'"
-                  severity="danger"
-                  :value="t('matchConfirmation.tagContested')"
-                />
-                <Tag
-                  v-else
-                  severity="warn"
-                  :value="t('matchConfirmation.tagPending')"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Deadline -->
-        <div v-if="match.confirmationDeadline" class="p-3 bg-warn-50 dark:bg-warn-900/20 rounded-lg">
-          <div class="flex items-center gap-2 text-sm">
-            <i class="fa fa-clock text-warn-600 dark:text-warn-400"></i>
-            <span class="text-surface-700 dark:text-surface-300">
-              {{ t('matchConfirmation.deadlineLabel') }} {{ formatDate(match.confirmationDeadline) }}
-              <span v-if="!isExpired" class="text-warn-600 dark:text-warn-400 font-semibold">
-                ({{ timeRemaining }})
-              </span>
-              <span v-else class="text-red-600 dark:text-red-400 font-semibold">
-                {{ t('matchConfirmation.expired') }}
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <!-- Actions for the logged-in player -->
-        <div v-if="canUserRespond" class="space-y-3">
-          <Divider />
-
-          <div v-if="!userResponse">
-            <p class="text-sm text-surface-600 dark:text-surface-400 mb-3">
-              {{ t('matchConfirmation.questionConfirmResult') }}
-            </p>
-
-            <div class="flex gap-3">
-              <Button
-                :label="t('matchConfirmation.acceptBtn')"
-                icon="fa fa-check"
-                severity="success"
-                :loading="responding && responseIntent === 'agree'"
-                :disabled="responding"
-                @click="openResponseDialog('agree')"
-                class="flex-1"
-              />
-              <Button
-                :label="t('matchConfirmation.disputeBtn')"
-                icon="fa fa-times"
-                severity="danger"
-                :loading="responding && responseIntent === 'dispute'"
-                :disabled="responding"
-                @click="openResponseDialog('dispute')"
-                class="flex-1"
-              />
-            </div>
-          </div>
-
-          <div v-else class="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg space-y-3">
-            <div class="flex items-center gap-2">
-              <i
-                :class="[
-                  'fa text-lg',
-                  userResponse.isConfirmed ? 'fa-check-circle text-green-500' :
-                  'fa-times-circle text-red-500'
-                ]"
-              ></i>
-              <span class="text-sm text-surface-700 dark:text-surface-300">
-                {{ userResponse.isConfirmed ? t('matchConfirmation.userAccepted') : t('matchConfirmation.userDisputed') }}
-              </span>
-            </div>
-
+          <div class="flex gap-3">
             <Button
-              v-if="canWithdrawDispute"
-              :label="t('matchConfirmation.withdrawDisputeBtn')"
+              :label="t('matchConfirmation.acceptBtn')"
               icon="fa fa-check"
               severity="success"
-              :loading="responding"
+              :loading="responding && responseIntent === 'agree'"
               :disabled="responding"
               @click="openResponseDialog('agree')"
+              class="flex-1"
+            />
+            <Button
+              :label="t('matchConfirmation.disputeBtn')"
+              icon="fa fa-times"
+              severity="danger"
+              :loading="responding && responseIntent === 'dispute'"
+              :disabled="responding"
+              @click="openResponseDialog('dispute')"
+              class="flex-1"
             />
           </div>
         </div>
-      </div>
-    </template>
-  </Card>
 
-  <!-- Response dialog -->
-  <Dialog
-    v-model:visible="responseDialogVisible"
-    :header="responseIntent === 'agree' ? acceptDialogTitle : t('matchConfirmation.dialogDisputeTitle')"
-    :modal="true"
-    :style="{ width: '480px' }"
-  >
+        <div v-else class="space-y-3 rounded-xl border-l-2 bg-surface-900/40 p-3" :class="userResponse.isConfirmed ? 'border-match-win' : 'border-match-loss'">
+          <div class="flex items-center gap-2">
+            <i
+              class="fa text-lg"
+              :class="userResponse.isConfirmed ? 'fa-check-circle text-match-win' : 'fa-times-circle text-match-loss'"
+              aria-hidden="true"
+            />
+            <span class="text-sm text-white/80">
+              {{ userResponse.isConfirmed ? t('matchConfirmation.userAccepted') : t('matchConfirmation.userDisputed') }}
+            </span>
+          </div>
+
+          <Button
+            v-if="canWithdrawDispute"
+            :label="t('matchConfirmation.withdrawDisputeBtn')"
+            icon="fa fa-check"
+            severity="success"
+            size="small"
+            :loading="responding"
+            :disabled="responding"
+            @click="openResponseDialog('agree')"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Response dialog. Inside the panel root so the component stays single-root: the
+         parent applies its reveal animation to it, and a hidden panel leaves no gap. -->
+    <Dialog
+      v-model:visible="responseDialogVisible"
+      :header="responseIntent === 'agree' ? acceptDialogTitle : t('matchConfirmation.dialogDisputeTitle')"
+      :modal="true"
+      :style="{ maxWidth: '480px' }"
+    >
     <div class="space-y-4">
       <div v-if="responseIntent === 'dispute'" class="space-y-4">
         <div>
@@ -206,13 +146,13 @@
           />
         </div>
 
-        <div class="p-3 bg-surface-50 dark:bg-surface-800 rounded-lg text-sm text-surface-600 dark:text-surface-400">
-          <i class="fa fa-info-circle mr-2"></i>
+        <div class="rounded-xl bg-surface-900/50 p-3 text-sm text-white/70">
+          <i class="fa fa-info-circle mr-2" aria-hidden="true"></i>
           {{ t('matchConfirmation.disputeHint') }}
         </div>
       </div>
 
-      <div v-else class="text-sm text-surface-600 dark:text-surface-400">
+      <div v-else class="text-sm text-white/70">
         {{ acceptDialogHint }}
       </div>
     </div>
@@ -231,15 +171,17 @@
         @click="submitResponse"
       />
     </template>
-  </Dialog>
+    </Dialog>
+  </SurfacePanel>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { type ClientMatchDetail } from '@skol-arena/shared';
-import Card from 'primevue/card';
-import Divider from 'primevue/divider';
+import SectionHeader from '@/components/ui/SectionHeader.vue';
+import SurfacePanel from '@/components/ui/SurfacePanel.vue';
+import { buildConfirmationStatusMap } from '@/composables/match/match-confirmation-status';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -257,15 +199,14 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const responseDialogVisible = ref(false);
 const responseIntent = ref<'agree' | 'dispute'>('agree');
 const disputeReason = ref('');
 
-const sideA = computed(() => props.match.sides.find((s) => s.position === 1));
-const sideB = computed(() => props.match.sides.find((s) => s.position === 2));
-
+// The score used to be repeated here; the hero scoreboard sits directly above, so this
+// panel is now only about who has validated and what happens next.
 const shouldShowConfirmation = computed(() => {
   return ['reported', 'disputed'].includes(props.match.status);
 });
@@ -278,42 +219,18 @@ const confirmations = computed(() =>
 
 const participants = computed(() => {
   return props.match.sides.flatMap((side) =>
-    side.players.map((p) => ({ playerId: p.id, displayName: p.displayName, sidePosition: side.position }))
+    side.players.map((p) => ({ playerId: p.id, sidePosition: side.position }))
   );
 });
 
-const totalPlayers = computed(() => participants.value.length);
+/** Same map the scoreboard paints per player, so the counter can never disagree with it. */
+const statusMap = computed(() => buildConfirmationStatusMap(props.match));
 
-const confirmedCount = computed(() => confirmations.value.filter((c) => c.isConfirmed).length);
+const totalPlayers = computed(() => statusMap.value.size);
 
-const playersWithStatus = computed(() => {
-  const confirmationsMap = new Map(confirmations.value.map((c) => [c.playerId, c]));
-
-  return participants.value.map(participant => {
-    const confirmation = confirmationsMap.get(participant.playerId);
-    let status: 'confirmed' | 'contested' | 'pending' = 'pending';
-
-    if (confirmation) {
-      if (confirmation.isConfirmed) {
-        status = 'confirmed';
-      } else if (confirmation.isContested) {
-        status = 'contested';
-      }
-    }
-
-    const sidePosition = confirmation?.sidePosition ?? participant.sidePosition;
-    let sideLabel: string | null = null;
-    if (sidePosition === 1) sideLabel = t('matchConfirmation.sideA');
-    else if (sidePosition === 2) sideLabel = t('matchConfirmation.sideB');
-
-    return {
-      playerId: participant.playerId,
-      displayName: participant.displayName || t('matchConfirmation.unknownPlayerName'),
-      status,
-      sideLabel,
-    };
-  });
-});
+const confirmedCount = computed(
+  () => [...statusMap.value.values()].filter((s) => s === 'confirmed').length,
+);
 
 const userResponse = computed(() => {
   if (!props.currentUserId) return null;
@@ -386,10 +303,10 @@ const validationModeMessage = computed(() => {
 
 const validationModeBannerClass = computed(() => {
   const mode = props.match.tournament?.validationMode
-  if (mode === 'auto') return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-  if (mode === 'strict') return 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
-  if (mode === 'admin') return 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300'
-  if (mode === 'none') return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+  if (mode === 'auto') return 'border-match-win/30 bg-match-win/10 text-match-win'
+  if (mode === 'strict') return 'border-blue-400/30 bg-blue-400/10 text-blue-300'
+  if (mode === 'admin') return 'border-primary/40 bg-primary/10 text-primary'
+  if (mode === 'none') return 'border-amber-400/30 bg-amber-400/10 text-amber-300'
   return ''
 });
 
@@ -405,7 +322,7 @@ const validationModeIcon = computed(() => {
 function formatDate(date?: Date | string) {
   if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toLocaleDateString('fr-FR', {
+  return d.toLocaleDateString(locale.value, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -428,9 +345,3 @@ function submitResponse() {
   responseDialogVisible.value = false;
 }
 </script>
-
-<style scoped>
-.match-confirmation {
-  background: var(--surface-card);
-}
-</style>
