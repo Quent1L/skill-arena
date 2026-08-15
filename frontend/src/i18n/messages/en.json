@@ -758,8 +758,10 @@
   },
   "mmrExplainerCard": {
     "baseGainLoss": "Base gain or loss",
-    "baseGainLossDescPost": "that determines the maximum variation range.",
+    "baseGainLossDescPost": "that determines the maximum variation range. The result is a team total, then split between its players.",
     "baseGainLossDescPre": "The actual result (win, draw or loss) is compared to the expected score. The difference is multiplied by a sensitivity coefficient",
+    "conservation": "Nothing is created",
+    "conservationDesc": "What one side gains, the other loses: a match transfers MMR, it does not manufacture it. Placement matches are the only exception, while your level is being calibrated.",
     "expectedScore": "Expected score",
     "expectedScoreDesc": "Before each match, the system estimates your probability of winning based on the MMR gap between you and your opponents. If both sides are equal, the probability is 50%. A 400-point gap drops it to about 24% for the weaker side.",
     "gainLoss": "Gain / Loss",
@@ -786,14 +788,14 @@
       "sharedResource": "Shared resource"
     },
     "teamModeDesc": {
-      "collaborative": "All team members receive the same point gain or loss.",
-      "individual": "Each player is evaluated based on the gap between their own MMR and their opponents'.",
-      "sharedResource": "Beating a stronger team earns more for each member; losing to a weaker team costs more."
+      "collaborative": "The team's gain or loss is split equally between all its members.",
+      "individual": "Each player's share depends on their level: the lowest ranked gains more and loses less, the highest ranked carries more of the defeat.",
+      "sharedResource": "Each player's share depends on their level: the lowest ranked moves more, on a win as much as on a defeat."
     },
     "teamModeDetail": {
-      "collaborative": "All team members receive exactly the same MMR delta, calculated from the team's average MMR vs the opponent team's average MMR.",
-      "individual": "The calculated gain or loss is adjusted for each player based on the ratio between their personal MMR and the average MMR of their opponents. A player stronger than their opponents earns less on a win and loses more on a defeat.",
-      "sharedResource": "The distribution is inversed compared to individual mode: members whose MMR is close to their opponents' benefit from a more balanced adjustment. Facing a team well above your level amplifies gains on a win."
+      "collaborative": "The team total is divided equally between its players, whatever their individual MMR.",
+      "individual": "The team total is split according to each player's level against the opponents, within a ±25% bound. The split flips with the result: the highest ranked takes a reduced share of the gain, and the largest share of the loss.",
+      "sharedResource": "The team total is split according to each player's level against the opponents, within a ±25% bound. The lowest ranked takes the largest share, of the gain as well as of the loss."
     },
     "title": "How does MMR work?"
   },

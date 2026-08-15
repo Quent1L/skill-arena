@@ -8,8 +8,8 @@
     "db:push": "bun run drizzle-kit push",
     "job:auto-finalize": "bun run src/jobs/auto-finalize-matches.job.ts",
     "test": "bun run test:unit && bun run test:integration",
-    "test:unit": "bun test src/services/__tests__/*.test.ts --isolate",
-    "test:cov": "bun test --isolate --coverage --coverage-reporter=text --coverage-reporter=lcov src/services/__tests__/*.test.ts src/services/__tests__/integration/*.test.ts",
+    "test:unit": "bun test src/services/__tests__/*.test.ts src/utils/__tests__/*.test.ts --isolate",
+    "test:cov": "bun test --isolate --coverage --coverage-reporter=text --coverage-reporter=lcov src/services/__tests__/*.test.ts src/utils/__tests__/*.test.ts src/services/__tests__/integration/*.test.ts",
     "test:integration": "bun test src/services/__tests__/integration/*.test.ts --isolate",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"

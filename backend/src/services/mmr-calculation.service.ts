@@ -5,33 +5,13 @@ import { playerMmrRepository } from "../repository/player-mmr.repository";
 import type { CreateMmrHistoryData } from "../repository/player-mmr.repository";
 import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
-import type { Discipline, MmrAnimationEventReason, MmrHistoryOutcome, OutcomeType } from "@skol-arena/shared";
-
-export interface SidePlayerInput {
-  id: string;
-  currentMmr: number;
-}
-
-export interface SideInput {
-  sideId?: string;
-  isWinner: boolean | null; // null = draw
-  players: SidePlayerInput[];
-  score?: number;
-}
-
-export interface MatchCalculationInput {
-  discipline: Discipline;
-  outcomeType: OutcomeType;
-  sides: [SideInput, SideInput];
-  kFactor?: number;
-  isPlacement?: boolean;
-}
-
-export interface PlayerMmrOutput {
-  playerId: string;
-  mmrDelta: number;
-  newMmr: number;
-}
+import type { MmrAnimationEventReason, MmrHistoryOutcome } from "@skol-arena/shared";
+import {
+  calculateMatchMmr,
+  DEFAULT_TEAM_INTERACTION_MODE,
+  type EnginePlayer,
+  type MatchResult,
+} from "./mmr-engine";
 
 interface MatchSideData {
   opponentPlayerIds: string[];
@@ -60,10 +40,16 @@ interface MmrLookups {
   entryMmrMap: Map<string, number>;
 }
 
-type MatchResult = 1 | 0 | 0.5;
 type ResolvableSide = {
   score: number | null;
   entry?: { players: { playerId: string }[] } | null;
+};
+
+/** Outcome type of a match whose type row is missing: neutral, MMR still counts. */
+const FALLBACK_OUTCOME_TYPE = {
+  scoreCountsForMmr: true,
+  mmrMultiplier: 1,
+  discipline: null as { teamInteractionMode?: string | null } | null,
 };
 
 function outcomeFromWin(playerWon: boolean | null): MmrHistoryOutcome {
@@ -72,49 +58,23 @@ function outcomeFromWin(playerWon: boolean | null): MmrHistoryOutcome {
   return "draw";
 }
 
+function resultFromWin(playerWon: boolean | null): MatchResult {
+  if (playerWon === true) return 1;
+  if (playerWon === false) return 0;
+  return 0.5;
+}
+
+function resolveInteractionMode(discipline: { teamInteractionMode?: string | null } | null) {
+  return (discipline?.teamInteractionMode as typeof DEFAULT_TEAM_INTERACTION_MODE | null | undefined)
+    ?? DEFAULT_TEAM_INTERACTION_MODE;
+}
+
+function averageMmr(players: EnginePlayer[], fallback: number): number {
+  if (players.length === 0) return fallback;
+  return Math.round(players.reduce((sum, p) => sum + p.mmr, 0) / players.length);
+}
+
 export class MmrCalculationService {
-  calculateExpectedScore(playerMmr: number, opponentMmr: number): number {
-    return 1 / (1 + Math.pow(10, (opponentMmr - playerMmr) / 400));
-  }
-
-  calculateEffectiveK(
-    kBase: number,
-    scoreA: number,
-    scoreB: number,
-    isPlacement: boolean,
-    scoreCountsForMmr: boolean,
-    outcomePoints: number | null,
-  ): number {
-    let k = kBase;
-    if (isPlacement) k *= 2;
-
-    if (scoreCountsForMmr) {
-      const total = scoreA + scoreB;
-      if (total > 0) {
-        const winner = Math.max(scoreA, scoreB);
-        const loser = Math.min(scoreA, scoreB);
-        k = k * (1 + (winner - loser) / total);
-      }
-    }
-
-    if (outcomePoints !== null) {
-      const DEFAULT_OUTCOME_POINTS = 3;
-      k = k * (outcomePoints / DEFAULT_OUTCOME_POINTS);
-    }
-
-    return k;
-  }
-
-  calculateMmrDelta(
-    playerMmr: number,
-    oppAvgMmr: number,
-    result: MatchResult,
-    kEffective: number,
-  ): number {
-    const expected = this.calculateExpectedScore(playerMmr, oppAvgMmr);
-    return Math.round(kEffective * (result - expected));
-  }
-
   async recalculatePlayerMmr(seasonId: string, playerId: string, fromPlayedAt?: Date): Promise<void> {
     const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
     if (!config) return;
@@ -195,44 +155,42 @@ export class MmrCalculationService {
       entryMmrMap.get(id) ??
       config.baseMmr;
 
-    const mySidePlayers: SidePlayerInput[] = [
-      { id: playerId, currentMmr: state.mmr },
-      ...sameTeamPlayerIds.map((id) => ({ id, currentMmr: getOtherPlayerMmr(id) })),
+    // Only this player's placement status is known here — the teammates' deltas
+    // are discarded anyway, and placement is applied per player after the split,
+    // so leaving them at false cannot alter the value we persist.
+    const mySidePlayers: EnginePlayer[] = [
+      { id: playerId, mmr: state.mmr, isPlacement },
+      ...sameTeamPlayerIds.map((id) => ({ id, mmr: getOtherPlayerMmr(id), isPlacement: false })),
     ];
-    const oppSidePlayers: SidePlayerInput[] = opponentPlayerIds.map((id) => ({
+    const oppSidePlayers: EnginePlayer[] = opponentPlayerIds.map((id) => ({
       id,
-      currentMmr: getOtherPlayerMmr(id),
+      mmr: getOtherPlayerMmr(id),
+      isPlacement: false,
     }));
 
-    const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null };
-    const discipline = outcomeType.discipline ?? { id: "", name: "", teamInteractionMode: null };
+    const outcomeType = match.outcomeType ?? FALLBACK_OUTCOME_TYPE;
 
-    const calcResults = this.calculateMatchMmrBySides({
-      discipline,
-      outcomeType,
+    const calcResults = calculateMatchMmr({
       sides: [
-        { isWinner: playerWon, players: mySidePlayers, score: raw.scoreForPlayer },
-        { isWinner: playerWon === null ? null : !playerWon, players: oppSidePlayers, score: raw.scoreForOpponent },
+        { players: mySidePlayers, score: raw.scoreForPlayer, result: resultFromWin(playerWon) },
+        {
+          players: oppSidePlayers,
+          score: raw.scoreForOpponent,
+          result: resultFromWin(playerWon === null ? null : !playerWon),
+        },
       ],
       kFactor: config.kFactor,
-      isPlacement,
+      scoreCountsForMmr: outcomeType.scoreCountsForMmr,
+      mmrMultiplier: outcomeType.mmrMultiplier,
+      teamInteractionMode: resolveInteractionMode(outcomeType.discipline),
     });
 
     const playerResult = calcResults.find((r) => r.playerId === playerId);
     const delta = playerResult?.mmrDelta ?? 0;
     const mmrBefore = state.mmr;
     const mmrAfter = playerResult?.newMmr ?? Math.max(1, state.mmr + delta);
-    const opponentAvgMmr = oppSidePlayers.length > 0
-      ? Math.round(oppSidePlayers.reduce((s, p) => s + p.currentMmr, 0) / oppSidePlayers.length)
-      : config.baseMmr;
-    const kEffective = this.calculateEffectiveK(
-      config.kFactor,
-      raw.scoreForPlayer,
-      raw.scoreForOpponent,
-      isPlacement,
-      outcomeType.scoreCountsForMmr,
-      null,
-    ) * outcomeType.mmrMultiplier;
+    const opponentAvgMmr = averageMmr(oppSidePlayers, config.baseMmr);
+    const kEffective = playerResult?.kEffective ?? 0;
 
     const newState = this.advanceState(state, playerWon, mmrAfter);
 
@@ -253,22 +211,6 @@ export class MmrCalculationService {
     });
 
     return newState;
-  }
-
-  private averageOpponentMmr(
-    opponentPlayerIds: string[],
-    matchId: string,
-    historiesMap: Map<string, number>,
-    currentMmrMap: Map<string, number>,
-    baseMmr: number,
-  ): number {
-    if (opponentPlayerIds.length === 0) return baseMmr;
-    const total = opponentPlayerIds.reduce((sum, oppId) => {
-      const mmr =
-        historiesMap.get(`${oppId}:${matchId}`) ?? currentMmrMap.get(oppId) ?? baseMmr;
-      return sum + mmr;
-    }, 0);
-    return Math.round(total / opponentPlayerIds.length);
   }
 
   private advanceState(
@@ -527,12 +469,77 @@ export class MmrCalculationService {
     const participantIds = [...new Set([...sideAIds, ...sideBIds])];
     if (participantIds.length === 0) return;
 
+    const preState = this.buildPreState(participantIds, stateMap, entryMmrMap, config.baseMmr);
+    const outcomeType = match.outcomeType ?? FALLBACK_OUTCOME_TYPE;
+
+    const toEnginePlayers = (ids: string[]): EnginePlayer[] =>
+      ids.map((id) => {
+        const s = preState.get(id)!;
+        return {
+          id,
+          mmr: s.mmr,
+          isPlacement: s.wins + s.losses + s.draws < config.placementMatches,
+        };
+      });
+
+    const playersA = toEnginePlayers(sideAIds);
+    const playersB = toEnginePlayers(sideBIds);
+    const resultA = resultFromWin(match.winnerSide === null ? null : match.winnerSide === "A");
+
+    // One engine call for the whole match: every participant is priced against
+    // the same pre-match snapshot, which is what keeps the replay deterministic.
+    const results = calculateMatchMmr({
+      sides: [
+        { players: playersA, score: sideA.score ?? 0, result: resultA },
+        { players: playersB, score: sideB.score ?? 0, result: (1 - resultA) as MatchResult },
+      ],
+      kFactor: config.kFactor,
+      scoreCountsForMmr: outcomeType.scoreCountsForMmr,
+      mmrMultiplier: outcomeType.mmrMultiplier,
+      teamInteractionMode: resolveInteractionMode(outcomeType.discipline),
+    });
+
+    const avgA = averageMmr(playersA, config.baseMmr);
+    const avgB = averageMmr(playersB, config.baseMmr);
+
+    for (const result of results) {
+      const inSideA = sideAIds.includes(result.playerId);
+      const playerWon = match.winnerSide === null ? null : (match.winnerSide === "A") === inSideA;
+      const playerState = preState.get(result.playerId)!;
+      const newState = this.advanceState(playerState, playerWon, result.newMmr);
+
+      historyBatch.push({
+        seasonId,
+        playerId: result.playerId,
+        matchId: match.id,
+        mmrBefore: playerState.mmr,
+        mmrAfter: result.newMmr,
+        mmrDelta: result.mmrDelta,
+        kEffective: result.kEffective,
+        opponentAvgMmr: inSideA ? avgB : avgA,
+        isPlacement: playerState.wins + playerState.losses + playerState.draws < config.placementMatches,
+        outcome: outcomeFromWin(playerWon),
+        winStreakAfter: newState.winStreak,
+        lossStreakAfter: newState.lossStreak,
+        matchesPlayedAfter: newState.wins + newState.losses + newState.draws,
+      });
+
+      stateMap.set(result.playerId, newState);
+    }
+  }
+
+  private buildPreState(
+    participantIds: string[],
+    stateMap: Map<string, CheckpointState>,
+    entryMmrMap: Map<string, number>,
+    baseMmr: number,
+  ): Map<string, CheckpointState> {
     const preState = new Map<string, CheckpointState>();
     for (const id of participantIds) {
       preState.set(
         id,
         stateMap.get(id) ?? {
-          mmr: entryMmrMap.get(id) ?? config.baseMmr,
+          mmr: entryMmrMap.get(id) ?? baseMmr,
           wins: 0,
           losses: 0,
           draws: 0,
@@ -543,75 +550,7 @@ export class MmrCalculationService {
         },
       );
     }
-
-    const outcomeType = match.outcomeType ?? { id: "", disciplineId: "", name: "", isDefault: false, scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null };
-    const discipline = outcomeType.discipline ?? { id: "", name: "", teamInteractionMode: null };
-    const getOtherMmr = (id: string) =>
-      preState.get(id)?.mmr ?? entryMmrMap.get(id) ?? config.baseMmr;
-
-    for (const playerId of participantIds) {
-      const playerState = preState.get(playerId)!;
-      const raw = this.resolveSideData(sideA, sideB, playerId, match.winnerSide);
-      const { opponentPlayerIds, playerWon } = raw;
-      const sameTeamPlayerIds = raw.sameTeamPlayerIds ?? [];
-      const isPlacement = playerState.wins + playerState.losses + playerState.draws < config.placementMatches;
-
-      const mySidePlayers: SidePlayerInput[] = [
-        { id: playerId, currentMmr: playerState.mmr },
-        ...sameTeamPlayerIds.map((id) => ({ id, currentMmr: getOtherMmr(id) })),
-      ];
-      const oppSidePlayers: SidePlayerInput[] = opponentPlayerIds.map((id) => ({
-        id,
-        currentMmr: getOtherMmr(id),
-      }));
-
-      const calcResults = this.calculateMatchMmrBySides({
-        discipline,
-        outcomeType,
-        sides: [
-          { isWinner: playerWon, players: mySidePlayers, score: raw.scoreForPlayer },
-          { isWinner: playerWon === null ? null : !playerWon, players: oppSidePlayers, score: raw.scoreForOpponent },
-        ],
-        kFactor: config.kFactor,
-        isPlacement,
-      });
-
-      const playerResult = calcResults.find((r) => r.playerId === playerId);
-      const delta = playerResult?.mmrDelta ?? 0;
-      const mmrBefore = playerState.mmr;
-      const mmrAfter = playerResult?.newMmr ?? Math.max(1, playerState.mmr + delta);
-      const opponentAvgMmr = oppSidePlayers.length > 0
-        ? Math.round(oppSidePlayers.reduce((s, p) => s + p.currentMmr, 0) / oppSidePlayers.length)
-        : config.baseMmr;
-      const kEffective = this.calculateEffectiveK(
-        config.kFactor,
-        raw.scoreForPlayer,
-        raw.scoreForOpponent,
-        isPlacement,
-        outcomeType.scoreCountsForMmr,
-        null,
-      ) * outcomeType.mmrMultiplier;
-
-      const newState = this.advanceState(playerState, playerWon, mmrAfter);
-
-      historyBatch.push({
-        seasonId,
-        playerId,
-        matchId: match.id,
-        mmrBefore,
-        mmrAfter,
-        mmrDelta: delta,
-        kEffective,
-        opponentAvgMmr,
-        isPlacement,
-        outcome: outcomeFromWin(playerWon),
-        winStreakAfter: newState.winStreak,
-        lossStreakAfter: newState.lossStreak,
-        matchesPlayedAfter: newState.wins + newState.losses + newState.draws,
-      });
-
-      stateMap.set(playerId, newState);
-    }
+    return preState;
   }
 
   private async getPlayerMatchesForSeason(seasonId: string, playerId: string, fromPlayedAt?: Date) {
@@ -785,61 +724,6 @@ export class MmrCalculationService {
     }
   }
 
-  calculateMatchMmrBySides(input: MatchCalculationInput): PlayerMmrOutput[] {
-    const { discipline, outcomeType, sides, kFactor = 32, isPlacement = false } = input;
-    const [side1, side2] = sides;
-
-    if (!outcomeType.scoreCountsForMmr) {
-      return [...side1.players, ...side2.players].map((p) => ({
-        playerId: p.id,
-        mmrDelta: 0,
-        newMmr: p.currentMmr,
-      }));
-    }
-
-    const avg1 = this.sideAvgMmr(side1);
-    const avg2 = this.sideAvgMmr(side2);
-    const e1 = this.calculateExpectedScore(avg1, avg2);
-    const e2 = 1 - e1;
-    const k = this.calculateEffectiveK(kFactor, side1.score ?? 0, side2.score ?? 0, isPlacement, outcomeType.scoreCountsForMmr, null);
-    const f = outcomeType.mmrMultiplier;
-    let w1 = 0.5;
-    if (side1.isWinner !== null) w1 = side1.isWinner ? 1 : 0;
-    let w2 = 0.5;
-    if (side2.isWinner !== null) w2 = side2.isWinner ? 1 : 0;
-    const baseDelta1 = k * (w1 - e1) * f;
-    const baseDelta2 = k * (w2 - e2) * f;
-    const mode = discipline.teamInteractionMode ?? "COLLABORATIVE";
-
-    const mapSide = (side: SideInput, baseDelta: number, oppAvgMmr: number): PlayerMmrOutput[] =>
-      side.players.map((p) => {
-        const delta = this.distributeToPlayer(baseDelta, p.currentMmr, oppAvgMmr, side.isWinner, mode);
-        return { playerId: p.id, mmrDelta: delta, newMmr: Math.max(1, p.currentMmr + delta) };
-      });
-
-    return [...mapSide(side1, baseDelta1, avg2), ...mapSide(side2, baseDelta2, avg1)];
-  }
-
-  private sideAvgMmr(side: SideInput): number {
-    if (side.players.length === 0) return 0;
-    return side.players.reduce((sum, p) => sum + p.currentMmr, 0) / side.players.length;
-  }
-
-  private distributeToPlayer(
-    baseDelta: number,
-    playerMmr: number,
-    oppAvgMmr: number,
-    isWinner: boolean | null,
-    mode: NonNullable<Discipline["teamInteractionMode"]>,
-  ): number {
-    const safeOpp = Math.max(1, oppAvgMmr);
-    const safePlayer = Math.max(1, playerMmr);
-    if (isWinner === null) return Math.round(baseDelta); // draw → flat
-    if (isWinner) return Math.round(baseDelta * (safeOpp / safePlayer));
-    if (mode === "INDIVIDUAL") return Math.round(baseDelta * (safePlayer / safeOpp));
-    if (mode === "SHARED_RESOURCE") return Math.round(baseDelta * (safeOpp / safePlayer));
-    return Math.round(baseDelta); // COLLABORATIVE
-  }
 }
 
 export const mmrCalculationService = new MmrCalculationService();

@@ -28,6 +28,7 @@ import { userService } from "./services/user.service";
 import { startJobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
+import { recalculateOutdatedRankedSeasons } from "./utils/init-mmr-engine";
 import { logger } from "./utils/logger";
 import { run, type Runner } from "graphile-worker";
 import { taskList } from "./workers/mmr-recalculation.worker";
@@ -55,6 +56,13 @@ try {
     concurrency: 1,
   });
   logger.info("Graphile Worker started");
+
+  // Queued only once the worker is up, and non-blocking: a season replay must
+  // never hold the server off its port, and a failure here leaves the stamps
+  // untouched so the next boot retries.
+  void recalculateOutdatedRankedSeasons().catch((err) =>
+    logger.error({ err }, "Failed to queue the MMR engine upgrade recalculation"),
+  );
 } catch (err) {
   logger.error({ err }, "Failed to start Graphile Worker — MMR jobs will not be processed");
 }

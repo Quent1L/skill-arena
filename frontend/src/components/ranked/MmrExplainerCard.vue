@@ -152,6 +152,13 @@
             </p>
             <p class="text-xs leading-relaxed">{{ teamModeDetailDescription }}</p>
           </div>
+
+          <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3">
+            <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {{ t('mmrExplainerCard.conservation') }}
+            </p>
+            <p class="text-xs leading-relaxed">{{ t('mmrExplainerCard.conservationDesc') }}</p>
+          </div>
         </div>
       </details>
     </div>

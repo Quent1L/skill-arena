@@ -7,9 +7,19 @@ import type { UpsertMmrAnimationEventData } from "../repository/mmr-animation-ev
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
-import { mmrCalculationService } from "./mmr-calculation.service";
+import {
+  calculateMatchMmr,
+  DEFAULT_TEAM_INTERACTION_MODE,
+  type EnginePlayer,
+  type MatchResult,
+  type PlayerMmrDelta,
+} from "./mmr-engine";
 import { webSocketService } from "./websocket.service";
-import type { MmrAnimationEventReason, PlayerRulesOutput } from "@skol-arena/shared";
+import type {
+  MmrAnimationEventReason,
+  PlayerRulesOutput,
+  TeamInteractionMode,
+} from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
 type MmrRecord = { currentMmr: number; matchesPlayed: number };
@@ -20,16 +30,11 @@ interface ProvisionalContext {
   seasonId: string;
   playerIdsA: string[];
   playerIdsB: string[];
-  scoreA: number;
-  scoreB: number;
-  winnerSide: string | null;
   baseMmr: number;
-  placementMatches: number;
-  kFactor: number;
-  scoreCountsForMmr: boolean;
-  outcomePoints: number | null;
   tiers: TierData[];
   mmrRecords: Map<string, MmrRecord>;
+  /** Deltas from the shared engine, keyed by player. */
+  deltas: Map<string, PlayerMmrDelta>;
 }
 
 function resolveEncouragementKey(mmrDelta: number, eventType: string, rankChanged: boolean): string | null {
@@ -54,9 +59,24 @@ function getTierForMmr(mmr: number, tiers: TierData[]): TierData | null {
   return [...tiers].sort((a, b) => b.level - a.level).find((t) => mmr >= t.minMmr) ?? tiers[0];
 }
 
-function resolveResult(winnerSide: string | null, playerInSideA: boolean): 1 | 0 | 0.5 {
+function resolveResult(winnerSide: string | null, playerInSideA: boolean): MatchResult {
   if (winnerSide === null) return 0.5;
   return (winnerSide === "A") === playerInSideA ? 1 : 0;
+}
+
+function toEnginePlayers(
+  playerIds: string[],
+  mmrRecords: Map<string, MmrRecord>,
+  config: { baseMmr: number; placementMatches: number },
+): EnginePlayer[] {
+  return playerIds.map((id) => {
+    const record = mmrRecords.get(id);
+    return {
+      id,
+      mmr: record?.currentMmr ?? config.baseMmr,
+      isPlacement: (record?.matchesPlayed ?? 0) < config.placementMatches,
+    };
+  });
 }
 
 export class MmrAnimationEventService {
@@ -68,7 +88,7 @@ export class MmrAnimationEventService {
 
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, matchId),
-      with: { outcomeType: true },
+      with: { outcomeType: { with: { discipline: true } } },
     });
     if (match?.status !== "reported") return;
 
@@ -93,21 +113,38 @@ export class MmrAnimationEventService {
 
     const mmrRecords = await this.loadMmrRecords(allPlayerIds, tournamentId, config.baseMmr);
 
+    // Same engine as the finalization path, fed with the current MMR snapshot:
+    // what the player is shown before validation is what they will actually get.
+    const deltas = calculateMatchMmr({
+      sides: [
+        {
+          players: toEnginePlayers(playerIdsA, mmrRecords, config),
+          score: sideA.score ?? 0,
+          result: resolveResult(match.winnerSide, true),
+        },
+        {
+          players: toEnginePlayers(playerIdsB, mmrRecords, config),
+          score: sideB.score ?? 0,
+          result: resolveResult(match.winnerSide, false),
+        },
+      ],
+      kFactor: config.kFactor,
+      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
+      mmrMultiplier: match.outcomeType?.mmrMultiplier ?? 1,
+      teamInteractionMode:
+        (match.outcomeType?.discipline?.teamInteractionMode as TeamInteractionMode | null) ??
+        DEFAULT_TEAM_INTERACTION_MODE,
+    });
+
     const ctx: ProvisionalContext = {
       matchId,
       seasonId: tournamentId,
       playerIdsA,
       playerIdsB,
-      scoreA: sideA.score ?? 0,
-      scoreB: sideB.score ?? 0,
-      winnerSide: match.winnerSide,
       baseMmr: config.baseMmr,
-      placementMatches: config.placementMatches,
-      kFactor: config.kFactor,
-      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
-      outcomePoints: match.outcomeType?.points ?? null,
       tiers,
       mmrRecords,
+      deltas: new Map(deltas.map((d) => [d.playerId, d])),
     };
 
     for (const playerId of allPlayerIds) {
@@ -134,35 +171,13 @@ export class MmrAnimationEventService {
     return records;
   }
 
-  private averageOpponentMmr(opponentIds: string[], ctx: ProvisionalContext): number {
-    const oppMmrs = opponentIds.map((id) => ctx.mmrRecords.get(id)?.currentMmr ?? ctx.baseMmr);
-    if (oppMmrs.length === 0) return ctx.baseMmr;
-    return Math.round(oppMmrs.reduce((a, b) => a + b, 0) / oppMmrs.length);
-  }
-
   private async buildProvisionalEvent(playerId: string, ctx: ProvisionalContext): Promise<void> {
-    const playerInSideA = ctx.playerIdsA.includes(playerId);
-    const opponentIds = playerInSideA ? ctx.playerIdsB : ctx.playerIdsA;
-    const mySideScore = playerInSideA ? ctx.scoreA : ctx.scoreB;
-    const oppSideScore = playerInSideA ? ctx.scoreB : ctx.scoreA;
+    const engineResult = ctx.deltas.get(playerId);
+    if (!engineResult) return;
 
-    const { currentMmr, matchesPlayed } = ctx.mmrRecords.get(playerId)!;
-    const opponentAvgMmr = this.averageOpponentMmr(opponentIds, ctx);
-    const result = resolveResult(ctx.winnerSide, playerInSideA);
-    const isPlacement = matchesPlayed < ctx.placementMatches;
-
-    const kEffective = mmrCalculationService.calculateEffectiveK(
-      ctx.kFactor,
-      mySideScore,
-      oppSideScore,
-      isPlacement,
-      ctx.scoreCountsForMmr,
-      ctx.outcomePoints,
-    );
-
-    const delta = mmrCalculationService.calculateMmrDelta(currentMmr, opponentAvgMmr, result, kEffective);
-    const mmrBefore = currentMmr;
-    const mmrAfter = Math.max(1, currentMmr + delta);
+    const mmrBefore = ctx.mmrRecords.get(playerId)?.currentMmr ?? ctx.baseMmr;
+    const delta = engineResult.mmrDelta;
+    const mmrAfter = engineResult.newMmr;
     const tierBefore = getTierForMmr(mmrBefore, ctx.tiers);
     const tierAfter = getTierForMmr(mmrAfter, ctx.tiers);
 

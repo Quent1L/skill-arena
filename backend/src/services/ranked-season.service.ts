@@ -7,7 +7,11 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
 import { seasonRewindRepository } from "../repository/season-rewind.repository";
-import { mmrCalculationService } from "./mmr-calculation.service";
+import {
+  calculateMatchMmr,
+  DEFAULT_TEAM_INTERACTION_MODE,
+  type EnginePlayer,
+} from "./mmr-engine";
 import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
 import { logger } from "../utils/logger";
 import { db } from "../config/database";
@@ -22,6 +26,7 @@ import type {
   WeeklyMmrLeader,
   WeeklyMmrLeaders,
   TierScalingMode,
+  TeamInteractionMode,
 } from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
@@ -38,14 +43,25 @@ type SeasonPlayers = Awaited<ReturnType<typeof playerMmrRepository.getBySeasonOr
 interface ProvisionalReplayCtx {
   baseMmr: number;
   kFactor: number;
+  placementMatches: number;
   /** Carried-over entry MMR: the starting point of a player with no match yet. */
   entryMmr: Map<string, number>;
   provisionalMmr: Map<string, number>;
   provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
+  /** Matches played so far, advanced during the replay so placement stays right. */
+  matchesPlayed: Map<string, number>;
 }
 
 function entryMmrOf(playerId: string, ctx: ProvisionalReplayCtx): number {
   return ctx.entryMmr.get(playerId) ?? ctx.baseMmr;
+}
+
+function toReplayPlayers(ids: string[], ctx: ProvisionalReplayCtx): EnginePlayer[] {
+  return ids.map((id) => ({
+    id,
+    mmr: ctx.provisionalMmr.get(id) ?? entryMmrOf(id, ctx),
+    isPlacement: (ctx.matchesPlayed.get(id) ?? 0) < ctx.placementMatches,
+  }));
 }
 
 export const TOP_WEEKLY_GAINERS = 3;
@@ -169,7 +185,10 @@ function loadUnfinalizedMatches(seasonId: string) {
       inArray(matches.status, ["reported", "disputed"]),
     ),
     with: {
-      outcomeType: { columns: { scoreCountsForMmr: true, points: true } },
+      outcomeType: {
+        columns: { scoreCountsForMmr: true, mmrMultiplier: true },
+        with: { discipline: { columns: { teamInteractionMode: true } } },
+      },
       sides: {
         orderBy: (s, { asc }) => [asc(s.position)],
         columns: { position: true, score: true },
@@ -661,11 +680,13 @@ export class RankedSeasonService {
     const ctx: ProvisionalReplayCtx = {
       baseMmr: config.baseMmr,
       kFactor: config.kFactor,
+      placementMatches: config.placementMatches,
       entryMmr: await mmrSeedRepository.getMapBySeason(seasonId),
       provisionalMmr: new Map(players.map((p) => [p.playerId, p.currentMmr])),
       provisionalResults: new Map(
         players.map((p) => [p.playerId, [...((p as ClientPlayerMmr).recentResults ?? [])].reverse()]),
       ),
+      matchesPlayed: new Map(players.map((p) => [p.playerId, p.matchesPlayed])),
     };
 
     const touchedPlayerIds = new Set<string>();
@@ -701,70 +722,32 @@ export class RankedSeasonService {
     const idsB = sideB.entry?.players.map((p) => p.playerId) ?? [];
     if (!idsA.length || !idsB.length) return;
 
-    const scoreA = sideA.score ?? 0;
-    const scoreB = sideB.score ?? 0;
-    const scoreCountsForMmr = match.outcomeType?.scoreCountsForMmr ?? true;
-    const outcomePoints = match.outcomeType?.points ?? null;
-
     for (const id of [...idsA, ...idsB]) touched.add(id);
 
-    this.applyProvisionalResults({
-      playerIds: idsA,
-      myScore: scoreA,
-      oppScore: scoreB,
-      oppAvgMmr: this.averageMmr(idsB, ctx),
-      result: sideResult(match.winnerSide, "A"),
-      scoreCountsForMmr,
-      outcomePoints,
-      ctx,
+    const resultA = sideResult(match.winnerSide, "A");
+    const deltas = calculateMatchMmr({
+      sides: [
+        { players: toReplayPlayers(idsA, ctx), score: sideA.score ?? 0, result: resultA },
+        {
+          players: toReplayPlayers(idsB, ctx),
+          score: sideB.score ?? 0,
+          result: sideResult(match.winnerSide, "B"),
+        },
+      ],
+      kFactor: ctx.kFactor,
+      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
+      mmrMultiplier: match.outcomeType?.mmrMultiplier ?? 1,
+      teamInteractionMode:
+        (match.outcomeType?.discipline?.teamInteractionMode as TeamInteractionMode | null) ??
+        DEFAULT_TEAM_INTERACTION_MODE,
     });
-    this.applyProvisionalResults({
-      playerIds: idsB,
-      myScore: scoreB,
-      oppScore: scoreA,
-      oppAvgMmr: this.averageMmr(idsA, ctx),
-      result: sideResult(match.winnerSide, "B"),
-      scoreCountsForMmr,
-      outcomePoints,
-      ctx,
-    });
-  }
 
-  private averageMmr(ids: string[], ctx: ProvisionalReplayCtx): number {
-    const total = ids.reduce(
-      (s, id) => s + (ctx.provisionalMmr.get(id) ?? entryMmrOf(id, ctx)),
-      0,
-    );
-    return total / ids.length;
-  }
-
-  private applyProvisionalResults(args: {
-    playerIds: string[];
-    myScore: number;
-    oppScore: number;
-    oppAvgMmr: number;
-    result: MatchResult;
-    scoreCountsForMmr: boolean;
-    outcomePoints: number | null;
-    ctx: ProvisionalReplayCtx;
-  }): void {
-    const { playerIds, myScore, oppScore, oppAvgMmr, result, scoreCountsForMmr, outcomePoints, ctx } = args;
-    const outcome = resultToOutcome(result);
-    const kEff = mmrCalculationService.calculateEffectiveK(
-      ctx.kFactor,
-      myScore,
-      oppScore,
-      false,
-      scoreCountsForMmr,
-      outcomePoints,
-    );
-
-    for (const playerId of playerIds) {
-      const mmr = ctx.provisionalMmr.get(playerId) ?? entryMmrOf(playerId, ctx);
-      const delta = mmrCalculationService.calculateMmrDelta(mmr, oppAvgMmr, result, kEff);
-      ctx.provisionalMmr.set(playerId, Math.max(1, mmr + delta));
-      const prev = ctx.provisionalResults.get(playerId) ?? [];
-      ctx.provisionalResults.set(playerId, [{ outcome }, ...prev].slice(0, 5));
+    for (const delta of deltas) {
+      const outcome = resultToOutcome(idsA.includes(delta.playerId) ? resultA : sideResult(match.winnerSide, "B"));
+      ctx.provisionalMmr.set(delta.playerId, delta.newMmr);
+      ctx.matchesPlayed.set(delta.playerId, (ctx.matchesPlayed.get(delta.playerId) ?? 0) + 1);
+      const prev = ctx.provisionalResults.get(delta.playerId) ?? [];
+      ctx.provisionalResults.set(delta.playerId, [{ outcome }, ...prev].slice(0, 5));
     }
   }
 
