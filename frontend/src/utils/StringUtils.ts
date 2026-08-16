@@ -5,17 +5,27 @@ export function getInitials(name?: string | null): string {
   return name.slice(0, 2).toUpperCase()
 }
 
+/**
+ * Avatar backgrounds, kept to the cool half of the wheel plus magenta.
+ *
+ * The palette used to include amber, orange and red — the same hues the app
+ * spends on meaning: amber marks an event in progress, red marks a loss. An
+ * avatar landing on one of those read as a status chip sitting next to real
+ * status chips. None of these carry that risk.
+ *
+ * Every entry clears 5:1 against the white initials drawn on it.
+ */
 const AVATAR_COLORS = [
-  '#1d4ed8',
-  '#4338ca',
-  '#7e22ce',
-  '#be185d',
-  '#b91c1c',
-  '#c2410c',
-  '#b45309',
-  '#15803d',
-  '#0f766e',
-  '#0369a1',
+  '#1d4ed8', // blue-700
+  '#4338ca', // indigo-700
+  '#6d28d9', // violet-700
+  '#7e22ce', // purple-700
+  '#a21caf', // fuchsia-700
+  '#be185d', // pink-700
+  '#0369a1', // sky-700
+  '#0e7490', // cyan-700
+  '#0f766e', // teal-700
+  '#15803d', // green-700
 ]
 
 export function getAvatarBg(name: string): string {

@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import SkolLogo from '@/components/SkolLogo.vue'
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 
 const { t } = useI18n()
 </script>

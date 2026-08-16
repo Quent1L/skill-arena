@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8 text-white">
-        <h1 class="text-4xl font-bold">Skol</h1>
+        <SkolLogo :width="240" class="mx-auto" />
         <p class="mt-2">{{ t('signupView.subtitle') }}</p>
         <p class="mt-1 text-sm text-gray-300">{{ t('signupView.invitationRequired') }}</p>
       </div>
@@ -102,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'

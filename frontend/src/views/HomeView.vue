@@ -2,7 +2,7 @@
   <div class="w-full max-w-2xl">
     <div class="text-center space-y-6 p-6">
       <div class="space-y-2">
-        <h1 class="text-5xl md:text-6xl font-bold text-white drop-shadow-lg">Skol</h1>
+        <SkolLogo :width="300" class="mx-auto" />
         <p class="text-xl md:text-2xl text-white/90 drop-shadow-md">{{ t('homeView.tagline') }}</p>
       </div>
 
@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

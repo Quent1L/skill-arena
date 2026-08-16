@@ -1,4 +1,4 @@
-# Skol - Tournament Management App
+# Skol Arena - Tournament Management App
 
 Tournament management application with a Hono/Bun backend and a Vue 3 frontend.
 

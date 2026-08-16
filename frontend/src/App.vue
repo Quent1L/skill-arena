@@ -16,6 +16,7 @@
       :breakpoints="{ '640px': { width: 'calc(100vw - 1rem)', right: '0.5rem', left: 'auto' } }"
     />
     <ConfirmDialog />
+    <SkillOrLuckOverlay :visible="easterEggVisible" @close="stopEasterEgg" />
     <AppWrapper v-if="isAppReady" />
   </div>
 </template>
@@ -32,7 +33,9 @@ import { initErrorService, useErrorService } from './composables/useErrorService
 import { useNotificationService } from './composables/notification/notification.service'
 import { useNotificationSocket } from './composables/notification/notification.socket'
 import { usePWAUpdate } from './composables/pwa/pwa.update'
+import { useEasterEgg } from './composables/useEasterEgg'
 import AppWrapper from './AppWrapper.vue'
+import SkillOrLuckOverlay from './components/brand/SkillOrLuckOverlay.vue'
 import SplashLoader from './components/SplashLoader.vue'
 import UpdateOverlay from './components/UpdateOverlay.vue'
 
@@ -57,6 +60,8 @@ const {
   applyUpdate,
   dismissUpdate,
 } = usePWAUpdate()
+
+const { visible: easterEggVisible, stop: stopEasterEgg } = useEasterEgg()
 
 const isAppReady = ref(false)
 

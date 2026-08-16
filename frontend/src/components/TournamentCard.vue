@@ -188,10 +188,10 @@ const modeConfig: Record<
   ranked: {
     icon: 'fa fa-ranking-star',
     accentClass: 'mode-ranked',
-    iconColorClass: 'text-amber-400',
-    iconBgClass: 'bg-amber-500/20',
-    progressClass: 'bg-amber-500',
-    featuredClass: 'bg-gradient-to-b from-amber-900/40 to-surface-800',
+    iconColorClass: 'text-violet-400',
+    iconBgClass: 'bg-violet-500/20',
+    progressClass: 'bg-violet-500',
+    featuredClass: 'bg-gradient-to-b from-violet-900/40 to-surface-800',
   },
 }
 
@@ -282,7 +282,7 @@ const periodLabel = computed(() => {
 const periodLabelClass = computed(() => {
   const { status } = props.tournament
   if (status === 'finished') return 'text-gray-500'
-  if (status === 'ongoing') return modeIconColorClass.value
+  if (status === 'ongoing') return 'text-amber-400'
   return 'text-blue-400'
 })
 
@@ -322,14 +322,16 @@ function formatDate(date: Date | string): string {
   box-shadow: 0 10px 25px -5px rgb(107 114 128 / 0.2);
 }
 
-/* Ranked — amber */
+/* Ranked — violet, the brand colour. Amber used to live here, which put the
+   mode and the "ongoing" status on the same hue: a ranked event in progress lit
+   both and the card flooded amber. */
 .tournament-card.mode-ranked {
-  border-left-color: rgb(245, 158, 11);
+  border-left-color: rgb(139, 92, 246);
 }
 .tournament-card.mode-ranked:hover {
-  border-color: rgba(245, 158, 11, 0.3);
-  border-left-color: rgb(245, 158, 11);
-  box-shadow: 0 10px 25px -5px rgb(245 158 11 / 0.25);
+  border-color: rgba(139, 92, 246, 0.3);
+  border-left-color: rgb(139, 92, 246);
+  box-shadow: 0 10px 25px -5px rgb(139 92 246 / 0.25);
 }
 
 /* Finished — muted, whatever the mode */

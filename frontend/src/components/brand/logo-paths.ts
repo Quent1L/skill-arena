@@ -1,0 +1,277 @@
+/**
+ * Geometry of the Skol Arena lockup, kept in one place so the animated logo, the
+ * update gauge and anything else drawing the brand all trace the same outlines.
+ *
+ * Taken from the source artwork (`logo-skolarena.svg`, 431x180 canvas). The
+ * coordinates below are still in that canvas' space — only the viewBox is
+ * retightened, so the numbers stay comparable to the original file.
+ */
+
+/**
+ * The mark ships as a single path holding three closed subpaths. They are
+ * disjoint polygons, so splitting them apart renders identically and lets each
+ * piece carry its own animation.
+ *
+ * Read together they draw an "S" that doubles as a question mark: upper and
+ * lower form the hook, the diamond is the dot.
+ */
+export const MARK_UPPER =
+  'M 131.09 48.68 L 83.37 16.85 L 35.61 49.18 L 35.55 76.77 L 70.93 99.79 L 86.67 89.15 L 83.85 86.64 L 52.8 66.98 L 52.9 58.62 L 83.44 37.97 L 116.35 59.53 Z'
+
+export const MARK_LOWER =
+  'M 74.48 67.52 L 80.69 71.9 L 111.11 90.81 L 110.72 96.39 L 68.97 123.72 L 69.8 126.65 L 82.36 136.35 L 129.01 105.78 L 129.14 81.01 L 90.82 56.29 Z'
+
+export const MARK_DOT = 'M 68.38 154.48 L 82.37 167.2 L 95.7 154.45 L 81.98 142.18 Z'
+
+export const WORD_SKOL =
+  'M 370.58 48.1 L 354.51 107.92 L 398.16 107.75 L 408.37 97.89 L 403.82 95.31 L 372.16 95.31 L 384.95 48.04 L 370.58 48.1 Z M 238.2 48.06 L 222.75 107.81 L 236.97 107.81 L 244.17 79.93 L 266.09 107.81 L 285.04 107.81 L 260.38 77.77 L 298.19 48.08 L 278.26 48.05 L 245.38 75.5 L 252.37 48.06 L 238.2 48.06 Z M 207.57 85.53 L 205.44 95.37 L 170.57 95.2 L 159.84 107.13 C 160.21 107.27 160.46 107.63 160.81 107.81 C 161.15 107.98 173.21 107.81 174.69 107.81 C 177.69 107.81 180.69 107.81 183.69 107.81 C 184.32 107.81 184.95 107.96 185.56 107.94 C 185.95 107.92 186.29 107.79 186.69 107.81 C 190.21 108.01 195.23 108.2 198.69 107.81 C 200.92 107.56 204.91 108.14 206.94 107.8 C 208.32 107.57 209.86 106.58 211.06 105.91 C 213.96 104.3 216.96 101.87 218.53 98.94 C 219.49 97.16 219.76 94.87 220.23 92.94 C 220.46 92 220.98 90.16 221.27 89.19 C 221.84 87.26 222.94 83.99 222.94 82.06 C 222.94 80.05 221.31 77.44 219.94 76.06 C 218.27 74.4 216.22 72.79 213.94 72.08 C 213.21 71.85 212.43 71.81 211.69 71.7 C 209.74 71.41 207.28 71.78 205.31 71.81 C 200.92 71.89 196.57 71.69 192.19 71.69 C 190.93 71.69 188.4 71.95 187.31 71.56 C 186.2 71.17 185.68 70.47 185.03 69.54 L 187.17 60.63 L 221.35 60.52 L 231.73 48.52 C 230.4 48.05 231.79 48.12 230.81 48.06 C 228.21 47.92 225.55 48.06 222.94 48.06 C 217.31 48.06 211.69 48.06 206.06 48.06 C 201.56 48.06 197.06 48.06 192.56 48.06 C 190.46 48.06 188.28 47.9 186.19 48.08 C 185.86 48.1 183 49.1 182.69 49.28 C 179.23 51.33 174.83 54.15 173.31 58.06 C 173.03 58.8 172.97 59.55 172.8 60.31 C 172.35 62.33 171.72 64.32 171.2 66.31 C 169.98 71.02 168.19 74.06 171.73 78.31 C 172.92 79.75 176.98 83.17 178.81 83.55 C 180.9 83.97 183.76 83.69 185.94 83.69 C 190.81 83.69 195.69 83.69 200.56 83.69 C 201.79 83.69 204 83.47 205.06 83.7 C 205.94 83.9 206.25 84.52 206.9 85.06 C 207.11 85.24 207.36 85.35 207.57 85.53 Z M 323.44 47.98 C 322.26 48.24 320.89 48.06 319.69 48.06 C 316.21 48.06 312.4 47.61 309.19 49.22 C 308.79 49.41 308.45 49.7 308.06 49.91 C 306.77 50.6 305.45 51.4 304.31 52.33 C 302.7 53.64 299.97 55.93 299.1 57.81 C 298.47 59.17 298.17 60.47 297.92 61.94 C 297.79 62.72 297.37 63.42 297.2 64.19 C 297.04 64.93 296.95 65.7 296.77 66.44 C 296.65 66.95 296.41 67.43 296.27 67.94 C 296.07 68.68 295.96 69.44 295.8 70.19 C 295.66 70.82 295.38 71.43 295.23 72.06 C 294.72 74.18 294.38 76.34 293.8 78.44 C 293.42 79.81 293.13 81.2 292.73 82.56 C 292.58 83.06 292.35 83.55 292.23 84.06 C 292.05 84.8 291.98 85.57 291.77 86.31 C 291.6 86.94 291.33 87.54 291.2 88.19 C 291.05 88.93 291.01 89.72 290.77 90.44 C 290.6 90.94 290.32 91.41 290.2 91.94 C 290.04 92.68 289.95 93.45 289.73 94.19 C 289.54 94.83 289.22 95.38 289.1 96.06 C 288.95 96.99 288.92 98.13 289.08 99.06 C 289.36 100.78 292.39 104.28 293.69 105.44 C 294.47 106.13 296.43 107.59 297.44 107.8 C 299.95 108.31 307.56 107.81 310.56 107.81 C 314.19 107.81 317.82 107.75 321.44 107.81 C 323.56 107.85 325.68 108.05 327.81 107.81 C 330.66 107.5 333.59 108.1 336.44 107.67 C 339.07 107.28 343.78 104.37 345.81 102.67 C 346.93 101.74 348.03 100.53 348.84 99.31 C 349.16 98.83 349.58 98.33 349.84 97.81 C 350.61 96.27 350.76 94.55 351.27 92.94 C 351.47 92.31 351.76 91.72 351.9 91.06 C 352.02 90.43 352.09 89.81 352.27 89.19 C 352.42 88.68 352.65 88.2 352.77 87.69 C 352.92 87.07 352.98 86.42 353.15 85.81 C 353.84 83.31 354.51 80.81 355.2 78.31 C 356.32 74.28 360.44 61.45 360.06 58.06 C 359.8 55.71 357.82 52.92 356.19 51.31 C 355.05 50.19 352.94 48.47 351.31 48.2 C 348.74 47.77 343.65 48.06 340.81 48.06 C 338.31 48.06 335.81 48.06 333.31 48.06 C 332.33 48.06 331.28 48.17 330.31 48.06 C 328.96 47.91 324.65 47.71 323.44 47.98 Z M 345.09 60.69 L 337.29 92.31 L 333.39 95.3 L 304.31 92.94 L 312.86 60.69 L 345.09 60.69 Z'
+
+export const WORD_ARENA =
+  'M 354.24 141.08 L 351.06 134.19 L 347.38 126.34 L 343.97 126.11 L 335.95 140.69 L 338.59 141.27 L 341.17 137.9 L 349.34 137.95 L 351.56 141.13 Z M 345.33 129.5 L 347.93 134.37 L 345.91 135.46 L 342.54 134.79 Z M 289.99 127.25 L 277.54 126.09 L 277.23 128.29 L 277.06 140.95 L 280.06 141.15 L 290.84 141.17 L 290.72 138.34 L 280.87 138.31 L 279.82 135.97 L 281.58 134.8 L 288.59 134.85 L 288.84 132 L 280.78 131.98 L 280.56 128.91 L 284.94 128.81 Z M 213.21 141.14 L 216.29 141.06 L 218.52 137.93 L 226.81 138.1 L 229.22 141.37 L 231.91 140.9 L 224.97 126.28 L 221.27 126.06 Z M 223.07 129.43 L 225.53 134.88 L 222.65 135.64 L 219.96 134.76 Z M 319.04 136.33 L 315.44 132.31 L 309.37 125.91 L 306.62 126.47 L 306.07 140.83 L 308.87 141.45 L 309.54 139.63 L 309.51 131.31 L 310.98 132.09 L 319 141.12 L 322.05 140.85 L 322.21 126.11 L 319.24 125.97 Z M 261.27 141.03 L 258.19 136.56 L 261.29 133.01 L 261.04 128.21 L 258.19 126.07 L 246.4 126.04 L 246.19 129.44 L 246.04 141.31 L 248.92 141.07 L 249.14 136.04 L 253.3 135.79 L 257.85 141.34 Z M 249.35 133.14 L 249.44 129.04 L 253.81 128.72 L 257.94 129.19 L 257.96 132.27 L 255.86 133.04 Z'
+
+export const LINE_LEFT = 'M 160.2 132.56 L 201.94 134.29 L 201.91 131.13 L 160.2 132.56 Z'
+
+export const LINE_RIGHT = 'M 366.55 131.18 L 366.34 134.28 L 408.81 132.69 L 366.55 131.18 Z'
+
+/**
+ * `full` is the signed lockup. `compact` drops the traits and ARENA, which at
+ * header size render at ~7px of cap height and ~1.4px of rule — decorative noise
+ * that shimmers with DPI rather than anything anyone reads. `mark` is the
+ * monogram alone, for widths where even SKOL would not fit.
+ */
+export type LogoVariant = 'full' | 'compact' | 'mark'
+
+/** Bounding boxes of the ink, measured off the source artwork. */
+const MARK_INK = { x0: 35.55, x1: 131.09, y0: 16.85, y1: 167.2 }
+const WORD_INK = { x0: 159.84, x1: 408.81, y0: 47.61, y1: 141.45 }
+/** SKOL on its own — what `compact` sets the monogram against. */
+const SKOL_INK = { x0: 159.84, x1: 408.37, y0: 47.61, y1: 108.31 }
+
+/** Breathing room around the ink, so glows and drop-shadows are not clipped. */
+const PAD = 6
+
+/** Vertical span of the mark's ink, for gauges that fill it bottom-up. */
+export const MARK_INK_TOP = MARK_INK.y0
+export const MARK_INK_BOTTOM = MARK_INK.y1
+
+type Rect = { x: number; y: number; w: number; h: number }
+
+export type Lockup = {
+  viewBox: string
+  aspectRatio: number
+  /** Placement of the mark group inside this lockup; absent when it is alone. */
+  markTransform?: string
+  /** Where the mark's own viewBox lands, as fractions of the rendered logo. */
+  markFraction: { left: number; top: number; width: number; height: number }
+}
+
+const markViewBox: Rect = {
+  x: MARK_INK.x0 - PAD,
+  y: MARK_INK.y0 - PAD,
+  w: MARK_INK.x1 - MARK_INK.x0 + PAD * 2,
+  h: MARK_INK.y1 - MARK_INK.y0 + PAD * 2,
+}
+
+/** The mark's viewBox as numbers, for anything that has to draw inside it. */
+export const MARK_VIEW_BOX_RECT: Rect = { ...markViewBox }
+
+const box = (b: Rect): string =>
+  `${b.x.toFixed(4)} ${b.y.toFixed(4)} ${b.w.toFixed(4)} ${b.h.toFixed(4)}`
+
+/**
+ * Builds one lockup: the mark scaled to sit with `word`, right edge pinned so the
+ * gap to the type is preserved and vertically centred on it.
+ *
+ * At native size the mark stands 150 units tall against 94 for SKOL + ARENA —
+ * half again as tall as the words beside it, which reads as an icon with a
+ * caption rather than as one lockup. Scaling it down also buys the type back the
+ * room it was taking, at a fixed header height.
+ */
+function buildLockup(markScale: number, word: typeof MARK_INK | null): Lockup {
+  const w = (MARK_INK.x1 - MARK_INK.x0) * markScale
+  const h = (MARK_INK.y1 - MARK_INK.y0) * markScale
+  const x = word ? MARK_INK.x1 - w : MARK_INK.x0
+  const y = word ? (word.y0 + word.y1) / 2 - h / 2 : MARK_INK.y0
+  const dx = x - markScale * MARK_INK.x0
+  const dy = y - markScale * MARK_INK.y0
+
+  const view: Rect = word
+    ? {
+        x: Math.min(x, word.x0) - PAD,
+        y: Math.min(y, word.y0) - PAD,
+        w: 0,
+        h: 0,
+      }
+    : { ...markViewBox }
+  if (word) {
+    view.w = word.x1 + PAD - view.x
+    view.h = Math.max(y + h, word.y1) + PAD - view.y
+  }
+
+  return {
+    viewBox: box(view),
+    aspectRatio: view.w / view.h,
+    markTransform: word ? `translate(${dx.toFixed(4)},${dy.toFixed(4)}) scale(${markScale})` : undefined,
+    markFraction: {
+      left: (markScale * markViewBox.x + dx - view.x) / view.w,
+      top: (markScale * markViewBox.y + dy - view.y) / view.h,
+      width: (markScale * markViewBox.w) / view.w,
+      height: (markScale * markViewBox.h) / view.h,
+    },
+  }
+}
+
+export const LOCKUP: Record<LogoVariant, Lockup> = {
+  full: buildLockup(0.78, WORD_INK),
+  // Against SKOL alone the mark needs to come down further, or it towers over a
+  // block that just lost its lower half.
+  compact: buildLockup(0.62, SKOL_INK),
+  mark: buildLockup(1, null),
+}
+
+/** viewBoxes cropped to the ink rather than to the source canvas' dead margin. */
+export const VIEW_BOX: Record<LogoVariant, string> = {
+  full: LOCKUP.full.viewBox,
+  compact: LOCKUP.compact.viewBox,
+  mark: LOCKUP.mark.viewBox,
+}
+
+export const ASPECT_RATIO: Record<LogoVariant, number> = {
+  full: LOCKUP.full.aspectRatio,
+  compact: LOCKUP.compact.aspectRatio,
+  mark: LOCKUP.mark.aspectRatio,
+}
+
+export type GradientStop = { offset: number; color: string; opacity?: number }
+
+export type LinearGradientDef = {
+  key: string
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  stops: GradientStop[]
+}
+
+/**
+ * All gradients are `userSpaceOnUse`: they are anchored to the artwork's own
+ * coordinates, so a shape keeps its exact colours no matter how it is scaled,
+ * clipped or animated.
+ */
+export const GRADIENTS: LinearGradientDef[] = [
+  {
+    key: 'mark',
+    x1: 0,
+    y1: 19,
+    x2: 0,
+    y2: 165,
+    stops: [
+      { offset: 0, color: '#DC9FFC' },
+      { offset: 0.05, color: '#D696FC' },
+      { offset: 0.15, color: '#C984FC' },
+      { offset: 0.25, color: '#B871FA' },
+      { offset: 0.35, color: '#A95EF9' },
+      { offset: 0.45, color: '#9044F5' },
+      { offset: 0.55, color: '#772FE9' },
+      { offset: 0.65, color: '#6522D9' },
+      { offset: 0.75, color: '#5C1CCC' },
+      { offset: 0.85, color: '#5B1FD2' },
+      { offset: 0.95, color: '#571ECB' },
+      { offset: 1, color: '#551DC8' },
+    ],
+  },
+  {
+    key: 'skol',
+    x1: 0,
+    y1: 49,
+    x2: 0,
+    y2: 107,
+    stops: [
+      { offset: 0, color: '#FBFBFB' },
+      { offset: 0.583, color: '#F9F9FA' },
+      { offset: 0.75, color: '#F8F7F9' },
+      { offset: 0.917, color: '#F6F6F8' },
+      { offset: 1, color: '#F5F6F8' },
+    ],
+  },
+  {
+    key: 'arena',
+    x1: 0,
+    y1: 127,
+    x2: 0,
+    y2: 140,
+    stops: [
+      { offset: 0, color: '#853CE4' },
+      { offset: 0.125, color: '#863BEA' },
+      { offset: 0.375, color: '#883AF6' },
+      { offset: 0.625, color: '#8639F5' },
+      { offset: 0.875, color: '#8233F0' },
+      { offset: 1, color: '#8030EE' },
+    ],
+  },
+  {
+    key: 'lineL',
+    x1: 160,
+    y1: 0,
+    x2: 202,
+    y2: 0,
+    stops: [
+      { offset: 0, color: '#1A1246', opacity: 0.11 },
+      { offset: 0.125, color: '#6527B2', opacity: 0.4 },
+      { offset: 0.25, color: '#6F2CB4', opacity: 0.68 },
+      { offset: 0.375, color: '#7F3BB9', opacity: 0.89 },
+      { offset: 0.5, color: '#8C41C9', opacity: 0.95 },
+      { offset: 0.625, color: '#7D34BF', opacity: 0.99 },
+      { offset: 0.75, color: '#904AE4', opacity: 1 },
+      { offset: 0.875, color: '#954DEF', opacity: 0.97 },
+      { offset: 1, color: '#E467FF', opacity: 0.58 },
+    ],
+  },
+  {
+    key: 'lineR',
+    x1: 366,
+    y1: 0,
+    x2: 409,
+    y2: 0,
+    stops: [
+      { offset: 0, color: '#5B1A87', opacity: 0.51 },
+      { offset: 0.125, color: '#9A57ED', opacity: 1 },
+      { offset: 0.25, color: '#9047DD', opacity: 0.98 },
+      { offset: 0.375, color: '#9044D7', opacity: 0.96 },
+      { offset: 0.5, color: '#823DC5', opacity: 0.89 },
+      { offset: 0.625, color: '#7732BE', opacity: 0.77 },
+      { offset: 0.75, color: '#6F2ABA', opacity: 0.6 },
+      { offset: 0.875, color: '#642BAE', opacity: 0.29 },
+      { offset: 1, color: '#1C1242', opacity: 0.1 },
+    ],
+  },
+]
+
+/** Brand black — the background the icons themselves are cut out of. */
+export const BRAND_BLACK = '#000006'
+
+/**
+ * The mark's gradient as rendered everywhere: app surfaces, the black splash and
+ * the shipped icons alike.
+ *
+ * The artwork was delivered bottoming out at #551DC8, which is only 1.67:1 on
+ * the app's gray-800 header — the lower half of the monogram faded out and the
+ * diamond all but vanished. This lifts the floor to violet-500 (3.46:1 on the
+ * header, 4.19:1 on gray-900), landing the bottom of the ramp on the Tailwind
+ * violet the interface is already built from.
+ *
+ * Saturation is the constraint that matters, not lightness. An earlier attempt
+ * raised the whole ramp into violet-100/200: those clear contrast easily but sit
+ * at 8-16% saturation, and the monogram came out reading as white rather than
+ * violet. Every stop below is at 37% or above, and the top is the artwork's own.
+ *
+ * One ramp, not one per surface: the launcher icon, the OS splash, the boot
+ * screen and the header logo are seen in sequence, and any seam between them
+ * shows.
+ */
+export const MARK_STOPS: GradientStop[] = [
+  { offset: 0, color: '#DC9FFC' },
+  { offset: 0.35, color: '#C57DFB' },
+  { offset: 0.7, color: '#A85CF8' },
+  { offset: 1, color: '#8B5CF6' },
+]

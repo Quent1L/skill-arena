@@ -48,7 +48,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import SkolLogo from '@/components/SkolLogo.vue'
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 import { apiBaseURL } from '@/config/ApiConfig'
 
 const { t } = useI18n()

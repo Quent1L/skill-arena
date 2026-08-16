@@ -43,7 +43,7 @@ export default defineConfig({
     Components({
       resolvers: [PrimeVueResolver()],
     }),
-    vueDevTools({ launchEditor: 'webstorm' }),
+    vueDevTools({ launchEditor: 'code' }),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
@@ -65,21 +65,36 @@ export default defineConfig({
       },
       manifest: {
         name: 'Skol Arena',
-        short_name: 'Skol',
+        short_name: 'Skol Arena',
         description: 'Skill Or Luck ?',
-        theme_color: '#a78bfa',
-        background_color: '#1e293b',
+        theme_color: '#000006',
+        // The black the icons are cut out of. Android paints its own splash from
+        // this colour plus the 512 icon, so matching it is what makes the native
+        // splash, the pre-mount screen and SplashLoader one continuous surface.
+        background_color: '#000006',
         display: 'standalone',
+        // Chromium only ever reads these four. 192 is the Android launcher icon;
+        // 512 drives the install prompt, the splash, and every intermediate size,
+        // which the browser downscales itself. Listing 48/72/96/128/144/256/384
+        // just ships bytes nobody reads, and 152 is an iOS size that Safari does
+        // not take from the manifest at all — it uses the apple-touch-icon link
+        // in index.html. An SVG entry would never beat the 512 PNG either.
         icons: [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // Maskable art keeps the mark inside the safe zone, so Android adaptive
+          // icons can crop to any shape without clipping the logo.
           {
-            src: '/icons/icon-192x192.png',
+            src: '/icons/maskable-192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'maskable',
           },
           {
-            src: '/icons/icon-512x512.png',
+            src: '/icons/maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

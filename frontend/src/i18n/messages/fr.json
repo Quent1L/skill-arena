@@ -202,8 +202,8 @@
     "version": "Version {version}"
   },
   "appWrapper": {
-    "appTitle": "Skol - {title}",
-    "pageTitle": "Skol - {title}"
+    "appTitle": "Skol Arena",
+    "pageTitle": "Skol Arena - {title}"
   },
   "auth": {
     "errors": {
@@ -1131,7 +1131,7 @@
       "then": "Sur l'écran d'accueil"
     },
     "subtitle": "Accès rapide depuis l'écran d'accueil",
-    "title": "Installer Skol"
+    "title": "Installer Skol Arena"
   },
   "rankedLeaderboard": {
     "matchPlural": "{number} matchs",
@@ -1624,7 +1624,7 @@
     "validationError": "Erreur lors de la validation"
   },
   "skolLogo": {
-    "ariaLabel": "SKOL - Skill Kills Our Luck"
+    "ariaLabel": "Skol Arena - Skill Or Luck ?"
   },
   "standingsService": {
     "errors": {

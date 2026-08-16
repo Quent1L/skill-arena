@@ -2,9 +2,16 @@
   <header class="shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <RouterLink to="/" class="flex items-center cursor-pointer">
-          <i v-if="showBackButton" class="fa fa-chevron-left text-lg mt-2 text-gray-400"></i>
-          <SkolLogo height="50" width="150"></SkolLogo>
+        <RouterLink to="/" class="flex items-center gap-2 cursor-pointer">
+          <!-- No manual nudge: the row already centres both children. The old
+               logo carried uneven internal padding and `mt-2` compensated for
+               it, which now just pushes the chevron off the line. -->
+          <i v-if="showBackButton" class="fa fa-chevron-left text-lg text-gray-400"></i>
+          <!-- ARENA and its two rules land at ~7px of cap height and ~1.4px of
+               rule here: noise that shimmers with DPI rather than anything
+               legible. The header keeps the monogram and SKOL at every width,
+               just narrower on phones. -->
+          <SkolLogo :variant="'compact'" :width="isMobile ? 104 : 132" />
         </RouterLink>
 
         <div class="flex items-center gap-3">
@@ -34,7 +41,11 @@
                 <i :class="item.icon"></i>
               </template>
               <template #end>
-                <div class="w-full flex justify-center text-xs text-gray-500 h-7 pt-2">
+                <div
+                  class="app-version w-full flex justify-center text-xs text-gray-500 h-7 pt-2 select-none"
+                  :class="{ 'is-armed': eggTaps >= EGG_HINT_AT }"
+                  @click="tapVersion"
+                >
                   {{ t('appHeader.version', { version: appVersion }) }}
                 </div>
               </template>
@@ -68,16 +79,25 @@ import { computed, ref, useTemplateRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
+import { useEasterEgg } from '@/composables/useEasterEgg'
+import { useSecretTap } from '@/composables/useSecretTap'
 import { useViewport } from '@/composables/useViewport'
 import type { MenuItem } from 'primevue/menuitem'
 import NotificationBell from './NotificationBell.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
-import SkolLogo from './SkolLogo.vue'
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 import PlayerAvatar from './PlayerAvatar.vue'
 
 const { t } = useI18n()
 
 const appVersion = __APP_VERSION__
+
+/** Taps needed to unlock, and the tap the version starts hinting from. */
+const EGG_TAPS = 5
+const EGG_HINT_AT = 3
+
+const { play: playEasterEgg } = useEasterEgg()
+const { tap: tapVersion, count: eggTaps } = useSecretTap(EGG_TAPS, playEasterEgg)
 
 const route = useRoute()
 const router = useRouter()
@@ -140,23 +160,14 @@ const menuItems = computed<MenuItem[]>(() => [
   },
 ])
 
-let loginTapCount = 0
-let loginTapTimer: ReturnType<typeof setTimeout> | null = null
+const { tap: tapLogin } = useSecretTap(5, () => router.push('/login?native=true'), {
+  windowMs: 3000,
+})
 
 function handleLoginTap() {
-  loginTapCount++
-  if (loginTapTimer) clearTimeout(loginTapTimer)
-  loginTapTimer = setTimeout(() => {
-    loginTapCount = 0
-  }, 3000)
-
-  if (loginTapCount >= 5) {
-    loginTapCount = 0
-    if (loginTapTimer) clearTimeout(loginTapTimer)
-    router.push('/login?native=true')
-    return
-  }
-
+  // Every tap is still a normal trip to /login — except the one that unlocks the
+  // native form, which supersedes it.
+  if (tapLogin()) return
   router.push('/login')
 }
 
@@ -184,3 +195,30 @@ function toggleNotifications(event: Event) {
   notifDropdown.value?.toggle(event)
 }
 </script>
+
+<style scoped>
+/* The version line doubles as a hidden trigger. It stays inert-looking until a
+   few taps in, then leans in — enough to reward someone who is poking at it,
+   invisible to everyone else. */
+.app-version {
+  cursor: default;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-version.is-armed {
+  color: #a95ef9;
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-version {
+    transition: color 0.2s ease;
+  }
+
+  .app-version.is-armed {
+    transform: none;
+  }
+}
+</style>

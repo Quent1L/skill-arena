@@ -30,7 +30,7 @@ type Props = InstanceType<typeof UpdateOverlay>['$props']
 function mountOverlay(props: Partial<Props> = {}) {
   return mount(UpdateOverlay, {
     props: { visible: true, ...props } as Props,
-    global: { plugins: [i18n], stubs: { SkolLogo: true } },
+    global: { plugins: [i18n], stubs: { LogoFillGauge: true, BrandBackdrop: true } },
   })
 }
 

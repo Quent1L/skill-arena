@@ -1,12 +1,12 @@
 <template>
   <Transition name="update-fade">
     <div v-if="visible" class="update-overlay">
-      <div class="update-bg-glow" />
-      <div class="update-particles">
-        <span v-for="n in 10" :key="n" class="particle" :class="`p${n}`" />
-      </div>
+      <BrandBackdrop />
       <div class="update-content">
-        <SkolLogo :animated="false" />
+        <!-- The mark is the progress indicator: it fills as the bundle lands.
+             This screen can hold someone for two minutes with no way out, so the
+             waiting itself has to be worth looking at. -->
+        <LogoFillGauge :progress="gaugeProgress" :complete="isDone" />
         <div class="update-text">
           <p class="update-title">{{ title }}</p>
           <p class="update-subtitle">{{ subtitle }}</p>
@@ -39,8 +39,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import SkolLogo from '@/components/SkolLogo.vue'
-import type { UpdatePhase } from '@/composables/pwa/pwa.update'
+import BrandBackdrop from '@/components/brand/BrandBackdrop.vue'
+import LogoFillGauge from '@/components/brand/LogoFillGauge.vue'
+import { useCountUp } from '@/composables/ui/useCountUp'
+import { UPDATE_OVERLAY_MIN_MS, type UpdatePhase } from '@/composables/pwa/pwa.update'
 
 /** Past this, say out loud that a slow connection is the likely explanation. */
 const SLOW_HINT_MS = 5000
@@ -71,8 +73,25 @@ const showDismiss = ref(false)
 let timers: ReturnType<typeof setTimeout>[] = []
 
 const isDownloading = computed(() => props.phase === 'downloading')
+const isApplying = computed(() => props.phase === 'applying')
 /** The update already landed: this screen reports it rather than asking to wait. */
 const isDone = computed(() => props.phase === 'done')
+
+// Applying is near-instant; the gauge paces UPDATE_OVERLAY_MIN_MS so the screen
+// resolves rather than snapping. Counted in whole percent because useCountUp is
+// integer-valued — it is reused here so the fill eases like every other counter.
+const { value: applyPercent } = useCountUp(() => 100, {
+  from: 0,
+  durationMs: UPDATE_OVERLAY_MIN_MS,
+  active: isApplying,
+})
+
+/** `null` hands the gauge over to its indeterminate tide. */
+const gaugeProgress = computed<number | null>(() => {
+  if (isDone.value) return 1
+  if (isApplying.value) return applyPercent.value / 100
+  return props.progress
+})
 const percent = computed(() =>
   isDownloading.value && props.progress !== null ? Math.round(props.progress * 100) : null,
 )
@@ -128,7 +147,7 @@ onUnmounted(clearTimers)
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: #0f0d1a;
+  background: #000006;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -142,137 +161,6 @@ onUnmounted(clearTimers)
   flex-direction: column;
   align-items: center;
   gap: 28px;
-}
-
-.update-bg-glow {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at 50% 48%, rgba(124, 58, 237, 0.18) 0%, transparent 65%);
-  animation: glow-breathe 4s ease-in-out infinite;
-}
-
-@keyframes glow-breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.35);
-    opacity: 1;
-  }
-}
-
-.update-particles {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: #a78bfa;
-  animation: float-up linear infinite;
-  bottom: -8px;
-}
-
-@keyframes float-up {
-  0% {
-    transform: translateY(0) scaleX(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(-100vh) scaleX(0.6);
-    opacity: 0;
-  }
-}
-
-.p1 {
-  width: 3px;
-  height: 3px;
-  left: 8%;
-  animation-duration: 9s;
-  animation-delay: 0s;
-  opacity: 0.5;
-}
-.p2 {
-  width: 2px;
-  height: 2px;
-  left: 18%;
-  animation-duration: 7s;
-  animation-delay: 2.2s;
-  opacity: 0.3;
-}
-.p3 {
-  width: 4px;
-  height: 4px;
-  left: 28%;
-  animation-duration: 11s;
-  animation-delay: 0.8s;
-  opacity: 0.4;
-}
-.p4 {
-  width: 2px;
-  height: 2px;
-  left: 40%;
-  animation-duration: 8s;
-  animation-delay: 3.5s;
-  opacity: 0.35;
-}
-.p5 {
-  width: 3px;
-  height: 3px;
-  left: 52%;
-  animation-duration: 10s;
-  animation-delay: 1.2s;
-  opacity: 0.45;
-}
-.p6 {
-  width: 2px;
-  height: 2px;
-  left: 63%;
-  animation-duration: 7s;
-  animation-delay: 4.1s;
-  opacity: 0.3;
-}
-.p7 {
-  width: 4px;
-  height: 4px;
-  left: 73%;
-  animation-duration: 9s;
-  animation-delay: 0.4s;
-  opacity: 0.4;
-}
-.p8 {
-  width: 2px;
-  height: 2px;
-  left: 82%;
-  animation-duration: 12s;
-  animation-delay: 2.8s;
-  opacity: 0.35;
-}
-.p9 {
-  width: 3px;
-  height: 3px;
-  left: 91%;
-  animation-duration: 8s;
-  animation-delay: 5s;
-  opacity: 0.4;
-}
-.p10 {
-  width: 2px;
-  height: 2px;
-  left: 46%;
-  animation-duration: 10s;
-  animation-delay: 6.3s;
-  opacity: 0.3;
 }
 
 .update-text {

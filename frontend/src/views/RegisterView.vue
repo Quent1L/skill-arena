@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
       <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold">Skol</h1>
+        <SkolLogo :width="240" class="mx-auto" />
         <p class="mt-2">{{ t('registerView.subtitle') }}</p>
       </div>
 
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import SkolLogo from '@/components/brand/SkolLogo.vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@/composables/useAuth'
