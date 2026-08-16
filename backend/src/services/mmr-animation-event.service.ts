@@ -10,7 +10,8 @@ import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import {
   calculateMatchMmr,
   DEFAULT_TEAM_INTERACTION_MODE,
-  type EnginePlayer,
+  toEnginePlayers,
+  type EnginePlayerStanding,
   type MatchResult,
   type PlayerMmrDelta,
 } from "./mmr-engine";
@@ -64,19 +65,17 @@ function resolveResult(winnerSide: string | null, playerInSideA: boolean): Match
   return (winnerSide === "A") === playerInSideA ? 1 : 0;
 }
 
-function toEnginePlayers(
-  playerIds: string[],
+function standingFromRecords(
   mmrRecords: Map<string, MmrRecord>,
-  config: { baseMmr: number; placementMatches: number },
-): EnginePlayer[] {
-  return playerIds.map((id) => {
-    const record = mmrRecords.get(id);
+  baseMmr: number,
+): (playerId: string) => EnginePlayerStanding {
+  return (playerId) => {
+    const record = mmrRecords.get(playerId);
     return {
-      id,
-      mmr: record?.currentMmr ?? config.baseMmr,
-      isPlacement: (record?.matchesPlayed ?? 0) < config.placementMatches,
+      mmr: record?.currentMmr ?? baseMmr,
+      matchesPlayed: record?.matchesPlayed ?? 0,
     };
-  });
+  };
 }
 
 export class MmrAnimationEventService {
@@ -113,17 +112,19 @@ export class MmrAnimationEventService {
 
     const mmrRecords = await this.loadMmrRecords(allPlayerIds, tournamentId, config.baseMmr);
 
+    const standingOf = standingFromRecords(mmrRecords, config.baseMmr);
+
     // Same engine as the finalization path, fed with the current MMR snapshot:
     // what the player is shown before validation is what they will actually get.
     const deltas = calculateMatchMmr({
       sides: [
         {
-          players: toEnginePlayers(playerIdsA, mmrRecords, config),
+          players: toEnginePlayers(playerIdsA, config.placementMatches, standingOf),
           score: sideA.score ?? 0,
           result: resolveResult(match.winnerSide, true),
         },
         {
-          players: toEnginePlayers(playerIdsB, mmrRecords, config),
+          players: toEnginePlayers(playerIdsB, config.placementMatches, standingOf),
           score: sideB.score ?? 0,
           result: resolveResult(match.winnerSide, false),
         },

@@ -9,7 +9,9 @@ import type { MmrAnimationEventReason, MmrHistoryOutcome } from "@skol-arena/sha
 import {
   calculateMatchMmr,
   DEFAULT_TEAM_INTERACTION_MODE,
+  toEnginePlayers,
   type EnginePlayer,
+  type EnginePlayerStanding,
   type MatchResult,
 } from "./mmr-engine";
 
@@ -472,18 +474,13 @@ export class MmrCalculationService {
     const preState = this.buildPreState(participantIds, stateMap, entryMmrMap, config.baseMmr);
     const outcomeType = match.outcomeType ?? FALLBACK_OUTCOME_TYPE;
 
-    const toEnginePlayers = (ids: string[]): EnginePlayer[] =>
-      ids.map((id) => {
-        const s = preState.get(id)!;
-        return {
-          id,
-          mmr: s.mmr,
-          isPlacement: s.wins + s.losses + s.draws < config.placementMatches,
-        };
-      });
+    const standingOf = (playerId: string): EnginePlayerStanding => {
+      const s = preState.get(playerId)!;
+      return { mmr: s.mmr, matchesPlayed: s.wins + s.losses + s.draws };
+    };
 
-    const playersA = toEnginePlayers(sideAIds);
-    const playersB = toEnginePlayers(sideBIds);
+    const playersA = toEnginePlayers(sideAIds, config.placementMatches, standingOf);
+    const playersB = toEnginePlayers(sideBIds, config.placementMatches, standingOf);
     const resultA = resultFromWin(match.winnerSide === null ? null : match.winnerSide === "A");
 
     // One engine call for the whole match: every participant is priced against

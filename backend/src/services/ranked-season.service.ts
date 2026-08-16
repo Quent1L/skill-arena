@@ -10,6 +10,7 @@ import { seasonRewindRepository } from "../repository/season-rewind.repository";
 import {
   calculateMatchMmr,
   DEFAULT_TEAM_INTERACTION_MODE,
+  toEnginePlayers,
   type EnginePlayer,
 } from "./mmr-engine";
 import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
@@ -57,10 +58,9 @@ function entryMmrOf(playerId: string, ctx: ProvisionalReplayCtx): number {
 }
 
 function toReplayPlayers(ids: string[], ctx: ProvisionalReplayCtx): EnginePlayer[] {
-  return ids.map((id) => ({
-    id,
+  return toEnginePlayers(ids, ctx.placementMatches, (id) => ({
     mmr: ctx.provisionalMmr.get(id) ?? entryMmrOf(id, ctx),
-    isPlacement: (ctx.matchesPlayed.get(id) ?? 0) < ctx.placementMatches,
+    matchesPlayed: ctx.matchesPlayed.get(id) ?? 0,
   }));
 }
 

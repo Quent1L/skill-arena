@@ -77,6 +77,29 @@ export const PLACEMENT_MULTIPLIER = 2;
 export const DEFAULT_TEAM_INTERACTION_MODE: TeamInteractionMode = "COLLABORATIVE";
 export const MIN_MMR = 1;
 
+/** A participant's standing just before the match being priced. */
+export interface EnginePlayerStanding {
+  mmr: number;
+  matchesPlayed: number;
+}
+
+/**
+ * Single definition of the placement rule. Callers differ only in where they
+ * read a participant's pre-match standing from — live records, a replay
+ * snapshot, a provisional projection — so they supply that as `resolve` and the
+ * engine keeps ownership of what "still in placement" means.
+ */
+export function toEnginePlayers(
+  playerIds: string[],
+  placementMatches: number,
+  resolve: (playerId: string) => EnginePlayerStanding,
+): EnginePlayer[] {
+  return playerIds.map((playerId) => {
+    const { mmr, matchesPlayed } = resolve(playerId);
+    return { id: playerId, mmr, isPlacement: matchesPlayed < placementMatches };
+  });
+}
+
 export function calculateExpectedScore(playerMmr: number, opponentMmr: number): number {
   return 1 / (1 + Math.pow(10, (opponentMmr - playerMmr) / 400));
 }
