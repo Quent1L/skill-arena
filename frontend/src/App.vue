@@ -30,8 +30,6 @@ import { useAppToast } from './composables/useAppToast'
 import { useAuth } from './composables/useAuth'
 import { useConfigService } from './composables/config/config.service'
 import { initErrorService, useErrorService } from './composables/useErrorService'
-import { useNotificationService } from './composables/notification/notification.service'
-import { useNotificationSocket } from './composables/notification/notification.socket'
 import { usePWAUpdate } from './composables/pwa/pwa.update'
 import { useEasterEgg } from './composables/useEasterEgg'
 import AppWrapper from './AppWrapper.vue'
@@ -41,11 +39,9 @@ import UpdateOverlay from './components/UpdateOverlay.vue'
 
 const { t } = useI18n()
 const router = useRouter()
-const { initialize, isAuthenticated } = useAuth()
+const { initialize } = useAuth()
 const { loadConfig } = useConfigService()
 const errorService = useErrorService()
-const notificationService = useNotificationService()
-const notificationSocket = useNotificationSocket()
 const toast = useAppToast()
 const {
   overlayVisible,
@@ -125,10 +121,9 @@ onMounted(async () => {
     }
   }
 
-  if (isAuthenticated.value) {
-    await notificationService.load()
-    notificationSocket.connect()
-  }
+  // Notifications and the socket are bootstrapped by NotificationsInit, which watches
+  // isAuthenticated. Doing it here too fired a second /me/notifications: this call
+  // settled before AppWrapper mounted, so the in-flight guard could not dedupe it.
 
   // Apply before revealing the app: the user never sees the stale version.
   // A false return means the update could not be applied (download too slow, or
