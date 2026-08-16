@@ -2131,6 +2131,35 @@ describe("MatchService - Author result revision", () => {
       matchService.updateMatch("m-rev3", { scoreA: 9, scoreB: 0 } as any, "p2"),
     ).rejects.toThrow(ForbiddenError);
   });
+
+  it("an outcome-only correction validates against the stored score, not 0-0", async () => {
+    repo.getById = async (id: string) => reportedMatch(id);
+    // minScore 1 rejects a 0, allowDraw false rejects a draw: both fire if the
+    // untouched sides fall back to 0 instead of the 3-1 already stored.
+    repo.getTournament = async () =>
+      ({
+        id: "t-1",
+        mode: "championship",
+        validationMode: "strict",
+        minScore: 1,
+        allowDraw: false,
+      }) as any;
+    repo.isUserInMatch = async () => true;
+    confRepo.resetConfirmationsExcept = async () => undefined as any;
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    await matchService.updateMatch("m-rev4", { outcomeTypeId: "ot-2" } as any, "p1");
+
+    expect(updateCalls[0].outcomeTypeId).toBe("ot-2");
+    // The scores were not part of the correction, so they are left untouched
+    expect(updateCalls[0].scoreA).toBeUndefined();
+    expect(updateCalls[0].status).toBe("reported");
+  });
 });
 
 describe("MatchService - finalizeMatch side-effects", () => {

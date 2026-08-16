@@ -425,8 +425,11 @@ export class MatchService {
     }
 
     if (input.status === 'reported' || isRevision) {
-      const scoreA = input.scoreA ?? 0
-      const scoreB = input.scoreB ?? 0
+      // A revision can carry only an outcome change: the untouched side keeps the
+      // score already stored, never 0, or the range and draw checks below would
+      // validate a result the match never had.
+      const scoreA = input.scoreA ?? match.sides[0]?.score ?? 0
+      const scoreB = input.scoreB ?? match.sides[1]?.score ?? 0
       matchInputValidator.validateScores(scoreA, scoreB)
       matchInputValidator.validateScoreRange(
         scoreA,
