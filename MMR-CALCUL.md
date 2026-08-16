@@ -273,8 +273,8 @@ Exact, à deux exceptions près, toutes deux volontaires :
    une version antérieure, puis pose la nouvelle estampille — un déploiement
    embarque donc sa propre migration de données. Les saisons terminées restent
    figées (rewinds et seeds de report déjà dérivés) et conservent l'estampille de
-   la version qui les a calculées. `scripts/recalc-ongoing-ranked.ts` reste le
-   déclencheur manuel, pour forcer un rejeu hors upgrade.
+   la version qui les a calculées. Pour forcer un rejeu hors upgrade,
+   `POST /tournaments/:id/recalculate-points` réenfile la saison.
 
    **Toute modification future de la formule doit incrémenter
    `MMR_ENGINE_VERSION`**, sinon les ladders en cours resteront sur l'ancien
