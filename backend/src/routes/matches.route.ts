@@ -1,4 +1,5 @@
-import { zValidator } from "@hono/zod-validator";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
 import { matchService } from "../services/match.service";
 import { matchMessageService } from "../services/match-message.service";
 import {
@@ -12,17 +13,35 @@ import {
   finalizeMatchSchema,
   listMatchCardsQuerySchema,
   validateMatchSchema,
+  matchModelSchema,
+  paginatedMatchCardsSchema,
+  clientMatchMessageSchema,
+  clientMatchMessageListSchema,
+  validateMatchResponseSchema,
+  autoFinalizeResponseSchema,
+  mutationResultSchema,
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 
 const matches = createAppHono();
 
+const TAGS = ["Matches"];
+
 // POST /matches - Create new match
 matches.post(
   "/",
   requireAuth,
-  zValidator("json", createMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Create a match",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { status: 201, description: "Match created", schema: matchModelSchema },
+  }),
+  validate("json", createMatchSchema),
   async (c) => {
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
@@ -34,24 +53,52 @@ matches.post(
 );
 
 // GET /matches - Paginated lean match list (with filters)
-matches.get("/", zValidator("query", listMatchCardsQuerySchema), async (c) => {
-  const filters = c.req.valid("query");
-  const result = await matchService.listMatchCards(filters);
-  return c.json(result);
-});
+matches.get(
+  "/",
+  describe({
+    tags: TAGS,
+    summary: "List matches",
+    description: "Lean paginated cards, not full match models. Use GET /matches/{id} for detail.",
+    success: { description: "A page of match cards", schema: paginatedMatchCardsSchema },
+  }),
+  validate("query", listMatchCardsQuerySchema),
+  async (c) => {
+    const filters = c.req.valid("query");
+    const result = await matchService.listMatchCards(filters);
+    return c.json(result);
+  }
+);
 
 // GET /matches/:id - Get single match
-matches.get("/:id", async (c) => {
-  const id = c.req.param("id")!;
-  const match = await matchService.getMatchById(id);
-  return c.json(match);
-});
+matches.get(
+  "/:id",
+  describe({
+    tags: TAGS,
+    summary: "Get a match",
+    notFound: true,
+    success: { description: "The match with its relations", schema: matchModelSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const match = await matchService.getMatchById(id);
+    return c.json(match);
+  }
+);
 
 // PATCH /matches/:id - Update match
 matches.patch(
   "/:id",
   requireAuth,
-  zValidator("json", updateMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Update a match",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The updated match", schema: matchModelSchema },
+  }),
+  validate("json", updateMatchSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -78,19 +125,41 @@ matches.patch(
 );
 
 // DELETE /matches/:id - Delete match
-matches.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+matches.delete(
+  "/:id",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Delete a match",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Deletion outcome", schema: mutationResultSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  const result = await matchService.deleteMatch(id, appUserId);
-  return c.json(result);
-});
+    const result = await matchService.deleteMatch(id, appUserId);
+    return c.json(result);
+  }
+);
 
 // POST /matches/:id/report - Report match result
 matches.post(
   "/:id/report",
   requireAuth,
-  zValidator("json", reportMatchResultSchema),
+  describe({
+    tags: TAGS,
+    summary: "Report a match result",
+    description: "Records the score. Participants then confirm or dispute it.",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The match after the change", schema: matchModelSchema },
+  }),
+  validate("json", reportMatchResultSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -117,7 +186,16 @@ matches.post(
 matches.post(
   "/:id/confirm",
   requireAuth,
-  zValidator("json", confirmMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Confirm a reported result",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The match after the change", schema: matchModelSchema },
+  }),
+  validate("json", confirmMatchSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -133,7 +211,16 @@ matches.post(
 matches.post(
   "/:id/contest",
   requireAuth,
-  zValidator("json", contestMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Dispute a reported result",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The match after the change", schema: matchModelSchema },
+  }),
+  validate("json", contestMatchSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -149,7 +236,17 @@ matches.post(
 matches.post(
   "/:id/respond",
   requireAuth,
-  zValidator("json", respondToMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Confirm or dispute a result",
+    description: "Unified endpoint replacing /confirm and /contest.",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The match after the change", schema: matchModelSchema },
+  }),
+  validate("json", respondToMatchSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -162,19 +259,40 @@ matches.post(
 );
 
 // GET /matches/:id/messages - Discussion thread (participants and organizers)
-matches.get("/:id/messages", requireAuth, async (c) => {
-  const id = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+matches.get(
+  "/:id/messages",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "List a match's messages",
+    description: "Restricted to the match participants and the tournament organizers.",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "The discussion thread", schema: clientMatchMessageListSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  const messages = await matchMessageService.list(id, appUserId);
-  return c.json(messages);
-});
+    const messages = await matchMessageService.list(id, appUserId);
+    return c.json(messages);
+  }
+);
 
 // POST /matches/:id/messages - Post a message on the thread
 matches.post(
   "/:id/messages",
   requireAuth,
-  zValidator("json", postMatchMessageSchema),
+  describe({
+    tags: TAGS,
+    summary: "Post a message on a match",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { status: 201, description: "The posted message", schema: clientMatchMessageSchema },
+  }),
+  validate("json", postMatchMessageSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -186,19 +304,42 @@ matches.post(
 );
 
 // POST /matches/:id/cancel - Cancel match (admin or participant)
-matches.post("/:id/cancel", requireAuth, async (c) => {
-  const id = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+matches.post(
+  "/:id/cancel",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Cancel a match",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The cancelled match", schema: matchModelSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  const match = await matchService.cancelMatch(id, appUserId);
-  return c.json(match);
-});
+    const match = await matchService.cancelMatch(id, appUserId);
+    return c.json(match);
+  }
+);
 
 // POST /matches/:id/finalize - Finalize match (admin only)
 matches.post(
   "/:id/finalize",
   requireAuth,
-  zValidator("json", finalizeMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Finalize a match",
+    description: "Organizers only. Settles the result whatever the confirmation state.",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The finalized match", schema: matchModelSchema },
+  }),
+  validate("json", finalizeMatchSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -228,7 +369,15 @@ matches.post(
 // POST /matches/validate - Validate match possibility
 matches.post(
   "/validate",
-  zValidator("json", validateMatchSchema),
+  describe({
+    tags: TAGS,
+    summary: "Check whether a match may be created",
+    description:
+      "Dry run against the tournament's limits. Answers 200 with valid false plus " +
+      "the reasons, rather than failing.",
+    success: { description: "Validation outcome", schema: validateMatchResponseSchema },
+  }),
+  validate("json", validateMatchSchema),
   async (c) => {
     const data = c.req.valid("json");
 
@@ -249,6 +398,13 @@ matches.post(
 matches.post(
   "/auto-finalize",
   requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Auto-finalize matches past their confirmation deadline",
+    description: "Contested matches are held back and reported in `disputed`.",
+    auth: true,
+    success: { description: "What the run settled", schema: autoFinalizeResponseSchema },
+  }),
   async (c) => {
       const result = await matchService.autoFinalizeExpiredMatches();
 

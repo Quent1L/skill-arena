@@ -8,13 +8,32 @@ export type TeamInteractionMode = 'INDIVIDUAL' | 'SHARED_RESOURCE' | 'COLLABORAT
 
 export const TEAM_INTERACTION_MODES = ['INDIVIDUAL', 'SHARED_RESOURCE', 'COLLABORATIVE'] as const;
 
-export interface Discipline {
-  id: string;
-  name: string;
-  icon?: string | null;
-  scoreInstructions?: string | null;
-  teamInteractionMode?: TeamInteractionMode | null;
-}
+// `.meta({ id })` names the schema in the generated OpenAPI document, so an entity
+// reused across endpoints is described once under components.schemas instead of
+// being inlined at each of them. Ids must stay unique across the shared package.
+export const disciplineSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    icon: z.string().nullish(),
+    scoreInstructions: z.string().nullish(),
+    teamInteractionMode: z.enum(TEAM_INTERACTION_MODES).nullish(),
+  })
+  .meta({ id: "Discipline" });
+
+export type Discipline = z.infer<typeof disciplineSchema>;
+
+export const disciplineListSchema = z.array(disciplineSchema);
+
+/** Option list served by GET /disciplines/interaction-modes, labels already translated. */
+export const teamInteractionModeOptionSchema = z
+  .object({
+    value: z.enum(TEAM_INTERACTION_MODES),
+    label: z.string(),
+  })
+  .meta({ id: "TeamInteractionModeOption" });
+
+export type TeamInteractionModeOption = z.infer<typeof teamInteractionModeOptionSchema>;
 
 export interface CreateDisciplineInput {
   name: string;

@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // ============================================
 // Export all shared types
 // ============================================
@@ -26,6 +28,7 @@ export * from "./ranked";
 export * from "./rewind";
 export * from "./tournament-stats";
 export * from "./organization";
+export * from "./app-config";
 
 // ============================================
 // Types utilitaires
@@ -51,6 +54,33 @@ export interface ApiError {
   code?: string;
   details?: unknown;
 }
+
+/**
+ * The envelope every failed API response uses, produced by the backend error
+ * handler. `code` is an I18n key: the same failure carries the same code whatever
+ * the requested language, and `message` is that code rendered in it.
+ */
+export const apiErrorResponseSchema = z
+  .object({
+    error: z.object({
+      code: z.string(),
+      message: z.string(),
+      details: z.record(z.string(), z.unknown()).optional(),
+    }),
+  })
+  .meta({ id: "ApiError" });
+
+export type ApiErrorResponse = z.infer<typeof apiErrorResponseSchema>;
+
+/** Acknowledgement returned by endpoints whose only outcome is "it worked". */
+export const mutationResultSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string().optional(),
+  })
+  .meta({ id: "MutationResult" });
+
+export type MutationResult = z.infer<typeof mutationResultSchema>;
 
 // ============================================
 // Utility types for date transformation

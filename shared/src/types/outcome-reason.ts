@@ -4,20 +4,25 @@ import { z } from "zod";
 // Types and interfaces for outcome reasons
 // ============================================
 
-export interface OutcomeReason {
-  id: string;
-  outcomeTypeId: string;
-  name: string;
-  outcomeType?: {
-    id: string;
-    disciplineId: string;
-    name: string;
-    discipline?: {
-      id: string;
-      name: string;
-    };
-  };
-}
+export const outcomeReasonSchema = z
+  .object({
+    id: z.string(),
+    outcomeTypeId: z.string(),
+    name: z.string(),
+    outcomeType: z
+      .object({
+        id: z.string(),
+        disciplineId: z.string(),
+        name: z.string(),
+        discipline: z.object({ id: z.string(), name: z.string() }).optional(),
+      })
+      .optional(),
+  })
+  .meta({ id: "OutcomeReason" });
+
+export type OutcomeReason = z.infer<typeof outcomeReasonSchema>;
+
+export const outcomeReasonListSchema = z.array(outcomeReasonSchema);
 
 export interface CreateOutcomeReasonInput {
   outcomeTypeId: string;

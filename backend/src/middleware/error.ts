@@ -52,7 +52,11 @@ export async function errorHandler(err: Error, c: Context) {
     );
   }
 
-  // Handle Zod validation errors
+  // Handle Zod validation errors.
+  // Only reachable for an error thrown by .parse()/.parseAsync(): Zod 4's exported
+  // ZodError does not extend Error, and Hono's compose rethrows anything failing
+  // `instanceof Error` rather than routing it here. Request validation therefore
+  // raises a BadRequestError instead — see api/validator.ts.
   if (err instanceof ZodError) {
     const message = t("errors.VALIDATION_ERROR");
     const validationIssues = err.issues.map((e: ZodIssue) => ({

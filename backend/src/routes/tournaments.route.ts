@@ -1,4 +1,6 @@
-import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
 import { tournamentService } from "../services/tournament.service";
 import { organizationService } from "../services/organization.service";
 import { standingsService } from "../services/standings.service";
@@ -12,7 +14,19 @@ import {
   joinTournamentSchema,
   adminAddParticipantSchema,
 } from "../schemas/tournament.schema";
-import { generateBracketSchema } from "@skol-arena/shared";
+import {
+  generateBracketSchema,
+  baseTournamentSchema,
+  tournamentWithStatsListSchema,
+  joinTournamentResponseSchema,
+  participantListItemSchema,
+  standingsResultSchema,
+  tournamentStatsSchema,
+  bracketDataSchema,
+  canGenerateBracketResponseSchema,
+  availableBadgeSchema,
+  mutationResultSchema,
+} from "@skol-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
 import { createAppHono } from "../types/hono";
@@ -23,6 +37,16 @@ import { rulesService } from "../services/rules.service";
 import { enqueueMmrSeasonRecalculation } from "../services/mmr-job-queue.service";
 
 const tournaments = createAppHono();
+
+const TAGS = ["Tournaments"];
+const BRACKET_TAGS = ["Brackets"];
+
+/**
+ * Rejects a malformed tournament id before any query runs. Previously each route
+ * repeated the same regex and answered with an ad-hoc body; going through the
+ * validator gives them all the canonical error envelope instead.
+ */
+const tournamentIdParam = validate("param", z.object({ id: z.uuid() }));
 
 async function assertTournamentAccess(
   betterAuthUserId: string | null | undefined,
@@ -53,7 +77,13 @@ async function assertTournamentAccess(
 tournaments.post(
   "/",
   requireAuth,
-  zValidator("json", createTournamentRequestSchema),
+  describe({
+    tags: TAGS,
+    summary: "Create a tournament",
+    auth: true,
+    success: { status: 201, description: "Tournament created", schema: baseTournamentSchema },
+  }),
+  validate("json", createTournamentRequestSchema),
   async (c) => {
     const appUserId = c.get("appUserId");
     const data = c.req.valid("json");
@@ -70,7 +100,18 @@ tournaments.post(
 // GET /tournaments - List all tournaments (with filters)
 tournaments.get(
   "/",
-  zValidator("query", listTournamentsQuerySchema),
+  describe({
+    tags: TAGS,
+    summary: "List tournaments",
+    description:
+      "Tournaments scoped to an organization are only listed for its members; " +
+      "signing in therefore widens the result.",
+    success: {
+      description: "Tournaments matching the filters, with participation counts",
+      schema: tournamentWithStatsListSchema,
+    },
+  }),
+  validate("query", listTournamentsQuerySchema),
   async (c) => {
     const filters = c.req.valid("query");
     const betterAuthUser = c.get("user");
@@ -86,27 +127,61 @@ tournaments.get(
 );
 
 // GET /tournaments/:id - Get single tournament
-tournaments.get("/:id", async (c) => {
-  const id = c.req.param("id")!;
-  await assertTournamentAccess(c.get("user")?.id, id);
-  const tournament = await tournamentService.getTournamentById(id);
-  return c.json(tournament);
-});
+tournaments.get(
+  "/:id",
+  describe({
+    tags: TAGS,
+    summary: "Get a tournament",
+    role: true,
+    notFound: true,
+    success: { description: "The tournament", schema: baseTournamentSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const id = c.req.param("id")!;
+    await assertTournamentAccess(c.get("user")?.id, id);
+    const tournament = await tournamentService.getTournamentById(id);
+    return c.json(tournament);
+  }
+);
 
 // GET /tournaments/:id/available-badges - badges earnable in this tournament
-tournaments.get("/:id/available-badges", async (c) => {
-  const id = c.req.param("id")!;
-  await assertTournamentAccess(c.get("user")?.id, id);
-  const tournament = await tournamentService.getTournamentById(id);
-  const badges = await rulesService.listAvailableBadges(tournament?.disciplineId ?? null);
-  return c.json({ badges });
-});
+tournaments.get(
+  "/:id/available-badges",
+  describe({
+    tags: TAGS,
+    summary: "List the badges earnable in a tournament",
+    role: true,
+    notFound: true,
+    success: {
+      description: "Badges reachable given the tournament's discipline",
+      schema: z.object({ badges: z.array(availableBadgeSchema) }),
+    },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const id = c.req.param("id")!;
+    await assertTournamentAccess(c.get("user")?.id, id);
+    const tournament = await tournamentService.getTournamentById(id);
+    const badges = await rulesService.listAvailableBadges(tournament?.disciplineId ?? null);
+    return c.json({ badges });
+  }
+);
 
 // PATCH /tournaments/:id - Update tournament
 tournaments.patch(
   "/:id",
   requireAuth,
-  zValidator("json", updateTournamentSchema),
+  describe({
+    tags: TAGS,
+    summary: "Update a tournament",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "The updated tournament", schema: baseTournamentSchema },
+  }),
+  tournamentIdParam,
+  validate("json", updateTournamentSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -126,7 +201,17 @@ tournaments.patch(
 tournaments.patch(
   "/:id/status",
   requireAuth,
-  zValidator("json", changeTournamentStatusSchema),
+  describe({
+    tags: TAGS,
+    summary: "Change a tournament's status",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The tournament in its new status", schema: baseTournamentSchema },
+  }),
+  tournamentIdParam,
+  validate("json", changeTournamentStatusSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -143,28 +228,48 @@ tournaments.patch(
 );
 
 // DELETE /tournaments/:id - Delete tournament
-tournaments.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+tournaments.delete(
+  "/:id",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Delete a tournament",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Deletion outcome", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  const result = await tournamentService.deleteTournament(id, appUserId);
-  return c.json(result);
-});
+    const result = await tournamentService.deleteTournament(id, appUserId);
+    return c.json(result);
+  }
+);
 
 // POST /tournaments/:id/participants - Join tournament
 tournaments.post(
   "/:id/participants",
   requireAuth,
-  zValidator("json", joinTournamentSchema),
+  describe({
+    tags: TAGS,
+    summary: "Join a tournament",
+    auth: true,
+    notFound: true,
+    conflict: true,
+    success: {
+      status: 201,
+      description: "The participation that was created",
+      schema: joinTournamentResponseSchema,
+    },
+  }),
+  tournamentIdParam,
+  validate("json", joinTournamentSchema),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
-
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(tournamentId)) {
-      return c.json({ error: "ID de tournoi invalide" }, 400);
-    }
 
     const participation = await tournamentService.joinTournament(appUserId, {
       tournamentId,
@@ -178,7 +283,22 @@ tournaments.post(
 tournaments.post(
   "/:id/participants/add",
   requireAuth,
-  zValidator("json", adminAddParticipantSchema),
+  describe({
+    tags: TAGS,
+    summary: "Add a participant to a tournament",
+    description: "Admin counterpart of joining: enters another user into the tournament.",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: {
+      status: 201,
+      description: "The participation that was created",
+      schema: joinTournamentResponseSchema,
+    },
+  }),
+  tournamentIdParam,
+  validate("json", adminAddParticipantSchema),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -195,117 +315,193 @@ tournaments.post(
 );
 
 // DELETE /tournaments/:id/participants/:userId - Admin removes a participant
-tournaments.delete("/:id/participants/:userId", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const targetUserId = c.req.param("userId")!;
-  const appUserId = c.get("appUserId");
+tournaments.delete(
+  "/:id/participants/:userId",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Remove a participant from a tournament",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "Removal outcome", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const targetUserId = c.req.param("userId")!;
+    const appUserId = c.get("appUserId");
 
-  const result = await tournamentService.adminRemoveParticipant(
-    appUserId,
-    tournamentId,
-    targetUserId
-  );
+    const result = await tournamentService.adminRemoveParticipant(
+      appUserId,
+      tournamentId,
+      targetUserId
+    );
 
-  return c.json(result);
-});
+    return c.json(result);
+  }
+);
 
 // DELETE /tournaments/:id/participants - Leave tournament
-tournaments.delete("/:id/participants", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+tournaments.delete(
+  "/:id/participants",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Leave a tournament",
+    auth: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "Departure outcome", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(tournamentId)) {
-    return c.json({ error: "ID de tournoi invalide" }, 400);
+    const result = await tournamentService.leaveTournament(
+      appUserId,
+      tournamentId
+    );
+
+    return c.json(result);
   }
-
-  const result = await tournamentService.leaveTournament(
-    appUserId,
-    tournamentId
-  );
-
-  return c.json(result);
-});
+);
 
 // GET /tournaments/:id/participants - Get tournament participants
-tournaments.get("/:id/participants", async (c) => {
-  const tournamentId = c.req.param("id")!;
+tournaments.get(
+  "/:id/participants",
+  describe({
+    tags: TAGS,
+    summary: "List a tournament's participants",
+    role: true,
+    notFound: true,
+    success: {
+      description: "Participants with their user profile",
+      schema: z.array(participantListItemSchema),
+    },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
 
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(tournamentId)) {
-    return c.json({ error: "ID de tournoi invalide" }, 400);
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const participants = await tournamentService.getTournamentParticipants(tournamentId);
+    return c.json(participants);
   }
-
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const participants = await tournamentService.getTournamentParticipants(tournamentId);
-  return c.json(participants);
-});
+);
 
 // GET /tournaments/:id/standings/official
-tournaments.get("/:id/standings/official", async (c) => {
-  const tournamentId = c.req.param("id")!;
+tournaments.get(
+  "/:id/standings/official",
+  describe({
+    tags: TAGS,
+    summary: "Get official standings",
+    description: "Finalized matches only. Cached; see DELETE /tournaments/{id}/cache.",
+    role: true,
+    notFound: true,
+    success: { description: "The official standings", schema: standingsResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
 
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(tournamentId)) {
-    return c.json({ error: "ID de tournoi invalide" }, 400);
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const standings = await standingsService.getOfficialStandings(tournamentId);
+    return c.json(standings);
   }
-
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const standings = await standingsService.getOfficialStandings(tournamentId);
-  return c.json(standings);
-});
+);
 
 // GET /tournaments/:id/standings/provisional
-tournaments.get("/:id/standings/provisional", async (c) => {
-  const tournamentId = c.req.param("id")!;
+tournaments.get(
+  "/:id/standings/provisional",
+  describe({
+    tags: TAGS,
+    summary: "Get provisional standings",
+    description: "Includes matches that are reported but not yet finalized.",
+    role: true,
+    notFound: true,
+    success: { description: "The provisional standings", schema: standingsResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
 
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(tournamentId)) {
-    return c.json({ error: "ID de tournoi invalide" }, 400);
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const standings = await standingsService.getProvisionalStandings(tournamentId);
+    return c.json(standings);
   }
-
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const standings = await standingsService.getProvisionalStandings(tournamentId);
-  return c.json(standings);
-});
+);
 
 // GET /tournaments/:id/stats
-tournaments.get("/:id/stats", async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(tournamentId)) {
-    return c.json({ error: "ID de tournoi invalide" }, 400);
+tournaments.get(
+  "/:id/stats",
+  describe({
+    tags: TAGS,
+    summary: "Get tournament statistics",
+    role: true,
+    notFound: true,
+    success: { description: "Aggregated statistics and leaderboards", schema: tournamentStatsSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const stats = await tournamentStatsService.getStats(tournamentId);
+    return c.json(stats);
   }
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const stats = await tournamentStatsService.getStats(tournamentId);
-  return c.json(stats);
-});
+);
 
 // DELETE /tournaments/:id/cache
-tournaments.delete("/:id/cache", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
-  await standingsService.clearCache(tournamentId, appUserId);
-  await playerStatsService.invalidateCacheForTournament(tournamentId);
-  return c.json({ success: true });
-});
+tournaments.delete(
+  "/:id/cache",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Clear cached standings and player stats",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Cache cleared", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
+    await standingsService.clearCache(tournamentId, appUserId);
+    await playerStatsService.invalidateCacheForTournament(tournamentId);
+    return c.json({ success: true });
+  }
+);
 
 // POST /tournaments/:id/recalculate-points
-tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
-  const result = await standingsService.recalculatePoints(tournamentId, appUserId);
-  const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
-  if (rankedConfig) {
-    await enqueueMmrSeasonRecalculation(tournamentId);
+tournaments.post(
+  "/:id/recalculate-points",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Recalculate awarded points",
+    description:
+      "Replays point attribution across the tournament. On a ranked tournament this " +
+      "also queues an MMR season recalculation, which completes asynchronously.",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Recalculation outcome", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
+    const result = await standingsService.recalculatePoints(tournamentId, appUserId);
+    const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
+    if (rankedConfig) {
+      await enqueueMmrSeasonRecalculation(tournamentId);
+    }
+    return c.json(result);
   }
-  return c.json(result);
-});
+);
 
 // ============================================
 // Bracket Routes
@@ -315,7 +511,17 @@ tournaments.post("/:id/recalculate-points", requireAuth, async (c) => {
 tournaments.post(
   "/:id/bracket",
   requireAuth,
-  zValidator("json", generateBracketSchema),
+  describe({
+    tags: BRACKET_TAGS,
+    summary: "Generate a bracket",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { status: 201, description: "The generated bracket", schema: bracketDataSchema },
+  }),
+  tournamentIdParam,
+  validate("json", generateBracketSchema),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const appUserId = c.get("appUserId");
@@ -332,34 +538,74 @@ tournaments.post(
 );
 
 // GET /tournaments/:id/bracket
-tournaments.get("/:id/bracket", async (c) => {
-  const tournamentId = c.req.param("id")!;
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const bracket = await bracketService.getBracketData(tournamentId);
+tournaments.get(
+  "/:id/bracket",
+  describe({
+    tags: BRACKET_TAGS,
+    summary: "Get a tournament's bracket",
+    role: true,
+    notFound: true,
+    success: { description: "Config, rounds, seeds and matches", schema: bracketDataSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const bracket = await bracketService.getBracketData(tournamentId);
 
-  if (!bracket) {
-    return c.json({ error: "No bracket found for this tournament" }, 404);
+    if (!bracket) {
+      return c.json({ error: "No bracket found for this tournament" }, 404);
+    }
+
+    return c.json(bracket);
   }
-
-  return c.json(bracket);
-});
+);
 
 // GET /tournaments/:id/bracket/can-generate
-tournaments.get("/:id/bracket/can-generate", async (c) => {
-  const tournamentId = c.req.param("id")!;
-  await assertTournamentAccess(c.get("user")?.id, tournamentId);
-  const result = await bracketService.canGenerateBracket(tournamentId);
-  return c.json(result);
-});
+tournaments.get(
+  "/:id/bracket/can-generate",
+  describe({
+    tags: BRACKET_TAGS,
+    summary: "Check whether a bracket can be generated",
+    description: "Answers 200 with canGenerate false and a reason rather than failing.",
+    role: true,
+    notFound: true,
+    success: {
+      description: "Whether generation is possible, and why not if it is not",
+      schema: canGenerateBracketResponseSchema,
+    },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    await assertTournamentAccess(c.get("user")?.id, tournamentId);
+    const result = await bracketService.canGenerateBracket(tournamentId);
+    return c.json(result);
+  }
+);
 
 // DELETE /tournaments/:id/bracket
-tournaments.delete("/:id/bracket", requireAuth, async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
+tournaments.delete(
+  "/:id/bracket",
+  requireAuth,
+  describe({
+    tags: BRACKET_TAGS,
+    summary: "Delete a bracket",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "Deletion outcome", schema: mutationResultSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
 
-  await bracketService.deleteBracket(tournamentId, appUserId);
+    await bracketService.deleteBracket(tournamentId, appUserId);
 
-  return c.json({ success: true, message: "Bracket deleted successfully" });
-});
+    return c.json({ success: true, message: "Bracket deleted successfully" });
+  }
+);
 
 export default tournaments;

@@ -3,11 +3,26 @@ import { convertStringDatesToJS } from '@/utils/DateUtils'
 import { NETWORK_ERROR, isTransientStatus } from '@/utils/HttpErrors'
 export const apiBaseURL = import.meta.env.DEV ? 'http://localhost:3000' : window.location.origin
 
+/**
+ * Major version of the backend API this client is built against, sent on every
+ * request. Hardcoded on purpose: it is not the app version, and a release must
+ * never silently move a client onto a new API major. Bump it only when the client
+ * has been adapted to that major — the server keeps serving the old one meanwhile.
+ */
+export const API_VERSION = 'v1'
+export const API_VERSION_HEADER = 'accept-version'
+
 const baseURL = apiBaseURL
 
 const http = xior.create({
   baseURL,
   credentials: 'include',
+})
+
+http.interceptors.request.use((config) => {
+  config.headers = { ...config.headers, [API_VERSION_HEADER]: API_VERSION }
+
+  return config
 })
 
 http.interceptors.response.use(

@@ -1,25 +1,47 @@
-import { zValidator } from "@hono/zod-validator";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
 import { gameRulesService } from "../services/game-rules.service";
 import {
   createGameRuleSchema,
   updateGameRuleSchema,
+  gameRuleSchema,
+  gameRuleListSchema,
+  mutationResultSchema,
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
 
 const gameRules = createAppHono();
 
+const TAGS = ["Game rules"];
+
 // GET /game-rules - List all game rules (auth required)
-gameRules.get("/", requireAuth, async (c) => {
-  const rules = await gameRulesService.listGameRules();
-  return c.json(rules);
-});
+gameRules.get(
+  "/",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "List game rules",
+    auth: true,
+    success: { description: "Every game rule", schema: gameRuleListSchema },
+  }),
+  async (c) => {
+    const rules = await gameRulesService.listGameRules();
+    return c.json(rules);
+  }
+);
 
 // POST /game-rules - Create a new game rule
 gameRules.post(
   "/",
   requireAuth,
-  zValidator("json", createGameRuleSchema),
+  describe({
+    tags: TAGS,
+    summary: "Create a game rule",
+    auth: true,
+    success: { status: 201, description: "Game rule created", schema: gameRuleSchema },
+  }),
+  validate("json", createGameRuleSchema),
   async (c) => {
     const data = c.req.valid("json");
     const appUserId = c.get("appUserId");
@@ -32,17 +54,34 @@ gameRules.post(
 );
 
 // GET /game-rules/:id - Get single game rule (public)
-gameRules.get("/:id", async (c) => {
-  const id = c.req.param("id")!;
-  const rule = await gameRulesService.getGameRuleById(id);
-  return c.json(rule);
-});
+gameRules.get(
+  "/:id",
+  describe({
+    tags: TAGS,
+    summary: "Get a game rule",
+    notFound: true,
+    success: { description: "The game rule", schema: gameRuleSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const rule = await gameRulesService.getGameRuleById(id);
+    return c.json(rule);
+  }
+);
 
 // PATCH /game-rules/:id - Update game rule
 gameRules.patch(
   "/:id",
   requireAuth,
-  zValidator("json", updateGameRuleSchema),
+  describe({
+    tags: TAGS,
+    summary: "Update a game rule",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "The updated game rule", schema: gameRuleSchema },
+  }),
+  validate("json", updateGameRuleSchema),
   async (c) => {
     const id = c.req.param("id")!;
     const data = c.req.valid("json");
@@ -53,11 +92,23 @@ gameRules.patch(
 );
 
 // DELETE /game-rules/:id - Delete game rule
-gameRules.delete("/:id", requireAuth, async (c) => {
-  const id = c.req.param("id")!;
-  const appUserId = c.get("appUserId");
-  await gameRulesService.deleteGameRule(id, appUserId);
-  return c.json({ success: true });
-});
+gameRules.delete(
+  "/:id",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Delete a game rule",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Deletion outcome", schema: mutationResultSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const appUserId = c.get("appUserId");
+    await gameRulesService.deleteGameRule(id, appUserId);
+    return c.json({ success: true });
+  }
+);
 
 export default gameRules;

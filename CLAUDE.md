@@ -66,10 +66,11 @@ skol-arena/
 
 ### Backend Layered Architecture (Routes → Services → Repositories)
 
-- **Routes** (`backend/src/routes/`): HTTP handling only, delegate to services. Use `@hono/zod-validator` for validation.
+- **Routes** (`backend/src/routes/`): HTTP handling only, delegate to services. Use `validate()` from `backend/src/api/validator.ts` and `describe()` from `backend/src/api/describe.ts`.
 - **Services** (`backend/src/services/`): Business logic, no HTTP concerns
 - **Repositories** (`backend/src/repository/`): Database operations only (Drizzle ORM)
 - **Errors**: Use I18n keys for user-facing error messages
+- **API layer** (`backend/src/api/`): version negotiation, route manifest, OpenAPI — see below
 
 ### Frontend Layer Pattern (Components → Services → API)
 
@@ -133,13 +134,59 @@ Search is **Pagefind** (`astro-pagefind` integration), indexing the built HTML:
 ### Validation
 
 - Use Zod schemas from `@skol-arena/shared` for all validation
-- Backend routes use `zValidator` middleware from `@hono/zod-validator`
+- Backend routes use `validate()` from `backend/src/api/validator.ts`, never `zValidator`
+  or `hono-openapi`'s `validator` directly: the wrapper registers the schema with the
+  OpenAPI generator and converts a failure into the canonical error envelope
+- **Never throw a `ZodError`.** Zod 4's exported `ZodError` does not extend `Error`, and
+  Hono's `compose` rethrows anything failing `instanceof Error` instead of routing it to
+  `app.onError` — it escapes the app and surfaces as a crash page. Throw an `AppError`
+  subclass instead
 
 ### Testing
 
 - Backend: Bun's built-in test runner
 - Frontend: Vitest
 - Test files in `__tests__/` directories alongside source files
+
+### API versioning (`backend/src/api/`)
+
+The HTTP API has its own major version, **independent of `VERSION` / `MIN_VERSION`**.
+Clients negotiate it with the `accept-version` request header; the resolved version comes
+back in `X-API-VERSION`. No header means latest, an unknown one is a `400`.
+
+The version never appears in a URL. `withApiVersion` (`api/dispatch.ts`) rewrites
+`/api/…` onto an internal `/__api/<version>/…` prefix at the fetch boundary so Hono's own
+router does the dispatch; that prefix is unreachable from outside. `/api/auth/*`,
+`/api/ws`, `/api/docs` and `/api/openapi/*` are exempt.
+
+Route modules in `backend/src/routes/` are **not** duplicated per version — they are
+shared by reference. Only the manifest in `api/registry.ts` is per-version.
+
+**To add a version:**
+
+1. Add it to `API_VERSIONS` and move `LATEST_API_VERSION` in `api/versions.ts`
+2. Add a `VERSION_MOUNTS` entry in `api/registry.ts` via `withOverrides(BASE_MOUNTS, …)`,
+   naming only the routers whose behaviour actually changed
+3. Bump `API_VERSION` in `frontend/src/config/ApiConfig.ts` only once the client has been
+   adapted — the server keeps serving the old major meanwhile
+
+### OpenAPI and Scalar
+
+The spec is generated from the live route table by `hono-openapi`, so a route that exists
+is a route that is documented. Scalar is served at `/api/docs`, specs at
+`/api/openapi/:version.json`, both gated by `API_DOCS_ENABLED` (on in dev, off in prod).
+
+- Request schemas come free from `validate()`; response shape and prose come from
+  `describe()`. Shared failure responses are declared once in `api/openapi.ts` and
+  `$ref`-ed, never repeated per route
+- Response schemas live in `shared/`, are **the source of truth for their TS type**
+  (`export type X = z.infer<typeof xSchema>`), and are documentation-only — never run
+  against a response at runtime
+- Tag a reusable schema with `.meta({ id: "Name" })` so it lands in `components.schemas`
+  instead of being inlined at each use. Ids must be unique across the shared package
+- Model the **wire** shape: `z.iso.datetime()` where the existing interface said `string`,
+  `z.date()` where it said `Date` (a payload the frontend interceptor has already
+  revived). Both render as `string`/`date-time` in the spec
 
 ### Releasing a blocking update
 

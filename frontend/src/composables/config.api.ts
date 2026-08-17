@@ -1,8 +1,7 @@
 import http from '@/config/ApiConfig'
+import type { AppConfig } from '@skol-arena/shared/types/index'
 
-export interface AppConfig {
-  vapidPublicKey: string | null
-}
+export type { AppConfig }
 
 export const configApi = {
   async getConfig(): Promise<AppConfig> {

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { auth } from "../config/auth";
+import type { ApiVersion } from "../api/versions";
 
 /**
  * Common type for Hono context variables
@@ -9,6 +10,8 @@ export type AppVariables = {
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string;
   lang: string;
+  /** Major API version resolved from the accept-version header. */
+  apiVersion: ApiVersion;
 };
 
 /**
@@ -19,6 +22,8 @@ export type AppVariablesOptional = {
   session: typeof auth.$Infer.Session.session | null;
   appUserId: string | null;
   lang: string;
+  /** Major API version resolved from the accept-version header. */
+  apiVersion: ApiVersion;
 };
 
 /**

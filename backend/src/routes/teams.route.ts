@@ -1,25 +1,51 @@
-import { zValidator } from "@hono/zod-validator";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
 import { z } from "zod";
 import { teamService } from "../services/team.service";
 import { tournamentService } from "../services/tournament.service";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
-import { createTeamSchema } from "@skol-arena/shared/types/index";
+import {
+  createTeamSchema,
+  clientTeamSchema,
+  clientTeamListSchema,
+  mutationResultSchema,
+} from "@skol-arena/shared/types/index";
 
 const teams = createAppHono();
 
+const TAGS = ["Teams"];
+
 // GET /tournaments/:id/teams - List teams (public)
-teams.get("/:id/teams", async (c) => {
-  const tournamentId = c.req.param("id")!;
-  const result = await teamService.listTeams(tournamentId);
-  return c.json(result);
-});
+teams.get(
+  "/:id/teams",
+  describe({
+    tags: TAGS,
+    summary: "List a tournament's teams",
+    notFound: true,
+    success: { description: "Teams in the tournament", schema: clientTeamListSchema },
+  }),
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const result = await teamService.listTeams(tournamentId);
+    return c.json(result);
+  }
+);
 
 // POST /tournaments/:id/teams - Create a team (auth required)
 teams.post(
   "/:id/teams",
   requireAuth,
-  zValidator("json", createTeamSchema),
+  describe({
+    tags: TAGS,
+    summary: "Create a team",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { status: 201, description: "Team created", schema: clientTeamSchema },
+  }),
+  validate("json", createTeamSchema),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const { name } = c.req.valid("json");
@@ -34,7 +60,18 @@ teams.post(
 teams.post(
   "/:id/teams/:teamId/join",
   requireAuth,
-  zValidator("json", z.object({ userId: z.string().uuid().optional() })),
+  describe({
+    tags: TAGS,
+    summary: "Join a team",
+    description:
+      "Joins as the signed-in user unless userId is given, which only an admin may do.",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The team after the join", schema: clientTeamSchema },
+  }),
+  validate("json", z.object({ userId: z.string().uuid().optional() })),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const teamId = c.req.param("teamId")!;
@@ -51,13 +88,25 @@ teams.post(
 teams.delete(
   "/:id/teams/:teamId/leave",
   requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Leave a team",
+    description:
+      "Removes the signed-in user unless the userId query parameter is given, " +
+      "which only an admin may do.",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: { description: "Removal outcome", schema: mutationResultSchema },
+  }),
+  validate("query", z.object({ userId: z.string().uuid().optional() })),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const teamId = c.req.param("teamId")!;
     const appUserId = c.get("appUserId")!;
-    const userId = c.req.query("userId") ?? appUserId;
+    const { userId } = c.req.valid("query");
     const isAdmin = await tournamentService.canManageTournament(tournamentId, appUserId);
-    await teamService.leaveTeam(teamId, userId, appUserId, isAdmin);
+    await teamService.leaveTeam(teamId, userId ?? appUserId, appUserId, isAdmin);
     return c.json({ success: true });
   },
 );
@@ -66,6 +115,15 @@ teams.delete(
 teams.delete(
   "/:id/teams/:teamId",
   requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Delete a team",
+    auth: true,
+    role: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "Deletion outcome", schema: mutationResultSchema },
+  }),
   async (c) => {
     const tournamentId = c.req.param("id")!;
     const teamId = c.req.param("teamId")!;

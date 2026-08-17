@@ -1,18 +1,33 @@
-import { zValidator } from "@hono/zod-validator";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
 import { createAppHono } from "../types/hono";
 import { invitationService } from "../services/invitation.service";
 import { organizationService } from "../services/organization.service";
 import { requireAuth } from "../middleware/auth";
 import {
   validateInvitationCodeSchema,
-  consumeInvitationCodeSchema
+  consumeInvitationCodeSchema,
+  invitationValidationSchema,
+  invitationConsumptionSchema,
+  organizationJoinSchema,
 } from "@skol-arena/shared/schemas/invitation.schema";
 
 const invitations = createAppHono();
 
+const TAGS = ["Invitations"];
+
 invitations.post(
   "/validate",
-  zValidator("json", validateInvitationCodeSchema),
+  describe({
+    tags: TAGS,
+    summary: "Check an invitation code",
+    description:
+      "Pre-flight check before sign-up. Fails with the reason the code cannot be " +
+      "used: expired, exhausted, deactivated or unknown.",
+    notFound: true,
+    success: { description: "The code is usable", schema: invitationValidationSchema },
+  }),
+  validate("json", validateInvitationCodeSchema),
   async (c) => {
     const { code } = c.req.valid("json");
     const result = await invitationService.validateCode(code);
@@ -22,7 +37,17 @@ invitations.post(
 
 invitations.post(
   "/consume",
-  zValidator("json", consumeInvitationCodeSchema),
+  describe({
+    tags: TAGS,
+    summary: "Redeem an invitation code",
+    description:
+      "Turns an authenticated Better Auth identity into an app user. Requires a " +
+      "session but not an app profile, which is what this endpoint creates.",
+    auth: true,
+    notFound: true,
+    success: { description: "The app user that was created", schema: invitationConsumptionSchema },
+  }),
+  validate("json", consumeInvitationCodeSchema),
   async (c) => {
     const betterAuthUser = c.get("user");
 
@@ -51,7 +76,15 @@ invitations.post(
 invitations.post(
   "/join-organization",
   requireAuth,
-  zValidator("json", validateInvitationCodeSchema),
+  describe({
+    tags: TAGS,
+    summary: "Join an organization with a code",
+    auth: true,
+    notFound: true,
+    conflict: true,
+    success: { description: "The organization that was joined", schema: organizationJoinSchema },
+  }),
+  validate("json", validateInvitationCodeSchema),
   async (c) => {
     const appUserId = c.get("appUserId");
     const betterAuthUser = c.get("user")!;

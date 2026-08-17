@@ -31,6 +31,7 @@
   "errors": {
     "UNKNOWN": "Une erreur inattendue s'est produite",
     "VALIDATION_ERROR": "Erreur de validation",
+    "UNSUPPORTED_API_VERSION": "Version d'API « {{requested}} » non supportée. Versions disponibles : {{supported}}.",
     "NOT_FOUND": "Ressource non trouvée",
     "TOURNAMENT_NOT_FOUND": "Tournoi non trouvé",
     "MATCH_NOT_FOUND": "Match non trouvé",

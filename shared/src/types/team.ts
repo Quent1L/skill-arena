@@ -5,23 +5,37 @@ import { type TournamentAdminRole } from "./enums";
 // Types and interfaces for static teams
 // ============================================
 
-export interface ClientTeamMember {
-  id: string;
-  teamId: string;
-  userId: string;
-  joinedAt: string;
-  user: { id: string; displayName: string; shortName: string };
-}
+export const clientTeamMemberSchema = z
+  .object({
+    id: z.string(),
+    teamId: z.string(),
+    userId: z.string(),
+    joinedAt: z.iso.datetime(),
+    user: z.object({
+      id: z.string(),
+      displayName: z.string(),
+      shortName: z.string(),
+    }),
+  })
+  .meta({ id: "TeamMember" });
 
-export interface ClientTeam {
-  id: string;
-  tournamentId: string;
-  name: string;
-  createdBy: string;
-  createdAt: string;
-  members: ClientTeamMember[];
-  hasMatch: boolean;
-}
+export type ClientTeamMember = z.infer<typeof clientTeamMemberSchema>;
+
+export const clientTeamSchema = z
+  .object({
+    id: z.string(),
+    tournamentId: z.string(),
+    name: z.string(),
+    createdBy: z.string(),
+    createdAt: z.iso.datetime(),
+    members: z.array(clientTeamMemberSchema),
+    hasMatch: z.boolean(),
+  })
+  .meta({ id: "Team" });
+
+export type ClientTeam = z.infer<typeof clientTeamSchema>;
+
+export const clientTeamListSchema = z.array(clientTeamSchema);
 
 export const createTeamSchema = z.object({
   name: z.string().min(1).max(50),

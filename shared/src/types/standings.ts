@@ -1,36 +1,48 @@
-import type { VictoryQualityDetail } from "./outcome-type";
+import { z } from "zod";
+import { victoryQualityDetailSchema } from "./outcome-type";
 
 // ============================================
 // Types and interfaces for standings
 // ============================================
 
-export interface HeadToHeadRecord {
-  wins: number;
-  draws: number;
-  losses: number;
-}
+export const headToHeadRecordSchema = z
+  .object({
+    wins: z.number(),
+    draws: z.number(),
+    losses: z.number(),
+  })
+  .meta({ id: "HeadToHeadRecord" });
 
-export interface StandingsEntry {
-  id: string;
-  name: string;
-  shortName: string;
-  points: number;
-  wins: number;
-  draws: number;
-  losses: number;
-  scored: number;
-  conceded: number;
-  scoreDiff: number;
-  matchesPlayed: number;
-  // Tiebreaker fields
-  winLossRatio: number;
-  buchholzScore: number;
-  victoryQuality: number;
-  victoryQualityBreakdown: VictoryQualityDetail[];
-  winRate: number;
-  headToHead: Record<string, HeadToHeadRecord>;
-}
+export type HeadToHeadRecord = z.infer<typeof headToHeadRecordSchema>;
 
-export interface StandingsResult {
-  standings: StandingsEntry[];
-}
+export const standingsEntrySchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    shortName: z.string(),
+    points: z.number(),
+    wins: z.number(),
+    draws: z.number(),
+    losses: z.number(),
+    scored: z.number(),
+    conceded: z.number(),
+    scoreDiff: z.number(),
+    matchesPlayed: z.number(),
+    // Tiebreaker fields
+    winLossRatio: z.number(),
+    buchholzScore: z.number(),
+    victoryQuality: z.number(),
+    victoryQualityBreakdown: z.array(victoryQualityDetailSchema),
+    winRate: z.number(),
+    /** Keyed by opponent id. */
+    headToHead: z.record(z.string(), headToHeadRecordSchema),
+  })
+  .meta({ id: "StandingsEntry" });
+
+export type StandingsEntry = z.infer<typeof standingsEntrySchema>;
+
+export const standingsResultSchema = z
+  .object({ standings: z.array(standingsEntrySchema) })
+  .meta({ id: "StandingsResult" });
+
+export type StandingsResult = z.infer<typeof standingsResultSchema>;

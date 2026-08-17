@@ -32,6 +32,7 @@ bad deploy).
 | `LOG_FORMAT`          | Log output format: `json` or `logfmt`.                                                                                                           | No       | `json`                                                     |
 | `APP_TIMEZONE`        | Timezone used for time-of-day/day-of-week logic in the contextual rules engine.                                                                  | No       | `Europe/Paris`                                             |
 | `INITIAL_ADMIN_EMAIL` | Email address for the auto-created super-admin account. Its password is regenerated and logged on every startup until that account logs in once. | No       | `admin@skol-arena.local`                                   |
+| `API_DOCS_ENABLED`    | Serves the OpenAPI documents and the Scalar reference at `/api/docs`. Set to `"false"` to switch them off. See [API versioning](/docs/api).      | No       | on in development, off when `NODE_ENV=production`          |
 
 ## Authentication (Better Auth)
 

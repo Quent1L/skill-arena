@@ -5,129 +5,183 @@
 import { z } from "zod";
 import { tournamentModeSchema } from "./enums";
 
-export interface PlayerProfile {
-  id: string;
-  displayName: string;
-  shortName: string;
-}
+export const playerProfileSchema = z
+  .object({
+    id: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+  })
+  .meta({ id: "PlayerProfile" });
 
-export interface PlayerRelationStat {
-  playerId: string;
-  displayName: string;
-  shortName: string;
-  count: number;
-  wins: number;
-  losses: number;
-  /** Player's win rate in this relation, in percent (0-100), already rounded */
-  winRate: number;
-  chemistryDelta?: number;
-}
+export type PlayerProfile = z.infer<typeof playerProfileSchema>;
 
-export interface PlayerOutcomeTypeStat {
-  outcomeTypeId: string;
-  outcomeTypeName: string;
-  wins: number;
-  losses: number;
-  draws: number;
-  matchesPlayed: number;
-  winRate: number;
-}
+export const playerRelationStatSchema = z
+  .object({
+    playerId: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+    count: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    /** Player's win rate in this relation, in percent (0-100), already rounded */
+    winRate: z.number(),
+    chemistryDelta: z.number().optional(),
+  })
+  .meta({ id: "PlayerRelationStat" });
 
-export interface PlayerH2HStat {
-  opponentId: string;
-  displayName: string;
-  shortName: string;
-  matchesPlayed: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  winRate: number;
-}
+export type PlayerRelationStat = z.infer<typeof playerRelationStatSchema>;
 
-export interface PlayerTournamentEntry {
-  tournamentId: string;
-  tournamentName: string;
-  mode: string;
-  disciplineName?: string;
-  matchesPlayed: number;
-  wins: number;
-  draws: number;
-  losses: number;
-  points?: number;
-  rank?: number;
-}
+export const playerOutcomeTypeStatSchema = z
+  .object({
+    outcomeTypeId: z.string(),
+    outcomeTypeName: z.string(),
+    wins: z.number(),
+    losses: z.number(),
+    draws: z.number(),
+    matchesPlayed: z.number(),
+    winRate: z.number(),
+  })
+  .meta({ id: "PlayerOutcomeTypeStat" });
 
-export interface PlayerDetailStats {
-  totalMatches: number;
-  wins: number;
-  draws: number;
-  losses: number;
-  winRate: number;
-  averageScore: number;
-  tournamentsParticipated: number;
-  recentForm: Array<'V' | 'D' | 'N'>;
-  mostFrequentPartners: PlayerRelationStat[];
-  bestPartners: PlayerRelationStat[];
-  nemeses: PlayerRelationStat[];
-  outcomeTypeStats: PlayerOutcomeTypeStat[];
-  h2hStats: PlayerH2HStat[];
-  tournamentHistory: PlayerTournamentEntry[];
-}
+export type PlayerOutcomeTypeStat = z.infer<typeof playerOutcomeTypeStatSchema>;
 
-export interface PlayerStatsFilters {
-  tournamentId?: string;
-  disciplineId?: string;
-  tournamentMode?: string;
-  teamMode?: string;
-}
+export const playerH2HStatSchema = z
+  .object({
+    opponentId: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+    matchesPlayed: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    draws: z.number(),
+    winRate: z.number(),
+  })
+  .meta({ id: "PlayerH2HStat" });
 
-export interface PlayerStatsResponse {
-  player: PlayerProfile;
-  stats: PlayerDetailStats;
-  filters: PlayerStatsFilters;
-}
+export type PlayerH2HStat = z.infer<typeof playerH2HStatSchema>;
 
-export interface PlayerTournamentOption {
-  id: string;
-  name: string;
-  mode: string;
-  teamMode?: string;
-  disciplineId?: string;
-  disciplineName?: string;
-}
+export const playerTournamentEntrySchema = z
+  .object({
+    tournamentId: z.string(),
+    tournamentName: z.string(),
+    mode: z.string(),
+    disciplineName: z.string().optional(),
+    matchesPlayed: z.number(),
+    wins: z.number(),
+    draws: z.number(),
+    losses: z.number(),
+    points: z.number().optional(),
+    rank: z.number().optional(),
+  })
+  .meta({ id: "PlayerTournamentEntry" });
+
+export type PlayerTournamentEntry = z.infer<typeof playerTournamentEntrySchema>;
+
+export const playerDetailStatsSchema = z
+  .object({
+    totalMatches: z.number(),
+    wins: z.number(),
+    draws: z.number(),
+    losses: z.number(),
+    winRate: z.number(),
+    averageScore: z.number(),
+    tournamentsParticipated: z.number(),
+    /** V = win, D = loss, N = draw, most recent first. */
+    recentForm: z.array(z.enum(["V", "D", "N"])),
+    mostFrequentPartners: z.array(playerRelationStatSchema),
+    bestPartners: z.array(playerRelationStatSchema),
+    nemeses: z.array(playerRelationStatSchema),
+    outcomeTypeStats: z.array(playerOutcomeTypeStatSchema),
+    h2hStats: z.array(playerH2HStatSchema),
+    tournamentHistory: z.array(playerTournamentEntrySchema),
+  })
+  .meta({ id: "PlayerDetailStats" });
+
+export type PlayerDetailStats = z.infer<typeof playerDetailStatsSchema>;
+
+export const playerStatsFiltersResponseSchema = z
+  .object({
+    tournamentId: z.string().optional(),
+    disciplineId: z.string().optional(),
+    tournamentMode: z.string().optional(),
+    teamMode: z.string().optional(),
+  })
+  .meta({ id: "PlayerStatsFilters" });
+
+export type PlayerStatsFilters = z.infer<typeof playerStatsFiltersResponseSchema>;
+
+export const playerStatsResponseSchema = z
+  .object({
+    player: playerProfileSchema,
+    stats: playerDetailStatsSchema,
+    filters: playerStatsFiltersResponseSchema,
+  })
+  .meta({ id: "PlayerStatsResponse" });
+
+export type PlayerStatsResponse = z.infer<typeof playerStatsResponseSchema>;
+
+export const playerTournamentOptionSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    mode: z.string(),
+    teamMode: z.string().optional(),
+    disciplineId: z.string().optional(),
+    disciplineName: z.string().optional(),
+  })
+  .meta({ id: "PlayerTournamentOption" });
+
+export type PlayerTournamentOption = z.infer<typeof playerTournamentOptionSchema>;
 
 // ============================================
 // Player comparison (player vs player)
 // ============================================
 
-export interface H2HSubRecord {
-  matchesPlayed: number;
-  playerAWins: number;
-  playerBWins: number;
-  draws: number;
-  playerAWinRate: number;
-}
+export const h2hSubRecordSchema = z
+  .object({
+    matchesPlayed: z.number(),
+    playerAWins: z.number(),
+    playerBWins: z.number(),
+    draws: z.number(),
+    playerAWinRate: z.number(),
+  })
+  .meta({ id: "H2HSubRecord" });
 
-export interface PlayerHeadToHeadRecord extends H2HSubRecord {
-  solo: H2HSubRecord;
-  team: H2HSubRecord;
-}
+export type H2HSubRecord = z.infer<typeof h2hSubRecordSchema>;
 
-export interface PlayerTeamupRecord {
-  matchesPlayed: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  winRate: number; // 0-100, record of the pair when on the same side
-}
+export const playerHeadToHeadRecordSchema = h2hSubRecordSchema
+  .extend({
+    solo: h2hSubRecordSchema,
+    team: h2hSubRecordSchema,
+  })
+  .meta({ id: "PlayerHeadToHeadRecord" });
 
-export interface PlayerComparisonResponse {
-  playerA: PlayerStatsResponse;
-  playerB: PlayerStatsResponse;
-  headToHead: PlayerHeadToHeadRecord;
-  together: PlayerTeamupRecord;
-  filters: PlayerStatsFilters;
-}
+export type PlayerHeadToHeadRecord = z.infer<typeof playerHeadToHeadRecordSchema>;
+
+export const playerTeamupRecordSchema = z
+  .object({
+    matchesPlayed: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    draws: z.number(),
+    /** 0-100, record of the pair when they play on the same side. */
+    winRate: z.number(),
+  })
+  .meta({ id: "PlayerTeamupRecord" });
+
+export type PlayerTeamupRecord = z.infer<typeof playerTeamupRecordSchema>;
+
+export const playerComparisonResponseSchema = z
+  .object({
+    playerA: playerStatsResponseSchema,
+    playerB: playerStatsResponseSchema,
+    headToHead: playerHeadToHeadRecordSchema,
+    together: playerTeamupRecordSchema,
+    filters: playerStatsFiltersResponseSchema,
+  })
+  .meta({ id: "PlayerComparisonResponse" });
+
+export type PlayerComparisonResponse = z.infer<typeof playerComparisonResponseSchema>;
 
 export const playerStatsFiltersSchema = z.object({
   tournamentId: z.uuid().optional(),

@@ -1,28 +1,38 @@
 import { z } from "zod";
-import type { Discipline } from "./discipline";
+import { disciplineSchema } from "./discipline";
 
 // ============================================
 // Types and interfaces for outcome types
 // ============================================
 
-export interface OutcomeType {
-  id: string;
-  disciplineId: string;
-  name: string;
-  isDefault: boolean;
-  scoreCountsForMmr: boolean;
-  points: number;
-  mmrMultiplier: number;
-  discipline?: Discipline | null;
-}
+export const outcomeTypeSchema = z
+  .object({
+    id: z.string(),
+    disciplineId: z.string(),
+    name: z.string(),
+    isDefault: z.boolean(),
+    scoreCountsForMmr: z.boolean(),
+    points: z.number(),
+    mmrMultiplier: z.number(),
+    discipline: disciplineSchema.nullish(),
+  })
+  .meta({ id: "OutcomeType" });
 
-export interface VictoryQualityDetail {
-  outcomeTypeName: string;
-  points: number;
-  wins: number;
-  losses: number;
-  contribution: number;
-}
+export type OutcomeType = z.infer<typeof outcomeTypeSchema>;
+
+export const outcomeTypeListSchema = z.array(outcomeTypeSchema);
+
+export const victoryQualityDetailSchema = z
+  .object({
+    outcomeTypeName: z.string(),
+    points: z.number(),
+    wins: z.number(),
+    losses: z.number(),
+    contribution: z.number(),
+  })
+  .meta({ id: "VictoryQualityDetail" });
+
+export type VictoryQualityDetail = z.infer<typeof victoryQualityDetailSchema>;
 
 export interface CreateOutcomeTypeInput {
   disciplineId: string;

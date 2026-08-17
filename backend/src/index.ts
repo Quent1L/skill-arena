@@ -1,23 +1,23 @@
+import type { Context, Next } from "hono";
 import { cors } from "hono/cors";
 import { serveStatic, upgradeWebSocket, websocket } from "hono/bun";
 import { HTTPException } from "hono/http-exception";
 import { auth } from "./config/auth";
-import tournaments from "./routes/tournaments.route";
-import users from "./routes/user.route";
-import matches from "./routes/matches.route";
-import disciplines from "./routes/disciplines.route";
-import outcomeTypes from "./routes/outcome-types.route";
-import outcomeReasons from "./routes/outcome-reasons.route";
-import notifications from "./routes/notification.route";
-import config from "./routes/config.route";
-import invitations from "./routes/invitations.route";
-import adminInvitations from "./routes/admin/invitations.route";
-import adminOrganizations from "./routes/admin/organizations.route";
-import adminRules from "./routes/admin/rules.route";
-import adminUsers from "./routes/admin/users.route";
-import gameRulesRouter from "./routes/game-rules.route";
-import teamsRouter from "./routes/teams.route";
-import rankedRouter from "./routes/ranked.route";
+import { buildVersionApp } from "./api/build";
+import { assertEveryVersionMounted } from "./api/registry";
+import { mountApiDocs } from "./api/openapi";
+import {
+  INTERNAL_PREFIX,
+  PUBLIC_PREFIX,
+  UNSUPPORTED_VERSION_PATH,
+  withApiVersion,
+} from "./api/dispatch";
+import {
+  API_VERSIONS,
+  API_VERSION_REQUEST_HEADER,
+  API_VERSION_RESPONSE_HEADER,
+} from "./api/versions";
+import { BadRequestError, ErrorCode } from "./types/errors";
 import { addUserContext } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { i18nMiddleware } from "./middleware/i18n";
@@ -69,8 +69,13 @@ try {
 
 const app = createAppHonoOptional();
 
-// HTTP request logger middleware - logs at debug level
-app.use("/api/*", async (c, next) => {
+// HTTP request logger middleware - logs at debug level.
+// Matches both prefixes: version negotiation rewrites /api/... to the internal
+// per-version mount before Hono ever sees the request.
+app.use(`${PUBLIC_PREFIX}/*`, requestLogger);
+app.use(`${INTERNAL_PREFIX}/*`, requestLogger);
+
+async function requestLogger(c: Context, next: Next) {
   const method = c.req.method;
   const path = c.req.path;
   logger.debug(`<-- ${method} ${path}`);
@@ -78,7 +83,7 @@ app.use("/api/*", async (c, next) => {
   await next();
   const ms = Date.now() - start;
   logger.debug(`--> ${method} ${path} ${c.res.status} ${ms}ms`);
-});
+}
 
 // CORS configuration in development mode
 app.use(
@@ -90,7 +95,10 @@ app.use(
         : "http://localhost:5173",
     credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", API_VERSION_REQUEST_HEADER],
+    // Without this the browser hides X-API-VERSION from page scripts entirely,
+    // so a client could never read back the version it was actually served.
+    exposeHeaders: [API_VERSION_RESPONSE_HEADER],
   })
 );
 
@@ -102,49 +110,27 @@ app.use("*", addUserContext);
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-app.get("/api/user/me", (c) => {
-  const session = c.get("session");
-  const user = c.get("user");
+// OpenAPI specs and the Scalar reference. Exempt from version negotiation: they
+// describe the versions rather than living inside one.
+mountApiDocs(app);
 
-  if (!user) return c.body(null, 401);
+// Business routes live under the internal per-version prefix. Clients never see it:
+// withApiVersion() rewrites /api/... onto it from the accept-version header, and
+// refuses any request that tries to address it directly.
+assertEveryVersionMounted();
+for (const version of API_VERSIONS) {
+  app.route(`${INTERNAL_PREFIX}/${version}`, buildVersionApp(version));
+}
 
-  return c.json({
-    session,
-    user,
+// Reached only through a rewrite, when accept-version names a version we do not
+// serve. Throwing routes the refusal through errorHandler, so it gets the same
+// translated envelope as every other failure.
+app.all(UNSUPPORTED_VERSION_PATH, (c) => {
+  throw new BadRequestError(ErrorCode.UNSUPPORTED_API_VERSION, {
+    requested: c.req.header(API_VERSION_REQUEST_HEADER) ?? "",
+    supported: API_VERSIONS.join(", "),
   });
 });
-
-app.route("/api/tournaments", tournaments);
-
-app.route("/api/users", users);
-
-app.route("/api/matches", matches);
-
-app.route("/api/disciplines", disciplines);
-
-app.route("/api/outcome-types", outcomeTypes);
-
-app.route("/api/outcome-reasons", outcomeReasons);
-
-app.route("/api", notifications);
-
-app.route("/api/config", config);
-
-app.route("/api/invitations", invitations);
-
-app.route("/api/admin/invitations", adminInvitations);
-
-app.route("/api/admin/organizations", adminOrganizations);
-
-app.route("/api/admin/rules", adminRules);
-
-app.route("/api/admin/users", adminUsers);
-
-app.route("/api/game-rules", gameRulesRouter);
-
-app.route("/api/tournaments", teamsRouter);
-
-app.route("/api/ranked", rankedRouter);
 
 app.get(
   "/api/ws",
@@ -192,6 +178,16 @@ app.get(
     };
   })
 );
+
+// An unmatched API path must fail as an API path. Without this it falls through to
+// the SPA catch-all below and answers 200 text/html, which reads to a client as a
+// working endpoint returning nonsense. Registered after /api/ws so the upgrade
+// route still wins.
+const apiNotFound = (c: Context) =>
+  c.json({ error: { code: ErrorCode.NOT_FOUND, message: "Not found" } }, 404);
+
+app.all(`${INTERNAL_PREFIX}/*`, apiNotFound);
+app.all(`${PUBLIC_PREFIX}/*`, apiNotFound);
 
 // Serve static files from frontend build directory
 // Only serve if FRONTEND_BUILD_PATH is configured
@@ -282,6 +278,6 @@ if (frontendBuildPath) {
 const cronJob = startJobScheduler();
 
 export default {
-  fetch: app.fetch,
+  fetch: withApiVersion(app.fetch),
   websocket,
 };

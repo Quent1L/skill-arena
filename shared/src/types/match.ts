@@ -2,154 +2,149 @@ import { z } from "zod";
 import {
   type MatchStatus,
   type MatchFinalizationReason,
-  type MatchTeamSide,
   type TournamentStatus,
   matchStatusSchema,
   matchFinalizationReasonSchema,
+  matchTeamSideSchema,
 } from "./enums";
-import type { MatchSideModel, MatchResultModel } from "./entry";
+import { matchSideModelSchema, matchResultModelSchema } from "./entry";
 import type { HistoryMatchSide } from "./ranked";
 
 // ============================================
 // Types and interfaces for matches
 // ============================================
 
-export interface Match {
-  id: string;
-  tournamentId: string;
-  round?: number;
-  teamAId?: string;
-  teamBId?: string;
-  scoreA: number;
-  scoreB: number;
-  winnerId?: string;
-  winnerSide?: MatchTeamSide;
-  status: MatchStatus;
-  reportedBy?: string;
-  reportedAt?: string;
-  reportProof?: string;
-  confirmationDeadline?: string;
-  finalizedAt?: string;
-  finalizedBy?: string;
-  finalizationReason?: MatchFinalizationReason;
-  outcomeTypeId?: string;
-  outcomeReasonId?: string;
-  outcomeType?: {
-    id: string;
-    disciplineId: string;
-    name: string;
-    discipline?: {
-      id: string;
-      name: string;
-    };
-  };
-  outcomeReason?: {
-    id: string;
-    outcomeTypeId: string;
-    name: string;
-    outcomeType?: {
-      id: string;
-      disciplineId: string;
-      name: string;
-      discipline?: {
-        id: string;
-        name: string;
-      };
-    };
-  };
-  createdAt: string;
-  updatedAt: string;
-  playedAt: string;
-}
+const outcomeTypeRefSchema = z.object({
+  id: z.string(),
+  disciplineId: z.string(),
+  name: z.string(),
+  discipline: z.object({ id: z.string(), name: z.string() }).optional(),
+});
+
+export const matchSchema = z
+  .object({
+    id: z.string(),
+    tournamentId: z.string(),
+    round: z.number().int().optional(),
+    teamAId: z.string().optional(),
+    teamBId: z.string().optional(),
+    scoreA: z.number(),
+    scoreB: z.number(),
+    winnerId: z.string().optional(),
+    winnerSide: matchTeamSideSchema.optional(),
+    status: matchStatusSchema,
+    reportedBy: z.string().optional(),
+    reportedAt: z.iso.datetime().optional(),
+    reportProof: z.string().optional(),
+    confirmationDeadline: z.iso.datetime().optional(),
+    finalizedAt: z.iso.datetime().optional(),
+    finalizedBy: z.string().optional(),
+    finalizationReason: matchFinalizationReasonSchema.optional(),
+    outcomeTypeId: z.string().optional(),
+    outcomeReasonId: z.string().optional(),
+    outcomeType: outcomeTypeRefSchema.optional(),
+    outcomeReason: z
+      .object({
+        id: z.string(),
+        outcomeTypeId: z.string(),
+        name: z.string(),
+        outcomeType: outcomeTypeRefSchema.optional(),
+      })
+      .optional(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    playedAt: z.iso.datetime(),
+  })
+  .meta({ id: "Match" });
+
+export type Match = z.infer<typeof matchSchema>;
+
+/** One side of the legacy team-based representation, kept alongside `sides`. */
+const legacyTeamSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  participants: z
+    .array(
+      z.object({
+        user: z.object({ id: z.string(), displayName: z.string() }).optional(),
+        effectivePointsAwarded: z.number().nullish(),
+        exceededMatchLimit: z.boolean().optional(),
+      })
+    )
+    .optional(),
+});
+
+export const matchConfirmationSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string(),
+    playerId: z.string(),
+    isConfirmed: z.boolean(),
+    isContested: z.boolean(),
+    contestationReason: z.string().optional(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+    player: z.object({ id: z.string(), displayName: z.string() }).optional(),
+  })
+  .meta({ id: "MatchConfirmation" });
+
+export type MatchConfirmation = z.infer<typeof matchConfirmationSchema>;
 
 /**
  * Match with relations - returned by list/getById endpoints
  */
-export interface MatchModel extends Match {
-  tournament?: {
-    id: string;
-    name: string;
-    status: string;
-    teamMode: string;
-    mode: string;
-    scoreEnabled?: boolean;
-    validationMode?: string;
-    validationTimerHours?: number | null;
-  };
-  teamA?: {
-    id: string;
-    name?: string;
-    participants?: Array<{
-      user?: {
-        id: string;
-        displayName: string;
-      };
-      effectivePointsAwarded?: number | null;
-      exceededMatchLimit?: boolean;
-    }>;
-  };
-  teamB?: {
-    id: string;
-    name?: string;
-    participants?: Array<{
-      user?: {
-        id: string;
-        displayName: string;
-      };
-      effectivePointsAwarded?: number | null;
-      exceededMatchLimit?: boolean;
-    }>;
-  };
-  winner?: {
-    id: string;
-    name?: string;
-  };
-  reporter?: {
-    id: string;
-    displayName: string;
-  };
-  finalizer?: {
-    id: string;
-    displayName: string;
-  };
-  participations?: Array<{
-    id: string;
-    matchId: string;
-    playerId: string;
-    teamSide: MatchTeamSide;
-    player?: {
-      id: string;
-      displayName: string;
-    };
-  }>;
-  confirmations?: MatchConfirmation[];
+export const matchModelSchema = matchSchema
+  .extend({
+    tournament: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        status: z.string(),
+        teamMode: z.string(),
+        mode: z.string(),
+        scoreEnabled: z.boolean().optional(),
+        validationMode: z.string().optional(),
+        validationTimerHours: z.number().int().nullish(),
+      })
+      .optional(),
+    teamA: legacyTeamSchema.optional(),
+    teamB: legacyTeamSchema.optional(),
+    winner: z.object({ id: z.string(), name: z.string().optional() }).optional(),
+    reporter: z.object({ id: z.string(), displayName: z.string() }).optional(),
+    finalizer: z.object({ id: z.string(), displayName: z.string() }).optional(),
+    participations: z
+      .array(
+        z.object({
+          id: z.string(),
+          matchId: z.string(),
+          playerId: z.string(),
+          teamSide: matchTeamSideSchema,
+          player: z.object({ id: z.string(), displayName: z.string() }).optional(),
+        })
+      )
+      .optional(),
+    confirmations: z.array(matchConfirmationSchema).optional(),
 
-  // New entry-based fields (optional for backward compatibility)
-  sides?: MatchSideModel[];
-  result?: MatchResultModel;
-}
+    // New entry-based fields (optional for backward compatibility)
+    sides: z.array(matchSideModelSchema).optional(),
+    result: matchResultModelSchema.optional(),
+  })
+  .meta({ id: "MatchModel" });
 
-export interface MatchParticipation {
-  id: string;
-  matchId: string;
-  playerId: string;
-  teamSide: MatchTeamSide;
-}
+export type MatchModel = z.infer<typeof matchModelSchema>;
 
-export interface MatchConfirmation {
-  id: string;
-  matchId: string;
-  playerId: string;
-  isConfirmed: boolean;
-  isContested: boolean;
-  contestationReason?: string;
-  createdAt: string;
-  updatedAt: string;
-  player?: {
-    id: string;
-    displayName: string;
-  };
-}
+export const matchModelListSchema = z.array(matchModelSchema);
+
+export const matchParticipationSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string(),
+    playerId: z.string(),
+    teamSide: matchTeamSideSchema,
+  })
+  .meta({ id: "MatchParticipation" });
+
+export type MatchParticipation = z.infer<typeof matchParticipationSchema>;
 
 export interface MatchSideInput {
   position: number;
@@ -300,15 +295,23 @@ export type PostMatchMessageRequestData = z.infer<typeof postMatchMessageSchema>
  * key in `body` plus its interpolation values in `translationParams`, so it renders
  * in the reader's language — same convention as notifications.
  */
-export interface ClientMatchMessage {
-  id: string;
-  matchId: string;
-  kind: "user" | "system";
-  body: string;
-  translationParams: Record<string, string | number | null> | null;
-  createdAt: Date;
-  author: { id: string; displayName: string } | null;
-}
+export const clientMatchMessageSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string(),
+    kind: z.enum(["user", "system"]),
+    body: z.string(),
+    translationParams: z
+      .record(z.string(), z.union([z.string(), z.number(), z.null()]))
+      .nullable(),
+    createdAt: z.date(),
+    author: z.object({ id: z.string(), displayName: z.string() }).nullable(),
+  })
+  .meta({ id: "MatchMessage" });
+
+export type ClientMatchMessage = z.infer<typeof clientMatchMessageSchema>;
+
+export const clientMatchMessageListSchema = z.array(clientMatchMessageSchema);
 
 export const validateMatchSchema = z.object({
   tournamentId: z.string().uuid("ID de tournoi invalide"),
@@ -320,6 +323,40 @@ export const validateMatchSchema = z.object({
 });
 
 export type ValidateMatchRequestData = z.infer<typeof validateMatchSchema>;
+
+/**
+ * Outcome of the dry run. `valid` false is a normal 200 answer, not a failure: the
+ * caller renders `errors` and `warnings` in the match creation form.
+ */
+export const validateMatchResponseSchema = z
+  .object({
+    valid: z.boolean(),
+    errors: z.array(z.string()),
+    warnings: z.array(z.string()),
+    tournament: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        teamMode: z.string(),
+        status: z.string(),
+      })
+      .optional(),
+  })
+  .meta({ id: "ValidateMatchResponse" });
+
+export type ValidateMatchResponse = z.infer<typeof validateMatchResponseSchema>;
+
+export const autoFinalizeResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    /** Ids of the matches that were finalized. */
+    finalized: z.array(z.string()),
+    /** Ids of the matches held back because they are contested. */
+    disputed: z.array(z.string()),
+    total: z.number().int(),
+  })
+  .meta({ id: "AutoFinalizeResponse" });
 
 // ============================================
 // Types inferred from schemas
@@ -484,30 +521,49 @@ export interface ClientMatchHistoryEntry {
  * Scores and team sizes are derivable from sides (side.score, side.players.length).
  * winnerSide is represented as side.isWinner to avoid redundancy.
  */
-export interface MatchCardSide {
-  position: number;
-  score: number | null;
-  isWinner: boolean;
-  players: { id: string; displayName: string; shortName: string }[];
-}
+export const matchCardSideSchema = z
+  .object({
+    position: z.number().int(),
+    score: z.number().nullable(),
+    isWinner: z.boolean(),
+    players: z.array(
+      z.object({ id: z.string(), displayName: z.string(), shortName: z.string() })
+    ),
+  })
+  .meta({ id: "MatchCardSide" });
 
-export interface ClientMatchCard {
-  id: string;
-  playedAt: Date;
-  status: string;
-  tournament: { id: string; name: string; mode: string; scoreEnabled: boolean };
-  sides: MatchCardSide[];
-  outcomeType: { id: string; name: string } | null;
-  playerId?: string;
-  mmrDelta?: number | null;
-  pointsDelta?: number | null;
-}
+export type MatchCardSide = z.infer<typeof matchCardSideSchema>;
 
-export interface PaginatedMatchCards {
-  data: ClientMatchCard[];
-  total: number;
-  hasMore: boolean;
-}
+export const clientMatchCardSchema = z
+  .object({
+    id: z.string(),
+    playedAt: z.date(),
+    status: z.string(),
+    tournament: z.object({
+      id: z.string(),
+      name: z.string(),
+      mode: z.string(),
+      scoreEnabled: z.boolean(),
+    }),
+    sides: z.array(matchCardSideSchema),
+    outcomeType: z.object({ id: z.string(), name: z.string() }).nullable(),
+    playerId: z.string().optional(),
+    mmrDelta: z.number().nullish(),
+    pointsDelta: z.number().nullish(),
+  })
+  .meta({ id: "MatchCard" });
+
+export type ClientMatchCard = z.infer<typeof clientMatchCardSchema>;
+
+export const paginatedMatchCardsSchema = z
+  .object({
+    data: z.array(clientMatchCardSchema),
+    total: z.number().int(),
+    hasMore: z.boolean(),
+  })
+  .meta({ id: "PaginatedMatchCards" });
+
+export type PaginatedMatchCards = z.infer<typeof paginatedMatchCardsSchema>;
 
 export interface MatchDetailPlayer {
   id: string;

@@ -4,14 +4,23 @@ import { z } from "zod";
 // Types and interfaces for game rules
 // ============================================
 
-export interface GameRule {
-  id: string;
-  title: string;
-  content: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Timestamps are strings: this describes the wire shape, where c.json() has already
+// serialised the Date instances the service works with. ClientGameRule below is the
+// same payload after the frontend interceptor has revived them.
+export const gameRuleSchema = z
+  .object({
+    id: z.string(),
+    title: z.string(),
+    content: z.string(),
+    createdBy: z.string(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: "GameRule" });
+
+export type GameRule = z.infer<typeof gameRuleSchema>;
+
+export const gameRuleListSchema = z.array(gameRuleSchema);
 
 export interface ClientGameRule extends Omit<GameRule, "createdAt" | "updatedAt"> {
   createdAt: Date;

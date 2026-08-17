@@ -49,7 +49,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import SkolLogo from '@/components/brand/SkolLogo.vue'
-import { apiBaseURL } from '@/config/ApiConfig'
+import { apiBaseURL, API_VERSION, API_VERSION_HEADER } from '@/config/ApiConfig'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -90,7 +90,12 @@ async function probe() {
     // Absolute URL: in dev the backend is not on the Vite server's origin, and a
     // relative URL would get index.html as 200 — the probe would wrongly report a
     // recovered backend.
-    const res = await fetch(`${apiBaseURL}/api/config`, { signal: AbortSignal.timeout(5000) })
+    // The only API call that bypasses the xior wrapper, so it carries the version
+    // header itself rather than inheriting it from the request interceptor.
+    const res = await fetch(`${apiBaseURL}/api/config`, {
+      headers: { [API_VERSION_HEADER]: API_VERSION },
+      signal: AbortSignal.timeout(5000),
+    })
     if (res.ok) {
       router.replace(redirectTarget())
       return

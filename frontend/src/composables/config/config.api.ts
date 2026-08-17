@@ -1,30 +1,19 @@
 import http from '@/config/ApiConfig.ts'
 
-export interface KeycloakConfig {
-  enabled: boolean;
-  clientId: string | null;
-  issuer: string | null;
-  realm: string | null;
-  loginLabel: string | null;
-}
+// The shapes are declared in shared/, where they also feed the backend's OpenAPI
+// document, and re-exported here so existing import sites keep working.
+export type {
+  AppConfig,
+  AuthConfig,
+  EmailPasswordConfig,
+  KeycloakConfig,
+} from '@skol-arena/shared/types/index'
 
-export interface EmailPasswordConfig {
-  enabled: boolean;
-}
-
-export interface AuthConfig {
-  emailPassword: EmailPasswordConfig;
-  keycloak: KeycloakConfig;
-}
-
-export interface AppConfig {
-  vapidPublicKey: string | null;
-  auth: AuthConfig;
-}
+import type { AppConfig } from '@skol-arena/shared/types/index'
 
 export const configApi = {
   async getConfig(): Promise<AppConfig> {
-    const { data } = await http.get("/api/config");
-    return data;
+    const { data } = await http.get('/api/config')
+    return data
   },
-};
+}

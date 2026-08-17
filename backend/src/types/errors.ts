@@ -2,6 +2,7 @@ export enum ErrorCode {
   // Generic errors
   UNKNOWN = "UNKNOWN",
   VALIDATION_ERROR = "VALIDATION_ERROR",
+  UNSUPPORTED_API_VERSION = "UNSUPPORTED_API_VERSION",
 
   // Resource errors
   NOT_FOUND = "NOT_FOUND",

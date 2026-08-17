@@ -72,6 +72,9 @@ export function useNotificationSocket() {
     }
 
     console.log('[WS] Connecting to', `${WS_BASE}/api/ws`)
+    // No accept-version header here: the browser WebSocket API cannot set request
+    // headers, which is exactly why /api/ws is exempt from API version negotiation
+    // on the server side.
     socket = new WebSocket(`${WS_BASE}/api/ws`)
 
     socket.onopen = () => {

@@ -179,6 +179,32 @@ export type RuleConditions = ConditionGroupAll | ConditionGroupAny | ConditionLe
 // Rule
 // ============================================
 
+// Declared after the condition and action schemas it references — see the "Zod
+// schemas" section below. Kept as an explicit type annotation because the condition
+// tree is recursive and cannot be inferred.
+export const ruleSchema: z.ZodType<Rule> = z.lazy(() =>
+  z
+    .object({
+      id: z.string(),
+      triggerEvent: z.enum(TRIGGER_EVENTS),
+      type: z.enum(["message", "badge"]),
+      scope: z.enum(["global", "discipline"]),
+      disciplineId: z.string().nullable(),
+      priority: z.number().int(),
+      name: z.string(),
+      description: z.string().nullable(),
+      conditions: ruleConditionsSchema,
+      action: ruleActionSchema,
+      isActive: z.boolean(),
+      createdBy: z.string(),
+      createdAt: z.iso.datetime(),
+      updatedAt: z.iso.datetime(),
+    })
+    .meta({ id: "Rule" })
+);
+
+export const ruleListSchema = z.array(ruleSchema);
+
 export interface Rule {
   id: string;
   triggerEvent: TriggerEvent;
@@ -205,12 +231,8 @@ export interface ClientRule extends Omit<Rule, "createdAt" | "updatedAt"> {
 // Sortie du moteur
 // ============================================
 
-export interface RulesOutputBadge {
-  ruleId: string;
-  icon: string;
-  label: string;
-  description: string;
-}
+/** Declared from rulesOutputBadgeSchema further down, in the Zod schemas section. */
+export type RulesOutputBadge = z.infer<typeof rulesOutputBadgeSchema>;
 
 /** Result of the rules evaluation for a player (internal backend). */
 export interface PlayerRulesOutput {
@@ -301,29 +323,43 @@ export const testRuleSchema = z.object({
 // Player badges
 // ============================================
 
-export interface PlayerBadge {
-  id: string;
-  playerId: string;
-  ruleId: string;
-  icon: string;
-  label: string;
-  description: string;
-  awardedAt: string;
-  matchId: string | null;
-}
+export const playerBadgeSchema = z
+  .object({
+    id: z.string(),
+    playerId: z.string(),
+    ruleId: z.string(),
+    icon: z.string(),
+    label: z.string(),
+    description: z.string(),
+    awardedAt: z.iso.datetime(),
+    matchId: z.string().nullable(),
+  })
+  .meta({ id: "PlayerBadge" });
 
-export interface ClientPlayerBadge extends Omit<PlayerBadge, "awardedAt"> {
-  awardedAt: Date;
-}
+export type PlayerBadge = z.infer<typeof playerBadgeSchema>;
+
+/**
+ * Same badge after the frontend interceptor has revived `awardedAt`. Used wherever
+ * a payload is described from the client's point of view — the rewind, notably.
+ */
+export const clientPlayerBadgeSchema = playerBadgeSchema
+  .extend({ awardedAt: z.date() })
+  .meta({ id: "ClientPlayerBadge" });
+
+export type ClientPlayerBadge = z.infer<typeof clientPlayerBadgeSchema>;
 
 /** A badge a player can earn in a tournament (global or discipline-scoped rule). */
-export interface AvailableBadge {
-  ruleId: string;
-  icon: string;
-  label: string;
-  description: string;
-  scope: RuleScope;
-}
+export const availableBadgeSchema = z
+  .object({
+    ruleId: z.string(),
+    icon: z.string(),
+    label: z.string(),
+    description: z.string(),
+    scope: z.enum(["global", "discipline"]),
+  })
+  .meta({ id: "AvailableBadge" });
+
+export type AvailableBadge = z.infer<typeof availableBadgeSchema>;
 
 // ============================================
 // Inferred types
@@ -333,7 +369,48 @@ export type CreateRuleData = z.infer<typeof createRuleSchema>;
 export type UpdateRuleData = z.infer<typeof updateRuleSchema>;
 export type TestRuleData = z.infer<typeof testRuleSchema>;
 
-export interface TestRuleResult {
-  matched: boolean;
-  output?: { type: "message"; message: string } | { type: "badge"; badge: RulesOutputBadge };
-}
+export const rulesOutputBadgeSchema = z
+  .object({
+    ruleId: z.string(),
+    icon: z.string(),
+    label: z.string(),
+    description: z.string(),
+  })
+  .meta({ id: "RulesOutputBadge" });
+
+export const testRuleResultSchema = z
+  .object({
+    matched: z.boolean(),
+    output: z
+      .union([
+        z.object({ type: z.literal("message"), message: z.string() }),
+        z.object({ type: z.literal("badge"), badge: rulesOutputBadgeSchema }),
+      ])
+      .optional(),
+  })
+  .meta({ id: "TestRuleResult" });
+
+export type TestRuleResult = z.infer<typeof testRuleResultSchema>;
+
+/** Fact the rule editor offers, with the operators that apply to its type. */
+export const factCatalogSchema = z
+  .object({
+    facts: z.array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        type: z.enum(["number", "boolean", "string", "stringList", "date"]),
+        sample: z.union([z.number(), z.boolean(), z.string(), z.array(z.string())]),
+        ref: z.enum(["player", "time", "discipline", "site", "weekday"]).optional(),
+        operators: z.array(z.string()),
+      })
+    ),
+  })
+  .meta({ id: "FactCatalog" });
+
+export const badgeReconciliationStateSchema = z
+  .object({
+    dirty: z.boolean(),
+    lastRunAt: z.date().nullable(),
+  })
+  .meta({ id: "BadgeReconciliationState" });

@@ -15,77 +15,101 @@ export const entryTypeSchema = z.enum(["PLAYER", "TEAM"]);
  * Tournament Entry - represents a participant entity in a tournament
  * Can be either a TEAM (static mode) or individual PLAYER(S) (flex mode)
  */
-export interface TournamentEntry {
-  id: string;
-  tournamentId: string;
-  entryType: EntryType;
-  teamId?: string;
-  createdAt: string;
-}
+export const tournamentEntrySchema = z
+  .object({
+    id: z.string(),
+    tournamentId: z.string(),
+    entryType: entryTypeSchema,
+    teamId: z.string().optional(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: "TournamentEntry" });
+
+export type TournamentEntry = z.infer<typeof tournamentEntrySchema>;
+
+/** Reference to a player, as embedded in entry and match payloads. */
+const playerRefSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  shortName: z.string(),
+});
 
 /**
  * Tournament Entry with relations
  */
-export interface TournamentEntryModel extends TournamentEntry {
-  team?: {
-    id: string;
-    name: string;
-  };
-  players: Array<{
-    playerId: string;
-    player: {
-      id: string;
-      displayName: string;
-      shortName: string;
-    };
-  }>;
-}
+export const tournamentEntryModelSchema = tournamentEntrySchema
+  .extend({
+    team: z.object({ id: z.string(), name: z.string() }).optional(),
+    players: z.array(
+      z.object({
+        playerId: z.string(),
+        player: playerRefSchema,
+      })
+    ),
+  })
+  .meta({ id: "TournamentEntryModel" });
+
+export type TournamentEntryModel = z.infer<typeof tournamentEntryModelSchema>;
 
 /**
  * Match Side - represents one participant side in a match
  */
-export interface MatchSide {
-  id: string;
-  matchId: string;
-  entryId: string;
-  position: number; // 1, 2, 3... (supports N-way matches in future)
-  score: number;
-  pointsAwarded: number;
-}
+export const matchSideSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string(),
+    entryId: z.string(),
+    /** 1, 2, 3… (supports N-way matches in future) */
+    position: z.number().int(),
+    score: z.number(),
+    pointsAwarded: z.number(),
+  })
+  .meta({ id: "MatchSide" });
+
+export type MatchSide = z.infer<typeof matchSideSchema>;
 
 /**
  * Match Side with entry relations
  */
-export interface MatchSideModel extends MatchSide {
-  entry?: TournamentEntryModel;
-}
+export const matchSideModelSchema = matchSideSchema
+  .extend({ entry: tournamentEntryModelSchema.optional() })
+  .meta({ id: "MatchSideModel" });
+
+export type MatchSideModel = z.infer<typeof matchSideModelSchema>;
 
 /**
  * Match Result - stores reporting and finalization metadata
  */
-export interface MatchResult {
-  matchId: string;
-  reportedBy?: string;
-  reportedAt?: string;
-  reportProof?: string;
-  finalizedBy?: string;
-  finalizedAt?: string;
-  finalizationReason?: "consensus" | "auto_validation" | "admin_override";
-}
+export const matchResultSchema = z
+  .object({
+    matchId: z.string(),
+    reportedBy: z.string().optional(),
+    reportedAt: z.iso.datetime().optional(),
+    reportProof: z.string().optional(),
+    finalizedBy: z.string().optional(),
+    finalizedAt: z.iso.datetime().optional(),
+    finalizationReason: z
+      .enum(["consensus", "auto_validation", "admin_override"])
+      .optional(),
+  })
+  .meta({ id: "MatchResult" });
+
+export type MatchResult = z.infer<typeof matchResultSchema>;
+
+/** Reference to a user, as embedded in match payloads. */
+const userRefSchema = z.object({ id: z.string(), displayName: z.string() });
 
 /**
  * Match Result with relations
  */
-export interface MatchResultModel extends MatchResult {
-  reporter?: {
-    id: string;
-    displayName: string;
-  };
-  finalizer?: {
-    id: string;
-    displayName: string;
-  };
-}
+export const matchResultModelSchema = matchResultSchema
+  .extend({
+    reporter: userRefSchema.optional(),
+    finalizer: userRefSchema.optional(),
+  })
+  .meta({ id: "MatchResultModel" });
+
+export type MatchResultModel = z.infer<typeof matchResultModelSchema>;
 
 // ============================================
 // Client types (with Date objects instead of strings)

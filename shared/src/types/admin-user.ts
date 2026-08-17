@@ -1,67 +1,93 @@
 import { z } from "zod";
-import { userRoleEnum, userRoleSchema, type UserRole } from "./enums";
+import { userRoleEnum, userRoleSchema } from "./enums";
 import { displayNameRegex } from "../schemas/user.schema";
 
 // ============================================
 // Admin user management (super_admin only)
 // ============================================
 
-export interface AdminUserListItem {
-  id: string;
-  displayName: string;
-  shortName: string;
-  email: string | null;
-  emailVerified: boolean;
-  role: UserRole;
-  createdAt: Date;
-  lastLoginAt: Date | null;
-  deactivatedAt: Date | null;
-  /**
-   * Set when the Better Auth identity was destroyed and the name anonymised.
-   * The row is kept so matches, standings and MMR history stay intact.
-   */
-  archivedAt: Date | null;
-  matchCount: number;
-  tournamentCount: number;
-  /**
-   * providerId of the `account` rows: "credential" (native password) and/or
-   * "keycloak" (SSO). Both can coexist since Better Auth links accounts sharing
-   * the same email. Empty for accounts created outside Better Auth (seeds).
-   */
-  authProviders: string[];
-}
+// Timestamps are z.date() rather than z.iso.datetime(): these payloads are consumed
+// after the frontend interceptor has revived them, so Date is the type callers see.
+// The OpenAPI document still describes them as string/date-time, which is what goes
+// over the wire.
+export const adminUserListItemSchema = z
+  .object({
+    id: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+    email: z.string().nullable(),
+    emailVerified: z.boolean(),
+    role: z.enum(userRoleEnum),
+    createdAt: z.date(),
+    lastLoginAt: z.date().nullable(),
+    deactivatedAt: z.date().nullable(),
+    /**
+     * Set when the Better Auth identity was destroyed and the name anonymised.
+     * The row is kept so matches, standings and MMR history stay intact.
+     */
+    archivedAt: z.date().nullable(),
+    matchCount: z.number().int(),
+    tournamentCount: z.number().int(),
+    /**
+     * providerId of the `account` rows: "credential" (native password) and/or
+     * "keycloak" (SSO). Both can coexist since Better Auth links accounts sharing
+     * the same email. Empty for accounts created outside Better Auth (seeds).
+     */
+    authProviders: z.array(z.string()),
+  })
+  .meta({ id: "AdminUserListItem" });
 
-export interface AdminUserOrganization {
-  id: string;
-  name: string;
-  role: "owner" | "member";
-  joinedAt: Date;
-}
+export type AdminUserListItem = z.infer<typeof adminUserListItemSchema>;
 
-export interface AdminUserDetail extends AdminUserListItem {
-  organizations: AdminUserOrganization[];
-}
+export const adminUserOrganizationSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    role: z.enum(["owner", "member"]),
+    joinedAt: z.date(),
+  })
+  .meta({ id: "AdminUserOrganization" });
 
-export interface AdminUserListResponse {
-  data: AdminUserListItem[];
-  total: number;
-}
+export type AdminUserOrganization = z.infer<typeof adminUserOrganizationSchema>;
 
-export interface AdminUserStats {
-  total: number;
-  activeLast7Days: number;
-  activeLast30Days: number;
-  newThisMonth: number;
-  deactivated: number;
-  archived: number;
-  byRole: Record<UserRole, number>;
-}
+export const adminUserDetailSchema = adminUserListItemSchema
+  .extend({ organizations: z.array(adminUserOrganizationSchema) })
+  .meta({ id: "AdminUserDetail" });
+
+export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
+
+export const adminUserListResponseSchema = z
+  .object({
+    data: z.array(adminUserListItemSchema),
+    total: z.number().int(),
+  })
+  .meta({ id: "AdminUserListResponse" });
+
+export type AdminUserListResponse = z.infer<typeof adminUserListResponseSchema>;
+
+export const adminUserStatsSchema = z
+  .object({
+    total: z.number().int(),
+    activeLast7Days: z.number().int(),
+    activeLast30Days: z.number().int(),
+    newThisMonth: z.number().int(),
+    deactivated: z.number().int(),
+    archived: z.number().int(),
+    byRole: z.record(z.enum(userRoleEnum), z.number().int()),
+  })
+  .meta({ id: "AdminUserStats" });
+
+export type AdminUserStats = z.infer<typeof adminUserStatsSchema>;
 
 /** Tables whose restrict FK blocks a permanent deletion. */
-export interface AdminUserDeletionBlocker {
-  resource: string;
-  count: number;
-}
+export const adminUserDeletionBlockerSchema = z
+  .object({
+    resource: z.string(),
+    count: z.number().int(),
+  })
+  .meta({ id: "AdminUserDeletionBlocker" });
+
+export type AdminUserDeletionBlocker = z.infer<typeof adminUserDeletionBlockerSchema>;
 
 export const adminUserStatusEnum = ["active", "deactivated"] as const;
 export type AdminUserStatus = (typeof adminUserStatusEnum)[number];

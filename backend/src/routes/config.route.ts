@@ -1,34 +1,47 @@
-import { Hono } from "hono";
+import { describe } from "../api/describe";
+import { appConfigSchema } from "@skol-arena/shared/types/index";
+import { createAppHono } from "../types/hono";
 
-const configRoute = new Hono();
+const configRoute = createAppHono();
 
-configRoute.get("/", (c) => {
-  const isEmailPasswordEnabled = process.env.ENABLE_EMAIL_PASSWORD !== "false";
-  const isKeycloakEnabled = !!(
-    process.env.KEYCLOAK_CLIENT_ID &&
-    process.env.KEYCLOAK_CLIENT_SECRET &&
-    process.env.KEYCLOAK_ISSUER
-  );
+configRoute.get(
+  "/",
+  describe({
+    tags: ["Config"],
+    summary: "Get runtime configuration",
+    description:
+      "Server settings the client needs before a user is known: which sign-in " +
+      "methods are enabled, and the public key used to register for push.",
+    success: { description: "Current configuration", schema: appConfigSchema },
+  }),
+  (c) => {
+    const isEmailPasswordEnabled = process.env.ENABLE_EMAIL_PASSWORD !== "false";
+    const isKeycloakEnabled = !!(
+      process.env.KEYCLOAK_CLIENT_ID &&
+      process.env.KEYCLOAK_CLIENT_SECRET &&
+      process.env.KEYCLOAK_ISSUER
+    );
 
-  const keycloakConfig = {
-    enabled: isKeycloakEnabled,
-    clientId: process.env.KEYCLOAK_CLIENT_ID || null,
-    issuer: process.env.KEYCLOAK_ISSUER || null,
-    realm: process.env.KEYCLOAK_ISSUER
-      ? process.env.KEYCLOAK_ISSUER.split("/realms/")[1]?.split("/")[0]
-      : null,
-    loginLabel: process.env.KEYCLOAK_LOGIN_LABEL || null,
-  };
+    const keycloakConfig = {
+      enabled: isKeycloakEnabled,
+      clientId: process.env.KEYCLOAK_CLIENT_ID || null,
+      issuer: process.env.KEYCLOAK_ISSUER || null,
+      realm: process.env.KEYCLOAK_ISSUER
+        ? process.env.KEYCLOAK_ISSUER.split("/realms/")[1]?.split("/")[0]
+        : null,
+      loginLabel: process.env.KEYCLOAK_LOGIN_LABEL || null,
+    };
 
-  return c.json({
-    vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
-    auth: {
-      emailPassword: {
-        enabled: isEmailPasswordEnabled,
+    return c.json({
+      vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null,
+      auth: {
+        emailPassword: {
+          enabled: isEmailPasswordEnabled,
+        },
+        keycloak: keycloakConfig,
       },
-      keycloak: keycloakConfig,
-    },
-  });
-});
+    });
+  }
+);
 
 export default configRoute;

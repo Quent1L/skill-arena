@@ -24,44 +24,42 @@ import {
 // Types and interfaces for tournaments
 // ============================================
 
-export interface BaseTournament {
-  id: string;
-  name: string;
-  description?: string;
-  mode: TournamentMode;
-  teamMode: TeamMode;
-  minTeamSize: number;
-  maxTeamSize: number;
-  maxMatchesPerPlayer: number;
-  maxTimesWithSamePartner: number;
-  maxTimesWithSameOpponent: number;
-  pointPerVictory: number;
-  pointPerDraw: number;
-  pointPerLoss: number;
-  allowDraw: boolean;
-  scoreEnabled: boolean;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
-  status: TournamentStatus;
-  disciplineId?: string;
-  discipline?: {
-    id: string;
-    name: string;
-  };
-  rulesId?: string | null;
-  rules?: {
-    id: string;
-    title: string;
-  } | null;
-  minScore?: number | null;
-  maxScore?: number | null;
-  validationMode: ValidationMode;
-  validationTimerHours?: number | null;
-  organizationId?: string | null;
-  createdBy: string; // uuid
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-}
+export const baseTournamentSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    mode: tournamentModeSchema,
+    teamMode: teamModeSchema,
+    minTeamSize: z.number().int(),
+    maxTeamSize: z.number().int(),
+    maxMatchesPerPlayer: z.number().int(),
+    maxTimesWithSamePartner: z.number().int(),
+    maxTimesWithSameOpponent: z.number().int(),
+    pointPerVictory: z.number().int(),
+    pointPerDraw: z.number().int(),
+    pointPerLoss: z.number().int(),
+    allowDraw: z.boolean(),
+    scoreEnabled: z.boolean(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
+    status: tournamentStatusSchema,
+    disciplineId: z.string().optional(),
+    discipline: z.object({ id: z.string(), name: z.string() }).optional(),
+    rulesId: z.string().nullish(),
+    rules: z.object({ id: z.string(), title: z.string() }).nullish(),
+    minScore: z.number().int().nullish(),
+    maxScore: z.number().int().nullish(),
+    validationMode: validationModeSchema,
+    validationTimerHours: z.number().int().nullish(),
+    organizationId: z.string().nullish(),
+    createdBy: z.string(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: "Tournament" });
+
+export type BaseTournament = z.infer<typeof baseTournamentSchema>;
 
 export interface CreateTournamentInput {
   name: string;
@@ -124,11 +122,17 @@ export interface ListTournamentsQuery {
   createdBy?: string;
 }
 
-export interface TournamentWithStats extends BaseTournament {
-  participants_count: number;
-  matches_played: number;
-  matches_total: number;
-}
+export const tournamentWithStatsSchema = baseTournamentSchema
+  .extend({
+    participants_count: z.number().int(),
+    matches_played: z.number().int(),
+    matches_total: z.number().int(),
+  })
+  .meta({ id: "TournamentWithStats" });
+
+export type TournamentWithStats = z.infer<typeof tournamentWithStatsSchema>;
+
+export const tournamentWithStatsListSchema = z.array(tournamentWithStatsSchema);
 
 // ============================================
 // Zod schemas for validation

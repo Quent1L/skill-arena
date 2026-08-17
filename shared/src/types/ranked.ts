@@ -25,87 +25,117 @@ export type TierScalingMode = "keep" | "percentile";
 
 export const tierScalingModes: readonly TierScalingMode[] = ["keep", "percentile"];
 
-export interface RankedSeasonConfig {
-  id: string;
-  tournamentId: string;
-  baseMmr: number;
-  kFactor: number;
-  placementMatches: number;
-  usePreviousMmr: boolean;
-  /** Share of a player's distance to the source season's median MMR that is kept. */
-  softResetFactor: number;
-  allowAsymmetricMatches: boolean;
-  sourceTierSeasonId?: string | null;
-  tierScalingMode: TierScalingMode;
-  /** Season the MMR is carried over from. Null = last finished season. */
-  sourceMmrSeasonId?: string | null;
-}
+export const rankedSeasonConfigSchema = z
+  .object({
+    id: z.string(),
+    tournamentId: z.string(),
+    baseMmr: z.number().int(),
+    kFactor: z.number().int(),
+    placementMatches: z.number().int(),
+    usePreviousMmr: z.boolean(),
+    /** Share of a player's distance to the source season's median MMR that is kept. */
+    softResetFactor: z.number(),
+    allowAsymmetricMatches: z.boolean(),
+    sourceTierSeasonId: z.string().nullish(),
+    tierScalingMode: z.enum(["keep", "percentile"]),
+    /** Season the MMR is carried over from. Null = last finished season. */
+    sourceMmrSeasonId: z.string().nullish(),
+  })
+  .meta({ id: "RankedSeasonConfig" });
 
-export interface PlayerMmr {
-  id: string;
-  seasonId: string;
-  playerId: string;
-  currentMmr: number;
-  matchesPlayed: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  winStreak: number;
-  maxWinStreak: number;
-  lossStreak: number;
-  maxLossStreak: number;
-}
+export type RankedSeasonConfig = z.infer<typeof rankedSeasonConfigSchema>;
+
+export const playerMmrSchema = z
+  .object({
+    id: z.string(),
+    seasonId: z.string(),
+    playerId: z.string(),
+    currentMmr: z.number(),
+    matchesPlayed: z.number().int(),
+    wins: z.number().int(),
+    losses: z.number().int(),
+    draws: z.number().int(),
+    winStreak: z.number().int(),
+    maxWinStreak: z.number().int(),
+    lossStreak: z.number().int(),
+    maxLossStreak: z.number().int(),
+  })
+  .meta({ id: "PlayerMmr" });
+
+export type PlayerMmr = z.infer<typeof playerMmrSchema>;
 
 export type MmrHistoryOutcome = 'win' | 'loss' | 'draw';
 
-export interface MmrChartPoint {
-  mmrBefore: number;
-  mmrAfter: number;
-  mmrDelta: number;
-  outcome?: MmrHistoryOutcome | null;
-  playedAt: Date;
-}
+export const mmrChartPointSchema = z
+  .object({
+    mmrBefore: z.number(),
+    mmrAfter: z.number(),
+    mmrDelta: z.number(),
+    outcome: z.enum(["win", "loss", "draw"]).nullish(),
+    playedAt: z.date(),
+  })
+  .meta({ id: "MmrChartPoint" });
+
+export type MmrChartPoint = z.infer<typeof mmrChartPointSchema>;
 
 // Net MMR variation of a player over a time window (a calendar week today).
-export interface WeeklyMmrLeader {
-  playerId: string;
-  displayName: string;
-  shortName: string;
-  mmrGained: number;
-  matchesPlayed: number;
-}
+export const weeklyMmrLeaderSchema = z
+  .object({
+    playerId: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+    mmrGained: z.number(),
+    matchesPlayed: z.number().int(),
+  })
+  .meta({ id: "WeeklyMmrLeader" });
 
-export interface WeeklyMmrLeaders {
-  weekStart: Date;
-  gainers: WeeklyMmrLeader[];
-  losers: WeeklyMmrLeader[];
-}
+export type WeeklyMmrLeader = z.infer<typeof weeklyMmrLeaderSchema>;
 
-export interface MmrHistoryEntry {
-  id: string;
-  seasonId: string;
-  playerId: string;
-  matchId: string;
-  mmrBefore: number;
-  mmrAfter: number;
-  mmrDelta: number;
-  kEffective: number;
-  opponentAvgMmr: number;
-  isPlacement: boolean;
-  outcome?: MmrHistoryOutcome | null;
-}
+export const weeklyMmrLeadersSchema = z
+  .object({
+    weekStart: z.date(),
+    gainers: z.array(weeklyMmrLeaderSchema),
+    losers: z.array(weeklyMmrLeaderSchema),
+  })
+  .meta({ id: "WeeklyMmrLeaders" });
 
-export interface ClientRankTier {
-  id: string;
-  seasonId: string;
-  level: number;
-  name: string;
-  percentile: number;
-  minMmr: number;
-  subRanks: number;
-  iconClass?: string | null;
-  calculatedAt: Date;
-}
+export type WeeklyMmrLeaders = z.infer<typeof weeklyMmrLeadersSchema>;
+
+export const mmrHistoryEntrySchema = z
+  .object({
+    id: z.string(),
+    seasonId: z.string(),
+    playerId: z.string(),
+    matchId: z.string(),
+    mmrBefore: z.number(),
+    mmrAfter: z.number(),
+    mmrDelta: z.number(),
+    kEffective: z.number(),
+    opponentAvgMmr: z.number(),
+    isPlacement: z.boolean(),
+    outcome: z.enum(["win", "loss", "draw"]).nullish(),
+  })
+  .meta({ id: "MmrHistoryEntry" });
+
+export type MmrHistoryEntry = z.infer<typeof mmrHistoryEntrySchema>;
+
+export const clientRankTierSchema = z
+  .object({
+    id: z.string(),
+    seasonId: z.string(),
+    level: z.number().int(),
+    name: z.string(),
+    percentile: z.number(),
+    minMmr: z.number(),
+    subRanks: z.number().int(),
+    iconClass: z.string().nullish(),
+    calculatedAt: z.date(),
+  })
+  .meta({ id: "RankTier" });
+
+export type ClientRankTier = z.infer<typeof clientRankTierSchema>;
+
+export const clientRankTierListSchema = z.array(clientRankTierSchema);
 
 // ============================================
 // Client types (dates converted to Date)
@@ -119,59 +149,169 @@ export interface ClientRankTier {
  */
 export const STRONGER_OPPONENT_MMR_GAP = 100;
 
-export interface OpponentQualityBucket {
-  wins: number;
-  losses: number;
-  draws: number;
-  matchesPlayed: number;
-  winRate: number;
-}
+export const opponentQualityBucketSchema = z
+  .object({
+    wins: z.number().int(),
+    losses: z.number().int(),
+    draws: z.number().int(),
+    matchesPlayed: z.number().int(),
+    winRate: z.number(),
+  })
+  .meta({ id: "OpponentQualityBucket" });
 
-export interface OpponentQualityStats {
-  vsStronger: OpponentQualityBucket;
-  vsEqual: OpponentQualityBucket;
-  vsWeaker: OpponentQualityBucket;
-}
+export type OpponentQualityBucket = z.infer<typeof opponentQualityBucketSchema>;
 
-export interface ClientPlayerMmr extends PlayerMmr {
-  player?: {
-    id: string;
-    displayName: string;
-    shortName: string;
-  };
-  recentResults?: { outcome: 'win' | 'loss' | 'draw' }[];
-  opponentQuality?: OpponentQualityStats;
-}
+export const opponentQualityStatsSchema = z
+  .object({
+    vsStronger: opponentQualityBucketSchema,
+    vsEqual: opponentQualityBucketSchema,
+    vsWeaker: opponentQualityBucketSchema,
+  })
+  .meta({ id: "OpponentQualityStats" });
+
+export type OpponentQualityStats = z.infer<typeof opponentQualityStatsSchema>;
+
+export const clientPlayerMmrSchema = playerMmrSchema
+  .extend({
+    player: z
+      .object({ id: z.string(), displayName: z.string(), shortName: z.string() })
+      .optional(),
+    recentResults: z
+      .array(z.object({ outcome: z.enum(["win", "loss", "draw"]) }))
+      .optional(),
+    opponentQuality: opponentQualityStatsSchema.optional(),
+  })
+  .meta({ id: "ClientPlayerMmr" });
+
+export type ClientPlayerMmr = z.infer<typeof clientPlayerMmrSchema>;
 
 // A leaderboard row for a finished season, ranked on a metric aggregated over the
 // whole season instead of the player's MMR at the closing bell.
-export interface ClientSeasonMmrPlayer extends ClientPlayerMmr {
-  peakMmr: number;
-  avgMmr: number;
-}
+export const clientSeasonMmrPlayerSchema = clientPlayerMmrSchema
+  .extend({
+    peakMmr: z.number(),
+    avgMmr: z.number(),
+  })
+  .meta({ id: "SeasonMmrPlayer" });
 
-export interface HistoryMatchSidePlayer {
-  id: string;
-  displayName: string;
-  shortName: string;
-}
+export type ClientSeasonMmrPlayer = z.infer<typeof clientSeasonMmrPlayerSchema>;
 
-export interface HistoryMatchSide {
-  position: number;
-  players: HistoryMatchSidePlayer[];
-}
+export const historyMatchSidePlayerSchema = z
+  .object({
+    id: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+  })
+  .meta({ id: "HistoryMatchSidePlayer" });
 
-export interface ClientMmrHistoryEntry extends Omit<MmrHistoryEntry, "id"> {
-  id: string;
-  match?: {
-    id: string;
-    playedAt: Date;
-    status: string;
-  };
-  teamSizeA?: number | null;
-  teamSizeB?: number | null;
-  sides?: HistoryMatchSide[];
-}
+export type HistoryMatchSidePlayer = z.infer<typeof historyMatchSidePlayerSchema>;
+
+export const historyMatchSideSchema = z
+  .object({
+    position: z.number().int(),
+    players: z.array(historyMatchSidePlayerSchema),
+  })
+  .meta({ id: "HistoryMatchSide" });
+
+export type HistoryMatchSide = z.infer<typeof historyMatchSideSchema>;
+
+export const clientMmrHistoryEntrySchema = mmrHistoryEntrySchema
+  .extend({
+    match: z
+      .object({ id: z.string(), playedAt: z.date(), status: z.string() })
+      .optional(),
+    teamSizeA: z.number().int().nullish(),
+    teamSizeB: z.number().int().nullish(),
+    sides: z.array(historyMatchSideSchema).optional(),
+  })
+  .meta({ id: "MmrHistoryEntryWithMatch" });
+
+export type ClientMmrHistoryEntry = z.infer<typeof clientMmrHistoryEntrySchema>;
+
+export const clientMmrHistoryListSchema = z.array(clientMmrHistoryEntrySchema);
+
+/** Leaderboard payload: the rows plus the placement threshold in force. */
+export const rankedLeaderboardSchema = z
+  .object({
+    players: z.array(clientPlayerMmrSchema),
+    placementMatches: z.number().int(),
+  })
+  .meta({ id: "RankedLeaderboard" });
+
+export const seasonMmrLeaderboardSchema = z
+  .object({ players: z.array(clientSeasonMmrPlayerSchema) })
+  .meta({ id: "SeasonMmrLeaderboard" });
+
+/** Everything the player MMR profile page needs, in one call. */
+export const playerMmrProfileSchema = z
+  .object({
+    mmr: clientPlayerMmrSchema,
+    tiers: z.array(clientRankTierSchema),
+    opponentQuality: opponentQualityStatsSchema,
+    chartHistory: z.array(mmrChartPointSchema),
+    placementMatches: z.number().int(),
+  })
+  .meta({ id: "PlayerMmrProfile" });
+
+/** Season summary row, as listed by GET /ranked/seasons. */
+export const rankedSeasonListItemSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    mode: z.string(),
+    teamMode: z.string(),
+    status: z.string(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
+    disciplineId: z.string().nullable(),
+    discipline: z
+      .object({ id: z.string(), name: z.string(), icon: z.string().nullable() })
+      .nullable(),
+    participantCount: z.number().int(),
+    /** Whether the requesting user has a player_mmr row in the season. */
+    isParticipant: z.boolean(),
+  })
+  .meta({ id: "RankedSeasonListItem" });
+
+/** Trimmed row used to populate the "copy tiers from" dropdown. */
+export const finishedRankedSeasonSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
+    discipline: z
+      .object({ id: z.string(), name: z.string(), icon: z.string().nullable() })
+      .nullable(),
+  })
+  .meta({ id: "FinishedRankedSeason" });
+
+/** A season with its MMR config and ladder, as returned by the detail endpoints. */
+export const rankedSeasonDetailSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    mode: z.string(),
+    teamMode: z.string(),
+    status: z.string(),
+    startDate: z.iso.datetime(),
+    endDate: z.iso.datetime(),
+    disciplineId: z.string().nullable(),
+    rankedConfig: rankedSeasonConfigSchema.nullable(),
+    rankTiers: z.array(clientRankTierSchema),
+    discipline: z
+      .object({ id: z.string(), name: z.string(), icon: z.string().nullable() })
+      .nullable(),
+    rules: z.object({ id: z.string() }).nullable(),
+  })
+  .meta({ id: "RankedSeasonDetail" });
+
+export const markViewedResultSchema = z
+  .object({
+    success: z.boolean(),
+    markedCount: z.number().int(),
+  })
+  .meta({ id: "MarkViewedResult" });
 
 // ============================================
 // Zod schemas for validation
@@ -352,29 +492,52 @@ export type UpdateRankTierInput = z.infer<typeof updateRankTierSchema>;
 export type MmrAnimationEventType = "provisional" | "official";
 export type MmrAnimationEventReason = "match_finalized" | "match_cancelled" | "cascade" | "recalculated";
 
-export interface MmrAnimationEventResponse {
-  id: string;
-  matchId: string;
-  seasonId: string;
-  eventType: MmrAnimationEventType;
-  reason: MmrAnimationEventReason;
-  mmrBefore: number;
-  mmrAfter: number;
-  mmrDelta: number;
-  // Points the recap shows/sums: full delta for a new match, differential for a
-  // recalculated/cancelled one. Optional — legacy rows fall back to mmrDelta.
-  displayDelta?: number;
-  tierBeforeLevel: number | null;
-  tierAfterLevel: number | null;
-  tierBeforeName: string | null;
-  tierAfterName: string | null;
-  rankChanged: boolean;
-  encouragementMessage: string | null;
-  createdAt: string;
-  playedAt?: Date;
-  opponents?: { id: string; displayName: string; shortName: string }[];
-  teammates?: { id: string; displayName: string; shortName: string }[];
-}
+const animationPlayerRefSchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  shortName: z.string(),
+});
+
+export const mmrAnimationEventResponseSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string(),
+    seasonId: z.string(),
+    eventType: z.enum(["provisional", "official"]),
+    reason: z.enum(["match_finalized", "match_cancelled", "cascade", "recalculated"]),
+    mmrBefore: z.number(),
+    mmrAfter: z.number(),
+    mmrDelta: z.number(),
+    // Points the recap shows/sums: full delta for a new match, differential for a
+    // recalculated/cancelled one. Optional — legacy rows fall back to mmrDelta.
+    displayDelta: z.number().optional(),
+    tierBeforeLevel: z.number().int().nullable(),
+    tierAfterLevel: z.number().int().nullable(),
+    tierBeforeName: z.string().nullable(),
+    tierAfterName: z.string().nullable(),
+    rankChanged: z.boolean(),
+    encouragementMessage: z.string().nullable(),
+    createdAt: z.string(),
+    playedAt: z.date().optional(),
+    opponents: z.array(animationPlayerRefSchema).optional(),
+    teammates: z.array(animationPlayerRefSchema).optional(),
+  })
+  .meta({ id: "MmrAnimationEvent" });
+
+export type MmrAnimationEventResponse = z.infer<typeof mmrAnimationEventResponseSchema>;
+
+/** Badge reveal queued for a player, parallel to the MMR animation events. */
+export const badgeAnimationResponseSchema = z
+  .object({
+    id: z.string(),
+    matchId: z.string().nullable(),
+    seasonId: z.string(),
+    icon: z.string(),
+    label: z.string(),
+    description: z.string(),
+    createdAt: z.string(),
+  })
+  .meta({ id: "BadgeAnimation" });
 
 export interface MmrAnimationWsPayload extends MmrAnimationEventResponse {
   tournamentId: string;

@@ -1,140 +1,265 @@
+import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { userService } from "../services/user.service";
 import { createAppHono } from "../types/hono";
 import { userRepository } from "../repository/user.repository";
 import { ForbiddenError, ErrorCode } from "../types/errors";
-import { zValidator } from "@hono/zod-validator";
-import { updateProfileSchema, playerStatsFiltersSchema, userSearchSchema, playerComparisonSchema } from "@skol-arena/shared";
+import { validate } from "../api/validator";
+import { describe } from "../api/describe";
+import {
+  updateProfileSchema,
+  playerStatsFiltersSchema,
+  userSearchSchema,
+  playerComparisonSchema,
+  appUserSchema,
+  appUserWithAuthSchema,
+  playerProfileSchema,
+  playerStatsResponseSchema,
+  playerComparisonResponseSchema,
+  playerTournamentOptionSchema,
+  playerBadgeSchema,
+} from "@skol-arena/shared";
 import { playerStatsService } from "../services/player-stats.service";
 import { rulesService } from "../services/rules.service";
 
 const users = createAppHono();
 
+const TAGS = ["Users"];
+
 // GET /users/me - Get current user details
-users.get("/me", requireAuth, async (c) => {
-  const appUserId = c.get("appUserId");
-  const betterAuthUser = c.get("user");
-
-  // Get app user details
-  const appUser = await userService.getAppUserById(appUserId);
-
-  return c.json({
-    id: appUser.id,
-    externalId: appUser.externalId,
-    displayName: appUser.displayName,
-    shortName: appUser.shortName,
-    role: appUser.role,
-    createdAt: appUser.createdAt,
-    updatedAt: appUser.updatedAt,
-    // Include Better Auth user info as well
-    betterAuth: {
-      id: betterAuthUser?.id,
-      email: betterAuthUser?.email,
-      name: betterAuthUser?.name,
-      image: betterAuthUser?.image,
-      emailVerified: betterAuthUser?.emailVerified,
-      createdAt: betterAuthUser?.createdAt,
-      updatedAt: betterAuthUser?.updatedAt,
+users.get(
+  "/me",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Get the current user",
+    auth: true,
+    success: {
+      description: "The signed-in user's app profile and Better Auth record",
+      schema: appUserWithAuthSchema,
     },
-  });
-});
+  }),
+  async (c) => {
+    const appUserId = c.get("appUserId");
+    const betterAuthUser = c.get("user");
+
+    // Get app user details
+    const appUser = await userService.getAppUserById(appUserId);
+
+    return c.json({
+      id: appUser.id,
+      externalId: appUser.externalId,
+      displayName: appUser.displayName,
+      shortName: appUser.shortName,
+      role: appUser.role,
+      createdAt: appUser.createdAt,
+      updatedAt: appUser.updatedAt,
+      // Include Better Auth user info as well
+      betterAuth: {
+        id: betterAuthUser?.id,
+        email: betterAuthUser?.email,
+        name: betterAuthUser?.name,
+        image: betterAuthUser?.image,
+        emailVerified: betterAuthUser?.emailVerified,
+        createdAt: betterAuthUser?.createdAt,
+        updatedAt: betterAuthUser?.updatedAt,
+      },
+    });
+  }
+);
 
 // PATCH /users/me - Update current user profile
-users.patch("/me", requireAuth, zValidator("json", updateProfileSchema), async (c) => {
-  const appUserId = c.get("appUserId");
-  const data = c.req.valid("json");
-  const updated = await userService.updateProfile(appUserId, data);
-  return c.json({
-    id: updated.id,
-    externalId: updated.externalId,
-    displayName: updated.displayName,
-    shortName: updated.shortName,
-    role: updated.role,
-    createdAt: updated.createdAt,
-    updatedAt: updated.updatedAt,
-  });
-});
+users.patch(
+  "/me",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Update the current user's profile",
+    auth: true,
+    conflict: true,
+    success: { description: "The updated profile", schema: appUserSchema },
+  }),
+  validate("json", updateProfileSchema),
+  async (c) => {
+    const appUserId = c.get("appUserId");
+    const data = c.req.valid("json");
+    const updated = await userService.updateProfile(appUserId, data);
+    return c.json({
+      id: updated.id,
+      externalId: updated.externalId,
+      displayName: updated.displayName,
+      shortName: updated.shortName,
+      role: updated.role,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    });
+  }
+);
 
 // GET /users - Get all users (admin only)
-users.get("/", requireAuth, async (c) => {
-  const appUserId = c.get("appUserId");
+users.get(
+  "/",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "List all users",
+    description: "Restricted to super admins and tournament admins.",
+    auth: true,
+    role: true,
+    success: { description: "Every user", schema: z.array(appUserWithAuthSchema) },
+  }),
+  async (c) => {
+    const appUserId = c.get("appUserId");
 
-  const currentUser = await userRepository.getById(appUserId);
-  if (
-    !currentUser ||
-    (currentUser.role !== "super_admin" &&
-      currentUser.role !== "tournament_admin")
-  ) {
-    throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    const currentUser = await userRepository.getById(appUserId);
+    if (
+      !currentUser ||
+      (currentUser.role !== "super_admin" &&
+        currentUser.role !== "tournament_admin")
+    ) {
+      throw new ForbiddenError(ErrorCode.INSUFFICIENT_PERMISSIONS);
+    }
+
+    const allUsers = await userService.getAllUsers();
+
+    const usersResponse = allUsers.map((user) => ({
+      id: user.id,
+      externalId: user.externalId,
+      displayName: user.displayName,
+      shortName: user.shortName,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      betterAuth: {
+        id: user.externalUser?.id,
+        email: user.externalUser?.email,
+        name: user.externalUser?.name,
+        image: user.externalUser?.image,
+        emailVerified: user.externalUser?.emailVerified,
+        createdAt: user.externalUser?.createdAt,
+        updatedAt: user.externalUser?.updatedAt,
+      },
+    }));
+
+    return c.json(usersResponse);
   }
-
-  const allUsers = await userService.getAllUsers();
-
-  const usersResponse = allUsers.map((user) => ({
-    id: user.id,
-    externalId: user.externalId,
-    displayName: user.displayName,
-    shortName: user.shortName,
-    role: user.role,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-    betterAuth: {
-      id: user.externalUser?.id,
-      email: user.externalUser?.email,
-      name: user.externalUser?.name,
-      image: user.externalUser?.image,
-      emailVerified: user.externalUser?.emailVerified,
-      createdAt: user.externalUser?.createdAt,
-      updatedAt: user.externalUser?.updatedAt,
-    },
-  }));
-
-  return c.json(usersResponse);
-});
+);
 
 // GET /users/search - Search players by name (authenticated)
 // Registered before /:id so it is not captured as a player id
-users.get("/search", requireAuth, zValidator("query", userSearchSchema), async (c) => {
-  const { q, limit } = c.req.valid("query");
-  const players = await userService.searchUsers(q, limit);
-  return c.json(players);
-});
+users.get(
+  "/search",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Search players by name",
+    auth: true,
+    success: { description: "Matching players", schema: z.array(playerProfileSchema) },
+  }),
+  validate("query", userSearchSchema),
+  async (c) => {
+    const { q, limit } = c.req.valid("query");
+    const players = await userService.searchUsers(q, limit);
+    return c.json(players);
+  }
+);
 
 // GET /users/compare - Compare two players (authenticated)
 // Registered before /:id so it is not captured as a player id
-users.get("/compare", requireAuth, zValidator("query", playerComparisonSchema), async (c) => {
-  const { playerA, playerB, ...filters } = c.req.valid("query");
-  const result = await playerStatsService.getComparison(playerA, playerB, filters);
-  return c.json(result);
-});
+users.get(
+  "/compare",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Compare two players",
+    auth: true,
+    notFound: true,
+    success: {
+      description: "Both players' stats plus their head-to-head and team-up records",
+      schema: playerComparisonResponseSchema,
+    },
+  }),
+  validate("query", playerComparisonSchema),
+  async (c) => {
+    const { playerA, playerB, ...filters } = c.req.valid("query");
+    const result = await playerStatsService.getComparison(playerA, playerB, filters);
+    return c.json(result);
+  }
+);
 
 // GET /users/:id - Public player profile
-users.get("/:id", async (c) => {
-  const id = c.req.param("id");
-  const player = await playerStatsService.getPlayerProfile(id);
-  return c.json(player);
-});
+users.get(
+  "/:id",
+  describe({
+    tags: TAGS,
+    summary: "Get a player's public profile",
+    notFound: true,
+    success: { description: "The player", schema: playerProfileSchema },
+  }),
+  async (c) => {
+    const id = c.req.param("id");
+    const player = await playerStatsService.getPlayerProfile(id);
+    return c.json(player);
+  }
+);
 
 // GET /users/:id/tournaments - Tournaments list for filter dropdown
-users.get("/:id/tournaments", async (c) => {
-  const id = c.req.param("id");
-  const tournaments = await playerStatsService.getPlayerTournaments(id);
-  return c.json({ tournaments });
-});
+users.get(
+  "/:id/tournaments",
+  describe({
+    tags: TAGS,
+    summary: "List the tournaments a player took part in",
+    description: "Intended to populate the filter dropdown on a player's stats page.",
+    notFound: true,
+    success: {
+      description: "Tournaments the player entered",
+      schema: z.object({ tournaments: z.array(playerTournamentOptionSchema) }),
+    },
+  }),
+  async (c) => {
+    const id = c.req.param("id");
+    const tournaments = await playerStatsService.getPlayerTournaments(id);
+    return c.json({ tournaments });
+  }
+);
 
 // GET /users/:id/stats - Player stats (filterable)
-users.get("/:id/stats", zValidator("query", playerStatsFiltersSchema), async (c) => {
-  const id = c.req.param("id");
-  const filters = c.req.valid("query");
-  const result = await playerStatsService.getPlayerStats(id, filters);
-  return c.json(result);
-});
+users.get(
+  "/:id/stats",
+  describe({
+    tags: TAGS,
+    summary: "Get a player's statistics",
+    notFound: true,
+    success: {
+      description: "Statistics for the player, narrowed by the query filters",
+      schema: playerStatsResponseSchema,
+    },
+  }),
+  validate("query", playerStatsFiltersSchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const filters = c.req.valid("query");
+    const result = await playerStatsService.getPlayerStats(id, filters);
+    return c.json(result);
+  }
+);
 
 // GET /users/:id/badges - Player badges (public)
-users.get("/:id/badges", async (c) => {
-  const id = c.req.param("id");
-  const badges = await rulesService.getPlayerBadges(id);
-  return c.json({ badges });
-});
+users.get(
+  "/:id/badges",
+  describe({
+    tags: TAGS,
+    summary: "List a player's badges",
+    success: {
+      description: "Badges the player has earned",
+      schema: z.object({ badges: z.array(playerBadgeSchema) }),
+    },
+  }),
+  async (c) => {
+    const id = c.req.param("id");
+    const badges = await rulesService.getPlayerBadges(id);
+    return c.json({ badges });
+  }
+);
 
 export default users;

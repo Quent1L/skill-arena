@@ -7,7 +7,9 @@ import {
   seedingTypeSchema,
   bracketRoundTypeSchema,
 } from "./enums";
+import { matchSchema } from "./match";
 import type { Match, ClientMatchModel } from "./match";
+import { tournamentEntryModelSchema } from "./entry";
 import type { TournamentEntryModel } from "./entry";
 
 // ============================================
@@ -115,6 +117,8 @@ export const generateBracketSchema = z
   );
 
 export const bracketConfigSchema = z.object({
+  // Field list mirrors BracketConfig above; kept as a plain object because it is
+  // also used to validate stored bracket payloads.
   id: z.string().uuid(),
   tournamentId: z.string().uuid(),
   bracketType: bracketTypeSchema,
@@ -157,11 +161,40 @@ export const bracketMatchMetadataSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-export const canGenerateBracketResponseSchema = z.object({
-  canGenerate: z.boolean(),
-  reason: z.string().optional(),
-  matchCount: z.number().int().optional(),
-});
+export const canGenerateBracketResponseSchema = z
+  .object({
+    canGenerate: z.boolean(),
+    reason: z.string().optional(),
+    matchCount: z.number().int().optional(),
+    currentParticipants: z.number().int().optional(),
+  })
+  .meta({ id: "CanGenerateBracketResponse" });
+
+// ============================================
+// Composite bracket payload
+// ============================================
+
+export const bracketSeedWithEntrySchema = bracketSeedSchema
+  .extend({ entry: tournamentEntryModelSchema.optional() })
+  .meta({ id: "BracketSeed" });
+
+export const bracketMatchWithMetadataSchema = z
+  .object({
+    match: matchSchema,
+    metadata: bracketMatchMetadataSchema,
+    round: bracketRoundSchema,
+  })
+  .meta({ id: "BracketMatchWithMetadata" });
+
+/** Everything GET /tournaments/:id/bracket returns, in one payload. */
+export const bracketDataSchema = z
+  .object({
+    config: bracketConfigSchema,
+    rounds: z.array(bracketRoundSchema),
+    seeds: z.array(bracketSeedWithEntrySchema),
+    matches: z.array(bracketMatchWithMetadataSchema),
+  })
+  .meta({ id: "BracketData" });
 
 // ============================================
 // Types inferred from schemas
