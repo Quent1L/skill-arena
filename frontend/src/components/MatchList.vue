@@ -111,8 +111,9 @@
       <div
         v-else
         ref="container"
-        class="overflow-y-auto pr-1"
-        :style="props.noScroll ? undefined : 'max-height: calc(100vh - 200px)'"
+        class="pr-1"
+        :class="props.scrollMode === 'container' ? 'overflow-y-auto' : undefined"
+        :style="props.scrollMode === 'container' ? 'max-height: calc(100vh - 200px)' : undefined"
       >
         <div :class="gridClass">
           <MatchCard
@@ -161,12 +162,18 @@ interface Props {
   allowDraw?: boolean
   playerMode?: boolean
   showDisputedFilter?: boolean
-  noScroll?: boolean
+  /**
+   * Where the list scrolls: 'container' clamps it to the viewport and scrolls inside itself,
+   * 'window' lets it grow and hands the infinite scroll over to the page, 'none' caps it to
+   * the first page with no further loading.
+   */
+  scrollMode?: 'container' | 'window' | 'none'
   gridClass?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   pageSize: 20,
+  scrollMode: 'container',
   gridClass: 'grid grid-cols-1 md:grid-cols-2 gap-4',
 })
 
@@ -315,13 +322,13 @@ async function loadMatches(append = false) {
 }
 
 useInfiniteScroll(
-  container,
+  () => (props.scrollMode === 'window' ? window : container.value),
   async () => {
     await loadMatches(true)
   },
   {
     distance: 100,
-    canLoadMore: () => hasMore.value && !loading.value && !props.noScroll,
+    canLoadMore: () => hasMore.value && !loading.value && props.scrollMode !== 'none',
   },
 )
 

@@ -101,7 +101,7 @@
               :allow-draw="false"
               :player-mode="true"
               :page-size="10"
-              :no-scroll="true"
+              scroll-mode="none"
               grid-class="grid grid-cols-1 gap-4"
             />
           </div>
@@ -180,7 +180,7 @@
             :player-id="playerId"
             :tournament-id="statsFilters.tournamentId"
             :page-size="10"
-            :no-scroll="true"
+            scroll-mode="none"
           />
         </div>
       </template>
@@ -283,7 +283,7 @@
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
             {{ t('playerDetailView.last10Matches') }}
           </div>
-          <MatchList :player-id="playerId" :page-size="10" :no-scroll="true" />
+          <MatchList :player-id="playerId" :page-size="10" scroll-mode="none" />
         </div>
       </template>
 

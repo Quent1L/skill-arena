@@ -96,6 +96,14 @@ header {
 }
 
 /* ── Scroll ── */
+/* Views whose height crosses the viewport while loading (async route chunks, lists
+   that grow once fetched) would otherwise make the window scrollbar appear and
+   disappear, shifting every centered layout sideways. Reserving the gutter up front
+   costs a few pixels and removes the shift entirely. */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Horizontal chip rows and mobile card carousels scroll on purpose; the
    scrollbar itself is noise on a touch surface. */
 .no-scrollbar::-webkit-scrollbar {

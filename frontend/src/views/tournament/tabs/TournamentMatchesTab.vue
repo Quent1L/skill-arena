@@ -6,6 +6,7 @@
     :current-player-id="store.appUser?.id"
     :allow-draw="store.tournament!.allowDraw"
     :show-disputed-filter="store.canManageTournament"
+    scroll-mode="window"
   />
 </template>
 

@@ -162,11 +162,13 @@
         </div>
 
         <!-- Tab content -->
+        <!-- min-h keeps the page from collapsing while a tab chunk (or its data) loads,
+             which would otherwise flip the window scrollbar on and off mid-switch. -->
         <div
           :class="
             activeTabName === 'bracket'
-              ? 'max-w-[100rem] mx-auto px-6 py-6 h-full'
-              : 'max-w-6xl mx-auto px-6 py-6 h-full'
+              ? 'max-w-[100rem] mx-auto px-6 py-6 min-h-[70vh]'
+              : 'max-w-6xl mx-auto px-6 py-6 min-h-[70vh]'
           "
         >
           <RouterView />
