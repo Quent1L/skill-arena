@@ -1,44 +1,54 @@
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[500] flex items-center justify-center bg-black/85 px-4">
-      <div class="w-full max-w-sm rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden">
+    <div
+      class="reveal-backdrop fixed inset-0 z-[500] flex items-center justify-center px-4"
+      :class="{ 'is-counting': phase !== 'entry' }"
+      @click="onSkip"
+    >
+      <!-- Tier-tinted halo, so the card sits in the colour of the rank at stake -->
+      <div class="halo" :style="{ '--halo-color': haloHex }" />
 
+      <div
+        class="reveal-card relative w-full max-w-sm rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden"
+        :class="{ 'is-demoted': rankRevealed && rankDirection === 'down' }"
+      >
         <!-- Rank badge area -->
-        <div class="flex flex-col items-center gap-2 py-6 px-6 min-h-28">
-          <div v-if="reasonLabel" class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-800 text-gray-400">
+        <div class="relative flex flex-col items-center gap-2 py-6 px-6 min-h-32">
+          <div
+            v-if="reasonLabel"
+            class="text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full bg-gray-800 text-gray-400"
+          >
             {{ reasonLabel }}
           </div>
-          <Transition name="badge-exit" mode="out-in">
-            <div v-if="phase === 'rank_up_exit'" key="old" class="flex flex-col items-center gap-2">
+
+          <div v-if="burst" class="sparks" aria-hidden="true">
+            <span
+              v-for="(spark, i) in SPARKS"
+              :key="i"
+              class="spark"
+              :style="{
+                '--sx': `${spark.x}px`,
+                '--sy': `${spark.y}px`,
+                '--sd': `${spark.delay}ms`,
+                background: haloHex,
+              }"
+            />
+          </div>
+
+          <Transition name="badge-swap" mode="out-in">
+            <div :key="badgeIndex" class="relative flex flex-col items-center gap-2">
               <i
-                :class="tierBeforeIconClass"
-                class="text-5xl"
-                :style="{ color: tierBeforeColor }"
+                :class="[badgeIconClass, rankRevealed ? 'tier-icon-glow' : '']"
+                class="text-6xl"
+                :style="{ color: haloHex, '--glow-color': haloHex }"
               />
-              <div class="text-3xl font-black text-gray-400">{{ event.tierBeforeName ?? '—' }}</div>
-            </div>
-            <div v-else key="current" class="flex flex-col items-center gap-2">
-              <Transition name="badge-enter">
-                <div v-if="phase !== 'entry'" class="flex flex-col items-center gap-2">
-                  <i
-                    :class="[
-                      currentIconClass,
-                      phase === 'rank_up_in' || phase === 'rank_up_hold' ? 'tier-icon-glow' : '',
-                    ]"
-                    class="text-5xl"
-                    :style="{ color: currentTierColor, '--glow-color': currentTierColor }"
-                  />
-                  <div class="text-3xl font-black" :class="currentTierClass">
-                    {{ displayTierName }}
-                  </div>
-                </div>
-              </Transition>
+              <div class="text-3xl font-black" :class="tierNameClass">{{ badgeTierName }}</div>
             </div>
           </Transition>
 
           <Transition name="rank-up-text">
             <div
-              v-if="phase === 'rank_up_in' || phase === 'rank_up_hold'"
+              v-if="rankRevealed"
               class="font-black text-base uppercase tracking-widest"
               :class="rankChangeTextClass"
             >
@@ -52,12 +62,14 @@
           <span class="text-gray-400 text-xl font-mono">{{ event.mmrBefore }}</span>
           <span class="text-gray-500">→</span>
           <span
+            data-testid="mmr-counter"
             class="text-3xl font-black font-mono transition-colors duration-500"
             :class="mmrCounterClass"
-          >{{ displayMmr }}</span>
+            >{{ displayMmr }}</span
+          >
           <Transition name="delta-pop">
             <span
-              v-if="phase === 'settled' || phase === 'rank_up_exit' || phase === 'rank_up_in' || phase === 'rank_up_hold' || phase === 'done'"
+              v-if="phase !== 'entry' && !isProvisional"
               class="text-2xl font-black"
               :class="event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'"
             >
@@ -69,36 +81,43 @@
         <!-- Encouragement message -->
         <Transition name="fade-up">
           <div
-            v-if="props.event.encouragementMessage && (phase === 'settled' || phase === 'done')"
+            v-if="event.encouragementMessage && (phase === 'settled' || phase === 'done')"
             class="text-center px-6 pb-2 text-sm font-semibold"
             :class="encouragementClass"
           >
-            {{ props.event.encouragementMessage }}
+            {{ event.encouragementMessage }}
           </div>
         </Transition>
 
         <!-- Progress bar -->
         <div class="px-6 pb-5">
-          <div class="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{{ tierMinMmr }}</span>
-            <span>{{ tierMaxMmr !== null ? tierMaxMmr : '∞' }}</span>
-          </div>
-          <div class="h-3 w-full rounded-full overflow-hidden bg-gray-700 relative">
-            <div class="absolute h-full" :style="barBaseStyle" />
-            <div v-if="!isProvisional" class="absolute h-full" :style="barDeltaStyle" />
-          </div>
+          <MmrProgressBar
+            :segments="segments"
+            :active-index="activeIndex"
+            :progressed="progressed"
+            :completed="completed"
+            :provisional="isProvisional"
+            :instant="skipped"
+            :resetting="resetting"
+            :show-tier-name="false"
+            :duration-ms="TIMING.segment"
+          />
         </div>
 
-        <!-- Dismiss button -->
-        <div class="px-6 pb-6">
-          <Transition name="fade-up">
+        <!-- Skip hint, then dismiss -->
+        <div class="px-6 pb-6 min-h-14">
+          <Transition name="fade-up" mode="out-in">
             <button
               v-if="phase === 'done'"
+              key="continue"
               class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
-              @click="$emit('close')"
+              @click.stop="$emit('close')"
             >
               {{ t('mmrRevealAnimation.continue') }}
             </button>
+            <div v-else key="hint" class="skip-hint text-center text-xs text-gray-500 py-3">
+              {{ t('mmrRevealAnimation.tapToSkip') }}
+            </div>
           </Transition>
         </div>
       </div>
@@ -107,11 +126,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skol-arena/shared'
 import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
-import { getNextTier } from '@/composables/ranked/ranked.service'
+import { buildMmrBarSegments, type MmrBarSegment } from '@/composables/ranked/mmr-progress'
+import { useMmrBarPlayback, MMR_REVEAL_TIMING } from '@/composables/ranked/useMmrBarPlayback'
+import { useCountUp } from '@/composables/ui/useCountUp'
+import MmrProgressBar from './MmrProgressBar.vue'
 
 const { t } = useI18n()
 
@@ -122,15 +144,54 @@ const props = defineProps<{
 
 defineEmits<{ (e: 'close'): void }>()
 
-type Phase = 'entry' | 'counting' | 'settled' | 'rank_up_exit' | 'rank_up_in' | 'rank_up_hold' | 'done'
+type Phase = 'entry' | 'counting' | 'settled' | 'done'
+
+/** Beat lengths, in ms. `swap` must outlast the badge-swap transition below. */
+const TIMING = MMR_REVEAL_TIMING
+
+const SPARKS = Array.from({ length: 14 }, (_, i) => {
+  const angle = (i / 14) * Math.PI * 2
+  return { x: Math.cos(angle) * 96, y: Math.sin(angle) * 96, delay: (i % 5) * 45 }
+})
 
 const phase = ref<Phase>('entry')
-const displayMmr = ref(props.event.mmrBefore)
-const barBlueWidth = ref(0)
-const barDeltaLeft = ref(0)
-const barDeltaWidth = ref(0)
+const badgeIndex = ref(0)
+const rankRevealed = ref(false)
+const burst = ref(false)
 
 const isProvisional = computed(() => props.event.eventType === 'provisional')
+
+// A placement event never changes tier, so it is pinned to a single segment.
+const segments = computed(() => {
+  const { mmrBefore, mmrAfter, tierBeforeLevel, tierAfterLevel } = props.event
+  const before = isProvisional.value ? tierAfterLevel : tierBeforeLevel
+  return buildMmrBarSegments(mmrBefore, mmrAfter, props.tiers, {
+    tierBeforeLevel: before,
+    tierAfterLevel,
+  })
+})
+
+const counter = useCountUp(() => props.event.mmrAfter, {
+  from: props.event.mmrBefore,
+  manual: true,
+})
+const displayMmr = counter.value
+
+const playback = useMmrBarPlayback(
+  () => segments.value,
+  {
+    onSegmentStart: (segment) => onSegmentStart(segment),
+    onTierCleared: (nextIndex) => swapBadge(nextIndex),
+    onSettled: () => {
+      phase.value = 'settled'
+    },
+    onDone: () => {
+      phase.value = 'done'
+    },
+  },
+  TIMING,
+)
+const { activeIndex, progressed, completed, resetting, skipped } = playback
 
 const reasonLabel = computed(() => {
   if (props.event.reason === 'match_cancelled') return t('mmrRevealAnimation.matchCancelled')
@@ -138,30 +199,14 @@ const reasonLabel = computed(() => {
   return null
 })
 
-function getTierForLevel(level: number | null) {
-  if (level === null || !props.tiers.length) return null
-  return props.tiers.find((t) => t.level === level) ?? null
-}
+const badgeTier = computed(() => segments.value[badgeIndex.value]?.tier ?? null)
+const badgeIconClass = computed(() => getTierIconClass(badgeTier.value))
+const haloHex = computed(() => getTierTextHex(badgeTier.value))
 
-
-const tierBefore = computed(() => getTierForLevel(props.event.tierBeforeLevel))
-const tierAfter = computed(() => getTierForLevel(props.event.tierAfterLevel))
-
-const tierBeforeIconClass = computed(() => getTierIconClass(tierBefore.value))
-const tierAfterIconClass = computed(() => getTierIconClass(tierAfter.value))
-const tierBeforeColor = computed(() => getTierTextHex(tierBefore.value))
-const tierAfterColor = computed(() => getTierTextHex(tierAfter.value))
-
-const isRankUpPhase = (p: Phase) =>
-  p === 'rank_up_in' || p === 'rank_up_hold' || p === 'done'
-
-const currentIconClass = computed(() =>
-  isRankUpPhase(phase.value) ? tierAfterIconClass.value : tierBeforeIconClass.value,
-)
-
-const currentTierColor = computed(() =>
-  isRankUpPhase(phase.value) ? tierAfterColor.value : tierBeforeColor.value,
-)
+const badgeTierName = computed(() => {
+  const fallback = badgeIndex.value === 0 ? props.event.tierBeforeName : props.event.tierAfterName
+  return badgeTier.value?.name ?? fallback ?? '—'
+})
 
 const rankDirection = computed(() =>
   (props.event.tierAfterLevel ?? 0) >= (props.event.tierBeforeLevel ?? 0) ? 'up' : 'down',
@@ -172,70 +217,20 @@ const rankChangeText = computed(() =>
 )
 
 const rankChangeTextClass = computed(() =>
-  rankDirection.value === 'up'
-    ? 'text-amber-400 animate-bounce'
-    : 'text-red-400 animate-pulse',
+  rankDirection.value === 'up' ? 'text-amber-400 animate-bounce' : 'text-red-400 animate-pulse',
 )
-
-const displayTierName = computed(() => {
-  if (isRankUpPhase(phase.value)) return props.event.tierAfterName ?? '—'
-  return props.event.tierBeforeName ?? '—'
-})
-
-function mmrToPercent(mmr: number, minMmr: number, maxMmr: number | null): number {
-  if (maxMmr === null) return Math.min(100, Math.max(0, mmr - minMmr) / 100 * 10)
-  const range = maxMmr - minMmr
-  if (range <= 0) return 100
-  return Math.min(100, Math.max(0, ((mmr - minMmr) / range) * 100))
-}
-
-const tierMinMmr = computed(() => {
-  const tier = tierAfter.value ?? tierBefore.value
-  return tier?.minMmr ?? 0
-})
-
-const tierMaxMmr = computed((): number | null => {
-  const tier = tierAfter.value ?? tierBefore.value
-  if (!tier) return null
-  return getNextTier(tier, props.tiers)?.minMmr ?? null
-})
-
-const barBaseStyle = computed(() => {
-  if (isProvisional.value) {
-    return {
-      width: `${barBlueWidth.value + barDeltaWidth.value}%`,
-      background: 'repeating-linear-gradient(45deg, #6b7280 0px 4px, #4b5563 4px 8px)',
-      transition: 'width 1s ease-out',
-    }
-  }
-  const tierColor = tierAfter.value ? '#3b82f6' : '#6b7280'
-  return { width: `${barBlueWidth.value}%`, backgroundColor: tierColor, transition: 'width 1s ease-out' }
-})
-
-const barDeltaStyle = computed(() => {
-  const color = props.event.mmrDelta >= 0 ? '#10b981' : '#ef4444'
-  return {
-    left: `${barDeltaLeft.value}%`,
-    width: `${barDeltaWidth.value}%`,
-    backgroundColor: color,
-    transition: 'width 1s ease-out, left 1s ease-out',
-  }
-})
 
 const mmrCounterClass = computed(() => {
   if (isProvisional.value) return 'text-gray-300'
-  if (phase.value === 'counting' || phase.value === 'settled') {
-    return props.event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'
-  }
+  if (phase.value === 'counting') return props.event.mmrDelta >= 0 ? 'text-emerald-400' : 'text-red-400'
   return 'text-white'
 })
 
-const currentTierClass = computed(() => {
+const tierNameClass = computed(() => {
   if (isProvisional.value) return 'text-gray-400'
-  if (props.event.rankChanged && isRankUpPhase(phase.value)) return 'text-amber-400'
+  if (rankRevealed.value) return rankDirection.value === 'up' ? 'text-amber-400' : 'text-red-300'
   return 'text-white'
 })
-
 
 const encouragementClass = computed(() => {
   if (isProvisional.value) return 'text-gray-400'
@@ -244,117 +239,89 @@ const encouragementClass = computed(() => {
   return 'text-gray-400'
 })
 
-let rafId: number | null = null
-
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3)
+// The counter is re-targeted per segment so the number and the bar always agree,
+// including across the tier boundaries a promotion travels over.
+function onSegmentStart(segment: MmrBarSegment): void {
+  phase.value = 'counting'
+  burst.value = false
+  counter.start({ from: segment.mmrFrom, to: segment.mmrTo, durationMs: TIMING.segment })
 }
 
-function runPhase() {
-  setTimeout(() => {
-    phase.value = 'counting'
-    const startTime = performance.now()
-    const duration = 1200
-    const from = props.event.mmrBefore
-    const to = props.event.mmrAfter
-
-    function tick(now: number) {
-      const elapsed = now - startTime
-      const t = Math.min(elapsed / duration, 1)
-      displayMmr.value = Math.round(from + (to - from) * easeOutCubic(t))
-      if (t < 1) {
-        rafId = requestAnimationFrame(tick)
-      } else {
-        displayMmr.value = to
-        phase.value = 'settled'
-        onSettled()
-      }
-    }
-    rafId = requestAnimationFrame(tick)
-  }, 400)
+function swapBadge(index: number): void {
+  badgeIndex.value = index
+  rankRevealed.value = true
+  burst.value = rankDirection.value === 'up' && !skipped.value
 }
 
-function onSettled() {
-  const beforePct = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
-  const afterPct = mmrToPercent(props.event.mmrAfter, tierMinMmr.value, tierMaxMmr.value)
-
-  if (isProvisional.value) {
-    barBlueWidth.value = afterPct
-  } else if (props.event.mmrDelta >= 0) {
-    barDeltaWidth.value = afterPct - beforePct
-  } else {
-    barBlueWidth.value = afterPct
-    barDeltaLeft.value = afterPct
-    barDeltaWidth.value = beforePct - afterPct
-  }
-
-  if (props.event.rankChanged && !isProvisional.value) {
-    runPhaseSequence([
-      { phase: 'rank_up_exit', delay: 1000 },
-      { phase: 'rank_up_in', delay: 400 },
-      { phase: 'rank_up_hold', delay: 800 },
-      { phase: 'done', delay: 1200 },
-    ])
-  } else {
-    setTimeout(() => {
-      phase.value = 'done'
-    }, 1200)
-  }
+function onSkip(): void {
+  playback.skip()
+  counter.finish()
 }
 
-function runPhaseSequence(steps: { phase: Phase; delay: number }[]) {
-  let index = 0
-  const next = () => {
-    if (index >= steps.length) return
-    const step = steps[index++]
-    setTimeout(() => {
-      phase.value = step.phase
-      next()
-    }, step.delay)
-  }
-  next()
-}
-
-onMounted(() => {
-  const startPct = mmrToPercent(props.event.mmrBefore, tierMinMmr.value, tierMaxMmr.value)
-  barBlueWidth.value = startPct
-  barDeltaLeft.value = startPct
-  runPhase()
-})
-
-onUnmounted(() => {
-  if (rafId !== null) cancelAnimationFrame(rafId)
-})
+onMounted(() => playback.play())
 </script>
 
 <style scoped>
-.badge-exit-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
+.reveal-backdrop {
+  background: radial-gradient(circle at 50% 45%, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.94));
+  transition: background 1.2s ease-out;
 }
-.badge-exit-leave-to {
-  opacity: 0;
-  transform: translateY(-16px) scale(0.85);
-}
-.badge-exit-enter-active {
-  transition: opacity 0.3s;
-}
-.badge-exit-enter-from {
-  opacity: 0;
+.reveal-backdrop.is-counting {
+  background: radial-gradient(circle at 50% 45%, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.985));
 }
 
-.badge-enter-enter-active {
+.halo {
+  position: absolute;
+  width: min(30rem, 90vw);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle, var(--halo-color, #fff) 0%, transparent 62%);
+  opacity: 0.16;
+  filter: blur(28px);
+  pointer-events: none;
+  animation: halo-breathe 4.5s ease-in-out infinite;
+}
+
+.reveal-card {
+  animation: card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-card.is-demoted {
+  animation: card-shake 0.55s ease-in-out;
+}
+
+.sparks {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+.spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: spark-out 0.9s ease-out var(--sd, 0ms) forwards;
+}
+
+.badge-swap-leave-active {
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+}
+.badge-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-18px) scale(0.8);
+}
+.badge-swap-enter-active {
   animation: badge-bounce 0.55s ease-out;
 }
 
-@keyframes badge-bounce {
-  0% { transform: scale(0); opacity: 0; }
-  55% { transform: scale(1.3); }
-  80% { transform: scale(0.9); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
 .rank-up-text-enter-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
 }
 .rank-up-text-enter-from {
   opacity: 0;
@@ -362,31 +329,148 @@ onUnmounted(() => {
 }
 
 .fade-up-enter-active {
-  transition: opacity 0.4s, transform 0.4s;
+  transition:
+    opacity 0.4s,
+    transform 0.4s;
 }
 .fade-up-enter-from {
   opacity: 0;
   transform: translateY(8px);
 }
+.fade-up-leave-active {
+  transition: opacity 0.2s;
+}
+.fade-up-leave-to {
+  opacity: 0;
+}
 
 .delta-pop-enter-active {
-  animation: delta-bounce 0.45s ease-out;
+  animation: delta-bounce 0.5s ease-out;
 }
 
-@keyframes delta-bounce {
-  0% { transform: scale(0.4); opacity: 0; }
-  55% { transform: scale(1.3); }
-  80% { transform: scale(0.9); }
-  100% { transform: scale(1); opacity: 1; }
+.skip-hint {
+  animation: hint-in 0.4s ease-out 0.9s both;
 }
-
 
 .tier-icon-glow {
   animation: icon-glow 1.4s ease-in-out infinite;
 }
 
+@keyframes card-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes card-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-9px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes halo-breathe {
+  0%,
+  100% {
+    opacity: 0.13;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.26;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes spark-out {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--sx, 0), var(--sy, 0)) scale(0.2);
+  }
+}
+
+@keyframes badge-bounce {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+    filter: brightness(3);
+  }
+  55% {
+    transform: scale(1.32);
+    filter: brightness(1.6);
+  }
+  80% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes delta-bounce {
+  0% {
+    transform: scale(0.4) translateY(14px);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.3) translateY(0);
+  }
+  80% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes hint-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes icon-glow {
-  0%, 100% { filter: drop-shadow(0 0 6px var(--glow-color, #fff)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 20px var(--glow-color, #fff)); transform: scale(1.12); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px var(--glow-color, #fff));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 22px var(--glow-color, #fff));
+    transform: scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparks,
+  .halo {
+    display: none;
+  }
 }
 </style>

@@ -14,6 +14,8 @@ export const TIER_CARD_BG_CLASS = [
   'bg-gradient-to-b from-purple-900/80 to-gray-900',
 ]
 export const TIER_PROGRESS_BAR_CLASS = ['bg-gray-500', 'bg-blue-500', 'bg-amber-400', 'bg-orange-500', 'bg-purple-500']
+/** Hex twins of TIER_PROGRESS_BAR_CLASS, for bars painted through inline gradients. */
+export const TIER_BAR_HEX = ['#6b7280', '#3b82f6', '#fbbf24', '#f97316', '#a855f7']
 
 /**
  * Everything the styling reads off a tier. Narrower than `ClientRankTier` so a
@@ -34,4 +36,12 @@ export function getTierIconClass(tier: StyleableTier | null): string {
 
 export function getTierTextHex(tier: StyleableTier | null): string {
   return TIER_TEXT_HEX[tierStyleIdx(tier)] ?? '#9ca3af'
+}
+
+export function getTierBarHex(tier: StyleableTier | null): string {
+  return TIER_BAR_HEX[tierStyleIdx(tier)] ?? '#6b7280'
+}
+
+export function getTierProgressBarClass(tier: StyleableTier | null): string {
+  return TIER_PROGRESS_BAR_CLASS[tierStyleIdx(tier)] ?? 'bg-gray-500'
 }

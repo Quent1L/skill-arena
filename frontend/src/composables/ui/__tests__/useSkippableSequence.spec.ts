@@ -1,0 +1,110 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { defineComponent } from 'vue'
+import { mount } from '@vue/test-utils'
+import { useSkippableSequence, type SkippableSequence } from '../useSkippableSequence'
+
+// The composable registers onUnmounted, so it has to live inside a component.
+function mountSequence() {
+  let sequence!: SkippableSequence
+  const wrapper = mount(
+    defineComponent({
+      setup() {
+        sequence = useSkippableSequence()
+        return () => null
+      },
+    }),
+  )
+  return { wrapper, sequence }
+}
+
+function stubReducedMotion(matches: boolean) {
+  window.matchMedia = vi.fn().mockReturnValue({ matches }) as unknown as typeof window.matchMedia
+}
+
+const originalMatchMedia = window.matchMedia
+
+beforeEach(() => vi.useFakeTimers())
+
+afterEach(() => {
+  vi.useRealTimers()
+  window.matchMedia = originalMatchMedia
+})
+
+describe('useSkippableSequence', () => {
+  it('exécute les étapes dans l’ordre, chacune après son propre délai', () => {
+    const seen: string[] = []
+    const { sequence } = mountSequence()
+    sequence.start([
+      { delay: 100, run: () => seen.push('a') },
+      { delay: 50, run: () => seen.push('b') },
+    ])
+
+    expect(seen).toEqual([])
+    vi.advanceTimersByTime(100)
+    expect(seen).toEqual(['a'])
+    vi.advanceTimersByTime(49)
+    expect(seen).toEqual(['a'])
+    vi.advanceTimersByTime(1)
+    expect(seen).toEqual(['a', 'b'])
+    expect(sequence.finished.value).toBe(true)
+  })
+
+  it('skip joue le reste dans l’ordre, une seule fois', () => {
+    const seen: string[] = []
+    const { sequence } = mountSequence()
+    sequence.start([
+      { delay: 100, run: () => seen.push('a') },
+      { delay: 100, run: () => seen.push('b') },
+      { delay: 100, run: () => seen.push('c') },
+    ])
+
+    vi.advanceTimersByTime(100)
+    sequence.skip()
+    expect(seen).toEqual(['a', 'b', 'c'])
+    expect(sequence.skipped.value).toBe(true)
+
+    // Rien ne doit rejouer, ni sur un second skip ni au fil des timers.
+    sequence.skip()
+    vi.advanceTimersByTime(1000)
+    expect(seen).toEqual(['a', 'b', 'c'])
+  })
+
+  it('cancel abandonne les étapes restantes sans les jouer', () => {
+    const seen: string[] = []
+    const { sequence } = mountSequence()
+    sequence.start([
+      { delay: 100, run: () => seen.push('a') },
+      { delay: 100, run: () => seen.push('b') },
+    ])
+
+    vi.advanceTimersByTime(100)
+    sequence.cancel()
+    vi.advanceTimersByTime(1000)
+    expect(seen).toEqual(['a'])
+  })
+
+  it('le démontage annule les timers en attente', () => {
+    const seen: string[] = []
+    const { wrapper, sequence } = mountSequence()
+    sequence.start([{ delay: 100, run: () => seen.push('a') }])
+
+    wrapper.unmount()
+    expect(vi.getTimerCount()).toBe(0)
+    vi.advanceTimersByTime(1000)
+    expect(seen).toEqual([])
+  })
+
+  it('en mouvement réduit, tout est joué immédiatement', () => {
+    stubReducedMotion(true)
+    const seen: string[] = []
+    const { sequence } = mountSequence()
+    sequence.start([
+      { delay: 1000, run: () => seen.push('a') },
+      { delay: 1000, run: () => seen.push('b') },
+    ])
+
+    expect(seen).toEqual(['a', 'b'])
+    expect(sequence.finished.value).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+})

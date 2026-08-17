@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
+import { prefersReducedMotion } from './reduced-motion'
 
 const DEFAULT_DURATION_MS = 1200
 
@@ -6,9 +7,11 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === 'undefined' || !window.matchMedia) return false
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+/** Per-run overrides, for a counter replayed across several legs. */
+export interface CountUpRun {
+  from?: number
+  to?: number
+  durationMs?: number
 }
 
 /**
@@ -26,24 +29,28 @@ export function useCountUp(
     durationMs?: number
     /** Runs the counter while true. Omitted: it runs once on mount. */
     active?: Ref<boolean>
+    /** Never starts on its own — the caller drives every run through `start()`. */
+    manual?: boolean
   } = {},
-): { value: Ref<number>; start: () => void } {
+): { value: Ref<number>; start: (run?: CountUpRun) => void; finish: () => void } {
   const readTarget = typeof target === 'function' ? target : () => target.value
-  const duration = options.durationMs ?? DEFAULT_DURATION_MS
   const value = ref(options.from ?? 0)
   let rafId: number | null = null
+  let pendingTo: number | null = null
 
   function stop(): void {
     if (rafId !== null) cancelAnimationFrame(rafId)
     rafId = null
   }
 
-  function start(): void {
+  function start(run: CountUpRun = {}): void {
     stop()
-    const to = readTarget()
-    const from = options.from ?? 0
+    const to = run.to ?? readTarget()
+    const from = run.from ?? options.from ?? 0
+    const duration = run.durationMs ?? options.durationMs ?? DEFAULT_DURATION_MS
+    pendingTo = to
 
-    if (prefersReducedMotion() || from === to) {
+    if (prefersReducedMotion() || from === to || duration <= 0) {
       value.value = to
       return
     }
@@ -61,12 +68,18 @@ export function useCountUp(
     rafId = requestAnimationFrame(tick)
   }
 
+  /** Cancels the run in flight and snaps to its target — used when skipping. */
+  function finish(): void {
+    stop()
+    value.value = pendingTo ?? readTarget()
+  }
+
   if (options.active) {
     watch(options.active, (isActive) => (isActive ? start() : stop()), { immediate: true })
-  } else {
-    onMounted(start)
+  } else if (!options.manual) {
+    onMounted(() => start())
   }
 
   onUnmounted(stop)
-  return { value, start }
+  return { value, start, finish }
 }

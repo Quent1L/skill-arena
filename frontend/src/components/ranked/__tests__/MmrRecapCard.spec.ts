@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import type { MmrAnimationEventResponse } from '@skol-arena/shared'
-import { makeMmrEvent } from '@/test-support/factories'
+import { nextTick } from 'vue'
+import type { ClientRankTier, MmrAnimationEventResponse } from '@skol-arena/shared'
+import { makeMmrEvent, makeTier } from '@/test-support/factories'
 import MmrRecapCard from '../MmrRecapCard.vue'
 
 // t echoes the key, appending #count when an interpolation count is given, so we
@@ -15,9 +16,14 @@ vi.mock('vue-i18n', () => ({
 
 const ev = makeMmrEvent
 
-function mountCard(events: MmrAnimationEventResponse[]) {
+const TIERS = [
+  makeTier({ level: 1, name: 'Bronze', minMmr: 700 }),
+  makeTier({ level: 2, name: 'Argent', minMmr: 900 }),
+]
+
+function mountCard(events: MmrAnimationEventResponse[], tiers?: ClientRankTier[]) {
   return mount(MmrRecapCard, {
-    props: { events },
+    props: tiers ? { events, tiers } : { events },
     global: { stubs: { PlayerAvatarStack: true } },
   })
 }
@@ -27,6 +33,10 @@ const netEl = () => document.body.querySelector('.text-4xl')?.textContent?.trim(
 const summaryEl = () => document.body.querySelector('.text-gray-400')?.textContent?.trim()
 const rowDeltas = () =>
   [...document.body.querySelectorAll('.divide-y .font-mono')].map((n) => n.textContent?.trim())
+const toggleBtn = () =>
+  [...document.body.querySelectorAll('button')].find((b) =>
+    b.textContent?.includes('mmrRecapCard.showDetail') || b.textContent?.includes('mmrRecapCard.hideDetail'),
+  )
 
 afterEach(() => {
   document.body.innerHTML = ''
@@ -83,5 +93,67 @@ describe('MmrRecapCard', () => {
       ev({ reason: 'recalculated', displayDelta: 2 }),
     ])
     expect(summaryEl()).toBe('mmrRecapCard.recalcMatchesPlural#2')
+  })
+
+  it('détail déplié tant que la liste reste lisible, sans bouton de repli', () => {
+    mountCard([ev({ displayDelta: 1 }), ev({ displayDelta: 2 }), ev({ displayDelta: 3 })])
+    expect(rowDeltas()).toEqual(['+1', '+2', '+3'])
+    expect(toggleBtn()).toBeUndefined()
+  })
+
+  it('au-delà de 3 matchs, le détail est replié derrière un bouton', async () => {
+    mountCard([1, 2, 3, 4].map((n) => ev({ displayDelta: n })))
+    expect(rowDeltas()).toEqual([])
+
+    const toggle = toggleBtn()
+    expect(toggle?.textContent).toContain('mmrRecapCard.showDetail#4')
+
+    toggle!.click()
+    await nextTick()
+    expect(rowDeltas()).toEqual(['+1', '+2', '+3', '+4'])
+    expect(toggleBtn()?.textContent).toContain('mmrRecapCard.hideDetail')
+  })
+
+  it('sans table de tiers, aucune barre de progression', () => {
+    mountCard([ev({ mmrBefore: 1000, mmrAfter: 1020, displayDelta: 20 })])
+    expect(document.body.querySelector('.track')).toBeNull()
+  })
+
+  it('avec les tiers, la barre part du premier événement et arrive au dernier', async () => {
+    mountCard(
+      [
+        ev({ mmrBefore: 1000, mmrAfter: 1020, displayDelta: 20 }),
+        ev({ mmrBefore: 1020, mmrAfter: 1060, displayDelta: 40 }),
+      ],
+      TIERS,
+    )
+    expect(document.body.querySelector('.track')).not.toBeNull()
+    expect(document.body.textContent).toContain('mmrRecapCard.progression')
+    expect(document.body.textContent).toContain('1000 → 1000')
+    // Ici le tier n'est affiché nulle part ailleurs : la barre doit le nommer.
+    expect(document.body.querySelector('.bar-labels')?.textContent).toContain('Argent')
+
+    ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
+    await nextTick()
+    expect(document.body.textContent).toContain('1000 → 1060')
+  })
+
+  it('recalcul : la barre suit le différentiel annoncé, pas la chaîne réécrite', async () => {
+    // Un recalcul réécrit mmrBefore/mmrAfter sur des matchs déjà vus : partir de
+    // events[0].mmrBefore dessinerait une longue montée sous un titre négatif.
+    mountCard(
+      [
+        ev({ reason: 'recalculated', mmrBefore: 1000, mmrAfter: 1030, mmrDelta: 30, displayDelta: -5 }),
+        ev({ reason: 'recalculated', mmrBefore: 1030, mmrAfter: 1050, mmrDelta: 20, displayDelta: -7 }),
+      ],
+      TIERS,
+    )
+
+    expect(netEl()).toBe('-12')
+    // Départ = MMR courant moins les points annoncés, donc une barre qui descend.
+    expect(document.body.textContent).toContain('1062 → 1062')
+    ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
+    await nextTick()
+    expect(document.body.textContent).toContain('1062 → 1050')
   })
 })

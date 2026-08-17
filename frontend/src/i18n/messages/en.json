@@ -803,11 +803,14 @@
     "cancelled": "cancelled",
     "cancelledMatchesPlural": "{count} matches cancelled",
     "cancelledMatchesSingular": "{count} match cancelled",
+    "hideDetail": "Hide detail",
     "newMatchesPlural": "{count} new matches",
     "newMatchesSingular": "{count} new match",
+    "progression": "Progression",
     "recalcMatchesPlural": "{count} matches recalculated",
     "recalcMatchesSingular": "{count} match recalculated",
     "recalculated": "recalculated",
+    "showDetail": "Detail of {count} matches",
     "title": "MMR recap"
   },
   "mmrRevealAnimation": {
@@ -815,7 +818,8 @@
     "matchCancelled": "Match cancelled",
     "mmrRecalculation": "MMR Recalculation",
     "rankDown": "Rank down!",
-    "rankUp": "Rank up!"
+    "rankUp": "Rank up!",
+    "tapToSkip": "Tap to skip"
   },
   "mobileBottomNav": {
     "bracket": "Bracket",

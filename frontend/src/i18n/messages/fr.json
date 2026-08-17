@@ -803,11 +803,14 @@
     "cancelled": "annulé",
     "cancelledMatchesPlural": "{count} matchs annulés",
     "cancelledMatchesSingular": "{count} match annulé",
+    "hideDetail": "Masquer le détail",
     "newMatchesPlural": "{count} nouveaux matchs",
     "newMatchesSingular": "{count} nouveau match",
+    "progression": "Progression",
     "recalcMatchesPlural": "{count} matchs recalculés",
     "recalcMatchesSingular": "{count} match recalculé",
     "recalculated": "recalculé",
+    "showDetail": "Détail des {count} matchs",
     "title": "Récap MMR"
   },
   "mmrRevealAnimation": {
@@ -815,7 +818,8 @@
     "matchCancelled": "Match annulé",
     "mmrRecalculation": "Recalcul MMR",
     "rankDown": "Descente en rang !",
-    "rankUp": "Montée en rang !"
+    "rankUp": "Montée en rang !",
+    "tapToSkip": "Toucher pour passer"
   },
   "mobileBottomNav": {
     "bracket": "Bracket",

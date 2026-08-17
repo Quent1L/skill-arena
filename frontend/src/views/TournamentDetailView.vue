@@ -198,6 +198,7 @@
     <MmrRecapCard
       v-if="store.tournament?.mode === 'ranked' && animationQueue.showRecap.value"
       :events="animationQueue.queue.value"
+      :tiers="store.rankedTiers"
       @close="animationQueue.dismissAll()"
     />
     <MmrRevealAnimation

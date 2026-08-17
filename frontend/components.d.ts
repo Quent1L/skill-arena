@@ -73,6 +73,7 @@ declare module 'vue' {
     Message: typeof import('primevue/message')['default']
     MmrExplainerCard: typeof import('./src/components/ranked/MmrExplainerCard.vue')['default']
     MmrJourneyCard: typeof import('./src/components/rewind/cards/MmrJourneyCard.vue')['default']
+    MmrProgressBar: typeof import('./src/components/ranked/MmrProgressBar.vue')['default']
     MmrRecapCard: typeof import('./src/components/ranked/MmrRecapCard.vue')['default']
     MmrRevealAnimation: typeof import('./src/components/ranked/MmrRevealAnimation.vue')['default']
     MobileBottomNav: typeof import('./src/components/tournament/mobile/MobileBottomNav.vue')['default']
