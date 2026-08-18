@@ -148,6 +148,7 @@ import { computed, inject, ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { BuilderNode, PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
+import { LIST_VALUE_OPERATORS } from '@skol-arena/shared/types/index'
 import type { Discipline, OrganizationWithMemberCount } from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
@@ -171,6 +172,10 @@ function getOperatorLabel(op: string): string {
     notIn: t('conditionRow.operatorNotIn'),
     contains: t('conditionRow.operatorContains'),
     doesNotContain: t('conditionRow.operatorDoesNotContain'),
+    containsAll: t('conditionRow.operatorContainsAll'),
+    containsAny: t('conditionRow.operatorContainsAny'),
+    containsNone: t('conditionRow.operatorContainsNone'),
+    containsExactly: t('conditionRow.operatorContainsExactly'),
   }
   return map[op] ?? op
 }
@@ -181,7 +186,9 @@ const operatorOptions = computed(() =>
   (selectedFact.value?.operators ?? []).map((op) => ({ label: getOperatorLabel(op), value: op })),
 )
 
-const isListOperator = computed(() => node.value.operator === 'in' || node.value.operator === 'notIn')
+const isListOperator = computed(() =>
+  (LIST_VALUE_OPERATORS as readonly string[]).includes(node.value.operator),
+)
 
 const isPlayerFact = computed(() => selectedFact.value?.ref === 'player')
 

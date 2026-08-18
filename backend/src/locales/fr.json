@@ -109,6 +109,7 @@
     "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} est déjà engagé dans un autre match à cette heure-ci — la téléportation est prévue pour la prochaine version",
     "RANKED_MATCH_TOO_OLD": "Les matchs ranked doivent être déclarés dans les 48h suivant leur dispute",
     "RANDOM_NOT_ALLOWED_ON_BADGE": "Le tirage aléatoire ne peut pas être utilisé dans une règle de type badge",
+    "INVALID_OPERATOR_FOR_FACT": "Cet opérateur ne s'applique pas à cette variable : la condition ne pourrait jamais être vraie",
     "REWIND_NOT_FOUND": "Ce Rewind n'est pas encore disponible",
     "REWIND_VERSION_FROZEN": "Ce Rewind a été créé dans un format plus ancien et est conservé tel quel",
     "MATCH_MESSAGE_INVALID_BODY": "Le message doit contenir entre 1 et 1000 caractères",

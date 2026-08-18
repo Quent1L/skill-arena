@@ -109,6 +109,7 @@
     "PLAYER_SCHEDULE_CONFLICT": "{{playerName}} is already in another match at this exact time — bilocation isn't on the feature list yet!",
     "RANKED_MATCH_TOO_OLD": "Ranked matches must be reported within 48 hours of being played",
     "RANDOM_NOT_ALLOWED_ON_BADGE": "The random roll cannot be used in a badge rule",
+    "INVALID_OPERATOR_FOR_FACT": "This operator does not apply to this variable: the condition could never be true",
     "REWIND_NOT_FOUND": "This Rewind is not available yet",
     "REWIND_VERSION_FROZEN": "This Rewind was built in an older format and is kept as it was",
     "MATCH_MESSAGE_INVALID_BODY": "The message must be between 1 and 1000 characters",

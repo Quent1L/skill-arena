@@ -26,14 +26,11 @@ function isTriggerEvent(value: string): value is TriggerEvent {
   return (TRIGGER_EVENTS as readonly string[]).includes(value);
 }
 
-/**
- * Verifies that all facts referenced in the conditions tree exist
- * in the trigger event's catalog.
- */
-function collectFactKeys(conditions: RuleConditions, acc: Set<string>): void {
-  if ("all" in conditions) conditions.all.forEach((c) => collectFactKeys(c, acc));
-  else if ("any" in conditions) conditions.any.forEach((c) => collectFactKeys(c, acc));
-  else acc.add(conditions.fact);
+/** Flattens the condition tree down to its leaves, for catalog checking. */
+function collectLeaves(conditions: RuleConditions, acc: { fact: string; operator: string }[]): void {
+  if ("all" in conditions) conditions.all.forEach((c) => collectLeaves(c, acc));
+  else if ("any" in conditions) conditions.any.forEach((c) => collectLeaves(c, acc));
+  else acc.push({ fact: conditions.fact, operator: conditions.operator });
 }
 
 export class RulesService {
@@ -65,7 +62,9 @@ export class RulesService {
       data.triggerEvent ?? existing.triggerEvent,
       data.conditions ?? (existing.conditions as RuleConditions),
       data.scope ?? existing.scope,
-      data.disciplineId ?? existing.disciplineId,
+      // `??` would be wrong here: clearing the discipline is sent as an explicit
+      // null, which must not fall back to the stored one.
+      data.disciplineId !== undefined ? data.disciplineId : existing.disciplineId,
       data.type ?? existing.type,
     );
     const rule = await rulesRepository.update(id, data);
@@ -167,15 +166,21 @@ export class RulesService {
     if (!isTriggerEvent(triggerEvent)) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
     if (scope === "discipline" && !disciplineId) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
 
-    const allowed = new Set(EVENT_FACT_CATALOG[triggerEvent].map((f) => f.key));
-    const used = new Set<string>();
-    collectFactKeys(conditions, used);
-    for (const fact of used) {
-      if (!allowed.has(fact)) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
+    const catalog = new Map(EVENT_FACT_CATALOG[triggerEvent].map((f) => [f.key, f]));
+    const leaves: { fact: string; operator: string }[] = [];
+    collectLeaves(conditions, leaves);
+    for (const { fact, operator } of leaves) {
+      const definition = catalog.get(fact);
+      if (!definition) throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
       // Badge awards are replayed by the nightly reconciliation: a random fact
       // would grant/revoke badges at every pass.
       if (type === "badge" && (NON_DETERMINISTIC_FACTS as readonly string[]).includes(fact)) {
         throw new BadRequestError(ErrorCode.RANDOM_NOT_ALLOWED_ON_BADGE);
+      }
+      // An operator the fact's type does not support evaluates to false forever,
+      // which reads as "my rule never fires" rather than as an error. Reject it.
+      if (!OPERATORS_BY_TYPE[definition.type].includes(operator)) {
+        throw new BadRequestError(ErrorCode.INVALID_OPERATOR_FOR_FACT);
       }
     }
   }

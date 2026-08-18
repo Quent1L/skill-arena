@@ -126,16 +126,33 @@ export const EVENT_FACT_CATALOG: Record<TriggerEvent, FactDefinition[]> = {
 };
 
 /**
- * json-rules-engine operators allowed per fact type (used to populate the
- * builder's dropdowns and validate on the backend side).
+ * json-rules-engine operators allowed per fact type. Drives the builder's dropdowns
+ * AND the backend validation — a pair the catalog does not allow is rejected on save,
+ * so a rule can never be stored in a shape the engine silently evaluates to false.
+ *
+ * `contains` / `doesNotContain` on a string mean substring; on a list, membership.
+ * Both rely on the custom operators registered in `backend/src/services/rules-operators.ts`.
  */
 export const OPERATORS_BY_TYPE: Record<FactType, string[]> = {
   number: ["greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive", "equal", "notEqual", "in", "notIn"],
   boolean: ["equal", "notEqual"],
   string: ["equal", "notEqual", "in", "notIn", "contains", "doesNotContain"],
-  stringList: ["contains", "doesNotContain"],
+  stringList: ["contains", "doesNotContain", "containsAll", "containsAny", "containsNone", "containsExactly"],
   date: ["equal", "notEqual", "greaterThan", "greaterThanInclusive", "lessThan", "lessThanInclusive"],
 };
+
+/**
+ * Operators whose `value` is a list rather than a scalar. The builder renders a
+ * multi-value picker for these, and nothing else.
+ */
+export const LIST_VALUE_OPERATORS = [
+  "in",
+  "notIn",
+  "containsAll",
+  "containsAny",
+  "containsNone",
+  "containsExactly",
+] as const;
 
 // ============================================
 // Actions

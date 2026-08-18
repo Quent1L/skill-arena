@@ -143,6 +143,67 @@ describe("RulesEvaluationService.simulate", () => {
     expect((await rulesEvaluationService.simulate(vsBob, messageAction, { opponentIds: ["carl"] })).matched).toBe(false);
   });
 
+  it("matches a substring on a string fact — the stock operator is Array-only", async () => {
+    const gold: RuleConditions = { all: [{ fact: "newRank", operator: "contains", value: "old" }] };
+    expect((await rulesEvaluationService.simulate(gold, messageAction, { newRank: "gold" })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(gold, messageAction, { newRank: "silver" })).matched).toBe(false);
+  });
+
+  it("makes doesNotContain mean what it says on a string fact", async () => {
+    const notGold: RuleConditions = { all: [{ fact: "newRank", operator: "doesNotContain", value: "old" }] };
+    expect((await rulesEvaluationService.simulate(notGold, messageAction, { newRank: "silver" })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(notGold, messageAction, { newRank: "gold" })).matched).toBe(false);
+  });
+
+  it("keeps contains as membership on a list fact", async () => {
+    const withBob: RuleConditions = { all: [{ fact: "teammateIds", operator: "contains", value: "bob" }] };
+    const facts = { teammateIds: ["alice", "bob"] };
+    expect((await rulesEvaluationService.simulate(withBob, messageAction, facts)).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(withBob, messageAction, { teammateIds: ["alice"] })).matched).toBe(
+      false,
+    );
+  });
+
+  it("matches every listed player via containsAll", async () => {
+    const duo: RuleConditions = { all: [{ fact: "teammateIds", operator: "containsAll", value: ["alice", "bob"] }] };
+    expect((await rulesEvaluationService.simulate(duo, messageAction, { teammateIds: ["alice", "bob"] })).matched).toBe(
+      true,
+    );
+    // A larger list still contains the pair.
+    expect(
+      (await rulesEvaluationService.simulate(duo, messageAction, { teammateIds: ["alice", "bob", "carl"] })).matched,
+    ).toBe(true);
+    expect((await rulesEvaluationService.simulate(duo, messageAction, { teammateIds: ["alice"] })).matched).toBe(false);
+  });
+
+  it("requires the exact membership via containsExactly, order aside", async () => {
+    const only: RuleConditions = {
+      all: [{ fact: "teammateIds", operator: "containsExactly", value: ["alice", "bob"] }],
+    };
+    expect((await rulesEvaluationService.simulate(only, messageAction, { teammateIds: ["bob", "alice"] })).matched).toBe(
+      true,
+    );
+    expect(
+      (await rulesEvaluationService.simulate(only, messageAction, { teammateIds: ["alice", "bob", "carl"] })).matched,
+    ).toBe(false);
+  });
+
+  it("matches any member via containsAny and its negation via containsNone", async () => {
+    const facts = { teammateIds: ["alice", "bob"] };
+    const any: RuleConditions = { all: [{ fact: "teammateIds", operator: "containsAny", value: ["bob", "dana"] }] };
+    const none: RuleConditions = { all: [{ fact: "teammateIds", operator: "containsNone", value: ["carl", "dana"] }] };
+
+    expect((await rulesEvaluationService.simulate(any, messageAction, facts)).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(any, messageAction, { teammateIds: ["carl"] })).matched).toBe(false);
+    expect((await rulesEvaluationService.simulate(none, messageAction, facts)).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(none, messageAction, { teammateIds: ["dana"] })).matched).toBe(false);
+  });
+
+  it("leaves list operators false on an undefined fact rather than throwing", async () => {
+    const conditions: RuleConditions = { all: [{ fact: "teammateIds", operator: "containsAll", value: ["alice"] }] };
+    expect((await rulesEvaluationService.simulate(conditions, messageAction, {})).matched).toBe(false);
+  });
+
   it("gates a rule on randomRoll so base messages can still show up", async () => {
     const thirtyPercent: RuleConditions = { all: [{ fact: "randomRoll", operator: "lessThan", value: 30 }] };
     expect((await rulesEvaluationService.simulate(thirtyPercent, messageAction, { randomRoll: 10 })).matched).toBe(true);

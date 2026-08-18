@@ -1,6 +1,7 @@
 import { Engine } from "json-rules-engine";
 import { rulesRepository } from "../repository/rules.repository";
 import { rulesContextService } from "./rules-context.service";
+import { RULE_OPERATORS } from "./rules-operators";
 import { logger } from "../utils/logger";
 import {
   EVENT_FACT_CATALOG,
@@ -148,6 +149,7 @@ export class RulesEvaluationService {
 
   private buildEngine(rules: EvaluableRule[]): { engine: Engine; byId: Map<string, EvaluableRule> } {
     const engine = new Engine([], { allowUndefinedFacts: true });
+    for (const operator of RULE_OPERATORS) engine.addOperator(operator);
     const byId = new Map<string, EvaluableRule>();
     for (const rule of rules) {
       byId.set(rule.id, rule);

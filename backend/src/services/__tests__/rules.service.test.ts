@@ -88,6 +88,16 @@ describe("RulesService — non-deterministic facts", () => {
     expect(mockRulesRepo.create).toHaveBeenCalled();
   });
 
+  it("rejects an operator the fact's type does not support", async () => {
+    // A list operator on a scalar fact: json-rules-engine would evaluate it to
+    // false forever, which surfaces as "my rule never fires".
+    const rule = baseRule({
+      conditions: { all: [{ fact: "playerId", operator: "containsAll", value: ["p1", "p2"] }] },
+    });
+    await expect(rulesService.create(rule, "admin-1")).rejects.toThrow("INVALID_OPERATOR_FOR_FACT");
+    expect(mockRulesRepo.create).not.toHaveBeenCalled();
+  });
+
   it("still rejects facts absent from the catalog", async () => {
     const rule = baseRule({ conditions: { all: [{ fact: "notAFact", operator: "equal", value: 1 }] } });
     await expect(rulesService.create(rule, "admin-1")).rejects.toThrow();
