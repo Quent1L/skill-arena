@@ -1423,6 +1423,7 @@
     "closeButton": "Close",
     "conditionsTitle": "Conditions",
     "editTitle": "Edit rule",
+    "hintPriority": "Highest wins. On a tie between matching rules, the message is drawn at random.",
     "labelBadgeDescription": "Description",
     "labelBadgeLabel": "Label",
     "labelDescription": "Description",

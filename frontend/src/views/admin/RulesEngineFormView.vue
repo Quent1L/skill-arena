@@ -77,9 +77,12 @@
                 :placeholder="t('rulesEngineFormView.placeholderDiscipline')"
               />
             </div>
-            <div>
+            <!-- Priority only arbitrates between message rules: every matching badge
+                 rule awards its badge, so the field would be inoperative there. -->
+            <div v-if="form.type === 'message'">
               <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelPriority') }}</label>
               <InputNumber v-model="form.priority" class="w-full" show-buttons />
+              <p class="text-xs text-surface-500 mt-1">{{ t('rulesEngineFormView.hintPriority') }}</p>
             </div>
             <div class="flex items-center gap-2">
               <Checkbox v-model="form.isActive" :binary="true" input-id="isActive" />

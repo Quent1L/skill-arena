@@ -1423,6 +1423,7 @@
     "closeButton": "Fermer",
     "conditionsTitle": "Conditions",
     "editTitle": "Modifier la règle",
+    "hintPriority": "La plus élevée l'emporte. À égalité entre règles qui matchent, le message est tiré au sort.",
     "labelBadgeDescription": "Description",
     "labelBadgeLabel": "Label",
     "labelDescription": "Description",
