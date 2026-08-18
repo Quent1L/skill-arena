@@ -47,7 +47,7 @@ async function mountTable(props: Record<string, unknown> = {}) {
 }
 
 describe('StandingsTable', () => {
-  it('charge le classement officiel au mount et rend une ligne par entrée', async () => {
+  it('loads the official standings on mount and renders one row per entry', async () => {
     const wrapper = await mountTable()
     expect(loadOfficialStandings).toHaveBeenCalledWith('t1')
     expect(wrapper.findAll('tbody tr')).toHaveLength(2)
@@ -55,7 +55,7 @@ describe('StandingsTable', () => {
     expect(wrapper.text()).toContain('Bob')
   })
 
-  it('mode flex: noms cliquables vers le profil joueur', async () => {
+  it('flex mode: names are clickable links to the player profile', async () => {
     const wrapper = await mountTable({ teamMode: 'flex' })
     const links = wrapper.findAllComponents(RouterLinkStub)
     expect(links.length).toBeGreaterThan(0)
@@ -65,12 +65,12 @@ describe('StandingsTable', () => {
     })
   })
 
-  it('mode static: pas de lien joueur', async () => {
+  it('static mode: no player link', async () => {
     const wrapper = await mountTable({ teamMode: 'static' })
     expect(wrapper.findAllComponents(RouterLinkStub)).toHaveLength(0)
   })
 
-  it('bascule provisoire: émet update:standingsType et charge le provisoire', async () => {
+  it('provisional toggle: emits update:standingsType and loads the provisional standings', async () => {
     const wrapper = await mountTable()
     wrapper.findComponent({ name: 'SelectButton' }).vm.$emit('update:modelValue', 'provisional')
     await flushPromises()
@@ -78,18 +78,18 @@ describe('StandingsTable', () => {
     expect(loadProvisionalStandings).toHaveBeenCalledWith('t1')
   })
 
-  it('showProvisionalToggle=false masque la bascule', async () => {
+  it('showProvisionalToggle=false hides the toggle', async () => {
     const wrapper = await mountTable({ showProvisionalToggle: false })
     expect(wrapper.findComponent({ name: 'SelectButton' }).exists()).toBe(false)
   })
 
-  it('classement vide: message dédié', async () => {
+  it('empty standings: dedicated message', async () => {
     standings.value = []
     const wrapper = await mountTable()
     expect(wrapper.text()).toContain('standingsTable.noStandings')
   })
 
-  it('colonne nuls seulement si allowDraw', async () => {
+  it('draws column only if allowDraw', async () => {
     const withDraw = await mountTable({ allowDraw: true })
     expect(withDraw.text()).toContain('standingsTable.columnDraws')
 

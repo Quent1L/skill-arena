@@ -58,7 +58,7 @@ function stat(stats: ReturnType<typeof computeOutcomeTypeFunStats>, typeId: stri
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("computeOutcomeTypeFunStats", () => {
-  it("classe le volume sur le nombre brut et l'efficacité sur le taux pondéré", () => {
+  it("ranks volume by raw count and efficiency by weighted rate", () => {
     const matches = [
       // grinder: 12 wins but 24 matches played → high volume, 50 % rate
       ...series("normal", "grinder", "filler", 12),
@@ -77,7 +77,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(normal.topWinnersByRate.isLowSample).toBe(false);
   });
 
-  it("expose le contexte de chaque entrée : matchs joués, taux et part du total", () => {
+  it("exposes each entry's context: matches played, rate, and share of total", () => {
     const matches = [
       ...series("normal", "a", "b", 6), // a: 6 wins / 8 played
       ...series("normal", "b", "a", 2), // b: 2 wins / 8 played
@@ -95,7 +95,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(leader.sharePct).toBe(75);
   });
 
-  it("compte les nuls dans les matchs joués sans gonfler les victoires", () => {
+  it("counts draws in matches played without inflating wins", () => {
     const matches = [
       ...series("normal", "a", "b", 3),
       match("normal", null, ["a"], ["b"]),
@@ -109,7 +109,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(a.ratePct).toBe(75);
   });
 
-  it("écarte de l'efficacité les joueurs sous le seuil quand d'autres l'atteignent", () => {
+  it("excludes players under the threshold from efficiency when others reach it", () => {
     const matches = [
       ...series("normal", "regular", "punchingbag", 5), // 5 played, 100 %
       match("normal", "A", ["rookie"], ["punchingbag"]), // 1 played, 100 %
@@ -122,7 +122,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(normal.topWinnersByRate.isLowSample).toBe(false);
   });
 
-  it("lève le seuil et signale l'échantillon faible sur un type de résultat rare", () => {
+  it("raises the threshold and flags a small sample on a rare outcome type", () => {
     // Nobody reaches 3 matches on this type: without the fallback the column is empty.
     const matches = [
       match("fanny", "A", ["a"], ["b"]),
@@ -137,7 +137,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(fanny.topWinnersByRate.isLowSample).toBe(true);
   });
 
-  it("gère indépendamment les drapeaux gagnants et perdants", () => {
+  it("handles the winner and loser flags independently", () => {
     // "champ" wins 4 times, each victim loses only once → winners pass the threshold,
     // losers do not.
     const matches = [
@@ -154,7 +154,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(normal.topLosersByRate.leaders.length).toBeGreaterThan(0);
   });
 
-  it("renvoie des listes de taux vides sans drapeau quand le type n'a que des nuls", () => {
+  it("returns empty rate lists with no flag when the type has only draws", () => {
     const matches = [
       match("draw", null, ["a"], ["b"]),
       match("draw", null, ["a"], ["b"]),
@@ -170,7 +170,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(drawType.topLosersByRate.isLowSample).toBe(false);
   });
 
-  it("calcule la part du total sur les deux gagnants d'un match 2v2", () => {
+  it("computes the share of total across both winners of a 2v2 match", () => {
     const matches = series("normal", "x", "y", 4).map((m) => ({
       ...m,
       sides: [side(1, ["x", "mate"]), side(2, ["y", "opp"])],
@@ -182,7 +182,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(normal.topWinnersByVolume.leaders.map((p) => p.sharePct)).toEqual([50, 50]);
   });
 
-  it("trie les types de résultat par nombre de matchs décroissant", () => {
+  it("sorts outcome types by match count descending", () => {
     const matches = [
       ...series("rare", "a", "b", 1),
       ...series("common", "a", "b", 5),
@@ -194,7 +194,7 @@ describe("computeOutcomeTypeFunStats", () => {
     expect(stats.map((s) => s.outcomeTypeId)).toEqual(["common", "medium", "rare"]);
   });
 
-  it("ignore les matchs sans type de résultat et ne garde que 3 rangs par liste", () => {
+  it("ignores matches without an outcome type and keeps only 3 ranks per list", () => {
     const matches = [
       match(null, "A", ["a"], ["b"]),
       ...series("normal", "a", "z", 5),
@@ -215,7 +215,7 @@ describe("computeOutcomeTypeFunStats", () => {
 });
 
 describe("computeOutcomeTypeFunStats — ex aequo", () => {
-  it("donne le même rang aux joueurs qu'aucun critère ne départage", () => {
+  it("gives the same rank to players no criterion can separate", () => {
     const matches = [
       ...series("normal", "a", "z", 5),
       ...series("normal", "b", "z", 5),
@@ -245,7 +245,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
     expect(volume.omittedCount).toBe(0);
   });
 
-  it("bascule en tableau d'honneur quand le classement ne départage personne", () => {
+  it("switches to an honor roll when the ranking can't separate anyone", () => {
     // A rare outcome type: four players, one win each, nothing between them.
     const matches = [
       match("fanny", "A", ["a"], ["z"]),
@@ -261,7 +261,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
     expect(volume.leaders.every((p) => p.rank === 1 && p.tiedCount === 4)).toBe(true);
   });
 
-  it("garde son podium au joueur seul à avoir réussi le coup", () => {
+  it("keeps the podium spot for the only player who pulled it off", () => {
     const volume = stat(
       computeOutcomeTypeFunStats([match("fanny", "A", ["a"], ["z"])] as any),
       "fanny",
@@ -273,7 +273,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
     expect(volume.leaders[0]).toMatchObject({ playerId: "a", rank: 1, tiedCount: 1 });
   });
 
-  it("ne présente comme ex aequo que les joueurs coupés de leur propre rang", () => {
+  it("only presents as tied the players cut off from their own rank", () => {
     // Seven players on two wins each, then "h" on one: only the seven are tied.
     const winners = ["a", "b", "c", "d", "e", "f", "g"];
     const matches = [

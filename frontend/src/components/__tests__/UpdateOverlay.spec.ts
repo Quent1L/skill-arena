@@ -39,7 +39,7 @@ describe('UpdateOverlay', () => {
     vi.useRealTimers()
   })
 
-  it('affiche la progression réelle pendant le téléchargement', async () => {
+  it('shows real progress while downloading', async () => {
     const wrapper = mountOverlay({ phase: 'downloading', progress: 0.42 })
 
     expect(wrapper.text()).toContain('Téléchargement en cours...')
@@ -47,21 +47,21 @@ describe('UpdateOverlay', () => {
     expect(wrapper.find('.update-progress-measured').attributes('style')).toContain('width: 42%')
   })
 
-  it('retombe sur une barre indéterminée tant que le worker n\'a rien rapporté', () => {
+  it('falls back to an indeterminate bar as long as the worker has reported nothing', () => {
     const wrapper = mountOverlay({ phase: 'downloading', progress: null })
 
     expect(wrapper.find('.update-progress-indeterminate').exists()).toBe(true)
     expect(wrapper.text()).not.toContain('%')
   })
 
-  it('garde la barre chronométrée quand il ne reste que la bascule', () => {
+  it('keeps the timed bar when only the handover remains', () => {
     const wrapper = mountOverlay({ phase: 'applying' })
 
     expect(wrapper.find('.update-progress-timed').exists()).toBe(true)
     expect(wrapper.text()).toContain('Rechargement en cours...')
   })
 
-  it('escalade avec le temps passé devant l\'écran', async () => {
+  it('escalates with time spent in front of the screen', async () => {
     vi.useFakeTimers()
     const wrapper = mountOverlay({ phase: 'downloading' })
 
@@ -79,19 +79,19 @@ describe('UpdateOverlay', () => {
     expect(wrapper.emitted('dismiss')).toHaveLength(1)
   })
 
-  it('compte les fichiers précachés pendant le téléchargement', () => {
+  it('counts precached files while downloading', () => {
     const wrapper = mountOverlay({ phase: 'downloading', progress: 0.25, done: 30, total: 120 })
 
     expect(wrapper.text()).toContain('30 / 120 fichiers')
   })
 
-  it('tait le compteur une fois le téléchargement terminé', () => {
+  it('silences the counter once the download is finished', () => {
     const wrapper = mountOverlay({ phase: 'applying', done: 120, total: 120 })
 
     expect(wrapper.text()).not.toContain('fichiers')
   })
 
-  it("n'offre aucune sortie quand la mise à jour est obligatoire", async () => {
+  it("offers no way out when the update is mandatory", async () => {
     vi.useFakeTimers()
     const wrapper = mountOverlay({ phase: 'downloading', forced: true })
 
@@ -104,7 +104,7 @@ describe('UpdateOverlay', () => {
     expect(wrapper.find('.update-dismiss').exists()).toBe(false)
   })
 
-  it('annonce la mise à jour effectuée avec son numéro de version', async () => {
+  it('announces the completed update with its version number', async () => {
     vi.useFakeTimers()
     const wrapper = mountOverlay({ phase: 'done', version: '1.19.0' })
 
@@ -113,13 +113,13 @@ describe('UpdateOverlay', () => {
     expect(wrapper.find('.update-version').text()).toBe('1.19.0')
     expect(wrapper.find('.update-progress-track').exists()).toBe(false)
 
-    // Rien n'est en attente : ni excuse de lenteur, ni échappatoire.
+    // Nothing is pending: no slow-connection excuse, no escape hatch.
     await vi.advanceTimersByTimeAsync(20_000)
     expect(wrapper.find('.update-hint').exists()).toBe(false)
     expect(wrapper.find('.update-dismiss').exists()).toBe(false)
   })
 
-  it('repart de zéro quand il est masqué puis réaffiché', async () => {
+  it('resets to zero when hidden then shown again', async () => {
     vi.useFakeTimers()
     const wrapper = mountOverlay({ phase: 'downloading' })
 

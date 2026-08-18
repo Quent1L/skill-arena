@@ -4,12 +4,12 @@ import type { BadgeAction, MessageAction, RuleConditions } from "@skol-arena/sha
 
 describe("interpolate", () => {
   it("replaces {{var}} placeholders with context values", () => {
-    expect(interpolate("Tu gagnes {{mmrDelta}} MMR", { mmrDelta: 18 })).toBe("Tu gagnes 18 MMR");
+    expect(interpolate("You gain {{mmrDelta}} MMR", { mmrDelta: 18 })).toBe("You gain 18 MMR");
   });
 
   it("handles spacing inside braces and multiple variables", () => {
-    expect(interpolate("{{ winStreak }} victoires pour {{name}}", { winStreak: 3, name: "Bob" })).toBe(
-      "3 victoires pour Bob",
+    expect(interpolate("{{ winStreak }} wins for {{name}}", { winStreak: 3, name: "Bob" })).toBe(
+      "3 wins for Bob",
     );
   });
 
@@ -27,13 +27,13 @@ describe("resolveDisplay", () => {
 
   it("renders scalar player facts as display names", () => {
     const out = resolveDisplay({ playerId: "alice" }, names);
-    expect(interpolate("{{playerId}} joue", out)).toBe("Alice joue");
+    expect(interpolate("{{playerId}} plays", out)).toBe("Alice plays");
   });
 
   it("renders player list facts as a comma-separated name list", () => {
     const out = resolveDisplay({ teammateIds: ["bob", "carl"], opponentIds: [] }, names);
-    expect(interpolate("Avec {{teammateIds}}", out)).toBe("Avec Bob, Carl");
-    expect(interpolate("Contre {{opponentIds}}", out)).toBe("Contre ");
+    expect(interpolate("With {{teammateIds}}", out)).toBe("With Bob, Carl");
+    expect(interpolate("Against {{opponentIds}}", out)).toBe("Against ");
   });
 
   it("keeps ids that have no known display name", () => {
@@ -44,13 +44,13 @@ describe("resolveDisplay", () => {
 
 describe("RulesEvaluationService.simulate", () => {
   const winStreak3: RuleConditions = { all: [{ fact: "winStreak", operator: "greaterThanInclusive", value: 3 }] };
-  const messageAction: MessageAction = { type: "message", variants: ["Série de {{winStreak}} !"] };
-  const badgeAction: BadgeAction = { type: "badge", icon: "fa fa-fire", label: "Inarrêtable", description: "5 wins" };
+  const messageAction: MessageAction = { type: "message", variants: ["Win streak of {{winStreak}}!"] };
+  const badgeAction: BadgeAction = { type: "badge", icon: "fa fa-fire", label: "Unstoppable", description: "5 wins" };
 
   it("returns matched=true and interpolated message when conditions pass", async () => {
     const result = await rulesEvaluationService.simulate(winStreak3, messageAction, { winStreak: 5 });
     expect(result.matched).toBe(true);
-    expect(result.output).toEqual({ type: "message", message: "Série de 5 !" });
+    expect(result.output).toEqual({ type: "message", message: "Win streak of 5!" });
   });
 
   it("returns matched=false when conditions fail", async () => {
@@ -64,7 +64,7 @@ describe("RulesEvaluationService.simulate", () => {
     expect(result.matched).toBe(true);
     expect(result.output).toEqual({
       type: "badge",
-      badge: { ruleId: "test", icon: "fa fa-fire", label: "Inarrêtable", description: "5 wins" },
+      badge: { ruleId: "test", icon: "fa fa-fire", label: "Unstoppable", description: "5 wins" },
     });
   });
 
@@ -97,7 +97,7 @@ describe("RulesEvaluationService.simulate", () => {
         { fact: "matchHour", operator: "lessThanInclusive", value: 4 },
       ],
     };
-    const badge: BadgeAction = { type: "badge", icon: "fa fa-moon", label: "Couche-tard", description: "Match nocturne" };
+    const badge: BadgeAction = { type: "badge", icon: "fa fa-moon", label: "Night owl", description: "Night match" };
 
     expect((await rulesEvaluationService.simulate(nightWindow, badge, { matchHour: 3 })).matched).toBe(true);
     expect((await rulesEvaluationService.simulate(nightWindow, badge, { matchHour: 12 })).matched).toBe(false);

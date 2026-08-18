@@ -51,7 +51,7 @@ const STREAK_RULE = {
   scope: "global",
   disciplineId: null,
   conditions: { all: [{ fact: "winStreak", operator: "greaterThanInclusive", value: 3 }] },
-  action: { type: "badge", icon: "fa fa-fire", label: "Inarrêtable", description: "3 wins" },
+  action: { type: "badge", icon: "fa fa-fire", label: "Unstoppable", description: "3 wins" },
 };
 
 function ctx(playerId: string, winStreak: number) {

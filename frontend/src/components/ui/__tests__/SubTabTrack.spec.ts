@@ -4,10 +4,10 @@ import { mount } from '@vue/test-utils'
 import SubTabTrack from '../SubTabTrack.vue'
 
 const OPTIONS = [
-  { value: 'a', label: 'Un' },
-  { value: 'b', label: 'Deux' },
-  { value: 'c', label: 'Trois' },
-  { value: 'd', label: 'Quatre' },
+  { value: 'a', label: 'One' },
+  { value: 'b', label: 'Two' },
+  { value: 'c', label: 'Three' },
+  { value: 'd', label: 'Four' },
 ]
 
 function mountTrack(props: Record<string, unknown> = {}) {
@@ -20,10 +20,10 @@ function mountTrack(props: Record<string, unknown> = {}) {
 }
 
 describe('SubTabTrack', () => {
-  it('un label par vue, seule la vue active est sélectionnée', () => {
+  it('one label per view, only the active view is selected', () => {
     const wrapper = mountTrack({ modelValue: 'b' })
     const tabs = wrapper.findAll('[role="tab"]')
-    expect(tabs.map((tab) => tab.text())).toEqual(['Un', 'Deux', 'Trois', 'Quatre'])
+    expect(tabs.map((tab) => tab.text())).toEqual(['One', 'Two', 'Three', 'Four'])
     expect(tabs.map((tab) => tab.attributes('aria-selected'))).toEqual([
       'false',
       'true',
@@ -32,20 +32,20 @@ describe('SubTabTrack', () => {
     ])
   })
 
-  it('un tap sur un label remonte la nouvelle vue', async () => {
+  it('tapping a label emits the new view', async () => {
     const wrapper = mountTrack()
     await wrapper.find('[data-test="subtab-c"]').trigger('click')
     expect(wrapper.emitted('update:modelValue')).toEqual([['c']])
   })
 
-  it('un tap sur la vue déjà active ne remonte rien', async () => {
+  it('tapping the already-active view emits nothing', async () => {
     const wrapper = mountTrack()
     await wrapper.find('[data-test="subtab-a"]').trigger('click')
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 
-  // Les voisins sont montés pour que le doigt ne révèle jamais un volet vide.
-  it('ne monte que les vues à portée de glissement', async () => {
+  // The neighbors are mounted so the finger never reveals an empty pane.
+  it('only mounts the views within swipe reach', async () => {
     const wrapper = mountTrack({ modelValue: 'b' })
     expect(wrapper.text()).toContain('pane-a')
     expect(wrapper.text()).toContain('pane-c')
@@ -56,13 +56,13 @@ describe('SubTabTrack', () => {
     expect(wrapper.text()).not.toContain('pane-a')
   })
 
-  it('un rayon nul ne monte que la vue active', () => {
+  it('a zero radius mounts only the active view', () => {
     const wrapper = mountTrack({ renderRadius: 0 })
     expect(wrapper.text()).toContain('pane-a')
     expect(wrapper.text()).not.toContain('pane-b')
   })
 
-  it('annonce les vues montées, pour que leurs données soient chargées à temps', async () => {
+  it('announces the mounted views, so their data loads in time', async () => {
     const wrapper = mountTrack()
     expect(wrapper.emitted('visible-values')).toEqual([[['a', 'b']]])
 
@@ -70,7 +70,7 @@ describe('SubTabTrack', () => {
     expect(wrapper.emitted('visible-values')).toEqual([[['a', 'b']], [['a', 'b', 'c']]])
   })
 
-  it('les vues au repos sont retirées du parcours clavier et des lecteurs', () => {
+  it('idle views are removed from keyboard navigation and screen readers', () => {
     const wrapper = mountTrack({ modelValue: 'b' })
     const panes = wrapper.findAll('[aria-hidden]')
     expect(panes.map((pane) => pane.attributes('aria-hidden'))).toEqual([

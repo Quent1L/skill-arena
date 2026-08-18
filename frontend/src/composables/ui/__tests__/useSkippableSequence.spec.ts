@@ -31,7 +31,7 @@ afterEach(() => {
 })
 
 describe('useSkippableSequence', () => {
-  it('exécute les étapes dans l’ordre, chacune après son propre délai', () => {
+  it('runs the steps in order, each after its own delay', () => {
     const seen: string[] = []
     const { sequence } = mountSequence()
     sequence.start([
@@ -49,7 +49,7 @@ describe('useSkippableSequence', () => {
     expect(sequence.finished.value).toBe(true)
   })
 
-  it('skip joue le reste dans l’ordre, une seule fois', () => {
+  it('skip plays the rest in order, only once', () => {
     const seen: string[] = []
     const { sequence } = mountSequence()
     sequence.start([
@@ -63,13 +63,13 @@ describe('useSkippableSequence', () => {
     expect(seen).toEqual(['a', 'b', 'c'])
     expect(sequence.skipped.value).toBe(true)
 
-    // Rien ne doit rejouer, ni sur un second skip ni au fil des timers.
+    // Nothing should replay, neither on a second skip nor as the timers run.
     sequence.skip()
     vi.advanceTimersByTime(1000)
     expect(seen).toEqual(['a', 'b', 'c'])
   })
 
-  it('cancel abandonne les étapes restantes sans les jouer', () => {
+  it('cancel drops the remaining steps without playing them', () => {
     const seen: string[] = []
     const { sequence } = mountSequence()
     sequence.start([
@@ -83,7 +83,7 @@ describe('useSkippableSequence', () => {
     expect(seen).toEqual(['a'])
   })
 
-  it('le démontage annule les timers en attente', () => {
+  it('unmounting cancels the pending timers', () => {
     const seen: string[] = []
     const { wrapper, sequence } = mountSequence()
     sequence.start([{ delay: 100, run: () => seen.push('a') }])
@@ -94,7 +94,7 @@ describe('useSkippableSequence', () => {
     expect(seen).toEqual([])
   })
 
-  it('en mouvement réduit, tout est joué immédiatement', () => {
+  it('with reduced motion, everything plays immediately', () => {
     stubReducedMotion(true)
     const seen: string[] = []
     const { sequence } = mountSequence()

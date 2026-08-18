@@ -85,14 +85,14 @@ describe('TournamentsView', () => {
   it("puts the player's own events in the first section and the rest in discover", async () => {
     tournaments.value = [
       makeEvent({ id: 'mine', name: 'Ligue interne', isParticipant: true }),
-      makeEvent({ id: 'other', name: 'Coupe ouverte' }),
+      makeEvent({ id: 'other', name: 'Open Cup' }),
     ]
 
     const wrapper = await mountView()
 
     expect(sectionText(wrapper, MY_EVENTS)).toContain('Ligue interne')
-    expect(sectionText(wrapper, MY_EVENTS)).not.toContain('Coupe ouverte')
-    expect(sectionText(wrapper, DISCOVER)).toContain('Coupe ouverte')
+    expect(sectionText(wrapper, MY_EVENTS)).not.toContain('Open Cup')
+    expect(sectionText(wrapper, DISCOVER)).toContain('Open Cup')
     expect(sectionText(wrapper, DISCOVER)).not.toContain('Ligue interne')
   })
 
@@ -109,7 +109,7 @@ describe('TournamentsView', () => {
     tournaments.value = [
       makeEvent({
         id: 'cup',
-        name: 'Coupe ouverte',
+        name: 'Open Cup',
         mode: 'bracket',
         discipline: { id: 'd1', name: 'Babyfoot' },
       }),
@@ -117,7 +117,7 @@ describe('TournamentsView', () => {
     seasons.value = [
       makeEvent({
         id: 'season',
-        name: 'Saison ranked',
+        name: 'Ranked Season',
         mode: 'ranked',
         discipline: { id: 'd2', name: 'Pétanque' },
       }),
@@ -128,8 +128,8 @@ describe('TournamentsView', () => {
     await chip(wrapper, 'Pétanque')!.trigger('click')
 
     const discover = sectionText(wrapper, DISCOVER)
-    expect(discover).not.toContain('Coupe ouverte')
-    expect(discover).not.toContain('Saison ranked')
+    expect(discover).not.toContain('Open Cup')
+    expect(discover).not.toContain('Ranked Season')
     expect(discover).toContain('tournamentsView.empty.withFilters')
     expect(discover).toContain('tournamentsView.clearFilters')
   })
@@ -144,7 +144,7 @@ describe('TournamentsView', () => {
   it('only offers chips for events the filters can actually reach', async () => {
     tournaments.value = [
       makeEvent({ id: 'mine', name: 'Mon bracket', mode: 'bracket', isParticipant: true }),
-      makeEvent({ id: 'cup', name: 'Coupe ouverte', mode: 'championship' }),
+      makeEvent({ id: 'cup', name: 'Open Cup', mode: 'championship' }),
     ]
 
     const wrapper = await mountView()
@@ -155,12 +155,12 @@ describe('TournamentsView', () => {
   })
 
   it('hides the my-events section entirely when nothing is joined', async () => {
-    tournaments.value = [makeEvent({ id: 'other', name: 'Coupe ouverte' })]
+    tournaments.value = [makeEvent({ id: 'other', name: 'Open Cup' })]
 
     const wrapper = await mountView()
 
     expect(sectionText(wrapper, MY_EVENTS)).toBeNull()
-    expect(sectionText(wrapper, DISCOVER)).toContain('Coupe ouverte')
+    expect(sectionText(wrapper, DISCOVER)).toContain('Open Cup')
   })
 
   it('keeps an event finished within the grace window out of the archives', async () => {
@@ -203,9 +203,9 @@ describe('TournamentsView', () => {
   it('filters discover by mode without touching the player section', async () => {
     tournaments.value = [
       makeEvent({ id: 'mine', name: 'Mon championnat', isParticipant: true }),
-      makeEvent({ id: 'cup', name: 'Coupe ouverte', mode: 'bracket' }),
+      makeEvent({ id: 'cup', name: 'Open Cup', mode: 'bracket' }),
     ]
-    seasons.value = [makeEvent({ id: 'season', name: 'Saison ranked', mode: 'ranked' })]
+    seasons.value = [makeEvent({ id: 'season', name: 'Ranked Season', mode: 'ranked' })]
 
     const wrapper = await mountView()
 
@@ -213,8 +213,8 @@ describe('TournamentsView', () => {
     expect(rankedChip).toBeDefined()
     await rankedChip!.trigger('click')
 
-    expect(sectionText(wrapper, DISCOVER)).toContain('Saison ranked')
-    expect(sectionText(wrapper, DISCOVER)).not.toContain('Coupe ouverte')
+    expect(sectionText(wrapper, DISCOVER)).toContain('Ranked Season')
+    expect(sectionText(wrapper, DISCOVER)).not.toContain('Open Cup')
     expect(sectionText(wrapper, MY_EVENTS)).toContain('Mon championnat')
   })
 

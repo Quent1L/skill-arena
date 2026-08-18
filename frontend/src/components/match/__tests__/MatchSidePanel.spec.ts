@@ -25,7 +25,7 @@ function mountPanel(over: Record<string, unknown> = {}) {
 
   const i18n = createI18n({ legacy: false, locale: 'fr', fallbackLocale: 'fr', messages: { fr } })
   return mount(MatchSidePanel, {
-    props: { side, fallbackName: 'Équipe A', isFinalized: false, ...over },
+    props: { side, fallbackName: 'Team A', isFinalized: false, ...over },
     global: { plugins: [i18n], stubs: { RouterLink: RouterLinkStub } },
   })
 }

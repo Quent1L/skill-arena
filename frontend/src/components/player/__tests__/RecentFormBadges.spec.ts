@@ -3,13 +3,13 @@ import { mount } from '@vue/test-utils'
 import RecentFormBadges from '../RecentFormBadges.vue'
 
 describe('RecentFormBadges', () => {
-  it('rend un badge par résultat, dans l’ordre', () => {
+  it('renders one badge per result, in order', () => {
     const wrapper = mount(RecentFormBadges, { props: { results: ['V', 'D', 'N'] } })
     const badges = wrapper.findAll('.w-4.h-4')
     expect(badges.map((b) => b.text())).toEqual(['V', 'D', 'N'])
   })
 
-  it('couleur par résultat: V vert, D rouge, N gris', () => {
+  it('color by result: V green, D red, N gray', () => {
     const wrapper = mount(RecentFormBadges, { props: { results: ['V', 'D', 'N'] } })
     const badges = wrapper.findAll('.w-4.h-4')
     expect(badges[0].classes()).toContain('bg-green-600')
@@ -17,7 +17,7 @@ describe('RecentFormBadges', () => {
     expect(badges[2].classes()).toContain('bg-gray-600')
   })
 
-  it('aucun badge sans résultats', () => {
+  it('no badge with no results', () => {
     const wrapper = mount(RecentFormBadges, { props: { results: [] } })
     expect(wrapper.findAll('.w-4.h-4')).toHaveLength(0)
   })

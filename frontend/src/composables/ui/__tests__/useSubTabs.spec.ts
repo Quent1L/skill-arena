@@ -7,7 +7,7 @@ import { subTabWindow, useSubTabs, type SubTabOption } from '../useSubTabs'
 type Value = 'profile' | 'global'
 
 const BOTH: SubTabOption<Value>[] = [
-  { value: 'profile', label: 'Profil' },
+  { value: 'profile', label: 'Profile' },
   { value: 'global', label: 'Global' },
 ]
 
@@ -32,24 +32,24 @@ async function mountSubTabs(url = '/tournaments/1', options: Ref<SubTabOption<Va
 }
 
 describe('useSubTabs', () => {
-  it('démarre sur la première option', async () => {
+  it('starts on the first option', async () => {
     const { api } = await mountSubTabs()
     expect(api.active.value).toBe('profile')
     expect(api.activeIndex.value).toBe(0)
   })
 
-  it("restaure la valeur portée par l'URL", async () => {
+  it("restores the value carried by the URL", async () => {
     const { api } = await mountSubTabs('/tournaments/1?statsSub=global')
     expect(api.active.value).toBe('global')
   })
 
-  // Les vues offertes dépendent des props: l'URL peut nommer une vue absente ici.
-  it('ignore une valeur qui ne fait pas partie des options', async () => {
+  // The offered views depend on props: the URL can name a view absent here.
+  it('ignores a value that is not part of the options', async () => {
     const { api } = await mountSubTabs('/tournaments/1?statsSub=peak')
     expect(api.active.value).toBe('profile')
   })
 
-  it("écrit la vue dans l'URL, et retire le paramètre pour la vue par défaut", async () => {
+  it("writes the view to the URL, and removes the param for the default view", async () => {
     const { api, router } = await mountSubTabs('/tournaments/1?tab=stats')
 
     api.setActive('global')
@@ -61,8 +61,8 @@ describe('useSubTabs', () => {
     expect(router.currentRoute.value.query).toEqual({ tab: 'stats' })
   })
 
-  // Une saison qui se termine perd sa vue provisoire: l'active ne doit pas lui survivre.
-  it('retombe sur le défaut quand la vue active disparaît des options', async () => {
+  // A season that ends loses its provisional view: the active one must not outlive it.
+  it('falls back to the default when the active view disappears from the options', async () => {
     const options = ref(BOTH)
     const { api } = await mountSubTabs('/tournaments/1?statsSub=global', options)
     expect(api.active.value).toBe('global')
@@ -72,7 +72,7 @@ describe('useSubTabs', () => {
     expect(api.active.value).toBe('profile')
   })
 
-  it('sans routeur, la vue reste locale', () => {
+  it('with no router, the view stays local', () => {
     let api!: ReturnType<typeof useSubTabs<Value>>
     const Host = defineComponent({
       setup() {
@@ -88,13 +88,13 @@ describe('useSubTabs', () => {
 })
 
 describe('subTabWindow', () => {
-  it('couvre les voisins immédiats, sans déborder', () => {
+  it('covers the immediate neighbors, without overflowing', () => {
     expect(subTabWindow(0, 4, 1)).toEqual([0, 1])
     expect(subTabWindow(2, 4, 1)).toEqual([1, 2, 3])
     expect(subTabWindow(3, 4, 1)).toEqual([2, 3])
   })
 
-  it('un rayon nul ne monte que la vue active', () => {
+  it('a zero radius mounts only the active view', () => {
     expect(subTabWindow(1, 3, 0)).toEqual([1])
   })
 })

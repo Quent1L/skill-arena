@@ -40,8 +40,8 @@ beforeEach(() => {
   localStorage.clear()
 })
 
-describe('useAuth — échecs transitoires', () => {
-  it("laisse la session à l'état inconnu quand le backend est injoignable", async () => {
+describe('useAuth — transient failures', () => {
+  it("leaves the session in an unknown state when the backend is unreachable", async () => {
     getSession.mockRejectedValue(new Error('Failed to fetch'))
     const auth = await loadUseAuth()
 
@@ -52,7 +52,7 @@ describe('useAuth — échecs transitoires', () => {
     expect(auth.isAuthenticated.value).toBe(false)
   })
 
-  it('retente une fois avant d\'abandonner, puis réussit', async () => {
+  it('retries once before giving up, then succeeds', async () => {
     getSession.mockRejectedValueOnce(new Error('Failed to fetch')).mockResolvedValue(SESSION_OK)
     me.mockResolvedValue(APP_USER)
     const auth = await loadUseAuth()
@@ -63,7 +63,7 @@ describe('useAuth — échecs transitoires', () => {
     expect(auth.isAuthenticated.value).toBe(true)
   })
 
-  it('traite un 5xx comme transitoire et non comme une déconnexion', async () => {
+  it('treats a 5xx as transient, not as a logout', async () => {
     getSession.mockResolvedValue({ error: { status: 503, message: 'Bad Gateway' } })
     const auth = await loadUseAuth()
 
@@ -71,7 +71,7 @@ describe('useAuth — échecs transitoires', () => {
     expect(auth.isInitialized.value).toBe(false)
   })
 
-  it('permet un nouvel essai après un échec réseau, sans rechargement', async () => {
+  it('allows a new attempt after a network failure, without a reload', async () => {
     getSession.mockRejectedValue(new Error('Failed to fetch'))
     const auth = await loadUseAuth()
     await expect(auth.initialize()).rejects.toThrow()
@@ -86,7 +86,7 @@ describe('useAuth — échecs transitoires', () => {
     expect(auth.isAuthenticated.value).toBe(true)
   })
 
-  it('ne déconnecte pas quand /users/me échoue de façon transitoire', async () => {
+  it('does not log out when /users/me fails transiently', async () => {
     getSession.mockResolvedValue(SESSION_OK)
     me.mockRejectedValue(new Error('boom', { cause: NETWORK_ERROR }))
     const auth = await loadUseAuth()
@@ -96,8 +96,8 @@ describe('useAuth — échecs transitoires', () => {
   })
 })
 
-describe('useAuth — vraies erreurs d\'authentification', () => {
-  it('écrit l\'état déconnecté sur un 401, sans retry', async () => {
+describe('useAuth — real authentication errors', () => {
+  it('writes the logged-out state on a 401, with no retry', async () => {
     getSession.mockResolvedValue({ error: { status: 401, message: 'Unauthorized' } })
     const auth = await loadUseAuth()
 
@@ -108,7 +108,7 @@ describe('useAuth — vraies erreurs d\'authentification', () => {
     expect(auth.isAuthenticated.value).toBe(false)
   })
 
-  it('déconnecte si /users/me renvoie un 401', async () => {
+  it('logs out if /users/me returns a 401', async () => {
     getSession.mockResolvedValue(SESSION_OK)
     me.mockRejectedValue(new Error('Unauthorized'))
     const auth = await loadUseAuth()
@@ -119,9 +119,9 @@ describe('useAuth — vraies erreurs d\'authentification', () => {
     expect(auth.isAuthenticated.value).toBe(false)
   })
 
-  it('propage INVITATION_CODE_REQUIRED au garde', async () => {
+  it('propagates INVITATION_CODE_REQUIRED to the guard', async () => {
     getSession.mockResolvedValue(SESSION_OK)
-    me.mockRejectedValue(new Error('code requis', { cause: 'INVITATION_CODE_REQUIRED' }))
+    me.mockRejectedValue(new Error('code required', { cause: 'INVITATION_CODE_REQUIRED' }))
     const auth = await loadUseAuth()
 
     await expect(auth.initialize()).rejects.toMatchObject({
@@ -130,8 +130,8 @@ describe('useAuth — vraies erreurs d\'authentification', () => {
   })
 })
 
-describe('useAuth — appels concurrents', () => {
-  it('ne déclenche qu\'un seul appel réseau pour deux initialize() simultanés', async () => {
+describe('useAuth — concurrent calls', () => {
+  it('triggers only one network call for two simultaneous initialize()', async () => {
     getSession.mockResolvedValue(SESSION_OK)
     me.mockResolvedValue(APP_USER)
     const auth = await loadUseAuth()
@@ -143,7 +143,7 @@ describe('useAuth — appels concurrents', () => {
     expect(auth.isAuthenticated.value).toBe(true)
   })
 
-  it('ne laisse pas un garde concurrent conclure "non authentifié"', async () => {
+  it('does not let a concurrent guard conclude "not authenticated"', async () => {
     getSession.mockResolvedValue(SESSION_OK)
     me.mockResolvedValue(APP_USER)
     const auth = await loadUseAuth()

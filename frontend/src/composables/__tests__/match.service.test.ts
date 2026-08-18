@@ -198,12 +198,12 @@ describe('useMatchService', () => {
   })
 
   describe('canProceedToNextStep', () => {
-    it('false tant qu’aucune validation n’a eu lieu', () => {
+    it('false as long as no validation has happened', () => {
       const service = useMatchService()
       expect(service.canProceedToNextStep('participants', ['user-1'], ['user-2'])).toBe(false)
     })
 
-    it('mode équipes: seul validationResult.valid compte', () => {
+    it('teams mode: only validationResult.valid counts', () => {
       const service = useMatchService()
       service.validationResult.value = { valid: true, errors: [], warnings: [] }
       expect(service.canProceedToNextStep('teams', [], [], 'team-a', 'team-b')).toBe(true)
@@ -212,7 +212,7 @@ describe('useMatchService', () => {
       expect(service.canProceedToNextStep('teams', [], [], 'team-a', 'team-b')).toBe(false)
     })
 
-    it('mode joueurs: exige des joueurs des deux côtés', () => {
+    it('players mode: requires players on both sides', () => {
       const service = useMatchService()
       service.validationResult.value = { valid: true, errors: [], warnings: [] }
       expect(service.canProceedToNextStep('participants', ['user-1'], [])).toBe(false)
@@ -220,7 +220,7 @@ describe('useMatchService', () => {
       expect(service.canProceedToNextStep('participants', ['user-1'], ['user-2'])).toBe(true)
     })
 
-    it('un seul id d’équipe ne suffit pas à basculer en mode équipes', () => {
+    it('a single team id is not enough to switch to teams mode', () => {
       const service = useMatchService()
       service.validationResult.value = { valid: true, errors: [], warnings: [] }
       expect(service.canProceedToNextStep('teams', [], [], 'team-a', undefined)).toBe(false)
@@ -234,18 +234,18 @@ describe('useMatchService', () => {
       return service
     }
 
-    it('false sans validation réussie', () => {
+    it('false without a successful validation', () => {
       const service = serviceWithValidation(false)
       expect(service.canCreateMatch('reported', null, 2, 1)).toBe(false)
     })
 
-    it('scheduled sans date → false, avec date → true', () => {
+    it('scheduled with no date → false, with a date → true', () => {
       const service = serviceWithValidation()
       expect(service.canCreateMatch('scheduled', null, 0, 0)).toBe(false)
       expect(service.canCreateMatch('scheduled', new Date(), 0, 0)).toBe(true)
     })
 
-    it('reported avec score négatif → false', () => {
+    it('reported with a negative score → false', () => {
       const service = serviceWithValidation()
       expect(service.canCreateMatch('reported', null, -1, 2)).toBe(false)
       expect(service.canCreateMatch('reported', null, 2, -1)).toBe(false)
@@ -254,7 +254,7 @@ describe('useMatchService', () => {
   })
 
   describe('validateParticipants', () => {
-    it('mémorise le résultat pour les checks de progression', async () => {
+    it('remembers the result for progression checks', async () => {
       vi.mocked(matchApi.validate).mockResolvedValue({ valid: true, errors: [], warnings: [] })
 
       const service = useMatchService()
@@ -263,7 +263,7 @@ describe('useMatchService', () => {
       expect(service.validationResult.value?.valid).toBe(true)
     })
 
-    it('produit un résultat invalide quand l’API échoue', async () => {
+    it('produces an invalid result when the API fails', async () => {
       vi.mocked(matchApi.validate).mockRejectedValue(new Error('network'))
 
       const service = useMatchService()

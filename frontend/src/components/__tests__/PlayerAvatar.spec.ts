@@ -5,13 +5,13 @@ import PlayerAvatarStack from '../PlayerAvatarStack.vue'
 import { getAvatarBg } from '@/utils/StringUtils'
 
 describe('PlayerAvatar', () => {
-  it('affiche les initiales du nom', () => {
+  it('shows the name’s initials', () => {
     const wrapper = mount(PlayerAvatar, { props: { name: 'John Doe' } })
     expect(wrapper.text()).toBe('JD')
   })
 
-  it('couleur de fond dérivée du nom (ou du colorKey)', () => {
-    // jsdom normalise les couleurs hex en rgb()
+  it('background color derived from the name (or colorKey)', () => {
+    // jsdom normalizes hex colors to rgb()
     const hexToRgb = (hex: string) =>
       `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`
 
@@ -22,7 +22,7 @@ describe('PlayerAvatar', () => {
     expect(byKey.attributes('style')).toContain(`background: ${hexToRgb(getAvatarBg('ZZ'))}`)
   })
 
-  it('taille et forme pilotées par props', () => {
+  it('size and shape driven by props', () => {
     const small = mount(PlayerAvatar, { props: { name: 'A', size: 'sm', shape: 'circle' } })
     expect(small.classes()).toContain('w-7')
     expect(small.classes()).toContain('rounded-full')
@@ -39,12 +39,12 @@ describe('PlayerAvatarStack', () => {
     { id: 'p2', displayName: 'Bob Roe', shortName: 'BR' },
   ]
 
-  it('rend un avatar par joueur', () => {
+  it('renders one avatar per player', () => {
     const wrapper = mount(PlayerAvatarStack, { props: { players } })
     expect(wrapper.findAllComponents(PlayerAvatar)).toHaveLength(2)
   })
 
-  it('chevauche les avatars seulement à partir de 2 joueurs', () => {
+  it('overlaps the avatars only from 2 players onward', () => {
     const stacked = mount(PlayerAvatarStack, { props: { players } })
     expect(stacked.classes()).toContain('-space-x-2')
 
@@ -59,14 +59,14 @@ describe('PlayerAvatarStack', () => {
       shortName: `P${i}`,
     }))
 
-  it('affiche tous les avatars jusqu’à 3 joueurs', () => {
+  it('shows all avatars up to 3 players', () => {
     const wrapper = mount(PlayerAvatarStack, { props: { players: roster(3) } })
 
     expect(wrapper.findAllComponents(PlayerAvatar)).toHaveLength(3)
     expect(wrapper.text()).not.toContain('+')
   })
 
-  it('au-delà de 3, garde les 3 premiers et compte le reste', () => {
+  it('beyond 3, keeps the first 3 and counts the rest', () => {
     const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5) } })
 
     const avatars = wrapper.findAllComponents(PlayerAvatar)
@@ -75,7 +75,7 @@ describe('PlayerAvatarStack', () => {
     expect(wrapper.text()).toContain('+2')
   })
 
-  it('la pastille liste les joueurs masqués au survol et suit la taille demandée', () => {
+  it('the chip lists the hidden players on hover and follows the requested size', () => {
     const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5), size: 'xs' } })
     const chip = wrapper.find('[title]')
 
@@ -83,7 +83,7 @@ describe('PlayerAvatarStack', () => {
     expect(chip.classes()).toContain('w-6')
   })
 
-  it('respecte une limite personnalisée', () => {
+  it('respects a custom limit', () => {
     const wrapper = mount(PlayerAvatarStack, { props: { players: roster(5), max: 4 } })
 
     expect(wrapper.findAllComponents(PlayerAvatar)).toHaveLength(4)

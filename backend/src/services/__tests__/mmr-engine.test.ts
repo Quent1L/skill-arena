@@ -44,8 +44,8 @@ const MODES: TeamInteractionMode[] = ["COLLABORATIVE", "SHARED_RESOURCE", "INDIV
 
 // ── Conservation ────────────────────────────────────────────────────────────
 
-describe("conservation du MMR", () => {
-  it("1v1 → somme des deltas nulle, dans les 3 modes", () => {
+describe("MMR conservation", () => {
+  it("1v1 → sum of deltas is zero, in all 3 modes", () => {
     for (const mode of MODES) {
       const results = run(
         [side([p("a", 1000)], 1), side([p("b", 1300)], 0)],
@@ -55,7 +55,7 @@ describe("conservation du MMR", () => {
     }
   });
 
-  it("2v2 avec équipes hétérogènes → somme des deltas nulle, dans les 3 modes", () => {
+  it("2v2 with heterogeneous teams → sum of deltas is zero, in all 3 modes", () => {
     for (const mode of MODES) {
       const results = run(
         [
@@ -68,7 +68,7 @@ describe("conservation du MMR", () => {
     }
   });
 
-  it("match asymétrique 1v2 → somme des deltas nulle", () => {
+  it("asymmetric 1v2 match → sum of deltas is zero", () => {
     const results = run([
       side([p("solo", 1200)], 1),
       side([p("x", 1000), p("y", 1000)], 0),
@@ -76,7 +76,7 @@ describe("conservation du MMR", () => {
     expect(totalDelta(results)).toBe(0);
   });
 
-  it("3v3 avec écarts extrêmes → somme des deltas nulle", () => {
+  it("3v3 with extreme gaps → sum of deltas is zero", () => {
     const results = run(
       [
         side([p("a", 400), p("b", 1000), p("c", 2400)], 1),
@@ -87,7 +87,7 @@ describe("conservation du MMR", () => {
     expect(totalDelta(results)).toBe(0);
   });
 
-  it("match nul déséquilibré → somme des deltas nulle", () => {
+  it("uneven draw → sum of deltas is zero", () => {
     const results = run([
       side([p("a", 1000), p("b", 1000)], 0.5),
       side([p("c", 1400), p("d", 1400)], 0.5),
@@ -98,8 +98,8 @@ describe("conservation du MMR", () => {
 
 // ── Invariance 1v1 ──────────────────────────────────────────────────────────
 
-describe("invariance en 1v1", () => {
-  it("les 3 modes donnent exactement le même résultat", () => {
+describe("1v1 invariance", () => {
+  it("all 3 modes give exactly the same result", () => {
     const deltas = MODES.map((mode) =>
       run([side([p("a", 900)], 1), side([p("b", 1400)], 0)], { teamInteractionMode: mode }).map(
         (r) => r.mmrDelta,
@@ -109,17 +109,17 @@ describe("invariance en 1v1", () => {
     expect(deltas[2]).toEqual(deltas[0]);
   });
 
-  it("upset 900 vs 1400 → Elo pur, le ratio ne s'applique plus", () => {
+  it("upset 900 vs 1400 → pure Elo, the ratio no longer applies", () => {
     const results = run([side([p("a", 900)], 1), side([p("b", 1400)], 0)]);
-    // K × (1 − E) avec E ≈ 0.0533 → ≈ 30, et non 47 comme avec l'ancien ratio.
+    // K × (1 − E) with E ≈ 0.0533 → ≈ 30, not 47 as with the old ratio.
     expect(deltaOf(results, "a")).toBe(30);
     expect(deltaOf(results, "b")).toBe(-30);
   });
 });
 
-// ── Répartition par mode ────────────────────────────────────────────────────
+// ── Distribution by mode ────────────────────────────────────────────────────
 
-describe("répartition selon teamInteractionMode", () => {
+describe("distribution based on teamInteractionMode", () => {
   const weak = "weak";
   const strong = "strong";
 
@@ -133,7 +133,7 @@ describe("répartition selon teamInteractionMode", () => {
     );
   }
 
-  it("COLLABORATIVE → parts strictement égales, en victoire comme en défaite", () => {
+  it("COLLABORATIVE → strictly equal shares, in both win and loss", () => {
     const win = team2v2(1, "COLLABORATIVE");
     expect(deltaOf(win, weak)).toBe(deltaOf(win, strong));
 
@@ -141,7 +141,7 @@ describe("répartition selon teamInteractionMode", () => {
     expect(deltaOf(loss, weak)).toBe(deltaOf(loss, strong));
   });
 
-  it("SHARED_RESOURCE → le moins bien classé bouge plus dans les deux sens", () => {
+  it("SHARED_RESOURCE → the lower-ranked player moves more in both directions", () => {
     const win = team2v2(1, "SHARED_RESOURCE");
     expect(deltaOf(win, weak)).toBeGreaterThan(deltaOf(win, strong));
 
@@ -149,7 +149,7 @@ describe("répartition selon teamInteractionMode", () => {
     expect(deltaOf(loss, weak)).toBeLessThan(deltaOf(loss, strong));
   });
 
-  it("INDIVIDUAL → le faible gagne plus et perd moins, le fort l'inverse", () => {
+  it("INDIVIDUAL → the weak player gains more and loses less, the strong one the opposite", () => {
     const win = team2v2(1, "INDIVIDUAL");
     expect(deltaOf(win, weak)).toBeGreaterThan(deltaOf(win, strong));
 
@@ -157,14 +157,14 @@ describe("répartition selon teamInteractionMode", () => {
     expect(deltaOf(loss, weak)).toBeGreaterThan(deltaOf(loss, strong));
   });
 
-  it("INDIVIDUAL et SHARED_RESOURCE s'opposent en défaite", () => {
+  it("INDIVIDUAL and SHARED_RESOURCE oppose each other on a loss", () => {
     const individual = team2v2(0, "INDIVIDUAL");
     const shared = team2v2(0, "SHARED_RESOURCE");
     expect(deltaOf(individual, strong)).toBeLessThan(deltaOf(shared, strong));
     expect(deltaOf(individual, weak)).toBeGreaterThan(deltaOf(shared, weak));
   });
 
-  it("les parts d'un côté somment à 1", () => {
+  it("one side's shares sum to 1", () => {
     const results = team2v2(1, "INDIVIDUAL");
     const shareWeak = results.find((r) => r.playerId === weak)!.share;
     const shareStrong = results.find((r) => r.playerId === strong)!.share;
@@ -174,13 +174,13 @@ describe("répartition selon teamInteractionMode", () => {
 
 // ── Bornes ──────────────────────────────────────────────────────────────────
 
-describe("bornes du ratio", () => {
-  it("un joueur à MMR 1 qui gagne ne peut plus exploser", () => {
+describe("ratio bounds", () => {
+  it("a player at MMR 1 who wins can no longer overflow", () => {
     const results = run([side([p("a", 1)], 1), side([p("b", 1000)], 0)]);
     expect(deltaOf(results, "a")).toBeLessThanOrEqual(32);
   });
 
-  it("le clamp plafonne l'écart de parts d'une équipe très hétérogène", () => {
+  it("the clamp caps the share spread of a very heterogeneous team", () => {
     const results = run(
       [
         side([p("tiny", 100), p("huge", 2400)], 1),
@@ -190,7 +190,7 @@ describe("bornes du ratio", () => {
     );
     const shareTiny = results.find((r) => r.playerId === "tiny")!.share;
     const shareHuge = results.find((r) => r.playerId === "huge")!.share;
-    // Ratios clampés à [0.75, 1.25] → part maximale 1.25 / (1.25 + 0.75) = 62.5 %.
+    // Ratios clamped to [0.75, 1.25] → maximum share 1.25 / (1.25 + 0.75) = 62.5%.
     expect(shareTiny).toBeLessThanOrEqual(0.625 + 1e-9);
     expect(shareHuge).toBeGreaterThanOrEqual(0.375 - 1e-9);
   });
@@ -198,8 +198,8 @@ describe("bornes du ratio", () => {
 
 // ── Arrondi ─────────────────────────────────────────────────────────────────
 
-describe("arrondi déterministe", () => {
-  it("la somme d'un côté vaut exactement le delta d'équipe", () => {
+describe("deterministic rounding", () => {
+  it("the sum of one side equals exactly the team delta", () => {
     const results = run(
       [
         side([p("a", 900), p("b", 1100), p("c", 1400)], 1),
@@ -212,9 +212,9 @@ describe("arrondi déterministe", () => {
     expect(totalDelta(winners) + totalDelta(losers)).toBe(0);
   });
 
-  it("l'ordre des joueurs en entrée ne change aucun delta (départage par playerId)", () => {
-    // kFactor 30 et E = 0.5 → teamDelta = 15, impair : les deux restes sont à
-    // égalité, seul le départage par id décide qui reçoit l'unité restante.
+  it("input player order doesn't change any delta (tie-broken by playerId)", () => {
+    // kFactor 30 and E = 0.5 → teamDelta = 15, odd: both remainders are tied,
+    // only the id tie-break decides who receives the remaining unit.
     const forward = run(
       [side([p("a", 1000), p("b", 1000)], 1), side([p("c", 1000), p("d", 1000)], 0)],
       { kFactor: 30 },
@@ -230,10 +230,10 @@ describe("arrondi déterministe", () => {
   });
 });
 
-// ── Court-circuits et multiplicateurs ───────────────────────────────────────
+// ── Short-circuits and multipliers ──────────────────────────────────────────
 
-describe("court-circuits", () => {
-  it("scoreCountsForMmr = false → tous les deltas à 0", () => {
+describe("short-circuits", () => {
+  it("scoreCountsForMmr = false → all deltas at 0", () => {
     const results = run([side([p("a", 1000)], 1, 10), side([p("b", 1000)], 0, 0)], {
       scoreCountsForMmr: false,
     });
@@ -241,32 +241,32 @@ describe("court-circuits", () => {
     expect(results.every((r) => r.kEffective === 0)).toBe(true);
   });
 
-  it("mmrMultiplier = 0 → tous les deltas à 0", () => {
+  it("mmrMultiplier = 0 → all deltas at 0", () => {
     const results = run([side([p("a", 1000)], 1), side([p("b", 1000)], 0)], { mmrMultiplier: 0 });
     expect(results.every((r) => r.mmrDelta === 0)).toBe(true);
   });
 
-  it("mmrMultiplier = 2 → delta doublé", () => {
+  it("mmrMultiplier = 2 → delta doubled", () => {
     const base = run([side([p("a", 1000)], 1), side([p("b", 1000)], 0)]);
     const doubled = run([side([p("a", 1000)], 1), side([p("b", 1000)], 0)], { mmrMultiplier: 2 });
     expect(deltaOf(doubled, "a")).toBe(deltaOf(base, "a") * 2);
   });
 
-  it("un côté vide → aucun delta", () => {
+  it("an empty side → no delta", () => {
     const results = run([side([], 1), side([p("b", 1000)], 0)]);
     expect(results.every((r) => r.mmrDelta === 0)).toBe(true);
   });
 });
 
-describe("amplification par le score", () => {
-  it("10-0 double le K, 5-5 le laisse intact", () => {
+describe("amplification by score", () => {
+  it("10-0 doubles K, 5-5 leaves it unchanged", () => {
     expect(calculateScoreMultiplier(10, 0)).toBe(2);
     expect(calculateScoreMultiplier(5, 5)).toBe(1);
     expect(calculateScoreMultiplier(0, 0)).toBe(1);
     expect(calculateScoreMultiplier(6, 4)).toBeCloseTo(1.2, 10);
   });
 
-  it("une domination fait bouger plus de MMR qu'un match serré", () => {
+  it("a blowout moves more MMR than a close match", () => {
     const close = run([side([p("a", 1000)], 1, 5), side([p("b", 1000)], 0, 5)]);
     const blowout = run([side([p("a", 1000)], 1, 10), side([p("b", 1000)], 0, 0)]);
     expect(deltaOf(blowout, "a")).toBeGreaterThan(deltaOf(close, "a"));
@@ -274,10 +274,10 @@ describe("amplification par le score", () => {
   });
 });
 
-// ── Nul ─────────────────────────────────────────────────────────────────────
+// ── Draw ────────────────────────────────────────────────────────────────────
 
-describe("match nul", () => {
-  it("l'équipe faible gagne du MMR contre une équipe favorite", () => {
+describe("draw match", () => {
+  it("the weaker team gains MMR against a favored team", () => {
     const results = run([
       side([p("a", 1000), p("b", 1000)], 0.5),
       side([p("c", 1400), p("d", 1400)], 0.5),
@@ -286,7 +286,7 @@ describe("match nul", () => {
     expect(deltaOf(results, "c")).toBeLessThan(0);
   });
 
-  it("le nul entre équipes de même niveau ne change rien", () => {
+  it("a draw between equally-matched teams changes nothing", () => {
     const results = run([
       side([p("a", 1000), p("b", 1200)], 0.5),
       side([p("c", 1100), p("d", 1100)], 0.5),
@@ -294,7 +294,7 @@ describe("match nul", () => {
     expect(results.every((r) => r.mmrDelta === 0)).toBe(true);
   });
 
-  it("le nul est réparti selon le mode, plus à plat", () => {
+  it("the draw is distributed by mode, more evenly", () => {
     const results = run(
       [
         side([p("weak", 800), p("strong", 1200)], 0.5),
@@ -306,10 +306,10 @@ describe("match nul", () => {
   });
 });
 
-// ── Exceptions documentées ──────────────────────────────────────────────────
+// ── Documented exceptions ───────────────────────────────────────────────────
 
-describe("exceptions à la conservation", () => {
-  it("placement → delta doublé pour le joueur concerné uniquement", () => {
+describe("exceptions to conservation", () => {
+  it("placement → delta doubled only for the player concerned", () => {
     const results = run([side([p("a", 1000, true)], 1), side([p("b", 1000)], 0)]);
     expect(deltaOf(results, "a")).toBe(32);
     expect(deltaOf(results, "b")).toBe(-16);
@@ -317,7 +317,7 @@ describe("exceptions à la conservation", () => {
     expect(results.find((r) => r.playerId === "b")!.kEffective).toBe(32);
   });
 
-  it("plancher à 1 → le delta est tronqué, jamais en dessous", () => {
+  it("floor at 1 → the delta is truncated, never below", () => {
     const results = run([side([p("a", 5)], 0), side([p("b", 5)], 1)]);
     expect(results.find((r) => r.playerId === "a")!.newMmr).toBe(1);
     expect(deltaOf(results, "a")).toBe(-4);

@@ -50,22 +50,22 @@ function mountBoard(props: Record<string, unknown> = {}) {
 }
 
 describe('RankedLeaderboard', () => {
-  it('sans tiers: message dédié', () => {
+  it('no tiers: dedicated message', () => {
     const wrapper = mountBoard({ tiers: [] })
     expect(wrapper.text()).toContain('rankedLeaderboard.noTiers')
   })
 
-  it('groupe les joueurs sous le bon tier, tiers du plus haut au plus bas', () => {
+  it('groups players under the right tier, tiers from highest to lowest', () => {
     const wrapper = mountBoard()
     const text = wrapper.text()
-    // Gold en premier (tri desc), Alice (1450) dedans; Bob (1000) en Bronze
+    // Gold first (sorted desc), Alice (1450) in it; Bob (1000) in Bronze
     expect(text.indexOf('Gold')).toBeLessThan(text.indexOf('Bronze'))
     expect(text.indexOf('Gold')).toBeLessThan(text.indexOf('Alice'))
     expect(text.indexOf('Bronze')).toBeLessThan(text.indexOf('Bob'))
     expect(text.indexOf('Alice')).toBeLessThan(text.indexOf('Bronze'))
   })
 
-  it('bascule provisoire: émet load-provisional une seule fois', async () => {
+  it('provisional toggle: emits load-provisional only once', async () => {
     const wrapper = mountBoard()
     await selectMode(wrapper, 'Provisional')
     await selectMode(wrapper, 'Official')
@@ -73,7 +73,7 @@ describe('RankedLeaderboard', () => {
     expect(wrapper.emitted('load-provisional')).toHaveLength(1)
   })
 
-  it('la vue active est la seule marquée sélectionnée dans la navigation', async () => {
+  it('the active view is the only one marked selected in the navigation', async () => {
     const wrapper = mountBoard()
     const selected = () =>
       wrapper
@@ -88,24 +88,24 @@ describe('RankedLeaderboard', () => {
     expect(selected()).toEqual(['rankedLeaderboard.modeProvisional'])
   })
 
-  it('premier chargement: spinner plein écran', () => {
+  it('first load: full-screen spinner', () => {
     const wrapper = mountBoard({ players: [], loading: true })
     expect(wrapper.findComponent({ name: 'ProgressSpinner' }).exists()).toBe(true)
   })
 
-  it('rafraîchissement avec données: bannière discrète, liste conservée', () => {
+  it('refresh with data: discreet banner, list kept', () => {
     const wrapper = mountBoard({ loading: true })
     expect(wrapper.findComponent({ name: 'ProgressSpinner' }).exists()).toBe(false)
     expect(wrapper.text()).toContain('rankedLeaderboard.refreshing')
     expect(wrapper.text()).toContain('Alice')
   })
 
-  it('recalcul en cours: bannière dédiée', () => {
+  it('recalculation in progress: dedicated banner', () => {
     const wrapper = mountBoard({ isRecalculating: true })
     expect(wrapper.text()).toContain('rankedLeaderboard.recalculating')
   })
 
-  it('ligne du joueur courant mise en évidence', () => {
+  it('current player row is highlighted', () => {
     const wrapper = mountBoard({ currentUserId: 'u1' })
     const rows = wrapper.findAllComponents(RouterLinkStub)
     const aliceRow = rows.find((r) => r.text().includes('Alice'))
@@ -113,15 +113,15 @@ describe('RankedLeaderboard', () => {
     expect(aliceRow!.text()).toContain('rankedLeaderboard.you')
   })
 
-  // Une seule vue: pas de navigation du tout, juste le classement.
-  it('masquage de la bascule via showModeToggle', () => {
+  // A single view: no navigation at all, just the standings.
+  it('hiding the toggle via showModeToggle', () => {
     const wrapper = mountBoard({ showModeToggle: false })
     expect(modeLabels(wrapper)).toEqual([])
     expect(wrapper.text()).toContain('Alice')
   })
 
-  // Peak et moyenne n'ont de sens qu'une fois la saison terminée.
-  describe('classements de saison', () => {
+  // Peak and average only make sense once the season is finished.
+  describe('season standings', () => {
     const seasonMmrPlayers = [
       makePlayerMmr({
         currentMmr: 1000,
@@ -139,16 +139,16 @@ describe('RankedLeaderboard', () => {
       return mountBoard({ showSeasonStats: true, seasonMmrPlayers, ...props })
     }
 
-    it('saison en cours: pas de modes peak/moyenne', () => {
+    it('ongoing season: no peak/average modes', () => {
       expect(modeLabels(mountBoard())).toEqual([
         'rankedLeaderboard.modeOfficial',
         'rankedLeaderboard.modeProvisional',
       ])
     })
 
-    // Rien ne reste à valider une fois la saison close: le provisoire ne ferait que
-    // répéter l'officiel.
-    it('saison terminée: officiel, peak et moyenne, sans provisoire', () => {
+    // Nothing is left to settle once the season is closed: provisional would just
+    // repeat the official standings.
+    it('finished season: official, peak and average, no provisional', () => {
       expect(modeLabels(mountFinished())).toEqual([
         'rankedLeaderboard.modeOfficial',
         'rankedLeaderboard.modePeak',
@@ -156,11 +156,11 @@ describe('RankedLeaderboard', () => {
       ])
     })
 
-    it('bascule visible même quand le provisoire est désactivé côté tournoi', () => {
+    it('toggle is visible even when provisional is disabled on the tournament', () => {
       expect(modeLabels(mountFinished({ showModeToggle: false }))).toHaveLength(3)
     })
 
-    it('émet load-season-stats une seule fois pour les deux vues', async () => {
+    it('emits load-season-stats only once for both views', async () => {
       const wrapper = mountFinished()
       await selectMode(wrapper, 'Peak')
       await selectMode(wrapper, 'Average')
@@ -168,26 +168,26 @@ describe('RankedLeaderboard', () => {
       expect(wrapper.emitted('load-season-stats')).toHaveLength(1)
     })
 
-    it('mode peak: groupement et tri sur le peak, pas sur le MMR courant', async () => {
+    it('peak mode: groups and sorts by peak, not current MMR', async () => {
       const wrapper = mountFinished()
       await selectMode(wrapper, 'Peak')
       const text = wrapper.text()
-      // Alice (peak 1450) passe en Gold devant Bob (peak 1150, Gold aussi mais plus bas)
+      // Alice (peak 1450) moves to Gold ahead of Bob (peak 1150, also Gold but lower)
       expect(text.indexOf('Alice')).toBeLessThan(text.indexOf('Bob'))
       expect(text).toContain('1450')
       expect(text).not.toContain('1000')
     })
 
-    it('mode moyenne: classe sur avgMmr', async () => {
+    it('average mode: sorts by avgMmr', async () => {
       const wrapper = mountFinished()
       await selectMode(wrapper, 'Average')
       const text = wrapper.text()
-      // Bob (1300) devant Alice (1200)
+      // Bob (1300) ahead of Alice (1200)
       expect(text.indexOf('Bob')).toBeLessThan(text.indexOf('Alice'))
       expect(text).toContain('1300')
     })
 
-    it('mode saison: streak courant masqué', async () => {
+    it('season mode: current streak hidden', async () => {
       const onStreak = { ...seasonMmrPlayers[0], winStreak: 4 }
       const wrapper = mountFinished({ players: [onStreak], seasonMmrPlayers: [onStreak] })
       expect(wrapper.text()).toContain('🔥')
@@ -196,9 +196,9 @@ describe('RankedLeaderboard', () => {
     })
   })
 
-  // Un joueur en placement n'a pas de MMR arrêté: il est listé à part, sans rang ni
-  // MMR, et ne compte pas dans le classement des autres.
-  describe('joueurs en placement', () => {
+  // A player in placement has no settled MMR: they're listed separately, without rank
+  // or MMR, and don't count toward the ranking of others.
+  describe('players in placement', () => {
     const inPlacement = makePlayerMmr({
       currentMmr: 1450,
       matchesPlayed: 2,
@@ -210,7 +210,7 @@ describe('RankedLeaderboard', () => {
       return mountBoard({ players: [...players, inPlacement], placementMatches: 5, ...props })
     }
 
-    it('les sort des tiers et les liste dans une section dédiée, en bas', () => {
+    it('sorts them out of the tiers and lists them in a dedicated section at the bottom', () => {
       const wrapper = mountWithPlacement()
       const text = wrapper.text()
       expect(text).toContain('rankedLeaderboard.placementSection')
@@ -220,7 +220,7 @@ describe('RankedLeaderboard', () => {
       )
     })
 
-    it("n'affiche jamais leur MMR, seulement leur progression", () => {
+    it("never shows their MMR, only their progress", () => {
       const wrapper = mountWithPlacement()
       const row = wrapper
         .findAllComponents(RouterLinkStub)
@@ -229,7 +229,7 @@ describe('RankedLeaderboard', () => {
       expect(row.text()).toContain('rankedLeaderboard.placementProgress')
     })
 
-    it('ne décale pas les rangs des joueurs classés', () => {
+    it('does not shift the ranks of ranked players', () => {
       const wrapper = mountWithPlacement()
       const rankOf = (name: string) =>
         wrapper
@@ -237,25 +237,25 @@ describe('RankedLeaderboard', () => {
           .find((r) => r.text().includes(name))!
           .find('.w-5')
           .text()
-      // Charlie serait 1er sur son MMR: il ne prend la place de personne.
+      // Charlie would be 1st on their MMR: they take nobody's place.
       expect(rankOf('Alice')).toBe('1')
       expect(rankOf('Bob')).toBe('2')
     })
 
-    it('sans matchs de placement configurés, tout le monde est classé', () => {
+    it('with no placement matches configured, everyone is ranked', () => {
       const wrapper = mountWithPlacement({ placementMatches: 0 })
       expect(wrapper.text()).not.toContain('rankedLeaderboard.placementSection')
       expect(wrapper.text()).toContain('1450')
     })
 
-    it('la section disparaît quand plus personne n’est en placement', () => {
+    it('the section disappears once nobody is in placement anymore', () => {
       const wrapper = mountBoard({ players, placementMatches: 5 })
       expect(wrapper.text()).not.toContain('rankedLeaderboard.placementSection')
     })
   })
 
-  // Sur mobile les vues sont des volets voisins dans une piste draggable, pas un
-  // rendu unique: elles sont montées ensemble pour que le doigt puisse les faire glisser.
+  // On mobile the views are neighboring panels in a draggable track, not a single
+  // render: they're all mounted together so the finger can drag between them.
   describe('mobile', () => {
     beforeEach(() => {
       viewport.mobile = true
@@ -264,14 +264,14 @@ describe('RankedLeaderboard', () => {
       viewport.mobile = false
     })
 
-    it('monte les vues voisines et bascule au tap', async () => {
+    it('mounts the neighboring views and switches on tap', async () => {
       const wrapper = mountBoard({ provisionalPlayers: [] })
       expect(modeLabels(wrapper)).toEqual([
         'rankedLeaderboard.modeOfficial',
         'rankedLeaderboard.modeProvisional',
       ])
 
-      // La vue provisoire est déjà montée, donc ses données sont demandées d'emblée.
+      // The provisional view is already mounted, so its data is requested right away.
       expect(wrapper.emitted('load-provisional')).toHaveLength(1)
 
       await selectMode(wrapper, 'Provisional')
@@ -284,16 +284,16 @@ describe('RankedLeaderboard', () => {
     })
   })
 
-  // Le rang suivant est cherché par ordre, pas en `level + 1`: une saison éditée
-  // avant que les niveaux soient recompactés peut avoir des trous.
-  describe('niveaux non contigus (1, 2, 4)', () => {
+  // The next rank is looked up by order, not `level + 1`: a season edited
+  // before the levels were recompacted can have gaps.
+  describe('non-contiguous levels (1, 2, 4)', () => {
     const gapped = [
       makeTier({ id: 'bronze', level: 1, name: 'Bronze', minMmr: 700 }),
       makeTier({ id: 'silver', level: 2, name: 'Silver', minMmr: 900 }),
       makeTier({ id: 'gold', level: 4, name: 'Gold', minMmr: 1100 }),
     ]
 
-    it('barre de progression partielle et non pleine pour un joueur de milieu de rang', () => {
+    it('partial, non-full progress bar for a mid-rank player', () => {
       const wrapper = mountBoard({
         tiers: gapped,
         players: [
@@ -303,13 +303,13 @@ describe('RankedLeaderboard', () => {
           }),
         ],
       })
-      // Silver 900 → Gold 1100, Bob à 1000 = moitié de la plage
+      // Silver 900 → Gold 1100, Bob at 1000 = half the range
       const bar = wrapper.find('[style*="width: 50%"]')
       expect(bar.exists()).toBe(true)
       expect(wrapper.find('[style*="width: 100%"]').exists()).toBe(false)
     })
 
-    it('seuil du rang le plus bas exprimé par rapport au rang suivant', () => {
+    it('lowest rank threshold expressed relative to the next rank', () => {
       const wrapper = mountBoard({ tiers: gapped })
       expect(wrapper.text()).toContain('< 900 MMR')
     })

@@ -35,25 +35,25 @@ beforeEach(() => {
 })
 
 describe('requireAuth', () => {
-  it('laisse passer un utilisateur authentifié', async () => {
+  it('lets an authenticated user through', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' } })
     expect(await requireAuth(to)).toBeUndefined()
   })
 
-  it('initialise la session si nécessaire', async () => {
+  it('initializes the session when needed', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' }, initialized: false })
     await requireAuth(to)
     expect(auth.initialize).toHaveBeenCalledOnce()
   })
 
-  it('redirige vers /login avec la cible en query', async () => {
+  it('redirects to /login with the target in the query', async () => {
     expect(await requireAuth(to)).toEqual({
       path: '/login',
       query: { redirect: '/tournaments/42' },
     })
   })
 
-  it('INVITATION_CODE_REQUIRED sans cookie → /submit-invitation + toast', async () => {
+  it('INVITATION_CODE_REQUIRED with no cookie → /submit-invitation + toast', async () => {
     setAuth({ initialized: false })
     auth.initialize.mockRejectedValue(
       new Error('invitation', { cause: 'INVITATION_CODE_REQUIRED' }),
@@ -62,7 +62,7 @@ describe('requireAuth', () => {
     expect(errorService.showError).toHaveBeenCalledOnce()
   })
 
-  it('INVITATION_CODE_REQUIRED avec cookie → /submit-invitation sans toast', async () => {
+  it('INVITATION_CODE_REQUIRED with a cookie → /submit-invitation with no toast', async () => {
     document.cookie = 'invitation_code=abc; path=/'
     setAuth({ initialized: false })
     auth.initialize.mockRejectedValue(
@@ -72,7 +72,7 @@ describe('requireAuth', () => {
     expect(errorService.showError).not.toHaveBeenCalled()
   })
 
-  it('autre erreur d’init → redirection /login', async () => {
+  it('other init error → redirects to /login', async () => {
     setAuth({ initialized: false })
     auth.initialize.mockRejectedValue(new Error('boom'))
     expect(await requireAuth(to)).toEqual({
@@ -83,19 +83,19 @@ describe('requireAuth', () => {
 })
 
 describe('requireAdmin', () => {
-  it('redirige un anonyme vers /login', async () => {
+  it('redirects an anonymous user to /login', async () => {
     expect(await requireAdmin(to)).toEqual({
       path: '/login',
       query: { redirect: '/tournaments/42' },
     })
   })
 
-  it('laisse passer un super admin', async () => {
+  it('lets a super admin through', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' }, role: 'super_admin' })
     expect(await requireAdmin(to)).toBeUndefined()
   })
 
-  it('renvoie un joueur connecté vers l’accueil', async () => {
+  it('sends a logged-in player back to home', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' }, role: 'player' })
     expect(await requireAdmin(to)).toEqual({ path: '/', replace: true })
   })
@@ -111,49 +111,49 @@ describe('requireAdmin', () => {
 })
 
 describe('requireSettingsAccess', () => {
-  it('redirige un anonyme vers /login', async () => {
+  it('redirects an anonymous user to /login', async () => {
     expect(await requireSettingsAccess(to)).toEqual({
       path: '/login',
       query: { redirect: '/tournaments/42' },
     })
   })
 
-  it('bloque un kiosk verrouillé', async () => {
+  it('blocks a locked kiosk', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' }, role: 'kiosk' })
     localStorage.setItem('kiosk_settings_locked', 'true')
     expect(await requireSettingsAccess(to)).toEqual({ path: '/', replace: true })
   })
 
-  it('laisse passer un kiosk non verrouillé', async () => {
+  it('lets an unlocked kiosk through', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' }, role: 'kiosk' })
     expect(await requireSettingsAccess(to)).toBeUndefined()
   })
 
-  it('laisse passer un joueur', async () => {
+  it('lets a player through', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' } })
     expect(await requireSettingsAccess(to)).toBeUndefined()
   })
 })
 
 describe('redirectIfAuthenticated', () => {
-  it('renvoie un connecté vers la query redirect', async () => {
+  it('sends a logged-in user to the redirect query', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' } })
     const login = { fullPath: '/login', query: { redirect: '/foo' } } as unknown as RouteLocationNormalized
     expect(await redirectIfAuthenticated(login)).toEqual({ path: '/foo', replace: true })
   })
 
-  it('renvoie vers / sans query redirect', async () => {
+  it('sends to / with no redirect query', async () => {
     setAuth({ user: { id: 'u1', email: 'a@b.c' } })
     const login = { fullPath: '/login', query: {} } as unknown as RouteLocationNormalized
     expect(await redirectIfAuthenticated(login)).toEqual({ path: '/', replace: true })
   })
 
-  it('ne fait rien pour un anonyme', async () => {
+  it('does nothing for an anonymous user', async () => {
     const login = { fullPath: '/login', query: {} } as unknown as RouteLocationNormalized
     expect(await redirectIfAuthenticated(login)).toBeUndefined()
   })
 
-  it('avale les erreurs d’initialisation', async () => {
+  it('swallows initialization errors', async () => {
     setAuth({ initialized: false })
     auth.initialize.mockRejectedValue(new Error('boom'))
     const login = { fullPath: '/login', query: {} } as unknown as RouteLocationNormalized
@@ -165,12 +165,12 @@ describe('redirectIfAuthenticated', () => {
  * Unreachable backend: no information about the session. Redirecting to /login would
  * show a false logout — that is the bug fixed here.
  */
-describe('échec réseau → /offline, jamais /login', () => {
+describe('network failure → /offline, never /login', () => {
   const offline = { name: 'offline', query: { redirect: '/tournaments/42' } }
 
   function failWithNetworkError() {
     setAuth({ initialized: false })
-    auth.initialize.mockRejectedValue(new Error('injoignable', { cause: NETWORK_ERROR }))
+    auth.initialize.mockRejectedValue(new Error('unreachable', { cause: NETWORK_ERROR }))
   }
 
   it('requireAuth', async () => {

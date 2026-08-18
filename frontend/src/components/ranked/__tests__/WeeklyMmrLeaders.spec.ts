@@ -34,7 +34,7 @@ function mountCard(props: {
 }
 
 describe('WeeklyMmrLeaders', () => {
-  it('classe les gains dans l’ordre reçu et préfixe le delta d’un +', () => {
+  it('sorts gains in the received order and prefixes the delta with a +', () => {
     const wrapper = mountCard({
       gainers: [
         leader({ playerId: 'a', displayName: 'Alice', mmrGained: 60 }),
@@ -47,7 +47,7 @@ describe('WeeklyMmrLeaders', () => {
     expect(text).toContain('+25')
   })
 
-  it('affiche les pertes avec leur signe négatif, sans + ajouté', () => {
+  it('shows losses with their negative sign, no + added', () => {
     const wrapper = mountCard({
       losers: [leader({ playerId: 'c', displayName: 'Chloe', mmrGained: -33 })],
     })
@@ -56,20 +56,20 @@ describe('WeeklyMmrLeaders', () => {
     expect(text).not.toContain('+')
   })
 
-  it('affiche le nombre de matchs joués sur la semaine', () => {
+  it('shows the number of matches played this week', () => {
     const wrapper = mountCard({ gainers: [leader({ matchesPlayed: 7 })] })
     expect(wrapper.find('[data-test="gainers-list"]').text()).toContain(
       'tournamentStatsTab.weeklyMmr.matchCount:7',
     )
   })
 
-  it('remplace une colonne vide par le message dédié', () => {
+  it('replaces an empty column with the dedicated message', () => {
     const wrapper = mountCard({ gainers: [leader()] })
     expect(wrapper.find('[data-test="losers-list"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('tournamentStatsTab.weeklyMmr.empty')
   })
 
-  it('pointe vers la fiche joueur en conservant le contexte tournoi', () => {
+  it('points to the player profile while keeping the tournament context', () => {
     const wrapper = mountCard({
       gainers: [leader({ playerId: 'p9' })],
       tournamentId: 't1',
@@ -78,7 +78,7 @@ describe('WeeklyMmrLeaders', () => {
     expect(link.props('to')).toEqual({ path: '/players/p9', query: { tournamentId: 't1' } })
   })
 
-  it('dimensionne les barres relativement au leader de la colonne', () => {
+  it('sizes the bars relative to the column leader', () => {
     const wrapper = mountCard({
       gainers: [
         leader({ playerId: 'a', mmrGained: 80 }),

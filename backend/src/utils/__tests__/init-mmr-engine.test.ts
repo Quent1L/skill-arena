@@ -57,8 +57,8 @@ const { MMR_ENGINE_VERSION } = await import("../../services/mmr-engine");
 describe("recalculateOutdatedRankedSeasons", () => {
   beforeEach(() => {
     seasons = [
-      { id: "s1", name: "Saison 1" },
-      { id: "s2", name: "Saison 2" },
+      { id: "s1", name: "Season 1" },
+      { id: "s2", name: "Season 2" },
     ];
     storedVersions = new Map();
     lookupQueue = [];
@@ -66,7 +66,7 @@ describe("recalculateOutdatedRankedSeasons", () => {
     insertedStamps.length = 0;
   });
 
-  it("enfile les saisons jamais estampillées et pose la version courante", async () => {
+  it("enqueues seasons never stamped and sets the current version", async () => {
     lookupQueue = ["s1", "s2"];
     await recalculateOutdatedRankedSeasons();
 
@@ -77,7 +77,7 @@ describe("recalculateOutdatedRankedSeasons", () => {
     ]);
   });
 
-  it("ne réenfile rien au démarrage suivant", async () => {
+  it("does not re-enqueue anything on the next startup", async () => {
     lookupQueue = ["s1", "s2"];
     await recalculateOutdatedRankedSeasons();
     enqueued.length = 0;
@@ -88,7 +88,7 @@ describe("recalculateOutdatedRankedSeasons", () => {
     expect(enqueued).toEqual([]);
   });
 
-  it("enfile une saison restée sur une version antérieure", async () => {
+  it("enqueues a season left on an older version", async () => {
     storedVersions.set("s1", { version: MMR_ENGINE_VERSION });
     storedVersions.set("s2", { version: MMR_ENGINE_VERSION - 1 });
     lookupQueue = ["s1", "s2"];
@@ -98,7 +98,7 @@ describe("recalculateOutdatedRankedSeasons", () => {
     expect(enqueued).toEqual(["s2"]);
   });
 
-  it("ne fait rien sans saison ranked en cours", async () => {
+  it("does nothing without an active ranked season", async () => {
     seasons = [];
     await recalculateOutdatedRankedSeasons();
 

@@ -53,7 +53,7 @@ function board(
 function funStat(overrides: Partial<OutcomeTypeFunStat> = {}): OutcomeTypeFunStat {
   return {
     outcomeTypeId: 'ot1',
-    outcomeTypeName: 'Fin normale',
+    outcomeTypeName: 'Normal end',
     totalMatches: 124,
     topWinnersByVolume: board([leader()]),
     topWinnersByRate: board([leader({ playerId: 'p2', displayName: 'Rémi', ratePct: 88 })]),
@@ -79,11 +79,11 @@ describe('OutcomeTypeFunStats', () => {
     vi.useRealTimers()
   })
 
-  it('affiche volume et efficacité côte à côte pour chaque type de résultat', () => {
+  it('shows volume and efficiency side by side for each outcome type', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     const text = wrapper.text()
-    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.king:Fin normale')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.king:Normal end')
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.matchCount:124')
     // volume column: win count + share of total
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.winCount:37')
@@ -94,7 +94,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.matchCount:40')
   })
 
-  it('le bouton de la carte nomme la vue vers laquelle il mène', () => {
+  it('the card’s button names the view it leads to', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     expect(wrapper.find('[data-test="outcome-type-side-toggle"]').text()).toContain(
@@ -102,7 +102,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('bascule les deux colonnes de la carte sur les perdants au clic', async () => {
+  it('flips both columns of the card to the losers on click', async () => {
     vi.useFakeTimers()
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
@@ -116,7 +116,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(text).not.toContain('Thomas')
     expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.lossCount:21')
     // the card title follows the side too
-    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Fin normale')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Normal end')
     expect(text).not.toContain('tournamentStatsTab.outcomeTypeFunStats.king')
     // and the button now offers to flip back
     expect(wrapper.find('[data-test="outcome-type-side-toggle"]').text()).toContain(
@@ -124,12 +124,12 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('ne bascule que la carte cliquée, pas les autres', async () => {
+  it('only flips the clicked card, not the others', async () => {
     vi.useFakeTimers()
-    const statA = funStat({ outcomeTypeId: 'ot1', outcomeTypeName: 'Fin normale' })
+    const statA = funStat({ outcomeTypeId: 'ot1', outcomeTypeName: 'Normal end' })
     const statB = funStat({
       outcomeTypeId: 'ot2',
-      outcomeTypeName: 'Fin critique',
+      outcomeTypeName: 'Critical end',
       topWinnersByVolume: board([leader({ playerId: 'p5', displayName: 'Sacha' })]),
     })
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [statA, statB] } })
@@ -142,13 +142,13 @@ describe('OutcomeTypeFunStats', () => {
     const text = wrapper.text()
     expect(text).toContain('Matéo') // first card switched to losers
     expect(text).not.toContain('Thomas')
-    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Fin normale')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.victim:Normal end')
     // second card untouched, stays on winners
     expect(text).toContain('Sacha')
-    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.king:Fin critique')
+    expect(text).toContain('tournamentStatsTab.outcomeTypeFunStats.king:Critical end')
   })
 
-  it('parle de vulnérabilité et non d’efficacité côté perdants', async () => {
+  it('talks about vulnerability, not efficiency, on the losers’ side', async () => {
     vi.useFakeTimers()
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
@@ -167,7 +167,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('signale un échantillon faible et adapte l’info-bulle', () => {
+  it('flags a small sample and adapts the tooltip', () => {
     const stats = [
       funStat({
         topWinnersByRate: board([leader({ playerId: 'p2' })], { isLowSample: true }),
@@ -183,7 +183,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('explique la pondération quand le seuil est respecté', () => {
+  it('explains the weighting when the threshold is met', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     expect(wrapper.find('[data-test="low-sample-badge"]').exists()).toBe(false)
@@ -192,7 +192,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('explique aussi le critère de la colonne volume', () => {
+  it('also explains the volume column’s criterion', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats: [funStat()] } })
 
     expect(wrapper.findAllComponents(InfoTooltip)[0]!.props('text')).toBe(
@@ -200,7 +200,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('affiche un état vide quand aucun taux n’est calculable', () => {
+  it('shows an empty state when no rate can be computed', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, {
       props: {
         stats: [funStat({ topWinnersByVolume: board([]), topWinnersByRate: board([]) })],
@@ -212,7 +212,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(wrapper.text()).toContain('tournamentStatsTab.outcomeTypeFunStats.noRateData')
   })
 
-  it('affiche le rang et non la position dans la liste', () => {
+  it('shows the rank, not the position in the list', () => {
     const tied = board([
       leader({ playerId: 'p1', displayName: 'Thomas', rank: 1, tiedCount: 2 }),
       leader({ playerId: 'p2', displayName: 'Rémi', rank: 1, tiedCount: 2 }),
@@ -228,7 +228,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(badges[0]!.classes()).toEqual(badges[1]!.classes())
   })
 
-  it('signale une fois par groupe les joueurs départagés par rien', () => {
+  it('flags once per group the players no criterion separates', () => {
     const tied = board([
       leader({ playerId: 'p1', rank: 1, tiedCount: 2 }),
       leader({ playerId: 'p2', displayName: 'Rémi', rank: 1, tiedCount: 2 }),
@@ -242,7 +242,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(markers[0]!.text()).toContain('tournamentStatsTab.outcomeTypeFunStats.exAequo')
   })
 
-  it('compte les ex aequo laissés de côté par la coupe', () => {
+  it('counts the ties left out by the cutoff', () => {
     const cut = board([leader()], { omittedCount: 4, omittedNames: ['A', 'B', 'C', 'D'] })
     const wrapper = mountWithPrime(OutcomeTypeFunStats, {
       props: { stats: [funStat({ topWinnersByVolume: cut })] },
@@ -253,7 +253,7 @@ describe('OutcomeTypeFunStats', () => {
     )
   })
 
-  it('remplace le podium par un tableau d’honneur quand rien ne départage', () => {
+  it('replaces the podium with an honor roll when nothing separates them', () => {
     const flat = board(
       [
         leader({ playerId: 'p1', rank: 1, tiedCount: 3 }),
@@ -273,7 +273,7 @@ describe('OutcomeTypeFunStats', () => {
     expect(roll.text()).toContain('Rémi')
   })
 
-  it('renvoie vers la fiche joueur en conservant le contexte du tournoi', () => {
+  it('links back to the player profile while keeping the tournament context', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, {
       props: { stats: [funStat()], tournamentId: 't1' },
     })

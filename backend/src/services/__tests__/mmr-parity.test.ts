@@ -167,8 +167,8 @@ function normalise(input: MatchMmrInput) {
   };
 }
 
-describe("parité des trois chemins MMR", () => {
-  it("finalisation, aperçu et replay appellent le moteur avec le même match", async () => {
+describe("parity of the three MMR paths", () => {
+  it("finalization, preview and replay call the engine with the same match", async () => {
     engineCalls.length = 0;
     selectResult = [{ matchId: MATCH }];
     await mmrCalculationService.recalculatePlayerMmr(SEASON, "p1");
@@ -186,7 +186,7 @@ describe("parité des trois chemins MMR", () => {
     expect(normalise(replay)).toEqual(normalise(official));
   });
 
-  it("les deltas produits sont identiques d'un chemin à l'autre", async () => {
+  it("the produced deltas are identical across paths", async () => {
     engineCalls.length = 0;
     selectResult = [{ matchId: MATCH }];
     await mmrCalculationService.recalculatePlayerMmr(SEASON, "p1");

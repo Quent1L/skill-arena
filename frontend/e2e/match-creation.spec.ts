@@ -8,14 +8,14 @@ async function addParticipant(page: Page, displayName: string) {
   await page.getByRole('option', { name: displayName }).click()
 }
 
-test('le détail du match finalisé seedé affiche joueurs et score', async ({ page }) => {
+test('the seeded finalized match detail shows players and score', async ({ page }) => {
   await page.goto(`/matches/${CHAMP_MATCH_ID}`)
   await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
   await expect(page.getByText(USERS.player2.displayName).first()).toBeVisible()
   await expect(page.getByText('3').first()).toBeVisible()
 })
 
-test('le stepper bloque tant que les participants sont incomplets', async ({ page }) => {
+test('the stepper stays blocked while participants are incomplete', async ({ page }) => {
   await page.goto(`/tournaments/${CHAMPIONSHIP_ID}/create-match`)
 
   await page.getByRole('button', { name: 'Maintenant' }).click()
@@ -26,7 +26,7 @@ test('le stepper bloque tant que les participants sont incomplets', async ({ pag
   await expect(page.getByRole('button', { name: 'Suivant' })).toBeDisabled()
 })
 
-test('crée un match complet via le stepper', async ({ page }) => {
+test('creates a complete match via the stepper', async ({ page }) => {
   await page.goto(`/tournaments/${CHAMPIONSHIP_ID}/create-match`)
 
   // Step 1: date — "Now"

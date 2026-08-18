@@ -5,45 +5,45 @@ import { buildMmrBarSegments, getTierBounds, tierPercent } from '../mmr-progress
 // Four contiguous 200-wide tiers: 700 / 900 / 1100 / 1300.
 const TIERS = [
   makeTier({ level: 1, name: 'Bronze', minMmr: 700 }),
-  makeTier({ level: 2, name: 'Argent', minMmr: 900 }),
-  makeTier({ level: 3, name: 'Or', minMmr: 1100 }),
-  makeTier({ level: 4, name: 'Diamant', minMmr: 1300 }),
+  makeTier({ level: 2, name: 'Silver', minMmr: 900 }),
+  makeTier({ level: 3, name: 'Gold', minMmr: 1100 }),
+  makeTier({ level: 4, name: 'Diamond', minMmr: 1300 }),
 ]
 
 const tierAt = (level: number) => TIERS.find((t) => t.level === level)!
 
 describe('getTierBounds', () => {
-  it('borne un tier par le minMmr du suivant', () => {
+  it('bounds a tier by the next one’s minMmr', () => {
     expect(getTierBounds(tierAt(2), TIERS)).toEqual({ min: 900, max: 1100, isOpenEnded: false })
   })
 
-  it('donne au dernier tier la largeur du précédent, et le signale comme ouvert', () => {
+  it('gives the last tier the previous one’s width, and flags it as open-ended', () => {
     expect(getTierBounds(tierAt(4), TIERS)).toEqual({ min: 1300, max: 1500, isOpenEnded: true })
   })
 
-  it('retombe sur TIER_SIZE quand le tier est seul', () => {
+  it('falls back to TIER_SIZE when the tier is alone', () => {
     const solo = makeTier({ level: 1, minMmr: 700 })
     expect(getTierBounds(solo, [solo])).toEqual({ min: 700, max: 900, isOpenEnded: true })
   })
 })
 
 describe('tierPercent', () => {
-  it('positionne le MMR dans la fenêtre du tier', () => {
+  it('positions the MMR within the tier’s window', () => {
     expect(tierPercent(1000, tierAt(2), TIERS)).toBe(50)
   })
 
-  it('reste borné entre 0 et 100 hors de la fenêtre', () => {
+  it('stays clamped between 0 and 100 outside the window', () => {
     expect(tierPercent(500, tierAt(2), TIERS)).toBe(0)
     expect(tierPercent(5000, tierAt(2), TIERS)).toBe(100)
   })
 
-  it('vaut 0 sans tier', () => {
+  it('is 0 with no tier', () => {
     expect(tierPercent(1000, null, TIERS)).toBe(0)
   })
 })
 
 describe('buildMmrBarSegments', () => {
-  it('un seul segment quand le tier ne change pas', () => {
+  it('a single segment when the tier does not change', () => {
     const segments = buildMmrBarSegments(1000, 1040, TIERS)
     expect(segments).toHaveLength(1)
     expect(segments[0]).toMatchObject({
@@ -52,37 +52,37 @@ describe('buildMmrBarSegments', () => {
       direction: 'up',
       isFinal: true,
     })
-    expect(segments[0].tier?.name).toBe('Argent')
+    expect(segments[0].tier?.name).toBe('Silver')
   })
 
-  it('marque une perte intra-tier comme descendante', () => {
+  it('marks an intra-tier loss as downward', () => {
     const [segment] = buildMmrBarSegments(1040, 1000, TIERS)
     expect(segment.direction).toBe('down')
     expect(segment.fromPct).toBe(70)
     expect(segment.toPct).toBe(50)
   })
 
-  it("montée de rang : le premier segment termine à 100 %, le second repart de 0", () => {
+  it("rank up: the first segment ends at 100%, the second starts over at 0", () => {
     const segments = buildMmrBarSegments(1080, 1120, TIERS)
     expect(segments).toHaveLength(2)
     expect(segments[0]).toMatchObject({ fromPct: 90, toPct: 100, isFinal: false })
-    expect(segments[0].tier?.name).toBe('Argent')
+    expect(segments[0].tier?.name).toBe('Silver')
     expect(segments[1]).toMatchObject({ fromPct: 0, toPct: 10, isFinal: true })
-    expect(segments[1].tier?.name).toBe('Or')
+    expect(segments[1].tier?.name).toBe('Gold')
   })
 
-  it('descente de rang : le premier segment vide la barre, le second repart de 100 %', () => {
+  it('rank down: the first segment empties the bar, the second starts over at 100%', () => {
     const segments = buildMmrBarSegments(1120, 1080, TIERS)
     expect(segments).toHaveLength(2)
     expect(segments[0]).toMatchObject({ fromPct: 10, toPct: 0, isFinal: false })
-    expect(segments[0].tier?.name).toBe('Or')
+    expect(segments[0].tier?.name).toBe('Gold')
     expect(segments[1]).toMatchObject({ fromPct: 100, toPct: 90, isFinal: true })
-    expect(segments[1].tier?.name).toBe('Argent')
+    expect(segments[1].tier?.name).toBe('Silver')
   })
 
-  it('traverse chaque tier intermédiaire et enchaîne les bornes MMR sans trou', () => {
+  it('crosses each intermediate tier and chains the MMR bounds with no gap', () => {
     const segments = buildMmrBarSegments(750, 1350, TIERS)
-    expect(segments.map((s) => s.tier?.name)).toEqual(['Bronze', 'Argent', 'Or', 'Diamant'])
+    expect(segments.map((s) => s.tier?.name)).toEqual(['Bronze', 'Silver', 'Gold', 'Diamond'])
     expect(segments.map((s) => [s.mmrFrom, s.mmrTo])).toEqual([
       [750, 900],
       [900, 1100],
@@ -91,16 +91,16 @@ describe('buildMmrBarSegments', () => {
     ])
   })
 
-  it('plafonne les segments intermédiaires en gardant le compteur continu', () => {
+  it('caps intermediate segments while keeping the counter continuous', () => {
     const segments = buildMmrBarSegments(750, 1350, TIERS, { maxIntermediateSegments: 1 })
     expect(segments).toHaveLength(3)
-    // Le saut de tier tronqué reste continu côté MMR : chaque segment repart où
-    // le précédent s'est arrêté, et le pourcentage se borne tout seul.
+    // The truncated tier jump stays continuous on the MMR side: each segment picks up where
+    // the previous one stopped, and the percentage clamps itself.
     expect(segments[2].mmrFrom).toBe(segments[1].mmrTo)
     expect(segments[2].fromPct).toBe(0)
   })
 
-  it('privilégie les niveaux fournis sur le tier déduit du MMR', () => {
+  it('prefers the given levels over the tier inferred from the MMR', () => {
     const segments = buildMmrBarSegments(1000, 1000, TIERS, {
       tierBeforeLevel: 1,
       tierAfterLevel: 1,
@@ -109,12 +109,12 @@ describe('buildMmrBarSegments', () => {
     expect(segments[0].tier?.name).toBe('Bronze')
   })
 
-  it('retombe sur le MMR quand le niveau fourni est inconnu', () => {
+  it('falls back to the MMR when the given level is unknown', () => {
     const segments = buildMmrBarSegments(1000, 1040, TIERS, { tierBeforeLevel: 99 })
-    expect(segments[0].tier?.name).toBe('Argent')
+    expect(segments[0].tier?.name).toBe('Silver')
   })
 
-  it('sans table de tiers, garde une fenêtre synthétique plutôt qu’une barre morte', () => {
+  it('with no tier table, keeps a synthetic window rather than a dead bar', () => {
     const [segment] = buildMmrBarSegments(1000, 1100, [])
     expect(segment.tier).toBeNull()
     expect(segment.minMmr).toBe(1000)

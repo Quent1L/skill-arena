@@ -27,7 +27,7 @@ function relation(overrides: Partial<PlayerRelationStat> = {}): PlayerRelationSt
 }
 
 describe('PlayerRelationStats', () => {
-  it('affiche le taux de victoires et le nombre de matchs du meilleur partenaire', () => {
+  it('shows the win rate and match count of the best partner', () => {
     const wrapper = mountWithPrime(PlayerRelationStats, {
       props: { bestPartners: [relation()] },
     })
@@ -39,7 +39,7 @@ describe('PlayerRelationStats', () => {
     expect(text).toContain('+12%')
   })
 
-  it('affiche le taux de victoires et le nombre d’affrontements de la némésis', () => {
+  it('shows the win rate and matchup count of the nemesis', () => {
     const wrapper = mountWithPrime(PlayerRelationStats, {
       props: {
         nemeses: [
@@ -54,7 +54,7 @@ describe('PlayerRelationStats', () => {
     expect(text).toContain('playerRelationStats.confrontationCount:22')
   })
 
-  it('explique le calcul via une info-bulle sur chaque carte pondérée', () => {
+  it('explains the calculation via a tooltip on each weighted card', () => {
     const wrapper = mountWithPrime(PlayerRelationStats, {
       props: { bestPartners: [relation()], nemeses: [relation({ playerId: 'p2' })] },
     })
@@ -66,7 +66,7 @@ describe('PlayerRelationStats', () => {
     ])
   })
 
-  it('masque les cartes quand aucune relation n’atteint le seuil', () => {
+  it('hides the cards when no relation reaches the threshold', () => {
     const wrapper = mountWithPrime(PlayerRelationStats, {
       props: { mostFrequentPartners: [], bestPartners: [], nemeses: [] },
     })

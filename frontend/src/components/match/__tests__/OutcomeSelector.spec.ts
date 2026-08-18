@@ -37,30 +37,30 @@ async function mountSelector(props: Record<string, unknown> = {}) {
 }
 
 describe('OutcomeSelector', () => {
-  it('charge les types au mount pour la discipline', async () => {
+  it('loads types on mount for the discipline', async () => {
     await mountSelector()
     expect(outcomeTypeApi.list).toHaveBeenCalledWith('d1')
   })
 
-  it('auto-sélectionne le type Normal quand rien n’est choisi', async () => {
+  it('auto-selects the Normal type when nothing is chosen', async () => {
     const wrapper = await mountSelector()
     expect(wrapper.emitted('update:outcomeTypeId')?.[0]).toEqual(['ot-normal'])
   })
 
-  it('type Normal: ni raison ni vainqueur affichés', async () => {
+  it('Normal type: neither reason nor winner shown', async () => {
     const wrapper = await mountSelector({ outcomeTypeId: 'ot-normal' })
     expect(wrapper.find('#outcome-reason').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('outcomeSelector.winnerLabel')
   })
 
-  it('type non-Normal avec raisons: Select raison + vainqueur affichés', async () => {
+  it('non-Normal type with reasons: reason Select + winner shown', async () => {
     const wrapper = await mountSelector({ outcomeTypeId: 'ot-forfeit' })
     expect(outcomeReasonApi.list).toHaveBeenCalledWith('ot-forfeit')
     expect(wrapper.find('#outcome-reason').exists()).toBe(true)
     expect(wrapper.text()).toContain('outcomeSelector.winnerLabel')
   })
 
-  it('vainqueur masqué quand les scores départagent déjà (scoreA ≠ scoreB)', async () => {
+  it('winner hidden when the scores already settle it (scoreA ≠ scoreB)', async () => {
     const equal = await mountSelector({ outcomeTypeId: 'ot-forfeit', scoreA: 1, scoreB: 1 })
     expect(equal.text()).not.toContain('outcomeSelector.winnerLabel')
 
@@ -68,7 +68,7 @@ describe('OutcomeSelector', () => {
     expect(different.text()).toContain('outcomeSelector.winnerLabel')
   })
 
-  it('option nul seulement si allowDraw', async () => {
+  it('draw option only if allowDraw', async () => {
     const noDraw = await mountSelector({ outcomeTypeId: 'ot-forfeit' })
     expect(noDraw.text()).not.toContain('outcomeSelector.draw')
 
@@ -76,7 +76,7 @@ describe('OutcomeSelector', () => {
     expect(withDraw.text()).toContain('outcomeSelector.draw')
   })
 
-  it('émet update:outcomeReasonId à la sélection d’une raison', async () => {
+  it('emits update:outcomeReasonId when a reason is selected', async () => {
     const wrapper = await mountSelector({ outcomeTypeId: 'ot-forfeit' })
     const reasonSelect = wrapper
       .findAllComponents({ name: 'Select' })
@@ -85,7 +85,7 @@ describe('OutcomeSelector', () => {
     expect(wrapper.emitted('update:outcomeReasonId')).toEqual([['or-1']])
   })
 
-  it('émet update:winner via le SelectButton', async () => {
+  it('emits update:winner via the SelectButton', async () => {
     const wrapper = await mountSelector({ outcomeTypeId: 'ot-forfeit' })
     wrapper.findComponent({ name: 'SelectButton' }).vm.$emit('update:modelValue', 'teamB')
     expect(wrapper.emitted('update:winner')).toEqual([['teamB']])

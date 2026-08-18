@@ -2,32 +2,32 @@ import { describe, it, expect } from 'vitest'
 import { getInitials, getAvatarBg } from '../StringUtils'
 
 describe('getInitials', () => {
-  it("'?' pour null ou vide", () => {
+  it("'?' for null or empty", () => {
     expect(getInitials(null)).toBe('?')
     expect(getInitials(undefined)).toBe('?')
     expect(getInitials('')).toBe('?')
   })
 
-  it('première lettre des premier et dernier mots', () => {
+  it('first letter of the first and last words', () => {
     expect(getInitials('John Doe')).toBe('JD')
     expect(getInitials('Jean Paul Marc')).toBe('JM')
   })
 
-  it('deux premières lettres pour un seul mot', () => {
+  it('first two letters for a single word', () => {
     expect(getInitials('alice')).toBe('AL')
   })
 
-  it('ignore les espaces superflus', () => {
+  it('ignores extra whitespace', () => {
     expect(getInitials('  padded name  ')).toBe('PN')
   })
 })
 
 describe('getAvatarBg', () => {
-  it('déterministe pour un même nom', () => {
+  it('deterministic for the same name', () => {
     expect(getAvatarBg('Alice')).toBe(getAvatarBg('Alice'))
   })
 
-  it('retourne une couleur hex', () => {
+  it('returns a hex color', () => {
     expect(getAvatarBg('Bob')).toMatch(/^#[0-9a-f]{6}$/)
   })
 })

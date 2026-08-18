@@ -178,7 +178,7 @@ describe("MmrCalculationService", () => {
       };
     }
 
-    it("aucun match → supprime l'entrée MMR, pas d'upsert", async () => {
+    it("no match → deletes the MMR entry, no upsert", async () => {
       setupMatches([], {});
       await service.recalculatePlayerMmr(SEASON, PLAYER);
 
@@ -198,7 +198,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].currentMmr).toBeGreaterThan(1000);
     });
 
-    it("1 défaite → losses=1, wins=0, MMR < baseMmr", async () => {
+    it("1 loss → losses=1, wins=0, MMR < baseMmr", async () => {
       setupMatches([makeMatch("m1")], {
         m1: makeSideResult({ playerWon: false }),
       });
@@ -210,7 +210,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].currentMmr).toBeLessThan(1000);
     });
 
-    it("3 victoires consécutives → winStreak=3, maxWinStreak=3", async () => {
+    it("3 consecutive wins → winStreak=3, maxWinStreak=3", async () => {
       setupMatches(
         [makeMatch("m1"), makeMatch("m2"), makeMatch("m3")],
         {
@@ -226,7 +226,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].maxWinStreak).toBe(3);
     });
 
-    it("3 victoires puis 1 défaite → winStreak=0, maxWinStreak=3", async () => {
+    it("3 wins then 1 loss → winStreak=0, maxWinStreak=3", async () => {
       setupMatches(
         [makeMatch("m1"), makeMatch("m2"), makeMatch("m3"), makeMatch("m4")],
         {
@@ -243,7 +243,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].maxWinStreak).toBe(3);
     });
 
-    it("victoire, défaite, 2 victoires → winStreak=2, maxWinStreak=2", async () => {
+    it("win, loss, 2 wins → winStreak=2, maxWinStreak=2", async () => {
       setupMatches(
         [makeMatch("m1"), makeMatch("m2"), makeMatch("m3"), makeMatch("m4")],
         {
@@ -260,7 +260,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].maxWinStreak).toBe(2);
     });
 
-    it("les nuls comptent comme draw et dans matchesPlayed, pas dans wins/losses", async () => {
+    it("draws count as draw and in matchesPlayed, not in wins/losses", async () => {
       setupMatches([makeMatch("m1")], {
         m1: makeSideResult({ playerWon: null }),
       });
@@ -273,7 +273,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].matchesPlayed).toBe(1);
     });
 
-    it("MMR plancher à 1 (pas de MMR négatif)", async () => {
+    it("MMR floor at 1 (no negative MMR)", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_CONFIG, baseMmr: 10, kFactor: 200 }),
       );
@@ -297,7 +297,7 @@ describe("MmrCalculationService", () => {
       expect(call[0].currentMmr).toBeGreaterThanOrEqual(1);
     });
 
-    it("les N premiers matchs sont placement (K doublé)", async () => {
+    it("the first N matches are placement (K doubled)", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_CONFIG, placementMatches: 2 }),
       );
@@ -324,7 +324,7 @@ describe("MmrCalculationService", () => {
       expect(historyArgs[2].isPlacement).toBe(false); // match 3 (2 played before ≥ placementMatches)
     });
 
-    it("historique MMR créé pour chaque match", async () => {
+    it("MMR history created for each match", async () => {
       setupMatches(
         [makeMatch("m1"), makeMatch("m2"), makeMatch("m3")],
         {
@@ -338,7 +338,7 @@ describe("MmrCalculationService", () => {
       expect(mockPlayerMmrRepo.createMmrHistory.mock.calls).toHaveLength(3); // reset in beforeEach
     });
 
-    it("historique contient mmrBefore/mmrAfter/delta cohérents", async () => {
+    it("history contains consistent mmrBefore/mmrAfter/delta", async () => {
       const historyArgs: any[] = [];
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         historyArgs.push(args);
@@ -356,7 +356,7 @@ describe("MmrCalculationService", () => {
       expect(entry.mmrDelta).toBeGreaterThan(0);
     });
 
-    it("outcomeType forfait (points=1) → delta plus faible qu'une victoire normale", async () => {
+    it("outcomeType forfeit (points=1) → smaller delta than a normal win", async () => {
       const historyFormatNormal: any[] = [];
       const historyFormatForfeit: any[] = [];
 
@@ -386,7 +386,7 @@ describe("MmrCalculationService", () => {
       expect(historyFormatForfeit[0].mmrDelta).toBeLessThan(historyFormatNormal[0].mmrDelta);
     });
 
-    it("outcomeType points=0 → delta=0 (match ignoré pour le MMR)", async () => {
+    it("outcomeType points=0 → delta=0 (match ignored for MMR)", async () => {
       const historyArgs: any[] = [];
       mockPlayerMmrRepo.createMmrHistory.mockImplementation((args: any) => {
         historyArgs.push(args);
@@ -401,7 +401,7 @@ describe("MmrCalculationService", () => {
       expect(historyArgs[0].mmrDelta).toBe(0);
     });
 
-    it("symétrie vainqueur/perdant : utilise mmrBefore adversaire depuis history si disponible", async () => {
+    it("winner/loser symmetry: uses opponent mmrBefore from history when available", async () => {
       const winnerHistory: any[] = [];
       const loserHistory: any[] = [];
 
@@ -434,7 +434,7 @@ describe("MmrCalculationService", () => {
       expect(Math.abs(winnerHistory[0].mmrDelta)).toBe(Math.abs(loserHistory[0].mmrDelta));
     });
 
-    it("kEffective dans l'historique est amplifié quand score nette et scoreCountsForMmr=true", async () => {
+    it("kEffective in history is amplified when the score is lopsided and scoreCountsForMmr=true", async () => {
       const historyNoScore: any[] = [];
       const historyWithScore: any[] = [];
 
@@ -464,7 +464,7 @@ describe("MmrCalculationService", () => {
       expect(historyWithScore[0].kEffective).toBeGreaterThan(historyNoScore[0].kEffective);
     });
 
-    it("mmrDelta plus élevé pour score 10-0 que pour score 5-5 avec scoreCountsForMmr=true", async () => {
+    it("mmrDelta higher for a 10-0 score than a 5-5 score with scoreCountsForMmr=true", async () => {
       const historyDraw: any[] = [];
       const historyDomination: any[] = [];
 
@@ -492,7 +492,7 @@ describe("MmrCalculationService", () => {
       expect(historyDomination[0].mmrDelta).toBeGreaterThan(historyDraw[0].mmrDelta);
     });
 
-    it("retourne immédiatement si pas de config ranked", async () => {
+    it("returns immediately when there is no ranked config", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(null));
       await service.recalculatePlayerMmr(SEASON, PLAYER);
 
@@ -503,7 +503,7 @@ describe("MmrCalculationService", () => {
   // ── ensurePlayerMmrExists ──────────────────────────────────────────────────
 
   describe("ensurePlayerMmrExists", () => {
-    it("joueur déjà existant → pas d'upsert", async () => {
+    it("player already exists → no upsert", async () => {
       mockPlayerMmrRepo.getBySeasonAndPlayer.mockImplementation(() =>
         Promise.resolve({ currentMmr: 1000 }),
       );
@@ -511,7 +511,7 @@ describe("MmrCalculationService", () => {
       expect(mockPlayerMmrRepo.upsert.mock.calls).toHaveLength(0);
     });
 
-    it("joueur absent → upsert avec baseMmr et compteurs à zéro", async () => {
+    it("player missing → upsert with baseMmr and counters at zero", async () => {
       await (service as any).ensurePlayerMmrExists("s1", 800, "p1");
       expect(mockPlayerMmrRepo.upsert.mock.calls).toHaveLength(1);
       expect(mockPlayerMmrRepo.upsert.mock.calls[0][0]).toMatchObject({
@@ -526,17 +526,17 @@ describe("MmrCalculationService", () => {
       });
     });
 
-    it("joueur repris de la saison précédente → upsert au MMR seedé, pas au baseMmr", async () => {
+    it("player carried over from the previous season → upsert at the seeded MMR, not baseMmr", async () => {
       mockMmrSeedRepo.getSeedMmr.mockImplementation(() => Promise.resolve(1180));
       await (service as any).ensurePlayerMmrExists("s1", 1000, "p1");
       expect(mockPlayerMmrRepo.upsert.mock.calls[0][0]).toMatchObject({ currentMmr: 1180 });
     });
   });
 
-  // ── MMR d'entrée repris de la saison précédente ─────────────────────────────
+  // ── Entry MMR carried over from the previous season ───────────────────────
 
   describe("carried-over entry MMR", () => {
-    it("recalculatePlayerMmr → le 1er match part du MMR seedé, pas de baseMmr", async () => {
+    it("recalculatePlayerMmr → the 1st match starts from the seeded MMR, not baseMmr", async () => {
       mockMmrSeedRepo.getMapBySeason.mockImplementation(() =>
         Promise.resolve(new Map([["p1", 1180]])),
       );
@@ -546,8 +546,8 @@ describe("MmrCalculationService", () => {
 
       await service.recalculatePlayerMmr("s1", "p1");
 
-      // Une défaite depuis 1180 laisse le joueur au-dessus de baseMmr : un départ à
-      // baseMmr l'aurait fait finir en dessous.
+      // A loss from 1180 leaves the player above baseMmr: starting at
+      // baseMmr would have made them finish below it.
       const call = mockPlayerMmrRepo.upsert.mock.calls.at(-1)!;
       expect(call[0].currentMmr).toBeGreaterThan(1000);
       expect(call[0].currentMmr).toBeLessThan(1180);
@@ -555,7 +555,7 @@ describe("MmrCalculationService", () => {
       expect(history[0].mmrBefore).toBe(1180);
     });
 
-    it("recalculateSeasonMmrDeterministic → le replay démarre au MMR seedé", async () => {
+    it("recalculateSeasonMmrDeterministic → the replay starts at the seeded MMR", async () => {
       mockMmrSeedRepo.getMapBySeason.mockImplementation(() =>
         Promise.resolve(new Map([["p1", 1180], ["p2", 820]])),
       );
@@ -584,7 +584,7 @@ describe("MmrCalculationService", () => {
       const p2 = history.find((row) => row.playerId === "p2");
       expect(p1.mmrBefore).toBe(1180);
       expect(p2.mmrBefore).toBe(820);
-      // Le favori gagne : le gain est plus faible que celui d'un match équilibré.
+      // The favorite wins: the gain is smaller than for an even match.
       expect(p1.mmrDelta).toBeGreaterThan(0);
       expect(p2.mmrDelta).toBeLessThan(0);
     });
@@ -593,19 +593,19 @@ describe("MmrCalculationService", () => {
   // ── getMatchPlayerIds ──────────────────────────────────────────────────────
 
   describe("getMatchPlayerIds", () => {
-    it("aucun résultat → tableau vide", async () => {
+    it("no result → empty array", async () => {
       setSelectResult([]);
       const result = await (service as any).getMatchPlayerIds("m1");
       expect(result).toEqual([]);
     });
 
-    it("déduplique les playerIds", async () => {
+    it("deduplicates playerIds", async () => {
       setSelectResult([{ playerId: "p1" }, { playerId: "p2" }, { playerId: "p1" }]);
       const result = await (service as any).getMatchPlayerIds("m1");
       expect(result).toEqual(["p1", "p2"]);
     });
 
-    it("db.select appelé une fois", async () => {
+    it("calls db.select once", async () => {
       setSelectResult([{ playerId: "p1" }]);
       await (service as any).getMatchPlayerIds("m1");
       expect(mockDb.select.mock.calls).toHaveLength(1);
@@ -615,14 +615,14 @@ describe("MmrCalculationService", () => {
   // ── getPlayerMatchesForSeason ──────────────────────────────────────────────
 
   describe("getPlayerMatchesForSeason", () => {
-    it("aucun matchId trouvé → retourne [] sans appeler findMany", async () => {
+    it("no matchId found → returns [] without calling findMany", async () => {
       setSelectResult([]);
       const result = await (service as any).getPlayerMatchesForSeason("s1", "p1");
       expect(result).toEqual([]);
       expect(mockDb.query.matches.findMany.mock.calls).toHaveLength(0);
     });
 
-    it("matchIds trouvés → appelle findMany et retourne ses résultats", async () => {
+    it("matchIds found → calls findMany and returns its results", async () => {
       setSelectResult([{ matchId: "m1" }, { matchId: "m2" }]);
       mockDb.query.matches.findMany.mockImplementation(() =>
         Promise.resolve([{ id: "m1" }, { id: "m2" }]),
@@ -650,7 +650,7 @@ describe("MmrCalculationService", () => {
 
     const DEFAULTS = { opponentPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
 
-    it("match introuvable → valeurs par défaut", async () => {
+    it("match not found → default values", async () => {
       mockDb.query.matchSides.findMany.mockImplementation(() =>
         Promise.resolve(makeRawSides(["p1"], ["p2"], 3, 1)),
       );
@@ -659,7 +659,7 @@ describe("MmrCalculationService", () => {
       expect(result).toEqual(DEFAULTS);
     });
 
-    it("moins de 2 sides → valeurs par défaut", async () => {
+    it("fewer than 2 sides → default values", async () => {
       mockDb.query.matchSides.findMany.mockImplementation(() => Promise.resolve([]));
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({ id: "m1", winnerSide: "A" }),
@@ -668,7 +668,7 @@ describe("MmrCalculationService", () => {
       expect(result).toEqual(DEFAULTS);
     });
 
-    it("joueur en side A, winnerSide A → playerWon=true, bons scores", async () => {
+    it("player on side A, winnerSide A → playerWon=true, correct scores", async () => {
       mockDb.query.matchSides.findMany.mockImplementation(() =>
         Promise.resolve(makeRawSides(["p1"], ["p2"], 3, 1)),
       );
@@ -682,7 +682,7 @@ describe("MmrCalculationService", () => {
       expect(result.opponentPlayerIds).toEqual(["p2"]);
     });
 
-    it("joueur en side B, winnerSide A → playerWon=false, scores inversés", async () => {
+    it("player on side B, winnerSide A → playerWon=false, scores swapped", async () => {
       mockDb.query.matchSides.findMany.mockImplementation(() =>
         Promise.resolve(makeRawSides(["p1"], ["p2"], 3, 1)),
       );
@@ -696,7 +696,7 @@ describe("MmrCalculationService", () => {
       expect(result.opponentPlayerIds).toEqual(["p1"]);
     });
 
-    it("winnerSide null → playerWon=null (nul / pas de résultat)", async () => {
+    it("winnerSide null → playerWon=null (draw / no result)", async () => {
       mockDb.query.matchSides.findMany.mockImplementation(() =>
         Promise.resolve(makeRawSides(["p1"], ["p2"], 2, 2)),
       );
@@ -717,14 +717,14 @@ describe("MmrCalculationService", () => {
       (svc as any).recalculatePlayerMmr = mock(async () => {});
     }
 
-    it("match introuvable → retour immédiat, aucun appel downstream, Map vide", async () => {
+    it("match not found → immediate return, no downstream call, empty Map", async () => {
       stubPrivates(service, []);
       const result = await service.processMatchFinalization("m1");
       expect((service as any).getMatchPlayerIds.mock.calls).toHaveLength(0);
       expect(result.size).toBe(0);
     });
 
-    it("tournoi non ranked → retour immédiat", async () => {
+    it("non-ranked tournament → immediate return", async () => {
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({
           id: "m1",
@@ -737,7 +737,7 @@ describe("MmrCalculationService", () => {
       expect((service as any).getMatchPlayerIds.mock.calls).toHaveLength(0);
     });
 
-    it("match ranked, 2 joueurs → recalculate appelé pour chacun via la cascade", async () => {
+    it("ranked match, 2 players → recalculate called for each via the cascade", async () => {
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({
           id: "m1",
@@ -757,7 +757,7 @@ describe("MmrCalculationService", () => {
       expect(result.get("p2")?.reason).toBe("match_finalized");
     });
 
-    it("rankedConfig null → baseMmr fallback à 1000 pour ensurePlayerMmrExists", async () => {
+    it("rankedConfig null → baseMmr falls back to 1000 for ensurePlayerMmrExists", async () => {
       mockDb.query.matches.findFirst.mockImplementation(() =>
         Promise.resolve({
           id: "m1",
@@ -779,7 +779,7 @@ describe("MmrCalculationService", () => {
   // tagged with the right reasons, until the wave loop finds nothing left to change.
 
   describe("cascadeRecalculateFromMatch", () => {
-    it("recalcule un tiers affecté renvoyé par findAffectedPlayers et le tague 'cascade'", async () => {
+    it("recalculates a third party returned by findAffectedPlayers and tags it 'cascade'", async () => {
       const playerMmrStore: Record<string, number> = { p1: 1000, p2: 1000, p3: 1000 };
 
       mockPlayerMmrRepo.getBySeasonAndPlayer.mockImplementation((...args: any[]) =>
@@ -828,7 +828,7 @@ describe("MmrCalculationService", () => {
       expect(playerMmrStore.p3).not.toBe(1000); // p3 was actually recalculated, not skipped
     });
 
-    it("aucun changement direct → findAffectedPlayers jamais appelé", async () => {
+    it("no direct change → findAffectedPlayers never called", async () => {
       (service as any).getMatchPlayerIds = mock(async () => ["p1", "p2"]);
       (service as any).recalculatePlayerMmr = mock(async () => {}); // no-op: mmr never actually changes
       (service as any).findAffectedPlayers = mock(async () => ["should-not-be-reached"]);
@@ -877,7 +877,7 @@ describe("MmrCalculationService", () => {
       };
     }
 
-    it("1 match 1v1, victoire p1 → historique + upsert pour les deux joueurs, deltas opposés", async () => {
+    it("1 match 1v1, p1 win → history + upsert for both players, opposite deltas", async () => {
       const matches = [
         makeGlobalMatch({ id: "m1", playedAt: "2024-01-01T00:00:00Z", sideAIds: ["p1"], sideBIds: ["p2"], winnerSide: "A" }),
       ];
@@ -906,7 +906,7 @@ describe("MmrCalculationService", () => {
       expect(upserts.find((u) => u.playerId === "p2")!.currentMmr).toBe(p2History.mmrAfter);
     });
 
-    it("joueur avec 0 match restant après recalcul → entrée player_mmr supprimée", async () => {
+    it("player with 0 matches remaining after recalculation → player_mmr entry deleted", async () => {
       mockPlayerMmrRepo.getFinalizedMatchesPageForSeason.mockImplementation(makePaginator([]));
       mockPlayerMmrRepo.getAllPlayersBySeasonId.mockImplementation(() =>
         Promise.resolve([{ playerId: "ghost-player" }]),
@@ -919,7 +919,7 @@ describe("MmrCalculationService", () => {
       expect(mockPlayerMmrRepo.upsert.mock.calls).toHaveLength(0);
     });
 
-    it("graphe de matchs enchevêtré : résultat identique quel que soit le page size (1 vs tout en une page)", async () => {
+    it("tangled match graph: identical result regardless of page size (1 vs everything in one page)", async () => {
       // p1 beats p2, p2 beats p3, p3 beats p1 — cyclic dependency between players,
       // exactly the shape that made the old per-player unordered loop diverge.
       const matches = [
@@ -948,7 +948,7 @@ describe("MmrCalculationService", () => {
       expect(resultOneMatchPerPage).toEqual(resultSinglePage);
     });
 
-    it("aucune config ranked → retourne immédiatement, aucun appel downstream", async () => {
+    it("no ranked config → returns immediately, no downstream call", async () => {
       mockRankedRepo.getConfigByTournamentId.mockImplementation(() => Promise.resolve(null));
       await service.recalculateSeasonMmrDeterministic("s1");
       expect(mockPlayerMmrRepo.deleteAllMmrHistoryForSeason.mock.calls).toHaveLength(0);

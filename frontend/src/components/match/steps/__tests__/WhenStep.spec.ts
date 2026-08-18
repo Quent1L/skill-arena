@@ -17,7 +17,7 @@ function quickCard(wrapper: ReturnType<typeof mountStep>, label: string) {
 }
 
 describe('WhenStep', () => {
-  it('rend les 4 raccourcis de date', () => {
+  it('renders the 4 date shortcuts', () => {
     const wrapper = mountStep()
     const labels = wrapper.findAll('.grid button').map((b) => b.text())
     expect(labels).toEqual([
@@ -28,7 +28,7 @@ describe('WhenStep', () => {
     ])
   })
 
-  it('choisir "maintenant" fixe playedAt à maintenant', async () => {
+  it('choosing "now" sets playedAt to now', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-06T14:00:00'))
     const wrapper = mountStep()
@@ -39,7 +39,7 @@ describe('WhenStep', () => {
     vi.useRealTimers()
   })
 
-  it('choisir "-5 min" recule playedAt de 5 minutes', async () => {
+  it('choosing "-5 min" moves playedAt back 5 minutes', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-07-06T14:00:00'))
     const wrapper = mountStep()
@@ -49,14 +49,14 @@ describe('WhenStep', () => {
     vi.useRealTimers()
   })
 
-  it('choisir "personnalisé" affiche le DatePicker', async () => {
+  it('choosing "custom" shows the DatePicker', async () => {
     const wrapper = mountStep()
     expect(wrapper.findComponent({ name: 'DatePicker' }).exists()).toBe(false)
     await quickCard(wrapper, 'whenStep.custom').trigger('click')
     expect(wrapper.findComponent({ name: 'DatePicker' }).exists()).toBe(true)
   })
 
-  it('bouton suivant désactivé sans date, émet next avec une date', async () => {
+  it('next button disabled with no date, emits next with a date', async () => {
     const wrapper = mountStep()
     const next = wrapper.find('button.p-button')
     expect(next.attributes('disabled')).toBeDefined()
@@ -67,7 +67,7 @@ describe('WhenStep', () => {
     expect(wrapper.emitted('next')).toHaveLength(1)
   })
 
-  it('hideNavigation masque le bouton suivant', () => {
+  it('hideNavigation hides the next button', () => {
     const wrapper = mountStep({ hideNavigation: true })
     expect(wrapper.find('button.p-button').exists()).toBe(false)
   })

@@ -104,7 +104,7 @@ function bulkRows() {
 // ─── persistRecalcEvents (batch, persist-only) ──────────────────────────────────
 
 describe("persistRecalcEvents", () => {
-  it("persiste un event 'recalculated' uniquement pour les matchs au delta changé, sans broadcast", async () => {
+  it("persists a 'recalculated' event only for matches whose delta changed, no broadcast", async () => {
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", [historyRow("m1", 18), historyRow("m2", -5)]]])),
     );
@@ -130,7 +130,7 @@ describe("persistRecalcEvents", () => {
     expect(mockWs.send.mock.calls.length).toBe(0); // persist-only
   });
 
-  it("recalcs empilés avant visionnage: displayDelta relatif au delta VU, pas au dernier stocké", async () => {
+  it("stacked recalcs before viewing: displayDelta relative to the SEEN delta, not the last stored one", async () => {
     // Player saw +15. A 1st recalc brought it to +18 (stored, unseen), a 2nd
     // brings it to +20. The news since the last viewing = 20 - 15 = 5, not
     // 20 - 18 = 2 (what a base on the stored delta would give).
@@ -149,7 +149,7 @@ describe("persistRecalcEvents", () => {
     expect(rows[0].displayDelta).toBe(5); // 20 - seen 15, correct accumulation
   });
 
-  it("bulkUpsert vide + aucun joueur affecté quand aucun delta n'a changé", async () => {
+  it("empty bulkUpsert + no player affected when no delta changed", async () => {
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", [historyRow("m1", 15)]]])),
     );
@@ -164,7 +164,7 @@ describe("persistRecalcEvents", () => {
     expect(mockWs.send.mock.calls.length).toBe(0);
   });
 
-  it("rien pour un match sans event d'animation préexistant", async () => {
+  it("nothing for a match with no pre-existing animation event", async () => {
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", [historyRow("m1", 18)]]])),
     );
@@ -178,7 +178,7 @@ describe("persistRecalcEvents", () => {
     expect(affected).toEqual([]);
   });
 
-  it("cascade multi-joueurs: un SEUL bulkUpsert, zéro ws.send par event", async () => {
+  it("multi-player cascade: a SINGLE bulkUpsert, zero ws.send per event", async () => {
     mockPlayerMmrRepo.getMmrHistoryOrderedForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([
         ["p1", [historyRow("m1", 18)]],
@@ -204,7 +204,7 @@ describe("persistRecalcEvents", () => {
     expect(mockWs.send.mock.calls.length).toBe(0);
   });
 
-  it("ne fait rien si liste de joueurs vide", async () => {
+  it("does nothing when the player list is empty", async () => {
     const affected = await mmrAnimationEventService.persistRecalcEvents("season-1", []);
     expect(affected).toEqual([]);
     expect(mockRankedRepo.getConfigByTournamentId.mock.calls.length).toBe(0);
@@ -214,7 +214,7 @@ describe("persistRecalcEvents", () => {
 // ─── persistCancellationEvents (batch, persist-only, guard delta-0) ──────────────
 
 describe("persistCancellationEvents", () => {
-  it("ne persiste que les joueurs directs (match_cancelled), displayDelta = -delta vu; ignore le cascade", async () => {
+  it("only persists direct players (match_cancelled), displayDelta = -seen delta; ignores the cascade", async () => {
     // p1 saw +12 for the cancelled match; the p2 cascade is covered by persistRecalcEvents.
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() =>
       Promise.resolve(new Map([["p1", new Map([["m-cancelled", { id: "evt", mmrDelta: 12, seenDelta: 12 }]])]])),
@@ -237,7 +237,7 @@ describe("persistCancellationEvents", () => {
     expect(mockWs.send.mock.calls.length).toBe(0); // persist-only
   });
 
-  it("ignore un joueur direct sans delta vu préalable (displayDelta 0)", async () => {
+  it("ignores a direct player with no previously seen delta (displayDelta 0)", async () => {
     mockAnimRepo.getOfficialEventDeltasForPlayers.mockImplementation(() => Promise.resolve(new Map()));
     const changes = new Map<string, any>([
       ["p1", { mmrBefore: 1000, mmrAfter: 990, reason: "match_cancelled" }],
@@ -254,7 +254,7 @@ describe("persistCancellationEvents", () => {
 // Reproduces the bug: stale animation events (deltas != mmr_history) → finalizing
 // a new match emits a "recalculated" for each desynced match.
 
-describe("théorie: flood au prochain match quand les events sont périmés", () => {
+describe("theory: flood on the next match when events are stale", () => {
   const HISTORY = [historyRow("m1", 18), historyRow("m2", -7), historyRow("m3", 12), historyRow("m4", 20)];
 
   beforeEach(() => {
@@ -262,7 +262,7 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
     mockPlayerMmrRepo.getMmrHistoryOrdered.mockImplementation(() => Promise.resolve(HISTORY));
   });
 
-  it("BUG: events périmés sur m1..m3 → finalisation de m4 floode 3 'recalculated' + 1 'match_finalized'", async () => {
+  it("BUG: stale events on m1..m3 → finalizing m4 floods 3 'recalculated' + 1 'match_finalized'", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
         ["m1", { id: "evt-m1", mmrDelta: 15, seenDelta: 15 }],
@@ -281,7 +281,7 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
     expect(ev.length).toBe(4);
   });
 
-  it("FIX: events synchronisés → finalisation de m4 n'émet que m4", async () => {
+  it("FIX: synchronized events → finalizing m4 only emits m4", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
         ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
@@ -296,7 +296,7 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
     expect(mockWs.send.mock.calls.length).toBe(1);
   });
 
-  it("désync partielle: seul m2 a changé → finalisation émet m2 (recalculated) + m4", async () => {
+  it("partial desync: only m2 changed → finalization emits m2 (recalculated) + m4", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
         ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
@@ -394,7 +394,7 @@ describe("createOfficialEventsAndBroadcast: displayDelta", () => {
     return mockAnimRepo.upsert.mock.calls.map((c: any[]) => c[0]).find((d) => d.matchId === matchId);
   }
 
-  it("match courant (nouveau) = delta complet ; recalculated = delta - seenDelta", async () => {
+  it("current (new) match = full delta; recalculated = delta - seenDelta", async () => {
     // m1 was seen at +15, its real delta is now +18 (desync) → diff +3.
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
@@ -412,7 +412,7 @@ describe("createOfficialEventsAndBroadcast: displayDelta", () => {
     expect(upsertFor("m1").reason).toBe("recalculated");
   });
 
-  it("displayDelta est diffusé dans le payload WS", async () => {
+  it("displayDelta is broadcast in the WS payload", async () => {
     mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
       Promise.resolve(new Map([
         ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
@@ -446,7 +446,7 @@ describe("getPendingForPlayer", () => {
     };
   }
 
-  it("renvoie displayDelta tel quel, et retombe sur mmrDelta quand il est null (ligne pré-migration)", async () => {
+  it("returns displayDelta as-is, and falls back to mmrDelta when it's null (pre-migration row)", async () => {
     mockAnimRepo.getPendingForPlayer.mockImplementation(() =>
       Promise.resolve([pendingRow("m1", 12, null), pendingRow("m2", 9, 4)] as any),
     );

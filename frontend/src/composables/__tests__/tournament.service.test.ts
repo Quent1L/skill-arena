@@ -76,14 +76,14 @@ describe('useTournamentService', () => {
   })
 
   describe('canDeleteTournament', () => {
-    it('super admin peut tout supprimer', () => {
+    it('super admin can delete anything', () => {
       mockIsSuperAdmin.value = true
       mockCurrentUser.value = { id: 'user-1', role: 'super_admin' }
       const { canDeleteTournament } = useTournamentService()
       expect(canDeleteTournament({ id: 't-1', status: 'ongoing' } as TournamentResponse)).toBe(true)
     })
 
-    it('utilisateur non admin: seulement les brouillons', () => {
+    it('non-admin user: drafts only', () => {
       mockIsSuperAdmin.value = false
       mockCurrentUser.value = { id: 'user-1', role: 'player' }
       const { canDeleteTournament } = useTournamentService()
@@ -91,7 +91,7 @@ describe('useTournamentService', () => {
       expect(canDeleteTournament({ id: 't-1', status: 'open' } as TournamentResponse)).toBe(false)
     })
 
-    it('anonyme ne peut rien supprimer', () => {
+    it('anonymous user cannot delete anything', () => {
       mockCurrentUser.value = null
       const { canDeleteTournament } = useTournamentService()
       expect(canDeleteTournament({ id: 't-1', status: 'draft' } as TournamentResponse)).toBe(false)
@@ -99,7 +99,7 @@ describe('useTournamentService', () => {
   })
 
   describe('canEditTournament', () => {
-    it('suit canManageTournament', () => {
+    it('follows canManageTournament', () => {
       mockIsSuperAdmin.value = true
       mockCurrentUser.value = { id: 'user-1', role: 'super_admin' }
       const { canEditTournament } = useTournamentService()
@@ -115,12 +115,12 @@ describe('useTournamentService', () => {
   })
 
   describe('getEditableFields', () => {
-    it('brouillon: tout est éditable', () => {
+    it('draft: everything is editable', () => {
       const { getEditableFields } = useTournamentService()
       expect(getEditableFields({ status: 'draft' } as TournamentResponse)).toEqual(['all'])
     })
 
-    it('après brouillon: liste restreinte', () => {
+    it('past draft: restricted list', () => {
       const { getEditableFields } = useTournamentService()
       expect(getEditableFields({ status: 'ongoing' } as TournamentResponse)).toEqual([
         'description',
@@ -133,12 +133,12 @@ describe('useTournamentService', () => {
   })
 
   describe('isTournamentOpenForJoin', () => {
-    it('ouvert en statut open', () => {
+    it('open in status open', () => {
       const { isTournamentOpenForJoin } = useTournamentService()
       expect(isTournamentOpenForJoin({ status: 'open', mode: 'championship' } as TournamentResponse)).toBe(true)
     })
 
-    it('ranked reste rejoignable en cours', () => {
+    it('ranked stays joinable while ongoing', () => {
       const { isTournamentOpenForJoin } = useTournamentService()
       expect(isTournamentOpenForJoin({ status: 'ongoing', mode: 'ranked' } as TournamentResponse)).toBe(true)
       expect(isTournamentOpenForJoin({ status: 'ongoing', mode: 'championship' } as TournamentResponse)).toBe(false)
@@ -151,13 +151,13 @@ describe('useTournamentService', () => {
   })
 
   describe('canLeaveTournament', () => {
-    it('possible avant le début', () => {
+    it('possible before it starts', () => {
       const { canLeaveTournament } = useTournamentService()
       expect(canLeaveTournament({ status: 'open' } as TournamentResponse)).toBe(true)
       expect(canLeaveTournament({ status: 'draft' } as TournamentResponse)).toBe(true)
     })
 
-    it('impossible en cours ou terminé', () => {
+    it('impossible while ongoing or finished', () => {
       const { canLeaveTournament } = useTournamentService()
       expect(canLeaveTournament({ status: 'ongoing' } as TournamentResponse)).toBe(false)
       expect(canLeaveTournament({ status: 'finished' } as TournamentResponse)).toBe(false)
@@ -167,12 +167,12 @@ describe('useTournamentService', () => {
   describe('canCreateMatchInTournament', () => {
     const tournament = { status: 'ongoing', mode: 'championship' } as TournamentResponse
 
-    it('participant authentifié sur tournoi en cours', () => {
+    it('authenticated participant on an ongoing tournament', () => {
       const { canCreateMatchInTournament } = useTournamentService()
       expect(canCreateMatchInTournament(tournament, true, true)).toBe(true)
     })
 
-    it('refusé si non authentifié, non participant ou mode bracket', () => {
+    it('denied if not authenticated, not a participant, or bracket mode', () => {
       const { canCreateMatchInTournament } = useTournamentService()
       expect(canCreateMatchInTournament(tournament, false, true)).toBe(false)
       expect(canCreateMatchInTournament(tournament, true, false)).toBe(false)
@@ -181,7 +181,7 @@ describe('useTournamentService', () => {
       ).toBe(false)
     })
 
-    it('kiosk: pas besoin d’être participant', () => {
+    it('kiosk: no need to be a participant', () => {
       const { canCreateMatchInTournament } = useTournamentService()
       expect(canCreateMatchInTournament(tournament, true, false, 'kiosk')).toBe(true)
       expect(

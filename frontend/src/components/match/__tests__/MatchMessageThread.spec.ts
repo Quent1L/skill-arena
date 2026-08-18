@@ -131,7 +131,7 @@ describe('MatchMessageThread', () => {
     await nextTick()
     await wrapper.find('.composer-trigger').trigger('click')
     await nextTick()
-    await wrapper.find('#matchMessageBody').setValue('oups')
+    await wrapper.find('#matchMessageBody').setValue('oops')
 
     const cancel = wrapper.findAll('button').find((b) => b.text().includes(fr.common.cancel))
     await cancel!.trigger('click')
@@ -152,11 +152,11 @@ describe('MatchMessageThread', () => {
     await wrapper.find('.composer-trigger').trigger('click')
     await nextTick()
 
-    await wrapper.find('#matchMessageBody').setValue('score corrigé ?')
+    await wrapper.find('#matchMessageBody').setValue('fixed score?')
     await wrapper.findAll('button').at(-1)!.trigger('click')
     await nextTick()
 
-    expect(post).toHaveBeenCalledWith('m-1', 'score corrigé ?')
+    expect(post).toHaveBeenCalledWith('m-1', 'fixed score?')
     expect(wrapper.find('.composer-trigger').exists()).toBe(true)
   })
 })

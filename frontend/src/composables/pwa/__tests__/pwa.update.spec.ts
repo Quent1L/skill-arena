@@ -115,22 +115,22 @@ describe('pwa.update', () => {
     localStorage.clear()
   })
 
-  describe('confirmation post-mise à jour', () => {
-    it("ne dit rien au tout premier lancement", async () => {
+  describe('post-update confirmation', () => {
+    it("says nothing on the very first launch", async () => {
       const { consumeUpdateConfirmation } = await loadModule()
 
       expect(consumeUpdateConfirmation()).toBeNull()
       expect(localStorage.getItem('skol.lastVersion')).toBe(__APP_VERSION__)
     })
 
-    it('ne dit rien quand la version n’a pas bougé', async () => {
+    it('says nothing when the version hasn’t changed', async () => {
       localStorage.setItem('skol.lastVersion', __APP_VERSION__)
       const { consumeUpdateConfirmation } = await loadModule()
 
       expect(consumeUpdateConfirmation()).toBeNull()
     })
 
-    it('annonce la nouvelle version après un changement', async () => {
+    it('announces the new version after a change', async () => {
       localStorage.setItem('skol.lastVersion', '0.0.1')
       const { consumeUpdateConfirmation } = await loadModule()
 
@@ -138,7 +138,7 @@ describe('pwa.update', () => {
       expect(localStorage.getItem('skol.lastVersion')).toBe(__APP_VERSION__)
     })
 
-    it('ne se répète pas au lancement suivant', async () => {
+    it('does not repeat on the next launch', async () => {
       localStorage.setItem('skol.lastVersion', '0.0.1')
       const { consumeUpdateConfirmation } = await loadModule()
 
@@ -146,10 +146,10 @@ describe('pwa.update', () => {
       expect(consumeUpdateConfirmation()).toBeNull()
     })
 
-    it('annonce aussi une mise à jour obligatoire', async () => {
-      // L'écran bloquant de l'aller dit qu'une version est *exigée*, pas qu'elle est
-      // installée, et il peut ne durer que le plancher de 1,5 s : sans ça, la page a
-      // rechargé sous les pieds de l'utilisateur sans explication.
+    it('also announces a mandatory update', async () => {
+      // The blocking screen on the way in says a version is *required*, not that it is
+      // installed, and it may last only the 1.5s floor: without this, the page would have
+      // reloaded out from under the user without explanation.
       localStorage.setItem('skol.lastVersion', '0.0.1')
       stubFetch({ version: __APP_VERSION__, minVersion: __APP_VERSION__ })
       const { checkVersion, consumeUpdateConfirmation } = await loadModule()
@@ -158,7 +158,7 @@ describe('pwa.update', () => {
       expect(consumeUpdateConfirmation()).toBe(__APP_VERSION__)
     })
 
-    it("tient l'écran le temps de le lire, puis rend la main", async () => {
+    it("holds the screen long enough to read it, then hands back control", async () => {
       localStorage.setItem('skol.lastVersion', '0.0.1')
       vi.useFakeTimers()
       const { announceUpdate, usePWAUpdate } = await loadModule()
@@ -179,7 +179,7 @@ describe('pwa.update', () => {
   })
 
   describe('checkVersion', () => {
-    it('ne signale rien quand la version servie est identique', async () => {
+    it('reports nothing when the served version is identical', async () => {
       stubFetch({ version: __APP_VERSION__ })
       const { checkVersion, isUpdatePending } = await loadModule()
 
@@ -187,7 +187,7 @@ describe('pwa.update', () => {
       expect(isUpdatePending()).toBe(false)
     })
 
-    it('signale une mise à jour quand la version diffère', async () => {
+    it('reports an update when the version differs', async () => {
       stubFetch({ version: '99.0.0' })
       const { checkVersion, isUpdatePending } = await loadModule()
 
@@ -195,7 +195,7 @@ describe('pwa.update', () => {
       expect(isUpdatePending()).toBe(true)
     })
 
-    it('reste silencieux quand le fetch échoue (hors ligne)', async () => {
+    it('stays silent when the fetch fails (offline)', async () => {
       stubFetch(new Error('network down'))
       const { checkVersion, isUpdatePending } = await loadModule()
 
@@ -203,7 +203,7 @@ describe('pwa.update', () => {
       expect(isUpdatePending()).toBe(false)
     })
 
-    it('reste silencieux quand version.json est absent (dev)', async () => {
+    it('stays silent when version.json is missing (dev)', async () => {
       stubFetch({ ok: false })
       const { checkVersion, isUpdatePending } = await loadModule()
 
@@ -211,7 +211,7 @@ describe('pwa.update', () => {
       expect(isUpdatePending()).toBe(false)
     })
 
-    it('contourne le cache HTTP', async () => {
+    it('bypasses the HTTP cache', async () => {
       const fetchMock = stubFetch({ version: __APP_VERSION__ })
       const { checkVersion } = await loadModule()
       await checkVersion()
@@ -222,9 +222,9 @@ describe('pwa.update', () => {
       )
     })
 
-    it('lance le téléchargement du nouveau worker dès la détection, une seule fois', async () => {
-      // Sans ce préchargement, le download ne démarre qu'au moment d'appliquer et
-      // l'utilisateur attend devant l'overlay ce qu'il aurait pu attendre en fond.
+    it('starts downloading the new worker as soon as it’s detected, only once', async () => {
+      // Without this preload, the download would only start when applying, and
+      // the user waits in front of the overlay for something they could have waited out in the background.
       const { registration } = stubServiceWorker()
       stubFetch({ version: '99.0.0' })
       const { checkVersion } = await loadModule()
@@ -234,7 +234,7 @@ describe('pwa.update', () => {
       await vi.waitFor(() => expect(registration.update).toHaveBeenCalledTimes(1))
     })
 
-    it('abandonne après deux rechargements infructueux sur la même version', async () => {
+    it('gives up after two unsuccessful reloads on the same version', async () => {
       sessionStorage.setItem(
         'skol.updateReloads',
         JSON.stringify({ version: '99.0.0', count: 2 }),
@@ -246,7 +246,7 @@ describe('pwa.update', () => {
       expect(isUpdatePending()).toBe(false)
     })
 
-    it('efface le compteur de rechargements dès que la version servie est atteinte', async () => {
+    it('clears the reload counter as soon as the served version is reached', async () => {
       sessionStorage.setItem(
         'skol.updateReloads',
         JSON.stringify({ version: __APP_VERSION__, count: 2 }),
@@ -260,7 +260,7 @@ describe('pwa.update', () => {
   })
 
   describe('checkVersionThrottled', () => {
-    it('ne refetch pas dans la fenêtre de throttle', async () => {
+    it('does not refetch within the throttle window', async () => {
       const fetchMock = stubFetch({ version: __APP_VERSION__ })
       const { checkVersionThrottled } = await loadModule()
 
@@ -272,7 +272,7 @@ describe('pwa.update', () => {
   })
 
   describe('blockUpdates', () => {
-    it('compte les verrous et ignore une double libération', async () => {
+    it('counts locks and ignores a double release', async () => {
       const { blockUpdates, updatesBlocked } = await loadModule()
 
       const releaseFirst = blockUpdates()
@@ -288,8 +288,8 @@ describe('pwa.update', () => {
     })
   })
 
-  describe('progression du précache', () => {
-    it('suit les messages du worker sans jamais reculer', async () => {
+  describe('precache progress', () => {
+    it('follows the worker’s messages and never goes backward', async () => {
       const { container } = stubServiceWorker()
       const { usePWAUpdate } = await loadModule()
       const { downloadProgress, downloadDone, downloadTotal } = usePWAUpdate()
@@ -303,7 +303,7 @@ describe('pwa.update', () => {
       expect(downloadDone.value).toBe(30)
       expect(downloadTotal.value).toBe(120)
 
-      // Un worker qui relance son install repart de zéro : la barre, elle, ne recule pas.
+      // A worker that restarts its install starts over from zero: the bar itself never goes backward.
       container.dispatchEvent(
         new MessageEvent('message', { data: { type: 'PRECACHE_PROGRESS', done: 2, total: 120 } }),
       )
@@ -312,8 +312,8 @@ describe('pwa.update', () => {
     })
   })
 
-  describe('mise à jour obligatoire', () => {
-    it('force quand la version tourne sous le plancher servi', async () => {
+  describe('mandatory update', () => {
+    it('forces when the running version is under the served floor', async () => {
       stubFetch({ version: '99.9.9', minVersion: FORCING_MIN_VERSION })
       stubServiceWorker()
       const { checkVersion, isUpdateForcedPending } = await loadModule()
@@ -322,7 +322,7 @@ describe('pwa.update', () => {
       expect(isUpdateForcedPending()).toBe(true)
     })
 
-    it('reste en arrière-plan sans plancher', async () => {
+    it('stays in the background with no floor', async () => {
       stubFetch({ version: '99.9.9' })
       stubServiceWorker()
       const { checkVersion, isUpdateForcedPending } = await loadModule()
@@ -331,7 +331,7 @@ describe('pwa.update', () => {
       expect(isUpdateForcedPending()).toBe(false)
     })
 
-    it('reste en arrière-plan quand le plancher est déjà atteint', async () => {
+    it('stays in the background when the floor is already reached', async () => {
       stubFetch({ version: '99.9.9', minVersion: '0.0.1' })
       stubServiceWorker()
       const { checkVersion, isUpdateForcedPending } = await loadModule()
@@ -340,9 +340,9 @@ describe('pwa.update', () => {
       expect(isUpdateForcedPending()).toBe(false)
     })
 
-    it('ne force pas une version qui a déjà échoué à s’installer', async () => {
-      // Le coupe-circuit passe avant : sinon l'utilisateur reste enfermé derrière une
-      // mise à jour qui ne prendra jamais.
+    it('does not force a version that already failed to install', async () => {
+      // The circuit breaker kicks in first: otherwise the user stays locked behind an
+      // update that will never land.
       sessionStorage.setItem(
         'skol.updateReloads',
         JSON.stringify({ version: '99.9.9', count: 2 }),
@@ -355,7 +355,7 @@ describe('pwa.update', () => {
       expect(isUpdateForcedPending()).toBe(false)
     })
 
-    it('ignore la demande de report', async () => {
+    it('ignores the request to defer', async () => {
       stubFetch({ version: '99.9.9', minVersion: FORCING_MIN_VERSION })
       stubServiceWorker()
       const { checkVersion, dismissUpdate, isUpdateDeferred } = await loadModule()
@@ -366,7 +366,7 @@ describe('pwa.update', () => {
       expect(isUpdateDeferred()).toBe(false)
     })
 
-    it('attend le téléchargement bien au-delà du budget de routine', async () => {
+    it('waits for the download well past the routine budget', async () => {
       const installing = createInstallingWorker()
       stubFetch({ version: '99.9.9', minVersion: FORCING_MIN_VERSION })
       const stub = stubServiceWorker({ waiting: false, installing })
@@ -379,7 +379,7 @@ describe('pwa.update', () => {
       let settled = false
       void applied.then(() => (settled = true))
 
-      // Là où une release de routine aurait déjà rendu la main.
+      // Where a routine release would already have handed back control.
       await vi.advanceTimersByTimeAsync(10_000)
       expect(settled).toBe(false)
 
@@ -391,9 +391,9 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/tournaments/42`)
     })
 
-    it("libère l'app quand le téléchargement échoue vraiment, sans reboucler", async () => {
-      // Le seul échappatoire d'une mise à jour obligatoire : hors-ligne, l'app doit
-      // rester utilisable au lieu d'être condamnée.
+    it("releases the app when the download truly fails, without looping", async () => {
+      // The only escape hatch from a mandatory update: offline, the app must
+      // stay usable instead of being condemned.
       const installing = createInstallingWorker()
       stubFetch({ version: '99.9.9', minVersion: FORCING_MIN_VERSION })
       stubServiceWorker({ waiting: false, installing })
@@ -409,17 +409,17 @@ describe('pwa.update', () => {
       expect(isUpdateDeferred()).toBe(true)
       expect(location.reload).not.toHaveBeenCalled()
 
-      // Une navigation suivante ne doit pas relancer la même attente.
+      // A subsequent navigation must not restart the same wait.
       expect(await applyUpdate('/tournaments/43')).toBe(false)
       expect(location.href).toBe(`${ORIGIN}/`)
     })
   })
 
-  describe('mise à jour de routine', () => {
-    it('signale le bundle prêt dès que le précache de fond se termine', async () => {
-      // Régression : sans ce signal, une release de routine n'atterrissait qu'au
-      // prochain démarrage à froid — la garde du routeur n'apprenait jamais que le
-      // worker était en attente.
+  describe('routine update', () => {
+    it('signals the bundle ready as soon as the background precache finishes', async () => {
+      // Regression: without this signal, a routine release would only land on the
+      // next cold start — the router guard never learned that the
+      // worker was waiting.
       const installing = createInstallingWorker()
       stubFetch({ version: '99.9.9' })
       const stub = stubServiceWorker({ waiting: false, installing })
@@ -435,7 +435,7 @@ describe('pwa.update', () => {
       expect(isUpdateReady()).toBe(true)
     })
 
-    it('rend la main vite quand le bundle tarde, sans annuler le téléchargement', async () => {
+    it('hands back control quickly when the bundle is slow, without canceling the download', async () => {
       const installing = createInstallingWorker()
       stubFetch({ version: '99.9.9' })
       const stub = stubServiceWorker({ waiting: false, installing })
@@ -449,7 +449,7 @@ describe('pwa.update', () => {
       expect(await applied).toBe(false)
       expect(isUpdateReady()).toBe(false)
 
-      // L'install continue derrière : la prochaine navigation appliquera pour un
+      // The install keeps going in the background: the next navigation will apply with a
       // simple reload.
       finishInstall(stub, installing)
       await vi.advanceTimersByTimeAsync(0)
@@ -458,7 +458,7 @@ describe('pwa.update', () => {
   })
 
   describe('applyUpdate', () => {
-    it('demande au worker en attente de prendre la main, puis recharge', async () => {
+    it('asks the waiting worker to take control, then reloads', async () => {
       const { postMessage } = stubServiceWorker()
       const location = stubLocation()
       vi.useFakeTimers()
@@ -472,7 +472,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/tournaments/42`)
     })
 
-    it("recharge la page courante quand aucune destination n'est fournie", async () => {
+    it("reloads the current page when no destination is provided", async () => {
       stubServiceWorker()
       const location = stubLocation()
       vi.useFakeTimers()
@@ -485,7 +485,7 @@ describe('pwa.update', () => {
       expect(location.reload).toHaveBeenCalled()
     })
 
-    it("laisse le temps de lire l'overlay avant de recharger", async () => {
+    it("leaves time to read the overlay before reloading", async () => {
       stubServiceWorker()
       const location = stubLocation()
       vi.useFakeTimers()
@@ -500,7 +500,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/tournaments/42`)
     })
 
-    it('revalide le worker avant de lui passer la main', async () => {
+    it('revalidates the worker before handing it control', async () => {
       // A waiting worker may be left over from an earlier deployment: activating
       // it as-is would strand the app on an intermediate version.
       const { registration, postMessage } = stubServiceWorker({ waiting: true })
@@ -518,23 +518,23 @@ describe('pwa.update', () => {
       )
     })
 
-    it('recharge malgré tout si le worker en attente ne rend jamais la main', async () => {
+    it('reloads regardless if the waiting worker never hands back control', async () => {
       stubServiceWorker({ cooperative: false })
       const location = stubLocation()
       vi.useFakeTimers()
       const { applyUpdate } = await loadModule()
 
       const applied = applyUpdate('/tournaments/42')
-      // Handover budget, puis le plancher d'affichage qui court derrière.
+      // Handover budget, then the display floor that runs behind it.
       await vi.advanceTimersByTimeAsync(6500)
       await applied
 
       expect(location.href).toBe(`${ORIGIN}/tournaments/42`)
     })
 
-    it("ne recharge jamais tant que l'ancien worker contrôle encore la page", async () => {
-      // Régression : recharger ici renvoie l'ancien bundle depuis le précache, donc
-      // un nouveau mismatch de version, donc un nouvel overlay — la boucle infinie.
+    it("never reloads while the old worker still controls the page", async () => {
+      // Regression: reloading here would serve the old bundle from the precache, hence
+      // a new version mismatch, hence a new overlay — the infinite loop.
       const installing = createInstallingWorker()
       stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()
@@ -553,7 +553,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/`)
     })
 
-    it('rend la main sans bloquer quand le worker échoue son installation', async () => {
+    it('hands back control without blocking when the worker fails to install', async () => {
       const installing = createInstallingWorker()
       stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()
@@ -567,7 +567,7 @@ describe('pwa.update', () => {
       expect(location.reload).not.toHaveBeenCalled()
     })
 
-    it('applique dès que le worker en cours de téléchargement est installé', async () => {
+    it('applies as soon as the downloading worker is installed', async () => {
       const installing = createInstallingWorker()
       const stub = stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()
@@ -584,7 +584,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/tournaments/42`)
     })
 
-    it("expose isApplying pendant l'opération pour piloter l'overlay", async () => {
+    it("exposes isApplying during the operation to drive the overlay", async () => {
       stubServiceWorker()
       stubLocation()
       vi.useFakeTimers()
@@ -601,7 +601,7 @@ describe('pwa.update', () => {
   })
 
   describe('dismissUpdate', () => {
-    it("masque l'overlay et laisse la page en place quand le download se termine", async () => {
+    it("hides the overlay and leaves the page in place when the download finishes", async () => {
       const installing = createInstallingWorker()
       const stub = stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()
@@ -624,7 +624,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/`)
     })
 
-    it('applique à la navigation suivante, une fois le worker prêt', async () => {
+    it('applies on the next navigation, once the worker is ready', async () => {
       const installing = createInstallingWorker()
       const stub = stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()
@@ -646,7 +646,7 @@ describe('pwa.update', () => {
       expect(location.href).toBe(`${ORIGIN}/tournaments/7`)
     })
 
-    it('ne bloque plus la navigation tant que le worker traîne', async () => {
+    it('no longer blocks navigation while the worker lags behind', async () => {
       const installing = createInstallingWorker()
       stubServiceWorker({ waiting: false, installing })
       stubLocation()
@@ -662,9 +662,9 @@ describe('pwa.update', () => {
       expect(await applyUpdate('/tournaments/7')).toBe(false)
     })
 
-    it("repart tout seul quand le worker atterrit longtemps après l'abandon", async () => {
-      // Un worker qui finit son install reste en `waiting` indéfiniment : rien ne
-      // signale l'arrivée du nouveau bundle si on a cessé de la guetter.
+    it("resumes on its own when the worker lands long after the abandonment", async () => {
+      // A worker that finishes installing stays in `waiting` indefinitely: nothing
+      // signals the new bundle's arrival once you've stopped watching for it.
       const installing = createInstallingWorker()
       const stub = stubServiceWorker({ waiting: false, installing })
       const location = stubLocation()

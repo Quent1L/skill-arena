@@ -1903,12 +1903,12 @@ describe("MatchService - Dispute handling", () => {
 
     await matchService.respondToMatch(
       "m-1",
-      { type: "dispute", reason: "le score est inversé" } as any,
+      { type: "dispute", reason: "the score is reversed" } as any,
       "p1",
     );
 
     expect(upserted[0].contestationReason).toBeUndefined();
-    expect(notes).toEqual([{ userId: "p1", body: "le score est inversé" }]);
+    expect(notes).toEqual([{ userId: "p1", body: "the score is reversed" }]);
     // Whoever has the match open sees it move to 'disputed' without reloading
     expect(matchUpdatesBroadcast).toContain("m-1");
   });

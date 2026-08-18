@@ -13,8 +13,8 @@ vi.mock('vue-i18n', () => ({
 
 const TIERS = [
   makeTier({ level: 1, name: 'Bronze', minMmr: 700 }),
-  makeTier({ level: 2, name: 'Argent', minMmr: 900 }),
-  makeTier({ level: 3, name: 'Or', minMmr: 1100 }),
+  makeTier({ level: 2, name: 'Silver', minMmr: 900 }),
+  makeTier({ level: 3, name: 'Gold', minMmr: 1100 }),
 ]
 
 // Imported, not copied: the component reads the very same beats.
@@ -56,7 +56,7 @@ afterEach(() => {
 })
 
 describe('MmrRevealAnimation', () => {
-  it('un clic saute à l’état final : MMR final et bouton Continuer', async () => {
+  it('one click jumps to the final state: final MMR and Continue button', async () => {
     mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
     expect(counter()).toBe('1000')
@@ -69,7 +69,7 @@ describe('MmrRevealAnimation', () => {
     expect(continueBtn()).toBeDefined()
   })
 
-  it('un second clic sur le fond ne ferme pas la carte', async () => {
+  it('a second click on the backdrop does not close the card', async () => {
     const wrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
     backdrop().click()
@@ -80,7 +80,7 @@ describe('MmrRevealAnimation', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('seul le bouton Continuer émet close', async () => {
+  it('only the Continue button emits close', async () => {
     const wrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
     backdrop().click()
@@ -90,64 +90,64 @@ describe('MmrRevealAnimation', () => {
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
-  it('montée de rang : le badge du tier quitté est affiché avant celui du nouveau', async () => {
+  it('rank up: the badge of the tier left is shown before the new one', async () => {
     mountReveal({
       mmrBefore: 1080,
       mmrAfter: 1120,
       mmrDelta: 40,
       tierBeforeLevel: 2,
       tierAfterLevel: 3,
-      tierBeforeName: 'Argent',
-      tierAfterName: 'Or',
+      tierBeforeName: 'Silver',
+      tierAfterName: 'Gold',
       rankChanged: true,
     })
 
     vi.advanceTimersByTime(ENTRY_MS)
     await nextTick()
-    expect(bodyText()).toContain('Argent')
+    expect(bodyText()).toContain('Silver')
     expect(bodyText()).not.toContain('mmrRevealAnimation.rankUp')
 
-    // Le premier segment atteint la limite du tier, puis le badge bascule.
+    // The first segment reaches the tier limit, then the badge switches over.
     vi.advanceTimersByTime(SEGMENT_MS + FLASH_MS)
     await nextTick()
     await nextTick()
-    expect(bodyText()).toContain('Or')
+    expect(bodyText()).toContain('Gold')
     expect(bodyText()).toContain('mmrRevealAnimation.rankUp')
   })
 
-  it('montée de rang : la première barre se remplit à fond avant que la seconde reparte de zéro', async () => {
+  it('rank up: the first bar fills all the way before the second starts over at zero', async () => {
     mountReveal({
-      mmrBefore: 1080, // Argent 900-1100 → 90 %
-      mmrAfter: 1120, // Or 1100-1300 → 10 %
+      mmrBefore: 1080, // Silver 900-1100 → 90%
+      mmrAfter: 1120, // Gold 1100-1300 → 10%
       mmrDelta: 40,
       tierBeforeLevel: 2,
       tierAfterLevel: 3,
       rankChanged: true,
     })
 
-    // Premier segment : la base reste à 90 %, le delta comble jusqu'à 100 %.
+    // First segment: the base stays at 90%, the delta fills up to 100%.
     vi.advanceTimersByTime(ENTRY_MS + RAF_MS)
     await nextTick()
     expect(fillStyle('base').width).toBe('90%')
     expect(fillStyle('delta')).toMatchObject({ left: '90%', width: '10%' })
     expect(fillStyle('delta').transition).toContain(`${SEGMENT_MS}ms`)
 
-    // Bascule de tier : le retour à gauche doit être sec. Sans cela la barre
-    // rejouerait 100 % → 0 % en transition et se lirait comme une vidange.
-    // Pile sur la bascule, sans laisser tourner les deux frames de reprise.
+    // Tier switch: the snap back to the left must be instant. Otherwise the bar
+    // would replay 100% → 0% with a transition and read like a drain animation.
+    // Right on the switch, without letting the two resume frames run.
     vi.advanceTimersByTime(SEGMENT_MS + FLASH_MS + SWAP_MS - RAF_MS)
     await nextTick()
     expect(fillStyle('base')).toMatchObject({ width: '0%', transition: 'none' })
     expect(fillStyle('delta')).toMatchObject({ left: '0%', width: '0%', transition: 'none' })
 
-    // Puis seule la progression du nouveau tier est animée.
+    // Then only the new tier's progress is animated.
     vi.advanceTimersByTime(RAF_MS)
     await nextTick()
     expect(fillStyle('delta')).toMatchObject({ left: '0%', width: '10%' })
     expect(fillStyle('delta').transition).toContain(`${SEGMENT_MS}ms`)
   })
 
-  it('les bornes de la barre ne répètent pas le nom du tier, déjà en badge au-dessus', async () => {
+  it('the bar’s bounds do not repeat the tier name, already shown in the badge above', async () => {
     mountReveal({
       mmrBefore: 1000,
       mmrAfter: 1032,
@@ -161,20 +161,20 @@ describe('MmrRevealAnimation', () => {
 
     const labels = document.body.querySelector('.bar-labels')?.textContent ?? ''
     expect(labels).toContain('900')
-    expect(labels).not.toContain('Argent')
-    // Le badge, lui, le porte toujours.
-    expect(bodyText()).toContain('Argent')
+    expect(labels).not.toContain('Silver')
+    // The badge, though, always carries it.
+    expect(bodyText()).toContain('Silver')
   })
 
-  it('descente de rang : libellé de descente une fois le badge basculé', async () => {
+  it('rank down: the down label shows once the badge has switched', async () => {
     mountReveal({
       mmrBefore: 1120,
       mmrAfter: 1080,
       mmrDelta: -40,
       tierBeforeLevel: 3,
       tierAfterLevel: 2,
-      tierBeforeName: 'Or',
-      tierAfterName: 'Argent',
+      tierBeforeName: 'Gold',
+      tierAfterName: 'Silver',
       rankChanged: true,
     })
 
@@ -185,7 +185,7 @@ describe('MmrRevealAnimation', () => {
     expect(bodyText()).toContain('mmrRevealAnimation.rankDown')
   })
 
-  it('un événement de placement reste sur une barre rayée, sans changement de rang', async () => {
+  it('a placement event stays on a striped bar, with no rank change', async () => {
     mountReveal({
       eventType: 'provisional',
       mmrBefore: 1000,
@@ -202,7 +202,7 @@ describe('MmrRevealAnimation', () => {
     expect(bodyText()).not.toContain('mmrRevealAnimation.rankUp')
   })
 
-  it('aucun timer ne survit au démontage', () => {
+  it('no timer survives unmounting', () => {
     const wrapper: VueWrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
     expect(vi.getTimerCount()).toBeGreaterThan(0)

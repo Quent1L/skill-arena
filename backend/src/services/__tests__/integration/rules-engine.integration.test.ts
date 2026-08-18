@@ -431,48 +431,48 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
 
     it("delivers the message only to the targeted player", async () => {
       const [alice] = playerIds;
-      await addMessageRule("Pour Alice", { all: [{ fact: "playerId", operator: "equal", value: alice }] }, [
-        "Message réservé à {{playerId}}",
+      await addMessageRule("For Alice", { all: [{ fact: "playerId", operator: "equal", value: alice }] }, [
+        "Message reserved for {{playerId}}",
       ]);
 
       const outputs = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
 
       expect([...outputs.keys()]).toEqual([alice]);
-      expect(outputs.get(alice)?.message).toBe("Message réservé à Alice");
+      expect(outputs.get(alice)?.message).toBe("Message reserved for Alice");
     });
 
     it("matches 'teammate of X' for the partner only, not for X themselves", async () => {
       const [alice, bob] = playerIds;
-      await addMessageRule("Duo avec Bob", { all: [{ fact: "teammateIds", operator: "contains", value: bob }] }, [
-        "{{playerId}} en duo avec {{teammateIds}} contre {{opponentIds}}",
+      await addMessageRule("Duo with Bob", { all: [{ fact: "teammateIds", operator: "contains", value: bob }] }, [
+        "{{playerId}} duo with {{teammateIds}} against {{opponentIds}}",
       ]);
 
       const outputs = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
 
       // Only Alice has Bob as a teammate; Bob's own teammate list holds Alice.
       expect([...outputs.keys()]).toEqual([alice]);
-      expect(outputs.get(alice)?.message).toBe("Alice en duo avec Bob contre Carl, Dana");
+      expect(outputs.get(alice)?.message).toBe("Alice duo with Bob against Carl, Dana");
     });
 
     it("matches 'against X' through opponentIds", async () => {
       const [alice, bob, carl] = playerIds;
-      await addMessageRule("Contre Carl", { all: [{ fact: "opponentIds", operator: "contains", value: carl }] }, [
-        "Adversaires : {{opponentIds}}",
+      await addMessageRule("Against Carl", { all: [{ fact: "opponentIds", operator: "contains", value: carl }] }, [
+        "Opponents: {{opponentIds}}",
       ]);
 
       const outputs = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
 
       expect(new Set(outputs.keys())).toEqual(new Set([alice, bob]));
-      expect(outputs.get(alice)?.message).toBe("Adversaires : Carl, Dana");
+      expect(outputs.get(alice)?.message).toBe("Opponents: Carl, Dana");
     });
 
     it("always fires when randomRoll is below the threshold, never when above", async () => {
-      await addMessageRule("Toujours", { all: [{ fact: "randomRoll", operator: "lessThan", value: 100 }] }, ["ok"]);
+      await addMessageRule("Always", { all: [{ fact: "randomRoll", operator: "lessThan", value: 100 }] }, ["ok"]);
       const always = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
       expect(always.size).toBe(4);
 
       await testDb.delete(rules).where(eq(rules.createdBy, adminId));
-      await addMessageRule("Jamais", { all: [{ fact: "randomRoll", operator: "lessThan", value: 0 }] }, ["ko"]);
+      await addMessageRule("Never", { all: [{ fact: "randomRoll", operator: "lessThan", value: 0 }] }, ["ko"]);
       const never = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
       expect(never.size).toBe(0);
     });

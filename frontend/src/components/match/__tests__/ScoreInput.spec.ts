@@ -13,7 +13,7 @@ function mountScoreInput(props: Record<string, unknown> = {}) {
 }
 
 describe('ScoreInput', () => {
-  it('mode reported (défaut): deux champs de score, pas de date', () => {
+  it('reported mode (default): two score fields, no date', () => {
     const wrapper = mountScoreInput()
     expect(wrapper.findAllComponents({ name: 'InputNumber' })).toHaveLength(2)
     expect(wrapper.find('#scheduled-date-inline').exists()).toBe(false)
@@ -21,14 +21,14 @@ describe('ScoreInput', () => {
     expect(wrapper.text()).toContain('scoreInput.scoreB')
   })
 
-  it('mode scheduled: DatePicker avec label, pas de scores', () => {
+  it('scheduled mode: DatePicker with a label, no scores', () => {
     const wrapper = mountScoreInput({ modeSelection: 'scheduled' })
     expect(wrapper.findComponent({ name: 'DatePicker' }).exists()).toBe(true)
     expect(wrapper.text()).toContain('scoreInput.matchDateTime')
     expect(wrapper.findAllComponents({ name: 'InputNumber' })).toHaveLength(0)
   })
 
-  it('émet update:scoreA et update:scoreB', () => {
+  it('emits update:scoreA and update:scoreB', () => {
     const wrapper = mountScoreInput()
     const [scoreA, scoreB] = wrapper.findAllComponents({ name: 'InputNumber' })
     scoreA.vm.$emit('update:modelValue', 3)
@@ -37,13 +37,13 @@ describe('ScoreInput', () => {
     expect(wrapper.emitted('update:scoreB')).toEqual([[1]])
   })
 
-  it('émet update:modeSelection via le SelectButton', () => {
+  it('emits update:modeSelection via the SelectButton', () => {
     const wrapper = mountScoreInput()
     wrapper.findComponent({ name: 'SelectButton' }).vm.$emit('update:modelValue', 'scheduled')
     expect(wrapper.emitted('update:modeSelection')).toEqual([['scheduled']])
   })
 
-  it('émet update:scheduledDate en mode scheduled', () => {
+  it('emits update:scheduledDate in scheduled mode', () => {
     const wrapper = mountScoreInput({ modeSelection: 'scheduled' })
     const date = new Date('2026-07-10T18:00:00')
     wrapper.findComponent({ name: 'DatePicker' }).vm.$emit('update:modelValue', date)

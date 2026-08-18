@@ -21,21 +21,21 @@ function makeSummary(over: Partial<ClientTournamentSummary> = {}): ClientTournam
 }
 
 describe('TournamentCard', () => {
-  it('affiche nom, statut et mode', () => {
+  it('shows name, status and mode', () => {
     const wrapper = mount(TournamentCard, { props: { tournament: makeSummary() } })
     expect(wrapper.text()).toContain('Summer Cup')
     expect(wrapper.text()).toContain('tournamentCard.status.ongoing')
     expect(wrapper.text()).toContain('tournamentCard.mode.championship')
   })
 
-  it('accent visuel selon le mode', () => {
+  it('visual accent depending on the mode', () => {
     const ranked = mount(TournamentCard, {
       props: { tournament: makeSummary({ mode: 'ranked' }) },
     })
     expect(ranked.classes()).toContain('mode-ranked')
   })
 
-  it('affiche la discipline quand présente', () => {
+  it('shows the discipline when present', () => {
     const wrapper = mount(TournamentCard, {
       props: {
         tournament: makeSummary({ discipline: { id: 'd1', name: 'Babyfoot' } }),
@@ -44,14 +44,14 @@ describe('TournamentCard', () => {
     expect(wrapper.text()).toContain('Babyfoot')
   })
 
-  it('émet click avec le tournoi', async () => {
+  it('emits click with the tournament', async () => {
     const tournament = makeSummary()
     const wrapper = mount(TournamentCard, { props: { tournament } })
     await wrapper.trigger('click')
     expect(wrapper.emitted('click')).toEqual([[tournament]])
   })
 
-  it('barre de progression pleine pour un tournoi terminé', () => {
+  it('full progress bar for a finished tournament', () => {
     const wrapper = mount(TournamentCard, {
       props: { tournament: makeSummary({ status: 'finished' }) },
     })
@@ -59,12 +59,12 @@ describe('TournamentCard', () => {
     expect(wrapper.text()).toContain('tournamentCard.period.finished')
   })
 
-  it('affiche le nombre de participants', () => {
+  it('shows the number of participants', () => {
     const wrapper = mount(TournamentCard, { props: { tournament: makeSummary() } })
     expect(wrapper.text()).toContain('tournamentCard.participants#12')
   })
 
-  it('remplace les dates par le bilan une fois terminé', () => {
+  it('replaces the dates with the summary once finished', () => {
     const wrapper = mount(TournamentCard, {
       props: { tournament: makeSummary({ status: 'finished' }) },
     })
@@ -72,7 +72,7 @@ describe('TournamentCard', () => {
     expect(wrapper.classes()).toContain('mode-finished')
   })
 
-  it("marque la participation seulement sur la variante mise en avant", () => {
+  it("marks participation only on the featured variant", () => {
     const tournament = makeSummary({ isParticipant: true })
 
     const plain = mount(TournamentCard, { props: { tournament } })
@@ -82,7 +82,7 @@ describe('TournamentCard', () => {
     expect(featured.text()).toContain('tournamentCard.youParticipate')
   })
 
-  it('met la participation au passé une fois le tournoi terminé', () => {
+  it('switches participation to past tense once the tournament is finished', () => {
     const wrapper = mount(TournamentCard, {
       props: {
         tournament: makeSummary({ isParticipant: true, status: 'finished' }),

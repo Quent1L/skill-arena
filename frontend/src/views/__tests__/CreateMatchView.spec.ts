@@ -213,7 +213,7 @@ async function mountView(
 }
 
 describe('CreateMatchView', () => {
-  it('charge tournoi, playersMap, participants puis données de résultat au montage', async () => {
+  it('loads tournament, playersMap, participants then result data on mount', async () => {
     await mountView()
     expect(loadTournamentMock).toHaveBeenCalledWith('t1')
     expect(loadPlayersMapMock).toHaveBeenCalledWith('t1')
@@ -221,47 +221,47 @@ describe('CreateMatchView', () => {
     expect(outcomeTypeApi.list).toHaveBeenCalled()
   })
 
-  it('isLoading passe à false une fois le montage terminé', async () => {
+  it('isLoading becomes false once mounting is finished', async () => {
     const wrapper = await mountView()
     expect(getProbe(wrapper).vm.isLoading).toBe(false)
   })
 
-  it('mode static: charge les équipes et ne charge pas les participants', async () => {
+  it('static mode: loads teams and does not load participants', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ teamMode: 'static' }))
     await mountView()
     expect(loadTeamsMock).toHaveBeenCalledWith('t1')
     expect(getParticipantsMock).not.toHaveBeenCalled()
   })
 
-  it('mode flex: charge les participants et ne charge pas les équipes', async () => {
+  it('flex mode: loads participants and does not load teams', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ teamMode: 'flex' }))
     await mountView()
     expect(getParticipantsMock).toHaveBeenCalledWith('t1')
     expect(loadTeamsMock).not.toHaveBeenCalled()
   })
 
-  it('utilisateur non-admin participant: auto-ajouté à allPlayerIds', async () => {
+  it('non-admin participant user: auto-added to allPlayerIds', async () => {
     const wrapper = await mountView({}, { role: 'player' })
     expect(getProbe(wrapper).vm.formState.allPlayerIds).toEqual(['u1'])
   })
 
-  it('utilisateur admin: pas auto-ajouté à allPlayerIds', async () => {
+  it('admin user: not auto-added to allPlayerIds', async () => {
     const wrapper = await mountView({}, { role: 'tournament_admin' })
     expect(getProbe(wrapper).vm.formState.allPlayerIds).toEqual([])
   })
 
-  it('utilisateur non participant: pas auto-ajouté à allPlayerIds', async () => {
+  it('non-participant user: not auto-added to allPlayerIds', async () => {
     const wrapper = await mountView({}, { user: { id: 'u9', email: 'u9@test.dev' }, role: 'player' })
     expect(getProbe(wrapper).vm.formState.allPlayerIds).toEqual([])
   })
 
-  it('édition avec matchId: allPlayerIds reflète les joueurs du match, pas l’auto-ajout', async () => {
+  it('editing with matchId: allPlayerIds reflects the match’s players, not the auto-add', async () => {
     getMatchMock.mockResolvedValue(makeMatchDetail())
     const wrapper = await mountView({ matchId: 'm1' }, { role: 'player' })
     expect(getProbe(wrapper).vm.formState.allPlayerIds).toEqual(['u1', 'u2'])
   })
 
-  it('matchId présent: appelle getMatch et peuple le formState', async () => {
+  it('matchId present: calls getMatch and populates formState', async () => {
     getMatchMock.mockResolvedValue(makeMatchDetail())
     const wrapper = await mountView({ matchId: 'm1' })
     expect(getMatchMock).toHaveBeenCalledWith('m1')
@@ -278,7 +278,7 @@ describe('CreateMatchView', () => {
   })
 
   it.each(['reported', 'pending_confirmation'] as const)(
-    'statut %s: activeStep passe à "result"',
+    'status %s: activeStep switches to "result"',
     async (status) => {
       getMatchMock.mockResolvedValue(makeMatchDetail({ status }))
       const wrapper = await mountView({ matchId: 'm1' })
@@ -286,13 +286,13 @@ describe('CreateMatchView', () => {
     },
   )
 
-  it('statut scheduled: activeStep reste "when"', async () => {
+  it('status scheduled: activeStep stays "when"', async () => {
     getMatchMock.mockResolvedValue(makeMatchDetail({ status: 'scheduled' }))
     const wrapper = await mountView({ matchId: 'm1' })
     expect(getProbe(wrapper).vm.activeStep).toBe('when')
   })
 
-  it('getMatch échoue: affiche un toast d’erreur sans planter', async () => {
+  it('getMatch fails: shows an error toast without crashing', async () => {
     getMatchMock.mockRejectedValue(new Error('boom'))
     await mountView({ matchId: 'm1' })
     expect(toastAddMock).toHaveBeenCalledWith({
@@ -303,13 +303,13 @@ describe('CreateMatchView', () => {
     })
   })
 
-  it('sans matchId: getMatch jamais appelé, activeStep reste "when"', async () => {
+  it('with no matchId: getMatch never called, activeStep stays "when"', async () => {
     const wrapper = await mountView()
     expect(getMatchMock).not.toHaveBeenCalled()
     expect(getProbe(wrapper).vm.activeStep).toBe('when')
   })
 
-  it('discipline présente: charge les types liés + les instructions de score', async () => {
+  it('discipline present: loads the linked types + the score instructions', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ disciplineId: 'd1' }))
     const wrapper = await mountView()
     expect(outcomeTypeApi.list).toHaveBeenCalledWith('d1')
@@ -317,7 +317,7 @@ describe('CreateMatchView', () => {
     expect(getProbe(wrapper).vm.scoreInstructions).toBe('Enter final score')
   })
 
-  it('sans discipline: charge tous les types, pas d’appel discipline', async () => {
+  it('without a discipline: loads all types, no discipline call', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ disciplineId: undefined }))
     const wrapper = await mountView()
     expect(outcomeTypeApi.list).toHaveBeenCalledWith()
@@ -325,26 +325,26 @@ describe('CreateMatchView', () => {
     expect(getProbe(wrapper).vm.scoreInstructions).toBeNull()
   })
 
-  it('création: sélectionne le type par défaut et charge ses raisons', async () => {
+  it('creation: selects the default type and loads its reasons', async () => {
     const wrapper = await mountView()
     expect(getProbe(wrapper).vm.formState.outcomeTypeId).toBe('ot-default')
     expect(outcomeReasonApi.list).toHaveBeenCalledWith('ot-default')
   })
 
-  it('édition avec outcomeTypeId déjà défini: ignore le type par défaut', async () => {
+  it('editing with outcomeTypeId already set: ignores the default type', async () => {
     getMatchMock.mockResolvedValue(makeMatchDetail({ outcomeTypeId: 'ot-1' }))
     await mountView({ matchId: 'm1' })
     expect(outcomeReasonApi.list).toHaveBeenCalledWith('ot-1')
   })
 
-  it('aucun type par défaut et pas de matchId: outcomeTypeId reste null, pas d’appel raisons', async () => {
+  it('no default type and no matchId: outcomeTypeId stays null, no reasons call', async () => {
     vi.mocked(outcomeTypeApi.list).mockResolvedValue([makeOutcomeType({ isDefault: false })])
     const wrapper = await mountView()
     expect(getProbe(wrapper).vm.formState.outcomeTypeId).toBeNull()
     expect(outcomeReasonApi.list).not.toHaveBeenCalled()
   })
 
-  it('playedAt futur: réinitialise vainqueur/score/outcome', async () => {
+  it('playedAt in the future: resets winner/score/outcome', async () => {
     const wrapper = await mountView()
     const probe = getProbe(wrapper)
     const future = new Date(Date.now() + 86_400_000)
@@ -356,7 +356,7 @@ describe('CreateMatchView', () => {
     expect(probe.vm.formState.outcomeReasonId).toBeNull()
   })
 
-  it('playedAt passé: ne réinitialise rien', async () => {
+  it('playedAt in the past: resets nothing', async () => {
     const wrapper = await mountView()
     const probe = getProbe(wrapper)
     probe.vm.formState.outcomeTypeId = 'ot-default'
@@ -366,7 +366,7 @@ describe('CreateMatchView', () => {
     expect(probe.vm.formState.outcomeTypeId).toBe('ot-default')
   })
 
-  it('playedAt à null: pas de réinitialisation ni erreur', async () => {
+  it('playedAt null: no reset and no error', async () => {
     const wrapper = await mountView()
     const probe = getProbe(wrapper)
     probe.vm.formState.outcomeTypeId = 'ot-default'
@@ -375,32 +375,32 @@ describe('CreateMatchView', () => {
     expect(probe.vm.formState.outcomeTypeId).toBe('ot-default')
   })
 
-  it('isMobile=true: rend le stepper mobile', async () => {
+  it('isMobile=true: renders the mobile stepper', async () => {
     vi.mocked(useViewport).mockReturnValue({ width: ref(400), isMobile: ref(true) })
     const wrapper = await mountView()
     expect(wrapper.findComponent(MobileProbe).exists()).toBe(true)
     expect(wrapper.findComponent(DesktopProbe).exists()).toBe(false)
   })
 
-  it('isMobile=false: rend le stepper desktop', async () => {
+  it('isMobile=false: renders the desktop stepper', async () => {
     const wrapper = await mountView()
     expect(wrapper.findComponent(DesktopProbe).exists()).toBe(true)
     expect(wrapper.findComponent(MobileProbe).exists()).toBe(false)
   })
 
-  it('mode bracket: bracketLocked=true transmis au stepper', async () => {
+  it('bracket mode: bracketLocked=true passed to the stepper', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ mode: 'bracket' }))
     const wrapper = await mountView()
     expect(getProbe(wrapper).props('bracketLocked')).toBe(true)
   })
 
-  it('mode championship: bracketLocked=false transmis au stepper', async () => {
+  it('championship mode: bracketLocked=false passed to the stepper', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ mode: 'championship' }))
     const wrapper = await mountView()
     expect(getProbe(wrapper).props('bracketLocked')).toBe(false)
   })
 
-  it('fournit le contexte MATCH_FORM_KEY attendu aux descendants', async () => {
+  it('provides the expected MATCH_FORM_KEY context to descendants', async () => {
     const wrapper = await mountView()
     const probe = getProbe(wrapper)
     expect(probe.vm.participants).toEqual([

@@ -18,18 +18,18 @@ function ev(reason: MmrAnimationEventResponse['reason']): MmrAnimationEventRespo
 }
 
 describe('useMMrAnimationQueue.showRecap', () => {
-  it('false sur file vide', () => {
+  it('false on an empty queue', () => {
     const q = useMMrAnimationQueue()
     expect(q.showRecap.value).toBe(false)
   })
 
-  it('false pour un seul nouveau match', () => {
+  it('false for a single new match', () => {
     const q = useMMrAnimationQueue()
     q.queue.value = [ev('match_finalized')]
     expect(q.showRecap.value).toBe(false)
   })
 
-  it('true dès 2 events (n’importe quelle raison)', () => {
+  it('true from 2 events onward (any reason)', () => {
     const q = useMMrAnimationQueue()
     q.queue.value = [ev('match_finalized'), ev('match_finalized')]
     expect(q.showRecap.value).toBe(true)

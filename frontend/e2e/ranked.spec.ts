@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { USERS, SEASON_ID, ADMIN_STATE } from './fixtures'
 
-test('le leaderboard groupe les joueurs par rang, du plus haut au plus bas', async ({ page }) => {
+test('the leaderboard groups players by rank, from highest to lowest', async ({ page }) => {
   await page.goto(`/tournaments/${SEASON_ID}`)
 
   await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
   await expect(page.getByText('1550').first()).toBeVisible()
 
-  // Diamond (1550) au-dessus de Bronze (850)
+  // Diamond (1550) above Bronze (850)
   const content = await page.locator('.leaderboard').innerText()
   expect(content.indexOf('Diamond')).toBeGreaterThan(-1)
   expect(content.indexOf('Bronze')).toBeGreaterThan(-1)
@@ -17,7 +17,7 @@ test('le leaderboard groupe les joueurs par rang, du plus haut au plus bas', asy
   )
 })
 
-test('la bascule provisoire intègre les matchs non finalisés', async ({ page }) => {
+test('the provisional toggle includes non-finalized matches', async ({ page }) => {
   await page.goto(`/tournaments/${SEASON_ID}`)
   await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
 
@@ -32,7 +32,7 @@ test('la bascule provisoire intègre les matchs non finalisés', async ({ page }
   await expect(player4Row).not.toContainText('850')
 })
 
-test('le profil MMR montre rang, MMR et historique', async ({ page }) => {
+test('the MMR profile shows rank, MMR and history', async ({ page }) => {
   await page.goto(`/players/${USERS.player1.appUserId}?tournamentId=${SEASON_ID}`)
 
   await expect(page.getByText(USERS.player1.displayName).first()).toBeVisible()
@@ -47,12 +47,12 @@ test('le profil MMR montre rang, MMR et historique', async ({ page }) => {
 test.describe('admin ranked', () => {
   test.use({ storageState: ADMIN_STATE })
 
-  test('la saison seedée apparaît dans la liste admin', async ({ page }) => {
+  test('the seeded season appears in the admin list', async ({ page }) => {
     await page.goto('/admin/ranked')
     await expect(page.getByText('E2E Season').first()).toBeVisible()
   })
 
-  test('la page des rangs liste les 5 tiers', async ({ page }) => {
+  test('the ranks page lists the 5 tiers', async ({ page }) => {
     await page.goto(`/admin/ranked/${SEASON_ID}/tiers`)
     for (const tier of ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond']) {
       await expect(page.getByText(tier).first()).toBeVisible()

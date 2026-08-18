@@ -18,7 +18,7 @@ const ev = makeMmrEvent
 
 const TIERS = [
   makeTier({ level: 1, name: 'Bronze', minMmr: 700 }),
-  makeTier({ level: 2, name: 'Argent', minMmr: 900 }),
+  makeTier({ level: 2, name: 'Silver', minMmr: 900 }),
 ]
 
 function mountCard(events: MmrAnimationEventResponse[], tiers?: ClientRankTier[]) {
@@ -43,7 +43,7 @@ afterEach(() => {
 })
 
 describe('MmrRecapCard', () => {
-  it('net total = somme des displayDelta (avec fallback mmrDelta si null)', () => {
+  it('net total = sum of displayDelta (falls back to mmrDelta when null)', () => {
     mountCard([
       ev({ reason: 'recalculated', mmrDelta: 18, displayDelta: 3 }),
       ev({ reason: 'recalculated', mmrDelta: -5, displayDelta: -1 }),
@@ -52,12 +52,12 @@ describe('MmrRecapCard', () => {
     expect(netEl()).toBe('+6') // 3 - 1 + 4
   })
 
-  it('net négatif: pas de signe +', () => {
+  it('negative net: no + sign', () => {
     mountCard([ev({ reason: 'recalculated', mmrDelta: -20, displayDelta: -8 })])
     expect(netEl()).toBe('-8')
   })
 
-  it('chaque ligne affiche displayDelta, pas le delta complet', () => {
+  it('each row shows displayDelta, not the full delta', () => {
     mountCard([
       ev({ reason: 'recalculated', mmrDelta: 18, displayDelta: 3 }),
       ev({ reason: 'recalculated', mmrDelta: -5, displayDelta: -1 }),
@@ -65,7 +65,7 @@ describe('MmrRecapCard', () => {
     expect(rowDeltas()).toEqual(['+3', '-1'])
   })
 
-  it("badges: 'recalculé' (fa-rotate) et 'annulé' (fa-ban) selon la raison", () => {
+  it("badges: 'recalculated' (fa-rotate) and 'cancelled' (fa-ban) depending on the reason", () => {
     mountCard([
       ev({ reason: 'recalculated', displayDelta: 2 }),
       ev({ reason: 'match_cancelled', displayDelta: -12 }),
@@ -75,7 +75,7 @@ describe('MmrRecapCard', () => {
     expect(document.body.querySelectorAll('.fa-ban').length).toBe(2) // match_cancelled + cascade
   })
 
-  it('résumé: un fragment par catégorie non vide, badge et résumé concordent', () => {
+  it('summary: one fragment per non-empty category, badge and summary agree', () => {
     mountCard([
       ev({ reason: 'match_finalized', displayDelta: 10 }),
       ev({ reason: 'match_finalized', displayDelta: 5 }),
@@ -87,7 +87,7 @@ describe('MmrRecapCard', () => {
     )
   })
 
-  it('résumé: matchs recalculés seuls', () => {
+  it('summary: recalculated matches alone', () => {
     mountCard([
       ev({ reason: 'recalculated', displayDelta: 1 }),
       ev({ reason: 'recalculated', displayDelta: 2 }),
@@ -95,13 +95,13 @@ describe('MmrRecapCard', () => {
     expect(summaryEl()).toBe('mmrRecapCard.recalcMatchesPlural#2')
   })
 
-  it('détail déplié tant que la liste reste lisible, sans bouton de repli', () => {
+  it('detail expanded as long as the list stays readable, no collapse button', () => {
     mountCard([ev({ displayDelta: 1 }), ev({ displayDelta: 2 }), ev({ displayDelta: 3 })])
     expect(rowDeltas()).toEqual(['+1', '+2', '+3'])
     expect(toggleBtn()).toBeUndefined()
   })
 
-  it('au-delà de 3 matchs, le détail est replié derrière un bouton', async () => {
+  it('beyond 3 matches, the detail is collapsed behind a button', async () => {
     mountCard([1, 2, 3, 4].map((n) => ev({ displayDelta: n })))
     expect(rowDeltas()).toEqual([])
 
@@ -114,12 +114,12 @@ describe('MmrRecapCard', () => {
     expect(toggleBtn()?.textContent).toContain('mmrRecapCard.hideDetail')
   })
 
-  it('sans table de tiers, aucune barre de progression', () => {
+  it('with no tier table, no progress bar', () => {
     mountCard([ev({ mmrBefore: 1000, mmrAfter: 1020, displayDelta: 20 })])
     expect(document.body.querySelector('.track')).toBeNull()
   })
 
-  it('avec les tiers, la barre part du premier événement et arrive au dernier', async () => {
+  it('with tiers, the bar starts at the first event and ends at the last', async () => {
     mountCard(
       [
         ev({ mmrBefore: 1000, mmrAfter: 1020, displayDelta: 20 }),
@@ -130,17 +130,17 @@ describe('MmrRecapCard', () => {
     expect(document.body.querySelector('.track')).not.toBeNull()
     expect(document.body.textContent).toContain('mmrRecapCard.progression')
     expect(document.body.textContent).toContain('1000 → 1000')
-    // Ici le tier n'est affiché nulle part ailleurs : la barre doit le nommer.
-    expect(document.body.querySelector('.bar-labels')?.textContent).toContain('Argent')
+    // Here the tier isn't shown anywhere else: the bar has to name it.
+    expect(document.body.querySelector('.bar-labels')?.textContent).toContain('Silver')
 
     ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
     await nextTick()
     expect(document.body.textContent).toContain('1000 → 1060')
   })
 
-  it('recalcul : la barre suit le différentiel annoncé, pas la chaîne réécrite', async () => {
-    // Un recalcul réécrit mmrBefore/mmrAfter sur des matchs déjà vus : partir de
-    // events[0].mmrBefore dessinerait une longue montée sous un titre négatif.
+  it('recalculation: the bar follows the announced differential, not the rewritten chain', async () => {
+    // A recalculation rewrites mmrBefore/mmrAfter on matches already seen: starting from
+    // events[0].mmrBefore would draw a long climb under a negative title.
     mountCard(
       [
         ev({ reason: 'recalculated', mmrBefore: 1000, mmrAfter: 1030, mmrDelta: 30, displayDelta: -5 }),
@@ -150,7 +150,7 @@ describe('MmrRecapCard', () => {
     )
 
     expect(netEl()).toBe('-12')
-    // Départ = MMR courant moins les points annoncés, donc une barre qui descend.
+    // Start = current MMR minus the announced points, so a bar that goes down.
     expect(document.body.textContent).toContain('1062 → 1062')
     ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
     await nextTick()

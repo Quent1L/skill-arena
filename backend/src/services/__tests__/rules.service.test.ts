@@ -82,7 +82,7 @@ describe("RulesService — non-deterministic facts", () => {
     const badgeRule = baseRule({
       type: "badge",
       conditions: { all: [{ fact: "teammateIds", operator: "contains", value: "player-1" }] },
-      action: { type: "badge", icon: "fa fa-users", label: "Duo", description: "Avec ce joueur" },
+      action: { type: "badge", icon: "fa fa-users", label: "Duo", description: "With this player" },
     });
     await rulesService.create(badgeRule, "admin-1");
     expect(mockRulesRepo.create).toHaveBeenCalled();

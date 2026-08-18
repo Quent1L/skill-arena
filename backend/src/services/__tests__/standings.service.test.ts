@@ -166,15 +166,15 @@ function findEntry(standings: any[], id: string) {
 describe("StandingsService", () => {
   beforeEach(resetMocks);
 
-  // ── Erreurs ────────────────────────────────────────────────────────────────
+  // ── Errors ─────────────────────────────────────────────────────────────────
 
-  describe("erreurs", () => {
-    it("lève NotFoundError si le tournoi n'existe pas", async () => {
+  describe("errors", () => {
+    it("throws NotFoundError when the tournament doesn't exist", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() => Promise.resolve(null));
       await expect(standingsService.getOfficialStandings("unknown")).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it("retourne un classement vide si aucun match", async () => {
+    it("returns an empty standings list when there is no match", async () => {
       const result = await standingsService.getOfficialStandings("tournament-1");
       expect(result.standings).toHaveLength(2); // teams are always initialized
       expect(findEntry(result.standings, "team-a")?.points).toBe(0);
@@ -184,7 +184,7 @@ describe("StandingsService", () => {
   // ── Mode static ───────────────────────────────────────────────────────────
 
   describe("mode static", () => {
-    it("victoire side A : A gagne 3 pts, B gagne 0 pt", async () => {
+    it("side A win: A earns 3 pts, B earns 0 pt", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 })]),
       );
@@ -210,7 +210,7 @@ describe("StandingsService", () => {
       expect(b.scoreDiff).toBe(-2);
     });
 
-    it("victoire side B : B gagne 3 pts, A gagne 0 pt", async () => {
+    it("side B win: B earns 3 pts, A earns 0 pt", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", "B", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 3 })]),
       );
@@ -222,7 +222,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-a")?.losses).toBe(1);
     });
 
-    it("match nul : chaque équipe gagne 1 pt", async () => {
+    it("draw match: each team earns 1 pt", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 2 }, { teamId: "team-b", score: 2 })]),
       );
@@ -234,7 +234,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.draws).toBe(1);
     });
 
-    it("pointsAwarded override les points du tournoi", async () => {
+    it("pointsAwarded overrides the tournament's points", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A",
@@ -249,7 +249,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.points).toBe(2);
     });
 
-    it("points tournoi custom (2/0/1)", async () => {
+    it("custom tournament points (2/0/1)", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, pointPerVictory: 2, pointPerDraw: 0, pointPerLoss: 1 }),
       );
@@ -262,7 +262,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.points).toBe(1);
     });
 
-    it("cumul de plusieurs matchs", async () => {
+    it("accumulation across several matches", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 }),
@@ -287,7 +287,7 @@ describe("StandingsService", () => {
       expect(b.points).toBe(4); // 0 + 3 + 1
     });
 
-    it("ignore les matchs avec moins de 2 sides", async () => {
+    it("ignores matches with fewer than 2 sides", async () => {
       // Simulate a match with only 1 side
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([{ id: "m1", winnerSide: "A", sides: [{ position: 1, score: 3, pointsAwarded: null, entry: { teamId: "team-a", players: [] } }] }]),
@@ -300,8 +300,8 @@ describe("StandingsService", () => {
 
   // ── Sorting / tiebreaking ────────────────────────────────────────────────────────
 
-  describe("tri et départage", () => {
-    it("trie par points décroissants", async () => {
+  describe("sorting and tiebreaking", () => {
+    it("sorts by points descending", async () => {
       mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
 
       mockRepo.getMatchesWithSides.mockImplementation(() =>
@@ -318,7 +318,7 @@ describe("StandingsService", () => {
       expect(standings[2].id).toBe("team-c"); // 0 pts
     });
 
-    it("départage par id si tous les critères sont égaux", async () => {
+    it("ties broken by id when all criteria are equal", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A", { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 2 }),
@@ -331,7 +331,7 @@ describe("StandingsService", () => {
       expect(standings[0].id).toBe("team-a");
     });
 
-    it("départage par id si nul et tous critères égaux", async () => {
+    it("ties broken by id on a draw with all criteria equal", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 5 }, { teamId: "team-b", score: 3 })]),
       );
@@ -370,7 +370,7 @@ describe("StandingsService", () => {
       mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries));
     });
 
-    it("victoire side A : tous les joueurs de A gagnent 3 pts", async () => {
+    it("side A win: all A players earn 3 pts", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a1", "p-a2"], ["p-b1", "p-b2"], 3, 1, 3, 0)]),
       );
@@ -391,7 +391,7 @@ describe("StandingsService", () => {
       }
     });
 
-    it("victoire side B : tous les joueurs de B gagnent 3 pts", async () => {
+    it("side B win: all B players earn 3 pts", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([makeFlexMatchWithPoints("m1", "B", ["p-a1", "p-a2"], ["p-b1", "p-b2"], 1, 3, 0, 3)]),
       );
@@ -408,7 +408,7 @@ describe("StandingsService", () => {
       }
     });
 
-    it("match nul : tous les joueurs ont 1 pt et 1 nul", async () => {
+    it("draw match: all players have 1 pt and 1 draw", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([makeFlexMatchWithPoints("m1", null, ["p-a1", "p-a2"], ["p-b1", "p-b2"], 2, 2, 1, 1)]),
       );
@@ -420,7 +420,7 @@ describe("StandingsService", () => {
       }
     });
 
-    it("régression bug : les joueurs de side A sont mis à jour même si entry B n'a pas de joueurs", async () => {
+    it("regression: side A players are updated even when entry B has no players", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([
           {
@@ -443,7 +443,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-a2")?.points).toBe(3);
     });
 
-    it("joueur hors limite : countsForRanking=false → 0 pts, matchesPlayed non incrémenté", async () => {
+    it("player over the limit: countsForRanking=false → 0 pts, matchesPlayed not incremented", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([
           makeFlexMatchWithPoints("m1", "A", ["p-a1"], ["p-b1"], 3, 0, 3, 0, false /* countsForRanking = false */),
@@ -460,7 +460,7 @@ describe("StandingsService", () => {
 
   // ── Classement provisoire vs officiel ─────────────────────────────────────
 
-  describe("provisoire vs officiel", () => {
+  describe("provisional vs official", () => {
     const finalizedMatch = makeMatchWithSides("m-final", "A", { teamId: "team-a", score: 3 }, { teamId: "team-b", score: 1 });
     const reportedMatch = makeMatchWithSides("m-reported", "B", { teamId: "team-a", score: 0 }, { teamId: "team-b", score: 2 });
 
@@ -476,7 +476,7 @@ describe("StandingsService", () => {
       );
     });
 
-    it("officiel : ne compte que les matchs finalized", async () => {
+    it("official: only counts finalized matches", async () => {
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
       const a = findEntry(standings, "team-a")!;
       const b = findEntry(standings, "team-b")!;
@@ -487,7 +487,7 @@ describe("StandingsService", () => {
       expect(b.matchesPlayed).toBe(1);
     });
 
-    it("provisoire : compte reported + finalized", async () => {
+    it("provisional: counts reported + finalized", async () => {
       const { standings } = await standingsService.getProvisionalStandings("tournament-1");
       const a = findEntry(standings, "team-a")!;
       const b = findEntry(standings, "team-b")!;
@@ -503,7 +503,7 @@ describe("StandingsService", () => {
       expect(b.matchesPlayed).toBe(2);
     });
 
-    it("provisoire a plus de matchs que l'officiel", async () => {
+    it("provisional has more matches than official", async () => {
       const official = await standingsService.getOfficialStandings("tournament-1");
       const provisional = await standingsService.getProvisionalStandings("tournament-1");
 
@@ -516,8 +516,8 @@ describe("StandingsService", () => {
 
   // ── Tournament configuration ──────────────────────────────────────────────
 
-  describe("configuration du tournoi", () => {
-    it("scoreEnabled=false (static) : scored/conceded/scoreDiff restent à 0", async () => {
+  describe("tournament configuration", () => {
+    it("scoreEnabled=false (static): scored/conceded/scoreDiff stay at 0", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, scoreEnabled: false }),
       );
@@ -539,7 +539,7 @@ describe("StandingsService", () => {
       expect(a.wins).toBe(1);
     });
 
-    it("scoreEnabled=false (flex) : scored/conceded/scoreDiff restent à 0", async () => {
+    it("scoreEnabled=false (flex): scored/conceded/scoreDiff stay at 0", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, scoreEnabled: false }),
       );
@@ -569,7 +569,7 @@ describe("StandingsService", () => {
       expect(a.points).toBe(3);
     });
 
-    it("allowDraw=false : les nuls sont quand même comptabilisés comme nuls", async () => {
+    it("allowDraw=false: draws are still counted as draws", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, allowDraw: false }),
       );
@@ -586,8 +586,8 @@ describe("StandingsService", () => {
 
   // ── Computed tiebreakers ──────────────────────────────────────────────────
 
-  describe("tiebreakers calculés", () => {
-    it("winLossRatio = wins / max(1, losses) — évite la division par zéro", async () => {
+  describe("computed tiebreakers", () => {
+    it("winLossRatio = wins / max(1, losses) — avoids division by zero", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
@@ -603,7 +603,7 @@ describe("StandingsService", () => {
       expect(a.winLossRatio).toBe(2); // 2 / max(1, 0) = 2
     });
 
-    it("victoryQuality : victoire → +points, défaite → −points", async () => {
+    it("victoryQuality: win → +points, loss → −points", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true, 2)]),
       );
@@ -614,7 +614,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.victoryQuality).toBe(-2);
     });
 
-    it("victoryQuality : type non-défaut avec points=1 → +1 victoire, −1 défaite", async () => {
+    it("victoryQuality: non-default type with points=1 → +1 win, −1 loss", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, false, 1)]),
       );
@@ -625,7 +625,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.victoryQuality).toBe(-1);
     });
 
-    it("victoryQuality : cumul de plusieurs résultats", async () => {
+    it("victoryQuality: accumulation of several results", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithOutcomeType("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }, true, 3),
@@ -638,7 +638,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-a")?.victoryQuality).toBe(4); // 3 + 1
     });
 
-    it("buchholzScore : équipe ayant battu un adversaire fort se classe avant à égalité", async () => {
+    it("buchholzScore: a team that beat a strong opponent ranks first on a tie", async () => {
       // A and B both have 3 pts / 1W, but A's beaten opponent X (0 pts) while B's beaten Y (3 pts)
       const TEAM_X = { id: "team-x", name: "X", tournamentId: "tournament-1" };
       const TEAM_Y = { id: "team-y", name: "Y", tournamentId: "tournament-1" };
@@ -669,8 +669,8 @@ describe("StandingsService", () => {
 
   // ── Tiebreak head-to-head ─────────────────────────────────────────────────
 
-  describe("tiebreak head-to-head", () => {
-    it("H2H : enregistrements cumulatifs sur matchs multiples entre la même paire", async () => {
+  describe("head-to-head tiebreak", () => {
+    it("H2H: cumulative records across multiple matches between the same pair", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([
           makeMatchWithSides("m1", "A", { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 0 }),
@@ -688,7 +688,7 @@ describe("StandingsService", () => {
       expect(b.headToHead["team-a"]?.losses).toBe(2);
     });
 
-    it("H2H nul : comptabilisé dans les deux sens", async () => {
+    it("H2H draw: counted both ways", async () => {
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", null, { teamId: "team-a", score: 1 }, { teamId: "team-b", score: 1 })]),
       );
@@ -699,7 +699,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "team-b")?.headToHead["team-a"]?.draws).toBe(1);
     });
 
-    it("sous-groupe H2H circulaire (3 équipes) : fallback par ID si tout est égal", async () => {
+    it("circular H2H subgroup (3 teams): falls back to ID when everything is tied", async () => {
       mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
       // Circular: A beats B, B beats C, C beats A → all tied 3pts/1W/1L/buchholz=6
       mockRepo.getMatchesWithSides.mockImplementation(() =>
@@ -726,7 +726,7 @@ describe("StandingsService", () => {
       expect(standings[2].id).toBe("team-c");
     });
 
-    it("H2H isolation : seuls les adversaires du sous-groupe sont comptabilisés", async () => {
+    it("H2H isolation: only opponents within the subgroup are counted", async () => {
       // A and B are tied; each beat an external opponent (C); H2H subgroup should only count A vs B
       mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([TEAM_A, TEAM_B, TEAM_C]));
       mockRepo.getMatchesWithSides.mockImplementation(() =>
@@ -751,7 +751,7 @@ describe("StandingsService", () => {
 
   // ── Mode flex — tiebreakers ───────────────────────────────────────────────
 
-  describe("mode flex — tiebreakers", () => {
+  describe("flex mode — tiebreakers", () => {
     const flexEntries1v1 = [
       {
         id: "entry-a", tournamentId: "tournament-1",
@@ -770,7 +770,7 @@ describe("StandingsService", () => {
       mockRepo.getTournamentEntries.mockImplementation(() => Promise.resolve(flexEntries1v1));
     });
 
-    it("victoryQuality flex : outcomeType.points=2 → +2 victoire, −2 défaite", async () => {
+    it("victoryQuality flex: outcomeType.points=2 → +2 win, −2 loss", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{
           ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0),
@@ -784,7 +784,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-b")?.victoryQuality).toBe(-2);
     });
 
-    it("victoryQuality flex : outcomeType=null → défaut 3 pts par victoire", async () => {
+    it("victoryQuality flex: outcomeType=null → default 3 pts per win", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0)]),
       );
@@ -795,7 +795,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-b")?.victoryQuality).toBe(-3);
     });
 
-    it("buchholzScore flex : somme des points des adversaires vaincus", async () => {
+    it("buchholzScore flex: sum of the points of defeated opponents", async () => {
       // p-a beats p-b in m1; then p-b beats another player in m2 → p-b gets 3 pts
       const flexEntries3 = [
         ...flexEntries1v1,
@@ -819,7 +819,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-a")?.buchholzScore).toBe(3);
     });
 
-    it("buchholzScore flex 2v2 : moyenne des adversaires, pas la somme", async () => {
+    it("buchholzScore flex 2v2: average of opponents, not the sum", async () => {
       // p-a beats (p-b + p-c) in a 2v2; p-b ends up with 3 pts, p-c with 1 pt
       // p-a.buchholz should be (3+1)/2 = 2, not 3+1 = 4
       const flexEntries2v2 = [
@@ -887,7 +887,7 @@ describe("StandingsService", () => {
       expect(findEntry(standings, "p-a")?.buchholzScore).toBe(2);
     });
 
-    it("countsForRanking=false : les scores ne sont pas comptabilisés", async () => {
+    it("countsForRanking=false: scores are not counted", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{
           id: "m1",
@@ -912,7 +912,7 @@ describe("StandingsService", () => {
       expect(a.matchesPlayed).toBe(0);
     });
 
-    it("countsForRanking=false : buchholz et victoryQuality non incrémentés", async () => {
+    it("countsForRanking=false: buchholz and victoryQuality not incremented", async () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{
           ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0, false),
@@ -930,7 +930,7 @@ describe("StandingsService", () => {
   // ── recalculatePointsInternal ─────────────────────────────────────────────
 
   describe("recalculatePointsInternal", () => {
-    it("static : met à jour pointsAwarded sur chaque matchSide (victoire A)", async () => {
+    it("static: updates pointsAwarded on each matchSide (A win)", async () => {
       mockRepo.getMatchesForStandings.mockImplementation(() =>
         Promise.resolve([{ id: "m1", winnerSide: "A", playedAt: new Date() }]),
       );
@@ -947,7 +947,7 @@ describe("StandingsService", () => {
       expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-b", 0);
     });
 
-    it("static : met à jour pointsAwarded (nul)", async () => {
+    it("static: updates pointsAwarded (draw)", async () => {
       mockRepo.getMatchesForStandings.mockImplementation(() =>
         Promise.resolve([{ id: "m1", winnerSide: null, playedAt: new Date() }]),
       );
@@ -964,7 +964,7 @@ describe("StandingsService", () => {
       expect(mockMatchSidesRepo.updatePointsAwarded).toHaveBeenCalledWith("m1", "entry-b", 1);
     });
 
-    it("flex : seuls les N premiers matchs chronologiques comptent (maxMatchesPerPlayer)", async () => {
+    it("flex: only the first N chronological matches count (maxMatchesPerPlayer)", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 2 }),
       );
@@ -1004,7 +1004,7 @@ describe("StandingsService", () => {
       expect(byMatch("m3").pointsAwarded).toBe(0);
     });
 
-    it("flex : la limite s'applique par joueur, pas par entry", async () => {
+    it("flex: the limit applies per player, not per entry", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
       );
@@ -1040,7 +1040,7 @@ describe("StandingsService", () => {
       expect(get("p2", "m2").countsForRanking).toBe(false);
     });
 
-    it("flex : matchs triés chronologiquement avant d'appliquer la limite", async () => {
+    it("flex: matches sorted chronologically before applying the limit", async () => {
       // Provide matches in reverse order; m3 (oldest) should count, m1 (newest) should not
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
@@ -1074,7 +1074,7 @@ describe("StandingsService", () => {
       expect(get("m1").countsForRanking).toBe(false); // newer match excluded
     });
 
-    it("invalidate le cache au début de la recalcul", async () => {
+    it("invalidates the cache at the start of recalculation", async () => {
       await standingsService.recalculatePointsInternal("tournament-1");
 
       expect(mockRepo.deleteComputedData).toHaveBeenCalledWith("tournament-1");
@@ -1083,8 +1083,8 @@ describe("StandingsService", () => {
 
   // ── Additional edge cases ───────────────────────────────────────────
 
-  describe("cas limites supplémentaires", () => {
-    it("tournoi sans équipe (static) : retourne un classement vide", async () => {
+  describe("additional edge cases", () => {
+    it("tournament with no team (static): returns an empty standings list", async () => {
       mockRepo.getTournamentTeams.mockImplementation(() => Promise.resolve([]));
 
       const { standings } = await standingsService.getOfficialStandings("tournament-1");
@@ -1092,7 +1092,7 @@ describe("StandingsService", () => {
       expect(standings).toHaveLength(0);
     });
 
-    it("tournoi sans entry (flex) : retourne un classement vide", async () => {
+    it("tournament with no entry (flex): returns an empty standings list", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
       );
@@ -1103,7 +1103,7 @@ describe("StandingsService", () => {
       expect(standings).toHaveLength(0);
     });
 
-    it("cache hit : retourne la valeur cachée sans recalculer les matchs", async () => {
+    it("cache hit: returns the cached value without recalculating matches", async () => {
       const cachedResult = {
         standings: [{ id: "team-a", name: "Alpha", shortName: "ALPHA", points: 99, wins: 10, draws: 0, losses: 0, scored: 0, conceded: 0, scoreDiff: 0, matchesPlayed: 10, winLossRatio: 10, buchholzScore: 0, victoryQuality: 10, victoryQualityBreakdown: [], winRate: 1, headToHead: {} }],
       };
@@ -1116,7 +1116,7 @@ describe("StandingsService", () => {
       expect(mockRepo.getTournamentWithScoring).not.toHaveBeenCalled();
     });
 
-    it("joueur présent dans plusieurs entries : apparaît une seule fois dans le classement", async () => {
+    it("player present in several entries: appears only once in the standings", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
       );
@@ -1138,7 +1138,7 @@ describe("StandingsService", () => {
       expect(standings.filter((e) => e.id === "p-shared")).toHaveLength(1);
     });
 
-    it("winRate flex = wins / max(1, matchesPlayed) — évite la division par zéro", async () => {
+    it("winRate flex = wins / max(1, matchesPlayed) — avoids division by zero", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
         Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const }),
       );

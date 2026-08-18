@@ -203,31 +203,31 @@ describe("Rank tier levels stay contiguous (integration)", () => {
     it("appends at the end of the ladder", async () => {
       const tiers = await rankedSeasonRepository.insertTier(seasonId, {
         level: 6,
-        name: "Mythe",
+        name: "Myth",
         percentile: 0.99,
         minMmr: 1700,
         subRanks: 1,
       });
       expect(tiers.map((tier) => tier.level)).toEqual([1, 2, 3, 4, 5, 6]);
-      expect(tiers[5].name).toBe("Mythe");
+      expect(tiers[5].name).toBe("Myth");
     });
 
     it("clamps a level beyond the end instead of leaving a hole", async () => {
       const tiers = await rankedSeasonRepository.insertTier(seasonId, {
         level: 42,
-        name: "Mythe",
+        name: "Myth",
         percentile: 0.99,
         minMmr: 1700,
         subRanks: 1,
       });
       expect(tiers.map((tier) => tier.level)).toEqual([1, 2, 3, 4, 5, 6]);
-      expect(tiers[5].name).toBe("Mythe");
+      expect(tiers[5].name).toBe("Myth");
     });
 
     it("pushes the tiers above one level up when inserting in the middle", async () => {
       const tiers = await rankedSeasonRepository.insertTier(seasonId, {
         level: 3,
-        name: "Intercalé",
+        name: "Inserted",
         percentile: 0.5,
         minMmr: 1050,
         subRanks: 1,
@@ -236,7 +236,7 @@ describe("Rank tier levels stay contiguous (integration)", () => {
       expect(tiers.map((tier) => tier.name)).toEqual([
         "Rookie",
         "Challenger",
-        "Intercalé",
+        "Inserted",
         "Confirmé",
         "Expert",
         "Légende",
@@ -248,7 +248,7 @@ describe("Rank tier levels stay contiguous (integration)", () => {
 
       await rankedSeasonRepository.insertTier(seasonId, {
         level: 3,
-        name: "Intercalé",
+        name: "Inserted",
         percentile: 0.5,
         minMmr: 1050,
         subRanks: 1,

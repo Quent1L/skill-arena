@@ -7,7 +7,7 @@ beforeEach(() => {
 })
 
 describe('useMatchListFiltersStore', () => {
-  it('initContext avec la même clé conserve les filtres', () => {
+  it('initContext with the same key keeps the filters', () => {
     const store = useMatchListFiltersStore()
     store.initContext('t1')
     store.myMatchesActive = true
@@ -21,7 +21,7 @@ describe('useMatchListFiltersStore', () => {
     expect(store.activeOutcomes.has('WIN')).toBe(true)
   })
 
-  it('initContext avec une nouvelle clé réinitialise les filtres', () => {
+  it('initContext with a new key resets the filters', () => {
     const store = useMatchListFiltersStore()
     store.initContext('t1')
     store.myMatchesActive = true
@@ -36,7 +36,7 @@ describe('useMatchListFiltersStore', () => {
     expect(store.activeOutcomes.size).toBe(0)
   })
 
-  it('reset vide tous les filtres', () => {
+  it('reset clears all filters', () => {
     const store = useMatchListFiltersStore()
     store.myMatchesActive = true
     store.selectedPlayers = [{ id: 'p1', displayName: 'Alice' }]

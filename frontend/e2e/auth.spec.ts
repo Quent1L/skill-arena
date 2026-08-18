@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test'
 import { API_URL, USERS, ADMIN_STATE } from './fixtures'
 
-test.describe('anonyme', () => {
+test.describe('anonymous', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
-  test('redirige une route protégée vers /login avec redirect', async ({ page }) => {
+  test('redirects a protected route to /login with redirect', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('login via le formulaire email/mot de passe', async ({ page }) => {
+  test('login via the email/password form', async ({ page }) => {
     await page.goto('/login?native=true')
     await page.locator('#email').fill(USERS.player1.email)
     await page.locator('#password input').fill(USERS.player1.password)
@@ -20,15 +20,15 @@ test.describe('anonyme', () => {
     await expect(page.getByRole('button', { name: 'Menu utilisateur' })).toBeVisible()
   })
 
-  test('login invalide reste sur /login', async ({ page }) => {
+  test('invalid login stays on /login', async ({ page }) => {
     await page.goto('/login?native=true')
     await page.locator('#email').fill(USERS.player1.email)
-    await page.locator('#password input').fill('mauvais-mot-de-passe')
+    await page.locator('#password input').fill('wrong-password')
     await page.locator('form button[type="submit"]').click()
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test('logout renvoie vers /login et invalide la session', async ({ page }) => {
+  test('logout redirects to /login and invalidates the session', async ({ page }) => {
     // Dedicated session: signOut revokes the token, we don't touch the shared storageState
     const res = await page.request.post(`${API_URL}/api/auth/sign-in/email`, {
       data: { email: USERS.player2.email, password: USERS.player2.password },
@@ -48,9 +48,9 @@ test.describe('anonyme', () => {
   })
 })
 
-test('un joueur est refusé sur /admin', async ({ page }) => {
+test('a player is denied on /admin', async ({ page }) => {
   await page.goto('/admin')
-  // requireAdmin renvoie vers l'accueil
+  // requireAdmin redirects to home
   await expect(page).toHaveURL('/')
   await expect(page.getByText('Administration')).toHaveCount(0)
 })
@@ -58,7 +58,7 @@ test('un joueur est refusé sur /admin', async ({ page }) => {
 test.describe('admin', () => {
   test.use({ storageState: ADMIN_STATE })
 
-  test('un super admin accède au dashboard /admin', async ({ page }) => {
+  test('a super admin can access the /admin dashboard', async ({ page }) => {
     await page.goto('/admin')
     await expect(page).toHaveURL(/\/admin/)
     await expect(page.getByText('Administration').first()).toBeVisible()
