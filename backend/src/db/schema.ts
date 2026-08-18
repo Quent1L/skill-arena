@@ -584,7 +584,6 @@ export const matchConfirmations = pgTable(
     isConfirmed: boolean("is_confirmed").notNull().default(false),
     isContested: boolean("is_contested").notNull().default(false),
     contestationReason: text("contestation_reason"),
-    contestationProof: text("contestation_proof"),
     sidePosition: integer("side_position"),
     isPostFinalization: boolean("is_post_finalization").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

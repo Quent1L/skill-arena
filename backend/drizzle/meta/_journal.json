@@ -505,6 +505,13 @@
       "when": 1777526400027,
       "tag": "0071_tournament_config_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1777526400028,
+      "tag": "0072_drop_contestation_proof",
+      "breakpoints": true
     }
   ]
 }
