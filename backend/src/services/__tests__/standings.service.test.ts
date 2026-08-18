@@ -8,9 +8,8 @@ const DEFAULT_TOURNAMENT = {
   id: "tournament-1",
   mode: "league",
   teamMode: "static" as const,
-  pointPerVictory: 3,
-  pointPerDraw: 1,
-  pointPerLoss: 0,
+  scoringConfig: { pointPerVictory: 3, pointPerDraw: 1, pointPerLoss: 0 },
+  championshipConfig: null,
   allowDraw: true,
   scoreEnabled: true,
 };
@@ -251,7 +250,10 @@ describe("StandingsService", () => {
 
     it("custom tournament points (2/0/1)", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
-        Promise.resolve({ ...DEFAULT_TOURNAMENT, pointPerVictory: 2, pointPerDraw: 0, pointPerLoss: 1 }),
+        Promise.resolve({
+          ...DEFAULT_TOURNAMENT,
+          scoringConfig: { pointPerVictory: 2, pointPerDraw: 0, pointPerLoss: 1 },
+        }),
       );
       mockRepo.getMatchesWithSides.mockImplementation(() =>
         Promise.resolve([makeMatchWithSides("m1", "A", { teamId: "team-a", score: 2 }, { teamId: "team-b", score: 0 })]),
@@ -966,7 +968,11 @@ describe("StandingsService", () => {
 
     it("flex: only the first N chronological matches count (maxMatchesPerPlayer)", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
-        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 2 }),
+        Promise.resolve({
+          ...DEFAULT_TOURNAMENT,
+          teamMode: "flex" as const,
+          championshipConfig: { maxMatchesPerPlayer: 2 },
+        }),
       );
 
       const t1 = new Date("2025-01-01");
@@ -1006,7 +1012,11 @@ describe("StandingsService", () => {
 
     it("flex: the limit applies per player, not per entry", async () => {
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
-        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
+        Promise.resolve({
+          ...DEFAULT_TOURNAMENT,
+          teamMode: "flex" as const,
+          championshipConfig: { maxMatchesPerPlayer: 1 },
+        }),
       );
 
       const t1 = new Date("2025-01-01");
@@ -1043,7 +1053,11 @@ describe("StandingsService", () => {
     it("flex: matches sorted chronologically before applying the limit", async () => {
       // Provide matches in reverse order; m3 (oldest) should count, m1 (newest) should not
       mockRepo.getTournamentWithScoring.mockImplementation(() =>
-        Promise.resolve({ ...DEFAULT_TOURNAMENT, teamMode: "flex" as const, maxMatchesPerPlayer: 1 }),
+        Promise.resolve({
+          ...DEFAULT_TOURNAMENT,
+          teamMode: "flex" as const,
+          championshipConfig: { maxMatchesPerPlayer: 1 },
+        }),
       );
 
       const t1 = new Date("2025-01-03");

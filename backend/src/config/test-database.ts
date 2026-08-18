@@ -150,6 +150,8 @@ export async function resetTestDatabase(): Promise<void> {
     "tournament_participants",
     "tournament_admins",
     "teams",
+    "championship_configs",
+    "tournament_scoring_configs",
     "tournaments",
     "invitation_usages",
     "invitation_codes",

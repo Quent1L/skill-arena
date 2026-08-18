@@ -74,19 +74,7 @@
           :score-enabled="store.tournament!.scoreEnabled ?? true"
           :team-mode="store.tournament!.teamMode"
           :show-provisional-toggle="store.tournament!.validationMode !== 'none'"
-          :tournament-config="{
-            pointPerVictory: store.tournament!.pointPerVictory,
-            pointPerDraw: store.tournament!.pointPerDraw,
-            pointPerLoss: store.tournament!.pointPerLoss,
-            maxMatchesPerPlayer: store.tournament!.maxMatchesPerPlayer,
-            maxTimesWithSamePartner: store.tournament!.maxTimesWithSamePartner,
-            maxTimesWithSameOpponent: store.tournament!.maxTimesWithSameOpponent,
-            minTeamSize: store.tournament!.minTeamSize,
-            maxTeamSize: store.tournament!.maxTeamSize,
-            minScore: store.tournament!.minScore,
-            maxScore: store.tournament!.maxScore,
-            disciplineId: store.tournament!.disciplineId,
-          }"
+          :tournament-config="toStandingsConfig(store.tournament!)"
           v-model:standings-type="standingsType"
         />
       </div>
@@ -162,6 +150,7 @@ import SubTabTrack from '@/components/ui/SubTabTrack.vue'
 import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
+import { toStandingsConfig } from '@/utils/standings-config'
 import BracketView from '@/components/bracket/BracketView.vue'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentParticipantsTab.vue'

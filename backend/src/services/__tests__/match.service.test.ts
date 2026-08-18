@@ -347,9 +347,11 @@ describe("MatchService - basic flows", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     // Simulate create returning an id and getById returning full match
@@ -546,9 +548,11 @@ describe("MatchService - basic flows", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 1,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 1,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     repo.countMatchesForUser = async () => 2; // exceeds max
@@ -572,9 +576,11 @@ describe("MatchService - basic flows", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 1,
-        maxTimesWithSameOpponent: 10,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 1,
+          maxTimesWithSameOpponent: 10,
+        },
       }) as any;
 
     repo.countMatchesForTeam = async () => 2; // exceeds
@@ -598,9 +604,11 @@ describe("MatchService - basic flows", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 10,
-        maxTimesWithSameOpponent: 1,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 10,
+          maxTimesWithSameOpponent: 1,
+        },
       }) as any;
 
     repo.countMatchesTeamsVsTeam = async () => 3; // exceeds
@@ -839,9 +847,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 3,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 3,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -877,9 +887,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 3,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 3,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -915,9 +927,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -949,9 +963,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -983,9 +999,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 3,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 3,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1021,9 +1039,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 3,
-        maxTimesWithSameOpponent: 3,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 3,
+          maxTimesWithSameOpponent: 3,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1060,9 +1080,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 5,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 5,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1106,9 +1128,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 3,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 2,
+          maxTimesWithSameOpponent: 3,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1150,9 +1174,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1193,9 +1219,11 @@ describe("MatchService - Partner and Opponent Constraints", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 2,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 2,
+        },
       }) as any;
 
     repo.validateEntriesForTournament = async () => undefined;
@@ -1633,9 +1661,11 @@ describe("MatchService - Edge Cases", () => {
         id: "t-1",
         status: "open",
         teamMode: "flex",
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 5,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 5,
+        },
       }) as any;
     usrRepo.getById = async () => ({ id: "u-1", role: "super_admin" }) as any;
 
@@ -1698,9 +1728,11 @@ describe("MatchService - Edge Cases", () => {
         status: "open",
         teamMode: "flex",
         scoreEnabled: true,
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 5,
-        maxTimesWithSameOpponent: 5,
+        championshipConfig: {
+          maxMatchesPerPlayer: 10,
+          maxTimesWithSamePartner: 5,
+          maxTimesWithSameOpponent: 5,
+        },
       }) as any;
     repo.create = async (_data: any) => "m-new";
     repo.getById = async (id: string) =>

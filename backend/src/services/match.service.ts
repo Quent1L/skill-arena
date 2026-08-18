@@ -163,7 +163,7 @@ export class MatchService {
   ): Promise<void> {
     const tournament = await matchRepository.getTournament(tournamentId)
     if (tournament?.mode === 'championship') {
-      if (tournament.teamMode === 'flex' && tournament.maxMatchesPerPlayer) {
+      if (tournament.teamMode === 'flex' && tournament.championshipConfig) {
         await standingsService.recalculatePointsInternal(tournamentId)
       } else {
         await standingsService.invalidateCache(tournamentId)

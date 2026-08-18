@@ -5,14 +5,23 @@ import {
   tournamentAdmins,
   appUsers,
   tournamentParticipants,
+  tournamentScoringConfigs,
+  championshipConfigs,
 } from "../db/schema";
 import {
   type TournamentMode,
   type TeamMode,
   type TournamentStatus,
   type ValidationMode,
+  type TournamentScoringConfig,
+  type ChampionshipConfig,
 } from "@skol-arena/shared/types/index";
 import { handleDatabaseError } from "../utils/db-errors";
+import {
+  SCORING_CONFIG_COLUMNS,
+  CHAMPIONSHIP_CONFIG_COLUMNS,
+  TOURNAMENT_CONFIGS_WITH,
+} from "./tournament-config.columns";
 
 export interface CreateTournamentData {
   name: string;
@@ -21,12 +30,10 @@ export interface CreateTournamentData {
   teamMode: TeamMode;
   minTeamSize: number;
   maxTeamSize: number;
-  maxMatchesPerPlayer: number;
-  maxTimesWithSamePartner: number;
-  maxTimesWithSameOpponent: number;
-  pointPerVictory: number | null;
-  pointPerDraw: number | null;
-  pointPerLoss: number | null;
+  /** Fully resolved by the service; omitted for modes that award no points. */
+  scoringConfig?: TournamentScoringConfig;
+  /** Fully resolved by the service; omitted outside championship mode. */
+  championshipConfig?: ChampionshipConfig;
   allowDraw: boolean | null;
   scoreEnabled?: boolean;
   startDate: string;
@@ -46,12 +53,8 @@ export interface UpdateTournamentData {
   mode?: TournamentMode;
   teamMode?: TeamMode;
   teamSize?: number;
-  maxMatchesPerPlayer?: number;
-  maxTimesWithSamePartner?: number;
-  maxTimesWithSameOpponent?: number;
-  pointPerVictory?: number;
-  pointPerDraw?: number;
-  pointPerLoss?: number;
+  scoringConfig?: Partial<TournamentScoringConfig>;
+  championshipConfig?: Partial<ChampionshipConfig>;
   allowDraw?: boolean;
   startDate?: string;
   endDate?: string;
@@ -86,22 +89,11 @@ export class TournamentRepository {
       teamMode: data.teamMode,
       minTeamSize: data.minTeamSize,
       maxTeamSize: data.maxTeamSize,
-      maxMatchesPerPlayer: data.maxMatchesPerPlayer,
-      maxTimesWithSamePartner: data.maxTimesWithSamePartner,
-      maxTimesWithSameOpponent: data.maxTimesWithSameOpponent,
       startDate: data.startDate,
       endDate: data.endDate,
       status: data.status,
       createdBy: data.createdBy,
       ...(data.description !== undefined && { description: data.description }),
-      ...(data.pointPerVictory !== null &&
-        data.pointPerVictory !== undefined && {
-          pointPerVictory: data.pointPerVictory,
-        }),
-      ...(data.pointPerDraw !== null &&
-        data.pointPerDraw !== undefined && { pointPerDraw: data.pointPerDraw }),
-      ...(data.pointPerLoss !== null &&
-        data.pointPerLoss !== undefined && { pointPerLoss: data.pointPerLoss }),
       ...(data.allowDraw !== null &&
         data.allowDraw !== undefined && { allowDraw: data.allowDraw }),
       ...(data.scoreEnabled !== undefined && {
@@ -119,12 +111,31 @@ export class TournamentRepository {
     };
 
     try {
-      const [tournament] = await db
-        .insert(tournaments)
-        .values(values)
-        .returning();
+      return await db.transaction(async (tx) => {
+        const [tournament] = await tx
+          .insert(tournaments)
+          .values(values)
+          .returning();
 
-      return tournament;
+        if (data.scoringConfig) {
+          await tx
+            .insert(tournamentScoringConfigs)
+            .values({ tournamentId: tournament.id, ...data.scoringConfig });
+        }
+
+        if (data.championshipConfig) {
+          await tx
+            .insert(championshipConfigs)
+            .values({ tournamentId: tournament.id, ...data.championshipConfig });
+        }
+
+        // Return the configs alongside the row: the create response carries them.
+        return {
+          ...tournament,
+          scoringConfig: data.scoringConfig ?? null,
+          championshipConfig: data.championshipConfig ?? null,
+        };
+      });
     } catch (error) {
       handleDatabaseError(error, {
         operation: "creation",
@@ -152,6 +163,8 @@ export class TournamentRepository {
             user: true,
           },
         },
+        scoringConfig: { columns: SCORING_CONFIG_COLUMNS },
+        championshipConfig: { columns: CHAMPIONSHIP_CONFIG_COLUMNS },
       },
     });
 
@@ -270,14 +283,46 @@ export class TournamentRepository {
    * Update tournament
    */
   async update(id: string, data: UpdateTournamentData) {
-    try {
-      const [updated] = await db
-        .update(tournaments)
-        .set(data)
-        .where(eq(tournaments.id, id))
-        .returning();
+    const { scoringConfig, championshipConfig, ...columns } = data;
 
-      return updated;
+    try {
+      return await db.transaction(async (tx) => {
+        if (scoringConfig) {
+          await tx
+            .insert(tournamentScoringConfigs)
+            .values({ tournamentId: id, ...scoringConfig })
+            .onConflictDoUpdate({
+              target: tournamentScoringConfigs.tournamentId,
+              set: scoringConfig,
+            });
+        }
+
+        if (championshipConfig) {
+          await tx
+            .insert(championshipConfigs)
+            .values({ tournamentId: id, ...championshipConfig })
+            .onConflictDoUpdate({
+              target: championshipConfigs.tournamentId,
+              set: championshipConfig,
+            });
+        }
+
+        // Skipped when the payload only touched the configs: an UPDATE with no
+        // columns is not valid SQL.
+        if (Object.keys(columns).length > 0) {
+          await tx.update(tournaments).set(columns).where(eq(tournaments.id, id));
+        }
+
+        // Re-read rather than use `returning()`: the caller stores this row as
+        // the current tournament, so it has to carry the configs too.
+        const updated = await tx.query.tournaments.findFirst({
+          where: eq(tournaments.id, id),
+          with: TOURNAMENT_CONFIGS_WITH,
+        });
+        if (!updated) throw new Error("Tournament not found");
+
+        return updated;
+      });
     } catch (error) {
       handleDatabaseError(error, {
         operation: "update",

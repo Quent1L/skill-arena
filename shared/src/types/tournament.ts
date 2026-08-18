@@ -19,6 +19,15 @@ import {
   scoreRangePredicate,
   scoreRangeError,
 } from "./season-form";
+import {
+  CHAMPIONSHIP_LIMITS,
+  championshipConfigInputSchema,
+  championshipConfigSchema,
+  tournamentScoringConfigInputSchema,
+  tournamentScoringConfigSchema,
+  type ChampionshipConfigInput,
+  type TournamentScoringConfigInput,
+} from "./tournament-config";
 
 // ============================================
 // Types and interfaces for tournaments
@@ -33,12 +42,10 @@ export const baseTournamentSchema = z
     teamMode: teamModeSchema,
     minTeamSize: z.number().int(),
     maxTeamSize: z.number().int(),
-    maxMatchesPerPlayer: z.number().int(),
-    maxTimesWithSamePartner: z.number().int(),
-    maxTimesWithSameOpponent: z.number().int(),
-    pointPerVictory: z.number().int(),
-    pointPerDraw: z.number().int(),
-    pointPerLoss: z.number().int(),
+    /** Present on every point-scored mode (championship, bracket), null on ranked. */
+    scoringConfig: tournamentScoringConfigSchema.nullish(),
+    /** Championship-only pairing caps, null on every other mode. */
+    championshipConfig: championshipConfigSchema.nullish(),
     allowDraw: z.boolean(),
     scoreEnabled: z.boolean(),
     startDate: z.iso.datetime(),
@@ -68,12 +75,8 @@ export interface CreateTournamentInput {
   teamMode: TeamMode;
   minTeamSize: number;
   maxTeamSize: number;
-  maxMatchesPerPlayer?: number;
-  maxTimesWithSamePartner?: number;
-  maxTimesWithSameOpponent?: number;
-  pointPerVictory?: number;
-  pointPerDraw?: number;
-  pointPerLoss?: number;
+  scoringConfig?: TournamentScoringConfigInput;
+  championshipConfig?: ChampionshipConfigInput;
   allowDraw?: boolean;
   scoreEnabled?: boolean;
   startDate: string; // ISO date string
@@ -93,12 +96,8 @@ export interface UpdateTournamentInput {
   teamMode?: TeamMode;
   minTeamSize?: number;
   maxTeamSize?: number;
-  maxMatchesPerPlayer?: number;
-  maxTimesWithSamePartner?: number;
-  maxTimesWithSameOpponent?: number;
-  pointPerVictory?: number;
-  pointPerDraw?: number;
-  pointPerLoss?: number;
+  scoringConfig?: TournamentScoringConfigInput;
+  championshipConfig?: ChampionshipConfigInput;
   allowDraw?: boolean;
   scoreEnabled?: boolean;
   startDate?: string;
@@ -138,18 +137,36 @@ export const tournamentWithStatsListSchema = z.array(tournamentWithStatsSchema);
 // Zod schemas for validation
 // ============================================
 
+/**
+ * The championship knobs stay flat in the *form* schemas: the form is a UI model
+ * bound field by field to vee-validate. They are folded into the nested
+ * `scoringConfig` / `championshipConfig` objects on submit.
+ */
+const optionalCap = (limits: { min: number; max: number }) =>
+  z.number().int().min(limits.min).max(limits.max).optional();
+
+const optionalPoints = () => z.number().int().min(0).optional();
+
+const flatChampionshipFormFields = {
+  maxMatchesPerPlayer: optionalCap(CHAMPIONSHIP_LIMITS.maxMatchesPerPlayer),
+  maxTimesWithSamePartner: optionalCap(
+    CHAMPIONSHIP_LIMITS.maxTimesWithSamePartner,
+  ),
+  maxTimesWithSameOpponent: optionalCap(
+    CHAMPIONSHIP_LIMITS.maxTimesWithSameOpponent,
+  ),
+  pointPerVictory: optionalPoints(),
+  pointPerDraw: optionalPoints(),
+  pointPerLoss: optionalPoints(),
+};
+
 // Base schema without cross-field validations for forms
 // Extends baseSeasonFormSchema (fields shared with ranked seasons) by adding
 // fields specific to tournaments.
 export const baseTournamentFormSchema = baseSeasonFormSchema.extend({
   mode: tournamentModeSchema,
   teamMode: teamModeSchema,
-  maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
-  maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
-  maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
-  pointPerVictory: z.number().int().min(0).optional(),
-  pointPerDraw: z.number().int().min(0).optional(),
-  pointPerLoss: z.number().int().min(0).optional(),
+  ...flatChampionshipFormFields,
   validationMode: validationModeSchema.optional(),
   validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
 });
@@ -159,12 +176,7 @@ export const baseTournamentUpdateFormSchema = baseSeasonUpdateFormSchema.extend(
   {
     mode: tournamentModeSchema.optional(),
     teamMode: teamModeSchema.optional(),
-    maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
-    maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
-    maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
-    pointPerVictory: z.number().int().min(0).optional(),
-    pointPerDraw: z.number().int().min(0).optional(),
-    pointPerLoss: z.number().int().min(0).optional(),
+    ...flatChampionshipFormFields,
     status: tournamentStatusSchema.optional(),
     validationMode: validationModeSchema.optional(),
     validationTimerHours: z.number().int().min(1).max(168).nullable().optional(),
@@ -194,24 +206,8 @@ const baseTournamentDataSchema = z.object({
     .number({ message: "La taille maximale de l'équipe est requise" })
     .int()
     .min(1, "La taille minimale est 1"),
-  maxMatchesPerPlayer: z.number().int().min(1).max(100).default(10).optional(),
-  maxTimesWithSamePartner: z
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(2)
-    .optional(),
-  maxTimesWithSameOpponent: z
-    .number()
-    .int()
-    .min(1)
-    .max(10)
-    .default(2)
-    .optional(),
-  pointPerVictory: z.number().int().min(0).default(3).optional(),
-  pointPerDraw: z.number().int().min(0).default(1).optional(),
-  pointPerLoss: z.number().int().min(0).default(0).optional(),
+  scoringConfig: tournamentScoringConfigInputSchema.optional(),
+  championshipConfig: championshipConfigInputSchema.optional(),
   allowDraw: z.boolean().default(true).optional(),
   scoreEnabled: z.boolean().default(true).optional(),
   startDate: z
@@ -262,12 +258,8 @@ export const updateTournamentSchema = z
     teamMode: teamModeSchema.optional(),
     minTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
     maxTeamSize: z.number().int().min(1, "La taille minimale est 1").optional(),
-    maxMatchesPerPlayer: z.number().int().min(1).max(100).optional(),
-    maxTimesWithSamePartner: z.number().int().min(1).max(10).optional(),
-    maxTimesWithSameOpponent: z.number().int().min(1).max(10).optional(),
-    pointPerVictory: z.number().int().min(0).optional(),
-    pointPerDraw: z.number().int().min(0).optional(),
-    pointPerLoss: z.number().int().min(0).optional(),
+    scoringConfig: tournamentScoringConfigInputSchema.optional(),
+    championshipConfig: championshipConfigInputSchema.optional(),
     allowDraw: z.boolean().optional(),
     scoreEnabled: z.boolean().optional(),
     startDate: z
@@ -349,6 +341,59 @@ export function formDataToApiPayload<
     ...rest,
     ...(startDate && { startDate: toLocalDateStr(startDate) }),
     ...(endDate && { endDate: toLocalDateStr(endDate) }),
+  };
+}
+
+/** The championship knobs as the form holds them, before nesting. */
+export interface FlatTournamentConfigFields {
+  maxMatchesPerPlayer?: number;
+  maxTimesWithSamePartner?: number;
+  maxTimesWithSameOpponent?: number;
+  pointPerVictory?: number;
+  pointPerDraw?: number;
+  pointPerLoss?: number;
+}
+
+function compact<T extends object>(values: T): Partial<T> | undefined {
+  const entries = Object.entries(values).filter(
+    ([, value]) => value !== undefined && value !== null,
+  );
+  return entries.length > 0 ? (Object.fromEntries(entries) as Partial<T>) : undefined;
+}
+
+/**
+ * Folds the flat form fields into the nested `scoringConfig` /
+ * `championshipConfig` objects the API expects. A config whose fields were all
+ * left empty is omitted entirely, so the backend applies its defaults instead of
+ * receiving an empty object.
+ */
+export function nestTournamentConfigs<T extends FlatTournamentConfigFields>(
+  payload: T,
+): Omit<T, keyof FlatTournamentConfigFields> & {
+  scoringConfig?: TournamentScoringConfigInput;
+  championshipConfig?: ChampionshipConfigInput;
+} {
+  const {
+    maxMatchesPerPlayer,
+    maxTimesWithSamePartner,
+    maxTimesWithSameOpponent,
+    pointPerVictory,
+    pointPerDraw,
+    pointPerLoss,
+    ...rest
+  } = payload;
+
+  const scoringConfig = compact({ pointPerVictory, pointPerDraw, pointPerLoss });
+  const championshipConfig = compact({
+    maxMatchesPerPlayer,
+    maxTimesWithSamePartner,
+    maxTimesWithSameOpponent,
+  });
+
+  return {
+    ...rest,
+    ...(scoringConfig && { scoringConfig }),
+    ...(championshipConfig && { championshipConfig }),
   };
 }
 

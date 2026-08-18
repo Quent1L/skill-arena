@@ -3,37 +3,52 @@ import { teamRepository } from "../../repository/team.repository";
 import { userRepository } from "../../repository/user.repository";
 import { BadRequestError, ConflictError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput } from "@skol-arena/shared/types/index";
+import type { ChampionshipConfig } from "@skol-arena/shared/types/index";
 
 type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>
 >;
 
+/** A tournament carrying its championship caps — the only shape this validator acts on. */
+type CappedTournament = NonNullable<TournamentFromRepository> & {
+    championshipConfig: ChampionshipConfig;
+};
+
 export class MatchRuleValidator {
+    /**
+     * The caps live on the championship config, so a tournament without one — a
+     * bracket, a ranked season — has nothing to validate here. The size-mismatch
+     * check inside the flex path is structural rather than a cap, but ranked has
+     * always been exempt from it (asymmetric matches are a ranked feature) and
+     * brackets generate their own matches, so skipping the whole pass is correct
+     * for both.
+     */
     async validateMatchRules(
         input: CreateMatchInput & { matchId?: string },
         tournament: NonNullable<TournamentFromRepository>
     ): Promise<void> {
-        if (tournament.mode === "ranked") return;
+        if (!tournament.championshipConfig) return;
+        const capped = tournament as CappedTournament;
 
         const sides = input.sides ?? [];
         if (sides.length < 2) return;
 
-        if (tournament.teamMode === "flex") {
+        if (capped.teamMode === "flex") {
             const flexSides = sides.filter((s) => s.playerIds && s.playerIds.length > 0);
             if (flexSides.length >= 2) {
-                await this.validateFlexTeamRules(input, tournament);
+                await this.validateFlexTeamRules(input, capped);
             }
-        } else if (tournament.teamMode === "static") {
+        } else if (capped.teamMode === "static") {
             const staticSides = sides.filter((s) => s.teamId);
             if (staticSides.length >= 2) {
-                await this.validateStaticTeamRules(input, tournament);
+                await this.validateStaticTeamRules(input, capped);
             }
         }
     }
 
     private async validateStaticTeamRules(
         input: CreateMatchInput & { matchId?: string },
-        tournament: NonNullable<TournamentFromRepository>
+        tournament: CappedTournament
     ): Promise<void> {
         const sides = input.sides ?? [];
         const excludeMatchId = input.matchId;
@@ -69,7 +84,7 @@ export class MatchRuleValidator {
 
     private async validateFlexTeamRules(
         input: CreateMatchInput & { matchId?: string },
-        tournament: NonNullable<TournamentFromRepository>
+        tournament: CappedTournament
     ): Promise<void> {
         const sides = input.sides ?? [];
         const sideSizes = sides.map((s) => s.playerIds?.length ?? 0);
@@ -104,7 +119,7 @@ export class MatchRuleValidator {
     }
 
     private async validateAtLeastOnePlayerUnderLimit(
-        tournament: NonNullable<TournamentFromRepository>,
+        tournament: CappedTournament,
         allPlayerIds: string[],
         excludeMatchId?: string
     ): Promise<void> {
@@ -114,17 +129,17 @@ export class MatchRuleValidator {
             )
         );
         const atLeastOneUnderLimit = counts.some(
-            (count) => count < tournament.maxMatchesPerPlayer
+            (count) => count < tournament.championshipConfig.maxMatchesPerPlayer
         );
         if (!atLeastOneUnderLimit) {
             throw new ConflictError(ErrorCode.ALL_PLAYERS_MAX_MATCHES_EXCEEDED, {
-                max: tournament.maxMatchesPerPlayer,
+                max: tournament.championshipConfig.maxMatchesPerPlayer,
             });
         }
     }
 
     private async validateTeamPartnerConstraints(
-        tournament: NonNullable<TournamentFromRepository>,
+        tournament: CappedTournament,
         teamPlayerIds: string[],
         excludeMatchId?: string
     ): Promise<void> {
@@ -134,10 +149,10 @@ export class MatchRuleValidator {
             excludeMatchId,
         );
 
-        if (count >= tournament.maxTimesWithSamePartner) {
+        if (count >= tournament.championshipConfig.maxTimesWithSamePartner) {
             const names = await Promise.all(teamPlayerIds.map((id) => this.getPlayerName(id)));
             throw new ConflictError(ErrorCode.MAX_PARTNER_MATCHES_EXCEEDED, {
-                max: tournament.maxTimesWithSamePartner,
+                max: tournament.championshipConfig.maxTimesWithSamePartner,
                 teamName: names.join(", "),
             });
         }
@@ -147,7 +162,7 @@ export class MatchRuleValidator {
         tournamentId: string,
         playerIdsA: string[],
         playerIdsB: string[],
-        tournament: NonNullable<TournamentFromRepository>,
+        tournament: CappedTournament,
         excludeMatchId?: string
     ): Promise<void> {
         const count = await matchRepository.countMatchesTeamsVsTeam(
@@ -157,13 +172,13 @@ export class MatchRuleValidator {
             excludeMatchId,
         );
 
-        if (count >= tournament.maxTimesWithSameOpponent) {
+        if (count >= tournament.championshipConfig.maxTimesWithSameOpponent) {
             const [namesA, namesB] = await Promise.all([
                 Promise.all(playerIdsA.map((id) => this.getPlayerName(id))),
                 Promise.all(playerIdsB.map((id) => this.getPlayerName(id))),
             ]);
             throw new ConflictError(ErrorCode.MAX_OPPONENT_MATCHES_EXCEEDED, {
-                max: tournament.maxTimesWithSameOpponent,
+                max: tournament.championshipConfig.maxTimesWithSameOpponent,
                 teamName: namesA.join(", "),
                 opponentTeamName: namesB.join(", "),
             });

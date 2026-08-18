@@ -7,6 +7,8 @@ import {
   type StandingsEntry,
   type StandingsResult,
   type VictoryQualityDetail,
+  type TournamentScoringConfig,
+  resolveScoringConfig,
 } from "@skol-arena/shared";
 
 /**
@@ -29,12 +31,6 @@ interface OutcomeInfo {
   key: string;
   name: string;
   points: number;
-}
-
-interface PointsConfig {
-  pointPerVictory: number | null;
-  pointPerDraw: number | null;
-  pointPerLoss: number | null;
 }
 
 type RebuildMatch = { id: string; winnerSide: string | null; playedAt: Date | string };
@@ -87,7 +83,13 @@ export class StandingsService {
     if (tournament.teamMode === "flex") {
       return this.calculateFlexStandings(tournamentId, includeStatuses, scoreEnabled, allowDraw);
     }
-    return this.calculateStaticStandings(tournamentId, includeStatuses, tournament, scoreEnabled);
+    return this.calculateStaticStandings(
+      tournamentId,
+      includeStatuses,
+      resolveScoringConfig(tournament.scoringConfig),
+      allowDraw,
+      scoreEnabled
+    );
   }
 
   // ── Flex standings ───────────────────────────────────────────────────
@@ -273,12 +275,8 @@ export class StandingsService {
   private async calculateStaticStandings(
     tournamentId: string,
     includeStatuses: MatchStatus[],
-    tournament: {
-      pointPerVictory: number | null;
-      pointPerDraw: number | null;
-      pointPerLoss: number | null;
-      allowDraw: boolean | null;
-    },
+    scoring: TournamentScoringConfig,
+    allowDraw: boolean,
     scoreEnabled: boolean
   ): Promise<StandingsResult> {
     const standingsMap = await this.initializeStaticStandings(tournamentId);
@@ -305,9 +303,9 @@ export class StandingsService {
       const entryB = standingsMap.get(entryBId);
       if (!entryA || !entryB) continue;
 
-      this.updateStandingsForSide(entryA, sideA, sideB, tournament, winnerSide, scoreEnabled);
+      this.updateStandingsForSide(entryA, sideA, sideB, scoring, winnerSide, scoreEnabled);
       this.updateStandingsForSide(
-        entryB, sideB, sideA, tournament,
+        entryB, sideB, sideA, scoring,
         this.oppositeSide(winnerSide),
         scoreEnabled
       );
@@ -317,7 +315,7 @@ export class StandingsService {
     this.computeStaticTiebreakers(standingsMap, matchRows);
 
     const standings = Array.from(standingsMap.values());
-    this.sortStandings(standings, tournament.allowDraw ?? true);
+    this.sortStandings(standings, allowDraw);
     return { standings };
   }
 
@@ -498,12 +496,7 @@ export class StandingsService {
     entry: StandingsEntry,
     side: { score: number | null; pointsAwarded: number | null },
     opponentSide: { score: number | null; pointsAwarded: number | null },
-    tournament: {
-      pointPerVictory: number | null;
-      pointPerDraw: number | null;
-      pointPerLoss: number | null;
-      allowDraw: boolean | null;
-    },
+    scoring: TournamentScoringConfig,
     winnerSide: WinnerSide,
     scoreEnabled: boolean
   ) {
@@ -518,13 +511,13 @@ export class StandingsService {
 
     if (isDraw) {
       entry.draws += 1;
-      entry.points += side.pointsAwarded ?? tournament.pointPerDraw ?? 1;
+      entry.points += side.pointsAwarded ?? scoring.pointPerDraw;
     } else if (wins) {
       entry.wins += 1;
-      entry.points += side.pointsAwarded ?? tournament.pointPerVictory ?? 3;
+      entry.points += side.pointsAwarded ?? scoring.pointPerVictory;
     } else {
       entry.losses += 1;
-      entry.points += side.pointsAwarded ?? tournament.pointPerLoss ?? 0;
+      entry.points += side.pointsAwarded ?? scoring.pointPerLoss;
     }
 
     entry.matchesPlayed += 1;
@@ -643,6 +636,7 @@ export class StandingsService {
     const tournament = await standingsRepository.getTournamentWithScoring(tournamentId);
     if (!tournament) throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
 
+    const scoring = resolveScoringConfig(tournament.scoringConfig);
     const statuses: MatchStatus[] = PROVISIONAL_MATCH_STATUSES;
 
     const matchList = await standingsRepository.getMatchesForStandings(tournamentId, statuses);
@@ -662,15 +656,17 @@ export class StandingsService {
       const isDraw = match.winnerSide === null;
       const isAWinner = match.winnerSide === "A";
 
-      const pointsA = this.sidePoints(tournament, isDraw, isAWinner);
-      const pointsB = this.sidePoints(tournament, isDraw, !isDraw && !isAWinner);
+      const pointsA = this.sidePoints(scoring, isDraw, isAWinner);
+      const pointsB = this.sidePoints(scoring, isDraw, !isDraw && !isAWinner);
 
       await matchSidesRepository.updatePointsAwarded(match.id, sideA.entryId, pointsA);
       await matchSidesRepository.updatePointsAwarded(match.id, sideB.entryId, pointsB);
     }
 
     if (tournament.teamMode === "flex") {
-      await this.rebuildPlayerPoints(tournamentId, matchList, sidesMap, tournament);
+      await this.rebuildPlayerPoints(tournamentId, matchList, sidesMap, scoring, {
+        maxMatchesPerPlayer: tournament.championshipConfig?.maxMatchesPerPlayer,
+      });
     }
 
     return { updatedMatches: matchList.length };
@@ -682,22 +678,28 @@ export class StandingsService {
     return null;
   }
 
-  private sidePoints(tournament: PointsConfig, isDraw: boolean, isWin: boolean): number {
-    if (isDraw) return tournament.pointPerDraw ?? 1;
-    if (isWin) return tournament.pointPerVictory ?? 3;
-    return tournament.pointPerLoss ?? 0;
+  private sidePoints(
+    scoring: TournamentScoringConfig,
+    isDraw: boolean,
+    isWin: boolean
+  ): number {
+    if (isDraw) return scoring.pointPerDraw;
+    if (isWin) return scoring.pointPerVictory;
+    return scoring.pointPerLoss;
   }
 
   private async rebuildPlayerPoints(
     tournamentId: string,
     matchList: RebuildMatch[],
     sidesMap: Map<string, RebuildSide[]>,
-    tournament: PointsConfig & { maxMatchesPerPlayer: number | null }
+    scoring: TournamentScoringConfig,
+    caps: { maxMatchesPerPlayer?: number }
   ) {
     const statuses: MatchStatus[] = PROVISIONAL_MATCH_STATUSES;
     await standingsRepository.deletePlayerPointsForTournament(tournamentId, statuses);
 
-    const maxMatches = tournament.maxMatchesPerPlayer ?? Infinity;
+    // No championship config means no cap: every match counts for the ranking.
+    const maxMatches = caps.maxMatchesPerPlayer ?? Infinity;
     const playerMatchCount = new Map<string, number>();
     const sorted = [...matchList].sort(
       (a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime()
@@ -707,7 +709,7 @@ export class StandingsService {
     for (const match of sorted) {
       const sides = sidesMap.get(match.id) ?? [];
       if (sides.length !== 2) continue;
-      this.collectMatchPlayerPoints(match, sides, tournament, { playerMatchCount, maxMatches, rows });
+      this.collectMatchPlayerPoints(match, sides, scoring, { playerMatchCount, maxMatches, rows });
     }
 
     await standingsRepository.insertPlayerPoints(rows);
@@ -716,7 +718,7 @@ export class StandingsService {
   private collectMatchPlayerPoints(
     match: RebuildMatch,
     sides: RebuildSide[],
-    tournament: PointsConfig,
+    scoring: TournamentScoringConfig,
     acc: { playerMatchCount: Map<string, number>; maxMatches: number; rows: PlayerPointRow[] }
   ): void {
     const isDraw = match.winnerSide === null;
@@ -725,7 +727,7 @@ export class StandingsService {
     for (const side of sides) {
       const isASide = side === sides[0];
       const isWin = isASide ? isAWinner : !isAWinner && !isDraw;
-      const pts = this.sidePoints(tournament, isDraw, isWin);
+      const pts = this.sidePoints(scoring, isDraw, isWin);
 
       for (const { playerId } of side.entry?.players ?? []) {
         const prior = acc.playerMatchCount.get(playerId) ?? 0;

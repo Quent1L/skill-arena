@@ -19,7 +19,10 @@ import {
   type ClientMatchDetail,
   type MatchDetailSide,
   type MatchDetailPlayer,
+  type TournamentScoringConfig,
+  resolveScoringConfig,
 } from "@skol-arena/shared";
+import { TOURNAMENT_CONFIGS_WITH } from "./tournament-config.columns";
 import { entryRepository } from "./entry.repository";
 import { matchSidesRepository } from "./match-sides.repository";
 import { matchResultRepository } from "./match-result.repository";
@@ -99,12 +102,11 @@ function resolveMatchOutcome(
 }
 
 function computeSidePoints(
-  tournament: typeof tournaments.$inferSelect,
+  tournament: { scoringConfig?: TournamentScoringConfig | null },
   outcome: MatchOutcome,
 ): { a: number; b: number } {
-  const win = tournament.pointPerVictory ?? 3;
-  const loss = tournament.pointPerLoss ?? 0;
-  const draw = tournament.pointPerDraw ?? 1;
+  const { pointPerVictory: win, pointPerDraw: draw, pointPerLoss: loss } =
+    resolveScoringConfig(tournament.scoringConfig);
   if (outcome.isDraw) return { a: draw, b: draw };
   return outcome.isAWinner ? { a: win, b: loss } : { a: loss, b: win };
 }
@@ -132,6 +134,7 @@ export class MatchRepository {
       // 2. Get tournament for points calculation (use tx to avoid deadlock on PGlite)
       const tournament = await tx.query.tournaments.findFirst({
         where: eq(tournaments.id, data.tournamentId),
+        with: TOURNAMENT_CONFIGS_WITH,
       });
       if (!tournament) {
         throw new Error("Tournament not found");
@@ -1111,6 +1114,7 @@ export class MatchRepository {
   async getTournament(tournamentId: string) {
     return await db.query.tournaments.findFirst({
       where: eq(tournaments.id, tournamentId),
+      with: TOURNAMENT_CONFIGS_WITH,
     });
   }
 

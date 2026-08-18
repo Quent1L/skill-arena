@@ -165,7 +165,7 @@ describe("MatchFinalizationOrchestrator", () => {
       id: "t-1",
       mode: "championship",
       teamMode: "flex",
-      maxMatchesPerPlayer: 5,
+      championshipConfig: { maxMatchesPerPlayer: 5 },
     });
 
     await matchFinalizationOrchestrator.runPostFinalizationEffects(

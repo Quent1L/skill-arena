@@ -8,6 +8,8 @@ import {
   type TournamentMode,
   type TournamentStatus,
   type JoinTournamentRequest,
+  resolveScoringConfig,
+  resolveChampionshipConfig,
 } from "@skol-arena/shared";
 import {
   ErrorCode,
@@ -133,12 +135,14 @@ export class TournamentService {
       teamMode: input.teamMode,
       minTeamSize: input.minTeamSize,
       maxTeamSize: input.maxTeamSize,
-      maxMatchesPerPlayer: input.maxMatchesPerPlayer ?? 10,
-      maxTimesWithSamePartner: input.maxTimesWithSamePartner ?? 2,
-      maxTimesWithSameOpponent: input.maxTimesWithSameOpponent ?? 2,
-      pointPerVictory: input.pointPerVictory ?? 3,
-      pointPerDraw: input.pointPerDraw ?? 1,
-      pointPerLoss: input.pointPerLoss ?? 0,
+      // Points apply to every mode that awards them; ranked runs on MMR instead.
+      ...(input.mode !== "ranked" && {
+        scoringConfig: resolveScoringConfig(input.scoringConfig),
+      }),
+      // The pairing caps only constrain user-created matches.
+      ...(input.mode === "championship" && {
+        championshipConfig: resolveChampionshipConfig(input.championshipConfig),
+      }),
       allowDraw: input.allowDraw ?? true,
       scoreEnabled: input.scoreEnabled ?? true,
       startDate: input.startDate,

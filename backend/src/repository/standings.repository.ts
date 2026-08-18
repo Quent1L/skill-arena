@@ -10,6 +10,7 @@ import {
   computedData,
 } from "../db/schema";
 import { type MatchStatus, type StandingsResult } from "@skol-arena/shared";
+import { TOURNAMENT_CONFIGS_WITH } from "./tournament-config.columns";
 
 export type PlayerPointRow = {
   matchId: string;
@@ -26,13 +27,10 @@ export class StandingsRepository {
         id: true,
         mode: true,
         teamMode: true,
-        pointPerVictory: true,
-        pointPerDraw: true,
-        pointPerLoss: true,
         allowDraw: true,
         scoreEnabled: true,
-        maxMatchesPerPlayer: true,
       },
+      with: TOURNAMENT_CONFIGS_WITH,
     });
   }
 

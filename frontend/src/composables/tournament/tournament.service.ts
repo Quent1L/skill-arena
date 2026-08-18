@@ -11,7 +11,7 @@ import type {
   UpdateTournamentFormData,
   TournamentStatus,
 } from '@skol-arena/shared/types/index'
-import { formDataToApiPayload } from '@skol-arena/shared/types/index'
+import { formDataToApiPayload, nestTournamentConfigs } from '@skol-arena/shared/types/index'
 import { useAuth } from '../useAuth'
 
 /**
@@ -160,7 +160,9 @@ export function useTournamentService() {
     error.value = null
 
     try {
-      const payload = formDataToApiPayload(formData) as CreateTournamentPayload
+      const payload = nestTournamentConfigs(
+        formDataToApiPayload(formData),
+      ) as CreateTournamentPayload
       const tournament = await tournamentApi.create(payload)
 
       // Reload list rather than inserting full detail item into summary list
@@ -182,7 +184,7 @@ export function useTournamentService() {
     error.value = null
 
     try {
-      const payload = formDataToApiPayload(formData)
+      const payload = nestTournamentConfigs(formDataToApiPayload(formData))
       const tournament = await tournamentApi.update(id, payload)
 
       // Update status in list summary

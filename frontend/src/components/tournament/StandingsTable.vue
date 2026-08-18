@@ -37,19 +37,19 @@
             <li class="flex justify-between">
               <span>{{ t('standingsTable.win') }}</span>
               <span class="font-medium text-green-600 dark:text-green-400"
-                >{{ tournamentConfig?.pointPerVictory ?? 3 }} {{ t('standingsTable.ptsUnit') }}</span
+                >{{ tournamentConfig?.pointPerVictory ?? SCORING_DEFAULTS.pointPerVictory }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
             <li v-if="allowDraw" class="flex justify-between">
               <span>{{ t('standingsTable.draw') }}</span>
               <span class="font-medium text-gray-600 dark:text-gray-400"
-                >{{ tournamentConfig?.pointPerDraw ?? 1 }} {{ t('standingsTable.ptsUnit') }}</span
+                >{{ tournamentConfig?.pointPerDraw ?? SCORING_DEFAULTS.pointPerDraw }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
             <li class="flex justify-between">
               <span>{{ t('standingsTable.loss') }}</span>
               <span class="font-medium text-red-600 dark:text-red-400"
-                >{{ tournamentConfig?.pointPerLoss ?? 0 }} {{ t('standingsTable.ptsUnit') }}</span
+                >{{ tournamentConfig?.pointPerLoss ?? SCORING_DEFAULTS.pointPerLoss }} {{ t('standingsTable.ptsUnit') }}</span
               >
             </li>
           </ul>
@@ -467,22 +467,9 @@ import Popover from 'primevue/popover'
 import Dialog from 'primevue/dialog'
 import { useStandingsService } from '@/composables/standings.service'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
-import type { StandingsEntry, OutcomeType } from '@skol-arena/shared'
+import { SCORING_DEFAULTS, type StandingsEntry, type OutcomeType } from '@skol-arena/shared'
 import { useViewport } from '@/composables/useViewport.ts'
-
-interface TournamentConfig {
-  pointPerVictory: number
-  pointPerDraw: number
-  pointPerLoss: number
-  maxMatchesPerPlayer: number
-  maxTimesWithSamePartner: number
-  maxTimesWithSameOpponent: number
-  minTeamSize: number
-  maxTeamSize: number
-  minScore?: number | null
-  maxScore?: number | null
-  disciplineId?: string | null
-}
+import type { StandingsTournamentConfig } from '@/utils/standings-config'
 
 interface Props {
   tournamentId: string
@@ -490,7 +477,7 @@ interface Props {
   scoreEnabled?: boolean
   teamMode?: 'static' | 'flex'
   standingsType?: 'official' | 'provisional'
-  tournamentConfig?: TournamentConfig
+  tournamentConfig?: StandingsTournamentConfig
   showProvisionalToggle?: boolean
 }
 

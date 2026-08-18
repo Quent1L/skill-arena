@@ -88,8 +88,8 @@
                 <InputNumber
                   id="maxMatchesPerPlayer"
                   v-model="maxMatchesPerPlayer"
-                  :min="1"
-                  :max="100"
+                  :min="CHAMPIONSHIP_LIMITS.maxMatchesPerPlayer.min"
+                  :max="CHAMPIONSHIP_LIMITS.maxMatchesPerPlayer.max"
                   :disabled="!isFieldEditable('maxMatchesPerPlayer')"
                   class="w-full"
                 />
@@ -102,8 +102,8 @@
                 <InputNumber
                   id="maxTimesWithSamePartner"
                   v-model="maxTimesWithSamePartner"
-                  :min="1"
-                  :max="10"
+                  :min="CHAMPIONSHIP_LIMITS.maxTimesWithSamePartner.min"
+                  :max="CHAMPIONSHIP_LIMITS.maxTimesWithSamePartner.max"
                   :disabled="!isFieldEditable('maxTimesWithSamePartner')"
                   class="w-full"
                 />
@@ -116,8 +116,8 @@
                 <InputNumber
                   id="maxTimesWithSameOpponent"
                   v-model="maxTimesWithSameOpponent"
-                  :min="1"
-                  :max="10"
+                  :min="CHAMPIONSHIP_LIMITS.maxTimesWithSameOpponent.min"
+                  :max="CHAMPIONSHIP_LIMITS.maxTimesWithSameOpponent.max"
                   :disabled="!isFieldEditable('maxTimesWithSameOpponent')"
                   class="w-full"
                 />
@@ -208,6 +208,11 @@ import {
   type UpdateTournamentFormData,
   baseTournamentFormSchema,
   baseTournamentUpdateFormSchema,
+  CHAMPIONSHIP_DEFAULTS,
+  CHAMPIONSHIP_LIMITS,
+  SCORING_DEFAULTS,
+  resolveChampionshipConfig,
+  resolveScoringConfig,
 } from '@skol-arena/shared/types/index'
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useFormReferences } from '@/composables/useFormReferences'
@@ -353,12 +358,8 @@ onMounted(async () => {
         status: currentTournament.value.status,
         minTeamSize: currentTournament.value.minTeamSize,
         maxTeamSize: currentTournament.value.maxTeamSize,
-        maxMatchesPerPlayer: currentTournament.value.maxMatchesPerPlayer,
-        maxTimesWithSamePartner: currentTournament.value.maxTimesWithSamePartner,
-        maxTimesWithSameOpponent: currentTournament.value.maxTimesWithSameOpponent,
-        pointPerVictory: currentTournament.value.pointPerVictory ?? 3,
-        pointPerDraw: currentTournament.value.pointPerDraw ?? 1,
-        pointPerLoss: currentTournament.value.pointPerLoss ?? 0,
+        ...resolveChampionshipConfig(currentTournament.value.championshipConfig),
+        ...resolveScoringConfig(currentTournament.value.scoringConfig),
         allowDraw: currentTournament.value.allowDraw ?? true,
         startDate: currentTournament.value.startDate,
         endDate: currentTournament.value.endDate,
@@ -379,12 +380,8 @@ onMounted(async () => {
       status: 'draft',
       minTeamSize: 1,
       maxTeamSize: 2,
-      maxMatchesPerPlayer: 10,
-      maxTimesWithSamePartner: 2,
-      maxTimesWithSameOpponent: 2,
-      pointPerVictory: 3,
-      pointPerDraw: 1,
-      pointPerLoss: 0,
+      ...CHAMPIONSHIP_DEFAULTS,
+      ...SCORING_DEFAULTS,
       allowDraw: true,
       scoreEnabled: true,
       validationMode: 'strict',

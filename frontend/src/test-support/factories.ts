@@ -5,6 +5,7 @@ import type {
   MmrAnimationEventResponse,
   StandingsEntry,
 } from '@skol-arena/shared'
+import { CHAMPIONSHIP_DEFAULTS, SCORING_DEFAULTS } from '@skol-arena/shared'
 
 let seq = 0
 function nextId(prefix: string): string {
@@ -81,12 +82,8 @@ export function makeTournament(over: Partial<BaseTournament> = {}): BaseTourname
     teamMode: 'flex',
     minTeamSize: 1,
     maxTeamSize: 1,
-    maxMatchesPerPlayer: 0,
-    maxTimesWithSamePartner: 0,
-    maxTimesWithSameOpponent: 0,
-    pointPerVictory: 3,
-    pointPerDraw: 1,
-    pointPerLoss: 0,
+    scoringConfig: { ...SCORING_DEFAULTS },
+    championshipConfig: { ...CHAMPIONSHIP_DEFAULTS },
     allowDraw: true,
     scoreEnabled: true,
     startDate: '2026-01-01T00:00:00.000Z',

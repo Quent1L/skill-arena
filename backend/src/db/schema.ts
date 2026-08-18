@@ -319,16 +319,6 @@ export const tournaments = pgTable("tournaments", {
   teamMode: teamModeEnum("team_mode").notNull(),
   minTeamSize: integer("min_team_size").notNull(),
   maxTeamSize: integer("max_team_size").notNull(),
-  maxMatchesPerPlayer: integer("max_matches_per_player").notNull().default(10),
-  maxTimesWithSamePartner: integer("max_times_with_same_partner")
-    .notNull()
-    .default(2),
-  maxTimesWithSameOpponent: integer("max_times_with_same_opponent")
-    .notNull()
-    .default(2),
-  pointPerVictory: integer("point_per_victory").default(3),
-  pointPerDraw: integer("point_per_draw").default(1),
-  pointPerLoss: integer("point_per_loss").default(0),
   allowDraw: boolean("allow_draw").default(true),
   scoreEnabled: boolean("score_enabled").notNull().default(true),
   startDate: date("start_date").notNull(),
@@ -351,6 +341,44 @@ export const tournaments = pgTable("tournaments", {
   organizationId: uuid("organization_id").references(() => organizations.id, {
     onDelete: "set null",
   }),
+});
+
+/**
+ * Points awarded per result. Applies to every point-scored mode — championship
+ * and bracket — but not to ranked, which runs on MMR and has no row here.
+ */
+export const tournamentScoringConfigs = pgTable("tournament_scoring_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .unique()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  pointPerVictory: integer("point_per_victory").notNull().default(3),
+  pointPerDraw: integer("point_per_draw").notNull().default(1),
+  pointPerLoss: integer("point_per_loss").notNull().default(0),
+});
+
+/**
+ * Pairing caps of a championship. Only user-created matches go through them, so
+ * only championships carry a row: brackets generate their matches and ranked
+ * seasons never validate against caps.
+ *
+ * `maxMatchesPerPlayer` has a second effect in flex mode: past that count a
+ * player's matches stop counting for the ranking (match_player_points).
+ */
+export const championshipConfigs = pgTable("championship_configs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tournamentId: uuid("tournament_id")
+    .notNull()
+    .unique()
+    .references(() => tournaments.id, { onDelete: "cascade" }),
+  maxMatchesPerPlayer: integer("max_matches_per_player").notNull().default(10),
+  maxTimesWithSamePartner: integer("max_times_with_same_partner")
+    .notNull()
+    .default(2),
+  maxTimesWithSameOpponent: integer("max_times_with_same_opponent")
+    .notNull()
+    .default(2),
 });
 
 export const tournamentAdmins = pgTable(
@@ -1113,6 +1141,14 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   entries: many(tournamentEntries),
   teams: many(teams),
   matches: many(matches),
+  scoringConfig: one(tournamentScoringConfigs, {
+    fields: [tournaments.id],
+    references: [tournamentScoringConfigs.tournamentId],
+  }),
+  championshipConfig: one(championshipConfigs, {
+    fields: [tournaments.id],
+    references: [championshipConfigs.tournamentId],
+  }),
   bracketConfig: one(bracketConfigs, {
     fields: [tournaments.id],
     references: [bracketConfigs.tournamentId],
@@ -1131,6 +1167,26 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
     references: [organizations.id],
   }),
 }));
+
+export const tournamentScoringConfigsRelations = relations(
+  tournamentScoringConfigs,
+  ({ one }) => ({
+    tournament: one(tournaments, {
+      fields: [tournamentScoringConfigs.tournamentId],
+      references: [tournaments.id],
+    }),
+  }),
+);
+
+export const championshipConfigsRelations = relations(
+  championshipConfigs,
+  ({ one }) => ({
+    tournament: one(tournaments, {
+      fields: [championshipConfigs.tournamentId],
+      references: [tournaments.id],
+    }),
+  }),
+);
 
 export const tournamentAdminsRelations = relations(
   tournamentAdmins,

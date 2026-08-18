@@ -27,6 +27,10 @@ import {
 } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { ConflictError, ErrorCode } from "../../../types/errors";
+import {
+  insertTournamentConfigs,
+  setChampionshipCaps,
+} from "../helpers/tournament-config-test-helpers";
 
 describe("Match Partner Validation", () => {
   let tournamentId: string;
@@ -150,11 +154,12 @@ describe("Match Partner Validation", () => {
       status: "open",
       minTeamSize: 1,
       maxTeamSize: 2,
-      maxMatchesPerPlayer: 10,
-      maxTimesWithSamePartner: 2, // Allow max 2 matches with same partner
-      maxTimesWithSameOpponent: 10,
       startDate: today,
       endDate: nextWeek,
+    });
+    await insertTournamentConfigs(testDb, tournamentId, {
+      // Allow max 2 matches with the same partner
+      championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 2, maxTimesWithSameOpponent: 10 },
     });
 
     // Add participants
@@ -360,10 +365,9 @@ describe("Match Partner Validation", () => {
     // New code checks COMPLETE TEAM compositions: [P1,P4] never faced [P2,P3] as teams → allowed.
 
     // Update tournament settings to have lower opponent limit (triggers old bug)
-    await testDb
-      .update(tournaments)
-      .set({ maxTimesWithSameOpponent: 2 })
-      .where(eq(tournaments.id, tournamentId));
+    await setChampionshipCaps(testDb, tournamentId, {
+      maxTimesWithSameOpponent: 2,
+    });
 
     // [P1,P4] vs [P2,P3] — these teams never faced each other → should be allowed
     const result = await matchService.createMatch(
@@ -389,10 +393,9 @@ describe("Match Partner Validation", () => {
   it("Step 10: should block match when complete team-vs-team opponent limit is reached", async () => {
     // At this point [P1,P2] faced [P3,P4] twice and maxTimesWithSameOpponent = 2.
     // Raise the partner limit to avoid the partner check blocking first.
-    await testDb
-      .update(tournaments)
-      .set({ maxTimesWithSamePartner: 10 })
-      .where(eq(tournaments.id, tournamentId));
+    await setChampionshipCaps(testDb, tournamentId, {
+      maxTimesWithSamePartner: 10,
+    });
 
     // [P1,P2] vs [P3,P4] → opponent count = 2 = limit → should be blocked
     try {
@@ -464,11 +467,11 @@ describe("Static Team Rule Validation", () => {
       status: "open",
       minTeamSize: 2,
       maxTeamSize: 2,
-      maxMatchesPerPlayer: 10,
-      maxTimesWithSamePartner: 2,
-      maxTimesWithSameOpponent: 10,
       startDate: today,
       endDate: nextWeek,
+    });
+    await insertTournamentConfigs(testDb, staticTournamentId, {
+      championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 2, maxTimesWithSameOpponent: 10 },
     });
 
     // Participants
@@ -550,10 +553,10 @@ describe("Static Team Rule Validation", () => {
 
   it("should block match when opponent limit is reached", async () => {
     // Raise partner limit, lower opponent limit to 2
-    await testDb
-      .update(tournaments)
-      .set({ maxTimesWithSamePartner: 10, maxTimesWithSameOpponent: 2 })
-      .where(eq(tournaments.id, staticTournamentId));
+    await setChampionshipCaps(testDb, staticTournamentId, {
+      maxTimesWithSamePartner: 10,
+      maxTimesWithSameOpponent: 2,
+    });
 
     // A vs B already played twice → opponent limit = 2 → should block
     try {
@@ -574,10 +577,11 @@ describe("Static Team Rule Validation", () => {
 
   it("should block when all players in static teams have hit match limit", async () => {
     // Set per-player limit to 2 (already played 2 matches) and raise other limits
-    await testDb
-      .update(tournaments)
-      .set({ maxMatchesPerPlayer: 2, maxTimesWithSamePartner: 10, maxTimesWithSameOpponent: 10 })
-      .where(eq(tournaments.id, staticTournamentId));
+    await setChampionshipCaps(testDb, staticTournamentId, {
+      maxMatchesPerPlayer: 2,
+      maxTimesWithSamePartner: 10,
+      maxTimesWithSameOpponent: 10,
+    });
 
     try {
       await matchService.createMatch(
@@ -646,11 +650,11 @@ describe("Flex 1v1 Opponent Validation via allPlayerIds", () => {
       status: "open",
       minTeamSize: 1,
       maxTeamSize: 1,
-      maxMatchesPerPlayer: 10,
-      maxTimesWithSamePartner: 10,
-      maxTimesWithSameOpponent: 2,
       startDate: today,
       endDate: nextWeek,
+    });
+    await insertTournamentConfigs(testDb, flex1v1TournamentId, {
+      championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 10, maxTimesWithSameOpponent: 2 },
     });
 
     await testDb.insert(tournamentParticipants).values([

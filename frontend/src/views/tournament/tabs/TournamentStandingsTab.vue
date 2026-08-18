@@ -7,19 +7,7 @@
       :score-enabled="store.tournament!.scoreEnabled ?? true"
       :team-mode="store.tournament!.teamMode"
       :show-provisional-toggle="store.tournament!.validationMode !== 'none'"
-      :tournament-config="{
-        pointPerVictory: store.tournament!.pointPerVictory,
-        pointPerDraw: store.tournament!.pointPerDraw,
-        pointPerLoss: store.tournament!.pointPerLoss,
-        maxMatchesPerPlayer: store.tournament!.maxMatchesPerPlayer,
-        maxTimesWithSamePartner: store.tournament!.maxTimesWithSamePartner,
-        maxTimesWithSameOpponent: store.tournament!.maxTimesWithSameOpponent,
-        minTeamSize: store.tournament!.minTeamSize,
-        maxTeamSize: store.tournament!.maxTeamSize,
-        minScore: store.tournament!.minScore,
-        maxScore: store.tournament!.maxScore,
-        disciplineId: store.tournament!.disciplineId,
-      }"
+      :tournament-config="toStandingsConfig(store.tournament!)"
     />
     <RankedLeaderboard
       v-else-if="store.tournament!.mode === 'ranked'"
@@ -46,6 +34,7 @@
 import { onMounted } from 'vue'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import StandingsTable from '@/components/tournament/StandingsTable.vue'
+import { toStandingsConfig } from '@/utils/standings-config'
 import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
 
 const store = useTournamentDetailStore()

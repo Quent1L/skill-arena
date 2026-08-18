@@ -19,6 +19,8 @@ import {
   outcomeTypes,
   outcomeReasons,
   tournaments,
+  tournamentScoringConfigs,
+  championshipConfigs,
   tournamentParticipants,
   tournamentEntries,
   tournamentEntryPlayers,
@@ -172,11 +174,6 @@ async function seedChampionship() {
     status: "ongoing",
     minTeamSize: 1,
     maxTeamSize: 1,
-    // High limits: repeated e2e runs create matches between the same
-    // players without reseeding (the idempotent seed doesn't reset the DB)
-    maxMatchesPerPlayer: 1000,
-    maxTimesWithSamePartner: 1000,
-    maxTimesWithSameOpponent: 1000,
     scoreEnabled: true,
     allowDraw: true,
     validationMode: "none",
@@ -184,6 +181,18 @@ async function seedChampionship() {
     endDate: dateStr(daysAgo(-30)),
     disciplineId: IDS.discipline,
     createdBy: IDS.adminApp,
+  });
+
+  await db.insert(tournamentScoringConfigs).values({
+    tournamentId: IDS.championship,
+  });
+  await db.insert(championshipConfigs).values({
+    tournamentId: IDS.championship,
+    // High limits: repeated e2e runs create matches between the same
+    // players without reseeding (the idempotent seed doesn't reset the DB)
+    maxMatchesPerPlayer: 1000,
+    maxTimesWithSamePartner: 1000,
+    maxTimesWithSameOpponent: 1000,
   });
 
   const players = [IDS.player1App, IDS.player2App, IDS.player3App, IDS.player4App];
@@ -212,7 +221,6 @@ async function seedRankedSeason() {
     status: "ongoing",
     minTeamSize: 1,
     maxTeamSize: 1,
-    maxMatchesPerPlayer: 100,
     scoreEnabled: true,
     allowDraw: false,
     // strict: la bascule Officiel/Provisoire du leaderboard n'est visible

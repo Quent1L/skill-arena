@@ -31,6 +31,7 @@ import {
   matches,
 } from "../../../db/schema";
 import { eq } from "drizzle-orm";
+import { insertTournamentConfigs } from "../helpers/tournament-config-test-helpers";
 
 describe("Match Duplicate Detection Integration Tests", () => {
   let testTournamentId: string;
@@ -143,9 +144,6 @@ describe("Match Duplicate Detection Integration Tests", () => {
         teamMode: "static",
         minTeamSize: 2,
         maxTeamSize: 2,
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 2,
         startDate: today,
         endDate: nextWeek,
         status: "open",
@@ -153,6 +151,9 @@ describe("Match Duplicate Detection Integration Tests", () => {
       })
       .returning();
     testTournamentId = tournament.id;
+    await insertTournamentConfigs(testDb, testTournamentId, {
+      championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 2, maxTimesWithSameOpponent: 2 },
+    });
 
     // Create teams for static mode tests
     const [teamA] = await testDb
@@ -293,9 +294,6 @@ describe("Match Duplicate Detection Integration Tests", () => {
           teamMode: "flex",
           minTeamSize: 1,
           maxTeamSize: 2,
-          maxMatchesPerPlayer: 10,
-          maxTimesWithSamePartner: 2,
-          maxTimesWithSameOpponent: 2,
           startDate: today,
           endDate: nextWeek,
           status: "open",
@@ -303,6 +301,9 @@ describe("Match Duplicate Detection Integration Tests", () => {
         })
         .returning();
       flexTournamentId = tournament.id;
+      await insertTournamentConfigs(testDb, flexTournamentId, {
+        championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 2, maxTimesWithSameOpponent: 2 },
+      });
 
       // Register all players in the flex tournament
       await Promise.all([

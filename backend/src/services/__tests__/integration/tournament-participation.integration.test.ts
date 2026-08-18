@@ -22,6 +22,7 @@ import { tournamentService } from "../../tournament.service";
 import { participantRepository } from "../../../repository/participant.repository";
 import { tournaments, appUsers, user as betterAuthUser } from "../../../db/schema";
 import { eq } from "drizzle-orm";
+import { insertTournamentConfigs } from "../helpers/tournament-config-test-helpers";
 
 describe("Tournament Participation Integration Tests", () => {
   let testTournamentId: string;
@@ -92,9 +93,6 @@ describe("Tournament Participation Integration Tests", () => {
         teamMode: "flex",
         minTeamSize: 1,
         maxTeamSize: 2,
-        maxMatchesPerPlayer: 10,
-        maxTimesWithSamePartner: 2,
-        maxTimesWithSameOpponent: 2,
         startDate: today,
         endDate: nextWeek,
         status: "open",
@@ -102,6 +100,9 @@ describe("Tournament Participation Integration Tests", () => {
       })
       .returning();
     testTournamentId = tournament.id;
+    await insertTournamentConfigs(testDb, testTournamentId, {
+      championship: { maxMatchesPerPlayer: 10, maxTimesWithSamePartner: 2, maxTimesWithSameOpponent: 2 },
+    });
   });
 
   afterAll(async () => {
