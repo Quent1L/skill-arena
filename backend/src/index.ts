@@ -32,8 +32,12 @@ import { recalculateOutdatedRankedSeasons } from "./utils/init-mmr-engine";
 import { logger } from "./utils/logger";
 import { run, type Runner } from "graphile-worker";
 import { taskList } from "./workers/mmr-recalculation.worker";
+import { migrateStoredRules } from "./services/rules-migration.service";
 
 await runMigrations();
+// Rules are data, so they migrate like the schema does: forward-only, at startup,
+// before anything can read or validate them against the current fact catalog.
+await migrateStoredRules();
 await initializeAdminIfNeeded();
 
 // Non-blocking canary: surfaces a broken SMTP setup at boot instead of at the first

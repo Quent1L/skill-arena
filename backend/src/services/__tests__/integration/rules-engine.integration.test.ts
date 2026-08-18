@@ -37,6 +37,8 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
   /** A match whose tournament DOES carry a discipline, unlike the one above. */
   let disciplineMatchId: string;
   let disciplineId: string;
+  /** 2 v 1, scores at 0, in the discipline-bearing tournament. */
+  let unevenMatchId: string;
   /** Match in the discipline-bearing tournament, carrying an outcome type. */
   let disciplineOutcomeMatchId: string;
   /** Alice, Bob (side A) then Carl, Dana (side B). */
@@ -165,6 +167,29 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       disciplineTournament.id,
     );
 
+    // Faithful copy of a reported failure: uneven sides (2 v 1) in a flex tournament
+    // that carries a discipline, scores disabled so both sides sit at 0.
+    const [unevenMatch] = await testDb
+      .insert(matches)
+      .values({
+        tournamentId: disciplineTournament.id,
+        status: "finalized",
+        winnerSide: "A",
+        playedAt: new Date(),
+        createdBy: adminId,
+      })
+      .returning();
+    for (const [index, side] of [playerIds.slice(0, 2), playerIds.slice(2, 3)].entries()) {
+      const [entry] = await testDb
+        .insert(tournamentEntries)
+        .values({ tournamentId: disciplineTournament.id, entryType: "PLAYER" })
+        .returning();
+      await testDb.insert(tournamentEntryPlayers).values(side.map((playerId) => ({ entryId: entry.id, playerId })));
+      await testDb
+        .insert(matchSides)
+        .values({ matchId: unevenMatch.id, entryId: entry.id, position: index + 1, score: 0 });
+    }
+    unevenMatchId = unevenMatch.id;
   });
 
   afterAll(async () => {
@@ -206,7 +231,7 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       const [alice] = playerIds;
       const context = contexts.find((c) => c.playerId === alice)!.context;
 
-      expect(context.winnerId).toBe(alice);
+      expect(context.winnerIds).toContain(alice);
       expect(context.scoreWinner).toBe(5);
       expect(context.scoreLoser).toBe(2);
       expect(context.matchScore).toBe("5-2");
@@ -226,6 +251,21 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
           outcomeReasonName: "Injury",
         });
       }
+    });
+
+    it("exposes the full winning and losing line-ups, not just their first player", async () => {
+      const { contexts } = await rulesContextService.buildMatchSubmittedContexts(matchId);
+      const [alice, bob, carl, dana] = playerIds;
+      const byPlayer = new Map(contexts.map((c) => [c.playerId, c.context]));
+
+      for (const { context } of contexts) {
+        expect(context.winnerIds).toEqual([alice, bob]);
+        expect(context.loserIds).toEqual([carl, dana]);
+      }
+      expect(byPlayer.get(alice)!.isWinner).toBe(true);
+      expect(byPlayer.get(bob)!.isWinner).toBe(true);
+      expect(byPlayer.get(carl)!.isWinner).toBe(false);
+      expect(byPlayer.get(dana)!.isWinner).toBe(false);
     });
 
     it("falls back to empty outcome facts when the match was submitted without one", async () => {
@@ -274,6 +314,37 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       expect((await rulesEvaluationService.evaluateMatchSubmitted(matchId)).size).toBe(0);
     });
 
+    it("fires a 'this team won' rule for both members of the winning pair", async () => {
+      const [alice, bob] = playerIds;
+      await addMessageRule(
+        "Exact winning pair",
+        {
+          all: [
+            { fact: "winnerIds", operator: "containsExactly", value: [alice, bob] },
+            { fact: "isWinner", operator: "equal", value: true },
+          ],
+        },
+        ["Blue team wins!"],
+      );
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(matchId);
+
+      // The two winners, and nobody else — the losers share winnerIds but not isWinner.
+      expect([...outputs.keys()].sort()).toEqual([alice, bob].sort());
+      expect(outputs.get(bob)?.message).toBe("Blue team wins!");
+    });
+
+    it("does not fire that rule when the winning side is not exactly that pair", async () => {
+      const [alice, , carl] = playerIds;
+      await addMessageRule(
+        "Other pair",
+        { all: [{ fact: "winnerIds", operator: "containsExactly", value: [alice, carl] }] },
+        ["Never"],
+      );
+
+      expect((await rulesEvaluationService.evaluateMatchSubmitted(matchId)).size).toBe(0);
+    });
+
     it("still applies a global rule on a match whose tournament has a discipline", async () => {
       const [alice] = playerIds;
       await addMessageRule("Global rule", { all: [{ fact: "playerId", operator: "equal", value: alice }] }, ["Global rule"]);
@@ -303,6 +374,19 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       );
       // The other tournament has no discipline, so the rule must not reach it.
       expect((await rulesEvaluationService.evaluateMatchSubmitted(matchId)).size).toBe(0);
+    });
+
+    it("fires a global containsExactly rule on a 2 v 1 scoreless match", async () => {
+      const [alice, bob] = playerIds;
+      await addMessageRule("Exact pair", { all: [{ fact: "winnerIds", operator: "containsExactly", value: [alice, bob] }] }, [
+        "Blue team wins!",
+      ]);
+
+      const { contexts } = await rulesContextService.buildMatchSubmittedContexts(unevenMatchId);
+      expect(contexts.map((c) => c.context.winnerIds)).toEqual([[alice, bob], [alice, bob], [alice, bob]]);
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(unevenMatchId);
+      expect(outputs.get(alice)?.message).toBe("Blue team wins!");
     });
 
     it("fires a discipline-scoped rule matching an outcome type by id", async () => {

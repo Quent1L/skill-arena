@@ -75,8 +75,10 @@ export class RulesContextService {
 
     const winnerSide = match.winnerSide; // 'A' | 'B' | null
     const { winnerSideInfo, loserSideInfo } = this.resolveWinnerLoser(sideA, sideB, winnerSide);
-    const winnerId = winnerSide ? winnerSideInfo.playerIds[0] ?? "" : "";
-    const loserId = winnerSide ? loserSideInfo.playerIds[0] ?? "" : "";
+    // Whole line-ups, never a single representative: on a team match, picking the
+    // first player of a side would depend on entry insertion order.
+    const winnerIds = winnerSide ? winnerSideInfo.playerIds : [];
+    const loserIds = winnerSide ? loserSideInfo.playerIds : [];
     const scoreWinner = Math.max(sideA.score, sideB.score);
     const scoreLoser = Math.min(sideA.score, sideB.score);
     const matchScore = `${sideA.score}-${sideB.score}`;
@@ -85,8 +87,8 @@ export class RulesContextService {
     const tiers = rankedConfig ? ((await rankedSeasonRepository.getRankTiers(tournamentId)) as TierData[]) : [];
 
     const base = {
-      winnerId,
-      loserId,
+      winnerIds,
+      loserIds,
       scoreWinner,
       scoreLoser,
       matchScore,
@@ -109,6 +111,7 @@ export class RulesContextService {
           playerId,
           teammateIds: side.playerIds.filter((id) => id !== playerId),
           opponentIds: opponent.playerIds,
+          isWinner: winnerIds.includes(playerId),
         };
         return { playerId, context: { ...base, ...lineUp, ...personal } as MatchSubmittedContext };
       });
@@ -153,7 +156,7 @@ export class RulesContextService {
 
   private resolveWinnerLoser(sideA: SideInfo, sideB: SideInfo, winnerSide: string | null) {
     if (winnerSide === "B") return { winnerSideInfo: sideB, loserSideInfo: sideA };
-    // Draw (null) falls through: caller guards winnerId/loserId with `winnerSide ? ... : ""`
+    // Draw (null) falls through: caller guards the line-ups with `winnerSide ? … : []`
     return { winnerSideInfo: sideA, loserSideInfo: sideB };
   }
 
@@ -171,8 +174,9 @@ export class RulesContextService {
       | "playerId"
       | "teammateIds"
       | "opponentIds"
-      | "winnerId"
-      | "loserId"
+      | "winnerIds"
+      | "loserIds"
+      | "isWinner"
       | "scoreWinner"
       | "scoreLoser"
       | "matchScore"

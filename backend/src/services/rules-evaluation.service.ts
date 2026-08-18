@@ -84,6 +84,10 @@ export class RulesEvaluationService {
 
     const disciplineId = contexts[0].context.discipline || null;
     const rules = await rulesRepository.listActiveByTrigger("match_submitted", disciplineId);
+    // A null disciplineId means the tournament carries none, and discipline-scoped
+    // rules are then filtered out before evaluation — the single likeliest reason
+    // for a rule that "never fires".
+    logger.debug({ matchId, disciplineId, candidates: rules.length }, "[Rules] match_submitted candidates");
     if (rules.length === 0) return result;
 
     const evaluable: EvaluableRule[] = rules.map((r) => ({

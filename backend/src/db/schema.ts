@@ -895,6 +895,12 @@ export const rules = pgTable("rules", {
   conditions: jsonb("conditions").notNull(),
   action: jsonb("action").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  // Engine version this rule's conditions/action are expressed in. Rows below the
+  // current version are brought up by the startup patch chain (rules-migration.service).
+  // Defaults to 1 so pre-versioning rows are picked up; writes set it explicitly.
+  engineVersion: integer("engine_version").notNull().default(1),
+  // Why the patch chain deactivated this rule. Null unless it did; cleared on save.
+  disabledReason: text("disabled_reason"),
   createdBy: uuid("created_by")
     .notNull()
     .references(() => appUsers.id, { onDelete: "restrict" }),

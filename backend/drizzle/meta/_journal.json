@@ -484,6 +484,20 @@
       "when": 1777526400024,
       "tag": "0068_match_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1777526400025,
+      "tag": "0069_rules_engine_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1777526400026,
+      "tag": "0070_rules_disabled_reason",
+      "breakpoints": true
     }
   ]
 }

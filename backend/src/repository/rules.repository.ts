@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNull, or, desc, count } from "drizzle-orm";
 import { db } from "../config/database";
 import { badgeReconciliationState, matches, playerBadges, rules } from "../db/schema";
+import { RULES_ENGINE_VERSION } from "@skol-arena/shared";
 import type { RuleAction, RuleConditions, RuleScope, RuleType } from "@skol-arena/shared";
 
 export interface CreateRuleData {
@@ -39,7 +40,12 @@ export interface RuleListFilters {
 
 export class RulesRepository {
   async create(data: CreateRuleData) {
-    const [rule] = await db.insert(rules).values(data).returning();
+    // Authored against the running engine, so it needs no patch. The column default
+    // is 1 for the sake of pre-versioning rows, hence the explicit stamp here.
+    const [rule] = await db
+      .insert(rules)
+      .values({ ...data, engineVersion: RULES_ENGINE_VERSION })
+      .returning();
     return rule;
   }
 
@@ -76,7 +82,14 @@ export class RulesRepository {
   }
 
   async update(id: string, data: UpdateRuleData) {
-    const [updated] = await db.update(rules).set(data).where(eq(rules.id, id)).returning();
+    // A save only gets here once validateRule accepted the merged rule against the
+    // CURRENT catalog, so the row is by definition expressed in the current shape:
+    // stamp it, and drop any deactivation reason the patch chain had left behind.
+    const [updated] = await db
+      .update(rules)
+      .set({ ...data, engineVersion: RULES_ENGINE_VERSION, disabledReason: null })
+      .where(eq(rules.id, id))
+      .returning();
     return updated;
   }
 

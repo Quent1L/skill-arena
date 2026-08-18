@@ -10,6 +10,15 @@
       <i class="fa fa-triangle-exclamation mr-2" />{{ t('rulesEngineFormView.betaWarning') }}
     </Message>
 
+    <!-- The patch chain gave up on this rule and deactivated it. Saving clears the
+         flag, but only the condition below can actually be saved once fixed: the
+         builder no longer offers the retired variable. -->
+    <Message v-if="currentRule?.disabledReason" severity="error" :closable="false" class="mb-3">
+      <p class="font-semibold">{{ t('rulesEngineFormView.migrationDisabledTitle') }}</p>
+      <p class="text-sm mt-1">{{ t('rulesEngineFormView.migrationDisabledHelp') }}</p>
+      <p class="text-sm mt-2 font-mono">{{ currentRule.disabledReason }}</p>
+    </Message>
+
     <Message v-if="error" severity="error" :closable="true">{{ error }}</Message>
 
     <div class="grid grid-cols-1 xl:grid-cols-[320px_1fr_360px] gap-4">

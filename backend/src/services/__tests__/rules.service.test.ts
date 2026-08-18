@@ -123,6 +123,30 @@ describe("RulesService — non-deterministic facts", () => {
     expect(mockRulesRepo.create).not.toHaveBeenCalled();
   });
 
+  it("accepts the set operators on a line-up fact", async () => {
+    const rule = baseRule({
+      conditions: { all: [{ fact: "winnerIds", operator: "containsExactly", value: ["p1", "p2"] }] },
+    });
+    await rulesService.create(rule, "admin-1");
+    expect(mockRulesRepo.create).toHaveBeenCalled();
+  });
+
+  it("exposes the line-up facts in the catalog", async () => {
+    const facts = rulesService.getCatalog("match_submitted").facts;
+    const winnerIds = facts.find((f) => f.key === "winnerIds");
+    expect(winnerIds?.type).toBe("stringList");
+    expect(winnerIds?.operators).toContain("containsExactly");
+    expect(facts.map((f) => f.key)).toContain("isWinner");
+  });
+
+  it("refuses to save a rule still expressed against a retired fact", async () => {
+    // What an admin hits when opening a rule the patch chain deactivated: it cannot
+    // be saved back until the condition is rewritten in the current vocabulary.
+    const rule = baseRule({ conditions: { all: [{ fact: "winnerId", operator: "equal", value: "p1" }] } });
+    await expect(rulesService.create(rule, "admin-1")).rejects.toThrow();
+    expect(mockRulesRepo.create).not.toHaveBeenCalled();
+  });
+
   it("still rejects facts absent from the catalog", async () => {
     const rule = baseRule({ conditions: { all: [{ fact: "notAFact", operator: "equal", value: 1 }] } });
     await expect(rulesService.create(rule, "admin-1")).rejects.toThrow();

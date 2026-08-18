@@ -26,8 +26,8 @@ describe("resolveDisplay", () => {
   ]);
 
   it("renders scalar player facts as display names", () => {
-    const out = resolveDisplay({ playerId: "alice", winnerId: "bob" }, names);
-    expect(interpolate("{{playerId}} bat {{winnerId}}", out)).toBe("Alice bat Bob");
+    const out = resolveDisplay({ playerId: "alice" }, names);
+    expect(interpolate("{{playerId}} joue", out)).toBe("Alice joue");
   });
 
   it("renders player list facts as a comma-separated name list", () => {
@@ -253,6 +253,42 @@ describe("RulesEvaluationService.simulate", () => {
   it("leaves list operators false on an undefined fact rather than throwing", async () => {
     const conditions: RuleConditions = { all: [{ fact: "teammateIds", operator: "containsAll", value: ["alice"] }] };
     expect((await rulesEvaluationService.simulate(conditions, messageAction, {})).matched).toBe(false);
+  });
+
+  it("matches a whole team via containsAll on the winning line-up", async () => {
+    const agds: RuleConditions = { all: [{ fact: "winnerIds", operator: "containsAll", value: ["alice", "bob"] }] };
+    expect((await rulesEvaluationService.simulate(agds, messageAction, { winnerIds: ["alice", "bob"] })).matched).toBe(
+      true,
+    );
+    expect((await rulesEvaluationService.simulate(agds, messageAction, { winnerIds: ["alice"] })).matched).toBe(false);
+  });
+
+  it("requires the exact winning line-up via containsExactly", async () => {
+    const onlyAgds: RuleConditions = {
+      all: [{ fact: "winnerIds", operator: "containsExactly", value: ["alice", "bob"] }],
+    };
+    expect(
+      (await rulesEvaluationService.simulate(onlyAgds, messageAction, { winnerIds: ["bob", "alice"] })).matched,
+    ).toBe(true);
+    // One extra player is no longer that exact team.
+    expect(
+      (await rulesEvaluationService.simulate(onlyAgds, messageAction, { winnerIds: ["alice", "bob", "carl"] })).matched,
+    ).toBe(false);
+  });
+
+  it("reserves a team message to the winners via isWinner", async () => {
+    const conditions: RuleConditions = {
+      all: [
+        { fact: "winnerIds", operator: "containsExactly", value: ["alice", "bob"] },
+        { fact: "isWinner", operator: "equal", value: true },
+      ],
+    };
+    const winnerIds = ["alice", "bob"];
+    expect((await rulesEvaluationService.simulate(conditions, messageAction, { winnerIds, isWinner: true })).matched)
+      .toBe(true);
+    // A loser sees the same match-level winnerIds, but is not on that side.
+    expect((await rulesEvaluationService.simulate(conditions, messageAction, { winnerIds, isWinner: false })).matched)
+      .toBe(false);
   });
 
   it("gates a rule on randomRoll so base messages can still show up", async () => {

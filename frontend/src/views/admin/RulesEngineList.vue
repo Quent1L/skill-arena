@@ -23,6 +23,21 @@
       <i class="fa fa-triangle-exclamation mr-2" />{{ t('rulesEngineList.betaWarning') }}
     </Message>
 
+    <!-- Rules the startup patch chain could not rewrite. They stay deactivated until
+         someone edits them, so they need to be visible without opening each one. -->
+    <Message v-if="migrationDisabled.length" severity="error" :closable="false" class="mb-3">
+      <p class="font-semibold">
+        {{ t('rulesEngineList.migrationDisabledTitle', { count: migrationDisabled.length }) }}
+      </p>
+      <p class="text-sm mt-1">{{ t('rulesEngineList.migrationDisabledHelp') }}</p>
+      <ul class="text-sm mt-2 list-disc list-inside">
+        <li v-for="rule in migrationDisabled" :key="rule.id">
+          <button class="underline" @click="router.push(`/admin/rules-engine/${rule.id}/edit`)">{{ rule.name }}</button>
+          <span class="text-surface-500"> — {{ rule.disabledReason }}</span>
+        </li>
+      </ul>
+    </Message>
+
     <Message v-if="reconciliationStatus?.dirty" severity="info" :closable="false" class="mb-3">
       {{ t('rulesEngineList.dirtyWarning') }}
     </Message>
@@ -97,7 +112,14 @@
 
       <Column field="isActive" :header="t('rulesEngineList.colActive')" sortable>
         <template #body="{ data }">
-          <Tag :severity="data.isActive ? 'success' : 'secondary'" :value="data.isActive ? t('rulesEngineList.yes') : t('rulesEngineList.no')" />
+          <div class="flex items-center gap-2">
+            <Tag :severity="data.isActive ? 'success' : 'secondary'" :value="data.isActive ? t('rulesEngineList.yes') : t('rulesEngineList.no')" />
+            <i
+              v-if="data.disabledReason"
+              class="fa fa-triangle-exclamation text-red-500"
+              v-tooltip.top="data.disabledReason"
+            />
+          </div>
         </template>
       </Column>
 
@@ -164,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useI18n } from 'vue-i18n'
@@ -188,6 +210,13 @@ const {
 
 const reconciling = ref(false)
 const toast = useToast()
+
+/**
+ * Rules the engine migration deactivated. Derived from the loaded list, so an active
+ * filter can hide them — acceptable because no filter is applied by default, which is
+ * when an admin would run into them.
+ */
+const migrationDisabled = computed(() => rules.value.filter((rule) => rule.disabledReason))
 
 const filters = reactive<{ type?: 'message' | 'badge'; scope?: 'global' | 'discipline'; isActive?: boolean }>({})
 

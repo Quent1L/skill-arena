@@ -8,6 +8,21 @@ export type RuleType = "message" | "badge";
 export type RuleScope = "global" | "discipline";
 
 /**
+ * Shape version of a rule's `conditions` / `action`. Rules are data living in our
+ * own database, so the engine never interprets more than one shape: rows below this
+ * version are rewritten forward by the patch chain
+ * (`backend/src/services/rules-migration.service.ts`) at startup, and imported rules
+ * go through the very same chain.
+ *
+ * Bump it in the same commit as the patch that handles the change.
+ *
+ * - 1: initial shape
+ * - 2: `winnerId` / `loserId` (first player of a side) replaced by the full line-ups
+ *      `winnerIds` / `loserIds`
+ */
+export const RULES_ENGINE_VERSION = 2;
+
+/**
  * Application trigger events. Open for extension, but only
  * `match_submitted` is supported in v1.
  */
@@ -29,8 +44,11 @@ export interface MatchSubmittedContext {
   opponentIds: string[];
 
   // Match result (from the evaluated player's point of view)
-  winnerId: string;
-  loserId: string;
+  /** Full line-up of each side. Empty on a draw. */
+  winnerIds: string[];
+  loserIds: string[];
+  /** Whether the evaluated player is on the winning side. */
+  isWinner: boolean;
   scoreWinner: number;
   scoreLoser: number;
   matchScore: string;
@@ -96,9 +114,10 @@ export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
   { key: "playerId", label: "Joueur concerné", type: "string", sample: "", ref: "player" },
   { key: "teammateIds", label: "Coéquipiers", type: "stringList", sample: [], ref: "player" },
   { key: "opponentIds", label: "Adversaires", type: "stringList", sample: [], ref: "player" },
-  { key: "winnerId", label: "Gagnant", type: "string", sample: "", ref: "player" },
-  { key: "loserId", label: "Perdant", type: "string", sample: "", ref: "player" },
-  { key: "scoreWinner", label: "Score du gagnant", type: "number", sample: 2 },
+  { key: "winnerIds", label: "Camp vainqueur", type: "stringList", sample: [], ref: "player" },
+  { key: "loserIds", label: "Camp perdant", type: "stringList", sample: [], ref: "player" },
+  { key: "isWinner", label: "Le joueur est vainqueur", type: "boolean", sample: true },
+  { key: "scoreWinner", label: "Score du vainqueur", type: "number", sample: 2 },
   { key: "scoreLoser", label: "Score du perdant", type: "number", sample: 1 },
   { key: "matchScore", label: "Score du match", type: "string", sample: "2-1" },
   // Wording follows the rest of the app ("Type de résultat" / "Raison du résultat",
@@ -228,6 +247,8 @@ export const ruleSchema: z.ZodType<Rule> = z.lazy(() =>
       conditions: ruleConditionsSchema,
       action: ruleActionSchema,
       isActive: z.boolean(),
+      engineVersion: z.number().int(),
+      disabledReason: z.string().nullable(),
       createdBy: z.string(),
       createdAt: z.iso.datetime(),
       updatedAt: z.iso.datetime(),
@@ -249,6 +270,13 @@ export interface Rule {
   conditions: RuleConditions;
   action: RuleAction;
   isActive: boolean;
+  /** Engine version the conditions/action are expressed in. Server-assigned. */
+  engineVersion: number;
+  /**
+   * Why the startup patch chain deactivated this rule, when it could not rewrite it.
+   * Null otherwise. Cleared as soon as an admin saves the rule.
+   */
+  disabledReason: string | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
