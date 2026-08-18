@@ -53,6 +53,8 @@ export class RulesContextService {
       where: eq(matches.id, matchId),
       with: {
         tournament: true,
+        outcomeType: true,
+        outcomeReason: true,
         sides: { with: { entry: { with: { players: { with: { player: true } } } } } },
       },
     });
@@ -88,6 +90,12 @@ export class RulesContextService {
       scoreWinner,
       scoreLoser,
       matchScore,
+      // Read from the persisted match row, so reconciliation replays them unchanged.
+      outcomeType: match.outcomeTypeId ?? "",
+      outcomeTypeName: match.outcomeType?.name ?? "",
+      isDefaultOutcome: match.outcomeType?.isDefault ?? false,
+      outcomeReason: match.outcomeReasonId ?? "",
+      outcomeReasonName: match.outcomeReason?.name ?? "",
       ...this.dateFacts(match.playedAt),
       discipline: match.tournament?.disciplineId ?? "",
       site: match.tournament?.organizationId ?? "",
@@ -168,6 +176,11 @@ export class RulesContextService {
       | "scoreWinner"
       | "scoreLoser"
       | "matchScore"
+      | "outcomeType"
+      | "outcomeTypeName"
+      | "isDefaultOutcome"
+      | "outcomeReason"
+      | "outcomeReasonName"
       | "matchHour"
       | "matchMinuteOfDay"
       | "matchDayOfWeek"

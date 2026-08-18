@@ -35,6 +35,14 @@ export interface MatchSubmittedContext {
   scoreLoser: number;
   matchScore: string;
 
+  // Declared outcome, from the discipline's outcome catalog. Empty/false when the
+  // match was submitted without one.
+  outcomeType: string; // outcome_types.id
+  outcomeTypeName: string; // outcome_types.name
+  isDefaultOutcome: boolean; // outcome_types.is_default
+  outcomeReason: string; // outcome_reasons.id
+  outcomeReasonName: string; // outcome_reasons.name
+
   // MMR delta (Ranked mode)
   mmrDelta: number;
   newMmr: number;
@@ -81,7 +89,7 @@ export interface FactDefinition {
   type: FactType;
   sample: number | boolean | string | string[];
   /** Special reference: render a dedicated picker instead of a raw input. */
-  ref?: "player" | "time" | "discipline" | "site" | "weekday";
+  ref?: "player" | "time" | "discipline" | "site" | "weekday" | "outcomeType" | "outcomeReason";
 }
 
 export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
@@ -93,6 +101,13 @@ export const MATCH_SUBMITTED_FACTS: FactDefinition[] = [
   { key: "scoreWinner", label: "Score du gagnant", type: "number", sample: 2 },
   { key: "scoreLoser", label: "Score du perdant", type: "number", sample: 1 },
   { key: "matchScore", label: "Score du match", type: "string", sample: "2-1" },
+  // Wording follows the rest of the app ("Type de résultat" / "Raison du résultat",
+  // cf. the match entry screen and the discipline settings), not the DB naming.
+  { key: "outcomeType", label: "Type de résultat", type: "string", sample: "", ref: "outcomeType" },
+  { key: "outcomeTypeName", label: "Nom du type de résultat", type: "string", sample: "Forfait" },
+  { key: "isDefaultOutcome", label: "Résultat par défaut", type: "boolean", sample: true },
+  { key: "outcomeReason", label: "Raison du résultat", type: "string", sample: "", ref: "outcomeReason" },
+  { key: "outcomeReasonName", label: "Nom de la raison du résultat", type: "string", sample: "Blessure" },
   { key: "mmrDelta", label: "Variation de MMR", type: "number", sample: 18 },
   { key: "newMmr", label: "Nouveau MMR", type: "number", sample: 1218 },
   { key: "previousMmr", label: "MMR précédent", type: "number", sample: 1200 },
@@ -418,7 +433,7 @@ export const factCatalogSchema = z
         label: z.string(),
         type: z.enum(["number", "boolean", "string", "stringList", "date"]),
         sample: z.union([z.number(), z.boolean(), z.string(), z.array(z.string())]),
-        ref: z.enum(["player", "time", "discipline", "site", "weekday"]).optional(),
+        ref: z.enum(["player", "time", "discipline", "site", "weekday", "outcomeType", "outcomeReason"]).optional(),
         operators: z.array(z.string()),
       })
     ),

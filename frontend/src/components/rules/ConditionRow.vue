@@ -106,6 +106,48 @@
         class="w-72"
       />
       <Select
+        v-else-if="isOutcomeTypeFact && !isListOperator"
+        v-model="node.value"
+        :options="outcomeTypeOptions"
+        option-label="label"
+        option-value="id"
+        :placeholder="t('conditionRow.placeholderOutcomeType')"
+        filter
+        class="w-56"
+      />
+      <MultiSelect
+        v-else-if="isOutcomeTypeFact && isListOperator"
+        v-model="playerListValue"
+        :options="outcomeTypeOptions"
+        option-label="label"
+        option-value="id"
+        :placeholder="t('conditionRow.placeholderOutcomeTypes')"
+        filter
+        display="chip"
+        class="w-72"
+      />
+      <Select
+        v-else-if="isOutcomeReasonFact && !isListOperator"
+        v-model="node.value"
+        :options="outcomeReasonOptions"
+        option-label="label"
+        option-value="id"
+        :placeholder="t('conditionRow.placeholderOutcomeReason')"
+        filter
+        class="w-56"
+      />
+      <MultiSelect
+        v-else-if="isOutcomeReasonFact && isListOperator"
+        v-model="playerListValue"
+        :options="outcomeReasonOptions"
+        option-label="label"
+        option-value="id"
+        :placeholder="t('conditionRow.placeholderOutcomeReasons')"
+        filter
+        display="chip"
+        class="w-72"
+      />
+      <Select
         v-else-if="isWeekdayFact && !isListOperator"
         v-model="node.value"
         :options="weekdayOptions"
@@ -149,7 +191,12 @@ import { useI18n } from 'vue-i18n'
 import type { BuilderNode, PlayerOption } from './condition-tree'
 import type { CatalogFact } from '@/composables/rules/rules.api'
 import { LIST_VALUE_OPERATORS } from '@skol-arena/shared/types/index'
-import type { Discipline, OrganizationWithMemberCount } from '@skol-arena/shared/types/index'
+import type {
+  Discipline,
+  OrganizationWithMemberCount,
+  OutcomeType,
+  OutcomeReason,
+} from '@skol-arena/shared/types/index'
 
 const { t } = useI18n()
 
@@ -159,6 +206,8 @@ defineEmits<{ remove: [] }>()
 
 const disciplines = inject<Ref<Discipline[]>>('disciplines', ref([]))
 const organisations = inject<Ref<OrganizationWithMemberCount[]>>('organisations', ref([]))
+const outcomeTypes = inject<Ref<OutcomeType[]>>('outcomeTypes', ref([]))
+const outcomeReasons = inject<Ref<OutcomeReason[]>>('outcomeReasons', ref([]))
 
 function getOperatorLabel(op: string): string {
   const map: Record<string, string> = {
@@ -199,6 +248,24 @@ const isDateFact = computed(() => selectedFact.value?.type === 'date')
 const isDisciplineFact = computed(() => selectedFact.value?.ref === 'discipline')
 const isSiteFact = computed(() => selectedFact.value?.ref === 'site')
 const isWeekdayFact = computed(() => selectedFact.value?.ref === 'weekday')
+const isOutcomeTypeFact = computed(() => selectedFact.value?.ref === 'outcomeType')
+const isOutcomeReasonFact = computed(() => selectedFact.value?.ref === 'outcomeReason')
+
+// Outcome names repeat across disciplines, so each option carries its parent to
+// stay distinguishable when the rule is global.
+const outcomeTypeOptions = computed(() =>
+  outcomeTypes.value.map((o) => ({
+    id: o.id,
+    label: o.discipline ? `${o.name} (${o.discipline.name})` : o.name,
+  })),
+)
+
+const outcomeReasonOptions = computed(() =>
+  outcomeReasons.value.map((r) => ({
+    id: r.id,
+    label: r.outcomeType ? `${r.name} (${r.outcomeType.name})` : r.name,
+  })),
+)
 
 const weekdayOptions = computed(() => [
   { label: t('conditionRow.weekdayMonday'), value: 1 },

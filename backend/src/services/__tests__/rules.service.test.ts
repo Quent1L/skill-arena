@@ -88,6 +88,31 @@ describe("RulesService — non-deterministic facts", () => {
     expect(mockRulesRepo.create).toHaveBeenCalled();
   });
 
+  it("exposes every outcome fact in the catalog", async () => {
+    const keys = rulesService.getCatalog("match_submitted").facts.map((f) => f.key);
+    expect(keys).toContain("outcomeType");
+    expect(keys).toContain("outcomeTypeName");
+    expect(keys).toContain("isDefaultOutcome");
+    expect(keys).toContain("outcomeReason");
+    expect(keys).toContain("outcomeReasonName");
+  });
+
+  it("accepts outcome facts on a badge rule (they are read from the match row, so deterministic)", async () => {
+    const badgeRule = baseRule({
+      type: "badge",
+      conditions: {
+        all: [
+          { fact: "outcomeType", operator: "equal", value: "ot-forfeit" },
+          { fact: "isDefaultOutcome", operator: "equal", value: false },
+          { fact: "outcomeReasonName", operator: "equal", value: "Injury" },
+        ],
+      },
+      action: { type: "badge", icon: "fa fa-ban", label: "No mercy", description: "Won by forfeit" },
+    });
+    await rulesService.create(badgeRule, "admin-1");
+    expect(mockRulesRepo.create).toHaveBeenCalled();
+  });
+
   it("rejects an operator the fact's type does not support", async () => {
     // A list operator on a scalar fact: json-rules-engine would evaluate it to
     // false forever, which surfaces as "my rule never fires".

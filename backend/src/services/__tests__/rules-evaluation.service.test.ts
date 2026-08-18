@@ -143,6 +143,57 @@ describe("RulesEvaluationService.simulate", () => {
     expect((await rulesEvaluationService.simulate(vsBob, messageAction, { opponentIds: ["carl"] })).matched).toBe(false);
   });
 
+  it("matches an outcome type by id, the exact form for a discipline-scoped rule", async () => {
+    const byForfeit: RuleConditions = { all: [{ fact: "outcomeType", operator: "equal", value: "ot-forfeit" }] };
+    expect((await rulesEvaluationService.simulate(byForfeit, messageAction, { outcomeType: "ot-forfeit" })).matched).toBe(
+      true,
+    );
+    expect((await rulesEvaluationService.simulate(byForfeit, messageAction, { outcomeType: "ot-normal" })).matched).toBe(
+      false,
+    );
+  });
+
+  it("matches an outcome type by name, the form that spans disciplines", async () => {
+    const byName: RuleConditions = { all: [{ fact: "outcomeTypeName", operator: "in", value: ["Forfeit", "Walkover"] }] };
+    expect((await rulesEvaluationService.simulate(byName, messageAction, { outcomeTypeName: "Forfeit" })).matched).toBe(
+      true,
+    );
+    expect((await rulesEvaluationService.simulate(byName, messageAction, { outcomeTypeName: "Regular" })).matched).toBe(
+      false,
+    );
+  });
+
+  it("separates a special outcome from the regular one via isDefaultOutcome", async () => {
+    const special: RuleConditions = { all: [{ fact: "isDefaultOutcome", operator: "equal", value: false }] };
+    const badge: BadgeAction = { type: "badge", icon: "fa fa-ban", label: "No mercy", description: "Special result" };
+    expect((await rulesEvaluationService.simulate(special, badge, { isDefaultOutcome: false })).matched).toBe(true);
+    expect((await rulesEvaluationService.simulate(special, badge, { isDefaultOutcome: true })).matched).toBe(false);
+  });
+
+  it("narrows an outcome down to its reason", async () => {
+    const injury: RuleConditions = {
+      all: [
+        { fact: "outcomeTypeName", operator: "equal", value: "Forfeit" },
+        { fact: "outcomeReasonName", operator: "equal", value: "Injury" },
+      ],
+    };
+    const facts = { outcomeTypeName: "Forfeit", outcomeReasonName: "Injury" };
+    expect((await rulesEvaluationService.simulate(injury, messageAction, facts)).matched).toBe(true);
+    expect(
+      (await rulesEvaluationService.simulate(injury, messageAction, { ...facts, outcomeReasonName: "No-show" })).matched,
+    ).toBe(false);
+  });
+
+  it("interpolates the outcome name into a message variant", async () => {
+    const action: MessageAction = { type: "message", variants: ["Won by {{outcomeTypeName}}!"] };
+    const conditions: RuleConditions = { all: [{ fact: "isDefaultOutcome", operator: "equal", value: false }] };
+    const result = await rulesEvaluationService.simulate(conditions, action, {
+      isDefaultOutcome: false,
+      outcomeTypeName: "Forfeit",
+    });
+    expect(result.output).toEqual({ type: "message", message: "Won by Forfeit!" });
+  });
+
   it("matches a substring on a string fact — the stock operator is Array-only", async () => {
     const gold: RuleConditions = { all: [{ fact: "newRank", operator: "contains", value: "old" }] };
     expect((await rulesEvaluationService.simulate(gold, messageAction, { newRank: "gold" })).matched).toBe(true);

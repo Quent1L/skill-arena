@@ -17,6 +17,9 @@ import {
   matches,
   matchSides,
   rules,
+  disciplines,
+  outcomeTypes,
+  outcomeReasons,
 } from "../../../db/schema";
 import type { RuleConditions } from "@skol-arena/shared";
 import { eq } from "drizzle-orm";
@@ -27,6 +30,15 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
   let adminId: string;
   let tournamentId: string;
   let matchId: string;
+  /** Same line-up, but submitted with a non-default outcome type and its reason. */
+  let forfeitMatchId: string;
+  let forfeitTypeId: string;
+  let forfeitReasonId: string;
+  /** A match whose tournament DOES carry a discipline, unlike the one above. */
+  let disciplineMatchId: string;
+  let disciplineId: string;
+  /** Match in the discipline-bearing tournament, carrying an outcome type. */
+  let disciplineOutcomeMatchId: string;
   /** Alice, Bob (side A) then Carl, Dana (side B). */
   let playerIds: string[];
 
@@ -44,16 +56,27 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
   }
 
   /** Creates a finalized 2v2 match: [Alice, Bob] 5 - 2 [Carl, Dana]. */
-  async function createMatch(): Promise<string> {
+  async function createMatch(
+    outcome?: { outcomeTypeId: string; outcomeReasonId: string },
+    inTournament?: string,
+  ): Promise<string> {
+    const target = inTournament ?? tournamentId;
     const [match] = await testDb
       .insert(matches)
-      .values({ tournamentId, status: "finalized", winnerSide: "A", playedAt: new Date(), createdBy: adminId })
+      .values({
+        tournamentId: target,
+        status: "finalized",
+        winnerSide: "A",
+        playedAt: new Date(),
+        createdBy: adminId,
+        ...outcome,
+      })
       .returning();
 
     for (const [index, side] of [playerIds.slice(0, 2), playerIds.slice(2)].entries()) {
       const [entry] = await testDb
         .insert(tournamentEntries)
-        .values({ tournamentId, entryType: "PLAYER" })
+        .values({ tournamentId: target, entryType: "PLAYER" })
         .returning();
       await testDb.insert(tournamentEntryPlayers).values(side.map((playerId) => ({ entryId: entry.id, playerId })));
       await testDb
@@ -104,6 +127,44 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       .returning();
     tournamentId = tournament.id;
     matchId = await createMatch();
+
+    const [discipline] = await testDb.insert(disciplines).values({ name: `Discipline ${Date.now()}` }).returning();
+    const [forfeitType] = await testDb
+      .insert(outcomeTypes)
+      .values({ disciplineId: discipline.id, name: "Forfeit", isDefault: false })
+      .returning();
+    const [injury] = await testDb
+      .insert(outcomeReasons)
+      .values({ outcomeTypeId: forfeitType.id, name: "Injury" })
+      .returning();
+    forfeitTypeId = forfeitType.id;
+    forfeitReasonId = injury.id;
+    forfeitMatchId = await createMatch({ outcomeTypeId: forfeitTypeId, outcomeReasonId: forfeitReasonId });
+
+    // The tournament above carries no discipline, so rule lookup never exercises the
+    // "global OR this discipline" branch. This second one does.
+    disciplineId = discipline.id;
+    const [disciplineTournament] = await testDb
+      .insert(tournaments)
+      .values({
+        name: `Rules engine discipline tournament ${Date.now()}`,
+        mode: "championship",
+        teamMode: "flex",
+        minTeamSize: 2,
+        maxTeamSize: 2,
+        startDate: today,
+        endDate: nextWeek,
+        status: "ongoing",
+        disciplineId: discipline.id,
+        createdBy: adminId,
+      })
+      .returning();
+    disciplineMatchId = await createMatch(undefined, disciplineTournament.id);
+    disciplineOutcomeMatchId = await createMatch(
+      { outcomeTypeId: forfeitTypeId, outcomeReasonId: forfeitReasonId },
+      disciplineTournament.id,
+    );
+
   });
 
   afterAll(async () => {
@@ -150,9 +211,140 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       expect(context.scoreLoser).toBe(2);
       expect(context.matchScore).toBe("5-2");
     });
+
+    it("exposes the declared outcome to every player of the match", async () => {
+      const { contexts } = await rulesContextService.buildMatchSubmittedContexts(forfeitMatchId);
+
+      expect(contexts).toHaveLength(4);
+      // A match-level fact: identical on both sides, winners and losers alike.
+      for (const { context } of contexts) {
+        expect(context).toMatchObject({
+          outcomeType: forfeitTypeId,
+          outcomeTypeName: "Forfeit",
+          isDefaultOutcome: false,
+          outcomeReason: forfeitReasonId,
+          outcomeReasonName: "Injury",
+        });
+      }
+    });
+
+    it("falls back to empty outcome facts when the match was submitted without one", async () => {
+      const { contexts } = await rulesContextService.buildMatchSubmittedContexts(matchId);
+      const context = contexts[0].context;
+
+      expect(context).toMatchObject({
+        outcomeType: "",
+        outcomeTypeName: "",
+        isDefaultOutcome: false,
+        outcomeReason: "",
+        outcomeReasonName: "",
+      });
+    });
   });
 
   describe("evaluateMatchSubmitted", () => {
+    it("awards a badge on a non-default outcome, and skips the match that has none", async () => {
+      const [rule] = await testDb
+        .insert(rules)
+        .values({
+          triggerEvent: "match_submitted",
+          type: "badge",
+          scope: "global",
+          priority: 0,
+          name: "No mercy",
+          conditions: {
+            all: [
+              { fact: "outcomeTypeName", operator: "equal", value: "Forfeit" },
+              { fact: "outcomeReasonName", operator: "equal", value: "Injury" },
+            ],
+          },
+          action: { type: "badge", icon: "fa fa-ban", label: "No mercy", description: "Won by forfeit" },
+          isActive: true,
+          createdBy: adminId,
+        })
+        .returning();
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(forfeitMatchId);
+
+      // The outcome is a match-level fact, so all four players earn it.
+      expect([...outputs.keys()].sort()).toEqual([...playerIds].sort());
+      expect(outputs.get(playerIds[0])?.badges).toMatchObject([{ ruleId: rule.id, label: "No mercy" }]);
+
+      // Same rule, same line-up, but that match carries no outcome type.
+      expect((await rulesEvaluationService.evaluateMatchSubmitted(matchId)).size).toBe(0);
+    });
+
+    it("still applies a global rule on a match whose tournament has a discipline", async () => {
+      const [alice] = playerIds;
+      await addMessageRule("Global rule", { all: [{ fact: "playerId", operator: "equal", value: alice }] }, ["Global rule"]);
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(disciplineMatchId);
+
+      expect(outputs.get(alice)?.message).toBe("Global rule");
+    });
+
+    it("applies a discipline-scoped rule to its own discipline only", async () => {
+      const [alice] = playerIds;
+      await testDb.insert(rules).values({
+        triggerEvent: "match_submitted",
+        type: "message",
+        scope: "discipline",
+        disciplineId,
+        priority: 0,
+        name: "Discipline rule",
+        conditions: { all: [{ fact: "playerId", operator: "equal", value: alice }] },
+        action: { type: "message", variants: ["Discipline rule"] },
+        isActive: true,
+        createdBy: adminId,
+      });
+
+      expect((await rulesEvaluationService.evaluateMatchSubmitted(disciplineMatchId)).get(alice)?.message).toBe(
+        "Discipline rule",
+      );
+      // The other tournament has no discipline, so the rule must not reach it.
+      expect((await rulesEvaluationService.evaluateMatchSubmitted(matchId)).size).toBe(0);
+    });
+
+    it("fires a discipline-scoped rule matching an outcome type by id", async () => {
+      const [alice] = playerIds;
+      await testDb.insert(rules).values({
+        triggerEvent: "match_submitted",
+        type: "message",
+        scope: "discipline",
+        disciplineId,
+        priority: 0,
+        name: "Match ended",
+        conditions: { all: [{ fact: "outcomeType", operator: "equal", value: forfeitTypeId }] },
+        action: { type: "message", variants: ["Result recorded"] },
+        isActive: true,
+        createdBy: adminId,
+      });
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(disciplineOutcomeMatchId);
+      expect(outputs.get(alice)?.message).toBe("Result recorded");
+    });
+
+    it("never reaches a discipline-scoped rule when the tournament carries no discipline", async () => {
+      const [alice] = playerIds;
+      await testDb.insert(rules).values({
+        triggerEvent: "match_submitted",
+        type: "message",
+        scope: "discipline",
+        disciplineId,
+        priority: 0,
+        name: "Match ended",
+        conditions: { all: [{ fact: "outcomeType", operator: "equal", value: forfeitTypeId }] },
+        action: { type: "message", variants: ["Result recorded"] },
+        isActive: true,
+        createdBy: adminId,
+      });
+
+      // Same rule, same outcome type on the match — but this tournament has no
+      // discipline, so the scope filter drops the rule before it is ever evaluated.
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(forfeitMatchId);
+      expect(outputs.get(alice)).toBeUndefined();
+    });
+
     it("delivers the message only to the targeted player", async () => {
       const [alice] = playerIds;
       await addMessageRule("Pour Alice", { all: [{ fact: "playerId", operator: "equal", value: alice }] }, [

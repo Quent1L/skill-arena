@@ -84,7 +84,14 @@
       <Card>
         <template #title>{{ t('rulesEngineFormView.conditionsTitle') }}</template>
         <template #content>
-          <ConditionBuilder v-model="form.conditions" :facts="conditionFacts" :players="players" />
+          <ConditionBuilder
+            v-model="form.conditions"
+            :facts="conditionFacts"
+            :players="players"
+            :outcome-types="outcomeTypes"
+            :outcome-reasons="outcomeReasons"
+            :discipline-id="form.scope === 'discipline' ? form.disciplineId : null"
+          />
         </template>
       </Card>
 
@@ -194,6 +201,26 @@
             class="w-full"
             @update:model-value="testContext[fact.key] = dateToMinutes($event as Date | null)"
           />
+          <Select
+            v-else-if="fact.ref === 'outcomeType'"
+            v-model="testContext[fact.key]"
+            :options="outcomeTypeOptions"
+            option-label="label"
+            option-value="id"
+            :placeholder="t('conditionRow.placeholderOutcomeType')"
+            filter
+            class="w-full"
+          />
+          <Select
+            v-else-if="fact.ref === 'outcomeReason'"
+            v-model="testContext[fact.key]"
+            :options="outcomeReasonOptions"
+            option-label="label"
+            option-value="id"
+            :placeholder="t('conditionRow.placeholderOutcomeReason')"
+            filter
+            class="w-full"
+          />
           <InputNumber v-else-if="fact.type === 'number'" v-model="testContext[fact.key] as number" class="w-full" />
           <Select
             v-else-if="fact.type === 'boolean'"
@@ -232,6 +259,8 @@ import ConditionBuilder from '@/components/rules/ConditionBuilder.vue'
 import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
 import { emptyGroup, toConditions, fromConditions, hasValidLeaf, type PlayerOption } from '@/components/rules/condition-tree'
 import { userApi } from '@/composables/user/user.api'
+import { outcomeTypeApi } from '@/composables/outcome-type.api'
+import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import type { CatalogFact } from '@/composables/rules/rules.api'
 import { NON_DETERMINISTIC_FACTS } from '@skol-arena/shared/types/index'
 import type {
@@ -241,6 +270,8 @@ import type {
   RuleAction,
   RuleConditions,
   TestRuleResult,
+  OutcomeType,
+  OutcomeReason,
 } from '@skol-arena/shared/types/index'
 
 const route = useRoute()
@@ -275,6 +306,28 @@ async function loadPlayers() {
     players.value = []
   }
 }
+
+// Shared by the condition builder and the simulator dialog, hence loaded here.
+const outcomeTypes = ref<OutcomeType[]>([])
+const outcomeReasons = ref<OutcomeReason[]>([])
+async function loadOutcomes() {
+  try {
+    const [types, reasons] = await Promise.all([outcomeTypeApi.list(), outcomeReasonApi.list()])
+    outcomeTypes.value = types
+    outcomeReasons.value = reasons
+  } catch {
+    outcomeTypes.value = []
+    outcomeReasons.value = []
+  }
+}
+
+// Outcome names repeat across disciplines, so each option carries its parent.
+const outcomeTypeOptions = computed(() =>
+  outcomeTypes.value.map((o) => ({ id: o.id, label: o.discipline ? `${o.name} (${o.discipline.name})` : o.name })),
+)
+const outcomeReasonOptions = computed(() =>
+  outcomeReasons.value.map((r) => ({ id: r.id, label: r.outcomeType ? `${r.name} (${r.outcomeType.name})` : r.name })),
+)
 
 const ruleId = computed(() => route.params.id as string | undefined)
 const isEdit = computed(() => !!ruleId.value)
@@ -417,7 +470,7 @@ async function runTest() {
 }
 
 onMounted(async () => {
-  await Promise.all([loadCatalog(form.triggerEvent), loadReferences(), loadPlayers()])
+  await Promise.all([loadCatalog(form.triggerEvent), loadReferences(), loadPlayers(), loadOutcomes()])
   if (isEdit.value) {
     await loadRuleById(ruleId.value!)
     hydrate()
