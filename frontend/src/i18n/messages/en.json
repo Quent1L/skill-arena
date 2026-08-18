@@ -1138,7 +1138,7 @@
   "pwaInstallBanner": {
     "installButton": "Install",
     "iosInstruction": {
-      "addToHomeScreen": "then <strong>\"Add to Home Screen\"</strong>",
+      "addToHomeScreen": "\"Add to Home Screen\"",
       "tapOn": "Tap",
       "then": "then"
     },
