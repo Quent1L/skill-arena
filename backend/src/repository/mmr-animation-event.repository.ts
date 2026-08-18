@@ -26,6 +26,13 @@ export interface UpsertMmrAnimationEventData {
   tierBeforeName: string | null;
   tierAfterName: string | null;
   rankChanged: boolean;
+  /**
+   * Rules-engine message for this animation. Written with the row so the event is
+   * never briefly readable without it — `getPendingForPlayer` serves a row as soon
+   * as it exists, and a second-step UPDATE left a window serving the generic
+   * encouragement instead.
+   */
+  message?: string | null;
 }
 
 export class MmrAnimationEventRepository {
@@ -51,6 +58,8 @@ export class MmrAnimationEventRepository {
           tierAfterName: data.tierAfterName,
           rankChanged: data.rankChanged,
           reason: data.reason,
+          // A re-finalization that carries no message must not wipe the stored one.
+          message: data.message ?? sql`${mmrAnimationEvents.message}`,
           viewedAt: null,
         },
       })
@@ -220,10 +229,6 @@ export class MmrAnimationEventRepository {
       .update(mmrAnimationEvents)
       .set({ viewedAt: new Date(), seenDelta: sql`${mmrAnimationEvents.mmrDelta}` })
       .where(inArray(mmrAnimationEvents.id, ids));
-  }
-
-  async updateMessage(id: string, message: string) {
-    await db.update(mmrAnimationEvents).set({ message }).where(eq(mmrAnimationEvents.id, id));
   }
 }
 

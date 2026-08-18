@@ -16,6 +16,7 @@ import {
   type PlayerMmrDelta,
 } from "./mmr-engine";
 import { webSocketService } from "./websocket.service";
+import { logger } from "../utils/logger";
 import type {
   MmrAnimationEventReason,
   PlayerRulesOutput,
@@ -212,15 +213,22 @@ export class MmrAnimationEventService {
     const playerIds = await this.getMatchPlayerIds(matchId);
 
     for (const playerId of playerIds) {
-      const events = await this.collectOfficialEvents(playerId, matchId, tournamentId, tiers);
       const ruleOutput = rulesOutputs.get(playerId);
-
-      // Rules-generated message replaces the default encouragement, but only
-      // when there is a single animation (not a recap/cascade).
-      if (events.length === 1 && ruleOutput?.message) {
-        await mmrAnimationEventRepository.updateMessage(events[0].id, ruleOutput.message);
-        events[0] = { ...events[0], message: ruleOutput.message };
-      }
+      // The message is written with the row rather than by a follow-up UPDATE:
+      // `getPendingForPlayer` serves an event as soon as it exists, so a two-step
+      // write leaves a window where the client reads it without its message and
+      // falls back to the generic encouragement.
+      const events = await this.collectOfficialEvents(
+        playerId,
+        matchId,
+        tournamentId,
+        tiers,
+        ruleOutput?.message,
+      );
+      logger.debug(
+        { matchId, playerId, events: events.length, message: ruleOutput?.message ?? null },
+        "[Rules] message attachment",
+      );
 
       this.broadcastEvents(playerId, tournamentId, events);
 
@@ -248,6 +256,8 @@ export class MmrAnimationEventService {
     matchId: string | null,
     seasonId: string,
     tiers: TierData[],
+    /** Rules message, applied to the current match's event only. */
+    message?: string,
   ): Promise<MmrAnimationEventRecord[]> {
     const allHistory = await playerMmrRepository.getMmrHistoryOrdered(seasonId, playerId);
     const existingEvents = await mmrAnimationEventRepository.getOfficialEventDeltasByPlayer(seasonId, playerId);
@@ -282,6 +292,8 @@ export class MmrAnimationEventService {
         tierBeforeName: tierBefore?.name ?? null,
         tierAfterName: tierAfter?.name ?? null,
         rankChanged: (tierBefore?.level ?? null) !== (tierAfter?.level ?? null),
+        // Replayed past matches keep whatever message they already carried.
+        message: isCurrentMatch ? message : undefined,
       });
       events.push(event);
     }

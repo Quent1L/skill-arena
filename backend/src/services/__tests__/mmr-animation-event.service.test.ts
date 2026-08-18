@@ -39,7 +39,6 @@ const mockAnimRepo = {
   getOfficialEventDeltasForPlayers: mock(() => Promise.resolve(new Map<string, Map<string, { id: string; mmrDelta: number; seenDelta: number }>>())),
   getPendingForPlayer: mock(() => Promise.resolve([] as any[])),
   markViewed: mock(() => Promise.resolve()),
-  updateMessage: mock(() => Promise.resolve()),
 };
 mock.module("../../repository/mmr-animation-event.repository", () => ({
   mmrAnimationEventRepository: mockAnimRepo,
@@ -312,6 +311,71 @@ describe("théorie: flood au prochain match quand les events sont périmés", ()
     expect(ev).toContainEqual({ matchId: "m2", reason: "recalculated" });
     expect(ev).toContainEqual({ matchId: "m4", reason: "match_finalized" });
     expect(ev.length).toBe(2);
+  });
+});
+
+// ─── Rules message attachment ──────────────────────────────────────────────
+
+describe("createOfficialEventsAndBroadcast: rules-engine message", () => {
+  const HISTORY = [historyRow("m1", 18), historyRow("m2", -7), historyRow("m4", 20)];
+  const outputs = () => new Map([["p1", { message: "Blue team wins!" }]]);
+
+  /** The message the client actually receives for a given match. */
+  function broadcastMessage(matchId: string): string | undefined {
+    const call = mockWs.send.mock.calls.find((c: any[]) => c[1]?.data?.matchId === matchId);
+    return call?.[1]?.data?.encouragementMessage;
+  }
+
+  /** The message persisted with the row, as passed to upsert. */
+  function upsertedMessage(matchId: string): unknown {
+    const call = mockAnimRepo.upsert.mock.calls.find((c: any[]) => c[0].matchId === matchId);
+    return call?.[0].message;
+  }
+
+  beforeEach(() => {
+    setSelectResult([{ playerId: "p1" }]); // getMatchPlayerIds(m4) → [p1]
+    mockPlayerMmrRepo.getMmrHistoryOrdered.mockImplementation(() => Promise.resolve(HISTORY));
+  });
+
+  it("attaches the message when the match is the only animation", async () => {
+    mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
+      Promise.resolve(new Map([
+        ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
+        ["m2", { id: "evt-m2", mmrDelta: -7, seenDelta: -7 }],
+      ])),
+    );
+
+    await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1", outputs() as never);
+
+    // Written with the row, not by a follow-up UPDATE: the event is readable by
+    // getPendingForPlayer as soon as it exists.
+    expect(upsertedMessage("m4")).toBe("Blue team wins!");
+    expect(broadcastMessage("m4")).toBe("Blue team wins!");
+  });
+
+  it("still attaches the message when the finalization replays recalculated matches too", async () => {
+    // m2's stored delta is stale, so finalizing m4 also emits a "recalculated"
+    // event. The rule message must still land on m4.
+    mockAnimRepo.getOfficialEventDeltasByPlayer.mockImplementation(() =>
+      Promise.resolve(new Map([
+        ["m1", { id: "evt-m1", mmrDelta: 18, seenDelta: 18 }],
+        ["m2", { id: "evt-m2", mmrDelta: -5, seenDelta: -5 }],
+      ])),
+    );
+
+    await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1", outputs() as never);
+
+    expect(emitted().length).toBe(2);
+    expect(upsertedMessage("m4")).toBe("Blue team wins!");
+    expect(broadcastMessage("m4")).toBe("Blue team wins!");
+    // The replayed match carries no message, so its stored one is left alone.
+    expect(upsertedMessage("m2")).toBeUndefined();
+    expect(broadcastMessage("m2")).not.toBe("Blue team wins!");
+  });
+
+  it("writes no message when no rule matched", async () => {
+    await mmrAnimationEventService.createOfficialEventsAndBroadcast("m4", "season-1");
+    expect(upsertedMessage("m4")).toBeUndefined();
   });
 });
 
