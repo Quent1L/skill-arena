@@ -104,6 +104,20 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    // Every prosemirror package depends on its siblings, and any lockfile that nests one
+    // copy under another gets a *second* module instance in the bundle — the editor chunk
+    // once shipped prosemirror-model five times and prosemirror-transform six times, which
+    // was most of its 613 kB. Root `overrides` flatten node_modules; this keeps a future
+    // install from silently re-nesting. It is also a correctness guard: prosemirror checks
+    // Schema/Node identity with `instanceof`, which breaks across two copies.
+    dedupe: [
+      'prosemirror-model',
+      'prosemirror-transform',
+      'prosemirror-view',
+      'prosemirror-state',
+      '@tiptap/core',
+      '@tiptap/pm',
+    ],
   },
   server: {
     watch: {
