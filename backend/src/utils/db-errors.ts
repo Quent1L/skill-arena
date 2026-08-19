@@ -110,6 +110,15 @@ export function handleDatabaseError(
         });
       }
     }
+
+    // Foreign key violation. Services are expected to run their own preflight and
+    // answer with the blocking resources listed; this is the net for the paths
+    // that don't, so a restrict FK surfaces as a 409 rather than a crash.
+    if (pgError.code === "23503") {
+      throw new ConflictError(ErrorCode.RESOURCE_IN_USE, {
+        constraint: pgError.constraint,
+      });
+    }
   }
 
   throw error;

@@ -18,12 +18,27 @@ export const disciplineSchema = z
     icon: z.string().nullish(),
     scoreInstructions: z.string().nullish(),
     teamInteractionMode: z.enum(TEAM_INTERACTION_MODES).nullish(),
+    /** Set once archived: hidden from the selectors, still readable on past results. */
+    archivedAt: z.iso.datetime().nullish(),
   })
   .meta({ id: "Discipline" });
 
 export type Discipline = z.infer<typeof disciplineSchema>;
 
 export const disciplineListSchema = z.array(disciplineSchema);
+
+/**
+ * What a permanent deletion would destroy. Returned in the 409 details so the
+ * admin sees why archiving is the way out, rather than a bare refusal.
+ */
+export const deletionBlockerSchema = z
+  .object({
+    resource: z.string(),
+    count: z.number().int(),
+  })
+  .meta({ id: "DeletionBlocker" });
+
+export type DeletionBlocker = z.infer<typeof deletionBlockerSchema>;
 
 /** Option list served by GET /disciplines/interaction-modes, labels already translated. */
 export const teamInteractionModeOptionSchema = z

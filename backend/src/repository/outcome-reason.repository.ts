@@ -1,6 +1,8 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { db } from "../config/database";
-import { outcomeReasons } from "../db/schema";
+import { matches, outcomeReasons } from "../db/schema";
+import { handleDatabaseError } from "../utils/db-errors";
+import type { DeletionBlocker } from "@skol-arena/shared/types/index";
 
 export interface CreateOutcomeReasonData {
   outcomeTypeId: string;
@@ -63,8 +65,25 @@ export class OutcomeReasonRepository {
     return updated;
   }
 
+  /**
+   * A reason has no archived state of its own — it is a label on an outcome type.
+   * It simply cannot be deleted once a match was recorded with it.
+   */
+  async getDeletionBlockers(id: string): Promise<DeletionBlocker[]> {
+    const [row] = await db
+      .select({ total: count() })
+      .from(matches)
+      .where(eq(matches.outcomeReasonId, id));
+
+    return row?.total ? [{ resource: "matches", count: row.total }] : [];
+  }
+
   async delete(id: string) {
-    await db.delete(outcomeReasons).where(eq(outcomeReasons.id, id));
+    try {
+      await db.delete(outcomeReasons).where(eq(outcomeReasons.id, id));
+    } catch (error) {
+      handleDatabaseError(error, { operation: "outcome reason delete" });
+    }
   }
 }
 

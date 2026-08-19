@@ -48,6 +48,12 @@
         />
         <small class="p-error">{{ errors.mmrMultiplier }}</small>
       </div>
+      <div class="flex items-center gap-3 mb-4">
+        <ToggleSwitch v-model="scoreCountsForMmr" input-id="scoreCountsForMmr" />
+        <label for="scoreCountsForMmr" class="text-sm font-medium cursor-pointer">
+          Compte pour le MMR
+        </label>
+      </div>
       <div class="flex items-center gap-3">
         <ToggleSwitch v-model="isDefault" input-id="isDefault" />
         <label for="isDefault" class="text-sm font-medium cursor-pointer">Type par défaut</label>
@@ -89,7 +95,15 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:visible': [value: boolean]
-  submit: [values: { name: string; isDefault: boolean; points: number; mmrMultiplier: number }]
+  submit: [
+    values: {
+      name: string
+      isDefault: boolean
+      points: number
+      mmrMultiplier: number
+      scoreCountsForMmr: boolean
+    },
+  ]
 }>()
 
 const formSchema = z.object({
@@ -100,29 +114,45 @@ const formSchema = z.object({
   isDefault: z.boolean(),
   points: z.number().int().min(0),
   mmrMultiplier: z.number().positive(),
+  scoreCountsForMmr: z.boolean(),
 })
+
+const DEFAULTS = { isDefault: false, points: 3, mmrMultiplier: 1, scoreCountsForMmr: true }
 
 const { defineField, handleSubmit, errors, resetForm, setValues } = useForm({
   validationSchema: toTypedSchema(formSchema),
-  initialValues: { isDefault: false, points: 3, mmrMultiplier: 1 },
+  initialValues: DEFAULTS,
 })
 
 const [name] = defineField('name')
 const [isDefault] = defineField('isDefault')
 const [points] = defineField('points')
 const [mmrMultiplier] = defineField('mmrMultiplier')
+const [scoreCountsForMmr] = defineField('scoreCountsForMmr')
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
-    resetForm({ values: { name: '', isDefault: false, points: 3, mmrMultiplier: 1 } })
+    resetForm({ values: { name: '', ...DEFAULTS } })
     if (props.editing) {
-      setValues({ name: props.editing.name, isDefault: props.editing.isDefault, points: props.editing.points, mmrMultiplier: props.editing.mmrMultiplier })
+      setValues({
+        name: props.editing.name,
+        isDefault: props.editing.isDefault,
+        points: props.editing.points,
+        mmrMultiplier: props.editing.mmrMultiplier,
+        scoreCountsForMmr: props.editing.scoreCountsForMmr,
+      })
     }
   }
 })
 
 const onSubmit = handleSubmit((values) => {
-  emit('submit', { name: values.name, isDefault: values.isDefault ?? false, points: values.points ?? 3, mmrMultiplier: values.mmrMultiplier ?? 1 })
+  emit('submit', {
+    name: values.name,
+    isDefault: values.isDefault ?? DEFAULTS.isDefault,
+    points: values.points ?? DEFAULTS.points,
+    mmrMultiplier: values.mmrMultiplier ?? DEFAULTS.mmrMultiplier,
+    scoreCountsForMmr: values.scoreCountsForMmr ?? DEFAULTS.scoreCountsForMmr,
+  })
 })
 </script>
 

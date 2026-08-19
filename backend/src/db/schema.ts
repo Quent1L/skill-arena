@@ -495,13 +495,17 @@ export const matches = pgTable(
     status: matchStatusEnum("status").notNull().default("scheduled"),
     playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
     confirmationDeadline: timestamp("confirmation_deadline", { withTimezone: true }),
+    // "restrict", not "set null": a match that lost its outcome fell back to a
+    // hardcoded points: 3 / mmrMultiplier: 1 / "Défaut", which silently rewrote
+    // standings tiebreakers and MMR for competitions that were already over.
+    // Archive the outcome type instead of deleting it.
     outcomeTypeId: uuid("outcome_type_id").references(() => outcomeTypes.id, {
-      onDelete: "set null",
+      onDelete: "restrict",
     }),
     outcomeReasonId: uuid("outcome_reason_id").references(
       () => outcomeReasons.id,
       {
-        onDelete: "set null",
+        onDelete: "restrict",
       },
     ),
     winnerSide: varchar("winner_side", { length: 1 }),
@@ -898,13 +902,24 @@ export const mmrAnimationEvents = pgTable(
 // [End] Ranked season tables
 // ***************************************************************
 
-export const disciplines = pgTable("disciplines", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  icon: text("icon"),
-  scoreInstructions: text("score_instructions"),
-  teamInteractionMode: teamInteractionModeEnum("team_interaction_mode"),
-});
+export const disciplines = pgTable(
+  "disciplines",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    icon: text("icon"),
+    scoreInstructions: text("score_instructions"),
+    teamInteractionMode: teamInteractionModeEnum("team_interaction_mode"),
+    // Terminal but non-destructive: the discipline leaves every selector while its
+    // outcome types stay resolvable, so competitions played under it keep their
+    // numbers. Deleting outright is only allowed when nothing references it.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [index("disciplines_archived_at_idx").on(t.archivedAt)],
+);
 
 // ***************************************************************
 // [Start] Rules engine tables (contextual messages + badges)
@@ -975,19 +990,32 @@ export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
 // [End] Rules engine tables
 // ***************************************************************
 
-export const outcomeTypes = pgTable("outcome_types", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const outcomeTypes = pgTable(
+  "outcome_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  disciplineId: uuid("discipline_id")
-    .notNull()
-    .references(() => disciplines.id, { onDelete: "cascade" }),
+    // Stays "cascade": an outcome type nothing has played under goes away with its
+    // discipline. The restrict on matches.outcome_type_id is what stops that
+    // cascade as soon as a match depends on it.
+    disciplineId: uuid("discipline_id")
+      .notNull()
+      .references(() => disciplines.id, { onDelete: "cascade" }),
 
-  name: text("name").notNull(),
-  isDefault: boolean("is_default").notNull().default(false),
-  scoreCountsForMmr: boolean("score_counts_for_mmr").notNull().default(true),
-  points: integer("points").notNull().default(3),
-  mmrMultiplier: real("mmr_multiplier").notNull().default(1),
-});
+    name: text("name").notNull(),
+    isDefault: boolean("is_default").notNull().default(false),
+    scoreCountsForMmr: boolean("score_counts_for_mmr").notNull().default(true),
+    points: integer("points").notNull().default(3),
+    mmrMultiplier: real("mmr_multiplier").notNull().default(1),
+    // Hidden from the creation and match-entry selectors, still resolvable for
+    // every match already tagged with it.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedBy: uuid("archived_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [index("outcome_types_archived_at_idx").on(t.archivedAt)],
+);
 
 export const outcomeReasons = pgTable("outcome_reasons", {
   id: uuid("id").primaryKey().defaultRandom(),

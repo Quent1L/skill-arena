@@ -393,6 +393,9 @@
     "weekAndDays": "{weeks} et {days}"
   },
   "disciplineFormView": {
+    "archive": "Archiver",
+    "archiveOutcomeTypeHeader": "Archiver à la place ?",
+    "archiveOutcomeTypeMessage": "« {name} » est utilisé par des matchs déjà joués et ne peut donc pas être supprimé. L'archiver le retire de la saisie de match tout en préservant les points et le MMR de ces matchs.",
     "confirmDeleteOutcomeReasonHeader": "Supprimer la raison de résultat ?",
     "confirmDeleteOutcomeReasonMessage": "Êtes-vous sûr de vouloir supprimer cette raison de résultat ? Cette action est irréversible.",
     "confirmDeleteOutcomeTypeHeader": "Supprimer le type de résultat ?",
@@ -406,15 +409,19 @@
     "teamInteractionModeLabel": "Mode d'interaction d'équipe"
   },
   "disciplineList": {
+    "archive": "Archiver",
+    "archivedTag": "Archivée",
     "createFirst": "Créer votre première discipline",
-    "deleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette discipline ? Cette action est irréversible.",
+    "deleteConfirmMessage": "La suppression est définitive et n'est possible que si aucun tournoi, règle ou match n'utilise cette discipline. L'archivage la masque partout tout en préservant les résultats passés.",
     "deleteDialogHeader": "Supprimer {name} ?",
     "emptyState": "Aucune discipline trouvée",
     "newDiscipline": "Nouvelle discipline",
+    "restore": "Restaurer",
     "title": "Gestion des disciplines"
   },
   "disciplineService": {
     "errors": {
+      "archiveFailed": "Erreur lors de l'archivage de la discipline",
       "createFailed": "Erreur lors de la création de la discipline",
       "deleteFailed": "Erreur lors de la suppression de la discipline",
       "getFailed": "Erreur lors du chargement de la discipline",
@@ -422,20 +429,27 @@
       "outcomeReasonCreateFailed": "Erreur lors de la création de la raison de résultat",
       "outcomeReasonDeleteFailed": "Erreur lors de la suppression de la raison de résultat",
       "outcomeReasonUpdateFailed": "Erreur lors de la mise à jour de la raison de résultat",
+      "outcomeTypeArchiveFailed": "Erreur lors de l'archivage du type de résultat",
       "outcomeTypeCreateFailed": "Erreur lors de la création du type de résultat",
       "outcomeTypeDeleteFailed": "Erreur lors de la suppression du type de résultat",
+      "outcomeTypeRestoreFailed": "Erreur lors de la restauration du type de résultat",
       "outcomeTypeUpdateFailed": "Erreur lors de la mise à jour du type de résultat",
+      "restoreFailed": "Erreur lors de la restauration de la discipline",
       "updateFailed": "Erreur lors de la mise à jour de la discipline"
     },
     "toast": {
+      "archiveSuccess": "Discipline archivée avec succès",
       "createSuccess": "Discipline créée avec succès",
       "deleteSuccess": "Discipline supprimée avec succès",
       "outcomeReasonCreateSuccess": "Raison de résultat créée avec succès",
       "outcomeReasonDeleteSuccess": "Raison de résultat supprimée avec succès",
       "outcomeReasonUpdateSuccess": "Raison de résultat mise à jour avec succès",
+      "outcomeTypeArchiveSuccess": "Type de résultat archivé avec succès",
       "outcomeTypeCreateSuccess": "Type de résultat créé avec succès",
       "outcomeTypeDeleteSuccess": "Type de résultat supprimé avec succès",
+      "outcomeTypeRestoreSuccess": "Type de résultat restauré avec succès",
       "outcomeTypeUpdateSuccess": "Type de résultat mis à jour avec succès",
+      "restoreSuccess": "Discipline restaurée avec succès",
       "updateSuccess": "Discipline mise à jour avec succès"
     }
   },

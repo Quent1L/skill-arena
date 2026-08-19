@@ -5,6 +5,7 @@ import {
   type UpdateOutcomeReasonInput,
 } from "@skol-arena/shared/types/index";
 import {
+  ConflictError,
   ErrorCode,
   NotFoundError,
 } from "../types/errors";
@@ -46,6 +47,12 @@ export class OutcomeReasonService {
 
   async deleteOutcomeReason(id: string) {
     await this.getOutcomeReasonById(id);
+
+    const blockers = await outcomeReasonRepository.getDeletionBlockers(id);
+    if (blockers.length > 0) {
+      throw new ConflictError(ErrorCode.OUTCOME_REASON_IN_USE, { blockers });
+    }
+
     await outcomeReasonRepository.delete(id);
     return { success: true, message: "Outcome reason deleted successfully" };
   }

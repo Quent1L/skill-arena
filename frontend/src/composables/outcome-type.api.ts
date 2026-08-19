@@ -8,9 +8,14 @@ import type {
 const BASE_URL = '/api/outcome-types'
 
 export const outcomeTypeApi = {
-  async list(disciplineId?: string): Promise<OutcomeType[]> {
-    const params = disciplineId ? { disciplineId } : undefined
-    const response = await http.get<OutcomeType[]>(BASE_URL, { params })
+  async list(disciplineId?: string, includeArchived = false): Promise<OutcomeType[]> {
+    const params = {
+      ...(disciplineId ? { disciplineId } : {}),
+      ...(includeArchived ? { includeArchived: 'true' } : {}),
+    }
+    const response = await http.get<OutcomeType[]>(BASE_URL, {
+      params: Object.keys(params).length ? params : undefined,
+    })
     return response.data
   },
 
@@ -29,6 +34,16 @@ export const outcomeTypeApi = {
     payload: UpdateOutcomeTypeRequestData,
   ): Promise<OutcomeType> {
     const response = await http.patch<OutcomeType>(`${BASE_URL}/${id}`, payload)
+    return response.data
+  },
+
+  async archive(id: string): Promise<OutcomeType> {
+    const response = await http.post<OutcomeType>(`${BASE_URL}/${id}/archive`)
+    return response.data
+  },
+
+  async restore(id: string): Promise<OutcomeType> {
+    const response = await http.post<OutcomeType>(`${BASE_URL}/${id}/restore`)
     return response.data
   },
 

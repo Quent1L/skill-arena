@@ -15,6 +15,8 @@ export const outcomeTypeSchema = z
     points: z.number(),
     mmrMultiplier: z.number(),
     discipline: disciplineSchema.nullish(),
+    /** Set once archived: no longer selectable at match entry, still resolvable. */
+    archivedAt: z.iso.datetime().nullish(),
   })
   .meta({ id: "OutcomeType" });
 

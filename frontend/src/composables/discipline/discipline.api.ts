@@ -13,8 +13,9 @@ export interface InteractionModeOption {
 }
 
 export const disciplineApi = {
-  async list(): Promise<Discipline[]> {
-    const response = await http.get<Discipline[]>(BASE_URL)
+  async list(includeArchived = false): Promise<Discipline[]> {
+    const params = includeArchived ? { includeArchived: 'true' } : undefined
+    const response = await http.get<Discipline[]>(BASE_URL, { params })
     return response.data
   },
 
@@ -35,6 +36,16 @@ export const disciplineApi = {
 
   async update(id: string, payload: UpdateDisciplineRequestData): Promise<Discipline> {
     const response = await http.patch<Discipline>(`${BASE_URL}/${id}`, payload)
+    return response.data
+  },
+
+  async archive(id: string): Promise<Discipline> {
+    const response = await http.post<Discipline>(`${BASE_URL}/${id}/archive`)
+    return response.data
+  },
+
+  async restore(id: string): Promise<Discipline> {
+    const response = await http.post<Discipline>(`${BASE_URL}/${id}/restore`)
     return response.data
   },
 

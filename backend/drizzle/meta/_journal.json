@@ -512,6 +512,13 @@
       "when": 1777526400028,
       "tag": "0072_drop_contestation_proof",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1777526400029,
+      "tag": "0073_discipline_outcome_archiving",
+      "breakpoints": true
     }
   ]
 }

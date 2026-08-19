@@ -10,6 +10,7 @@ import {
   mutationResultSchema,
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
+import { requireSuperAdmin } from "../middleware/require-role";
 import { createAppHono } from "../types/hono";
 
 const outcomeReasons = createAppHono();
@@ -20,10 +21,12 @@ const TAGS = ["Outcome reasons"];
 outcomeReasons.post(
   "/",
   requireAuth,
+  requireSuperAdmin,
   describe({
     tags: TAGS,
     summary: "Create an outcome reason",
     auth: true,
+    role: true,
     notFound: true,
     success: {
       status: 201,
@@ -75,10 +78,12 @@ outcomeReasons.get(
 outcomeReasons.patch(
   "/:id",
   requireAuth,
+  requireSuperAdmin,
   describe({
     tags: TAGS,
     summary: "Update an outcome reason",
     auth: true,
+    role: true,
     notFound: true,
     success: { description: "The updated outcome reason", schema: outcomeReasonSchema },
   }),
@@ -95,11 +100,16 @@ outcomeReasons.patch(
 outcomeReasons.delete(
   "/:id",
   requireAuth,
+  requireSuperAdmin,
   describe({
     tags: TAGS,
     summary: "Delete an outcome reason",
+    description:
+      "Only while no match was recorded with it. Otherwise answers 409 with the match count.",
     auth: true,
+    role: true,
     notFound: true,
+    conflict: true,
     success: { description: "Deletion outcome", schema: mutationResultSchema },
   }),
   async (c) => {

@@ -24,8 +24,9 @@
 
       <Column field="name" header="Nom" sortable>
         <template #body="{ data }">
-          <span class="font-medium">{{ data.name }}</span>
+          <span class="font-medium" :class="{ 'opacity-60': data.archivedAt }">{{ data.name }}</span>
           <Tag v-if="data.isDefault" value="Par défaut" severity="success" class="ml-2" />
+          <Tag v-if="data.archivedAt" value="Archivé" severity="secondary" class="ml-2" />
         </template>
       </Column>
 
@@ -48,6 +49,16 @@
               v-tooltip.top="'Modifier'"
             />
             <Button
+              v-if="data.archivedAt"
+              icon="fa fa-rotate-left"
+              size="small"
+              text
+              rounded
+              @click="emit('restore-outcome-type', data)"
+              v-tooltip.top="'Restaurer'"
+            />
+            <Button
+              v-else
               icon="fa fa-trash"
               size="small"
               severity="danger"
@@ -148,6 +159,7 @@ const emit = defineEmits<{
   'add-outcome-type': []
   'edit-outcome-type': [outcomeType: OutcomeType]
   'delete-outcome-type': [outcomeType: OutcomeType]
+  'restore-outcome-type': [outcomeType: OutcomeType]
   'add-outcome-reason': [outcomeType: OutcomeType]
   'edit-outcome-reason': [outcomeType: OutcomeType, outcomeReason: OutcomeReason]
   'delete-outcome-reason': [outcomeReason: OutcomeReason]

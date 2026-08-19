@@ -72,6 +72,7 @@
             @add-outcome-type="showOutcomeTypeDialog()"
             @edit-outcome-type="showOutcomeTypeDialog"
             @delete-outcome-type="confirmDeleteOutcomeType"
+            @restore-outcome-type="handleRestoreOutcomeType"
             @add-outcome-reason="showOutcomeReasonDialog"
             @edit-outcome-reason="(type, reason) => showOutcomeReasonDialog(type, reason)"
             @delete-outcome-reason="confirmDeleteOutcomeReason"
@@ -155,6 +156,8 @@ const {
   createOutcomeType,
   updateOutcomeType,
   deleteOutcomeType,
+  archiveOutcomeType,
+  restoreOutcomeType,
   loadOutcomeReasons,
   createOutcomeReason,
   updateOutcomeReason,
@@ -192,7 +195,13 @@ function showOutcomeTypeDialog(outcomeType?: OutcomeType) {
   outcomeTypeDialogVisible.value = true
 }
 
-async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolean; points: number; mmrMultiplier: number }) {
+async function handleOutcomeTypeSubmit(values: {
+  name: string
+  isDefault: boolean
+  points: number
+  mmrMultiplier: number
+  scoreCountsForMmr: boolean
+}) {
   if (!currentDiscipline.value) return
 
   try {
@@ -202,6 +211,7 @@ async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolea
         isDefault: values.isDefault,
         points: values.points,
         mmrMultiplier: values.mmrMultiplier,
+        scoreCountsForMmr: values.scoreCountsForMmr,
       })
     } else {
       await createOutcomeType({
@@ -210,6 +220,7 @@ async function handleOutcomeTypeSubmit(values: { name: string; isDefault: boolea
         isDefault: values.isDefault,
         points: values.points,
         mmrMultiplier: values.mmrMultiplier,
+        scoreCountsForMmr: values.scoreCountsForMmr,
       })
     }
 
@@ -260,18 +271,47 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
     icon: 'fa fa-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: async () => {
+      const idToDelete = outcomeType.id
       try {
-        const idToDelete = outcomeType.id
         await deleteOutcomeType(idToDelete)
         // Remove from expandedRows if present
         if (outcomeTypeTableRef.value?.expandedRows[idToDelete]) {
           delete outcomeTypeTableRef.value.expandedRows[idToDelete]
         }
       } catch (err) {
-        console.error('Error during deletion:', err)
+        // A type nothing has been played under deletes cleanly. Once matches
+        // reference it the backend refuses, and archiving is the way out — so
+        // offer it rather than leaving the admin with a dead end.
+        if ((err as Error)?.cause === 'OUTCOME_TYPE_IN_USE') {
+          promptArchiveOutcomeType(outcomeType)
+        }
       }
     },
   })
+}
+
+function promptArchiveOutcomeType(outcomeType: OutcomeType) {
+  confirm.require({
+    message: t('disciplineFormView.archiveOutcomeTypeMessage', { name: outcomeType.name }),
+    header: t('disciplineFormView.archiveOutcomeTypeHeader'),
+    icon: 'fa fa-box-archive',
+    acceptLabel: t('disciplineFormView.archive'),
+    accept: async () => {
+      try {
+        await archiveOutcomeType(outcomeType.id)
+      } catch {
+        // Handled by the service toast.
+      }
+    },
+  })
+}
+
+async function handleRestoreOutcomeType(outcomeType: OutcomeType) {
+  try {
+    await restoreOutcomeType(outcomeType.id)
+  } catch {
+    // Handled by the service toast.
+  }
 }
 
 function confirmDeleteOutcomeReason(outcomeReason: OutcomeReason) {

@@ -26,11 +26,11 @@ export function useDisciplineService() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function listDisciplines() {
+  async function listDisciplines(includeArchived = false) {
     try {
       loading.value = true
       error.value = null
-      disciplines.value = await disciplineApi.list()
+      disciplines.value = await disciplineApi.list(includeArchived)
     } catch (err) {
       const message =
         err instanceof Error ? err.message : t('disciplineService.errors.listFailed')
@@ -158,9 +158,76 @@ export function useDisciplineService() {
     }
   }
 
-  async function loadOutcomeTypes(disciplineId: string) {
+  /**
+   * Archiving a discipline never destroys anything, so it is the fallback the UI
+   * offers when a delete comes back with blockers.
+   */
+  async function archiveDiscipline(id: string) {
     try {
-      outcomeTypes.value = await outcomeTypeApi.list(disciplineId)
+      loading.value = true
+      error.value = null
+      const discipline = await disciplineApi.archive(id)
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.archiveSuccess'),
+        life: 3000,
+      })
+      if (currentDiscipline.value?.id === id) {
+        currentDiscipline.value = discipline
+      }
+      return discipline
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('disciplineService.errors.archiveFailed')
+      error.value = message
+      toast.add({
+        severity: 'error',
+        summary: t('common.error'),
+        detail: message,
+        life: 5000,
+      })
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function restoreDiscipline(id: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const discipline = await disciplineApi.restore(id)
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.restoreSuccess'),
+        life: 3000,
+      })
+      if (currentDiscipline.value?.id === id) {
+        currentDiscipline.value = discipline
+      }
+      return discipline
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('disciplineService.errors.restoreFailed')
+      error.value = message
+      toast.add({
+        severity: 'error',
+        summary: t('common.error'),
+        detail: message,
+        life: 5000,
+      })
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /** Archived types stay listed in the admin screens so they can be restored. */
+  async function loadOutcomeTypes(disciplineId: string, includeArchived = true) {
+    try {
+      outcomeTypes.value = await outcomeTypeApi.list(disciplineId, includeArchived)
     } catch (err) {
       console.error('Erreur lors du chargement des types de résultat:', err)
     }
@@ -245,6 +312,68 @@ export function useDisciplineService() {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeDeleteFailed')
+      error.value = message
+      toast.add({
+        severity: 'error',
+        summary: t('common.error'),
+        detail: message,
+        life: 5000,
+      })
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function archiveOutcomeType(id: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const outcomeType = await outcomeTypeApi.archive(id)
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeTypeArchiveSuccess'),
+        life: 3000,
+      })
+      if (currentDiscipline.value) {
+        await loadOutcomeTypes(currentDiscipline.value.id)
+      }
+      return outcomeType
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeArchiveFailed')
+      error.value = message
+      toast.add({
+        severity: 'error',
+        summary: t('common.error'),
+        detail: message,
+        life: 5000,
+      })
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function restoreOutcomeType(id: string) {
+    try {
+      loading.value = true
+      error.value = null
+      const outcomeType = await outcomeTypeApi.restore(id)
+      toast.add({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('disciplineService.toast.outcomeTypeRestoreSuccess'),
+        life: 3000,
+      })
+      if (currentDiscipline.value) {
+        await loadOutcomeTypes(currentDiscipline.value.id)
+      }
+      return outcomeType
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : t('disciplineService.errors.outcomeTypeRestoreFailed')
       error.value = message
       toast.add({
         severity: 'error',
@@ -370,10 +499,14 @@ export function useDisciplineService() {
     createDiscipline,
     updateDiscipline,
     deleteDiscipline,
+    archiveDiscipline,
+    restoreDiscipline,
     loadOutcomeTypes,
     createOutcomeType,
     updateOutcomeType,
     deleteOutcomeType,
+    archiveOutcomeType,
+    restoreOutcomeType,
     loadOutcomeReasons,
     createOutcomeReason,
     updateOutcomeReason,

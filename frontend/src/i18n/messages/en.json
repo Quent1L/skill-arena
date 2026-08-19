@@ -393,6 +393,9 @@
     "weekAndDays": "{weeks} and {days}"
   },
   "disciplineFormView": {
+    "archive": "Archive",
+    "archiveOutcomeTypeHeader": "Archive instead?",
+    "archiveOutcomeTypeMessage": "\"{name}\" is used by matches that have already been played, so it cannot be deleted. Archiving removes it from match entry while those matches keep their points and MMR.",
     "confirmDeleteOutcomeReasonHeader": "Delete outcome reason?",
     "confirmDeleteOutcomeReasonMessage": "Are you sure you want to delete this outcome reason? This action is irreversible.",
     "confirmDeleteOutcomeTypeHeader": "Delete outcome type?",
@@ -406,15 +409,19 @@
     "teamInteractionModeLabel": "Team interaction mode"
   },
   "disciplineList": {
+    "archive": "Archive",
+    "archivedTag": "Archived",
     "createFirst": "Create your first discipline",
-    "deleteConfirmMessage": "Are you sure you want to delete this discipline? This action is irreversible.",
+    "deleteConfirmMessage": "Deleting is permanent and only possible while no tournament, rule or match uses this discipline. Archiving hides it everywhere while keeping past results readable.",
     "deleteDialogHeader": "Delete {name}?",
     "emptyState": "No disciplines found",
     "newDiscipline": "New discipline",
+    "restore": "Restore",
     "title": "Disciplines"
   },
   "disciplineService": {
     "errors": {
+      "archiveFailed": "Error archiving discipline",
       "createFailed": "Error creating discipline",
       "deleteFailed": "Error deleting discipline",
       "getFailed": "Error loading discipline",
@@ -422,20 +429,27 @@
       "outcomeReasonCreateFailed": "Error creating outcome reason",
       "outcomeReasonDeleteFailed": "Error deleting outcome reason",
       "outcomeReasonUpdateFailed": "Error updating outcome reason",
+      "outcomeTypeArchiveFailed": "Error archiving outcome type",
       "outcomeTypeCreateFailed": "Error creating outcome type",
       "outcomeTypeDeleteFailed": "Error deleting outcome type",
+      "outcomeTypeRestoreFailed": "Error restoring outcome type",
       "outcomeTypeUpdateFailed": "Error updating outcome type",
+      "restoreFailed": "Error restoring discipline",
       "updateFailed": "Error updating discipline"
     },
     "toast": {
+      "archiveSuccess": "Discipline archived successfully",
       "createSuccess": "Discipline created successfully",
       "deleteSuccess": "Discipline deleted successfully",
       "outcomeReasonCreateSuccess": "Outcome reason created successfully",
       "outcomeReasonDeleteSuccess": "Outcome reason deleted successfully",
       "outcomeReasonUpdateSuccess": "Outcome reason updated successfully",
+      "outcomeTypeArchiveSuccess": "Outcome type archived successfully",
       "outcomeTypeCreateSuccess": "Outcome type created successfully",
       "outcomeTypeDeleteSuccess": "Outcome type deleted successfully",
+      "outcomeTypeRestoreSuccess": "Outcome type restored successfully",
       "outcomeTypeUpdateSuccess": "Outcome type updated successfully",
+      "restoreSuccess": "Discipline restored successfully",
       "updateSuccess": "Discipline updated successfully"
     }
   },
