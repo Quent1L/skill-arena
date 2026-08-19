@@ -109,6 +109,10 @@
           :class="{ 'p-invalid': errors.minTeamSize }"
         />
         <small class="p-error">{{ errors.minTeamSize }}</small>
+        <FieldEditabilityNote
+          :locked-by-matches="lockedByMatches('minTeamSize')"
+          :match-count="enteredMatchCount"
+        />
       </div>
 
       <!-- Max Team Size -->
@@ -181,7 +185,12 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
-import type { OrganizationWithMemberCount } from '@skol-arena/shared'
+import type {
+  OrganizationWithMemberCount,
+  TournamentEditability,
+} from '@skol-arena/shared'
+import { useFieldEditability } from '@/composables/useFieldEditability'
+import FieldEditabilityNote from '../FieldEditabilityNote.vue'
 import RichTextEditor from '@/components/editor/RichTextEditor.vue'
 
 const { t } = useI18n()
@@ -201,7 +210,7 @@ const props = withDefaults(
     lockedDisciplineName?: string
     descriptionPlaceholder?: string
     namePlaceholder?: string
-    editableFields?: string[]
+    editability?: TournamentEditability | null
     showAllowDraw?: boolean
   }>(),
   {
@@ -209,7 +218,7 @@ const props = withDefaults(
     lockedDisciplineName: '',
     descriptionPlaceholder: '',
     namePlaceholder: '',
-    editableFields: () => ['all'],
+    editability: null,
     showAllowDraw: true,
   },
 )
@@ -240,8 +249,7 @@ const errors = computed(() => ({
   endDate: endDateError.value,
 }))
 
-function canEdit(field: string): boolean {
-  if (props.editableFields.includes('all')) return true
-  return props.editableFields.includes(field)
-}
+const { canEdit, lockedByMatches, enteredMatchCount } = useFieldEditability(
+  () => props.editability,
+)
 </script>

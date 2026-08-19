@@ -2,15 +2,28 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { participantRepository } from "../repository/participant.repository";
 import { organizationRepository } from "../repository/organization.repository";
+import { matchRepository } from "../repository/match.repository";
+import { tournamentRulesetRepository } from "../repository/tournament-ruleset.repository";
 import { tournamentRulesetService } from "./tournament-ruleset.service";
+import { standingsService } from "./standings.service";
+import { playerStatsService } from "./player-stats.service";
+import { enqueueMmrSeasonRecalculation } from "./mmr-job-queue.service";
 import {
   type CreateTournamentInput,
   type UpdateTournamentInput,
   type TournamentMode,
   type TournamentStatus,
   type JoinTournamentRequest,
+  type EditabilityContext,
+  type TournamentEditability,
   resolveScoringConfig,
   resolveChampionshipConfig,
+  resolveEditableFields,
+  resolveFieldEditability,
+  updateTriggersRecalculation,
+  policyFieldFor,
+  TOURNAMENT_FIELD_POLICY,
+  TOURNAMENT_STATUS_TRANSITIONS,
 } from "@skol-arena/shared";
 import {
   ErrorCode,
@@ -223,15 +236,73 @@ export class TournamentService {
   ) {
     await this.checkUpdatePermissions(id, userId);
     const tournament = await this.getTournamentById(id);
-    this.validateUpdateFields(tournament, input);
+    const ctx = await this.buildEditabilityContext(tournament);
+
+    await this.validateUpdateFields(ctx, input);
     this.validateUpdateDates(tournament, input);
     this.validateUpdateTeamSize(tournament, input);
+    this.validateStatusChange(tournament, input);
 
-    return await tournamentRepository.update(id, {
+    const updated = await tournamentRepository.update(id, {
       ...input,
       startDate: input.startDate,
       endDate: input.endDate,
     });
+
+    // Opening the competition freezes the ruleset it will be played under.
+    if (tournament.status === "draft" && input.status === "open") {
+      await tournamentRulesetService.freeze(id);
+    }
+
+    // Points already awarded were computed from a rule that just moved, so they
+    // no longer describe what happened. Recompute rather than leave the standings
+    // saying one thing and the configuration another.
+    if (updateTriggersRecalculation(Object.keys(input), ctx)) {
+      await this.recalculateAfterRuleChange(id, tournament.mode);
+    }
+
+    return updated;
+  }
+
+  /**
+   * What the admin form is allowed to offer. Derived from the same policy the
+   * update path enforces, so the two cannot drift apart.
+   */
+  async getEditability(id: string): Promise<TournamentEditability> {
+    const tournament = await this.getTournamentById(id);
+    const ctx = await this.buildEditabilityContext(tournament);
+    return { ...resolveEditableFields(ctx), enteredMatchCount: ctx.enteredMatchCount };
+  }
+
+  /** Everything the editability policy needs to judge an update. */
+  private async buildEditabilityContext(
+    tournament: NonNullable<Awaited<ReturnType<typeof tournamentRepository.getById>>>,
+  ): Promise<EditabilityContext> {
+    return {
+      status: tournament.status,
+      mode: tournament.mode,
+      teamMode: tournament.teamMode,
+      // A draft cannot have matches, so skip the query entirely.
+      enteredMatchCount:
+        tournament.status === "draft"
+          ? 0
+          : await matchRepository.countEnteredMatches(tournament.id),
+    };
+  }
+
+  /**
+   * A rule change on a competition that has already been played has to be
+   * followed through: ranked replays its season in a worker, everything else
+   * rewrites its awarded points on the spot.
+   */
+  private async recalculateAfterRuleChange(id: string, mode: TournamentMode) {
+    if (mode === "ranked") {
+      await tournamentRulesetRepository.setRecalcPending(id, new Date());
+      await enqueueMmrSeasonRecalculation(id);
+      return;
+    }
+    await standingsService.recalculatePointsInternal(id);
+    await playerStatsService.invalidateCacheForTournament(id);
   }
 
   /**
@@ -245,37 +316,58 @@ export class TournamentService {
   }
 
   /**
-   * Validate fields that can be updated based on tournament status
+   * Refuses what the competition's state no longer allows.
+   *
+   * The policy lives in the shared module so the form disables exactly what the
+   * API refuses. Two refusals, deliberately distinct: a field frozen by the
+   * competition's structure is a different problem for the admin than one frozen
+   * because results have started coming in, and only the second can be explained
+   * by a number.
    */
-  private validateUpdateFields(
-    tournament: Awaited<ReturnType<typeof tournamentRepository.getById>>,
+  private async validateUpdateFields(
+    ctx: EditabilityContext,
     input: UpdateTournamentInput,
   ) {
-    if (tournament?.status === "draft") {
-      return;
+    const attempted = Object.keys(input);
+    const structural: string[] = [];
+    const blockedByMatches: string[] = [];
+
+    for (const field of attempted) {
+      if (resolveFieldEditability(field, ctx) !== "locked") continue;
+
+      const policy = TOURNAMENT_FIELD_POLICY[policyFieldFor(field)];
+      if (policy?.tier === "untilMatches" && ctx.enteredMatchCount > 0) {
+        blockedByMatches.push(field);
+      } else {
+        structural.push(field);
+      }
     }
 
-    const allowedFields = new Set([
-      "description",
-      "startDate",
-      "endDate",
-      "status",
-      "rulesId",
-      "scoreEnabled",
-      "organizationId",
-      "validationMode",
-      "validationTimerHours",
-    ]);
-    const attemptedFields = Object.keys(input);
-    const invalidFields = attemptedFields.filter(
-      (field) => !allowedFields.has(field),
-    );
-
-    if (invalidFields.length > 0) {
+    if (structural.length > 0) {
       throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN, {
-        fields: invalidFields,
+        fields: structural,
       });
     }
+    if (blockedByMatches.length > 0) {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_LOCKED_BY_MATCHES, {
+        fields: blockedByMatches,
+        matchCount: ctx.enteredMatchCount,
+      });
+    }
+  }
+
+  /**
+   * The generic PATCH accepts `status`, and the admin form uses it rather than
+   * the dedicated status route — so without this the transition table was simply
+   * not enforced and any status could be set from any other, `finished` back to
+   * `draft` included.
+   */
+  private validateStatusChange(
+    tournament: { status: TournamentStatus },
+    input: UpdateTournamentInput,
+  ) {
+    if (input.status === undefined || input.status === tournament.status) return;
+    this.validateStatusTransition(tournament.status, input.status);
   }
 
   /**
@@ -378,14 +470,7 @@ export class TournamentService {
     currentStatus: TournamentStatus,
     newStatus: TournamentStatus,
   ) {
-    const validTransitions: Record<TournamentStatus, TournamentStatus[]> = {
-      draft: ["open"],
-      open: ["ongoing", "draft"],
-      ongoing: ["finished"],
-      finished: [],
-    };
-
-    const allowedTransitions = validTransitions[currentStatus];
+    const allowedTransitions = TOURNAMENT_STATUS_TRANSITIONS[currentStatus];
     if (!allowedTransitions.includes(newStatus)) {
       throw new BadRequestError(ErrorCode.INVALID_STATUS_TRANSITION, {
         from: currentStatus,

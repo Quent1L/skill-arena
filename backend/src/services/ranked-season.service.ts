@@ -12,8 +12,13 @@ import {
   toEnginePlayers,
   type EnginePlayer,
 } from "./mmr-engine";
-import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
+import {
+  enqueueMmrSeasonRecalculation,
+  enqueueSeasonRewindGeneration,
+} from "./mmr-job-queue.service";
 import { tournamentRulesetService } from "./tournament-ruleset.service";
+import { tournamentRulesetRepository } from "../repository/tournament-ruleset.repository";
+import { matchRepository } from "../repository/match.repository";
 import { logger } from "../utils/logger";
 import { db } from "../config/database";
 import { matches, appUsers } from "../db/schema";
@@ -225,6 +230,34 @@ function resultToOutcome(result: MatchResult): ProvisionalOutcome {
   return "draw";
 }
 
+/**
+ * Frozen the moment the season starts.
+ *
+ * The tier source and its scaling mode are read exactly once, by `startSeason`,
+ * to lay down the ladder's thresholds — changing them later would say nothing.
+ * The discipline and the team sizes are what every entered match was built on.
+ */
+const SEASON_LOCKED_FIELDS = new Set([
+  "disciplineId",
+  "minTeamSize",
+  "maxTeamSize",
+  "sourceTierSeasonId",
+  "tierScalingMode",
+]);
+
+/** Scoring semantics: correctable until a result exists, meaningless to change after. */
+const SEASON_SCORE_FIELDS = new Set(["scoreEnabled", "minScore", "maxScore", "allowDraw"]);
+
+/** Knobs that change what every past match of the season was worth. */
+const SEASON_MMR_FIELDS = [
+  "baseMmr",
+  "kFactor",
+  "placementMatches",
+  "usePreviousMmr",
+  "softResetFactor",
+  "sourceMmrSeasonId",
+] as const;
+
 export class RankedSeasonService {
   async createSeason(input: CreateRankedSeasonInput, createdBy: string) {
     await this.assertCanManage(createdBy);
@@ -425,6 +458,12 @@ export class RankedSeasonService {
     await enqueueSeasonRewindGeneration(id);
   }
 
+  /**
+   * A running season used to be entirely frozen, which meant a typo in its
+   * description could not be fixed without ending it. Only the fields that would
+   * make the ladder inconsistent are locked now; the MMR knobs stay editable but
+   * replay the season so the standings never disagree with the configuration.
+   */
   async updateSeason(
     id: string,
     input: UpdateRankedSeasonInput,
@@ -433,14 +472,54 @@ export class RankedSeasonService {
     await this.assertCanManage(userId);
     const season = await this.getSeasonOrThrow(id);
 
-    if (season.status !== "draft") {
-      throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN);
-    }
+    const enteredMatchCount =
+      season.status === "draft" ? 0 : await matchRepository.countEnteredMatches(id);
+    this.assertSeasonFieldsEditable(season.status, enteredMatchCount, input);
 
     await this.applyTournamentUpdate(id, input);
-    await this.applyConfigUpdate(id, input);
+    const affectsMmr = await this.applyConfigUpdate(id, input);
+
+    // Every match of the season was priced with the old settings.
+    if (affectsMmr && season.status !== "draft") {
+      await tournamentRulesetRepository.setRecalcPending(id, new Date());
+      await enqueueMmrSeasonRecalculation(id);
+    }
 
     return await rankedSeasonRepository.getSeasonWithConfig(id);
+  }
+
+  /**
+   * Ranked has its own policy rather than the tournament one: its rules live in
+   * `ranked_season_configs`, and two of them — the tier source and its scaling —
+   * are consumed once by `startSeason` and mean nothing afterwards.
+   */
+  private assertSeasonFieldsEditable(
+    status: TournamentStatus,
+    enteredMatchCount: number,
+    input: UpdateRankedSeasonInput,
+  ): void {
+    if (status === "draft") return;
+
+    const attempted = Object.keys(input).filter(
+      (field) => input[field as keyof UpdateRankedSeasonInput] !== undefined,
+    );
+
+    const structural = attempted.filter((field) => SEASON_LOCKED_FIELDS.has(field));
+    if (structural.length > 0) {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN, {
+        fields: structural,
+      });
+    }
+
+    if (enteredMatchCount === 0) return;
+
+    const blocked = attempted.filter((field) => SEASON_SCORE_FIELDS.has(field));
+    if (blocked.length > 0) {
+      throw new BadRequestError(ErrorCode.TOURNAMENT_FIELD_LOCKED_BY_MATCHES, {
+        fields: blocked,
+        matchCount: enteredMatchCount,
+      });
+    }
   }
 
   private async applyTournamentUpdate(
@@ -479,10 +558,11 @@ export class RankedSeasonService {
     });
   }
 
+  /** @returns whether the change alters what past matches were worth. */
   private async applyConfigUpdate(
     id: string,
     input: UpdateRankedSeasonInput,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const configUpdate: Record<string, unknown> = {};
     if (input.baseMmr !== undefined) configUpdate.baseMmr = input.baseMmr;
     if (input.kFactor !== undefined) configUpdate.kFactor = input.kFactor;
@@ -501,7 +581,7 @@ export class RankedSeasonService {
     if (input.sourceMmrSeasonId !== undefined)
       configUpdate.sourceMmrSeasonId = input.sourceMmrSeasonId;
 
-    if (Object.keys(configUpdate).length === 0) return;
+    if (Object.keys(configUpdate).length === 0) return false;
 
     await rankedSeasonRepository.updateConfig(id, configUpdate);
 
@@ -516,6 +596,8 @@ export class RankedSeasonService {
     if (affectsSeeds) {
       await this.syncMmrSeeds(id);
     }
+
+    return affectsSeeds || SEASON_MMR_FIELDS.some((field) => input[field] !== undefined);
   }
 
   async getSeasonDetails(id: string) {

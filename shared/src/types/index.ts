@@ -11,6 +11,7 @@ export * from "./enums";
 export * from "./season-form";
 export * from "./tournament-config";
 export * from "./tournament-ruleset";
+export * from "./tournament-editability";
 export * from "./tournament";
 export * from "./user";
 export * from "./admin-user";

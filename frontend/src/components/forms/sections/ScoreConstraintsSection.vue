@@ -10,6 +10,10 @@
       />
       <label for="scoreEnabled" class="text-sm font-medium cursor-pointer">
         {{ t('scoreConstraintsSection.fields.scoreEnabled') }}
+        <FieldEditabilityNote
+          :locked-by-matches="lockedByMatches('scoreEnabled')"
+          :match-count="enteredMatchCount"
+        />
       </label>
     </div>
 
@@ -27,6 +31,10 @@
           :show-buttons="false"
         />
         <small class="p-error">{{ minScoreError }}</small>
+        <FieldEditabilityNote
+          :locked-by-matches="lockedByMatches('minScore')"
+          :match-count="enteredMatchCount"
+        />
       </div>
       <div>
         <label for="maxScore" class="block text-sm font-medium mb-2">{{ t('scoreConstraintsSection.fields.maxScore') }}</label>
@@ -41,6 +49,10 @@
           :show-buttons="false"
         />
         <small class="p-error">{{ maxScoreError }}</small>
+        <FieldEditabilityNote
+          :locked-by-matches="lockedByMatches('maxScore')"
+          :match-count="enteredMatchCount"
+        />
       </div>
     </div>
   </div>
@@ -49,15 +61,15 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
+import type { TournamentEditability } from '@skol-arena/shared/types/index'
+import { useFieldEditability } from '@/composables/useFieldEditability'
+import FieldEditabilityNote from '../FieldEditabilityNote.vue'
 
 const { t } = useI18n()
 
-const props = withDefaults(
-  defineProps<{
-    editableFields?: string[]
-  }>(),
-  { editableFields: () => ['all'] },
-)
+const props = defineProps<{
+  editability?: TournamentEditability | null
+}>()
 
 const { value: scoreEnabled } = useField<boolean>('scoreEnabled')
 const { value: minScore, errorMessage: minScoreError } =
@@ -65,8 +77,7 @@ const { value: minScore, errorMessage: minScoreError } =
 const { value: maxScore, errorMessage: maxScoreError } =
   useField<number | null>('maxScore')
 
-function canEdit(field: string): boolean {
-  if (props.editableFields.includes('all')) return true
-  return props.editableFields.includes(field)
-}
+const { canEdit, lockedByMatches, enteredMatchCount } = useFieldEditability(
+  () => props.editability,
+)
 </script>

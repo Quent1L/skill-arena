@@ -114,21 +114,23 @@ describe('useTournamentService', () => {
     })
   })
 
-  describe('getEditableFields', () => {
-    it('draft: everything is editable', () => {
-      const { getEditableFields } = useTournamentService()
-      expect(getEditableFields({ status: 'draft' } as TournamentResponse)).toEqual(['all'])
-    })
+  describe('getEditability', () => {
+    it('asks the backend rather than deciding locally', async () => {
+      // The list used to be duplicated here and in the form, and both disagreed
+      // with what the API accepted — fields were shown disabled that the server
+      // would have taken. One source of truth now, and it is the server.
+      const editability = {
+        editable: ['name', 'scoringConfig'],
+        recalculating: ['scoringConfig'],
+        locked: ['mode'],
+        enteredMatchCount: 7,
+      }
+      vi.mocked(tournamentApi.getEditability).mockResolvedValue(editability)
 
-    it('past draft: restricted list', () => {
-      const { getEditableFields } = useTournamentService()
-      expect(getEditableFields({ status: 'ongoing' } as TournamentResponse)).toEqual([
-        'description',
-        'startDate',
-        'endDate',
-        'status',
-        'scoreEnabled',
-      ])
+      const { getEditability } = useTournamentService()
+
+      await expect(getEditability('t-1')).resolves.toEqual(editability)
+      expect(tournamentApi.getEditability).toHaveBeenCalledWith('t-1')
     })
   })
 

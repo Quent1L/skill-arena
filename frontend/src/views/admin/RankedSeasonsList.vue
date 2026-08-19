@@ -69,8 +69,11 @@
               @click="router.push(`/admin/ranked/${data.id}/tiers`)"
               v-tooltip.top="t('rankedSeasonsList.tooltipManageRanks')"
             />
+            <!-- A running season is no longer frozen: its metadata is always
+                 editable and its MMR settings replay the season when changed.
+                 Only a finished one is closed for good. -->
             <Button
-              v-if="data.status === 'draft'"
+              v-if="data.status !== 'finished'"
               icon="fa fa-edit"
               size="small"
               text

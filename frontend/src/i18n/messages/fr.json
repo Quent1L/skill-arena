@@ -472,6 +472,10 @@
     "unhandledRejection": "Promesse rejetée non capturée",
     "unknownLocation": "Emplacement inconnu"
   },
+  "fieldEditability": {
+    "lockedByMatches": "Verrouillé : {count} résultat(s) ont déjà été saisis",
+    "recalculates": "Modifier ce champ relance le calcul du classement, y compris des positions déjà publiées"
+  },
   "fontAwesomeIconPicker": {
     "chooseIcon": "Choisir une icône",
     "clear": "Effacer",

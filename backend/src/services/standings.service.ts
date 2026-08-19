@@ -10,16 +10,13 @@ import {
   type VictoryQualityDetail,
   type TournamentScoringConfig,
   type TournamentRulesetPayload,
+  ENTERED_MATCH_STATUSES,
   resolveRulesetOutcome,
   resolveScoringConfig,
 } from "@skol-arena/shared";
 
-/**
- * Statuses a match must have to weigh on the provisional table. A contested result stays
- * in: it already counted while it was merely reported, and pulling it out would make the
- * standings flicker for the length of the arbitration.
- */
-export const PROVISIONAL_MATCH_STATUSES: MatchStatus[] = ["reported", "disputed", "finalized"];
+/** Statuses a match must have to weigh on the provisional table. */
+export const PROVISIONAL_MATCH_STATUSES = ENTERED_MATCH_STATUSES;
 
 type FlexMatchRow = Awaited<
   ReturnType<typeof standingsRepository.getPlayerPointsForStandings>

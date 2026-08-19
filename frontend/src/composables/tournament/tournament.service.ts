@@ -10,8 +10,13 @@ import type {
   CreateTournamentFormData,
   UpdateTournamentFormData,
   TournamentStatus,
+  TournamentEditability,
 } from '@skol-arena/shared/types/index'
-import { formDataToApiPayload, nestTournamentConfigs } from '@skol-arena/shared/types/index'
+import {
+  formDataToApiPayload,
+  nestTournamentConfigs,
+  TOURNAMENT_STATUS_TRANSITIONS,
+} from '@skol-arena/shared/types/index'
 import { useAuth } from '../useAuth'
 
 /**
@@ -29,13 +34,7 @@ async function clearCache(id: string): Promise<void> {
  * Get available status transitions
  */
 function getAvailableStatusTransitions(currentStatus: TournamentStatus): TournamentStatus[] {
-  const transitions: Record<string, TournamentStatus[]> = {
-    draft: ['open'],
-    open: ['ongoing', 'draft'],
-    ongoing: ['finished'],
-    finished: [],
-  }
-  return transitions[currentStatus] || []
+  return TOURNAMENT_STATUS_TRANSITIONS[currentStatus] ?? []
 }
 
 /**
@@ -99,14 +98,14 @@ export function useTournamentService() {
   }
 
   /**
-   * Check what fields can be edited based on status
+   * What may still be edited, straight from the backend.
+   *
+   * Deliberately not derived locally: the list used to be duplicated here and in
+   * the form, both disagreed with what the API accepted, and fields were shown
+   * disabled that the server would happily have taken.
    */
-  function getEditableFields(tournament: TournamentResponse | TournamentListResponse): string[] {
-    if (tournament.status === 'draft') {
-      return ['all'] // All fields editable
-    }
-    // After draft, only these fields
-    return ['description', 'startDate', 'endDate', 'status', 'scoreEnabled']
+  async function getEditability(id: string): Promise<TournamentEditability> {
+    return await tournamentApi.getEditability(id)
   }
 
   /**
@@ -322,7 +321,7 @@ export function useTournamentService() {
     canManageTournament,
     canDeleteTournament,
     canEditTournament,
-    getEditableFields,
+    getEditability,
     getAvailableStatusTransitions,
     isTournamentOpenForJoin,
     canLeaveTournament,

@@ -48,6 +48,7 @@ declare module 'vue' {
     Dropdown: typeof import('primevue/dropdown')['default']
     EmptyState: typeof import('./src/components/ui/EmptyState.vue')['default']
     FeatsCard: typeof import('./src/components/rewind/cards/FeatsCard.vue')['default']
+    FieldEditabilityNote: typeof import('./src/components/forms/FieldEditabilityNote.vue')['default']
     FinalRankCard: typeof import('./src/components/rewind/cards/FinalRankCard.vue')['default']
     FontAwesomeIconPicker: typeof import('./src/components/forms/FontAwesomeIconPicker.vue')['default']
     GeneralInfoSection: typeof import('./src/components/forms/sections/GeneralInfoSection.vue')['default']

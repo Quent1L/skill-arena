@@ -28,6 +28,7 @@ import {
   availableBadgeSchema,
   mutationResultSchema,
   tournamentRulesetSchema,
+  tournamentEditabilitySchema,
 } from "@skol-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
@@ -502,6 +503,29 @@ tournaments.post(
       await enqueueMmrSeasonRecalculation(tournamentId);
     }
     return c.json(result);
+  }
+);
+
+// GET /tournaments/:id/editability
+tournaments.get(
+  "/:id/editability",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "What may still be edited on this competition",
+    description:
+      "Which fields the API will accept, which of them trigger a recalculation, and " +
+      "which are locked — with the number of results already entered, so the form can " +
+      "explain a refusal rather than just greying a field out.",
+    auth: true,
+    notFound: true,
+    success: { description: "Editability of each field", schema: tournamentEditabilitySchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const editability = await tournamentService.getEditability(tournamentId);
+    return c.json(editability);
   }
 );
 

@@ -472,6 +472,10 @@
     "unhandledRejection": "Unhandled promise rejection",
     "unknownLocation": "Unknown location"
   },
+  "fieldEditability": {
+    "lockedByMatches": "Locked: {count} result(s) have already been entered",
+    "recalculates": "Changing this recalculates the standings, including positions already published"
+  },
   "fontAwesomeIconPicker": {
     "chooseIcon": "Choose an icon",
     "clear": "Clear",

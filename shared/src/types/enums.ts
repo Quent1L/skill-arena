@@ -26,6 +26,20 @@ export const tournamentStatusEnum = [
 ] as const;
 export type TournamentStatus = (typeof tournamentStatusEnum)[number];
 
+/**
+ * Where a competition may go from where it is.
+ *
+ * `open → draft` is the one step back, so a competition opened by mistake can be
+ * pulled before anyone joins. Nothing leaves `finished`: its standings are
+ * published and its rewinds are frozen.
+ */
+export const TOURNAMENT_STATUS_TRANSITIONS: Record<TournamentStatus, TournamentStatus[]> = {
+  draft: ["open"],
+  open: ["ongoing", "draft"],
+  ongoing: ["finished"],
+  finished: [],
+};
+
 export const tournamentAdminRoleEnum = ["owner", "co_admin"] as const;
 export type TournamentAdminRole = (typeof tournamentAdminRoleEnum)[number];
 
@@ -40,6 +54,18 @@ export const matchStatusEnum = [
   "cancelled"
 ] as const;
 export type MatchStatus = (typeof matchStatusEnum)[number];
+
+/**
+ * A match carrying an actual result, contested or not.
+ *
+ * Two questions read this: whether a match weighs on the provisional standings,
+ * and whether a competition's rules are still free to change. They have to agree
+ * — a result that already counts towards a ranking is a result someone is
+ * relying on. A contested one stays in: it counted while it was merely reported,
+ * and pulling it out would make the standings flicker for the length of the
+ * arbitration.
+ */
+export const ENTERED_MATCH_STATUSES: MatchStatus[] = ["reported", "disputed", "finalized"];
 
 export const matchFinalizationReasonEnum = [
   "consensus",

@@ -22,6 +22,7 @@ import {
   type TournamentScoringConfig,
   resolveScoringConfig,
   resolveRulesetOutcome,
+  ENTERED_MATCH_STATUSES,
 } from "@skol-arena/shared";
 import { TOURNAMENT_CONFIGS_WITH } from "./tournament-config.columns";
 import { entryRepository } from "./entry.repository";
@@ -688,6 +689,28 @@ export class MatchRepository {
       .select({ count: count() })
       .from(matches)
       .where(eq(matches.tournamentId, tournamentId));
+
+    return result[0]?.count ?? 0;
+  }
+
+  /**
+   * Matches carrying an actual result, contested or not.
+   *
+   * This is what decides whether a competition's rules are still free to move: a
+   * scheduled match commits nobody, an entered one does. Same grouping as the
+   * provisional standings, so the two never disagree about what "already played"
+   * means. Hits `idx_matches_tournament_status_played_at`.
+   */
+  async countEnteredMatches(tournamentId: string) {
+    const result = await db
+      .select({ count: count() })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.tournamentId, tournamentId),
+          inArray(matches.status, ENTERED_MATCH_STATUSES),
+        ),
+      );
 
     return result[0]?.count ?? 0;
   }

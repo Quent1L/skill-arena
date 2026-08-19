@@ -18,11 +18,15 @@ import {
   UserRepository,
 } from "../../repository/user.repository";
 import { tournamentRulesetService } from "../tournament-ruleset.service";
+import { matchRepository } from "../../repository/match.repository";
+import { standingsService } from "../standings.service";
+import { playerStatsService } from "../player-stats.service";
 import {
   NotFoundError,
   BadRequestError,
   ForbiddenError,
   ConflictError,
+  ErrorCode,
 } from "../../types/errors";
 import type {
   CreateTournamentInput,
@@ -39,11 +43,25 @@ let tourRepo: Partial<TournamentRepository>;
 let partRepo: Partial<ParticipantRepository>;
 let usrRepo: Partial<UserRepository>;
 
+/** Entered results the service should see; set per test. */
+let enteredMatchCount = 0;
+/** Tournaments a rule change asked to recompute. */
+let recalculatedTournamentIds: string[] = [];
+
 beforeEach(() => {
-  // Snapshot lifecycle is covered by tournament-ruleset.service.test.ts; here it
-  // would only reach for a database.
+  // Snapshot lifecycle is covered by the ruleset tests; here it would only reach
+  // for a database.
   tournamentRulesetService.seed = async () => ({ discipline: null, outcomeTypes: [] });
   tournamentRulesetService.freeze = async () => undefined;
+
+  enteredMatchCount = 0;
+  recalculatedTournamentIds = [];
+  matchRepository.countEnteredMatches = async () => enteredMatchCount;
+  standingsService.recalculatePointsInternal = async (tournamentId: string) => {
+    recalculatedTournamentIds.push(tournamentId);
+    return { updatedMatches: 0 };
+  };
+  playerStatsService.invalidateCacheForTournament = async () => undefined;
 
   tourRepo = tournamentRepository as unknown as Partial<TournamentRepository>;
   tourRepo.getById = async (_id: string) => undefined;
@@ -336,23 +354,142 @@ describe("TournamentService - basic flows", () => {
     }
   });
 
-  it("updateTournament should throw BadRequestError when updating forbidden fields on non-draft tournament", async () => {
-    usrRepo.getById = async () => ({ id: "u-1", role: "super_admin" }) as any;
-    tourRepo.getById = async () =>
-      ({
-        id: "t-1",
-        status: "open",
-        startDate: "2024-01-01",
-        endDate: "2024-01-02",
-      }) as any;
-    try {
-      await tournamentService.updateTournament("t-1", "u-1", {
-        name: "New Name",
-      } as UpdateTournamentInput);
-      throw new Error("Expected BadRequestError");
-    } catch (err) {
-      expect(err).toBeInstanceOf(BadRequestError);
+  /**
+   * What a competition still allows once it has left draft. The policy itself is
+   * unit-tested in the shared module; these check that the service enforces it,
+   * distinguishes its two refusals, and follows through on a rule change.
+   */
+  describe("updateTournament editability", () => {
+    function openTournament(overrides: Record<string, unknown> = {}) {
+      usrRepo.getById = async () => ({ id: "u-1", role: "super_admin" }) as any;
+      tourRepo.getById = async () =>
+        ({
+          id: "t-1",
+          status: "open",
+          mode: "championship",
+          teamMode: "flex",
+          startDate: "2024-01-01",
+          endDate: "2024-01-02",
+          minTeamSize: 1,
+          maxTeamSize: 2,
+          ...overrides,
+        }) as any;
     }
+
+    async function expectRejected(input: UpdateTournamentInput, code: ErrorCode) {
+      const err = await tournamentService
+        .updateTournament("t-1", "u-1", input)
+        .then(() => null)
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(BadRequestError);
+      expect((err as BadRequestError).code).toBe(code);
+    }
+
+    it("accepts metadata, which never weighs on a result", async () => {
+      openTournament();
+      enteredMatchCount = 12;
+
+      const updated = await tournamentService.updateTournament("t-1", "u-1", {
+        name: "New Name",
+        description: "Nouvelle description",
+      } as UpdateTournamentInput);
+
+      expect(updated).toBeDefined();
+    });
+
+    it("refuses a structural field outright", async () => {
+      openTournament();
+      enteredMatchCount = 0;
+
+      await expectRejected(
+        { mode: "bracket" } as UpdateTournamentInput,
+        ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN,
+      );
+    });
+
+    it("allows scoring semantics while nothing has been entered", async () => {
+      openTournament();
+      enteredMatchCount = 0;
+
+      const updated = await tournamentService.updateTournament("t-1", "u-1", {
+        scoreEnabled: false,
+      } as UpdateTournamentInput);
+
+      expect(updated).toBeDefined();
+    });
+
+    it("locks scoring semantics once a result exists, and says how many", async () => {
+      openTournament();
+      enteredMatchCount = 3;
+
+      const err = await tournamentService
+        .updateTournament("t-1", "u-1", { scoreEnabled: false } as UpdateTournamentInput)
+        .then(() => null)
+        .catch((e: unknown) => e);
+
+      expect((err as BadRequestError).code).toBe(ErrorCode.TOURNAMENT_FIELD_LOCKED_BY_MATCHES);
+      expect((err as BadRequestError).details).toMatchObject({ matchCount: 3 });
+    });
+
+    it("recalculates when the points scale moves", async () => {
+      openTournament();
+      enteredMatchCount = 5;
+
+      await tournamentService.updateTournament("t-1", "u-1", {
+        scoringConfig: { pointPerVictory: 5 },
+      } as UpdateTournamentInput);
+
+      expect(recalculatedTournamentIds).toEqual(["t-1"]);
+    });
+
+    it("does not recalculate when only metadata changes", async () => {
+      openTournament();
+      enteredMatchCount = 5;
+
+      await tournamentService.updateTournament("t-1", "u-1", {
+        description: "Juste un texte",
+      } as UpdateTournamentInput);
+
+      expect(recalculatedTournamentIds).toEqual([]);
+    });
+
+    it("allows team sizes to be widened in flex, but not in static", async () => {
+      openTournament({ teamMode: "flex" });
+      enteredMatchCount = 4;
+      await tournamentService.updateTournament("t-1", "u-1", {
+        maxTeamSize: 3,
+      } as UpdateTournamentInput);
+
+      openTournament({ teamMode: "static" });
+      await expectRejected(
+        { maxTeamSize: 3 } as UpdateTournamentInput,
+        ErrorCode.TOURNAMENT_FIELD_UPDATE_FORBIDDEN,
+      );
+    });
+
+    it("validates the status transition on the generic update route", async () => {
+      // The admin form patches `status` here rather than through the dedicated
+      // status route, so without this any transition was reachable.
+      openTournament({ status: "finished" });
+      enteredMatchCount = 0;
+
+      await expectRejected(
+        { status: "draft" } as UpdateTournamentInput,
+        ErrorCode.INVALID_STATUS_TRANSITION,
+      );
+    });
+
+    it("allows a legal transition through the same route", async () => {
+      openTournament({ status: "open" });
+      enteredMatchCount = 0;
+
+      const updated = await tournamentService.updateTournament("t-1", "u-1", {
+        status: "ongoing",
+      } as UpdateTournamentInput);
+
+      expect(updated).toBeDefined();
+    });
   });
 
   it("updateTournament should throw BadRequestError when invalid date range", async () => {

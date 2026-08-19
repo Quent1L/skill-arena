@@ -7,6 +7,7 @@ import type {
   TournamentStatus,
   TournamentMode,
   TournamentRulesetResponse,
+  TournamentEditability,
 } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
@@ -85,6 +86,12 @@ export const tournamentApi = {
   /**
    * Recalculate points for all matches in a tournament (admin only)
    */
+  /** Which fields the API will still accept, and what each costs. */
+  async getEditability(id: string): Promise<TournamentEditability> {
+    const response = await http.get<TournamentEditability>(`${BASE_URL}/${id}/editability`)
+    return response.data
+  },
+
   /**
    * The ruleset the competition is played under. This — not the live discipline —
    * is what match entry must offer and what the displayed results are based on.

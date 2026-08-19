@@ -16,7 +16,7 @@
               :is-super-admin="isSuperAdmin"
               :discipline-locked="isEditMode"
               :locked-discipline-name="currentDisciplineName"
-              :editable-fields="editableFields"
+              :editability="editability"
             >
               <template #after-discipline>
                 <!-- Status (edit mode only) -->
@@ -93,6 +93,7 @@
                   :disabled="!isFieldEditable('maxMatchesPerPlayer')"
                   class="w-full"
                 />
+                <FieldEditabilityNote :recalculates="fieldTriggersRecalculation('maxMatchesPerPlayer')" />
               </div>
 
               <div>
@@ -134,6 +135,7 @@
                   :disabled="!isFieldEditable('pointPerVictory')"
                   class="w-full"
                 />
+                <FieldEditabilityNote :recalculates="fieldTriggersRecalculation('pointPerVictory')" />
               </div>
 
               <div>
@@ -147,6 +149,7 @@
                   :disabled="!isFieldEditable('pointPerDraw')"
                   class="w-full"
                 />
+                <FieldEditabilityNote :recalculates="fieldTriggersRecalculation('pointPerDraw')" />
               </div>
 
               <div>
@@ -160,18 +163,19 @@
                   :disabled="!isFieldEditable('pointPerLoss')"
                   class="w-full"
                 />
+                <FieldEditabilityNote :recalculates="fieldTriggersRecalculation('pointPerLoss')" />
               </div>
             </div>
           </div>
 
           <!-- Contraintes de score -->
           <div class="mb-6">
-            <ScoreConstraintsSection :editable-fields="editableFields" />
+            <ScoreConstraintsSection :editability="editability" />
           </div>
 
           <!-- Mode de validation -->
           <div class="mb-6">
-            <ValidationModeSection :editable-fields="editableFields" />
+            <ValidationModeSection :editability="editability" />
           </div>
 
           <!-- Actions -->
@@ -206,6 +210,7 @@ import { useI18n } from 'vue-i18n'
 import {
   type CreateTournamentFormData,
   type UpdateTournamentFormData,
+  type TournamentEditability,
   baseTournamentFormSchema,
   baseTournamentUpdateFormSchema,
   CHAMPIONSHIP_DEFAULTS,
@@ -217,6 +222,7 @@ import {
 import { useTournamentService } from '@/composables/tournament/tournament.service'
 import { useFormReferences } from '@/composables/useFormReferences'
 import { useAuth } from '@/composables/useAuth'
+import FieldEditabilityNote from '@/components/forms/FieldEditabilityNote.vue'
 import GeneralInfoSection from '@/components/forms/sections/GeneralInfoSection.vue'
 import ScoreConstraintsSection from '@/components/forms/sections/ScoreConstraintsSection.vue'
 import ValidationModeSection from '@/components/forms/sections/ValidationModeSection.vue'
@@ -231,7 +237,7 @@ const {
   getTournament,
   createTournament,
   updateTournament,
-  getEditableFields,
+  getEditability,
 } = useTournamentService()
 
 const {
@@ -243,7 +249,17 @@ const {
 const { isSuperAdmin } = useAuth()
 
 const isEditMode = computed(() => route.params.id !== 'new' && !!route.params.id)
-const editableFields = ref<string[]>(['all'])
+
+/**
+ * What the API will accept, fetched rather than guessed. A new tournament has no
+ * constraints yet, so everything is open until we know otherwise.
+ */
+const editability = ref<TournamentEditability>({
+  editable: [],
+  recalculating: [],
+  locked: [],
+  enteredMatchCount: 0,
+})
 
 const currentDisciplineName = computed(
   () => currentTournament.value?.discipline?.name || t('tournamentFormView.undefinedDiscipline'),
@@ -285,8 +301,12 @@ const [organizationId] = defineField('organizationId')
 
 function isFieldEditable(fieldName: string): boolean {
   if (!isEditMode.value) return true
-  if (editableFields.value.includes('all')) return true
-  return editableFields.value.includes(fieldName)
+  return editability.value.editable.includes(fieldName)
+}
+
+/** Changing this field is allowed but rewrites results that are already published. */
+function fieldTriggersRecalculation(fieldName: string): boolean {
+  return isEditMode.value && editability.value.recalculating.includes(fieldName)
 }
 
 const onSubmit = handleSubmit(async (values) => {
@@ -306,24 +326,11 @@ const onSubmit = handleSubmit(async (values) => {
     }
 
     if (isEditMode.value && route.params.id) {
-      const allowedFields =
-        currentTournament.value?.status === 'draft'
-          ? Object.keys(values)
-          : [
-              'description',
-              'startDate',
-              'endDate',
-              'status',
-              'rulesId',
-              'scoreEnabled',
-              'organizationId',
-              'validationMode',
-              'validationTimerHours',
-            ]
-
+      // Filtered against what the API actually accepts, so the form can never
+      // send a field the server is about to refuse.
       const updateData = Object.entries(values).reduce(
         (acc, [key, value]) => {
-          if (allowedFields.includes(key)) {
+          if (editability.value.editable.includes(key)) {
             acc[key] = value
           }
           return acc
@@ -349,7 +356,7 @@ onMounted(async () => {
   if (isEditMode.value && route.params.id) {
     await getTournament(route.params.id as string)
     if (currentTournament.value) {
-      editableFields.value = getEditableFields(currentTournament.value)
+      editability.value = await getEditability(route.params.id as string)
       setValues({
         name: currentTournament.value.name,
         description: currentTournament.value.description,

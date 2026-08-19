@@ -50,21 +50,22 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useField } from 'vee-validate'
-import type { ValidationMode } from '@skol-arena/shared/types/index'
+import type { ValidationMode, TournamentEditability } from '@skol-arena/shared/types/index'
+import { useFieldEditability } from '@/composables/useFieldEditability'
 
 const { t } = useI18n()
 
-const props = withDefaults(
-  defineProps<{
-    editableFields?: string[]
-  }>(),
-  { editableFields: () => ['all'] },
-)
+const props = defineProps<{
+  editability?: TournamentEditability | null
+}>()
 
 const { value: validationMode } = useField<ValidationMode>('validationMode')
 const { value: validationTimerHours } = useField<number | null>('validationTimerHours')
 
-const canEdit = props.editableFields.includes('all') || props.editableFields.includes('validationMode')
+const { canEdit: fieldCanEdit } = useFieldEditability(() => props.editability)
+// Computed, not a plain const: this used to be evaluated once at setup, so it
+// never reflected an editability that arrived after the component mounted.
+const canEdit = computed(() => fieldCanEdit('validationMode'))
 
 function setMode(mode: ValidationMode) {
   validationMode.value = mode
