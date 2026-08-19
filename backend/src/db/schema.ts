@@ -190,6 +190,29 @@ export const ruleTypeEnum = pgEnum("rule_type", ["message", "badge"]);
 
 export const ruleScopeEnum = pgEnum("rule_scope", ["global", "discipline"]);
 
+/**
+ * What the engine did with a rule whose conditions evaluated true.
+ * `superseded` is the message rule that matched but lost the single-winner draw,
+ * `already_held` the badge rule that matched for a player who already carries it.
+ */
+export const ruleFiringResultEnum = pgEnum("rule_firing_result", [
+  "selected",
+  "superseded",
+  "awarded",
+  "already_held",
+]);
+
+/**
+ * Where the player was standing when the message finally reached their eyes.
+ * `reveal_skipped` still counts as seen — skipping the animation leaves the
+ * message on screen — while `recap` does not: MmrRecapCard never renders it.
+ */
+export const ruleFiringSurfaceEnum = pgEnum("rule_firing_surface", [
+  "reveal",
+  "reveal_skipped",
+  "recap",
+]);
+
 export const notificationTypeEnum = pgEnum("notification_type", [
   "MATCH_CREATED",
   "MATCH_VALIDATION",
@@ -1019,6 +1042,65 @@ export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
     .notNull(),
 });
 
+/**
+ * One row per (rule, player, match) where the conditions evaluated true — including
+ * the rules that matched and produced nothing, which the engine used to discard.
+ *
+ * Everything the admin screens report is derived from this log by query; there is no
+ * counter to keep in sync. The four states we care about read as:
+ *   fired          → the row exists
+ *   never delivered → deliveredAt IS NULL (a superseded message, or one dropped
+ *                     because no current-match animation event was produced)
+ *   seen           → seenSurface IN ('reveal', 'reveal_skipped')
+ *   drowned        → seenSurface = 'recap'
+ */
+export const ruleFirings = pgTable(
+  "rule_firings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ruleId: uuid("rule_id")
+      .notNull()
+      .references(() => rules.id, { onDelete: "cascade" }),
+    // Denormalized: a rule's type is editable, and a firing must stay readable as
+    // whatever the rule was when it fired.
+    ruleType: ruleTypeEnum("rule_type").notNull(),
+    engineVersion: integer("engine_version").notNull(),
+    triggerEvent: text("trigger_event").notNull(),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id").references(() => matches.id, { onDelete: "cascade" }),
+    seasonId: uuid("season_id").references(() => tournaments.id, { onDelete: "cascade" }),
+    result: ruleFiringResultEnum("result").notNull(),
+    // Message rules only: which entry of `action.variants` was drawn. Kept for
+    // ordering and debugging — never as a key, since the position shifts when a
+    // variant is inserted or removed.
+    variantIndex: integer("variant_index"),
+    // The variant's raw template, frozen as it stood at firing time. This is what
+    // the breakdown groups on: editing a variant must not retroactively move past
+    // firings under the new wording. Null on rows written before 0076.
+    variantText: text("variant_text"),
+    // The text actually rendered, after interpolation. Null unless `result` is 'selected'.
+    message: text("message"),
+    // The animation event that carried the message. Set together with deliveredAt.
+    animationEventId: uuid("animation_event_id").references(() => mmrAnimationEvents.id, {
+      onDelete: "set null",
+    }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+    seenSurface: ruleFiringSurfaceEnum("seen_surface"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // A match can be finalized more than once (cancel then resubmit); the unique key
+    // turns the re-run into an update instead of a duplicate firing.
+    unique("rule_firings_rule_player_match_key").on(table.ruleId, table.playerId, table.matchId),
+    index("rule_firings_rule_created_idx").on(table.ruleId, table.createdAt.desc()),
+    index("rule_firings_player_created_idx").on(table.playerId, table.createdAt.desc()),
+    index("rule_firings_animation_event_idx").on(table.animationEventId),
+  ],
+);
+
 // ***************************************************************
 // [End] Rules engine tables
 // ***************************************************************
@@ -1158,6 +1240,22 @@ export const rulesRelations = relations(rules, ({ one, many }) => ({
     references: [disciplines.id],
   }),
   badges: many(playerBadges),
+  firings: many(ruleFirings),
+}));
+
+export const ruleFiringsRelations = relations(ruleFirings, ({ one }) => ({
+  rule: one(rules, {
+    fields: [ruleFirings.ruleId],
+    references: [rules.id],
+  }),
+  player: one(appUsers, {
+    fields: [ruleFirings.playerId],
+    references: [appUsers.id],
+  }),
+  match: one(matches, {
+    fields: [ruleFirings.matchId],
+    references: [matches.id],
+  }),
 }));
 
 export const playerBadgesRelations = relations(playerBadges, ({ one }) => ({

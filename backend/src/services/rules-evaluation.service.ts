@@ -1,10 +1,12 @@
 import { Engine } from "json-rules-engine";
 import { rulesRepository } from "../repository/rules.repository";
+import { firingKey, ruleFiringRepository, type RuleFiringDraft } from "../repository/rule-firing.repository";
 import { rulesContextService } from "./rules-context.service";
 import { RULE_OPERATORS } from "./rules-operators";
 import { logger } from "../utils/logger";
 import {
   EVENT_FACT_CATALOG,
+  RULES_ENGINE_VERSION,
   type BadgeAction,
   type MatchSubmittedContext,
   type MessageAction,
@@ -22,6 +24,13 @@ interface EvaluableRule {
   priority: number;
   action: RuleAction;
   conditions: RuleConditions;
+  engineVersion: number;
+}
+
+/** A player's outcome plus the firings it produced, before they are persisted. */
+interface PlayerEvaluation {
+  output: PlayerRulesOutput;
+  firings: RuleFiringDraft[];
 }
 
 /**
@@ -45,8 +54,10 @@ function selectWinner<T extends { priority: number }>(candidates: T[]): T | null
   return top[Math.floor(Math.random() * top.length)];
 }
 
-function pickVariant(action: MessageAction): string {
-  return action.variants[Math.floor(Math.random() * action.variants.length)];
+/** Returns the index too: the stats panel reports which variant actually went out. */
+function pickVariant(action: MessageAction): { index: number; template: string } {
+  const index = Math.floor(Math.random() * action.variants.length);
+  return { index, template: action.variants[index] };
 }
 
 const PLAYER_FACT_KEYS = EVENT_FACT_CATALOG.match_submitted.filter((f) => f.ref === "player").map((f) => f.key);
@@ -77,7 +88,7 @@ export class RulesEvaluationService {
    * and badge produced. Broadcasting (message injected into the MMR animation,
    * animated badge) is handled by mmr-animation-event.service.
    */
-  async evaluateMatchSubmitted(matchId: string): Promise<Map<string, PlayerRulesOutput>> {
+  async evaluateMatchSubmitted(matchId: string, seasonId?: string): Promise<Map<string, PlayerRulesOutput>> {
     const result = new Map<string, PlayerRulesOutput>();
     const { contexts, displayNames } = await rulesContextService.buildMatchSubmittedContexts(matchId);
     if (contexts.length === 0) return result;
@@ -96,38 +107,111 @@ export class RulesEvaluationService {
       priority: r.priority,
       action: r.action as RuleAction,
       conditions: r.conditions as RuleConditions,
+      engineVersion: r.engineVersion,
     }));
 
     const engineBundle = this.buildEngine(evaluable);
 
+    const firings: RuleFiringDraft[] = [];
+    // Which rule produced each player's message, so the persisted firing id can be
+    // handed back once the whole batch is written.
+    const messageRuleByPlayer = new Map<string, string>();
+
     for (const { playerId, context } of contexts) {
-      const output = await this.evaluateForPlayer(matchId, playerId, context, engineBundle, displayNames).catch(
-        (err) => {
-          logger.error({ err, matchId, playerId }, "[Rules] player evaluation failed");
-          return null;
-        },
-      );
-      if (output && (output.message || output.badges?.length)) result.set(playerId, output);
+      const evaluation = await this.evaluateForPlayer(
+        matchId,
+        seasonId ?? null,
+        playerId,
+        context,
+        engineBundle,
+        displayNames,
+      ).catch((err) => {
+        logger.error({ err, matchId, playerId }, "[Rules] player evaluation failed");
+        return null;
+      });
+      if (!evaluation) continue;
+
+      firings.push(...evaluation.firings);
+      const selected = evaluation.firings.find((f) => f.result === "selected");
+      if (selected) messageRuleByPlayer.set(playerId, selected.ruleId);
+
+      const { output } = evaluation;
+      if (output.message || output.badges?.length) result.set(playerId, output);
     }
+
+    await this.recordFirings(matchId, firings, messageRuleByPlayer, result);
     return result;
+  }
+
+  /**
+   * Persists the whole match's firings in one insert and threads the resulting ids
+   * back into the outputs. A failure here loses statistics, never the message: the
+   * outputs are already built and the caller carries on regardless.
+   */
+  private async recordFirings(
+    matchId: string,
+    firings: RuleFiringDraft[],
+    messageRuleByPlayer: Map<string, string>,
+    outputs: Map<string, PlayerRulesOutput>,
+  ): Promise<void> {
+    if (firings.length === 0) return;
+    try {
+      const ids = await ruleFiringRepository.recordMany(firings);
+      for (const [playerId, ruleId] of messageRuleByPlayer) {
+        const output = outputs.get(playerId);
+        if (!output) continue;
+        output.messageFiringId = ids.get(firingKey(ruleId, playerId, matchId));
+      }
+    } catch (err) {
+      logger.error({ err, matchId, firings: firings.length }, "[Rules] recording firings failed");
+    }
   }
 
   private async evaluateForPlayer(
     matchId: string,
+    seasonId: string | null,
     playerId: string,
     context: MatchSubmittedContext,
     engineBundle: { engine: Engine; byId: Map<string, EvaluableRule> },
     displayNames: Map<string, string>,
-  ): Promise<PlayerRulesOutput> {
+  ): Promise<PlayerEvaluation> {
     // `randomRoll` is drawn here rather than in the context service: that service
     // must stay deterministic so badge reconciliation can replay past matches.
     const facts: Facts = { ...(context as unknown as Facts), randomRoll: Math.floor(Math.random() * 100) };
     const matched = await this.runEngine(engineBundle, facts);
     const output: PlayerRulesOutput = {};
+    const firings: RuleFiringDraft[] = [];
+    const draft = (rule: EvaluableRule): Omit<RuleFiringDraft, "result"> => ({
+      ruleId: rule.id,
+      ruleType: rule.type,
+      engineVersion: rule.engineVersion,
+      triggerEvent: "match_submitted",
+      playerId,
+      matchId,
+      seasonId,
+    });
 
-    const messageRule = selectWinner(matched.filter((r) => r.type === "message"));
+    const messageRules = matched.filter((r) => r.type === "message");
+    const messageRule = selectWinner(messageRules);
     if (messageRule) {
-      output.message = interpolate(pickVariant(messageRule.action as MessageAction), resolveDisplay(facts, displayNames));
+      const { index, template } = pickVariant(messageRule.action as MessageAction);
+      output.message = interpolate(template, resolveDisplay(facts, displayNames));
+      firings.push({
+        ...draft(messageRule),
+        result: "selected",
+        variantIndex: index,
+        // The template, not the rendered message: the stats group on it, and a
+        // later edit to the rule must not move this firing under the new wording.
+        variantText: template,
+        message: output.message,
+      });
+    }
+    // The rules that matched but lost the single-winner draw. They are the reason a
+    // rule can look dead in the stats while its conditions fire constantly, so they
+    // are recorded rather than discarded.
+    for (const rule of messageRules) {
+      if (rule.id === messageRule?.id) continue;
+      firings.push({ ...draft(rule), result: "superseded" });
     }
 
     // Badges are awarded independently (no single-winner): every matching badge
@@ -137,6 +221,7 @@ export class RulesEvaluationService {
     for (const badgeRule of badgeRules) {
       // awardBadge uses onConflictDoNothing and returns null if badge already exists
       const awarded = await rulesRepository.awardBadge(playerId, badgeRule.id, matchId);
+      firings.push({ ...draft(badgeRule), result: awarded ? "awarded" : "already_held" });
       if (!awarded) continue;
       const badge = badgeRule.action as BadgeAction;
       (output.badges ??= []).push({
@@ -148,7 +233,7 @@ export class RulesEvaluationService {
       });
     }
 
-    return output;
+    return { output, firings };
   }
 
   private buildEngine(rules: EvaluableRule[]): { engine: Engine; byId: Map<string, EvaluableRule> } {
@@ -187,12 +272,16 @@ export class RulesEvaluationService {
       priority: 0,
       action,
       conditions,
+      engineVersion: RULES_ENGINE_VERSION,
     };
     const matched = await this.runEngine(this.buildEngine([ephemeral]), context);
     if (matched.length === 0) return { matched: false };
 
     if (action.type === "message") {
-      return { matched: true, output: { type: "message", message: interpolate(pickVariant(action), context) } };
+      return {
+        matched: true,
+        output: { type: "message", message: interpolate(pickVariant(action).template, context) },
+      };
     }
     return {
       matched: true,

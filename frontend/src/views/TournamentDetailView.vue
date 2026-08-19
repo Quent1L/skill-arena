@@ -207,7 +207,7 @@
       v-else-if="store.tournament?.mode === 'ranked' && animationQueue.currentEvent.value"
       :event="animationQueue.currentEvent.value"
       :tiers="store.rankedTiers"
-      @close="animationQueue.acknowledgeCurrentEvent()"
+      @close="animationQueue.acknowledgeCurrentEvent($event)"
     />
     <BadgeRevealAnimation
       v-else-if="store.tournament?.mode === 'ranked' && animationQueue.currentBadge.value"

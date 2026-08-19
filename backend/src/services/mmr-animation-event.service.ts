@@ -7,6 +7,7 @@ import type { UpsertMmrAnimationEventData } from "../repository/mmr-animation-ev
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { ruleFiringRepository } from "../repository/rule-firing.repository";
 import {
   calculateMatchMmr,
   toEnginePlayers,
@@ -24,6 +25,7 @@ import { logger } from "../utils/logger";
 import type {
   MmrAnimationEventReason,
   PlayerRulesOutput,
+  RuleFiringSurface,
 } from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
@@ -235,6 +237,16 @@ export class MmrAnimationEventService {
         { matchId, playerId, events: events.length, message: ruleOutput?.message ?? null },
         "[Rules] message attachment",
       );
+
+      // Only the current match's event carries the message. If none was produced,
+      // nothing is stamped and the firing stays `deliveredAt IS NULL` — which is
+      // exactly what the stats need to report as "matched but never delivered".
+      const carrier = events.find((e) => e.matchId === matchId);
+      if (ruleOutput?.messageFiringId && carrier) {
+        await ruleFiringRepository
+          .markDelivered(ruleOutput.messageFiringId, carrier.id)
+          .catch((err) => logger.error({ err, matchId, playerId }, "[Rules] marking firing delivered failed"));
+      }
 
       this.broadcastEvents(playerId, tournamentId, events);
 
@@ -465,8 +477,17 @@ export class MmrAnimationEventService {
     }));
   }
 
-  async markViewed(ids: string[]) {
+  /**
+   * `surface` says which screen consumed the events. It is optional so a client
+   * that predates it keeps working — the firing is then left with no surface,
+   * counted as delivered but of unknown fate rather than wrongly counted as read.
+   */
+  async markViewed(ids: string[], surface?: RuleFiringSurface) {
     await mmrAnimationEventRepository.markViewed(ids);
+    if (!surface) return;
+    await ruleFiringRepository
+      .markSeen(ids, surface)
+      .catch((err) => logger.error({ err, surface }, "[Rules] marking firings seen failed"));
   }
 
   private async getMatchPlayerIds(matchId: string): Promise<string[]> {

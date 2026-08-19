@@ -3,6 +3,8 @@ import { useI18n } from 'vue-i18n'
 import { rulesApi, type BadgeReconciliationStatus, type CatalogFact, type RuleListFilters } from './rules.api'
 import type {
   ClientRule,
+  ClientRuleFiringDetail,
+  ClientRuleFiringStatsRow,
   CreateRuleData,
   RuleAction,
   RuleConditions,
@@ -106,6 +108,31 @@ export function useRulesService() {
     }
   }
 
+  const firingStats = ref<ClientRuleFiringStatsRow[]>([])
+  const firingDetail = ref<ClientRuleFiringDetail | null>(null)
+
+  /** One call for the whole list — the counters are aggregated server-side. */
+  async function loadFiringStats() {
+    try {
+      firingStats.value = await rulesApi.getFiringStats()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.statsFailed')
+    }
+  }
+
+  async function loadFiringDetail(id: string, days = 30) {
+    loading.value = true
+    error.value = null
+    try {
+      firingDetail.value = await rulesApi.getFiringDetail(id, days)
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : t('rulesService.errors.statsFailed')
+      firingDetail.value = null
+    } finally {
+      loading.value = false
+    }
+  }
+
   const reconciliationStatus = ref<BadgeReconciliationStatus | null>(null)
 
   async function loadReconciliationStatus() {
@@ -154,6 +181,10 @@ export function useRulesService() {
     updateRule,
     deleteRule,
     getBadgeCount,
+    firingStats,
+    firingDetail,
+    loadFiringStats,
+    loadFiringDetail,
     reconciliationStatus,
     loadReconciliationStatus,
     triggerReconciliation,

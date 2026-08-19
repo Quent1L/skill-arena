@@ -33,7 +33,7 @@ const finalizeMatchMmr: Task = async (rawPayload) => {
   // Evaluate rules first: produces the message injected into the MMR animation
   // and the badge revealed afterwards.
   const rulesOutputs = await rulesEvaluationService
-    .evaluateMatchSubmitted(matchId)
+    .evaluateMatchSubmitted(matchId, tournamentId)
     .catch((err) => {
       logger.error({ err }, '[Worker] rules evaluation failed');
       return new Map();

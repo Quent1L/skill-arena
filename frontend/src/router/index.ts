@@ -215,6 +215,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/admin/rules-engine/:id/stats',
+    name: 'admin-rules-engine-stats',
+    component: () => import('@/views/admin/RulesEngineStatsView.vue'),
+    beforeEnter: requireAdmin,
+    meta: {
+      breadcrumb: t('routes.adminRulesEngineStats'),
+      title: t('routes.adminRulesEngineStats'),
+      requiresAuth: true,
+      parent: 'admin-rules-engine',
+    },
+  },
+  {
     path: '/admin/invitations',
     name: 'admin-invitations',
     component: () => import('@/views/admin/AdminInvitationsView.vue'),

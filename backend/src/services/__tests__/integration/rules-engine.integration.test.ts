@@ -17,10 +17,14 @@ import {
   matches,
   matchSides,
   rules,
+  ruleFirings,
+  mmrAnimationEvents,
   disciplines,
   outcomeTypes,
   outcomeReasons,
 } from "../../../db/schema";
+import { ruleFiringRepository } from "../../../repository/rule-firing.repository";
+import { rulesService } from "../../rules.service";
 import type { RuleConditions } from "@skol-arena/shared";
 import { eq } from "drizzle-orm";
 
@@ -197,7 +201,10 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
   });
 
   afterEach(async () => {
+    // Firings and badges cascade from the rule; animation events do not, and they
+    // are unique per (player, season, match, type) — so they need their own sweep.
     await testDb.delete(rules).where(eq(rules.createdBy, adminId));
+    await testDb.delete(mmrAnimationEvents);
   });
 
   describe("buildMatchSubmittedContexts", () => {
@@ -504,6 +511,200 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
 
       expect(outputs.size).toBe(4);
       for (const output of outputs.values()) expect(output.message).toBe("repli");
+    });
+  });
+
+  describe("rule firings", () => {
+    const anyMatch: RuleConditions = { all: [{ fact: "scoreWinner", operator: "greaterThan", value: 0 }] };
+
+    async function firingsFor(ruleId: string) {
+      return await testDb.select().from(ruleFirings).where(eq(ruleFirings.ruleId, ruleId));
+    }
+
+    it("records the rules that matched but lost the single-winner draw", async () => {
+      const winnerId = await addMessageRule("Gagnante", anyMatch, ["gagne"], 10);
+      const loserId = await addMessageRule("Perdante", anyMatch, ["perd"], 5);
+
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+
+      const won = await firingsFor(winnerId);
+      const lost = await firingsFor(loserId);
+
+      // One row per player on both rules: the loser fired just as truly as the winner.
+      expect(won).toHaveLength(4);
+      expect(lost).toHaveLength(4);
+      expect(won.every((f) => f.result === "selected")).toBe(true);
+      expect(lost.every((f) => f.result === "superseded")).toBe(true);
+      // The superseded rule never reached anyone, and says so.
+      expect(lost.every((f) => f.deliveredAt === null && f.message === null)).toBe(true);
+      expect(won.every((f) => f.message === "gagne" && f.seasonId === tournamentId)).toBe(true);
+    });
+
+    it("records which variant was drawn", async () => {
+      const ruleId = await addMessageRule("Variantes", anyMatch, ["un", "deux", "trois"]);
+
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+
+      const firings = await firingsFor(ruleId);
+      expect(firings).toHaveLength(4);
+      for (const firing of firings) {
+        expect(firing.variantIndex).not.toBeNull();
+        // The recorded index is the one that produced the recorded text, not just
+        // some index into the list.
+        expect(firing.message).toBe(["un", "deux", "trois"][firing.variantIndex!]);
+        // The template is frozen alongside it — that is what the breakdown groups on.
+        expect(firing.variantText).toBe(firing.message);
+      }
+    });
+
+    it("keeps an edited variant's history under its old wording", async () => {
+      const ruleId = await addMessageRule("Éditée", anyMatch, ["première formulation"]);
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+
+      // Same slot, new wording — the case that used to merge the two counts.
+      await testDb
+        .update(rules)
+        .set({ action: { type: "message", variants: ["seconde formulation"] } })
+        .where(eq(rules.id, ruleId));
+      await rulesEvaluationService.evaluateMatchSubmitted(forfeitMatchId, tournamentId);
+
+      const detail = await rulesService.getFiringDetail(ruleId, 30);
+
+      expect(detail.variants).toHaveLength(2);
+      // The live wording comes first, carrying only what it actually sent.
+      expect(detail.variants[0]).toMatchObject({
+        text: "seconde formulation",
+        current: true,
+        position: 0,
+        fired: 4,
+      });
+      expect(detail.variants[1]).toMatchObject({
+        text: "première formulation",
+        current: false,
+        position: null,
+        fired: 4,
+      });
+    });
+
+    it("does not re-attribute past firings when a variant is removed", async () => {
+      const ruleId = await addMessageRule("Décalage", anyMatch, ["gardée", "supprimée"]);
+      // Force the second variant so the removal below would shift it into slot 0.
+      await testDb
+        .update(rules)
+        .set({ action: { type: "message", variants: ["supprimée"] } })
+        .where(eq(rules.id, ruleId));
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+
+      await testDb
+        .update(rules)
+        .set({ action: { type: "message", variants: ["gardée"] } })
+        .where(eq(rules.id, ruleId));
+
+      const detail = await rulesService.getFiringDetail(ruleId, 30);
+
+      // "gardée" now occupies slot 0 but never fired; the history stays on "supprimée".
+      expect(detail.variants).toHaveLength(1);
+      expect(detail.variants[0]).toMatchObject({ text: "supprimée", current: false, fired: 4 });
+    });
+
+    it("hands back the firing id of the winning message", async () => {
+      const ruleId = await addMessageRule("Retour", anyMatch, ["ok"]);
+
+      const outputs = await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const firings = await firingsFor(ruleId);
+      const ids = new Set(firings.map((f) => f.id));
+
+      for (const output of outputs.values()) {
+        expect(output.messageFiringId).toBeDefined();
+        expect(ids.has(output.messageFiringId!)).toBe(true);
+      }
+    });
+
+    it("separates a badge newly awarded from one the player already held", async () => {
+      const [rule] = await testDb
+        .insert(rules)
+        .values({
+          triggerEvent: "match_submitted",
+          type: "badge",
+          scope: "global",
+          priority: 0,
+          name: "Vainqueur",
+          conditions: anyMatch,
+          action: { type: "badge", icon: "fa fa-trophy", label: "Vainqueur", description: "A gagné" },
+          isActive: true,
+          createdBy: adminId,
+        })
+        .returning();
+
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const first = await firingsFor(rule.id);
+      expect(first.every((f) => f.result === "awarded")).toBe(true);
+
+      // Same match re-finalized: the badge is already held, and the upsert rewrites
+      // the existing rows rather than logging the match twice.
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const second = await firingsFor(rule.id);
+      expect(second).toHaveLength(4);
+      expect(second.every((f) => f.result === "already_held")).toBe(true);
+    });
+
+    it("stamps the surface the message was read on, and keeps the first one", async () => {
+      const ruleId = await addMessageRule("Lue", anyMatch, ["coucou"]);
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const [firing] = await firingsFor(ruleId);
+
+      const [event] = await testDb
+        .insert(mmrAnimationEvents)
+        .values({
+          playerId: firing.playerId,
+          seasonId: tournamentId,
+          matchId,
+          eventType: "official",
+          mmrBefore: 1000,
+          mmrAfter: 1018,
+          mmrDelta: 18,
+        })
+        .returning();
+
+      await ruleFiringRepository.markDelivered(firing.id, event.id);
+      await ruleFiringRepository.markSeen([event.id], "recap");
+      // A second pass — the client re-sending ids it has not dropped yet — must not
+      // rewrite a reading that already happened.
+      await ruleFiringRepository.markSeen([event.id], "reveal");
+
+      const [stamped] = await testDb.select().from(ruleFirings).where(eq(ruleFirings.id, firing.id));
+      expect(stamped.deliveredAt).not.toBeNull();
+      expect(stamped.animationEventId).toBe(event.id);
+      expect(stamped.seenSurface).toBe("recap");
+    });
+
+    it("counts a message drowned in the recap as delivered but unread", async () => {
+      const ruleId = await addMessageRule("Noyée", anyMatch, ["perdu dans le recap"]);
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const firings = await firingsFor(ruleId);
+
+      for (const firing of firings) {
+        const [event] = await testDb
+          .insert(mmrAnimationEvents)
+          .values({
+            playerId: firing.playerId,
+            seasonId: tournamentId,
+            matchId,
+            eventType: "official",
+            mmrBefore: 1000,
+            mmrAfter: 1010,
+            mmrDelta: 10,
+          })
+          .returning();
+        await ruleFiringRepository.markDelivered(firing.id, event.id);
+        await ruleFiringRepository.markSeen([event.id], "recap");
+      }
+
+      const totals = await ruleFiringRepository.totalsForRule(ruleId);
+      expect(totals.firedCount).toBe(4);
+      expect(totals.deliveredCount).toBe(4);
+      expect(totals.recapCount).toBe(4);
+      expect(totals.seenCount).toBe(0);
     });
   });
 });

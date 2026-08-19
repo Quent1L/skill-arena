@@ -14,6 +14,8 @@ import {
   testRuleResultSchema,
   factCatalogSchema,
   badgeReconciliationStateSchema,
+  ruleFiringStatsListSchema,
+  ruleFiringDetailSchema,
 } from "@skol-arena/shared";
 import type { RuleScope, RuleType } from "@skol-arena/shared";
 
@@ -123,6 +125,38 @@ adminRules.post(
   async (c) => {
     await rulesService.triggerReconciliation();
     return c.json({ queued: true }, 202);
+  }
+);
+
+// Declared before "/:id" so the literal segment is not swallowed by the parameter.
+adminRules.get(
+  "/stats",
+  adminRoute({
+    summary: "Firing counters for every rule",
+    description:
+      "How often each rule evaluated true, and what became of the message: delivered, read, " +
+      "or drowned in a grouped MMR recap. Rules that never fired are returned at zero.",
+    success: { description: "One row per rule", schema: ruleFiringStatsListSchema },
+  }),
+  async (c) => {
+    const rules = await rulesService.listFiringStats();
+    return c.json({ rules });
+  }
+);
+
+adminRules.get(
+  "/:id/stats",
+  adminRoute({
+    summary: "Firing detail for one rule",
+    description: "Totals, per-variant breakdown, daily timeline and the most recent recipients.",
+    notFound: true,
+    success: { description: "The rule's firing statistics", schema: ruleFiringDetailSchema },
+  }),
+  validate("query", z.object({ days: z.coerce.number().int().min(1).max(365).default(30) })),
+  async (c) => {
+    const { days } = c.req.valid("query");
+    const detail = await rulesService.getFiringDetail(c.req.param("id")!, days);
+    return c.json(detail);
   }
 );
 

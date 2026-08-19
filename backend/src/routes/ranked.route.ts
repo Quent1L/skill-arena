@@ -27,6 +27,7 @@ import {
   mmrAnimationEventResponseSchema,
   badgeAnimationResponseSchema,
   markViewedResultSchema,
+  ruleFiringSurfaceSchema,
   rewindBundleSchema,
   rewindArchiveListSchema,
   rewindPromotionSchema,
@@ -510,10 +511,19 @@ ranked.post(
     auth: true,
     success: { description: "How many events were marked", schema: markViewedResultSchema },
   }),
-  validate("json", z.object({ ids: z.array(z.string().uuid()) })),
+  validate(
+    "json",
+    z.object({
+      ids: z.array(z.string().uuid()),
+      // Which screen consumed them. Optional: an older client sends none, and the
+      // rules-engine stats then record the firing as delivered but of unknown fate
+      // rather than assuming it was read.
+      surface: ruleFiringSurfaceSchema.optional(),
+    }),
+  ),
   async (c) => {
-    const { ids } = c.req.valid("json");
-    await mmrAnimationEventService.markViewed(ids);
+    const { ids, surface } = c.req.valid("json");
+    await mmrAnimationEventService.markViewed(ids, surface);
     return c.json({ success: true, markedCount: ids.length });
   },
 );

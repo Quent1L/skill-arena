@@ -297,9 +297,39 @@ export type RulesOutputBadge = z.infer<typeof rulesOutputBadgeSchema>;
 /** Result of the rules evaluation for a player (internal backend). */
 export interface PlayerRulesOutput {
   message?: string;
+  /**
+   * The `rule_firings` row that recorded the winning message, so whoever attaches
+   * the message to an animation event can report back that it was delivered.
+   * Absent when the firing could not be persisted.
+   */
+  messageFiringId?: string;
   /** All badges newly awarded during this evaluation. */
   badges?: (RulesOutputBadge & { badgeId: string })[];
 }
+
+// ============================================
+// Rule firings — per-trigger statistics
+// ============================================
+
+/**
+ * What the engine did with a rule whose conditions evaluated true.
+ * `superseded` is the message rule that lost the single-winner draw; `already_held`
+ * the badge rule that matched for a player who already carries the badge.
+ */
+export const RULE_FIRING_RESULTS = ["selected", "superseded", "awarded", "already_held"] as const;
+export type RuleFiringResult = (typeof RULE_FIRING_RESULTS)[number];
+
+/**
+ * Where the player was standing when the message reached them.
+ *
+ * `reveal_skipped` counts as seen — skipping the animation leaves the message on
+ * screen at the end. `recap` does not: the grouped MMR recap renders no message,
+ * so a firing read there was provably never read.
+ */
+export const RULE_FIRING_SURFACES = ["reveal", "reveal_skipped", "recap"] as const;
+export type RuleFiringSurface = (typeof RULE_FIRING_SURFACES)[number];
+
+export const ruleFiringSurfaceSchema = z.enum(RULE_FIRING_SURFACES);
 
 // ============================================
 // Badge animation (parity with mmr_animation)
@@ -474,3 +504,121 @@ export const badgeReconciliationStateSchema = z
     lastRunAt: z.date().nullable(),
   })
   .meta({ id: "BadgeReconciliationState" });
+
+// ============================================
+// Rule firing statistics (admin)
+// ============================================
+
+/**
+ * Counters for one rule, all derived from `rule_firings` by query.
+ *
+ * `neverDelivered` is the honest count of firings the player could not have seen:
+ * a message beaten on priority, or one dropped because no animation event carried
+ * it. `recap` is the count that was delivered but provably not read.
+ */
+export const ruleFiringTotalsSchema = z
+  .object({
+    fired: z.number().int(),
+    distinctPlayers: z.number().int(),
+    selected: z.number().int(),
+    superseded: z.number().int(),
+    awarded: z.number().int(),
+    delivered: z.number().int(),
+    neverDelivered: z.number().int(),
+    seen: z.number().int(),
+    recap: z.number().int(),
+    lastFiredAt: z.iso.datetime().nullable(),
+  })
+  .meta({ id: "RuleFiringTotals" });
+
+export type RuleFiringTotals = z.infer<typeof ruleFiringTotalsSchema>;
+
+/** One row per rule, including rules that have never fired (all counters at zero). */
+export const ruleFiringStatsRowSchema = ruleFiringTotalsSchema
+  .extend({
+    ruleId: z.string(),
+    name: z.string(),
+    type: z.enum(["message", "badge"]),
+    isActive: z.boolean(),
+  })
+  .meta({ id: "RuleFiringStatsRow" });
+
+export type RuleFiringStatsRow = z.infer<typeof ruleFiringStatsRowSchema>;
+
+export const ruleFiringStatsListSchema = z
+  .object({ rules: z.array(ruleFiringStatsRowSchema) })
+  .meta({ id: "RuleFiringStatsList" });
+
+/**
+ * One line per distinct wording a rule has sent out, grouped on the template that
+ * was frozen at firing time rather than on its position in the rule's array.
+ *
+ * Editing a variant therefore yields two lines — the retired wording keeps its
+ * history, the new one starts its own count — instead of silently merging them.
+ */
+export const ruleVariantStatSchema = z
+  .object({
+    /** The variant's template. Null on firings recorded before it was captured. */
+    text: z.string().nullable(),
+    /** Whether the rule still carries this exact wording, and at which position. */
+    current: z.boolean(),
+    position: z.number().int().nullable(),
+    fired: z.number().int(),
+    seen: z.number().int(),
+  })
+  .meta({ id: "RuleVariantStat" });
+
+export const ruleFiringDayStatSchema = z
+  .object({
+    day: z.string(),
+    fired: z.number().int(),
+    seen: z.number().int(),
+    recap: z.number().int(),
+  })
+  .meta({ id: "RuleFiringDayStat" });
+
+export const ruleFiringRecipientSchema = z
+  .object({
+    id: z.string(),
+    playerId: z.string(),
+    playerName: z.string(),
+    matchId: z.string().nullable(),
+    result: z.enum(RULE_FIRING_RESULTS),
+    message: z.string().nullable(),
+    deliveredAt: z.iso.datetime().nullable(),
+    seenAt: z.iso.datetime().nullable(),
+    seenSurface: ruleFiringSurfaceSchema.nullable(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: "RuleFiringRecipient" });
+
+export const ruleFiringDetailSchema = z
+  .object({
+    ruleId: z.string(),
+    totals: ruleFiringTotalsSchema,
+    variants: z.array(ruleVariantStatSchema),
+    timeline: z.array(ruleFiringDayStatSchema),
+    recipients: z.array(ruleFiringRecipientSchema),
+  })
+  .meta({ id: "RuleFiringDetail" });
+
+export type RuleFiringDetail = z.infer<typeof ruleFiringDetailSchema>;
+export type RuleFiringRecipient = z.infer<typeof ruleFiringRecipientSchema>;
+export type RuleVariantStat = z.infer<typeof ruleVariantStatSchema>;
+export type RuleFiringDayStat = z.infer<typeof ruleFiringDayStatSchema>;
+
+/** Same payloads after the frontend interceptor has revived the dates. */
+export interface ClientRuleFiringRecipient extends Omit<RuleFiringRecipient, "deliveredAt" | "seenAt" | "createdAt"> {
+  deliveredAt: Date | null;
+  seenAt: Date | null;
+  createdAt: Date;
+}
+
+export interface ClientRuleFiringStatsRow extends Omit<RuleFiringStatsRow, "lastFiredAt"> {
+  lastFiredAt: Date | null;
+}
+
+export interface ClientRuleFiringDetail extends Omit<RuleFiringDetail, "totals" | "recipients"> {
+  totals: Omit<RuleFiringTotals, "lastFiredAt"> & { lastFiredAt: Date | null };
+  recipients: ClientRuleFiringRecipient[];
+}

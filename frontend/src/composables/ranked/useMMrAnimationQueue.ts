@@ -77,12 +77,19 @@ export function useMMrAnimationQueue() {
     }
   }
 
-  async function acknowledgeCurrentEvent() {
+  // The surface is reported so the rules engine can tell a message that was read
+  // from one that was not. Skipping still counts as seen: the reveal leaves the
+  // message on screen at the end. The recap does not — it renders none.
+  async function acknowledgeCurrentEvent(skipped = false) {
     const event = queue.value[0]
     if (!event || !seasonIdRef.value) return
     queue.value.shift()
     try {
-      await mmrAnimationEventApi.markEventsViewed(seasonIdRef.value, [event.id])
+      await mmrAnimationEventApi.markEventsViewed(
+        seasonIdRef.value,
+        [event.id],
+        skipped ? 'reveal_skipped' : 'reveal',
+      )
     } catch {
       // Silent fail
     }
@@ -93,7 +100,7 @@ export function useMMrAnimationQueue() {
     const ids = queue.value.map((e) => e.id)
     queue.value = []
     try {
-      await mmrAnimationEventApi.markEventsViewed(seasonIdRef.value, ids)
+      await mmrAnimationEventApi.markEventsViewed(seasonIdRef.value, ids, 'recap')
     } catch {
       // Silent fail
     }

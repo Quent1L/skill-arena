@@ -81,7 +81,7 @@
     </div>
 
     <DataTable
-      :value="rules"
+      :value="rows"
       :loading="loading"
       striped-rows
       paginator
@@ -110,6 +110,36 @@
 
       <Column field="priority" :header="t('rulesEngineList.colPriority')" sortable />
 
+      <!-- How often the conditions evaluated true. Zero is the signal: a rule that
+           never fires, as opposed to one that fires and goes unread. -->
+      <Column field="stats.fired" :header="t('rulesEngineList.colFired')" sortable>
+        <template #body="{ data }">
+          <span :class="data.stats.fired === 0 ? 'text-surface-500' : 'font-semibold'">
+            {{ data.stats.fired }}
+          </span>
+          <span v-if="data.stats.superseded > 0" class="text-xs text-surface-500 ml-1">
+            {{ t('rulesEngineList.supersededSuffix', { count: data.stats.superseded }) }}
+          </span>
+        </template>
+      </Column>
+
+      <!-- Message rules only: badges have their own reveal and no recap to drown in. -->
+      <Column field="stats.seen" :header="t('rulesEngineList.colSeen')" sortable>
+        <template #body="{ data }">
+          <span v-if="data.type === 'badge' || data.stats.delivered === 0" class="text-surface-500">—</span>
+          <span v-else>
+            {{ seenRate(data.stats) }}%
+            <span
+              v-if="data.stats.recap > 0"
+              class="text-xs text-orange-500 ml-1"
+              v-tooltip.top="t('rulesEngineList.recapTooltip')"
+            >
+              {{ t('rulesEngineList.recapSuffix', { count: data.stats.recap }) }}
+            </span>
+          </span>
+        </template>
+      </Column>
+
       <Column field="isActive" :header="t('rulesEngineList.colActive')" sortable>
         <template #body="{ data }">
           <div class="flex items-center gap-2">
@@ -123,9 +153,17 @@
         </template>
       </Column>
 
-      <Column :header="t('common.actions')" style="width: 11rem">
+      <Column :header="t('common.actions')" style="width: 13rem">
         <template #body="{ data }">
           <div class="flex gap-2">
+            <Button
+              icon="fa fa-chart-line"
+              size="small"
+              text
+              rounded
+              @click="router.push(`/admin/rules-engine/${data.id}/stats`)"
+              v-tooltip.top="t('rulesEngineList.tooltipStats')"
+            />
             <Button
               icon="fa fa-edit"
               size="small"
@@ -203,10 +241,40 @@ const {
   deleteRule,
   createRule,
   getBadgeCount,
+  firingStats,
+  loadFiringStats,
   reconciliationStatus,
   loadReconciliationStatus,
   triggerReconciliation,
 } = useRulesService()
+
+/** Stands in while the stats call is still in flight. */
+const EMPTY_STATS = {
+  fired: 0,
+  distinctPlayers: 0,
+  selected: 0,
+  superseded: 0,
+  awarded: 0,
+  delivered: 0,
+  neverDelivered: 0,
+  seen: 0,
+  recap: 0,
+}
+
+/**
+ * The rules with their firing counters attached. The stats endpoint already returns
+ * a row per rule, zeros included, but the filters here narrow the rule list — hence
+ * the lookup rather than using the stats payload directly.
+ */
+const rows = computed(() => {
+  const byId = new Map(firingStats.value.map((s) => [s.ruleId, s]))
+  return rules.value.map((rule) => ({ ...rule, stats: byId.get(rule.id) ?? EMPTY_STATS }))
+})
+
+/** Share of delivered messages that actually reached the player's eyes. */
+function seenRate(stats: { seen: number; delivered: number }) {
+  return Math.round((stats.seen / stats.delivered) * 100)
+}
 
 const reconciling = ref(false)
 const toast = useToast()
@@ -302,6 +370,7 @@ async function handleDelete() {
 
 onMounted(() => {
   loadRules()
+  loadFiringStats()
   loadReconciliationStatus()
 })
 </script>

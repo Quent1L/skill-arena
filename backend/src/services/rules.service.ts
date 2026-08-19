@@ -9,6 +9,9 @@ import {
   type FactDefinition,
   type RuleAction,
   type RuleConditions,
+  type RuleFiringDetail,
+  type RuleFiringStatsRow,
+  type RuleFiringTotals,
   type TriggerEvent,
   type UpdateRuleData,
 } from "@skol-arena/shared";
@@ -17,6 +20,10 @@ import {
   type RuleListFilters,
   type CreateRuleData as CreateRuleRow,
 } from "../repository/rules.repository";
+import {
+  ruleFiringRepository,
+  type RuleFiringTotals as RuleFiringTotalsRow,
+} from "../repository/rule-firing.repository";
 import { rulesEvaluationService } from "./rules-evaluation.service";
 import { badgeReconciliationService } from "./badge-reconciliation.service";
 import { enqueueBadgeReconciliation } from "./mmr-job-queue.service";
@@ -24,6 +31,22 @@ import { BadRequestError, NotFoundError, ErrorCode } from "../types/errors";
 
 function isTriggerEvent(value: string): value is TriggerEvent {
   return (TRIGGER_EVENTS as readonly string[]).includes(value);
+}
+
+/** Maps DB counters onto the wire shape, and stands in for a rule that never fired. */
+function toTotals(row: RuleFiringTotalsRow | undefined): RuleFiringTotals {
+  return {
+    fired: row?.firedCount ?? 0,
+    distinctPlayers: row?.distinctPlayers ?? 0,
+    selected: row?.selectedCount ?? 0,
+    superseded: row?.supersededCount ?? 0,
+    awarded: row?.awardedCount ?? 0,
+    delivered: row?.deliveredCount ?? 0,
+    neverDelivered: row?.neverDeliveredCount ?? 0,
+    seen: row?.seenCount ?? 0,
+    recap: row?.recapCount ?? 0,
+    lastFiredAt: row?.lastFiredAt?.toISOString() ?? null,
+  };
 }
 
 /** Flattens the condition tree down to its leaves, for catalog checking. */
@@ -83,6 +106,76 @@ export class RulesService {
   /** Number of players currently holding the badge produced by a rule (delete confirm). */
   getBadgeCount(id: string) {
     return rulesRepository.countBadgeHolders(id);
+  }
+
+  /**
+   * Firing counters for every rule, in two queries rather than one per rule.
+   * Rules that have never fired are absent from the aggregate and filled in at
+   * zero here — that row, not a missing one, is what identifies a dead rule.
+   */
+  async listFiringStats(): Promise<RuleFiringStatsRow[]> {
+    const [rules, totals] = await Promise.all([rulesRepository.list({}), ruleFiringRepository.totalsByRule()]);
+    const byRule = new Map(totals.map((t) => [t.ruleId, t]));
+    return rules.map((rule) => ({
+      ruleId: rule.id,
+      name: rule.name,
+      type: rule.type,
+      isActive: rule.isActive,
+      ...toTotals(byRule.get(rule.id)),
+    }));
+  }
+
+  /** Everything the per-rule panel shows: totals, variants, timeline, recipients. */
+  async getFiringDetail(id: string, days: number): Promise<RuleFiringDetail> {
+    const rule = await this.getById(id);
+    const [totals, variants, timeline, recipients] = await Promise.all([
+      ruleFiringRepository.totalsForRule(id),
+      ruleFiringRepository.variantBreakdown(id),
+      ruleFiringRepository.dailyTimeline(id, days),
+      ruleFiringRepository.recentRecipients(id),
+    ]);
+
+    const action = rule.action as RuleAction;
+    // The wordings the rule carries TODAY, by text. A firing whose template is not
+    // among them was sent under a variant that has since been edited or removed —
+    // it keeps its own count rather than being folded into whatever replaced it.
+    const currentVariants = action.type === "message" ? action.variants : [];
+    const positionByText = new Map(currentVariants.map((text, index) => [text, index]));
+
+    return {
+      ruleId: id,
+      totals: toTotals(totals),
+      variants: variants
+        .map((v) => {
+          const position = v.variantText === null ? undefined : positionByText.get(v.variantText);
+          return {
+            text: v.variantText,
+            current: position !== undefined,
+            position: position ?? null,
+            fired: v.firedCount,
+            seen: v.seenCount,
+          };
+        })
+        // Live wordings first, in the rule's own order; retired ones after, busiest
+        // first, so an edit does not bury the variant that carries all the history.
+        .sort((a, b) => {
+          if (a.current !== b.current) return a.current ? -1 : 1;
+          if (a.current && b.current) return a.position! - b.position!;
+          return b.fired - a.fired;
+        }),
+      timeline: timeline.map((d) => ({
+        day: d.day,
+        fired: d.firedCount,
+        seen: d.seenCount,
+        recap: d.recapCount,
+      })),
+      recipients: recipients.map((r) => ({
+        ...r,
+        deliveredAt: r.deliveredAt?.toISOString() ?? null,
+        seenAt: r.seenAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
   }
 
   /** Active badge rules earnable for a discipline (global + that discipline). */

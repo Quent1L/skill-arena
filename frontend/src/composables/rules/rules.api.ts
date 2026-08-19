@@ -3,6 +3,8 @@ import type {
   AvailableBadge,
   ClientPlayerBadge,
   ClientRule,
+  ClientRuleFiringDetail,
+  ClientRuleFiringStatsRow,
   CreateRuleData,
   FactDefinition,
   RuleAction,
@@ -84,6 +86,18 @@ export const rulesApi = {
   async getBadgeCount(id: string): Promise<number> {
     const response = await http.get<{ count: number }>(`${BASE_URL}/${id}/badge-count`)
     return response.data.count
+  },
+
+  async getFiringStats(): Promise<ClientRuleFiringStatsRow[]> {
+    const response = await http.get<{ rules: ClientRuleFiringStatsRow[] }>(`${BASE_URL}/stats`)
+    return response.data.rules
+  },
+
+  async getFiringDetail(id: string, days: number): Promise<ClientRuleFiringDetail> {
+    const response = await http.get<ClientRuleFiringDetail>(`${BASE_URL}/${id}/stats`, {
+      params: { days },
+    })
+    return response.data
   },
 
   async getReconciliationStatus(): Promise<BadgeReconciliationStatus> {

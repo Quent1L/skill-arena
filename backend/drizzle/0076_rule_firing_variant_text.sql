@@ -1,0 +1,21 @@
+-- The variant breakdown keyed on the variant's position in the rule's array, and
+-- read its text back from the rule as it stands today. That position is not a
+-- stable key, so the panel misreported as soon as a rule was edited:
+--
+--   * editing a variant's text folded every past firing of the OLD text into the
+--     count of the new one;
+--   * deleting a variant shifts everything after it down by one (the editor does
+--     `splice(idx, 1)`, and saving drops blank variants), so past firings were
+--     silently re-attributed to a different text altogether.
+--
+-- The template is now frozen onto the firing, the same way tournament_rulesets
+-- freezes a competition's discipline (0074). The breakdown groups by that text,
+-- so editing a variant leaves its history where it belongs and starts a fresh
+-- count for the new wording.
+--
+-- Rows written before this migration keep a NULL variant_text and are reported as
+-- "wording not recorded". Backfilling them from the rule's current variants would
+-- reproduce the exact misattribution this fixes, and the interpolated `message`
+-- cannot be reversed back into its template.
+
+ALTER TABLE "rule_firings" ADD COLUMN IF NOT EXISTS "variant_text" text;

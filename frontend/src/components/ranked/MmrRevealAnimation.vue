@@ -111,7 +111,7 @@
               v-if="phase === 'done'"
               key="continue"
               class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
-              @click.stop="$emit('close')"
+              @click.stop="emit('close', skipped)"
             >
               {{ t('mmrRevealAnimation.continue') }}
             </button>
@@ -142,7 +142,10 @@ const props = defineProps<{
   tiers: ClientRankTier[]
 }>()
 
-defineEmits<{ (e: 'close'): void }>()
+// `skipped` rides along so the rules engine can tell a message the player sat
+// through from one they fast-forwarded. Both count as seen — skipping leaves the
+// message on screen — but the distinction is worth recording.
+const emit = defineEmits<{ (e: 'close', skipped: boolean): void }>()
 
 type Phase = 'entry' | 'counting' | 'settled' | 'done'
 
