@@ -26,7 +26,7 @@
         striped-rows
         class="p-datatable-sm"
       >
-        <Column selection-style="width: 3rem" />
+        <Column selection-mode="multiple" header-style="width: 3rem" />
 
         <Column field="name" :header="t('common.name')">
           <template #body="{ data }">

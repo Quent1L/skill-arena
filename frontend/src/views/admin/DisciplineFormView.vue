@@ -4,6 +4,28 @@
       {{ error }}
     </Message>
 
+    <!-- Outcome types save as you edit them, so drift can appear at any moment
+         and not just when the discipline form is submitted. This stays visible
+         for as long as a running competition is out of step. -->
+    <Message
+      v-if="driftingCompetitionCount > 0"
+      severity="warn"
+      :closable="false"
+      class="max-w-4xl mb-4"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <span>
+          {{ t('disciplineFormView.driftBanner', { count: driftingCompetitionCount }) }}
+        </span>
+        <Button
+          :label="t('disciplineFormView.reviewPropagation')"
+          icon="fa fa-arrows-rotate"
+          size="small"
+          @click="propagateDialogVisible = true"
+        />
+      </div>
+    </Message>
+
     <form @submit="onSubmit" class="max-w-4xl">
       <Card>
         <template #content>
@@ -113,7 +135,7 @@
       ref="propagateDialogRef"
       v-model:visible="propagateDialogVisible"
       :discipline-id="(route.params.id as string) ?? null"
-      @load="loadImpactedCompetitions"
+      @load="refreshDrift"
       @propagate="handlePropagate"
     />
 
@@ -139,6 +161,7 @@ import {
   updateDisciplineSchema,
   type CreateDisciplineRequestData,
   type OutcomeType,
+  type ImpactedCompetition,
 } from '@skol-arena/shared/types/index'
 import type { OutcomeReason } from '@skol-arena/shared/types/outcome-reason'
 import { useDisciplineService } from '@/composables/discipline/discipline.service'
@@ -200,6 +223,10 @@ const editingOutcomeType = ref<OutcomeType | null>(null)
 // Pushing a discipline edit onto competitions that are still running
 const propagateDialogVisible = ref(false)
 const propagateDialogRef = ref<InstanceType<typeof PropagateRulesetDialog> | null>(null)
+const impactedCompetitions = ref<ImpactedCompetition[]>([])
+const driftingCompetitionCount = computed(
+  () => impactedCompetitions.value.filter((competition) => competition.hasDrift).length,
+)
 
 // Outcome Reasons management
 const outcomeReasonDialogVisible = ref(false)
@@ -242,6 +269,7 @@ async function handleOutcomeTypeSubmit(values: {
 
     outcomeTypeDialogVisible.value = false
     editingOutcomeType.value = null
+    await refreshDrift()
   } catch (err) {
     console.error('Erreur lors de la sauvegarde du type de résultat:', err)
   }
@@ -275,6 +303,7 @@ async function handleOutcomeReasonSubmit(values: { name: string }) {
 
     // Reload reasons for this type
     await loadOutcomeReasons(outcomeTypeId)
+    await refreshDrift()
   } catch (err) {
     console.error('Error saving outcome reason:', err)
   }
@@ -294,6 +323,7 @@ function confirmDeleteOutcomeType(outcomeType: OutcomeType) {
         if (outcomeTypeTableRef.value?.expandedRows[idToDelete]) {
           delete outcomeTypeTableRef.value.expandedRows[idToDelete]
         }
+        await refreshDrift()
       } catch (err) {
         // A type nothing has been played under deletes cleanly. Once matches
         // reference it the backend refuses, and archiving is the way out — so
@@ -315,6 +345,7 @@ function promptArchiveOutcomeType(outcomeType: OutcomeType) {
     accept: async () => {
       try {
         await archiveOutcomeType(outcomeType.id)
+        await refreshDrift()
       } catch {
         // Handled by the service toast.
       }
@@ -325,6 +356,7 @@ function promptArchiveOutcomeType(outcomeType: OutcomeType) {
 async function handleRestoreOutcomeType(outcomeType: OutcomeType) {
   try {
     await restoreOutcomeType(outcomeType.id)
+    await refreshDrift()
   } catch {
     // Handled by the service toast.
   }
@@ -341,6 +373,7 @@ function confirmDeleteOutcomeReason(outcomeReason: OutcomeReason) {
         const outcomeTypeId = outcomeReason.outcomeTypeId
         await deleteOutcomeReason(outcomeReason.id)
         await loadOutcomeReasons(outcomeTypeId)
+        await refreshDrift()
       } catch (err) {
         console.error('Erreur lors de la suppression:', err)
       }
@@ -352,12 +385,9 @@ const onSubmit = handleSubmit(async (values) => {
   try {
     if (isEditMode.value && route.params.id) {
       await updateDiscipline(route.params.id as string, values)
-      // Saving changed nothing for competitions already under way — each one
-      // holds its own frozen copy. Offer to push it onto the running ones.
-      if (await hasImpactedCompetitions()) {
-        propagateDialogVisible.value = true
-        return
-      }
+      await refreshDrift()
+      // Leaving now would hide the banner the save may just have raised.
+      if (driftingCompetitionCount.value > 0) return
     } else {
       await createDiscipline(values as CreateDisciplineRequestData)
     }
@@ -367,23 +397,23 @@ const onSubmit = handleSubmit(async (values) => {
   }
 })
 
-async function hasImpactedCompetitions() {
-  if (!route.params.id) return false
+/**
+ * How many running competitions are out of step with this discipline.
+ *
+ * Recomputed after every mutation on this page, not only on submit: outcome
+ * types are saved the moment they are edited, and their points and MMR
+ * multiplier are the changes that matter most — tying the prompt to the
+ * discipline's own save button would have missed all of them.
+ */
+async function refreshDrift() {
+  if (!isEditMode.value || !route.params.id) return
   try {
     const impacted = await disciplineApi.listImpactedCompetitions(route.params.id as string)
-    return impacted.some((competition) => competition.hasDrift)
-  } catch {
-    // Never block the save on the preflight; the admin can propagate later.
-    return false
-  }
-}
-
-async function loadImpactedCompetitions(disciplineId: string) {
-  try {
-    const impacted = await disciplineApi.listImpactedCompetitions(disciplineId)
+    impactedCompetitions.value = impacted
     propagateDialogRef.value?.setCompetitions(impacted)
   } catch {
-    propagateDialogRef.value?.setCompetitions([])
+    // Never let the preflight break the page; the banner simply stays hidden.
+    impactedCompetitions.value = []
   }
 }
 
@@ -411,7 +441,9 @@ async function handlePropagate(tournamentIds: string[]) {
   } finally {
     propagateDialogRef.value?.setSubmitted()
     propagateDialogVisible.value = false
-    router.push('/admin/disciplines')
+    // Stay on the page: whatever was left unselected is still drifting, and the
+    // banner has to keep saying so.
+    await refreshDrift()
   }
 }
 
@@ -428,6 +460,8 @@ onMounted(async () => {
       scoreInstructions: currentDiscipline.value.scoreInstructions,
       teamInteractionMode: currentDiscipline.value.teamInteractionMode,
     })
+    // Drift may already exist from an earlier visit that never propagated.
+    await refreshDrift()
   }
 })
 </script>
