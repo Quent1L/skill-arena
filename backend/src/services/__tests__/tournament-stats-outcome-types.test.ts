@@ -49,6 +49,34 @@ function series(typeId: string, winner: string, loser: string, n: number) {
   return Array.from({ length: n }, () => match(typeId, "A", [winner], [loser]));
 }
 
+/**
+ * Outcome names now come from the competition's ruleset snapshot rather than a
+ * join off the match, so the fixtures' own type ids and names are turned into
+ * one here.
+ */
+function funStats(matches: ReturnType<typeof match>[]) {
+  const seen = new Map<string, string>();
+  for (const m of matches) {
+    if (m.outcomeTypeId && m.outcomeType) seen.set(m.outcomeTypeId, m.outcomeType.name);
+  }
+
+  const ruleset: any = {
+    discipline: null,
+    outcomeTypes: [...seen].map(([id, name]) => ({
+      id,
+      name,
+      points: 3,
+      mmrMultiplier: 1,
+      scoreCountsForMmr: true,
+      isDefault: false,
+      archivedAt: null,
+      reasons: [],
+    })),
+  };
+
+  return computeOutcomeTypeFunStats(matches as any, ruleset);
+}
+
 function stat(stats: ReturnType<typeof computeOutcomeTypeFunStats>, typeId: string) {
   const found = stats.find((s) => s.outcomeTypeId === typeId);
   if (!found) throw new Error(`outcome type ${typeId} missing from stats`);
@@ -68,7 +96,7 @@ describe("computeOutcomeTypeFunStats", () => {
       ...series("normal", "filler", "sniper", 1),
     ];
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
 
     expect(normal.topWinnersByVolume.leaders[0]!.playerId).toBe("filler");
     expect(normal.topWinnersByVolume.leaders[1]!.playerId).toBe("grinder");
@@ -83,7 +111,7 @@ describe("computeOutcomeTypeFunStats", () => {
       ...series("normal", "b", "a", 2), // b: 2 wins / 8 played
     ];
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
     const leader = normal.topWinnersByVolume.leaders[0]!;
 
     expect(normal.totalMatches).toBe(8);
@@ -101,7 +129,7 @@ describe("computeOutcomeTypeFunStats", () => {
       match("normal", null, ["a"], ["b"]),
     ];
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
     const a = normal.topWinnersByVolume.leaders[0]!;
 
     expect(a.count).toBe(3);
@@ -115,7 +143,7 @@ describe("computeOutcomeTypeFunStats", () => {
       match("normal", "A", ["rookie"], ["punchingbag"]), // 1 played, 100 %
     ];
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
 
     expect(normal.topWinnersByRate.leaders.map((p) => p.playerId)).toEqual(["regular"]);
     expect(normal.topWinnersByVolume.leaders.map((p) => p.playerId)).toContain("rookie");
@@ -130,7 +158,7 @@ describe("computeOutcomeTypeFunStats", () => {
       match("fanny", "A", ["d"], ["e"]),
     ];
 
-    const fanny = stat(computeOutcomeTypeFunStats(matches as any), "fanny");
+    const fanny = stat(funStats(matches), "fanny");
 
     expect(fanny.topWinnersByRate.leaders.length).toBeGreaterThan(0);
     expect(fanny.topWinnersByRate.leaders[0]!.playerId).toBe("a");
@@ -147,7 +175,7 @@ describe("computeOutcomeTypeFunStats", () => {
       match("normal", "A", ["champ"], ["v4"]),
     ];
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
 
     expect(normal.topWinnersByRate.isLowSample).toBe(false);
     expect(normal.topLosersByRate.isLowSample).toBe(true);
@@ -161,7 +189,7 @@ describe("computeOutcomeTypeFunStats", () => {
       match("draw", null, ["a"], ["b"]),
     ];
 
-    const drawType = stat(computeOutcomeTypeFunStats(matches as any), "draw");
+    const drawType = stat(funStats(matches), "draw");
 
     expect(drawType.topWinnersByVolume.leaders).toEqual([]);
     expect(drawType.topWinnersByRate.leaders).toEqual([]);
@@ -176,7 +204,7 @@ describe("computeOutcomeTypeFunStats", () => {
       sides: [side(1, ["x", "mate"]), side(2, ["y", "opp"])],
     }));
 
-    const normal = stat(computeOutcomeTypeFunStats(matches as any), "normal");
+    const normal = stat(funStats(matches), "normal");
 
     // 8 wins recorded across 4 matches, split evenly between the two team mates
     expect(normal.topWinnersByVolume.leaders.map((p) => p.sharePct)).toEqual([50, 50]);
@@ -189,7 +217,7 @@ describe("computeOutcomeTypeFunStats", () => {
       ...series("medium", "a", "b", 3),
     ];
 
-    const stats = computeOutcomeTypeFunStats(matches as any);
+    const stats = funStats(matches);
 
     expect(stats.map((s) => s.outcomeTypeId)).toEqual(["common", "medium", "rare"]);
   });
@@ -203,7 +231,7 @@ describe("computeOutcomeTypeFunStats", () => {
       ...series("normal", "d", "z", 2),
     ];
 
-    const stats = computeOutcomeTypeFunStats(matches as any);
+    const stats = funStats(matches);
     const volume = stats[0]!.topWinnersByVolume;
 
     expect(stats).toHaveLength(1);
@@ -222,7 +250,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
       ...series("normal", "c", "z", 2),
     ];
 
-    const volume = stat(computeOutcomeTypeFunStats(matches as any), "normal").topWinnersByVolume;
+    const volume = stat(funStats(matches), "normal").topWinnersByVolume;
 
     expect(volume.leaders.map((p) => p.rank)).toEqual([1, 1, 3]);
     expect(volume.leaders.map((p) => p.tiedCount)).toEqual([2, 2, 1]);
@@ -238,7 +266,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
       ...series("normal", "d", "z", 3),
     ];
 
-    const volume = stat(computeOutcomeTypeFunStats(matches as any), "normal").topWinnersByVolume;
+    const volume = stat(funStats(matches), "normal").topWinnersByVolume;
 
     expect(volume.leaders.map((p) => p.playerId)).toEqual(["a", "b", "c", "d"]);
     expect(volume.leaders.map((p) => p.rank)).toEqual([1, 2, 3, 3]);
@@ -254,7 +282,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
       match("fanny", "A", ["d"], ["z"]),
     ];
 
-    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+    const volume = stat(funStats(matches), "fanny").topWinnersByVolume;
 
     expect(volume.isFlat).toBe(true);
     expect(volume.leaders).toHaveLength(4);
@@ -263,7 +291,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
 
   it("keeps the podium spot for the only player who pulled it off", () => {
     const volume = stat(
-      computeOutcomeTypeFunStats([match("fanny", "A", ["a"], ["z"])] as any),
+      funStats([match("fanny", "A", ["a"], ["z"])]),
       "fanny",
     ).topWinnersByVolume;
 
@@ -281,7 +309,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
       match("fanny", "A", ["h"], ["z"]),
     ];
 
-    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+    const volume = stat(funStats(matches), "fanny").topWinnersByVolume;
 
     expect(volume.leaders).toHaveLength(6);
     expect(volume.omittedCount).toBe(1);
@@ -292,7 +320,7 @@ describe("computeOutcomeTypeFunStats — ex aequo", () => {
     const winners = Array.from({ length: 15 }, (_, i) => `p${i}`);
     const matches = winners.map((w) => match("fanny", "A", [w], ["z"]));
 
-    const volume = stat(computeOutcomeTypeFunStats(matches as any), "fanny").topWinnersByVolume;
+    const volume = stat(funStats(matches), "fanny").topWinnersByVolume;
 
     expect(volume.isFlat).toBe(true);
     expect(volume.leaders).toHaveLength(12);

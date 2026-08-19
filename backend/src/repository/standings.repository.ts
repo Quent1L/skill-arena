@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, notInArray } from "drizzle-orm";
 import { db } from "../config/database";
 import {
   tournaments,
@@ -11,6 +11,16 @@ import {
 } from "../db/schema";
 import { type MatchStatus, type StandingsResult } from "@skol-arena/shared";
 import { TOURNAMENT_CONFIGS_WITH } from "./tournament-config.columns";
+
+/**
+ * `computed_data` rows that a cache flush must leave alone.
+ *
+ * The table mixes caches with one piece of durable state: `mmr:engine-version`
+ * records which engine a season was last replayed on. Dropping it makes the boot
+ * catch-up re-queue a full replay of every season, which used to be rare enough
+ * to go unnoticed and stops being rare once a ruleset propagation flushes here.
+ */
+const PRESERVED_COMPUTED_KEYS = ["mmr:engine-version"];
 
 export type PlayerPointRow = {
   matchId: string;
@@ -70,7 +80,8 @@ export class StandingsRepository {
         outcomeTypeId: true,
       },
       with: {
-        outcomeType: { columns: { isDefault: true, id: true, name: true, points: true } },
+        // No outcomeType join: its name and points come from the competition's
+        // ruleset snapshot, so editing the live row cannot rewrite past tiebreakers.
         sides: {
           with: {
             entry: {
@@ -99,7 +110,6 @@ export class StandingsRepository {
       ),
       columns: { id: true, winnerSide: true, outcomeTypeId: true },
       with: {
-        outcomeType: { columns: { isDefault: true, id: true, name: true, points: true } },
         playerPoints: {
           columns: {
             playerId: true,
@@ -212,12 +222,26 @@ export class StandingsRepository {
   }
 
   async deleteComputedData(tournamentId: string): Promise<void> {
-    await db.delete(computedData).where(eq(computedData.tournamentId, tournamentId));
+    await db
+      .delete(computedData)
+      .where(
+        and(
+          eq(computedData.tournamentId, tournamentId),
+          notInArray(computedData.key, PRESERVED_COMPUTED_KEYS),
+        ),
+      );
   }
 
   async deleteComputedDataMany(tournamentIds: string[]): Promise<void> {
     if (tournamentIds.length === 0) return;
-    await db.delete(computedData).where(inArray(computedData.tournamentId, tournamentIds));
+    await db
+      .delete(computedData)
+      .where(
+        and(
+          inArray(computedData.tournamentId, tournamentIds),
+          notInArray(computedData.key, PRESERVED_COMPUTED_KEYS),
+        ),
+      );
   }
 }
 

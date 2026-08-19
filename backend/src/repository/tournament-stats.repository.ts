@@ -1,6 +1,6 @@
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "../config/database";
-import { matches, tournaments, outcomeTypes, computedData } from "../db/schema";
+import { matches, tournaments, computedData } from "../db/schema";
 import type { TournamentStats } from "@skol-arena/shared";
 
 /**
@@ -19,20 +19,22 @@ export class TournamentStatsRepository {
     });
   }
 
+  /**
+   * Counts per outcome type id only. The name and the default flag are resolved
+   * from the competition's ruleset snapshot, so a renamed outcome does not
+   * retroactively relabel the stats of a competition that is already over.
+   */
   async getOutcomeDistribution(tournamentId: string) {
     return db
       .select({
         outcomeTypeId: matches.outcomeTypeId,
-        outcomeTypeName: outcomeTypes.name,
-        isDefault: outcomeTypes.isDefault,
         count: sql<number>`COUNT(*)`.mapWith(Number),
       })
       .from(matches)
-      .leftJoin(outcomeTypes, eq(matches.outcomeTypeId, outcomeTypes.id))
       .where(
         and(eq(matches.tournamentId, tournamentId), eq(matches.status, "finalized"))
       )
-      .groupBy(matches.outcomeTypeId, outcomeTypes.name, outcomeTypes.isDefault);
+      .groupBy(matches.outcomeTypeId);
   }
 
   async getMatchesWithSidesAndPlayers(tournamentId: string) {
@@ -48,9 +50,6 @@ export class TournamentStatsRepository {
         outcomeTypeId: true,
       },
       with: {
-        outcomeType: {
-          columns: { id: true, name: true, isDefault: true },
-        },
         sides: {
           columns: { position: true, entryId: true },
           with: {

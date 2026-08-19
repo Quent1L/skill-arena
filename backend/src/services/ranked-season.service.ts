@@ -9,15 +9,20 @@ import { rankedCacheRepository } from "../repository/ranked-cache.repository";
 import { seasonRewindRepository } from "../repository/season-rewind.repository";
 import {
   calculateMatchMmr,
-  DEFAULT_TEAM_INTERACTION_MODE,
   toEnginePlayers,
   type EnginePlayer,
 } from "./mmr-engine";
 import { enqueueSeasonRewindGeneration } from "./mmr-job-queue.service";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
 import { logger } from "../utils/logger";
 import { db } from "../config/database";
 import { matches, appUsers } from "../db/schema";
-import { REWIND_VERSION } from "@skol-arena/shared/types/index";
+import {
+  indexRulesetOutcomes,
+  resolveRulesetInteractionMode,
+  REWIND_VERSION,
+  RULESET_OUTCOME_DEFAULTS,
+} from "@skol-arena/shared/types/index";
 import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
@@ -28,6 +33,7 @@ import type {
   WeeklyMmrLeaders,
   TierScalingMode,
   TeamInteractionMode,
+  RulesetOutcomeType,
 } from "@skol-arena/shared/types/index";
 import {
   ErrorCode,
@@ -51,6 +57,9 @@ interface ProvisionalReplayCtx {
   provisionalResults: Map<string, { outcome: ProvisionalOutcome }[]>;
   /** Matches played so far, advanced during the replay so placement stays right. */
   matchesPlayed: Map<string, number>;
+  /** Season ruleset, resolved once: the replay must price matches like finalization does. */
+  outcomes: Map<string, RulesetOutcomeType>;
+  interactionMode: TeamInteractionMode;
 }
 
 function entryMmrOf(playerId: string, ctx: ProvisionalReplayCtx): number {
@@ -184,11 +193,9 @@ function loadUnfinalizedMatches(seasonId: string) {
       eq(matches.tournamentId, seasonId),
       inArray(matches.status, ["reported", "disputed"]),
     ),
+    // outcomeTypeId only: what it is worth comes from the season snapshot.
+    columns: { id: true, winnerSide: true, playedAt: true, outcomeTypeId: true },
     with: {
-      outcomeType: {
-        columns: { scoreCountsForMmr: true, mmrMultiplier: true },
-        with: { discipline: { columns: { teamInteractionMode: true } } },
-      },
       sides: {
         orderBy: (s, { asc }) => [asc(s.position)],
         columns: { position: true, score: true },
@@ -261,6 +268,8 @@ export class RankedSeasonService {
       },
     );
 
+    await tournamentRulesetService.seed(result.tournament.id, input.disciplineId);
+
     if (input.usePreviousMmr) {
       await this.syncMmrSeeds(result.tournament.id);
     }
@@ -282,6 +291,11 @@ export class RankedSeasonService {
     // Last chance to pick up a source season that only finished after this one
     // was drafted.
     await this.syncMmrSeeds(id);
+
+    // A season goes straight from draft to ongoing, so this is where its ruleset
+    // stops following the discipline: from here, only an explicit propagation
+    // moves it, and that propagation recalculates the season.
+    await tournamentRulesetService.freeze(id);
 
     await tournamentRepository.update(id, { status: "ongoing" });
     const copied = config?.sourceTierSeasonId
@@ -677,6 +691,8 @@ export class RankedSeasonService {
       return;
     }
 
+    const ruleset = await tournamentRulesetService.getForTournament(seasonId);
+
     const ctx: ProvisionalReplayCtx = {
       baseMmr: config.baseMmr,
       kFactor: config.kFactor,
@@ -687,6 +703,8 @@ export class RankedSeasonService {
         players.map((p) => [p.playerId, [...((p as ClientPlayerMmr).recentResults ?? [])].reverse()]),
       ),
       matchesPlayed: new Map(players.map((p) => [p.playerId, p.matchesPlayed])),
+      outcomes: indexRulesetOutcomes(ruleset),
+      interactionMode: resolveRulesetInteractionMode(ruleset),
     };
 
     const touchedPlayerIds = new Set<string>();
@@ -725,6 +743,9 @@ export class RankedSeasonService {
     for (const id of [...idsA, ...idsB]) touched.add(id);
 
     const resultA = sideResult(match.winnerSide, "A");
+    const matchOutcome =
+      (match.outcomeTypeId ? ctx.outcomes.get(match.outcomeTypeId) : undefined) ??
+      RULESET_OUTCOME_DEFAULTS;
     const deltas = calculateMatchMmr({
       sides: [
         { players: toReplayPlayers(idsA, ctx), score: sideA.score ?? 0, result: resultA },
@@ -735,11 +756,9 @@ export class RankedSeasonService {
         },
       ],
       kFactor: ctx.kFactor,
-      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
-      mmrMultiplier: match.outcomeType?.mmrMultiplier ?? 1,
-      teamInteractionMode:
-        (match.outcomeType?.discipline?.teamInteractionMode as TeamInteractionMode | null) ??
-        DEFAULT_TEAM_INTERACTION_MODE,
+      scoreCountsForMmr: matchOutcome.scoreCountsForMmr,
+      mmrMultiplier: matchOutcome.mmrMultiplier,
+      teamInteractionMode: ctx.interactionMode,
     });
 
     for (const delta of deltas) {

@@ -1149,6 +1149,20 @@
     "enterApp": "Accéder à l'application",
     "tagline": "La chance ne suffira pas"
   },
+  "propagateRuleset": {
+    "apply": "Appliquer et recalculer",
+    "emptyState": "Aucune compétition en cours n'utilise cette discipline. Rien à mettre à jour.",
+    "failed": "Impossible d'appliquer la discipline aux compétitions sélectionnées",
+    "header": "Appliquer aux compétitions en cours ?",
+    "matchesColumn": "Résultats saisis",
+    "matchesEntered": "{count} saisi(s)",
+    "noMatches": "Aucun pour l'instant",
+    "partialSuccess": "{failed} compétition(s) sur {total} n'ont pas pu être mises à jour",
+    "statusColumn": "Statut",
+    "success": "{count} compétition(s) mise(s) à jour et recalculée(s)",
+    "upToDateTag": "À jour",
+    "warning": "Les compétitions en cours conservent les règles avec lesquelles elles ont démarré. Appliquer vos modifications à l'une d'elles relance le calcul de son classement et de son MMR, ce qui peut modifier des positions déjà publiées. Les compétitions terminées ne sont jamais affectées."
+  },
   "pwaInstallBanner": {
     "installButton": "Installer",
     "iosInstruction": {

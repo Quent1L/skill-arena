@@ -33,19 +33,27 @@ ensuite *qui en prend quelle part* (`teamInteractionMode` → parts normalisées
 | `sourceTierSeasonId` + `tierScalingMode` | `keep` \| `percentile` | Recopie ou recalcule les seuils de paliers — n'affecte **pas** le MMR, seulement le rang affiché |
 | `allowAsymmetricMatches` | bool | Autorise des effectifs déséquilibrés (1v2…). Aucune compensation MMR : voir §8 |
 
-### Niveau discipline (`disciplines`)
+### Niveau ruleset de la compétition (`tournament_rulesets`)
+
+Ces valeurs viennent de la discipline, mais **figées sur la compétition** au
+moment où elle s'ouvre. Le calcul et l'affichage lisent ce snapshot, jamais les
+lignes vivantes `disciplines` / `outcome_types`.
+
+Tant que la compétition est en brouillon le snapshot suit la discipline (aucun
+match ne peut exister). Ensuite, seule une propagation explicite le déplace —
+et cette propagation relance le recalcul dans la foulée, donc une compétition
+n'est jamais à moitié sous les anciennes règles.
+
+Éditer une discipline n'a donc plus aucun effet sur une compétition en cours ou
+terminée : leurs chiffres restent ceux avec lesquels elles ont été jouées.
 
 | Champ | Valeurs | Effet |
 |---|---|---|
-| `teamInteractionMode` | `INDIVIDUAL` \| `SHARED_RESOURCE` \| `COLLABORATIVE` | Répartition du delta d'équipe entre coéquipiers (§3). `null` → `COLLABORATIVE` |
-
-### Niveau type de résultat (`outcome_types`, rattaché à une discipline)
-
-| Champ | Défaut | Effet |
-|---|---|---|
-| `scoreCountsForMmr` | true | `false` → **delta 0 pour tout le monde** (sortie anticipée) ; `true` → le score amplifie `K` |
-| `mmrMultiplier` | 1 | Multiplie le delta d'équipe (0 = match sans impact, 2 = double) |
-| `points` | 3 | Points de championnat. **Aucun effet sur le MMR** |
+| `discipline.teamInteractionMode` | `INDIVIDUAL` \| `SHARED_RESOURCE` \| `COLLABORATIVE` | Répartition du delta d'équipe entre coéquipiers (§3). `null` → `COLLABORATIVE` |
+| `outcomeTypes[].scoreCountsForMmr` | true | `false` → **delta 0 pour tout le monde** (sortie anticipée) ; `true` → le score amplifie `K` |
+| `outcomeTypes[].mmrMultiplier` | 1 | Multiplie le delta d'équipe (0 = match sans impact, 2 = double) |
+| `outcomeTypes[].points` | 3 | Départage `victoryQuality` en championnat. **Aucun effet sur le MMR** |
+| `outcomeTypes[].archivedAt` | null | Type retiré de la saisie, mais toujours résolvable pour les matchs déjà saisis |
 
 ### Constantes du moteur (`mmr-engine.ts`)
 
@@ -151,14 +159,16 @@ compenser si besoin.
 ## 4. Un seul moteur, trois chemins
 
 Les trois chemins appellent `calculateMatchMmr()` et ne diffèrent **que par le
-snapshot de MMR** qu'ils lui fournissent. La parité est vérifiée par un test
-dédié (`backend/src/services/__tests__/mmr-parity.test.ts`).
+snapshot de MMR** qu'ils lui fournissent : le ruleset, lui, est le même pour les
+trois, lu une fois par rejeu sur `tournament_rulesets`. La parité est vérifiée
+par un test dédié (`backend/src/services/__tests__/mmr-parity.test.ts`).
 
 | | A. Officiel | B. Aperçu par match | C. Leaderboard provisoire |
 |---|---|---|---|
 | Point d'entrée | `mmr-calculation.service` | `mmr-animation-event.service` | `ranked-season.service.replayMatch` |
 | Déclencheur | Match finalisé / annulé / recalcul | Match `reported`, avant validation | Matchs non finalisés, cache provisoire |
-| Snapshot | Historique du match, puis MMR courant | MMR courant | MMR courant, avancé match après match |
+| Snapshot MMR | Historique du match, puis MMR courant | MMR courant | MMR courant, avancé match après match |
+| Ruleset | `tournament_rulesets` de la saison | idem | idem |
 | Persisté | `player_mmr` + `mmr_history` | `mmr_animation_events` (`provisional`) | cache leaderboard |
 | Moyennes d'équipe | oui | oui | oui |
 | `mmrMultiplier` | oui | oui | oui |
@@ -263,7 +273,13 @@ Exact, à deux exceptions près, toutes deux volontaires :
 3. **`mmrMultiplier = 0` et `scoreCountsForMmr = false`** donnent tous deux un
    delta nul, mais seul le second court-circuite le calcul complet.
 4. **Le mode par défaut est silencieux** : une discipline créée sans
-   `teamInteractionMode` tourne en `COLLABORATIVE`.
+   `teamInteractionMode` tourne en `COLLABORATIVE`. Le snapshot le fige tel quel,
+   donc le défaut appliqué reste celui d'origine même si la discipline est
+   corrigée plus tard.
+4bis. **Modifier une discipline n'affecte plus aucune compétition ouverte.**
+   Chaque compétition porte son propre `tournament_rulesets`. Pour répercuter un
+   changement il faut passer par la propagation explicite, qui recalcule les
+   compétitions choisies. Les compétitions terminées ne sont jamais proposées.
 5. **Le `kEffective` stocké en historique** est le K du match, doublé pour un
    joueur en placement. Ce n'est plus une valeur d'affichage recalculée à part.
 6. **Un changement de formule invalide les MMR calculés — le rattrapage est

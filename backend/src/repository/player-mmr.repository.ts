@@ -441,8 +441,10 @@ export class PlayerMmrRepository {
       where: whereCond,
       orderBy: (m, { asc }) => [asc(m.playedAt), asc(m.id)],
       limit: pageSize,
+      // outcomeTypeId travels alone: what it was worth comes from the season's
+      // ruleset snapshot, so the live outcome_types row is never joined here.
+      columns: { id: true, playedAt: true, winnerSide: true, outcomeTypeId: true },
       with: {
-        outcomeType: { with: { discipline: true } },
         sides: {
           orderBy: (s, { asc }) => [asc(s.position)],
           with: { entry: { with: { players: true } } },

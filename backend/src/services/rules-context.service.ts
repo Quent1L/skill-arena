@@ -3,6 +3,8 @@ import { db } from "../config/database";
 import { matches } from "../db/schema";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
+import { resolveRulesetOutcome } from "@skol-arena/shared/types/index";
 import type { MatchSubmittedContext } from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
@@ -53,8 +55,6 @@ export class RulesContextService {
       where: eq(matches.id, matchId),
       with: {
         tournament: true,
-        outcomeType: true,
-        outcomeReason: true,
         sides: { with: { entry: { with: { players: { with: { player: true } } } } } },
       },
     });
@@ -86,6 +86,16 @@ export class RulesContextService {
     const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
     const tiers = rankedConfig ? ((await rankedSeasonRepository.getRankTiers(tournamentId)) as TierData[]) : [];
 
+    // Outcome labels come from the competition's ruleset snapshot. This is what
+    // makes badge reconciliation reproducible: replaying a past match evaluates
+    // the same facts it saw the first time, even if the outcome has since been
+    // renamed or archived.
+    const ruleset = await tournamentRulesetService.getForTournament(tournamentId);
+    const outcome = resolveRulesetOutcome(ruleset, match.outcomeTypeId);
+    const outcomeReasonName = match.outcomeReasonId
+      ? (outcome.reasons.find((r) => r.id === match.outcomeReasonId)?.name ?? "")
+      : "";
+
     const base = {
       winnerIds,
       loserIds,
@@ -94,10 +104,10 @@ export class RulesContextService {
       matchScore,
       // Read from the persisted match row, so reconciliation replays them unchanged.
       outcomeType: match.outcomeTypeId ?? "",
-      outcomeTypeName: match.outcomeType?.name ?? "",
-      isDefaultOutcome: match.outcomeType?.isDefault ?? false,
+      outcomeTypeName: match.outcomeTypeId ? outcome.name : "",
+      isDefaultOutcome: match.outcomeTypeId ? outcome.isDefault : false,
       outcomeReason: match.outcomeReasonId ?? "",
-      outcomeReasonName: match.outcomeReason?.name ?? "",
+      outcomeReasonName,
       ...this.dateFacts(match.playedAt),
       discipline: match.tournament?.disciplineId ?? "",
       site: match.tournament?.organizationId ?? "",

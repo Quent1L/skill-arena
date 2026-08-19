@@ -60,9 +60,10 @@ import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
 import {
-  outcomeTypeNameEnum,
+  selectableRulesetOutcomes,
   type OutcomeReason,
   type OutcomeType,
+  type RulesetOutcomeType,
 } from '@skol-arena/shared/types/index'
 
 interface Props {
@@ -131,8 +132,13 @@ const selectedOutcomeType = computed(() => {
   return outcomeTypes.value.find((type) => type.id === outcomeTypeIdModel.value)
 })
 
+/**
+ * The default outcome needs no reason and no explicit winner. Read from the
+ * `isDefault` flag rather than by matching the name "Normal", which broke as soon
+ * as an admin renamed the type.
+ */
 const isNormalOutcomeType = computed(() => {
-  return selectedOutcomeType.value?.name === outcomeTypeNameEnum.NORMAL
+  return selectedOutcomeType.value?.isDefault === true
 })
 
 const showOutcomeReasonSelection = computed(() => {
@@ -155,35 +161,30 @@ const filteredWinnerOptions = computed(() => {
   return baseWinnerOptions.value.filter((option) => option.value !== null)
 })
 
+/**
+ * Inside a competition the choices come from its ruleset snapshot, not from the
+ * live discipline. Offering a type the snapshot does not know would produce a
+ * match whose outcome cannot be resolved — the exact orphaning the snapshot
+ * exists to prevent. Archived types are filtered out here but stay resolvable on
+ * matches already tagged with them.
+ */
 async function loadOutcomeTypes() {
   if (!props.disciplineId && !props.tournamentId) return
 
   loadingOutcomeTypes.value = true
   try {
-    let disciplineId = props.disciplineId
-    if (props.tournamentId && !disciplineId) {
-      try {
-        const tournament = await tournamentApi.getById(props.tournamentId)
-        disciplineId = tournament.disciplineId || undefined
-      } catch (error) {
-        console.error('Erreur lors du chargement du tournoi:', error)
-        return
-      }
+    if (props.tournamentId) {
+      const { payload } = await tournamentApi.getRuleset(props.tournamentId)
+      outcomeTypes.value = selectableRulesetOutcomes(payload).map(toOutcomeType)
+      // The reasons travel with the payload, so no follow-up request per type.
+      outcomeReasons.value = selectableRulesetOutcomes(payload).flatMap((type) =>
+        type.reasons.map((reason) => ({ ...reason, outcomeTypeId: type.id })),
+      )
+    } else if (props.disciplineId) {
+      outcomeTypes.value = await outcomeTypeApi.list(props.disciplineId)
     }
 
-    if (disciplineId) {
-      outcomeTypes.value = await outcomeTypeApi.list(disciplineId)
-    } else {
-      outcomeTypes.value = await outcomeTypeApi.list()
-    }
-
-    // Auto-select "Normal" type if no type is already selected
-    if (!props.outcomeTypeId && outcomeTypes.value.length > 0) {
-      const normalType = outcomeTypes.value.find((type) => type.name === outcomeTypeNameEnum.NORMAL)
-      if (normalType) {
-        outcomeTypeIdModel.value = normalType.id
-      }
-    }
+    autoSelectDefaultType()
   } catch (error) {
     console.error('Erreur lors du chargement des types de résultat:', error)
   } finally {
@@ -191,7 +192,35 @@ async function loadOutcomeTypes() {
   }
 }
 
+function toOutcomeType(outcome: RulesetOutcomeType): OutcomeType {
+  return {
+    id: outcome.id,
+    disciplineId: props.disciplineId ?? '',
+    name: outcome.name,
+    isDefault: outcome.isDefault,
+    scoreCountsForMmr: outcome.scoreCountsForMmr,
+    points: outcome.points,
+    mmrMultiplier: outcome.mmrMultiplier,
+  }
+}
+
+/**
+ * Preselects the discipline's default outcome. Keyed on `isDefault` rather than
+ * on the name: matching the literal "Normal" broke the moment an admin renamed
+ * the type, silently leaving new matches with no outcome preselected.
+ */
+function autoSelectDefaultType() {
+  if (props.outcomeTypeId || outcomeTypes.value.length === 0) return
+  const defaultType = outcomeTypes.value.find((type) => type.isDefault)
+  if (defaultType) {
+    outcomeTypeIdModel.value = defaultType.id
+  }
+}
+
 async function loadOutcomeReasons(outcomeTypeId: string) {
+  // Already carried by the ruleset payload for a competition.
+  if (props.tournamentId) return
+
   loadingOutcomeReasons.value = true
   try {
     const reasons = await outcomeReasonApi.list(outcomeTypeId)

@@ -1,9 +1,13 @@
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "../config/database";
 import { computedData, tournaments } from "../db/schema";
+import { tournamentRulesetRepository } from "../repository/tournament-ruleset.repository";
 import { MMR_ENGINE_VERSION } from "../services/mmr-engine";
 import { enqueueMmrSeasonRecalculation } from "../services/mmr-job-queue.service";
 import { logger } from "./logger";
+
+/** How long a recalculation marker may stand before it is considered abandoned. */
+const STALE_RECALC_MS = 2 * 60 * 60 * 1000;
 
 /** Per-season stamp of the engine version its MMR history was computed with. */
 const ENGINE_VERSION_KEY = "mmr:engine-version";
@@ -53,6 +57,22 @@ export async function recalculateOutdatedRankedSeasons(): Promise<void> {
       { queued, version: MMR_ENGINE_VERSION },
       "[MMREngine] MMR engine upgrade — seasons queued for recalculation",
     );
+  }
+}
+
+/**
+ * Drops recalculation markers no worker is going to clear.
+ *
+ * A propagation marks the competition before enqueuing the replay; a worker that
+ * dies mid-job never clears it, and the "recalculation running" banner would then
+ * stand forever. Boot is the natural place to notice.
+ */
+export async function clearStaleRecalcMarkers(): Promise<void> {
+  const cleared = await tournamentRulesetRepository.clearStalePending(
+    new Date(Date.now() - STALE_RECALC_MS),
+  );
+  if (cleared > 0) {
+    logger.warn({ cleared }, "[Ruleset] cleared abandoned recalculation markers");
   }
 }
 

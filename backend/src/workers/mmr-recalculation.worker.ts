@@ -10,6 +10,7 @@ import { badgeReconciliationService } from '../services/badge-reconciliation.ser
 import { seasonRewindService } from '../services/season-rewind.service';
 import { enqueueSeasonRewindGeneration } from '../services/mmr-job-queue.service';
 import { tournamentRepository } from '../repository/tournament.repository';
+import { tournamentRulesetRepository } from '../repository/tournament-ruleset.repository';
 import { logger } from '../utils/logger';
 
 interface FinalizeMmrPayload {
@@ -131,8 +132,24 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
   logger.info({ tournamentId }, '[Worker] recalculate_season_mmr start');
 
   const rankedConfig = await rankedSeasonRepository.getConfigByTournamentId(tournamentId);
-  if (!rankedConfig) return;
+  if (!rankedConfig) {
+    // Nothing to replay, but a propagation may still be waiting on the marker.
+    await tournamentRulesetRepository.setRecalcPending(tournamentId, null);
+    return;
+  }
 
+  try {
+    await runSeasonRecalculation(tournamentId);
+  } finally {
+    // Cleared whatever happened: a marker left behind would keep the
+    // "recalculation running" banner up forever.
+    await tournamentRulesetRepository
+      .setRecalcPending(tournamentId, null)
+      .catch((err) => logger.error({ err, tournamentId }, '[Worker] clearing recalc marker failed'));
+  }
+};
+
+async function runSeasonRecalculation(tournamentId: string): Promise<void> {
   const players = await playerMmrRepository.getAllPlayersBySeasonId(tournamentId);
 
   await mmrCalculationService.recalculateSeasonMmrDeterministic(tournamentId);
@@ -162,7 +179,7 @@ const recalculateSeasonMmr: Task = async (rawPayload) => {
   await regenerateRewindIfFinished(tournamentId);
 
   logger.info({ tournamentId, playerCount: players.length }, '[Worker] recalculate_season_mmr done');
-};
+}
 
 async function regenerateRewindIfFinished(seasonId: string): Promise<void> {
   const season = await tournamentRepository.getById(seasonId);

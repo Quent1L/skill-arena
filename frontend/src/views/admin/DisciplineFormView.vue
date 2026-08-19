@@ -108,6 +108,15 @@
       @submit="handleOutcomeTypeSubmit"
     />
 
+    <!-- Push this discipline onto competitions that are still running -->
+    <PropagateRulesetDialog
+      ref="propagateDialogRef"
+      v-model:visible="propagateDialogVisible"
+      :discipline-id="(route.params.id as string) ?? null"
+      @load="loadImpactedCompetitions"
+      @propagate="handlePropagate"
+    />
+
     <!-- Outcome Reason Dialog -->
     <OutcomeReasonDialog
       v-model:visible="outcomeReasonDialogVisible"
@@ -138,12 +147,15 @@ import { useConfirm } from 'primevue/useconfirm'
 import OutcomeTypeTable from './components/OutcomeTypeTable.vue'
 import OutcomeTypeDialog from './components/OutcomeTypeDialog.vue'
 import OutcomeReasonDialog from './components/OutcomeReasonDialog.vue'
+import PropagateRulesetDialog from './components/PropagateRulesetDialog.vue'
+import { useAppToast } from '@/composables/useAppToast'
 import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const confirm = useConfirm()
+const toast = useAppToast()
 const {
   currentDiscipline,
   outcomeTypes,
@@ -184,6 +196,10 @@ const interactionModeOptions = ref<InteractionModeOption[]>([])
 const outcomeTypeTableRef = ref<InstanceType<typeof OutcomeTypeTable> | null>(null)
 const outcomeTypeDialogVisible = ref(false)
 const editingOutcomeType = ref<OutcomeType | null>(null)
+
+// Pushing a discipline edit onto competitions that are still running
+const propagateDialogVisible = ref(false)
+const propagateDialogRef = ref<InstanceType<typeof PropagateRulesetDialog> | null>(null)
 
 // Outcome Reasons management
 const outcomeReasonDialogVisible = ref(false)
@@ -336,6 +352,12 @@ const onSubmit = handleSubmit(async (values) => {
   try {
     if (isEditMode.value && route.params.id) {
       await updateDiscipline(route.params.id as string, values)
+      // Saving changed nothing for competitions already under way — each one
+      // holds its own frozen copy. Offer to push it onto the running ones.
+      if (await hasImpactedCompetitions()) {
+        propagateDialogVisible.value = true
+        return
+      }
     } else {
       await createDiscipline(values as CreateDisciplineRequestData)
     }
@@ -344,6 +366,54 @@ const onSubmit = handleSubmit(async (values) => {
     console.error('Erreur lors de la sauvegarde:', err)
   }
 })
+
+async function hasImpactedCompetitions() {
+  if (!route.params.id) return false
+  try {
+    const impacted = await disciplineApi.listImpactedCompetitions(route.params.id as string)
+    return impacted.some((competition) => competition.hasDrift)
+  } catch {
+    // Never block the save on the preflight; the admin can propagate later.
+    return false
+  }
+}
+
+async function loadImpactedCompetitions(disciplineId: string) {
+  try {
+    const impacted = await disciplineApi.listImpactedCompetitions(disciplineId)
+    propagateDialogRef.value?.setCompetitions(impacted)
+  } catch {
+    propagateDialogRef.value?.setCompetitions([])
+  }
+}
+
+async function handlePropagate(tournamentIds: string[]) {
+  if (!route.params.id) return
+  try {
+    const results = await disciplineApi.propagate(route.params.id as string, tournamentIds)
+    const failed = results.filter((result) => result.status === 'failed').length
+    toast.add({
+      severity: failed > 0 ? 'warn' : 'success',
+      summary: t('common.success'),
+      detail:
+        failed > 0
+          ? t('propagateRuleset.partialSuccess', { failed, total: results.length })
+          : t('propagateRuleset.success', { count: results.length }),
+      life: 5000,
+    })
+  } catch (err) {
+    toast.add({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: err instanceof Error ? err.message : t('propagateRuleset.failed'),
+      life: 5000,
+    })
+  } finally {
+    propagateDialogRef.value?.setSubmitted()
+    propagateDialogVisible.value = false
+    router.push('/admin/disciplines')
+  }
+}
 
 onMounted(async () => {
   const [modes] = await Promise.all([

@@ -120,11 +120,49 @@ mock.module("../../repository/match-sides.repository", () => ({
   matchSidesRepository: mockMatchSidesRepo,
 }));
 
+/**
+ * What an outcome is called and worth now comes from the competition's ruleset
+ * snapshot rather than a join off the match, so the fixtures register outcomes
+ * here and the match carries only the id. Reset between tests.
+ */
+let rulesetOutcomes: any[] = [];
+
+function registerOutcome(id: string, opts: { isDefault: boolean; points: number }) {
+  rulesetOutcomes.push({
+    id,
+    name: `Outcome ${id}`,
+    points: opts.points,
+    mmrMultiplier: 1,
+    scoreCountsForMmr: true,
+    isDefault: opts.isDefault,
+    archivedAt: null,
+    reasons: [],
+  });
+  return id;
+}
+
+mock.module("../../repository/tournament-ruleset.repository", () => ({
+  tournamentRulesetRepository: {
+    getSnapshotContext: mock(() =>
+      Promise.resolve({ id: "tournament-1", status: "ongoing", mode: "championship", disciplineId: null }),
+    ),
+    getByTournamentId: mock(() =>
+      Promise.resolve({ payload: { discipline: null, outcomeTypes: rulesetOutcomes } }),
+    ),
+    buildPayloadForDiscipline: mock(() =>
+      Promise.resolve({ discipline: null, outcomeTypes: rulesetOutcomes }),
+    ),
+    upsert: mock(() => Promise.resolve()),
+    setRecalcPending: mock(() => Promise.resolve()),
+  },
+}));
+
 import { standingsService } from "../standings.service";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function resetMocks() {
+  rulesetOutcomes = [];
   mockRepo.getTournamentWithScoring.mockImplementation(() => Promise.resolve(DEFAULT_TOURNAMENT));
   mockRepo.getMatchesWithSides.mockImplementation((_id: string, _statuses: string[]) => Promise.resolve([]));
   mockRepo.getPlayerPointsForStandings.mockImplementation((_id: string, _statuses: string[]) => Promise.resolve([]));
@@ -153,7 +191,10 @@ function makeMatchWithOutcomeType(
   isDefault: boolean,
   points = 3,
 ) {
-  return { ...makeMatchWithSides(id, winnerSide, sideA, sideB), outcomeType: { isDefault, points } };
+  return {
+    ...makeMatchWithSides(id, winnerSide, sideA, sideB),
+    outcomeTypeId: registerOutcome(`ot-${id}`, { isDefault, points }),
+  };
 }
 
 function findEntry(standings: any[], id: string) {
@@ -776,7 +817,7 @@ describe("StandingsService", () => {
       mockRepo.getPlayerPointsForStandings.mockImplementation(() =>
         Promise.resolve([{
           ...makeFlexMatchWithPoints("m1", "A", ["p-a"], ["p-b"], 1, 0, 3, 0),
-          outcomeType: { isDefault: false, points: 2 },
+          outcomeTypeId: registerOutcome("ot-m1", { isDefault: false, points: 2 }),
         }]),
       );
 

@@ -78,6 +78,24 @@ mock.module("../../repository/mmr-seed.repository", () => ({
   mmrSeedRepository: mockMmrSeedRepo,
 }));
 
+// The season ruleset the replays price against. `discipline: null` keeps the
+// interaction mode at the engine default, as an unset discipline would.
+mock.module("../../repository/tournament-ruleset.repository", () => ({
+  tournamentRulesetRepository: {
+    getSnapshotContext: mock(() =>
+      Promise.resolve({ id: "season-1", status: "ongoing", mode: "ranked", disciplineId: null }),
+    ),
+    getByTournamentId: mock(() =>
+      Promise.resolve({ payload: { discipline: null, outcomeTypes: rulesetOutcomes } }),
+    ),
+    buildPayloadForDiscipline: mock(() =>
+      Promise.resolve({ discipline: null, outcomeTypes: rulesetOutcomes }),
+    ),
+    upsert: mock(() => Promise.resolve()),
+    setRecalcPending: mock(() => Promise.resolve()),
+  },
+}));
+
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG = {
@@ -91,8 +109,38 @@ const DEFAULT_CONFIG = {
   sourceTierSeasonId: null,
 };
 
-function makeMatch(id: string, outcomeType: { scoreCountsForMmr: boolean; points: number } | null = null) {
-  return { id, outcomeType };
+/**
+ * What an outcome is worth now comes from the season's ruleset snapshot rather
+ * than a join off the match, so the fixtures register the outcome here and the
+ * match only carries its id. `registerOutcome` is reset between tests along with
+ * the mocks.
+ */
+let rulesetOutcomes: any[] = [];
+
+function registerOutcome(
+  matchId: string,
+  outcomeType: { scoreCountsForMmr: boolean; points: number; mmrMultiplier?: number } | null,
+): string | null {
+  if (!outcomeType) return null;
+  const id = `outcome-${matchId}`;
+  rulesetOutcomes.push({
+    id,
+    name: `Outcome ${matchId}`,
+    points: outcomeType.points,
+    mmrMultiplier: outcomeType.mmrMultiplier ?? 1,
+    scoreCountsForMmr: outcomeType.scoreCountsForMmr,
+    isDefault: false,
+    archivedAt: null,
+    reasons: [],
+  });
+  return id;
+}
+
+function makeMatch(
+  id: string,
+  outcomeType: { scoreCountsForMmr: boolean; points: number } | null = null,
+) {
+  return { id, outcomeTypeId: registerOutcome(id, outcomeType) };
 }
 
 function makeSideResult(opts: {
@@ -115,6 +163,7 @@ function clearMock(m: ReturnType<typeof mock>) {
 }
 
 function resetMocks() {
+  rulesetOutcomes = [];
   for (const m of Object.values(mockRankedRepo) as ReturnType<typeof mock>[]) clearMock(m);
   for (const m of Object.values(mockPlayerMmrRepo) as ReturnType<typeof mock>[]) clearMock(m);
   for (const m of Object.values(mockMmrSeedRepo) as ReturnType<typeof mock>[]) clearMock(m);
@@ -167,7 +216,7 @@ describe("MmrCalculationService", () => {
     const PLAYER = "player-1";
 
     function setupMatches(
-      matches: Array<{ id: string; outcomeType: { scoreCountsForMmr: boolean; points: number } | null }>,
+      matches: Array<{ id: string; outcomeTypeId: string | null }>,
       sideResults: Record<string, ReturnType<typeof makeSideResult>>,
     ) {
       (service as any).getPlayerMatchesForSeason = async () => matches;
@@ -568,7 +617,7 @@ describe("MmrCalculationService", () => {
             id: "m1",
             playedAt: new Date("2026-01-01T10:00:00Z"),
             winnerSide: "A",
-            outcomeType: { scoreCountsForMmr: true, points: 3, mmrMultiplier: 1, discipline: null },
+            outcomeTypeId: registerOutcome("m1", { scoreCountsForMmr: true, points: 3 }),
             sides: [
               { score: 0, entry: { players: [{ playerId: "p1" }] } },
               { score: 0, entry: { players: [{ playerId: "p2" }] } },
@@ -850,13 +899,13 @@ describe("MmrCalculationService", () => {
       winnerSide: string | null;
       scoreA?: number | null;
       scoreB?: number | null;
-      outcomeType?: { scoreCountsForMmr: boolean; points: number; mmrMultiplier?: number; discipline?: any } | null;
+      outcomeType?: { scoreCountsForMmr: boolean; points: number; mmrMultiplier?: number } | null;
     }) {
       return {
         id: opts.id,
         playedAt: new Date(opts.playedAt),
         winnerSide: opts.winnerSide,
-        outcomeType: opts.outcomeType ?? null,
+        outcomeTypeId: registerOutcome(opts.id, opts.outcomeType ?? null),
         sides: [
           { position: 1, score: opts.scoreA ?? null, entry: { players: opts.sideAIds.map((id) => ({ playerId: id })) } },
           { position: 2, score: opts.scoreB ?? null, entry: { players: opts.sideBIds.map((id) => ({ playerId: id })) } },

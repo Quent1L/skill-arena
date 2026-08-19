@@ -20,11 +20,27 @@ const MMR: Record<string, number> = { p1: 1000, p2: 1400, p3: 1100, p4: 900 };
 const SIDE_A = ["p1", "p2"];
 const SIDE_B = ["p3", "p4"];
 
-const OUTCOME_TYPE = {
-  scoreCountsForMmr: true,
-  mmrMultiplier: 1.5,
-  points: 3,
-  discipline: { teamInteractionMode: "INDIVIDUAL" },
+const OUTCOME_TYPE_ID = "outcome-type-1";
+const DISCIPLINE_ID = "discipline-1";
+
+/**
+ * The pricing all three paths must agree on now lives in the season's ruleset
+ * snapshot rather than on a join off the match, so it is mocked once here.
+ */
+const RULESET_PAYLOAD: any = {
+  discipline: { id: DISCIPLINE_ID, name: "Pétanque", teamInteractionMode: "INDIVIDUAL" },
+  outcomeTypes: [
+    {
+      id: OUTCOME_TYPE_ID,
+      name: "Normal",
+      points: 3,
+      mmrMultiplier: 1.5,
+      scoreCountsForMmr: true,
+      isDefault: true,
+      archivedAt: null,
+      reasons: [],
+    },
+  ],
 };
 
 const MATCH_ROW: any = {
@@ -33,7 +49,7 @@ const MATCH_ROW: any = {
   status: "reported",
   winnerSide: "A",
   playedAt: new Date("2026-01-01T10:00:00Z"),
-  outcomeType: OUTCOME_TYPE,
+  outcomeTypeId: OUTCOME_TYPE_ID,
   sides: [
     { position: 1, score: 10, entry: { id: "e1", players: SIDE_A.map((playerId) => ({ playerId })) } },
     { position: 2, score: 5, entry: { id: "e2", players: SIDE_B.map((playerId) => ({ playerId })) } },
@@ -120,6 +136,18 @@ mock.module("../../repository/player-mmr.repository", () => ({
     ),
     createMmrHistory: mock(() => Promise.resolve()),
     upsert: mock(() => Promise.resolve()),
+  },
+}));
+
+mock.module("../../repository/tournament-ruleset.repository", () => ({
+  tournamentRulesetRepository: {
+    getSnapshotContext: mock(() =>
+      Promise.resolve({ id: SEASON, status: "ongoing", mode: "ranked", disciplineId: DISCIPLINE_ID }),
+    ),
+    getByTournamentId: mock(() => Promise.resolve({ payload: RULESET_PAYLOAD })),
+    buildPayloadForDiscipline: mock(() => Promise.resolve(RULESET_PAYLOAD)),
+    upsert: mock(() => Promise.resolve()),
+    setRecalcPending: mock(() => Promise.resolve()),
   },
 }));
 

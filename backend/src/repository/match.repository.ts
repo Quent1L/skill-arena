@@ -21,6 +21,7 @@ import {
   type MatchDetailPlayer,
   type TournamentScoringConfig,
   resolveScoringConfig,
+  resolveRulesetOutcome,
 } from "@skol-arena/shared";
 import { TOURNAMENT_CONFIGS_WITH } from "./tournament-config.columns";
 import { entryRepository } from "./entry.repository";
@@ -203,9 +204,9 @@ export class MatchRepository {
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, id),
       with: {
-        tournament: true,
-        outcomeType: true,
-        outcomeReason: true,
+        // The ruleset travels with the tournament: outcome labels come from the
+        // snapshot the match was played under, not from the live rows.
+        tournament: { with: { ruleset: true } },
         creator: true,
         confirmations: {
           with: {
@@ -216,6 +217,17 @@ export class MatchRepository {
     });
 
     if (!match) return null;
+
+    // A match with no outcome type keeps a null label rather than the default
+    // one: the detail view distinguishes "not qualified" from "qualified as X".
+    const ruleset = match.tournament?.ruleset?.payload ?? null;
+    const matchOutcome = match.outcomeTypeId
+      ? resolveRulesetOutcome(ruleset, match.outcomeTypeId)
+      : null;
+    const matchOutcomeReason =
+      match.outcomeReasonId && matchOutcome
+        ? (matchOutcome.reasons.find((r) => r.id === match.outcomeReasonId) ?? null)
+        : null;
 
     const sides = await matchSidesRepository.getByMatchId(id);
     const result = await matchResultRepository.getByMatchId(id);
@@ -309,11 +321,11 @@ export class MatchRepository {
             status: match.tournament.status,
           }
         : undefined,
-      outcomeType: match.outcomeType
-        ? { id: match.outcomeType.id, name: match.outcomeType.name }
+      outcomeType: matchOutcome
+        ? { id: matchOutcome.id, name: matchOutcome.name }
         : null,
-      outcomeReason: match.outcomeReason
-        ? { id: match.outcomeReason.id, name: match.outcomeReason.name }
+      outcomeReason: matchOutcomeReason
+        ? { id: matchOutcomeReason.id, name: matchOutcomeReason.name }
         : null,
       confirmations: match.confirmations.map((c) => ({
         id: c.id,
@@ -513,8 +525,16 @@ export class MatchRepository {
         status: matches.status,
         winnerSide: matches.winnerSide,
         outcomeTypeId: matches.outcomeTypeId,
+        // Resolved out of the competition's ruleset snapshot rather than the live
+        // outcome_types row, so a renamed outcome does not relabel matches that
+        // were played under the old name.
         outcomeTypeName: sql<string | null>`(
-          SELECT name FROM outcome_types WHERE id = ${matches.outcomeTypeId} LIMIT 1
+          SELECT elem->>'name'
+          FROM tournament_rulesets tr,
+               jsonb_array_elements(tr.payload->'outcomeTypes') elem
+          WHERE tr.tournament_id = ${tournaments.id}
+            AND elem->>'id' = ${matches.outcomeTypeId}::text
+          LIMIT 1
         )`,
         mmrDelta: filters.playerIds?.split(',').find(Boolean)
           ? sql<number | null>`(

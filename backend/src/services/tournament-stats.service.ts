@@ -1,5 +1,10 @@
 import { tournamentStatsRepository } from "../repository/tournament-stats.repository";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
 import { NotFoundError, ErrorCode } from "../types/errors";
+import {
+  resolveRulesetOutcome,
+  type TournamentRulesetPayload,
+} from "@skol-arena/shared/types/index";
 import {
   assignCompetitionRanks,
   cutWholeRankGroups,
@@ -489,15 +494,19 @@ function compareLeaders(a: LeaderCandidate, b: LeaderCandidate): number {
   return a.playerId < b.playerId ? -1 : a.playerId > b.playerId ? 1 : 0;
 }
 
-export function computeOutcomeTypeFunStats(matchesData: MatchData[]): OutcomeTypeFunStat[] {
+export function computeOutcomeTypeFunStats(
+  matchesData: MatchData[],
+  ruleset: TournamentRulesetPayload,
+): OutcomeTypeFunStat[] {
   const typeMap = new Map<string, OutcomeTypeAcc>();
 
   for (const match of matchesData) {
-    if (!match.outcomeType || !match.outcomeTypeId) continue;
+    if (!match.outcomeTypeId) continue;
 
     const typeId = match.outcomeTypeId;
     if (!typeMap.has(typeId)) {
-      typeMap.set(typeId, { name: match.outcomeType.name, totalMatches: 0, players: new Map() });
+      const name = resolveRulesetOutcome(ruleset, typeId).name;
+      typeMap.set(typeId, { name, totalMatches: 0, players: new Map() });
     }
     const entry = typeMap.get(typeId)!;
     entry.totalMatches++;
@@ -561,20 +570,26 @@ class TournamentStatsService {
       throw new NotFoundError(ErrorCode.TOURNAMENT_NOT_FOUND);
     }
 
-    const [distributionRaw, matchesData, momentumRaw] = await Promise.all([
+    const [distributionRaw, matchesData, momentumRaw, ruleset] = await Promise.all([
       tournamentStatsRepository.getOutcomeDistribution(tournamentId),
       tournamentStatsRepository.getMatchesWithSidesAndPlayers(tournamentId),
       tournamentStatsRepository.getMomentum(tournamentId),
+      tournamentRulesetService.getForTournament(tournamentId),
     ]);
 
     const momentum = fillMomentumDays(momentumRaw, tournamentInfo.startDate, tournamentInfo.endDate);
 
-    const outcomeDistribution: OutcomeTypeCount[] = distributionRaw.map((row) => ({
-      outcomeTypeId: row.outcomeTypeId,
-      outcomeTypeName: row.outcomeTypeName ?? null,
-      isDefault: row.isDefault ?? true,
-      count: row.count,
-    }));
+    // Labels come from the snapshot: what the outcome was called while this
+    // competition ran, not what it happens to be called now.
+    const outcomeDistribution: OutcomeTypeCount[] = distributionRaw.map((row) => {
+      const outcome = resolveRulesetOutcome(ruleset, row.outcomeTypeId);
+      return {
+        outcomeTypeId: row.outcomeTypeId,
+        outcomeTypeName: row.outcomeTypeId ? outcome.name : null,
+        isDefault: row.outcomeTypeId ? outcome.isDefault : true,
+        count: row.count,
+      };
+    });
 
     const totalFinalized = matchesData.length;
     const totalMatches = totalFinalized;
@@ -596,7 +611,10 @@ class TournamentStatsService {
         ? computeBestAsymmetricSoloPlayers(matchesData)
         : [];
 
-    const outcomeTypeFunStats: OutcomeTypeFunStat[] = computeOutcomeTypeFunStats(matchesData);
+    const outcomeTypeFunStats: OutcomeTypeFunStat[] = computeOutcomeTypeFunStats(
+      matchesData,
+      ruleset,
+    );
 
     return {
       totalMatches,

@@ -7,8 +7,15 @@ import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import type { MmrAnimationEventReason, MmrHistoryOutcome } from "@skol-arena/shared";
 import {
+  indexRulesetOutcomes,
+  resolveRulesetInteractionMode,
+  RULESET_OUTCOME_DEFAULTS,
+  type RulesetOutcomeType,
+  type TeamInteractionMode,
+} from "@skol-arena/shared/types/index";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
+import {
   calculateMatchMmr,
-  DEFAULT_TEAM_INTERACTION_MODE,
   toEnginePlayers,
   type EnginePlayer,
   type EnginePlayerStanding,
@@ -40,18 +47,19 @@ interface MmrLookups {
   currentMmrMap: Map<string, number>;
   /** Carried-over entry MMR per player, when the season inherits ranks. */
   entryMmrMap: Map<string, number>;
+  /** Season ruleset, resolved once per replay rather than joined per match. */
+  ruleset: SeasonRuleset;
+}
+
+/** The snapshot values this service needs, flattened for the replay loops. */
+interface SeasonRuleset {
+  outcomes: Map<string, RulesetOutcomeType>;
+  interactionMode: TeamInteractionMode;
 }
 
 type ResolvableSide = {
   score: number | null;
   entry?: { players: { playerId: string }[] } | null;
-};
-
-/** Outcome type of a match whose type row is missing: neutral, MMR still counts. */
-const FALLBACK_OUTCOME_TYPE = {
-  scoreCountsForMmr: true,
-  mmrMultiplier: 1,
-  discipline: null as { teamInteractionMode?: string | null } | null,
 };
 
 function outcomeFromWin(playerWon: boolean | null): MmrHistoryOutcome {
@@ -66,9 +74,31 @@ function resultFromWin(playerWon: boolean | null): MatchResult {
   return 0.5;
 }
 
-function resolveInteractionMode(discipline: { teamInteractionMode?: string | null } | null) {
-  return (discipline?.teamInteractionMode as typeof DEFAULT_TEAM_INTERACTION_MODE | null | undefined)
-    ?? DEFAULT_TEAM_INTERACTION_MODE;
+/**
+ * Season ruleset as the replay loops want it.
+ *
+ * Read once per replay from the competition's own snapshot, never joined off the
+ * live discipline: editing a discipline must not change what an already-played
+ * match was worth.
+ */
+async function loadSeasonRuleset(seasonId: string): Promise<SeasonRuleset> {
+  const payload = await tournamentRulesetService.getForTournament(seasonId);
+  return {
+    outcomes: indexRulesetOutcomes(payload),
+    interactionMode: resolveRulesetInteractionMode(payload),
+  };
+}
+
+/**
+ * Outcome a match was played under. An id the snapshot does not know — a match
+ * orphaned before the restrict foreign keys landed — falls back to the neutral
+ * defaults, which is exactly what the old inline fallback did.
+ */
+function outcomeOf(ruleset: SeasonRuleset, outcomeTypeId: string | null): {
+  scoreCountsForMmr: boolean;
+  mmrMultiplier: number;
+} {
+  return (outcomeTypeId ? ruleset.outcomes.get(outcomeTypeId) : undefined) ?? RULESET_OUTCOME_DEFAULTS;
 }
 
 function averageMmr(players: EnginePlayer[], fallback: number): number {
@@ -106,6 +136,7 @@ export class MmrCalculationService {
       const allOtherPlayerIds = [...new Set([...sidesMap.values()].flatMap((s) => [...s.opponentPlayerIds, ...(s.sameTeamPlayerIds ?? [])]))];
       const historiesMap = await playerMmrRepository.preloadOpponentHistories(seasonId, matchIds, allOtherPlayerIds);
       const currentMmrMap = await playerMmrRepository.getPlayerCurrentMmrs(seasonId, allOtherPlayerIds);
+      const ruleset = await loadSeasonRuleset(seasonId);
 
       for (const match of playerMatches) {
         state = await this.processOneMatch(match, playerId, seasonId, config, state, {
@@ -113,6 +144,7 @@ export class MmrCalculationService {
           historiesMap,
           currentMmrMap,
           entryMmrMap,
+          ruleset,
         });
       }
     }
@@ -145,7 +177,7 @@ export class MmrCalculationService {
     state: CheckpointState,
     lookups: MmrLookups,
   ): Promise<CheckpointState> {
-    const { sidesMap, historiesMap, currentMmrMap, entryMmrMap } = lookups;
+    const { sidesMap, historiesMap, currentMmrMap, entryMmrMap, ruleset } = lookups;
     const isPlacement = state.wins + state.losses + state.draws < config.placementMatches;
     const raw = sidesMap.get(match.id) ?? { opponentPlayerIds: [], sameTeamPlayerIds: [], scoreForPlayer: 0, scoreForOpponent: 0, playerWon: null };
     const { opponentPlayerIds, playerWon } = raw;
@@ -170,7 +202,7 @@ export class MmrCalculationService {
       isPlacement: false,
     }));
 
-    const outcomeType = match.outcomeType ?? FALLBACK_OUTCOME_TYPE;
+    const outcomeType = outcomeOf(ruleset, match.outcomeTypeId);
 
     const calcResults = calculateMatchMmr({
       sides: [
@@ -184,7 +216,7 @@ export class MmrCalculationService {
       kFactor: config.kFactor,
       scoreCountsForMmr: outcomeType.scoreCountsForMmr,
       mmrMultiplier: outcomeType.mmrMultiplier,
-      teamInteractionMode: resolveInteractionMode(outcomeType.discipline),
+      teamInteractionMode: ruleset.interactionMode,
     });
 
     const playerResult = calcResults.find((r) => r.playerId === playerId);
@@ -402,6 +434,8 @@ export class MmrCalculationService {
     // One read for the whole replay: every player's starting MMR, carried over
     // from the previous season when the season inherits ranks.
     const entryMmrMap = await mmrSeedRepository.getMapBySeason(seasonId);
+    // One read for the whole replay: the ruleset the season is played under.
+    const ruleset = await loadSeasonRuleset(seasonId);
 
     await playerMmrRepository.deleteAllMmrHistoryForSeason(seasonId);
 
@@ -414,7 +448,7 @@ export class MmrCalculationService {
 
       const historyBatch: CreateMmrHistoryData[] = [];
       for (const match of page) {
-        this.processMatchGlobal(match, seasonId, config, stateMap, historyBatch, entryMmrMap);
+        this.processMatchGlobal(match, seasonId, config, stateMap, historyBatch, entryMmrMap, ruleset);
       }
       await playerMmrRepository.createMmrHistoryBatch(historyBatch);
 
@@ -462,6 +496,7 @@ export class MmrCalculationService {
     stateMap: Map<string, CheckpointState>,
     historyBatch: CreateMmrHistoryData[],
     entryMmrMap: Map<string, number>,
+    ruleset: SeasonRuleset,
   ): void {
     const sides = match.sides;
     if (!sides || sides.length < 2) return;
@@ -472,7 +507,7 @@ export class MmrCalculationService {
     if (participantIds.length === 0) return;
 
     const preState = this.buildPreState(participantIds, stateMap, entryMmrMap, config.baseMmr);
-    const outcomeType = match.outcomeType ?? FALLBACK_OUTCOME_TYPE;
+    const outcomeType = outcomeOf(ruleset, match.outcomeTypeId);
 
     const standingOf = (playerId: string): EnginePlayerStanding => {
       const s = preState.get(playerId)!;
@@ -493,7 +528,7 @@ export class MmrCalculationService {
       kFactor: config.kFactor,
       scoreCountsForMmr: outcomeType.scoreCountsForMmr,
       mmrMultiplier: outcomeType.mmrMultiplier,
-      teamInteractionMode: resolveInteractionMode(outcomeType.discipline),
+      teamInteractionMode: ruleset.interactionMode,
     });
 
     const avgA = averageMmr(playersA, config.baseMmr);
@@ -568,13 +603,9 @@ export class MmrCalculationService {
         inArray(matches.id, ids),
         fromPlayedAt ? gte(matches.playedAt, fromPlayedAt) : undefined,
       ),
-      with: {
-        outcomeType: {
-          with: {
-            discipline: true,
-          },
-        },
-      },
+      // Only the id is needed: what the outcome was worth comes from the season
+      // snapshot, not from a join onto the live outcome_types row.
+      columns: { id: true, playedAt: true, winnerSide: true, outcomeTypeId: true },
       orderBy: (m, { asc }) => [asc(m.playedAt)],
     });
   }

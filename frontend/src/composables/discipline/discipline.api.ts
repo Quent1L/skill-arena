@@ -3,6 +3,8 @@ import type {
   Discipline,
   CreateDisciplineRequestData,
   UpdateDisciplineRequestData,
+  ImpactedCompetition,
+  PropagationResult,
 } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/disciplines'
@@ -36,6 +38,19 @@ export const disciplineApi = {
 
   async update(id: string, payload: UpdateDisciplineRequestData): Promise<Discipline> {
     const response = await http.patch<Discipline>(`${BASE_URL}/${id}`, payload)
+    return response.data
+  },
+
+  /** Non-finished competitions a discipline edit could still be pushed to. */
+  async listImpactedCompetitions(id: string): Promise<ImpactedCompetition[]> {
+    const response = await http.get<ImpactedCompetition[]>(`${BASE_URL}/${id}/impacted-competitions`)
+    return response.data
+  },
+
+  async propagate(id: string, tournamentIds: string[]): Promise<PropagationResult[]> {
+    const response = await http.post<PropagationResult[]>(`${BASE_URL}/${id}/propagate`, {
+      tournamentIds,
+    })
     return response.data
   },
 

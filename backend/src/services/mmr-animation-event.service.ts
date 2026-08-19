@@ -9,18 +9,21 @@ import { mmrSeedRepository } from "../repository/mmr-seed.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import {
   calculateMatchMmr,
-  DEFAULT_TEAM_INTERACTION_MODE,
   toEnginePlayers,
   type EnginePlayerStanding,
   type MatchResult,
   type PlayerMmrDelta,
 } from "./mmr-engine";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
+import {
+  resolveRulesetInteractionMode,
+  resolveRulesetOutcome,
+} from "@skol-arena/shared/types/index";
 import { webSocketService } from "./websocket.service";
 import { logger } from "../utils/logger";
 import type {
   MmrAnimationEventReason,
   PlayerRulesOutput,
-  TeamInteractionMode,
 } from "@skol-arena/shared";
 
 type TierData = { level: number; name: string; minMmr: number };
@@ -88,9 +91,14 @@ export class MmrAnimationEventService {
 
     const match = await db.query.matches.findFirst({
       where: eq(matches.id, matchId),
-      with: { outcomeType: { with: { discipline: true } } },
+      columns: { id: true, status: true, winnerSide: true, outcomeTypeId: true },
     });
     if (match?.status !== "reported") return;
+
+    // The preview must price the match exactly as the finalization path will, so
+    // it reads the same season snapshot rather than the live discipline.
+    const ruleset = await tournamentRulesetService.getForTournament(tournamentId);
+    const outcome = resolveRulesetOutcome(ruleset, match.outcomeTypeId);
 
     const sides = await db.query.matchSides.findMany({
       where: eq(matchSides.matchId, matchId),
@@ -131,11 +139,9 @@ export class MmrAnimationEventService {
         },
       ],
       kFactor: config.kFactor,
-      scoreCountsForMmr: match.outcomeType?.scoreCountsForMmr ?? true,
-      mmrMultiplier: match.outcomeType?.mmrMultiplier ?? 1,
-      teamInteractionMode:
-        (match.outcomeType?.discipline?.teamInteractionMode as TeamInteractionMode | null) ??
-        DEFAULT_TEAM_INTERACTION_MODE,
+      scoreCountsForMmr: outcome.scoreCountsForMmr,
+      mmrMultiplier: outcome.mmrMultiplier,
+      teamInteractionMode: resolveRulesetInteractionMode(ruleset),
     });
 
     const ctx: ProvisionalContext = {

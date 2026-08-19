@@ -17,6 +17,7 @@ import {
   userRepository,
   UserRepository,
 } from "../../repository/user.repository";
+import { tournamentRulesetService } from "../tournament-ruleset.service";
 import {
   NotFoundError,
   BadRequestError,
@@ -39,6 +40,11 @@ let partRepo: Partial<ParticipantRepository>;
 let usrRepo: Partial<UserRepository>;
 
 beforeEach(() => {
+  // Snapshot lifecycle is covered by tournament-ruleset.service.test.ts; here it
+  // would only reach for a database.
+  tournamentRulesetService.seed = async () => ({ discipline: null, outcomeTypes: [] });
+  tournamentRulesetService.freeze = async () => undefined;
+
   tourRepo = tournamentRepository as unknown as Partial<TournamentRepository>;
   tourRepo.getById = async (_id: string) => undefined;
   tourRepo.create = async (data: CreateTournamentData) =>

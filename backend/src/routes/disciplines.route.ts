@@ -2,6 +2,7 @@ import { z } from "zod";
 import { validate } from "../api/validator";
 import { describe } from "../api/describe";
 import { disciplineService } from "../services/discipline.service";
+import { rulesetPropagationService } from "../services/ruleset-propagation.service";
 import {
   createDisciplineSchema,
   updateDisciplineSchema,
@@ -9,6 +10,9 @@ import {
   disciplineListSchema,
   teamInteractionModeOptionSchema,
   mutationResultSchema,
+  impactedCompetitionSchema,
+  propagateRulesetSchema,
+  propagationResultListSchema,
   TEAM_INTERACTION_MODES,
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
@@ -115,6 +119,64 @@ disciplines.patch(
     const data = c.req.valid("json");
     const discipline = await disciplineService.updateDiscipline(id, data);
     return c.json(discipline);
+  }
+);
+
+// GET /disciplines/:id/impacted-competitions - What a propagation could reach
+disciplines.get(
+  "/:id/impacted-competitions",
+  requireAuth,
+  requireSuperAdmin,
+  describe({
+    tags: TAGS,
+    summary: "List competitions a discipline edit could be pushed to",
+    description:
+      "Non-finished competitions using this discipline, with how many results have " +
+      "already been entered and whether their frozen ruleset has drifted from the live " +
+      "discipline. Finished competitions are never listed: their ruleset is history.",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: {
+      description: "Competitions that can still be updated",
+      schema: z.array(impactedCompetitionSchema),
+    },
+  }),
+  async (c) => {
+    const id = c.req.param("id")!;
+    await disciplineService.getDisciplineById(id);
+    const impacted = await rulesetPropagationService.listImpactedCompetitions(id);
+    return c.json(impacted);
+  }
+);
+
+// POST /disciplines/:id/propagate - Apply the discipline to the chosen competitions
+disciplines.post(
+  "/:id/propagate",
+  requireAuth,
+  requireSuperAdmin,
+  describe({
+    tags: TAGS,
+    summary: "Push the discipline onto running competitions",
+    description:
+      "Rewrites each chosen competition's ruleset and recalculates it in the same breath, " +
+      "so none is ever left half under the old rules. Ranked seasons recalculate " +
+      "asynchronously and report 'recalculating'. One failing target does not abort the rest.",
+    auth: true,
+    role: true,
+    notFound: true,
+    success: {
+      description: "Per-competition outcome",
+      schema: propagationResultListSchema,
+    },
+  }),
+  validate("json", propagateRulesetSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    await disciplineService.getDisciplineById(id);
+    const { tournamentIds } = c.req.valid("json");
+    const results = await rulesetPropagationService.propagate(id, tournamentIds);
+    return c.json(results);
   }
 );
 

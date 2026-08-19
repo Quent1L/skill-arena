@@ -1149,6 +1149,20 @@
     "enterApp": "Enter app",
     "tagline": "Luck won't be enough"
   },
+  "propagateRuleset": {
+    "apply": "Apply and recalculate",
+    "emptyState": "No competition in progress uses this discipline. Nothing to update.",
+    "failed": "Could not apply the discipline to the selected competitions",
+    "header": "Apply to competitions in progress?",
+    "matchesColumn": "Results entered",
+    "matchesEntered": "{count} entered",
+    "noMatches": "None yet",
+    "partialSuccess": "{failed} of {total} competitions could not be updated",
+    "statusColumn": "Status",
+    "success": "{count} competition(s) updated and recalculated",
+    "upToDateTag": "Up to date",
+    "warning": "Competitions in progress keep the rules they started with. Applying your changes to one recalculates its standings and MMR, which can change positions already published. Finished competitions are never affected."
+  },
   "pwaInstallBanner": {
     "installButton": "Install",
     "iosInstruction": {

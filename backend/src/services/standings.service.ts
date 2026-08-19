@@ -1,6 +1,7 @@
 import { standingsRepository } from "../repository/standings.repository";
 import { matchSidesRepository } from "../repository/match-sides.repository";
 import { tournamentService } from "./tournament.service";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
 import { NotFoundError, ForbiddenError, ErrorCode } from "../types/errors";
 import {
   type MatchStatus,
@@ -8,6 +9,8 @@ import {
   type StandingsResult,
   type VictoryQualityDetail,
   type TournamentScoringConfig,
+  type TournamentRulesetPayload,
+  resolveRulesetOutcome,
   resolveScoringConfig,
 } from "@skol-arena/shared";
 
@@ -16,7 +19,7 @@ import {
  * in: it already counted while it was merely reported, and pulling it out would make the
  * standings flicker for the length of the arbitration.
  */
-const PROVISIONAL_MATCH_STATUSES: MatchStatus[] = ["reported", "disputed", "finalized"];
+export const PROVISIONAL_MATCH_STATUSES: MatchStatus[] = ["reported", "disputed", "finalized"];
 
 type FlexMatchRow = Awaited<
   ReturnType<typeof standingsRepository.getPlayerPointsForStandings>
@@ -111,8 +114,9 @@ export class StandingsService {
       this.accumulateFlexBaseStats(match, standingsMap, scoreEnabled);
     }
 
-    // Pass 2: tiebreaker fields
-    this.computeFlexTiebreakers(standingsMap, matchRows);
+    // Pass 2: tiebreaker fields, priced with the ruleset this competition ran on
+    const ruleset = await tournamentRulesetService.getForTournament(tournamentId);
+    this.computeFlexTiebreakers(standingsMap, matchRows, ruleset);
 
     const standings = Array.from(standingsMap.values());
     this.sortStandings(standings, allowDraw);
@@ -185,13 +189,14 @@ export class StandingsService {
 
   private computeFlexTiebreakers(
     standingsMap: Map<string, StandingsEntry>,
-    matchRows: FlexMatchRow[]
+    matchRows: FlexMatchRow[],
+    ruleset: TournamentRulesetPayload
   ): void {
     this.initRatioFields(standingsMap);
 
     const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
     for (const match of matchRows) {
-      this.processFlexMatch(match, standingsMap, breakdownMap);
+      this.processFlexMatch(match, standingsMap, breakdownMap, ruleset);
     }
 
     this.finalizeBreakdowns(standingsMap, breakdownMap);
@@ -200,10 +205,11 @@ export class StandingsService {
   private processFlexMatch(
     match: FlexMatchRow,
     standingsMap: Map<string, StandingsEntry>,
-    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>,
+    ruleset: TournamentRulesetPayload
   ): void {
     const { winnerSide } = match;
-    const outcome = this.outcomeInfo(match.outcomeType, match.outcomeTypeId);
+    const outcome = this.outcomeInfo(ruleset, match.outcomeTypeId);
     const { sideAPlayerIds, sideBPlayerIds } = this.splitSidePlayerIds(match.sides);
     const isDraw = winnerSide === null;
 
@@ -311,8 +317,9 @@ export class StandingsService {
       );
     }
 
-    // Pass 2: static tiebreakers
-    this.computeStaticTiebreakers(standingsMap, matchRows);
+    // Pass 2: static tiebreakers, priced with the ruleset this competition ran on
+    const ruleset = await tournamentRulesetService.getForTournament(tournamentId);
+    this.computeStaticTiebreakers(standingsMap, matchRows, ruleset);
 
     const standings = Array.from(standingsMap.values());
     this.sortStandings(standings, allowDraw);
@@ -321,13 +328,14 @@ export class StandingsService {
 
   private computeStaticTiebreakers(
     standingsMap: Map<string, StandingsEntry>,
-    matchRows: StaticMatchRow[]
+    matchRows: StaticMatchRow[],
+    ruleset: TournamentRulesetPayload
   ): void {
     this.initRatioFields(standingsMap);
 
     const breakdownMap = new Map<string, Map<string, VictoryQualityDetail>>();
     for (const match of matchRows) {
-      this.processStaticMatch(match, standingsMap, breakdownMap);
+      this.processStaticMatch(match, standingsMap, breakdownMap, ruleset);
     }
 
     this.finalizeBreakdowns(standingsMap, breakdownMap);
@@ -336,7 +344,8 @@ export class StandingsService {
   private processStaticMatch(
     match: StaticMatchRow,
     standingsMap: Map<string, StandingsEntry>,
-    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>
+    breakdownMap: Map<string, Map<string, VictoryQualityDetail>>,
+    ruleset: TournamentRulesetPayload
   ): void {
     if (match.sides.length !== 2) return;
     const [sideA, sideB] = match.sides;
@@ -349,7 +358,7 @@ export class StandingsService {
     if (!entryA || !entryB) return;
 
     const isDraw = match.winnerSide === null;
-    const outcome = this.outcomeInfo(match.outcomeType, match.outcomeTypeId);
+    const outcome = this.outcomeInfo(ruleset, match.outcomeTypeId);
 
     this.processStaticTeam({ teamId: teamAId, entry: entryA, oppEntry: entryB, isWin: match.winnerSide === "A", isDraw, breakdownMap, outcome });
     this.processStaticTeam({ teamId: teamBId, entry: entryB, oppEntry: entryA, isWin: match.winnerSide === "B", isDraw, breakdownMap, outcome });
@@ -389,14 +398,23 @@ export class StandingsService {
     }
   }
 
+  /**
+   * Outcome as the competition was played under it.
+   *
+   * Read from the competition's ruleset snapshot, never from the live
+   * `outcome_types` row: `victoryQuality` is recomputed on every cache miss, so
+   * a live read meant renaming an outcome or changing its points rewrote the
+   * tiebreaker history of competitions that were already finished.
+   */
   private outcomeInfo(
-    outcomeType: { points: number | null; name: string | null } | null | undefined,
+    ruleset: TournamentRulesetPayload,
     outcomeTypeId: string | null
   ): OutcomeInfo {
+    const outcome = resolveRulesetOutcome(ruleset, outcomeTypeId);
     return {
       key: outcomeTypeId ?? "default",
-      name: outcomeType?.name ?? "Défaut",
-      points: outcomeType?.points ?? 3,
+      name: outcome.name,
+      points: outcome.points,
     };
   }
 

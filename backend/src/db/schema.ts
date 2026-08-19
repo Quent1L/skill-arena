@@ -16,7 +16,10 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
-import type { TierScalingMode } from "@skol-arena/shared/types/index";
+import type {
+  TierScalingMode,
+  TournamentRulesetPayload,
+} from "@skol-arena/shared/types/index";
 
 // ********************************************************************
 // [Start] Database schema for Better Auth with Drizzle ORM and PostgreSQL
@@ -380,6 +383,36 @@ export const championshipConfigs = pgTable("championship_configs", {
     .notNull()
     .default(2),
 });
+
+/**
+ * Discipline settings frozen as they stood when the competition opened.
+ *
+ * Every calculation and every screen reads this rather than the live
+ * `disciplines` / `outcome_types` rows, so editing a discipline no longer
+ * rewrites the MMR or the standings tiebreakers of a competition that has
+ * already been played. While the tournament is still a draft the snapshot
+ * tracks the discipline (no match can exist yet); past that only an explicit
+ * propagation moves it, and that propagation always recalculates.
+ *
+ * A ranked season is a `tournaments` row, so seasons are covered by the same table.
+ */
+export const tournamentRulesets = pgTable(
+  "tournament_rulesets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .unique()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    payload: jsonb("payload").$type<TournamentRulesetPayload>().notNull(),
+    version: integer("version").notNull().default(1),
+    appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
+    // Job-state marker, not cache: set when a propagation queues a recalculation,
+    // cleared when it lands.
+    recalcPendingAt: timestamp("recalc_pending_at", { withTimezone: true }),
+  },
+  (t) => [index("tournament_rulesets_recalc_pending_at_idx").on(t.recalcPendingAt)],
+);
 
 export const tournamentAdmins = pgTable(
   "tournament_admins",
@@ -1176,6 +1209,10 @@ export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
     fields: [tournaments.id],
     references: [championshipConfigs.tournamentId],
   }),
+  ruleset: one(tournamentRulesets, {
+    fields: [tournaments.id],
+    references: [tournamentRulesets.tournamentId],
+  }),
   bracketConfig: one(bracketConfigs, {
     fields: [tournaments.id],
     references: [bracketConfigs.tournamentId],
@@ -1200,6 +1237,16 @@ export const tournamentScoringConfigsRelations = relations(
   ({ one }) => ({
     tournament: one(tournaments, {
       fields: [tournamentScoringConfigs.tournamentId],
+      references: [tournaments.id],
+    }),
+  }),
+);
+
+export const tournamentRulesetsRelations = relations(
+  tournamentRulesets,
+  ({ one }) => ({
+    tournament: one(tournaments, {
+      fields: [tournamentRulesets.tournamentId],
       references: [tournaments.id],
     }),
   }),

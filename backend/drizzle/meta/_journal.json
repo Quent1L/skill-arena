@@ -519,6 +519,13 @@
       "when": 1777526400029,
       "tag": "0073_discipline_outcome_archiving",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1777526400030,
+      "tag": "0074_tournament_rulesets",
+      "breakpoints": true
     }
   ]
 }

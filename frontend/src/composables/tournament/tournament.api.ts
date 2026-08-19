@@ -6,6 +6,7 @@ import type {
   ClientUpdateTournamentRequest,
   TournamentStatus,
   TournamentMode,
+  TournamentRulesetResponse,
 } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/tournaments'
@@ -84,6 +85,15 @@ export const tournamentApi = {
   /**
    * Recalculate points for all matches in a tournament (admin only)
    */
+  /**
+   * The ruleset the competition is played under. This — not the live discipline —
+   * is what match entry must offer and what the displayed results are based on.
+   */
+  async getRuleset(id: string): Promise<TournamentRulesetResponse> {
+    const response = await http.get<TournamentRulesetResponse>(`${BASE_URL}/${id}/ruleset`)
+    return response.data
+  },
+
   async recalculatePoints(id: string): Promise<{ updatedMatches: number }> {
     const response = await http.post<{ updatedMatches: number }>(`${BASE_URL}/${id}/recalculate-points`)
     return response.data

@@ -6,6 +6,7 @@ import { organizationService } from "../services/organization.service";
 import { standingsService } from "../services/standings.service";
 import { bracketService } from "../services/bracket.service";
 import { tournamentStatsService } from "../services/tournament-stats.service";
+import { tournamentRulesetService } from "../services/tournament-ruleset.service";
 import {
   createTournamentRequestSchema,
   updateTournamentSchema,
@@ -26,6 +27,7 @@ import {
   canGenerateBracketResponseSchema,
   availableBadgeSchema,
   mutationResultSchema,
+  tournamentRulesetSchema,
 } from "@skol-arena/shared";
 import { requireAuth } from "../middleware/auth";
 import { userRepository } from "../repository/user.repository";
@@ -500,6 +502,35 @@ tournaments.post(
       await enqueueMmrSeasonRecalculation(tournamentId);
     }
     return c.json(result);
+  }
+);
+
+// GET /tournaments/:id/ruleset
+tournaments.get(
+  "/:id/ruleset",
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: "Get the ruleset a competition is played under",
+    description:
+      "The discipline settings frozen when the competition opened: outcome types with " +
+      "their points, MMR multipliers and reasons, plus the team interaction mode. This " +
+      "is what match entry offers and what the calculations use — not the live discipline.",
+    auth: true,
+    notFound: true,
+    success: { description: "The ruleset in force", schema: tournamentRulesetSchema },
+  }),
+  tournamentIdParam,
+  async (c) => {
+    const tournamentId = c.req.param("id")!;
+    const payload = await tournamentRulesetService.getForTournament(tournamentId);
+    const row = await tournamentRulesetService.getRow(tournamentId);
+    return c.json({
+      payload,
+      version: row?.version ?? 1,
+      appliedAt: row?.appliedAt ?? new Date(),
+      recalcPendingAt: row?.recalcPendingAt ?? null,
+    });
   }
 );
 

@@ -2,6 +2,7 @@ import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { participantRepository } from "../repository/participant.repository";
 import { organizationRepository } from "../repository/organization.repository";
+import { tournamentRulesetService } from "./tournament-ruleset.service";
 import {
   type CreateTournamentInput,
   type UpdateTournamentInput,
@@ -66,6 +67,9 @@ export class TournamentService {
 
     const tournament = await this.createTournamentRecord(input);
     await this.addCreatorAsOwner(tournament.id, input.createdBy);
+    // Snapshot the discipline straight away. It keeps tracking while the
+    // tournament is a draft and freezes when it opens.
+    await tournamentRulesetService.seed(tournament.id, input.disciplineId);
 
     return tournament;
   }
@@ -353,9 +357,18 @@ export class TournamentService {
     const tournament = await this.getTournamentById(id);
     this.validateStatusTransition(tournament.status, newStatus);
 
-    return await tournamentRepository.update(id, {
+    const updated = await tournamentRepository.update(id, {
       status: newStatus,
     });
+
+    // Opening the tournament is the last moment the ruleset can move on its own:
+    // from here a match can be entered, so what the discipline says stops
+    // mattering and only an explicit propagation may change it.
+    if (tournament.status === "draft" && newStatus === "open") {
+      await tournamentRulesetService.freeze(id);
+    }
+
+    return updated;
   }
 
   /**

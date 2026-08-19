@@ -28,7 +28,10 @@ import { userService } from "./services/user.service";
 import { startJobScheduler } from "./jobs/scheduler";
 import { runMigrations } from "./utils/migrate";
 import { initializeAdminIfNeeded } from "./utils/init-admin";
-import { recalculateOutdatedRankedSeasons } from "./utils/init-mmr-engine";
+import {
+  clearStaleRecalcMarkers,
+  recalculateOutdatedRankedSeasons,
+} from "./utils/init-mmr-engine";
 import { logger } from "./utils/logger";
 import { run, type Runner } from "graphile-worker";
 import { taskList } from "./workers/mmr-recalculation.worker";
@@ -66,6 +69,11 @@ try {
   // untouched so the next boot retries.
   void recalculateOutdatedRankedSeasons().catch((err) =>
     logger.error({ err }, "Failed to queue the MMR engine upgrade recalculation"),
+  );
+
+  // A worker that died mid-replay leaves its competition flagged as recalculating.
+  void clearStaleRecalcMarkers().catch((err) =>
+    logger.error({ err }, "Failed to clear abandoned recalculation markers"),
   );
 } catch (err) {
   logger.error({ err }, "Failed to start Graphile Worker — MMR jobs will not be processed");
