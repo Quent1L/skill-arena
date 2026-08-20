@@ -1053,7 +1053,8 @@
     "title": "Participants"
   },
   "playerBadges": {
-    "title": "Badges"
+    "title": "Badges",
+    "unknownSeason": "Unknown season"
   },
   "playerComparisonView": {
     "all": "All",
@@ -1458,9 +1459,12 @@
     "closeButton": "Close",
     "conditionsTitle": "Conditions",
     "editTitle": "Edit rule",
+    "helpRecurrenceOnce": "The badge can only be won once, whatever the season.",
+    "helpRecurrencePerSeason": "The badge is back up for grabs every season: the player can win it again.",
     "hintPriority": "Highest wins. On a tie between matching rules, the message is drawn at random.",
     "labelBadgeDescription": "Description",
     "labelBadgeLabel": "Label",
+    "labelBadgeRecurrence": "Recurrence",
     "labelDescription": "Description",
     "labelIcon": "Icon",
     "labelIsActive": "Active rule",
@@ -1479,6 +1483,8 @@
     "placeholderPlayer": "Player",
     "previewLabel": "Preview",
     "previewPlayerFallback": "Player",
+    "recurrenceOnce": "Once only",
+    "recurrencePerSeason": "Every season",
     "ruleCreated": "Rule created",
     "ruleUpdated": "Rule updated",
     "runTestButton": "Run test",
@@ -1865,10 +1871,13 @@
     "team": "Team {number}"
   },
   "tournamentBadgesTab": {
+    "alreadyEarnedIn": "Already earned in {seasons}",
     "availableCount": "{count} badge available | {count} badges available",
-    "earnedCount": "{earned} / {total} badges earned",
+    "earnedCount": "{earned} / {total} badges earned this season",
     "emptyState": "No badges available",
-    "title": "Badges"
+    "lifetimeBadge": "Once only",
+    "title": "Badges",
+    "unknownSeason": "Unknown season"
   },
   "tournamentBracket": {
     "bronzeMatch": "3rd place match",

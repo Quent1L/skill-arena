@@ -1053,7 +1053,8 @@
     "title": "Participants"
   },
   "playerBadges": {
-    "title": "Badges"
+    "title": "Badges",
+    "unknownSeason": "Saison inconnue"
   },
   "playerComparisonView": {
     "all": "Tous",
@@ -1458,9 +1459,12 @@
     "closeButton": "Fermer",
     "conditionsTitle": "Conditions",
     "editTitle": "Modifier la règle",
+    "helpRecurrenceOnce": "Le badge ne se gagne qu'une seule fois, quelle que soit la saison.",
+    "helpRecurrencePerSeason": "Le badge est remis en jeu à chaque saison : le joueur peut le regagner.",
     "hintPriority": "La plus élevée l'emporte. À égalité entre règles qui matchent, le message est tiré au sort.",
     "labelBadgeDescription": "Description",
     "labelBadgeLabel": "Label",
+    "labelBadgeRecurrence": "Récurrence",
     "labelDescription": "Description",
     "labelIcon": "Icône",
     "labelIsActive": "Règle active",
@@ -1479,6 +1483,8 @@
     "placeholderPlayer": "Joueur",
     "previewLabel": "Prévisualisation",
     "previewPlayerFallback": "Joueur",
+    "recurrenceOnce": "Une fois à vie",
+    "recurrencePerSeason": "Chaque saison",
     "ruleCreated": "Succès",
     "ruleUpdated": "Règle mise à jour",
     "runTestButton": "Lancer le test",
@@ -1865,10 +1871,13 @@
     "team": "Équipe {number}"
   },
   "tournamentBadgesTab": {
+    "alreadyEarnedIn": "Déjà gagné : {seasons}",
     "availableCount": "{count} badge disponible | {count} badges disponibles",
-    "earnedCount": "{earned} / {total} badges obtenus",
+    "earnedCount": "{earned} / {total} badges obtenus cette saison",
     "emptyState": "Aucun badge disponible",
-    "title": "Badges du tournoi"
+    "lifetimeBadge": "Une fois à vie",
+    "title": "Badges du tournoi",
+    "unknownSeason": "Saison inconnue"
   },
   "tournamentBracket": {
     "bronzeMatch": "Match pour la 3ème place",

@@ -45,7 +45,7 @@ describe("resolveDisplay", () => {
 describe("RulesEvaluationService.simulate", () => {
   const winStreak3: RuleConditions = { all: [{ fact: "winStreak", operator: "greaterThanInclusive", value: 3 }] };
   const messageAction: MessageAction = { type: "message", variants: ["Win streak of {{winStreak}}!"] };
-  const badgeAction: BadgeAction = { type: "badge", icon: "fa fa-fire", label: "Unstoppable", description: "5 wins" };
+  const badgeAction: BadgeAction = { type: "badge", icon: "fa fa-fire", label: "Unstoppable", description: "5 wins", recurrence: "per_season" };
 
   it("returns matched=true and interpolated message when conditions pass", async () => {
     const result = await rulesEvaluationService.simulate(winStreak3, messageAction, { winStreak: 5 });
@@ -97,7 +97,7 @@ describe("RulesEvaluationService.simulate", () => {
         { fact: "matchHour", operator: "lessThanInclusive", value: 4 },
       ],
     };
-    const badge: BadgeAction = { type: "badge", icon: "fa fa-moon", label: "Night owl", description: "Night match" };
+    const badge: BadgeAction = { type: "badge", icon: "fa fa-moon", label: "Night owl", description: "Night match", recurrence: "per_season" };
 
     expect((await rulesEvaluationService.simulate(nightWindow, badge, { matchHour: 3 })).matched).toBe(true);
     expect((await rulesEvaluationService.simulate(nightWindow, badge, { matchHour: 12 })).matched).toBe(false);
@@ -165,7 +165,7 @@ describe("RulesEvaluationService.simulate", () => {
 
   it("separates a special outcome from the regular one via isDefaultOutcome", async () => {
     const special: RuleConditions = { all: [{ fact: "isDefaultOutcome", operator: "equal", value: false }] };
-    const badge: BadgeAction = { type: "badge", icon: "fa fa-ban", label: "No mercy", description: "Special result" };
+    const badge: BadgeAction = { type: "badge", icon: "fa fa-ban", label: "No mercy", description: "Special result", recurrence: "per_season" };
     expect((await rulesEvaluationService.simulate(special, badge, { isDefaultOutcome: false })).matched).toBe(true);
     expect((await rulesEvaluationService.simulate(special, badge, { isDefaultOutcome: true })).matched).toBe(false);
   });

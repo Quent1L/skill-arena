@@ -13,6 +13,7 @@ import {
   varchar,
   real,
   index,
+  uniqueIndex,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
@@ -1009,6 +1010,16 @@ export const rules = pgTable("rules", {
     .notNull(),
 });
 
+/**
+ * One row per award, not per badge: a seasonal badge (`recurrence = 'per_season'`)
+ * won in three seasons is three rows sharing a `ruleId`.
+ *
+ * Uniqueness is per season, and expressed as two partial indexes because NULL <> NULL
+ * in Postgres would let duplicates through on rows whose season is unknown (awards
+ * predating 0077 whose match had already been deleted). Lifetime uniqueness
+ * (`recurrence = 'once'`) spans every season and cannot be an index at all — it lives
+ * in `rulesRepository.awardBadge`.
+ */
 export const playerBadges = pgTable(
   "player_badges",
   {
@@ -1021,10 +1032,21 @@ export const playerBadges = pgTable(
       .references(() => rules.id, { onDelete: "cascade" }),
     awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
     matchId: uuid("match_id").references(() => matches.id, { onDelete: "set null" }),
+    // Recorded rather than inferred from the match: `matchId` is nulled when a match
+    // is deleted, which used to take the season down with it.
+    seasonId: uuid("season_id").references(() => tournaments.id, { onDelete: "cascade" }),
     // null = not yet shown in the badge reveal animation
     viewedAt: timestamp("viewed_at", { withTimezone: true }),
   },
-  (table) => [unique().on(table.playerId, table.ruleId)],
+  (table) => [
+    uniqueIndex("player_badges_player_rule_season_key")
+      .on(table.playerId, table.ruleId, table.seasonId)
+      .where(sql`${table.seasonId} IS NOT NULL`),
+    uniqueIndex("player_badges_player_rule_legacy_key")
+      .on(table.playerId, table.ruleId)
+      .where(sql`${table.seasonId} IS NULL`),
+    index("player_badges_season_idx").on(table.seasonId),
+  ],
 );
 
 /**
@@ -1035,6 +1057,10 @@ export const playerBadges = pgTable(
 export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
   id: uuid("id").primaryKey().defaultRandom(),
   dirty: boolean("dirty").notNull().default(false),
+  // Set by a migration that changes what the rules mean, so the catch-up pass it
+  // triggers does not notify players about badges they earned months ago. Consumed
+  // by the run it applies to; every later pass notifies normally.
+  silentNextRun: boolean("silent_next_run").notNull().default(false),
   lastRunAt: timestamp("last_run_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
@@ -1270,6 +1296,10 @@ export const playerBadgesRelations = relations(playerBadges, ({ one }) => ({
   match: one(matches, {
     fields: [playerBadges.matchId],
     references: [matches.id],
+  }),
+  season: one(tournaments, {
+    fields: [playerBadges.seasonId],
+    references: [tournaments.id],
   }),
 }));
 

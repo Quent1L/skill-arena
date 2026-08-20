@@ -168,6 +168,23 @@
               <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelBadgeDescription') }}</label>
               <Textarea v-model="badge.description" rows="2" auto-resize class="w-full" :placeholder="t('rulesEngineFormView.placeholderBadgeDescription')" />
             </div>
+            <div>
+              <label class="block mb-1 text-sm font-medium">{{ t('rulesEngineFormView.labelBadgeRecurrence') }}</label>
+              <SelectButton
+                v-model="badge.recurrence"
+                :options="recurrenceOptions"
+                option-label="label"
+                option-value="value"
+                :allow-empty="false"
+              />
+              <p class="text-xs text-surface-500 mt-1">
+                {{
+                  badge.recurrence === 'per_season'
+                    ? t('rulesEngineFormView.helpRecurrencePerSeason')
+                    : t('rulesEngineFormView.helpRecurrenceOnce')
+                }}
+              </p>
+            </div>
           </div>
         </template>
       </Card>
@@ -277,6 +294,7 @@ import type { CatalogFact } from '@/composables/rules/rules.api'
 import { NON_DETERMINISTIC_FACTS } from '@skol-arena/shared/types/index'
 import type {
   BadgeAction,
+  BadgeRecurrence,
   CreateRuleData,
   MessageAction,
   RuleAction,
@@ -353,6 +371,10 @@ const scopeOptions = [
   { label: t('rulesEngineFormView.scopeGlobal'), value: 'global' },
   { label: t('common.discipline'), value: 'discipline' },
 ]
+const recurrenceOptions = [
+  { label: t('rulesEngineFormView.recurrencePerSeason'), value: 'per_season' },
+  { label: t('rulesEngineFormView.recurrenceOnce'), value: 'once' },
+]
 
 const form = reactive<{
   name: string
@@ -378,7 +400,12 @@ const form = reactive<{
 
 const messageVariants = ref<string[]>([''])
 const activeVariant = ref(0)
-const badge = reactive<{ icon: string; label: string; description: string }>({ icon: '', label: '', description: '' })
+const badge = reactive<{ icon: string; label: string; description: string; recurrence: BadgeRecurrence }>({
+  icon: '',
+  label: '',
+  description: '',
+  recurrence: 'per_season',
+})
 
 /**
  * Random facts are hidden on badge rules: badge awards are replayed by the
@@ -422,7 +449,13 @@ function buildAction(): RuleAction {
   if (form.type === 'message') {
     return { type: 'message', variants: messageVariants.value.filter((v) => v.trim()) } as MessageAction
   }
-  return { type: 'badge', icon: badge.icon, label: badge.label, description: badge.description } as BadgeAction
+  return {
+    type: 'badge',
+    icon: badge.icon,
+    label: badge.label,
+    description: badge.description,
+    recurrence: badge.recurrence,
+  } as BadgeAction
 }
 
 function validate(): string | null {
@@ -507,6 +540,9 @@ function hydrate() {
     badge.icon = rule.action.icon
     badge.label = rule.action.label
     badge.description = rule.action.description
+    // Rules stored before the seasonal badges change carry no recurrence; the
+    // backend patch chain stamps them, but an unsaved draft can still reach here.
+    badge.recurrence = rule.action.recurrence ?? 'per_season'
   }
 }
 </script>

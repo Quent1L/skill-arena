@@ -3,7 +3,13 @@ import { db } from "../config/database";
 import { rules } from "../db/schema";
 import { logger } from "../utils/logger";
 import { rulesRepository } from "../repository/rules.repository";
-import { RULES_ENGINE_VERSION, type RuleAction, type RuleConditions } from "@skol-arena/shared";
+import {
+  RULES_ENGINE_VERSION,
+  type BadgeAction,
+  type BadgeRecurrence,
+  type RuleAction,
+  type RuleConditions,
+} from "@skol-arena/shared";
 
 /**
  * Forward-only migration of stored rules.
@@ -102,8 +108,26 @@ const sideLineUpPatch: RulePatch = {
   },
 };
 
+// ─── v2 → v3 ────────────────────────────────────────────────────────────────
+// A badge is no longer a lifetime trophy but a season one, which the action now
+// states explicitly. Rules written before this had no recurrence to state, so they
+// take the new default and become seasonal — the breaking half of the change.
+
+const badgeRecurrencePatch: RulePatch = {
+  to: 3,
+  describe: "badge action gains recurrence (default per_season)",
+  apply(rule) {
+    if (rule.action.type !== "badge") return rule;
+    // `BadgeAction` describes the CURRENT shape, in which recurrence is mandatory;
+    // a stored v2 action simply has no such key. Hence the widening cast.
+    const action = rule.action as Omit<BadgeAction, "recurrence"> & { recurrence?: BadgeRecurrence };
+    if (action.recurrence) return rule;
+    return { ...rule, action: { ...action, recurrence: "per_season" } };
+  },
+};
+
 /** Ordered by `to`. Never reorder or rewrite a released patch. */
-export const RULE_PATCHES: RulePatch[] = [sideLineUpPatch];
+export const RULE_PATCHES: RulePatch[] = [sideLineUpPatch, badgeRecurrencePatch];
 
 // ─── Chain ──────────────────────────────────────────────────────────────────
 

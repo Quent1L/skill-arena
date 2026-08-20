@@ -38,8 +38,19 @@
           />
           <div class="font-semibold text-sm leading-tight">{{ badge.label }}</div>
           <div class="text-xs text-surface-500 line-clamp-2">{{ badge.description }}</div>
+          <span
+            v-if="badge.recurrence === 'once'"
+            class="text-[10px] uppercase tracking-wide font-bold text-amber-600 dark:text-amber-400"
+          >
+            {{ t('tournamentBadgesTab.lifetimeBadge') }}
+          </span>
           <div v-if="isEarned(badge.ruleId)" class="text-xs text-purple-600 dark:text-purple-400 font-medium">
             <i class="fa fa-check mr-1" />{{ formatDate(getEarnedDate(badge.ruleId)) }}
+          </div>
+          <div v-else-if="previousSeasons(badge.ruleId).length" class="text-xs text-surface-500">
+            <i class="fa fa-clock-rotate-left mr-1" />{{
+              t('tournamentBadgesTab.alreadyEarnedIn', { seasons: previousSeasons(badge.ruleId).join(', ') })
+            }}
           </div>
         </div>
       </div>
@@ -65,15 +76,42 @@ const availableBadges = ref<AvailableBadge[]>([])
 const playerBadges = ref<ClientPlayerBadge[]>([])
 const loading = ref(true)
 
-const earnedRuleIds = computed(() => new Set(playerBadges.value.map((b) => b.ruleId)))
-const earnedCount = computed(() => availableBadges.value.filter((b) => earnedRuleIds.value.has(b.ruleId)).length)
+const tournamentId = computed(() => route.params.id as string)
+
+/**
+ * This tab is a checklist for the season being viewed, so "earned" means earned HERE.
+ * A seasonal badge won last season leaves this one to win again, and saying otherwise
+ * would hide the thing the player still has to do.
+ */
+const earnedHere = computed(
+  () => new Map(playerBadges.value.filter((b) => b.seasonId === tournamentId.value).map((b) => [b.ruleId, b])),
+)
+
+/** Seasons other than this one where the badge was already won, most recent first. */
+const earnedElsewhere = computed(() => {
+  const byRule = new Map<string, string[]>()
+  for (const badge of playerBadges.value) {
+    if (badge.seasonId === tournamentId.value) continue
+    const name = badge.seasonName ?? t('tournamentBadgesTab.unknownSeason')
+    const seasons = byRule.get(badge.ruleId)
+    if (seasons) seasons.push(name)
+    else byRule.set(badge.ruleId, [name])
+  }
+  return byRule
+})
+
+const earnedCount = computed(() => availableBadges.value.filter((b) => earnedHere.value.has(b.ruleId)).length)
 
 function isEarned(ruleId: string): boolean {
-  return earnedRuleIds.value.has(ruleId)
+  return earnedHere.value.has(ruleId)
 }
 
 function getEarnedDate(ruleId: string): Date | undefined {
-  return playerBadges.value.find((b) => b.ruleId === ruleId)?.awardedAt
+  return earnedHere.value.get(ruleId)?.awardedAt
+}
+
+function previousSeasons(ruleId: string): string[] {
+  return earnedElsewhere.value.get(ruleId) ?? []
 }
 
 function formatDate(date: Date | undefined): string {
@@ -82,11 +120,10 @@ function formatDate(date: Date | undefined): string {
 }
 
 async function load() {
-  const tournamentId = route.params.id as string
   loading.value = true
   try {
     const [badges, earned] = await Promise.all([
-      rulesApi.getAvailableBadges(tournamentId),
+      rulesApi.getAvailableBadges(tournamentId.value),
       appUser.value ? rulesApi.getPlayerBadges(appUser.value.id) : Promise.resolve([]),
     ])
     availableBadges.value = badges

@@ -540,6 +540,13 @@
       "when": 1777526400032,
       "tag": "0076_rule_firing_variant_text",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1777526400033,
+      "tag": "0077_seasonal_badges",
+      "breakpoints": true
     }
   ]
 }

@@ -18,6 +18,7 @@ import {
   matchSides,
   rules,
   ruleFirings,
+  playerBadges,
   mmrAnimationEvents,
   disciplines,
   outcomeTypes,
@@ -26,7 +27,7 @@ import {
 import { ruleFiringRepository } from "../../../repository/rule-firing.repository";
 import { rulesService } from "../../rules.service";
 import type { RuleConditions } from "@skol-arena/shared";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const NAMES = ["Alice", "Bob", "Carl", "Dana"] as const;
 
@@ -90,6 +91,34 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
         .values({ matchId: match.id, entryId: entry.id, position: index + 1, score: index === 0 ? 5 : 2 });
     }
     return match.id;
+  }
+
+  /** A second season with its own finalized match, same four players. */
+  async function createSeasonWithMatch(): Promise<{ seasonId: string; matchId: string }> {
+    const start = new Date().toISOString().split("T")[0];
+    const end = new Date(Date.now() + 7 * 86_400_000).toISOString().split("T")[0];
+    const [season] = await testDb
+      .insert(tournaments)
+      .values({
+        name: `Rules engine season ${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        mode: "ranked",
+        teamMode: "flex",
+        minTeamSize: 2,
+        maxTeamSize: 2,
+        startDate: start,
+        endDate: end,
+        status: "ongoing",
+        createdBy: adminId,
+      })
+      .returning();
+    return { seasonId: season.id, matchId: await createMatch(undefined, season.id) };
+  }
+
+  async function badgesFor(ruleId: string, playerId: string) {
+    return await testDb
+      .select()
+      .from(playerBadges)
+      .where(and(eq(playerBadges.ruleId, ruleId), eq(playerBadges.playerId, playerId)));
   }
 
   async function addMessageRule(name: string, conditions: RuleConditions, variants: string[], priority = 0) {
@@ -646,6 +675,73 @@ describe("Rules engine — line-up facts & random gating (integration)", () => {
       const second = await firingsFor(rule.id);
       expect(second).toHaveLength(4);
       expect(second.every((f) => f.result === "already_held")).toBe(true);
+    });
+
+    it("awards a seasonal badge again in the next season", async () => {
+      const [rule] = await testDb
+        .insert(rules)
+        .values({
+          triggerEvent: "match_submitted",
+          type: "badge",
+          scope: "global",
+          priority: 0,
+          name: "Saisonnier",
+          conditions: anyMatch,
+          action: {
+            type: "badge",
+            icon: "fa fa-trophy",
+            label: "Saisonnier",
+            description: "A joué",
+            recurrence: "per_season",
+          },
+          isActive: true,
+          createdBy: adminId,
+        })
+        .returning();
+
+      const seasonB = await createSeasonWithMatch();
+
+      const first = await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const second = await rulesEvaluationService.evaluateMatchSubmitted(seasonB.matchId, seasonB.seasonId);
+
+      // Both seasons produce a reveal: the badge is genuinely won again.
+      expect(first.get(playerIds[0])?.badges).toHaveLength(1);
+      expect(second.get(playerIds[0])?.badges).toHaveLength(1);
+
+      const awards = await badgesFor(rule.id, playerIds[0]);
+      expect(awards.map((a) => a.seasonId).sort()).toEqual([tournamentId, seasonB.seasonId].sort());
+    });
+
+    it("awards a lifetime badge only once, whatever the season", async () => {
+      const [rule] = await testDb
+        .insert(rules)
+        .values({
+          triggerEvent: "match_submitted",
+          type: "badge",
+          scope: "global",
+          priority: 0,
+          name: "À vie",
+          conditions: anyMatch,
+          action: { type: "badge", icon: "fa fa-crown", label: "À vie", description: "A joué", recurrence: "once" },
+          isActive: true,
+          createdBy: adminId,
+        })
+        .returning();
+
+      const seasonB = await createSeasonWithMatch();
+
+      await rulesEvaluationService.evaluateMatchSubmitted(matchId, tournamentId);
+      const second = await rulesEvaluationService.evaluateMatchSubmitted(seasonB.matchId, seasonB.seasonId);
+
+      expect(second.get(playerIds[0])?.badges ?? []).toHaveLength(0);
+
+      const awards = await badgesFor(rule.id, playerIds[0]);
+      expect(awards).toHaveLength(1);
+      expect(awards[0].seasonId).toBe(tournamentId);
+
+      // The rule still fired in season B — it simply had nothing left to give.
+      const firings = await firingsFor(rule.id);
+      expect(firings.filter((f) => f.seasonId === seasonB.seasonId).every((f) => f.result === "already_held")).toBe(true);
     });
 
     it("stamps the surface the message was read on, and keeps the first one", async () => {

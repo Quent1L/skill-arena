@@ -19,8 +19,9 @@ export type RuleScope = "global" | "discipline";
  * - 1: initial shape
  * - 2: `winnerId` / `loserId` (first player of a side) replaced by the full line-ups
  *      `winnerIds` / `loserIds`
+ * - 3: badge actions carry a `recurrence`; rules written before it are seasonal
  */
-export const RULES_ENGINE_VERSION = 2;
+export const RULES_ENGINE_VERSION = 3;
 
 /**
  * Application trigger events. Open for extension, but only
@@ -197,11 +198,23 @@ export interface MessageAction {
   variants: string[];
 }
 
+/**
+ * How often a badge can be won.
+ *
+ * `per_season` — the default — makes the badge a season trophy: it is awarded once
+ * per ranked season, so a player can hold several copies of it, one per season.
+ * `once` keeps it a lifetime trophy, awarded on the first match that matches and
+ * never again.
+ */
+export const BADGE_RECURRENCES = ["per_season", "once"] as const;
+export type BadgeRecurrence = (typeof BADGE_RECURRENCES)[number];
+
 export interface BadgeAction {
   type: "badge";
   icon: string;
   label: string;
   description: string;
+  recurrence: BadgeRecurrence;
 }
 
 export type RuleAction = MessageAction | BadgeAction;
@@ -380,6 +393,9 @@ export const badgeActionSchema = z.object({
   icon: z.string().min(1, "L'icône est requise"),
   label: z.string().min(1, "Le label est requis").max(60),
   description: z.string().min(1, "La description est requise").max(200),
+  // Defaulted rather than required: a rule authored before v3 carries no
+  // recurrence, and the v2 → v3 patch is what stamps the stored rows.
+  recurrence: z.enum(BADGE_RECURRENCES).default("per_season"),
 });
 
 export const ruleActionSchema = z.discriminatedUnion("type", [messageActionSchema, badgeActionSchema]);
@@ -413,6 +429,11 @@ export const testRuleSchema = z.object({
 // Player badges
 // ============================================
 
+/**
+ * One award, not one badge: a seasonal badge won three times is three entries
+ * sharing a `ruleId`. Grouping them into a single tile with a count is the
+ * client's job — see `PlayerBadges.vue`.
+ */
 export const playerBadgeSchema = z
   .object({
     id: z.string(),
@@ -421,8 +442,12 @@ export const playerBadgeSchema = z
     icon: z.string(),
     label: z.string(),
     description: z.string(),
+    recurrence: z.enum(BADGE_RECURRENCES),
     awardedAt: z.iso.datetime(),
     matchId: z.string().nullable(),
+    /** Null on awards whose season could no longer be resolved (deleted match). */
+    seasonId: z.string().nullable(),
+    seasonName: z.string().nullable(),
   })
   .meta({ id: "PlayerBadge" });
 
@@ -445,6 +470,7 @@ export const availableBadgeSchema = z
     icon: z.string(),
     label: z.string(),
     description: z.string(),
+    recurrence: z.enum(BADGE_RECURRENCES),
     scope: z.enum(["global", "discipline"]),
   })
   .meta({ id: "AvailableBadge" });

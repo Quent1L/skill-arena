@@ -552,7 +552,7 @@ function toClientBadge(row: BadgeRow): ClientPlayerBadge {
   const badge =
     action.type === "badge"
       ? action
-      : { icon: "", label: row.rule.name, description: "" };
+      : { icon: "", label: row.rule.name, description: "", recurrence: "per_season" as const };
 
   return {
     id: row.id,
@@ -561,8 +561,11 @@ function toClientBadge(row: BadgeRow): ClientPlayerBadge {
     icon: badge.icon,
     label: badge.label,
     description: badge.description,
+    recurrence: badge.recurrence ?? "per_season",
     awardedAt: row.awardedAt,
     matchId: row.matchId,
+    seasonId: row.seasonId,
+    seasonName: row.season?.name ?? null,
   };
 }
 

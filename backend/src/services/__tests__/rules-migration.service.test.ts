@@ -3,7 +3,7 @@ import { RULES_ENGINE_VERSION, type RuleAction, type RuleConditions } from "@sko
 import { migrateRule, RULE_PATCHES, type MigratableRule } from "../rules-migration.service";
 
 const message = (...variants: string[]): RuleAction => ({ type: "message", variants });
-const badge: RuleAction = { type: "badge", icon: "fa fa-fire", label: "X", description: "Y" };
+const badge: RuleAction = { type: "badge", icon: "fa fa-fire", label: "X", description: "Y", recurrence: "per_season" };
 
 function v1(conditions: RuleConditions, action: RuleAction = message("ok")): MigratableRule {
   return { conditions, action };
@@ -29,7 +29,8 @@ describe("migrateRule — v1 → v2 (line-ups)", () => {
     for (const [from, to] of cases) {
       const out = migrateRule(v1({ all: [{ fact: "winnerId", operator: from, value: "p1" }] }), 1);
       expect(out.disabled).toBeUndefined();
-      expect(out.version).toBe(2);
+      // The whole chain runs, so a v1 rule comes out at the current version.
+      expect(out.version).toBe(RULES_ENGINE_VERSION);
       expect(out.rule.conditions).toEqual({ all: [{ fact: "winnerIds", operator: to, value: "p1" }] });
     }
   });
@@ -71,9 +72,40 @@ describe("migrateRule — v1 → v2 (line-ups)", () => {
     expect(out.rule.action).toEqual(message("{{winnerIds}} bat {{loserIds}}"));
   });
 
-  it("leaves a badge action untouched", () => {
+  it("leaves a badge action's own fields untouched", () => {
     const out = migrateRule(v1({ all: [{ fact: "winnerId", operator: "equal", value: "p1" }] }, badge), 1);
     expect(out.rule.action).toEqual(badge);
+  });
+});
+
+describe("migrateRule — v2 → v3 (badge recurrence)", () => {
+  // A stored v2 badge action has no recurrence key at all, which the current type
+  // cannot express — hence the cast.
+  const legacyBadge = { type: "badge", icon: "fa fa-fire", label: "X", description: "Y" } as unknown as RuleAction;
+  const conditions: RuleConditions = { all: [{ fact: "winStreak", operator: "greaterThan", value: 3 }] };
+
+  it("makes a badge written before the change a seasonal one", () => {
+    const out = migrateRule({ conditions, action: legacyBadge }, 2);
+    expect(out.disabled).toBeUndefined();
+    expect(out.version).toBe(RULES_ENGINE_VERSION);
+    expect(out.rule.action).toEqual({
+      type: "badge",
+      icon: "fa fa-fire",
+      label: "X",
+      description: "Y",
+      recurrence: "per_season",
+    });
+  });
+
+  it("keeps a recurrence that was already chosen", () => {
+    const lifetime: RuleAction = { ...badge, recurrence: "once" } as RuleAction;
+    const out = migrateRule({ conditions, action: lifetime }, 2);
+    expect(out.rule.action).toEqual(lifetime);
+  });
+
+  it("leaves a message action alone", () => {
+    const out = migrateRule({ conditions, action: message("ok") }, 2);
+    expect(out.rule.action).toEqual(message("ok"));
   });
 
   it("gives up on substring operators, which have no line-up equivalent", () => {

@@ -6,7 +6,7 @@ import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { notificationService } from "./notification.service";
 import { webSocketService } from "./websocket.service";
 import { logger } from "../utils/logger";
-import type { BadgeAction, MatchSubmittedContext, RuleConditions } from "@skol-arena/shared";
+import type { BadgeAction, BadgeRecurrence, MatchSubmittedContext, RuleConditions } from "@skol-arena/shared";
 
 type Facts = Record<string, unknown>;
 
@@ -14,6 +14,33 @@ interface BadgeRule {
   id: string;
   conditions: RuleConditions;
   label: string;
+  recurrence: BadgeRecurrence;
+}
+
+/** The award a replay says should exist, and the match that earned it. */
+interface DesiredAward {
+  playerId: string;
+  seasonId: string;
+  matchId: string;
+}
+
+/**
+ * What "the same award" means, which is the whole difference between the two
+ * recurrences: a seasonal badge is one award per player per season, a lifetime one
+ * is a single award per player whatever the season.
+ */
+function awardKey(recurrence: BadgeRecurrence, playerId: string, seasonId: string | null): string {
+  return recurrence === "per_season" ? `${seasonId}:${playerId}` : playerId;
+}
+
+function toBadgeRule(rule: { id: string; conditions: unknown; action: unknown }): BadgeRule {
+  const action = rule.action as BadgeAction;
+  return {
+    id: rule.id,
+    conditions: rule.conditions as RuleConditions,
+    label: action.label,
+    recurrence: action.recurrence ?? "per_season",
+  };
 }
 
 /**
@@ -58,9 +85,7 @@ export class BadgeReconciliationService {
     if (!season) return;
 
     const active = await rulesRepository.listActiveByTrigger("match_submitted", season.disciplineId ?? null);
-    const badgeRules: BadgeRule[] = active
-      .filter((r) => r.type === "badge")
-      .map((r) => ({ id: r.id, conditions: r.conditions as RuleConditions, label: (r.action as BadgeAction).label }));
+    const badgeRules: BadgeRule[] = active.filter((r) => r.type === "badge").map(toBadgeRule);
     // No active badge rules → nothing to award; inactive-rule badges are kept.
     if (badgeRules.length === 0) return;
 
@@ -79,7 +104,7 @@ export class BadgeReconciliationService {
     engine: Engine,
     badgeRules: BadgeRule[],
   ): Promise<void> {
-    const labelById = new Map(badgeRules.map((r) => [r.id, r.label]));
+    const ruleById = new Map(badgeRules.map((r) => [r.id, r]));
     // Desired set: ruleId -> earliest matching match (chronological).
     const ordered = await playerMmrRepository.getMmrHistoryOrdered(seasonId, playerId);
     const desired = new Map<string, string>();
@@ -100,58 +125,81 @@ export class BadgeReconciliationService {
 
     for (const badge of currentActive) {
       if (desired.has(badge.ruleId)) continue;
-      await rulesRepository.revokeBadge(playerId, badge.ruleId);
+      // Scoped to this season: whatever the player earned in their other seasons was
+      // replayed by its own pass and is none of this one's business.
+      await rulesRepository.revokeBadge(playerId, badge.ruleId, seasonId);
       await this.notifyRevoked(playerId, (badge.rule.action as BadgeAction).label);
     }
 
     for (const [ruleId, matchId] of desired) {
       if (heldRuleIds.has(ruleId)) continue;
-      await this.award(playerId, ruleId, matchId, labelById.get(ruleId) ?? "");
+      const rule = ruleById.get(ruleId);
+      if (!rule) continue;
+      // A lifetime badge already won in an earlier season is silently declined by
+      // awardBadge, so no branch is needed here.
+      await this.award(playerId, ruleId, matchId, seasonId, rule);
     }
   }
 
   /** Reconcile a single badge rule across all ranked seasons (create/update/reactivate). */
-  async reconcileRule(ruleId: string): Promise<void> {
+  async reconcileRule(ruleId: string, silent = false): Promise<void> {
     const rule = await rulesRepository.getById(ruleId);
     if (!rule || rule.type !== "badge" || !rule.isActive) return;
 
-    const action = rule.action as BadgeAction;
-    const engine = this.buildEngine([{ id: rule.id, conditions: rule.conditions as RuleConditions, label: action.label }]);
+    const badgeRule = toBadgeRule(rule);
+    const engine = this.buildEngine([badgeRule]);
 
     const seasons = await rankedSeasonRepository.listSeasons(
       rule.scope === "discipline" && rule.disciplineId ? { disciplineId: rule.disciplineId } : undefined,
     );
 
-    // Desired holders: playerId -> earliest matching match across all seasons.
-    const desired = new Map<string, string>();
+    // The awards a replay says should exist, keyed the way this recurrence defines
+    // sameness: a seasonal badge is earned once per season, a lifetime one once ever.
+    // In both cases the earliest matching match under that key is the one that earned it.
+    const desired = new Map<string, DesiredAward>();
     for (const season of seasons) {
       const matchIds = await playerMmrRepository.getSeasonMatchIdsOrdered(season.id);
       for (const matchId of matchIds) {
         const { contexts } = await rulesContextService.buildMatchSubmittedContexts(matchId, true);
         for (const ctx of contexts) {
-          if (desired.has(ctx.playerId)) continue;
-          if ((await this.matchedRuleIds(engine, ctx.context)).has(rule.id)) desired.set(ctx.playerId, matchId);
+          const key = awardKey(badgeRule.recurrence, ctx.playerId, season.id);
+          if (desired.has(key)) continue;
+          if ((await this.matchedRuleIds(engine, ctx.context)).has(rule.id)) {
+            desired.set(key, { playerId: ctx.playerId, seasonId: season.id, matchId });
+          }
         }
       }
     }
 
-    const holders = new Set(await rulesRepository.listBadgeHolderPlayerIds(rule.id));
+    const existing = new Map(
+      (await rulesRepository.listBadgeAwards(rule.id)).map((award) => [
+        awardKey(badgeRule.recurrence, award.playerId, award.seasonId),
+        award,
+      ]),
+    );
 
-    for (const [playerId, matchId] of desired) {
-      if (!holders.has(playerId)) await this.award(playerId, rule.id, matchId, action.label);
+    for (const [key, award] of desired) {
+      if (existing.has(key)) continue;
+      await this.award(award.playerId, rule.id, award.matchId, award.seasonId, badgeRule, silent);
     }
-    for (const playerId of holders) {
-      if (desired.has(playerId)) continue;
-      await rulesRepository.revokeBadge(playerId, rule.id);
-      await this.notifyRevoked(playerId, action.label);
+    for (const [key, award] of existing) {
+      if (desired.has(key)) continue;
+      // A lifetime badge is revoked outright; a seasonal one only loses the season
+      // whose replay stopped matching.
+      await rulesRepository.revokeBadge(
+        award.playerId,
+        rule.id,
+        badgeRule.recurrence === "per_season" ? award.seasonId : undefined,
+      );
+      await this.notifyRevoked(award.playerId, badgeRule.label, silent);
     }
   }
 
   /** Reconcile every active badge rule (full nightly pass). */
-  async reconcileAllActiveBadgeRules(): Promise<void> {
+  async reconcileAllActiveBadgeRules(silent = false): Promise<void> {
     const badgeRules = await rulesRepository.list({ type: "badge", isActive: true });
     for (const rule of badgeRules) {
-      await this.reconcileRule(rule.id).catch((err) =>
+      await this.reconcileRule(rule.id, silent).catch((err) =>
         logger.error({ err, ruleId: rule.id }, "[BadgeReconcile] rule failed"),
       );
     }
@@ -169,9 +217,13 @@ export class BadgeReconciliationService {
       logger.info("[BadgeReconcile] nightly run skipped — no badge rule changes");
       return { ran: false };
     }
+    // Read before clearing: the flag belongs to this pass, and a migration that
+    // changed what the rules mean sets it so the catch-up does not bury players
+    // under notifications for badges they earned months ago.
+    const silent = state.silentNextRun;
     await rulesRepository.clearDirtyAndStampRun();
-    logger.info({ force }, "[BadgeReconcile] full reconciliation start");
-    await this.reconcileAllActiveBadgeRules();
+    logger.info({ force, silent }, "[BadgeReconcile] full reconciliation start");
+    await this.reconcileAllActiveBadgeRules(silent);
     logger.info("[BadgeReconcile] full reconciliation done");
     return { ran: true };
   }
@@ -187,25 +239,34 @@ export class BadgeReconciliationService {
     }
   }
 
-  private async award(playerId: string, ruleId: string, matchId: string, label: string): Promise<void> {
-    const awarded = await rulesRepository.awardBadge(playerId, ruleId, matchId);
+  private async award(
+    playerId: string,
+    ruleId: string,
+    matchId: string,
+    seasonId: string,
+    rule: BadgeRule,
+    silent = false,
+  ): Promise<void> {
+    const awarded = await rulesRepository.awardBadge(playerId, ruleId, matchId, seasonId, rule.recurrence);
     if (!awarded) return;
     // Retroactive awards do not trigger the reveal animation — mark as viewed.
     await rulesRepository.markBadgesViewed([awarded.id], playerId);
+    if (silent) return;
     await notificationService
       .send({
         userId: playerId,
         type: "BADGE_AWARDED",
         titleKey: "notifications.BADGE_AWARDED_TITLE",
         messageKey: "notifications.BADGE_AWARDED_MESSAGE",
-        translationParams: { badgeLabel: label },
+        translationParams: { badgeLabel: rule.label },
         requiresAction: false,
       })
       .catch((err) => logger.error({ err, playerId }, "[BadgeReconcile] award notify failed"));
     webSocketService.send(playerId, { event: "badge_awarded", data: { ruleId } });
   }
 
-  private async notifyRevoked(playerId: string, label: string): Promise<void> {
+  private async notifyRevoked(playerId: string, label: string, silent = false): Promise<void> {
+    if (silent) return;
     await notificationService
       .send({
         userId: playerId,

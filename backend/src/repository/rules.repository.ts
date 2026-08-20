@@ -1,8 +1,8 @@
-import { and, eq, inArray, isNull, or, desc, count } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, desc, countDistinct, sql } from "drizzle-orm";
 import { db } from "../config/database";
-import { badgeReconciliationState, matches, playerBadges, rules } from "../db/schema";
+import { badgeReconciliationState, playerBadges, rules } from "../db/schema";
 import { RULES_ENGINE_VERSION } from "@skol-arena/shared";
-import type { RuleAction, RuleConditions, RuleScope, RuleType } from "@skol-arena/shared";
+import type { BadgeRecurrence, RuleAction, RuleConditions, RuleScope, RuleType } from "@skol-arena/shared";
 
 export interface CreateRuleData {
   triggerEvent: string;
@@ -99,12 +99,45 @@ export class RulesRepository {
 
   // ---- Badges ----
 
-  async awardBadge(playerId: string, ruleId: string, matchId: string | null) {
+  /**
+   * Awards a badge, returning null when the player already holds it.
+   *
+   * The two recurrences need two different notions of "already holds it", and only
+   * one of them is expressible as a unique index: `per_season` collides within a
+   * season and rides the partial index, while `once` has to look across every season
+   * at insert time. Both stay a single statement so a concurrent award loses the race
+   * rather than producing a duplicate.
+   */
+  async awardBadge(
+    playerId: string,
+    ruleId: string,
+    matchId: string | null,
+    seasonId: string | null,
+    recurrence: BadgeRecurrence,
+  ): Promise<{ id: string } | null> {
+    if (recurrence === "once") {
+      const result = await db.execute<{ id: string }>(sql`
+        INSERT INTO player_badges (player_id, rule_id, match_id, season_id)
+        SELECT ${playerId}::uuid, ${ruleId}::uuid, ${matchId}::uuid, ${seasonId}::uuid
+        WHERE NOT EXISTS (
+          SELECT 1 FROM player_badges
+          WHERE player_id = ${playerId}::uuid AND rule_id = ${ruleId}::uuid
+        )
+        RETURNING id
+      `);
+      return (result.rows[0] as { id: string } | undefined) ?? null;
+    }
+
     const [badge] = await db
       .insert(playerBadges)
-      .values({ playerId, ruleId, matchId })
-      .onConflictDoNothing({ target: [playerBadges.playerId, playerBadges.ruleId] })
-      .returning();
+      .values({ playerId, ruleId, matchId, seasonId })
+      // `where` is the partial index's predicate, not a row filter: it is what tells
+      // Postgres which of the two unique indexes this conflict target refers to.
+      .onConflictDoNothing({
+        target: [playerBadges.playerId, playerBadges.ruleId, playerBadges.seasonId],
+        where: sql`${playerBadges.seasonId} IS NOT NULL`,
+      })
+      .returning({ id: playerBadges.id });
     return badge ?? null;
   }
 
@@ -112,7 +145,7 @@ export class RulesRepository {
     return await db.query.playerBadges.findMany({
       where: eq(playerBadges.playerId, playerId),
       orderBy: [desc(playerBadges.awardedAt)],
-      with: { rule: true },
+      with: { rule: true, season: { columns: { name: true } } },
     });
   }
 
@@ -122,10 +155,7 @@ export class RulesRepository {
       where: and(
         eq(playerBadges.playerId, playerId),
         isNull(playerBadges.viewedAt),
-        inArray(
-          playerBadges.matchId,
-          db.select({ id: matches.id }).from(matches).where(eq(matches.tournamentId, seasonId)),
-        ),
+        eq(playerBadges.seasonId, seasonId),
       ),
       orderBy: [desc(playerBadges.awardedAt)],
       with: { rule: true },
@@ -141,23 +171,31 @@ export class RulesRepository {
 
   // ---- Badge lifecycle (reconciliation / revocation) ----
 
-  /** Remove a player's badge for a given rule (revocation). */
-  async revokeBadge(playerId: string, ruleId: string): Promise<void> {
+  /**
+   * Remove a player's badge for a given rule.
+   *
+   * `seasonId` narrows the revocation to one season's award — what a seasonal badge
+   * needs, since the player's other seasons are none of this pass's business. Omit it
+   * to drop every award of the rule (lifetime badges, rule deletion). Passing `null`
+   * explicitly targets the awards whose season is unknown.
+   */
+  async revokeBadge(playerId: string, ruleId: string, seasonId?: string | null): Promise<void> {
+    const seasonFilter =
+      seasonId === undefined
+        ? undefined
+        : seasonId === null
+          ? isNull(playerBadges.seasonId)
+          : eq(playerBadges.seasonId, seasonId);
+
     await db
       .delete(playerBadges)
-      .where(and(eq(playerBadges.playerId, playerId), eq(playerBadges.ruleId, ruleId)));
+      .where(and(eq(playerBadges.playerId, playerId), eq(playerBadges.ruleId, ruleId), seasonFilter));
   }
 
-  /** Badges a player holds whose awarding match belongs to the given season. */
+  /** Badges a player was awarded during the given season. */
   async listBadgesByPlayerAndSeason(playerId: string, seasonId: string) {
     return await db.query.playerBadges.findMany({
-      where: and(
-        eq(playerBadges.playerId, playerId),
-        inArray(
-          playerBadges.matchId,
-          db.select({ id: matches.id }).from(matches).where(eq(matches.tournamentId, seasonId)),
-        ),
-      ),
+      where: and(eq(playerBadges.playerId, playerId), eq(playerBadges.seasonId, seasonId)),
       with: { rule: true },
     });
   }
@@ -168,18 +206,17 @@ export class RulesRepository {
    */
   async listBadgesBySeason(seasonId: string) {
     return await db.query.playerBadges.findMany({
-      where: inArray(
-        playerBadges.matchId,
-        db.select({ id: matches.id }).from(matches).where(eq(matches.tournamentId, seasonId)),
-      ),
-      with: { rule: true },
+      where: eq(playerBadges.seasonId, seasonId),
+      with: { rule: true, season: { columns: { name: true } } },
     });
   }
 
   /** Number of players currently holding the badge produced by a rule. */
   async countBadgeHolders(ruleId: string): Promise<number> {
+    // Distinct players, not awards: a seasonal badge held across three seasons is
+    // three rows but one holder, and this figure is what the delete confirmation shows.
     const [row] = await db
-      .select({ value: count() })
+      .select({ value: countDistinct(playerBadges.playerId) })
       .from(playerBadges)
       .where(eq(playerBadges.ruleId, ruleId));
     return row?.value ?? 0;
@@ -188,20 +225,31 @@ export class RulesRepository {
   /** Player ids currently holding the badge produced by a rule. */
   async listBadgeHolderPlayerIds(ruleId: string): Promise<string[]> {
     const rows = await db
-      .select({ playerId: playerBadges.playerId })
+      .selectDistinct({ playerId: playerBadges.playerId })
       .from(playerBadges)
       .where(eq(playerBadges.ruleId, ruleId));
     return rows.map((r) => r.playerId);
   }
 
+  /**
+   * Every award of a rule, season included. Reconciliation compares this against the
+   * set it recomputes, which for a seasonal badge is keyed per season rather than per
+   * player — `listBadgeHolderPlayerIds` cannot answer that.
+   */
+  async listBadgeAwards(ruleId: string): Promise<{ playerId: string; seasonId: string | null }[]> {
+    return await db
+      .select({ playerId: playerBadges.playerId, seasonId: playerBadges.seasonId })
+      .from(playerBadges)
+      .where(eq(playerBadges.ruleId, ruleId));
+  }
+
   // ---- Nightly reconciliation state (dirty flag) ----
 
   /** Read the singleton reconciliation state, creating it if absent. */
-  async getReconciliationState(): Promise<{ dirty: boolean; lastRunAt: Date | null }> {
+  async getReconciliationState(): Promise<{ dirty: boolean; silentNextRun: boolean; lastRunAt: Date | null }> {
     const existing = await db.query.badgeReconciliationState.findFirst();
-    if (existing) return { dirty: existing.dirty, lastRunAt: existing.lastRunAt };
-    const [created] = await db.insert(badgeReconciliationState).values({}).returning();
-    return { dirty: created.dirty, lastRunAt: created.lastRunAt };
+    const row = existing ?? (await db.insert(badgeReconciliationState).values({}).returning())[0];
+    return { dirty: row.dirty, silentNextRun: row.silentNextRun, lastRunAt: row.lastRunAt };
   }
 
   /** Flag that a badge rule changed and a reconciliation is needed. */
@@ -210,10 +258,16 @@ export class RulesRepository {
     await db.update(badgeReconciliationState).set({ dirty: true });
   }
 
-  /** Clear the dirty flag and stamp the run time (called when a run starts). */
+  /**
+   * Clear the dirty flag and stamp the run time (called when a run starts). The
+   * silent flag is consumed here too: it belongs to one catch-up pass, and every
+   * pass after it notifies normally.
+   */
   async clearDirtyAndStampRun(): Promise<void> {
     await this.getReconciliationState();
-    await db.update(badgeReconciliationState).set({ dirty: false, lastRunAt: new Date() });
+    await db
+      .update(badgeReconciliationState)
+      .set({ dirty: false, silentNextRun: false, lastRunAt: new Date() });
   }
 }
 

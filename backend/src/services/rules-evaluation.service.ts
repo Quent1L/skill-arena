@@ -219,11 +219,18 @@ export class RulesEvaluationService {
     // recomputed deterministically during reconciliation.
     const badgeRules = matched.filter((r) => r.type === "badge");
     for (const badgeRule of badgeRules) {
-      // awardBadge uses onConflictDoNothing and returns null if badge already exists
-      const awarded = await rulesRepository.awardBadge(playerId, badgeRule.id, matchId);
+      const badge = badgeRule.action as BadgeAction;
+      // Returns null when the player already holds the badge — for a seasonal badge
+      // that means "already won it THIS season", so the next season awards it again.
+      const awarded = await rulesRepository.awardBadge(
+        playerId,
+        badgeRule.id,
+        matchId,
+        seasonId,
+        badge.recurrence ?? "per_season",
+      );
       firings.push({ ...draft(badgeRule), result: awarded ? "awarded" : "already_held" });
       if (!awarded) continue;
-      const badge = badgeRule.action as BadgeAction;
       (output.badges ??= []).push({
         badgeId: awarded.id,
         ruleId: badgeRule.id,

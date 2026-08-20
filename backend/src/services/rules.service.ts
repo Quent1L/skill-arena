@@ -185,7 +185,14 @@ export class RulesService {
       .filter((r) => r.type === "badge")
       .map((r) => {
         const action = r.action as BadgeAction;
-        return { ruleId: r.id, icon: action.icon, label: action.label, description: action.description, scope: r.scope };
+        return {
+          ruleId: r.id,
+          icon: action.icon,
+          label: action.label,
+          description: action.description,
+          recurrence: action.recurrence ?? "per_season",
+          scope: r.scope,
+        };
       });
   }
 
@@ -209,11 +216,19 @@ export class RulesService {
     return rulesEvaluationService.simulate(conditions, action, context);
   }
 
+  /**
+   * One entry per award, season included — a seasonal badge won three times comes
+   * back three times. Collapsing them into a single badge with a count is the
+   * client's job, and it needs the individual seasons to show the breakdown.
+   */
   async getPlayerBadges(playerId: string) {
     const rows = await rulesRepository.listBadgesByPlayer(playerId);
     return rows.map((row) => {
       const action = row.rule.action as RuleAction;
-      const badge = action.type === "badge" ? action : { icon: "", label: row.rule.name, description: "" };
+      const badge =
+        action.type === "badge"
+          ? action
+          : { icon: "", label: row.rule.name, description: "", recurrence: "per_season" as const };
       return {
         id: row.id,
         playerId: row.playerId,
@@ -221,8 +236,11 @@ export class RulesService {
         icon: badge.icon,
         label: badge.label,
         description: badge.description,
+        recurrence: badge.recurrence ?? "per_season",
         awardedAt: row.awardedAt,
         matchId: row.matchId,
+        seasonId: row.seasonId,
+        seasonName: row.season?.name ?? null,
       };
     });
   }
