@@ -18,7 +18,15 @@
       :season-id="store.tournamentId"
       :allow-draw="store.tournament?.allowDraw"
     />
-    <div v-else-if="!store.rankedLoading" class="text-center py-12 text-gray-500 dark:text-gray-400">
+    <!--
+      Held to the height of the content area rather than to its own text: the swipe
+      between the two panes is picked up on the track, so a short empty state would
+      leave most of the screen inert to the finger.
+    -->
+    <div
+      v-else-if="!store.rankedLoading"
+      class="flex min-h-[calc(100vh-14rem)] flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400"
+    >
       <i class="fa fa-user-slash text-4xl mb-4 block"></i>
       <p>{{ t('tournamentDetailMobile.noMmrYet') }}</p>
       <p class="text-sm mt-2">
@@ -34,7 +42,7 @@
     <!-- The full history lives on the player's own page: it spans every
          discipline, which a season's profile has no room to say. -->
     <RankedCareerLink
-      v-if="store.playerCareer?.length && store.appUser"
+      v-if="store.hasDisciplineCareer && store.appUser"
       :player-id="store.appUser.id"
       :discipline-id="store.currentDisciplineId"
       own

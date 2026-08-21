@@ -183,8 +183,13 @@ watch(
   { immediate: true },
 )
 
+/**
+ * The profile pane is about the viewer's own run of this season, which only a
+ * registered participant has. Offering it to anyone else costs a swipe that lands
+ * on an empty pane, so a visitor gets the global stats alone.
+ */
 const hasStatsSubTabs = computed(
-  () => store.tournament?.mode === 'ranked' && store.isAuthenticated,
+  () => store.tournament?.mode === 'ranked' && store.isAuthenticated && store.isParticipant,
 )
 
 const statsSubTabs = computed(() => [

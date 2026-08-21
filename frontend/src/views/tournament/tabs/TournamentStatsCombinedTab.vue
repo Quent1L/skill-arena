@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isRankedAndAuth" class="flex gap-6">
+  <div v-if="hasOwnProfile" class="flex gap-6">
     <SubTabSidebar :options="subTabs" :model-value="sub" @update:model-value="setSub" />
 
     <!-- Content -->
@@ -38,7 +38,7 @@
         <!-- The full history lives on the player's own page: it spans every
              discipline, which a season's profile has no room to say. -->
         <RankedCareerLink
-          v-if="store.playerCareer?.length && store.appUser"
+          v-if="store.hasDisciplineCareer && store.appUser"
           :player-id="store.appUser.id"
           :discipline-id="store.currentDisciplineId"
           own
@@ -76,12 +76,21 @@ const subTabs = computed(() => [
 
 const { active: sub, setActive: setSub } = useSubTabs({ options: subTabs, queryKey: 'statsSub' })
 
-const isRankedAndAuth = computed(
-  () => store.tournament?.mode === 'ranked' && store.isAuthenticated && !!store.appUser,
+/**
+ * The profile pane is about the viewer's own run of this season, which only a
+ * registered participant has. A visitor who never joined gets the global stats
+ * alone rather than a sub-tab that can only ever say it has nothing to show.
+ */
+const hasOwnProfile = computed(
+  () =>
+    store.tournament?.mode === 'ranked' &&
+    store.isAuthenticated &&
+    !!store.appUser &&
+    store.isParticipant,
 )
 
 onMounted(async () => {
-  if (isRankedAndAuth.value) {
+  if (hasOwnProfile.value) {
     await Promise.all([store.ensurePlayerProfile(), store.ensurePlayerCareer()])
   }
 })

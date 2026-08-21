@@ -269,6 +269,17 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     currentDisciplineId.value ? careerPeak(playerCareer.value ?? [], currentDisciplineId.value) : null,
   )
 
+  /**
+   * Whether the player has ever run this discipline's ladder. The career link opens a
+   * page already filtered on that discipline, so without a single run there it leads
+   * to an empty card — the common case for someone opening a season they never played.
+   */
+  const hasDisciplineCareer = computed(() => {
+    const seasons = playerCareer.value ?? []
+    if (!currentDisciplineId.value) return seasons.length > 0
+    return seasons.some((season) => season.discipline?.id === currentDisciplineId.value)
+  })
+
   async function ensureStats() {
     if (!tournamentId.value) return
     if (!tournamentStats.value) {
@@ -386,6 +397,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     profileChartHistory,
     playerCareer,
     playerCareerPeak,
+    hasDisciplineCareer,
     currentDisciplineId,
     ensurePlayerCareer,
     playerLeaderboardRank,
