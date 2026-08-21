@@ -112,10 +112,17 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const menuItems = computed(() => {
     const items: { label: string; icon: string; command: () => void }[] = []
     if (canManageTournament.value) {
+      // A ranked season is a tournament row, but it is not edited through the
+      // tournament form: its own admin form is the only one exposing the ranked
+      // settings, so send the user there instead of a form missing half the fields.
+      const editPath =
+        tournament.value?.mode === 'ranked'
+          ? `/admin/ranked/${tournamentId.value}/edit`
+          : `/admin/tournaments/${tournamentId.value}/edit`
       items.push({
         label: 'Modifier',
         icon: 'fa fa-pencil',
-        command: () => router.push(`/admin/tournaments/${tournamentId.value}/edit`),
+        command: () => router.push(editPath),
       })
       if (tournament.value?.mode) {
         items.push({
