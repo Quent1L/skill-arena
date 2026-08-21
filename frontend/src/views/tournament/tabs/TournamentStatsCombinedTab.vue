@@ -15,6 +15,7 @@
           :tiers="store.rankedTiers"
           :leaderboard-rank="store.playerLeaderboardRank"
           :placement-matches="store.rankedPlacementMatches"
+          :career-peak="store.playerCareerPeak"
           :history="store.profileChartHistory"
           :opponent-quality="store.playerOpponentQuality"
           :recent-form="store.playerStats?.stats?.recentForm"
@@ -33,6 +34,16 @@
           <p>{{ t('tournamentStatsCombinedTab.noMmr') }}</p>
           <p class="text-sm mt-2">{{ t('tournamentStatsCombinedTab.noMmrHint') }}</p>
         </div>
+
+        <!-- The full history lives on the player's own page: it spans every
+             discipline, which a season's profile has no room to say. -->
+        <RankedCareerLink
+          v-if="store.playerCareer?.length && store.appUser"
+          :player-id="store.appUser.id"
+          :discipline-id="store.currentDisciplineId"
+          own
+          class="mt-4"
+        />
       </div>
       <TournamentStatsTab v-else />
     </div>
@@ -48,6 +59,7 @@ import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useSubTabs } from '@/composables/ui/useSubTabs'
 import SubTabSidebar from '@/components/ui/SubTabSidebar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import RankedCareerLink from '@/components/ranked/RankedCareerLink.vue'
 import RewindEntryCard from '@/components/rewind/RewindEntryCard.vue'
 import TournamentStatsTab from './TournamentStatsTab.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -69,6 +81,8 @@ const isRankedAndAuth = computed(
 )
 
 onMounted(async () => {
-  if (isRankedAndAuth.value) await store.ensurePlayerProfile()
+  if (isRankedAndAuth.value) {
+    await Promise.all([store.ensurePlayerProfile(), store.ensurePlayerCareer()])
+  }
 })
 </script>

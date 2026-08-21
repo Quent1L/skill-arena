@@ -6,6 +6,7 @@
       :tiers="store.rankedTiers"
       :leaderboard-rank="store.playerLeaderboardRank"
       :placement-matches="store.rankedPlacementMatches"
+      :career-peak="store.playerCareerPeak"
       :history="store.profileChartHistory"
       :opponent-quality="store.playerOpponentQuality"
       :recent-form="store.playerStats?.stats?.recentForm"
@@ -24,6 +25,16 @@
       <p>{{ t('tournamentProfileTab.noMmr') }}</p>
       <p class="text-sm mt-2">{{ t('tournamentProfileTab.noMmrHint') }}</p>
     </div>
+
+    <!-- The full history lives on the player's own page: it spans every
+         discipline, which a season's profile has no room to say. -->
+    <RankedCareerLink
+      v-if="store.playerCareer?.length && store.appUser"
+      :player-id="store.appUser.id"
+      :discipline-id="store.currentDisciplineId"
+      own
+      class="mt-4"
+    />
   </div>
 </template>
 
@@ -32,11 +43,12 @@ import { onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import RankedCareerLink from '@/components/ranked/RankedCareerLink.vue'
 
 const store = useTournamentDetailStore()
 const { t } = useI18n()
 
 onMounted(async () => {
-  await store.ensurePlayerProfile()
+  await Promise.all([store.ensurePlayerProfile(), store.ensurePlayerCareer()])
 })
 </script>

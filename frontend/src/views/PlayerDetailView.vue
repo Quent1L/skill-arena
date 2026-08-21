@@ -69,6 +69,26 @@
         :available-tournaments="availableTournaments"
       />
 
+      <!-- Scoped to one competition — arriving from a leaderboard, say — the career
+           is a link rather than a card: the page is about that season, and a history
+           spanning every other one would answer a question nobody asked here. -->
+      <RankedCareerLink
+        v-if="career.length && statsFilters.tournamentId"
+        :player-id="playerId"
+        :discipline-id="currentDisciplineId"
+        :own="isOwnProfile"
+      />
+
+      <!-- Unscoped, the career leads the page: it is what the link above comes for,
+           and below the branches it ended up under the match list on a narrow screen. -->
+      <PlayerRankedCareer
+        v-else-if="career.length"
+        :id="CAREER_ANCHOR"
+        :seasons="career"
+        :loading="careerLoading"
+        class="rounded-2xl p-4 scroll-mt-4"
+      />
+
       <!-- Loading -->
       <div v-if="loading || rankedLoading" class="flex justify-center py-12">
         <ProgressSpinner />
@@ -87,6 +107,7 @@
             :nemeses="stats?.nemeses"
             :opponent-quality="rankedOpponentQuality"
             :placement-matches="rankedPlacementMatches"
+            :career-peak="rankedCareerPeak"
             :recent-form="stats?.recentForm"
             :outcome-type-stats="stats?.outcomeTypeStats"
           />
@@ -106,6 +127,7 @@
             />
           </div>
         </div>
+
       </template>
 
       <!-- Ranked tournament but player not found in season -->
@@ -186,8 +208,15 @@
       </template>
 
       <!-- UNFILTERED VIEW: grouped by discipline + mode -->
-      <template v-else-if="!statsFilters.tournamentId && groupedStats && groupedStats.length > 0">
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <!-- Gated on the player having anything at all, NOT on the grouped list being
+           non-empty: everything below the grid — partners, form, rivalries, badges,
+           matches — belongs to the player, not to that grid. A player whose only
+           competitions are ranked seasons empties the grid, and used to lose the lot. -->
+      <template v-else-if="!statsFilters.tournamentId && hasAnyStats">
+        <div
+          v-if="groupedStats && groupedStats.length > 0"
+          class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+        >
           <div v-for="group in groupedStats" :key="group.key" class="rounded-2xl bg-gray-800 p-4">
             <!-- Group header -->
             <div class="flex items-center gap-2 mb-4">
@@ -278,6 +307,7 @@
         <!-- Badges -->
         <PlayerBadges :player-id="playerId" />
 
+
         <!-- All matches -->
         <div class="rounded-2xl p-4">
           <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">
@@ -297,30 +327,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
 import { usePlayerService } from '@/composables/player/player.service'
 import { useAuth } from '@/composables/useAuth'
 import { rankedApi } from '@/composables/ranked/ranked.api'
+import { CAREER_ANCHOR, careerPeak } from '@/composables/ranked/career'
 import type {
   PlayerStatsFilters,
-  PlayerTournamentEntry,
   ClientPlayerMmr,
   ClientRankTier,
   MmrChartPoint,
   OpponentQualityStats,
+  PlayerCareerSeason,
 } from '@skol-arena/shared/types/index'
 import MatchList from '@/components/MatchList.vue'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import PlayerRankedCareer from '@/components/ranked/PlayerRankedCareer.vue'
+import RankedCareerLink from '@/components/ranked/RankedCareerLink.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import RecentFormSection from '@/components/player/RecentFormSection.vue'
 import OutcomeTypeStats from '@/components/player/OutcomeTypeStats.vue'
 import H2HRivalries from '@/components/player/H2HRivalries.vue'
 import PlayerBadges from '@/components/player/PlayerBadges.vue'
 import StatsFiltersBar from '@/components/player/StatsFiltersBar.vue'
+import { groupTournamentHistory } from '@/composables/player/stats-grouping'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
 
@@ -343,12 +378,21 @@ const {
 
 const playerId = computed(() => route.params.id as string)
 
-const initialTournamentId = route.query.tournamentId as string | undefined
+// Same query keys the compare page uses. A link into this page can scope it — the
+// ranked career link opens it on the ranked runs of one discipline.
+function filtersFromQuery(query: RouteLocationNormalizedLoaded['query']): PlayerStatsFilters {
+  return {
+    ...(query.tournamentId ? { tournamentId: query.tournamentId as string } : {}),
+    ...(query.disciplineId ? { disciplineId: query.disciplineId as string } : {}),
+    ...(query.mode ? { tournamentMode: query.mode as string } : {}),
+  }
+}
 
-const statsFilters = ref<PlayerStatsFilters>(
-  initialTournamentId ? { tournamentId: initialTournamentId } : {},
-)
+const statsFilters = ref<PlayerStatsFilters>(filtersFromQuery(route.query))
 const showFilterDrawer = ref(false)
+
+/** Whether the page shows the signed-in player their own record, which the link says. */
+const isOwnProfile = computed(() => appUser.value?.id === playerId.value)
 
 // Ranked tournament detection
 const isRankedTournament = computed(() => {
@@ -366,6 +410,54 @@ const rankedHistory = ref<MmrChartPoint[]>([])
 const rankedOpponentQuality = ref<OpponentQualityStats | undefined>(undefined)
 const rankedPlacementMatches = ref(0)
 const rankedLoading = ref(false)
+
+// The career spans every season the player has ever played, so it is keyed on the
+// player alone — loaded once on mount, untouched by the stats filters.
+const career = ref<PlayerCareerSeason[]>([])
+const careerLoading = ref(false)
+
+async function loadCareer(pid: string) {
+  careerLoading.value = true
+  try {
+    career.value = (await rankedApi.getPlayerCareer(pid)).seasons
+  } catch {
+    career.value = []
+  } finally {
+    careerLoading.value = false
+  }
+  if (route.hash === `#${CAREER_ANCHOR}`) await scrollToCareer()
+}
+
+// The card is swapped in by a branch that depends on the filters, which the route
+// change updates a tick before this runs — and the surrounding sections settle over
+// a few frames after that. Poll briefly rather than guess a delay.
+async function scrollToCareer() {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await nextTick()
+    const card = document.getElementById(CAREER_ANCHOR)
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+  }
+}
+
+// The discipline of the season being viewed — read off the career row when there is
+// one, since that is the same snapshot the record is computed from.
+const currentDisciplineId = computed(() => {
+  const seasonId = statsFilters.value.tournamentId
+  if (!seasonId) return null
+  const fromCareer = career.value.find((season) => season.seasonId === seasonId)
+  if (fromCareer) return fromCareer.discipline?.id ?? null
+  return availableTournaments.value.find((tour) => tour.id === seasonId)?.disciplineId ?? null
+})
+
+// All-time record in that discipline. Null until the career lands, which leaves the
+// profile tile on its in-season fallback rather than showing a wrong number.
+const rankedCareerPeak = computed(() =>
+  currentDisciplineId.value ? careerPeak(career.value, currentDisciplineId.value) : null,
+)
 
 async function loadRankedData(seasonId: string, pid: string) {
   rankedLoading.value = true
@@ -391,45 +483,21 @@ async function loadRankedData(seasonId: string, pid: string) {
 }
 
 // Grouped stats for unfiltered view
+// Seasons the ranked career card already accounts for. Matched on the competition
+// id rather than the discipline name: a ranked season the career does not cover —
+// one with entries but no rated history — still belongs in the generic block.
+const careerSeasonIds = computed(() => new Set(career.value.map((season) => season.seasonId)))
+
+// The ranked career alone is enough to have something worth showing: a player who
+// only ever played ranked has no row left in the grouped grid once the career card
+// accounts for their seasons.
+const hasAnyStats = computed(
+  () => (stats.value?.totalMatches ?? 0) > 0 || career.value.length > 0,
+)
+
 const groupedStats = computed(() => {
   if (statsFilters.value.tournamentId || !stats.value) return null
-  type Group = {
-    key: string
-    discipline: string | null
-    mode: string
-    entries: PlayerTournamentEntry[]
-    totalMatches: number
-    wins: number
-    draws: number
-    losses: number
-    winRate: number
-  }
-  const map = new Map<
-    string,
-    Omit<Group, 'totalMatches' | 'wins' | 'draws' | 'losses' | 'winRate'> & {
-      entries: PlayerTournamentEntry[]
-    }
-  >()
-  for (const e of stats.value.tournamentHistory) {
-    const key = `${e.disciplineName ?? ''}_${e.mode}`
-    if (!map.has(key))
-      map.set(key, { key, discipline: e.disciplineName ?? null, mode: e.mode, entries: [] })
-    map.get(key)!.entries.push(e)
-  }
-  return [...map.values()].map((g): Group => {
-    const totalMatches = g.entries.reduce((s, e) => s + e.matchesPlayed, 0)
-    const wins = g.entries.reduce((s, e) => s + e.wins, 0)
-    const draws = g.entries.reduce((s, e) => s + e.draws, 0)
-    const losses = g.entries.reduce((s, e) => s + e.losses, 0)
-    return {
-      ...g,
-      totalMatches,
-      wins,
-      draws,
-      losses,
-      winRate: totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0,
-    }
-  })
+  return groupTournamentHistory(stats.value.tournamentHistory, careerSeasonIds.value)
 })
 
 const hasMultipleDisciplines = computed(() => {
@@ -467,6 +535,16 @@ function goToCompare() {
   router.push({ name: 'player-compare', query })
 }
 
+// Clicking the career link is an in-page navigation — same route, different query —
+// so nothing remounts and the URL has to be followed by hand.
+watch(
+  () => route.fullPath,
+  async () => {
+    statsFilters.value = filtersFromQuery(route.query)
+    if (route.hash === `#${CAREER_ANCHOR}`) await scrollToCareer()
+  },
+)
+
 // Load regular stats when filters change (skip for ranked tournaments)
 watch(statsFilters, (f) => {
   if (!isRankedTournament.value) {
@@ -487,7 +565,11 @@ watch([isRankedTournament, () => statsFilters.value.tournamentId], async ([isRan
 })
 
 onMounted(async () => {
-  await Promise.all([loadPlayer(playerId.value), loadTournaments(playerId.value)])
+  await Promise.all([
+    loadPlayer(playerId.value),
+    loadTournaments(playerId.value),
+    loadCareer(playerId.value),
+  ])
   if (isRankedTournament.value && statsFilters.value.tournamentId) {
     await loadRankedData(statsFilters.value.tournamentId, playerId.value)
   } else {

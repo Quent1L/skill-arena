@@ -176,7 +176,9 @@ const activeTab = computed(() => (route.params.tab as string) || 'infos')
 watch(
   () => activeTab.value === 'stats' && store.tournament?.mode === 'ranked',
   async (shouldLoad) => {
-    if (shouldLoad) await store.ensurePlayerProfile()
+    if (shouldLoad) {
+      await Promise.all([store.ensurePlayerProfile(), store.ensurePlayerCareer()])
+    }
   },
   { immediate: true },
 )
@@ -238,7 +240,9 @@ function navigate(tab: string) {
 
 async function handleNavigate(tab: string) {
   navigate(tab)
-  if (tab === 'stats' && store.tournament?.mode === 'ranked') await store.ensurePlayerProfile()
+  if (tab === 'stats' && store.tournament?.mode === 'ranked') {
+    await Promise.all([store.ensurePlayerProfile(), store.ensurePlayerCareer()])
+  }
 }
 
 function handleCreateMatch() {

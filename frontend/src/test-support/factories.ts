@@ -3,6 +3,7 @@ import type {
   ClientPlayerMmr,
   ClientRankTier,
   MmrAnimationEventResponse,
+  PlayerCareerSeason,
   StandingsEntry,
 } from '@skol-arena/shared'
 import { CHAMPIONSHIP_DEFAULTS, SCORING_DEFAULTS } from '@skol-arena/shared'
@@ -50,6 +51,32 @@ export function makeTier(over: Partial<ClientRankTier> = {}): ClientRankTier {
     subRanks: 1,
     iconClass: null,
     calculatedAt: new Date('2026-01-01'),
+    ...over,
+  }
+}
+
+export function makeCareerSeason(
+  over: Partial<PlayerCareerSeason> = {},
+): PlayerCareerSeason {
+  const id = nextId('season')
+  return {
+    seasonId: id,
+    seasonName: `Season ${id}`,
+    seasonStatus: 'finished',
+    startDate: new Date('2026-01-01'),
+    endDate: new Date('2026-06-30'),
+    discipline: { id: 'disc-1', name: 'Babyfoot', icon: 'fa fa-futbol' },
+    peakMmr: 1200,
+    avgMmr: 1100,
+    entryMmr: 1000,
+    finalMmr: 1150,
+    matchesPlayed: 10,
+    wins: 6,
+    losses: 3,
+    draws: 1,
+    placementMatches: 5,
+    placementsComplete: true,
+    tiers: [],
     ...over,
   }
 }

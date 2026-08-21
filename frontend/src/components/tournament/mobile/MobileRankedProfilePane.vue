@@ -7,6 +7,7 @@
       :tiers="store.rankedTiers"
       :leaderboard-rank="store.playerLeaderboardRank"
       :placement-matches="store.rankedPlacementMatches"
+      :career-peak="store.playerCareerPeak"
       :history="store.profileChartHistory"
       :opponent-quality="store.playerOpponentQuality"
       :recent-form="store.playerStats?.stats?.recentForm"
@@ -29,6 +30,16 @@
       <Skeleton height="4rem" class="rounded-xl" />
       <Skeleton height="10rem" class="rounded-xl" />
     </div>
+
+    <!-- The full history lives on the player's own page: it spans every
+         discipline, which a season's profile has no room to say. -->
+    <RankedCareerLink
+      v-if="store.playerCareer?.length && store.appUser"
+      :player-id="store.appUser.id"
+      :discipline-id="store.currentDisciplineId"
+      own
+      class="mt-4"
+    />
   </div>
 </template>
 
@@ -36,6 +47,7 @@
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import PlayerMmrProfile from '@/components/ranked/PlayerMmrProfile.vue'
+import RankedCareerLink from '@/components/ranked/RankedCareerLink.vue'
 import RewindEntryCard from '@/components/rewind/RewindEntryCard.vue'
 
 const { t } = useI18n()

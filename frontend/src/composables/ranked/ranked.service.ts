@@ -25,6 +25,9 @@ import { formDataToApiPayload } from '@skol-arena/shared/types/index'
 // maths can import it without pulling in this file's i18n dependency.
 import { getTierForMmr } from './tier-math'
 
+export { careerPeak, groupCareerByDiscipline } from './career'
+export type { CareerPeak, CareerDisciplineGroup } from './career'
+
 export {
   TIER_SIZE,
   MMR_FLOOR,

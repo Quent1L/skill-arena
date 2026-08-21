@@ -196,6 +196,52 @@ export const clientSeasonMmrPlayerSchema = clientPlayerMmrSchema
 
 export type ClientSeasonMmrPlayer = z.infer<typeof clientSeasonMmrPlayerSchema>;
 
+// One season of a player's ranked career, as listed by GET /ranked/players/:id/career.
+//
+// The season's own ladder ships with the row rather than a resolved tier name:
+// `rank_tiers` is per season and its thresholds move between seasons, so a peak
+// reached two seasons ago only means something against the ladder that was in
+// force then. The client resolves it with `getTierForMmr`, which is also where
+// the tier styling lives.
+export const playerCareerSeasonSchema = z
+  .object({
+    seasonId: z.string(),
+    seasonName: z.string(),
+    seasonStatus: z.string(),
+    // Dates as the client actually holds them: `tournaments.start_date` is a DATE
+    // column, and the xior interceptor revives "YYYY-MM-DD" into a Date — same
+    // convention as `calculatedAt` on the tiers shipped in this very payload.
+    startDate: z.date(),
+    endDate: z.date(),
+    discipline: z
+      .object({ id: z.string(), name: z.string(), icon: z.string().nullable() })
+      .nullable(),
+    /** Highest MMR held during the season, floored at the MMR the player entered on. */
+    peakMmr: z.number().int(),
+    /** Mean MMR over the season, entry MMR included as the first value. */
+    avgMmr: z.number().int(),
+    entryMmr: z.number().int(),
+    /** MMR at the closing bell, or the entry MMR when the season left no `player_mmr` row. */
+    finalMmr: z.number().int(),
+    matchesPlayed: z.number().int(),
+    wins: z.number().int(),
+    losses: z.number().int(),
+    draws: z.number().int(),
+    placementMatches: z.number().int(),
+    /** False while the player sits under the season's placement threshold. */
+    placementsComplete: z.boolean(),
+    tiers: z.array(clientRankTierSchema),
+  })
+  .meta({ id: "PlayerCareerSeason" });
+
+export type PlayerCareerSeason = z.infer<typeof playerCareerSeasonSchema>;
+
+export const playerCareerSchema = z
+  .object({ seasons: z.array(playerCareerSeasonSchema) })
+  .meta({ id: "PlayerCareer" });
+
+export type PlayerCareer = z.infer<typeof playerCareerSchema>;
+
 export const historyMatchSidePlayerSchema = z
   .object({
     id: z.string(),

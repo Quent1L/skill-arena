@@ -888,6 +888,9 @@ export const mmrHistory = pgTable(
   (table) => [
     unique().on(table.seasonId, table.playerId, table.matchId),
     index("idx_mmr_history_season_player").on(table.seasonId, table.playerId),
+    // Career reads walk one player across every season, so the composite index
+    // above cannot serve them: its leading column is the season.
+    index("idx_mmr_history_player").on(table.playerId),
   ],
 );
 

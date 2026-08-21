@@ -22,6 +22,7 @@ import {
   rankedLeaderboardSchema,
   seasonMmrLeaderboardSchema,
   playerMmrProfileSchema,
+  playerCareerSchema,
   clientMmrHistoryListSchema,
   weeklyMmrLeadersSchema,
   mmrAnimationEventResponseSchema,
@@ -451,6 +452,25 @@ ranked.get(
 
     const enriched = history.map((h) => ({ ...h, sides: sidesMap.get(h.matchId) ?? [] }));
     return c.json(enriched);
+  }
+);
+
+// GET /ranked/players/:playerId/career - Peak and average MMR, season by season
+ranked.get(
+  "/players/:playerId/career",
+  seasonRoute({
+    summary: "Get a player's ranked career",
+    description:
+      "One row per season the player has a rated match in, newest first, with the " +
+      "peak and average MMR of that run and the ladder in force at the time. The " +
+      "running season is included: unlike the season leaderboard, the record in " +
+      "progress counts. Seasons under the placement threshold are flagged, not hidden.",
+    success: { description: "The player's seasons, newest first", schema: playerCareerSchema },
+  }),
+  async (c) => {
+    const playerId = c.req.param("playerId")!;
+    const seasons = await rankedSeasonService.getPlayerCareer(playerId);
+    return c.json({ seasons });
   }
 );
 

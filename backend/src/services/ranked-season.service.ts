@@ -2,7 +2,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { mmrSeedRepository } from "../repository/mmr-seed.repository";
-import type { SeasonMmrStatsRow } from "../repository/player-mmr.repository";
+import type {
+  SeasonMmrStatsRow,
+  PlayerCareerMmrStatsRow,
+} from "../repository/player-mmr.repository";
 import { tournamentRepository } from "../repository/tournament.repository";
 import { userRepository } from "../repository/user.repository";
 import { rankedCacheRepository } from "../repository/ranked-cache.repository";
@@ -32,7 +35,9 @@ import type {
   CreateRankedSeasonInput,
   UpdateRankedSeasonInput,
   ClientPlayerMmr,
+  ClientRankTier,
   ClientSeasonMmrPlayer,
+  PlayerCareerSeason,
   TournamentStatus,
   WeeklyMmrLeader,
   WeeklyMmrLeaders,
@@ -112,6 +117,84 @@ export function mergeSeasonMmrStats(
     const stat = byPlayer.get(player.playerId);
     if (!stat) return [];
     return [{ ...player, peakMmr: stat.peakMmr, avgMmr: stat.avgMmr }];
+  });
+}
+
+/** The season metadata a career row is assembled from, as read in batch. */
+export interface CareerSeasonRef {
+  id: string;
+  name: string;
+  status: string;
+  startDate: string | Date;
+  endDate: string | Date;
+  discipline: { id: string; name: string; icon: string | null } | null;
+}
+
+export interface CareerPlayerMmrRef {
+  seasonId: string;
+  currentMmr: number;
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+/**
+ * Joins the per-season MMR aggregates onto the season metadata, the season's own
+ * ladder and the player's closing record.
+ *
+ * Driven by `stats`, not by `seasons`: a season only belongs to a career once the
+ * player has a rated match in it. A season the aggregates cover but the batch reads
+ * did not return is dropped — it was deleted between the two queries.
+ *
+ * Seasons under the placement threshold are kept and flagged rather than filtered,
+ * unlike the season leaderboard: they are still part of the player's history.
+ */
+export function buildPlayerCareer(
+  stats: PlayerCareerMmrStatsRow[],
+  seasons: CareerSeasonRef[],
+  tiers: ClientRankTier[],
+  mmrRows: CareerPlayerMmrRef[],
+  placementBySeason: Map<string, number>,
+): PlayerCareerSeason[] {
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const mmrBySeason = new Map(mmrRows.map((row) => [row.seasonId, row]));
+  const tiersBySeason = new Map<string, ClientRankTier[]>();
+  for (const tier of tiers) {
+    const list = tiersBySeason.get(tier.seasonId) ?? [];
+    list.push(tier);
+    tiersBySeason.set(tier.seasonId, list);
+  }
+
+  return stats.flatMap((stat) => {
+    const season = seasonById.get(stat.seasonId);
+    if (!season) return [];
+    const record = mmrBySeason.get(stat.seasonId);
+    const placementMatches = placementBySeason.get(stat.seasonId) ?? 0;
+
+    return [
+      {
+        seasonId: season.id,
+        seasonName: season.name,
+        seasonStatus: season.status,
+        startDate: season.startDate,
+        endDate: season.endDate,
+        discipline: season.discipline,
+        peakMmr: stat.peakMmr,
+        avgMmr: stat.avgMmr,
+        entryMmr: stat.entryMmr,
+        // A player with history but no player_mmr row cannot happen through the
+        // normal path — both are written by the same replay — but a half-applied
+        // recalculation should degrade to the entry MMR, not to zero.
+        finalMmr: record?.currentMmr ?? stat.entryMmr,
+        matchesPlayed: stat.matchesPlayed,
+        wins: record?.wins ?? 0,
+        losses: record?.losses ?? 0,
+        draws: record?.draws ?? 0,
+        placementMatches,
+        placementsComplete: stat.matchesPlayed >= placementMatches,
+        tiers: tiersBySeason.get(season.id) ?? [],
+      } as PlayerCareerSeason,
+    ];
   });
 }
 
@@ -747,6 +830,41 @@ export class RankedSeasonService {
       playerMmrRepository.getSeasonMmrStats(seasonId, season.rankedConfig?.placementMatches ?? 0),
     ]);
     return mergeSeasonMmrStats(players as ClientPlayerMmr[], stats);
+  }
+
+  // The season leaderboard transposed: one player, every season they have a rated
+  // match in, newest first. Unlike getSeasonMmrLeaderboard this is NOT restricted to
+  // finished seasons — the point of the career view is that the record in progress
+  // counts, so the running season shows up alongside the closed ones.
+  //
+  // Uncached for the same reason as the leaderboard, plus one of its own: a season
+  // recalculation wipes and rebuilds mmr_history wholesale, so any cache derived
+  // from it would have to be invalidated by the recalculation worker.
+  async getPlayerCareer(playerId: string): Promise<PlayerCareerSeason[]> {
+    const stats = await playerMmrRepository.getPlayerCareerMmrStats(playerId);
+    if (stats.length === 0) return [];
+
+    const seasonIds = stats.map((stat) => stat.seasonId);
+    const [seasons, tiers, configs, mmrRows] = await Promise.all([
+      rankedSeasonRepository.getSeasonsByIds(seasonIds),
+      rankedSeasonRepository.getRankTiersForSeasons(seasonIds),
+      rankedSeasonRepository.getConfigsByTournamentIds(seasonIds),
+      playerMmrRepository.getByPlayerAcrossSeasons(playerId),
+    ]);
+
+    const placementBySeason = new Map(
+      configs.map((config) => [config.tournamentId, config.placementMatches]),
+    );
+    const career = buildPlayerCareer(
+      stats,
+      seasons as CareerSeasonRef[],
+      tiers as ClientRankTier[],
+      mmrRows,
+      placementBySeason,
+    );
+    return career.sort(
+      (a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime(),
+    );
   }
 
   async computeAndCacheOfficial(seasonId: string): Promise<void> {

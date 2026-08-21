@@ -49,6 +49,23 @@ type SeasonMmrStatsRawRow = {
   matches_played: number;
 };
 
+/** The same aggregates as `SeasonMmrStatsRow`, transposed: one player, every season. */
+export interface PlayerCareerMmrStatsRow {
+  seasonId: string;
+  peakMmr: number;
+  avgMmr: number;
+  entryMmr: number;
+  matchesPlayed: number;
+}
+
+type PlayerCareerMmrStatsRawRow = {
+  season_id: string;
+  peak_mmr: number;
+  avg_mmr: number;
+  entry_mmr: number;
+  matches_played: number;
+};
+
 export class PlayerMmrRepository {
   async getBySeasonAndPlayer(seasonId: string, playerId: string) {
     return await db.query.playerMmr.findFirst({
@@ -511,6 +528,50 @@ export class PlayerMmrRepository {
       avgMmr: Number(row.avg_mmr),
       matchesPlayed: Number(row.matches_played),
     }));
+  }
+
+  // The same aggregates as getSeasonMmrStats above, partitioned by season instead
+  // of by player. The seeding convention is repeated verbatim on purpose: a career
+  // row and a season leaderboard row for the same (player, season) have to agree,
+  // and an integration test asserts that parity.
+  //
+  // No HAVING here: a season the player never finished their placements in still
+  // belongs to their career, and the service marks it instead of hiding it.
+  async getPlayerCareerMmrStats(playerId: string): Promise<PlayerCareerMmrStatsRow[]> {
+    const result = await db.execute(sql`
+      WITH ordered AS (
+        SELECT mh.season_id, mh.mmr_before, mh.mmr_after,
+               ROW_NUMBER() OVER (PARTITION BY mh.season_id
+                                  ORDER BY m.played_at ASC, m.id ASC) AS rn
+        FROM mmr_history mh
+        INNER JOIN matches m ON m.id = mh.match_id
+        WHERE mh.player_id = ${playerId}
+      ),
+      seed AS (SELECT season_id, mmr_before FROM ordered WHERE rn = 1)
+      SELECT o.season_id,
+             GREATEST(MAX(o.mmr_after), MIN(s.mmr_before))::int AS peak_mmr,
+             ROUND((SUM(o.mmr_after) + MIN(s.mmr_before))::numeric / (COUNT(*) + 1))::int AS avg_mmr,
+             MIN(s.mmr_before)::int AS entry_mmr,
+             COUNT(*)::int AS matches_played
+      FROM ordered o
+      JOIN seed s ON s.season_id = o.season_id
+      GROUP BY o.season_id
+    `);
+
+    return (result.rows as PlayerCareerMmrStatsRawRow[]).map((row) => ({
+      seasonId: row.season_id,
+      peakMmr: Number(row.peak_mmr),
+      avgMmr: Number(row.avg_mmr),
+      entryMmr: Number(row.entry_mmr),
+      matchesPlayed: Number(row.matches_played),
+    }));
+  }
+
+  /** Every `player_mmr` row of one player, all seasons — the closing state of each run. */
+  async getByPlayerAcrossSeasons(playerId: string) {
+    return await db.query.playerMmr.findMany({
+      where: eq(playerMmr.playerId, playerId),
+    });
   }
 
   async getOpponentQualityStats(seasonId: string, playerId: string): Promise<OpponentQualityStats> {

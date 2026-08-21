@@ -108,7 +108,10 @@
       </div>
       <!-- Wider labels than the tiles above, so they get half the row each -->
       <div class="col-span-3 grid grid-cols-2 gap-3">
-        <div class="rounded-xl p-3 text-center bg-gray-800" data-test="peak-tile">
+        <div
+          class="rounded-xl p-3 text-center bg-gray-800 flex flex-col justify-center"
+          data-test="peak-tile"
+        >
           <div class="flex items-center justify-center gap-2">
             <i
               v-if="peakTier"
@@ -121,8 +124,19 @@
             </span>
           </div>
           <div class="text-xs text-gray-400 mt-0.5">{{ t('playerMmrProfile.peakLabel') }}</div>
+          <div
+            v-if="careerPeak"
+            class="text-xs text-gray-500 truncate"
+            :title="careerPeak.seasonName"
+            data-test="peak-season"
+          >
+            {{ t('playerMmrProfile.peakInSeason', { season: careerPeak.seasonName }) }}
+          </div>
         </div>
-        <div class="rounded-xl p-3 text-center bg-gray-800" data-test="weekly-tile">
+        <div
+          class="rounded-xl p-3 text-center bg-gray-800 flex flex-col justify-center"
+          data-test="weekly-tile"
+        >
           <div
             class="text-xl font-black tabular-nums"
             :class="
@@ -161,7 +175,9 @@
           <span class="text-green-400">{{ mmr.wins }}{{ t('playerMmrProfile.winsShort') }}</span>
           <template v-if="showDraws">
             <span class="text-gray-600 mx-1">/</span>
-            <span class="text-yellow-400">{{ mmr.draws }}{{ t('playerMmrProfile.drawsShort') }}</span>
+            <span class="text-yellow-400"
+              >{{ mmr.draws }}{{ t('playerMmrProfile.drawsShort') }}</span
+            >
           </template>
           <span class="text-gray-600 mx-1">/</span>
           <span class="text-red-400">{{ mmr.losses }}{{ t('playerMmrProfile.lossesShort') }}</span>
@@ -330,6 +346,7 @@ import {
   getWeeklyMmrGain,
   getCurrentWeekStart,
 } from '@/composables/ranked/ranked.service'
+import type { CareerPeak } from '@/composables/ranked/career'
 import {
   getTierIconClass,
   TIER_TEXT_CLASS as TIER_TEXT,
@@ -365,6 +382,12 @@ const props = defineProps<{
   allowDraw?: boolean
   /** Matches needed to be ranked; below it the player holds no position. */
   placementMatches?: number
+  /**
+   * All-time record in this discipline, seasons included. Optional: without it the
+   * tile falls back to the peak of the season being shown, so the component stays
+   * usable on its own.
+   */
+  careerPeak?: CareerPeak | null
 }>()
 
 const placementRemaining = computed(() =>
@@ -375,15 +398,20 @@ const showDraws = computed(() => props.allowDraw === true || props.mmr.draws > 0
 
 const rank = computed(() => getTierForMmr(props.mmr.currentMmr, props.tiers))
 
+// The all-time record when the caller resolved one, the season's own peak otherwise.
 const peakMmr = computed(() => {
+  if (props.careerPeak) return props.careerPeak.mmr
   const peak = getPeakMmr(props.history ?? [])
   // No history yet: the current MMR is, by definition, the highest reached.
   return peak ?? (props.mmr.matchesPlayed > 0 ? props.mmr.currentMmr : null)
 })
 
-const peakTier = computed(() =>
-  peakMmr.value === null ? null : getTierForMmr(peakMmr.value, props.tiers),
-)
+// A past record is read on the ladder of the season that set it — `careerPeak`
+// carries that tier. Only the in-season fallback resolves against today's ladder.
+const peakTier = computed(() => {
+  if (props.careerPeak) return props.careerPeak.tier
+  return peakMmr.value === null ? null : getTierForMmr(peakMmr.value, props.tiers)
+})
 
 const peakTierTextClass = computed(() => TIER_TEXT[styleIdx(peakTier.value)])
 
@@ -422,9 +450,7 @@ const lpProgress = computed(() => {
 const cardBgClass = computed(() => CARD_BG[styleIdx(rank.value)])
 const iconBgClass = computed(() => ICON_BG[styleIdx(rank.value)])
 const tierTextClass = computed(() => TIER_TEXT[styleIdx(rank.value)])
-const nextTierTextClass = computed(() =>
-  lpProgress.value ? TIER_TEXT[styleIdx(rank.value)] : '',
-)
+const nextTierTextClass = computed(() => (lpProgress.value ? TIER_TEXT[styleIdx(rank.value)] : ''))
 const progressBarClass = computed(() =>
   lpProgress.value ? PROGRESS_BAR[styleIdx(rank.value)] : '',
 )

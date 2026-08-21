@@ -11,6 +11,7 @@ import type {
   ClientTournamentSummary,
   OpponentQualityStats,
   MmrChartPoint,
+  PlayerCareerSeason,
   WeeklyMmrLeaders,
 } from '@skol-arena/shared/types/index'
 
@@ -65,6 +66,10 @@ export type LeaderboardResponse = {
 
 export type SeasonMmrLeaderboardResponse = {
   players: ClientSeasonMmrPlayer[]
+}
+
+export type PlayerCareerResponse = {
+  seasons: PlayerCareerSeason[]
 }
 
 export type PlayerMmrResponse = {
@@ -133,6 +138,11 @@ export const rankedApi = {
     const response = await http.get<PlayerMmrResponse>(
       `${BASE_URL}/seasons/${seasonId}/players/${playerId}`,
     )
+    return response.data
+  },
+
+  async getPlayerCareer(playerId: string): Promise<PlayerCareerResponse> {
+    const response = await http.get<PlayerCareerResponse>(`${BASE_URL}/players/${playerId}/career`)
     return response.data
   },
 

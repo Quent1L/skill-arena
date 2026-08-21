@@ -547,6 +547,13 @@
       "when": 1777526400033,
       "tag": "0077_seasonal_badges",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1777526400034,
+      "tag": "0078_mmr_history_player_index",
+      "breakpoints": true
     }
   ]
 }

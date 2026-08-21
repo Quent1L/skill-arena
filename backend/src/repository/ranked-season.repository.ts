@@ -249,6 +249,45 @@ export class RankedSeasonRepository {
   }
 
   /**
+   * Season rows by id, with their discipline. Batch counterpart of the per-season
+   * lookups above: a career read resolves every season a player has ever played in,
+   * and doing that one round trip at a time scales with the player's history.
+   */
+  async getSeasonsByIds(ids: string[]) {
+    if (ids.length === 0) return [];
+    return await db.query.tournaments.findMany({
+      where: and(eq(tournaments.mode, "ranked"), inArray(tournaments.id, ids)),
+      columns: {
+        id: true,
+        name: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        disciplineId: true,
+      },
+      with: { discipline: { columns: { id: true, name: true, icon: true } } },
+      orderBy: (t, { desc }) => [desc(t.endDate)],
+    });
+  }
+
+  /** Batch counterpart of `getRankTiers`, ordered so each season's ladder stays 1..N. */
+  async getRankTiersForSeasons(seasonIds: string[]) {
+    if (seasonIds.length === 0) return [];
+    return await db.query.rankTiers.findMany({
+      where: inArray(rankTiers.seasonId, seasonIds),
+      orderBy: (t, { asc }) => [asc(t.seasonId), asc(t.level)],
+    });
+  }
+
+  /** Batch counterpart of `getConfigByTournamentId`. */
+  async getConfigsByTournamentIds(tournamentIds: string[]) {
+    if (tournamentIds.length === 0) return [];
+    return await db.query.rankedSeasonConfigs.findMany({
+      where: inArray(rankedSeasonConfigs.tournamentId, tournamentIds),
+    });
+  }
+
+  /**
    * Move the given tiers to their new level in two passes, through negative
    * values: UNIQUE(season_id, level) is checked row by row, so a single pass
    * would collide with a tier that has not moved yet.

@@ -11,9 +11,15 @@ import {
 } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
 import { playerApi } from '@/composables/player/player.api'
+import { rankedApi } from '@/composables/ranked/ranked.api'
+import { careerPeak } from '@/composables/ranked/career'
 import { calculateDuration } from '@/utils/DateUtils'
 import { assignCompetitionRanks } from '@/utils/competition-rank'
-import type { MmrChartPoint, PlayerStatsResponse } from '@skol-arena/shared/types/index'
+import type {
+  MmrChartPoint,
+  PlayerCareerSeason,
+  PlayerStatsResponse,
+} from '@skol-arena/shared/types/index'
 
 export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const router = useRouter()
@@ -30,6 +36,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const joining = ref(false)
   const leaving = ref(false)
   const profileChartHistory = ref<MmrChartPoint[]>([])
+  // Keyed on the logged-in player, not on the tournament, so it survives
+  // `resetTournamentScopedState`. Null means "not loaded yet"; an empty array is a
+  // player with no ranked history.
+  const playerCareer = ref<PlayerCareerSeason[] | null>(null)
   const playerStats = ref<PlayerStatsResponse | null>(null)
   const isLeaderboardRecalculating = ref(false)
   // Week the cached weeklyMmrLeaders belongs to, so a session left open across the
@@ -215,8 +225,12 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     }
   }
 
+  // MMR only exists in ranked seasons: without the mode guard the profile tab fires
+  // ranked endpoints against a championship id, which 404s on a good day and reads as
+  // a ranked call on a non-ranked competition on any other.
   async function ensurePlayerProfile() {
     if (!tournamentId.value || !appUser.value?.id) return
+    if (tournament.value?.mode !== 'ranked') return
     if (!playerMmr.value) {
       const [chartHistory] = await Promise.all([
         rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
@@ -226,6 +240,34 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
       profileChartHistory.value = chartHistory
     }
   }
+
+  async function loadPlayerCareer() {
+    if (!appUser.value?.id) return
+    if (tournament.value?.mode !== 'ranked') return
+    try {
+      playerCareer.value = (await rankedApi.getPlayerCareer(appUser.value.id)).seasons
+    } catch {
+      playerCareer.value = []
+    }
+  }
+
+  async function ensurePlayerCareer() {
+    if (playerCareer.value !== null) return
+    await loadPlayerCareer()
+  }
+
+  // The discipline this season is played under. Read off the career payload when it
+  // covers the season, since that is the snapshot the aggregates are computed from;
+  // the tournament's own discipline is the fallback.
+  const currentDisciplineId = computed(() => {
+    const current = playerCareer.value?.find((season) => season.seasonId === tournamentId.value)
+    return (current ? current.discipline?.id : tournament.value?.disciplineId) ?? null
+  })
+
+  /** The player's all-time record on this discipline's ladder. */
+  const playerCareerPeak = computed(() =>
+    currentDisciplineId.value ? careerPeak(playerCareer.value ?? [], currentDisciplineId.value) : null,
+  )
 
   async function ensureStats() {
     if (!tournamentId.value) return
@@ -255,10 +297,14 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
 
   async function reloadPlayerProfile() {
     if (!tournamentId.value || !appUser.value?.id) return
+    if (tournament.value?.mode !== 'ranked') return
     const [chartHistory] = await Promise.all([
       rankedSvc.loadPlayerMmr(tournamentId.value, appUser.value.id),
       playerApi.getStats(appUser.value.id, { tournamentId: tournamentId.value })
         .then((s) => { playerStats.value = s }),
+      // A rated match can break the all-time record, so the career is refreshed
+      // with the profile rather than left on the value fetched at mount.
+      playerCareer.value === null ? Promise.resolve() : loadPlayerCareer(),
     ])
     profileChartHistory.value = chartHistory
   }
@@ -338,6 +384,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     rankedSeasonMmrLoading,
     isLeaderboardRecalculating,
     profileChartHistory,
+    playerCareer,
+    playerCareerPeak,
+    currentDisciplineId,
+    ensurePlayerCareer,
     playerLeaderboardRank,
     weeklyMmrLeaders,
     // Tournament stats
