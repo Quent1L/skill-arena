@@ -12,6 +12,7 @@ import { enqueueSeasonRewindGeneration } from '../services/mmr-job-queue.service
 import { tournamentRepository } from '../repository/tournament.repository';
 import { tournamentRulesetRepository } from '../repository/tournament-ruleset.repository';
 import { logger } from '../utils/logger';
+import { NotFoundError } from '../types/errors';
 
 interface FinalizeMmrPayload {
   matchId: string;
@@ -210,7 +211,26 @@ const refreshRewindIdentities: Task = async (rawPayload) => {
   logger.info({ players: playerIds.length }, '[Worker] refresh_rewind_identities done');
 };
 
-export const taskList = {
+/**
+ * A job names its subject by id, and that subject can be gone by the time the
+ * job runs — a season deleted, a database reset under a queue that survived it.
+ * Graphile reads every throw as transient and would replay such a job its full
+ * 25 attempts, hours of log noise for a failure that was final on the first try.
+ * A missing subject ends the job instead; every other error still bubbles up and
+ * keeps its retries.
+ */
+function dropWhenSubjectIsGone(name: string, task: Task): Task {
+  return async (payload, helpers) => {
+    try {
+      await task(payload, helpers);
+    } catch (err) {
+      if (!(err instanceof NotFoundError)) throw err;
+      logger.warn({ err, payload, task: name }, '[Worker] subject no longer exists, job dropped');
+    }
+  };
+}
+
+const tasks = {
   finalize_match_mmr: finalizeMatchMmr,
   cancel_match_mmr: cancelMatchMmr,
   recalculate_season_mmr: recalculateSeasonMmr,
@@ -218,3 +238,7 @@ export const taskList = {
   generate_season_rewind: generateSeasonRewind,
   refresh_rewind_identities: refreshRewindIdentities,
 };
+
+export const taskList = Object.fromEntries(
+  Object.entries(tasks).map(([name, task]) => [name, dropWhenSubjectIsGone(name, task)]),
+) as typeof tasks;
