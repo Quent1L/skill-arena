@@ -313,6 +313,16 @@ function resultToOutcome(result: MatchResult): ProvisionalOutcome {
   return "draw";
 }
 
+/** Today as `YYYY-MM-DD`, the shape the season date columns are stored in. */
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Latest of two `YYYY-MM-DD` days — that format orders correctly as a string. */
+function laterIsoDate(a: string, b: string): string {
+  return a >= b ? a : b;
+}
+
 /**
  * Frozen the moment the season starts.
  *
@@ -413,7 +423,14 @@ export class RankedSeasonService {
     // moves it, and that propagation recalculates the season.
     await tournamentRulesetService.freeze(id);
 
-    await tournamentRepository.update(id, { status: "ongoing" });
+    // The dates entered on the draft are a forecast; the season really begins
+    // when the admin presses start. Realigning it here keeps the window that
+    // everything else reads (momentum chart, rewind, "days played") from
+    // counting days the season spent as a draft.
+    await tournamentRepository.update(id, {
+      status: "ongoing",
+      startDate: todayIsoDate(),
+    });
     const copied = config?.sourceTierSeasonId
       ? await this.copyTiersFromSeason(id, config.sourceTierSeasonId, config)
       : false;
@@ -508,7 +525,13 @@ export class RankedSeasonService {
       throw new BadRequestError(ErrorCode.TOURNAMENT_INVALID_STATUS);
     }
 
-    await tournamentRepository.update(id, { status: "finished" });
+    // Same for the end: a season stopped before its planned term must not keep
+    // advertising an end date in the future. Clamped to the start date so a
+    // season opened and closed the same day never ends before it began.
+    await tournamentRepository.update(id, {
+      status: "finished",
+      endDate: laterIsoDate(todayIsoDate(), season.startDate),
+    });
 
     // Warm the official leaderboard first: the rewind reads the final standings,
     // and the peak/average views only unlock once the season is finished.
