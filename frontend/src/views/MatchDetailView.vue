@@ -388,7 +388,7 @@ import { useCountUp } from '@/composables/ui/useCountUp'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
 import { formatDistanceToNow } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { dateFnsLocaleFor } from '@/utils/DateFnsLocale'
 
 const { t, locale } = useI18n()
 const { statusLabel, statusDotClass, statusTextClass } = useMatchStatus()
@@ -595,7 +595,7 @@ const postFinalizationTimeRemaining = computed(() => {
   if (!match.value?.result?.finalizedAt) return ''
   const deadline = new Date(match.value.result.finalizedAt)
   deadline.setDate(deadline.getDate() + 7)
-  return formatDistanceToNow(deadline, { locale: fr, addSuffix: true })
+  return formatDistanceToNow(deadline, { locale: dateFnsLocaleFor(locale.value), addSuffix: true })
 })
 
 const canCancelFinalizedMatch = computed(() => {

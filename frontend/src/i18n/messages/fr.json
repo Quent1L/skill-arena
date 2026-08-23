@@ -1094,8 +1094,10 @@
     "championship": "Championnat",
     "compare": "Se comparer",
     "discipline": "Discipline",
+    "drawsShort": "N",
     "filters": "Filtres",
     "last10Matches": "Historique des 10 derniers matchs",
+    "lossesShort": "D",
     "matches": "Matchs",
     "matchesPlayedAbbr": "MJ",
     "mode": "Mode",
@@ -1104,8 +1106,10 @@
     "ranked": "Ranked",
     "reset": "Réinitialiser",
     "tournament": "Tournoi",
+    "tournamentCount": "{count} tournoi | {count} tournois",
     "wdLabel": "V / D",
     "winrate": "Winrate",
+    "winsShort": "V",
     "wldLabel": "V / N / D"
   },
   "playerMmrProfile": {
@@ -1354,6 +1358,11 @@
     "statusOpen": "Ouvert",
     "title": "Gestion des rangs",
     "tooltipBack": "Retour à la liste"
+  },
+  "recentFormBadges": {
+    "drawsShort": "N",
+    "lossesShort": "D",
+    "winsShort": "V"
   },
   "recentFormSection": {
     "title": "Forme récente",

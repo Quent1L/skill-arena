@@ -1094,8 +1094,10 @@
     "championship": "Championship",
     "compare": "Compare",
     "discipline": "Discipline",
+    "drawsShort": "D",
     "filters": "Filters",
     "last10Matches": "Last 10 matches",
+    "lossesShort": "L",
     "matches": "Matches",
     "matchesPlayedAbbr": "MP",
     "mode": "Mode",
@@ -1104,8 +1106,10 @@
     "ranked": "Ranked",
     "reset": "Reset",
     "tournament": "Tournament",
+    "tournamentCount": "{count} tournament | {count} tournaments",
     "wdLabel": "W / L",
     "winrate": "Win rate",
+    "winsShort": "W",
     "wldLabel": "W / D / L"
   },
   "playerMmrProfile": {
@@ -1354,6 +1358,11 @@
     "statusOpen": "Open",
     "title": "Tier management",
     "tooltipBack": "Back to list"
+  },
+  "recentFormBadges": {
+    "drawsShort": "D",
+    "lossesShort": "L",
+    "winsShort": "W"
   },
   "recentFormSection": {
     "title": "Recent form",

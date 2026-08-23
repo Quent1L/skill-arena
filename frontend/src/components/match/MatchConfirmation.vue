@@ -183,7 +183,7 @@ import SectionHeader from '@/components/ui/SectionHeader.vue';
 import SurfacePanel from '@/components/ui/SurfacePanel.vue';
 import { buildConfirmationStatusMap } from '@/composables/match/match-confirmation-status';
 import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { dateFnsLocaleFor } from '@/utils/DateFnsLocale';
 
 interface Props {
   match: ClientMatchDetail;
@@ -285,7 +285,7 @@ const isExpired = computed(() => {
 const timeRemaining = computed(() => {
   if (!props.match.confirmationDeadline) return '';
   return formatDistanceToNow(new Date(props.match.confirmationDeadline), {
-    locale: fr,
+    locale: dateFnsLocaleFor(locale.value),
     addSuffix: true
   });
 });

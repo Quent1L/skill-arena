@@ -229,7 +229,7 @@
                 >{{ modeLabel(group.mode) }}</span
               >
               <span class="ml-auto text-xs text-gray-500"
-                >{{ group.entries.length }} tournoi{{ group.entries.length > 1 ? 's' : '' }}</span
+                >{{ t('playerDetailView.tournamentCount', { count: group.entries.length }) }}</span
               >
             </div>
 
@@ -245,9 +245,9 @@
               </div>
               <div class="rounded-xl bg-gray-700/50 p-3 text-center">
                 <div class="text-lg font-black">
-                  <span class="text-green-400">{{ group.wins }}V</span>
+                  <span class="text-green-400">{{ group.wins }}{{ t('playerDetailView.winsShort') }}</span>
                   <span class="text-gray-600 text-sm mx-0.5">/</span>
-                  <span class="text-red-400">{{ group.losses }}D</span>
+                  <span class="text-red-400">{{ group.losses }}{{ t('playerDetailView.lossesShort') }}</span>
                 </div>
                 <div class="text-xs text-gray-400 mt-0.5">{{ t('playerDetailView.wdLabel') }}</div>
               </div>
@@ -267,9 +267,9 @@
                 <span class="text-xs text-gray-400 shrink-0 ml-3 tabular-nums">
                   {{ entry.matchesPlayed }}
                   {{ t('playerDetailView.matchesPlayedAbbr') }} &nbsp;·&nbsp;
-                  <span class="text-green-400">{{ entry.wins }}V</span>
+                  <span class="text-green-400">{{ entry.wins }}{{ t('playerDetailView.winsShort') }}</span>
                   <span class="text-gray-600"> / </span>
-                  <span class="text-red-400">{{ entry.losses }}D</span>
+                  <span class="text-red-400">{{ entry.losses }}{{ t('playerDetailView.lossesShort') }}</span>
                 </span>
               </RouterLink>
             </div>
