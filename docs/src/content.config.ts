@@ -17,4 +17,18 @@ const showcase = defineCollection({
   }),
 })
 
-export const collections = { showcase }
+// Unlike showcase, whose entries are fragments pulled into pages, a blog entry *is*
+// a page: src/pages/blog/[...slug].astro routes it.
+const blog = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/blog' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.coerce.date(),
+    tag: z.string().optional(),
+    version: z.string().optional(),
+    draft: z.boolean().default(false),
+  }),
+})
+
+export const collections = { showcase, blog }

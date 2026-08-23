@@ -1,6 +1,19 @@
 # Skol Arena - Tournament Management App
 
 Tournament management application with a Hono/Bun backend and a Vue 3 frontend.
+Open source, self-hostable, licensed under [AGPL-3.0](LICENSE).
+
+## Run it
+
+Skol Arena ships as a single Docker image holding the API, the built frontend and its
+database migrations, which run at startup. All you need is a PostgreSQL database.
+
+```bash
+docker pull quent1l/skol-arena:latest
+```
+
+The full Compose setup, every environment variable and the product reference live in the
+`docs/` workspace — run `cd docs && bun run dev`, or read them on the documentation site.
 
 ## Quick Start
 
@@ -34,7 +47,8 @@ bun run dev
 skol-arena/
 ├── shared/          # @skol-arena/shared — TypeScript types + Zod schemas
 ├── backend/         # Hono API server
-└── frontend/        # Vue 3 SPA
+├── frontend/        # Vue 3 SPA
+└── docs/            # @skol-arena/docs — Astro site (showcase, blog, self-hosting docs)
 ```
 
 ## Available Commands

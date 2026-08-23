@@ -101,6 +101,11 @@ Content lives in two places:
 - **`docs/src/pages/docs/*.md`** — real routes using the `layout:` frontmatter pattern.
   Outside any collection, so no schema validation. The sidebar in `DocsLayout.astro` is a
   hardcoded array — add new pages there manually.
+- **`docs/src/content/blog/`** — a content collection whose entries **are** pages, unlike
+  showcase: `pages/blog/[...slug].astro` routes them through `BlogPostLayout.astro` (no
+  `layout:` frontmatter), and `pages/blog/index.astro` lists them. `src/lib/posts.ts` owns
+  the sort and the draft filter — a `draft: true` post renders in dev and is dropped from
+  the build.
 
 Search is **Pagefind** (`astro-pagefind` integration), indexing the built HTML:
 

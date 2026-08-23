@@ -1,0 +1,83 @@
+---
+import BaseLayout from './BaseLayout.astro'
+import { formatDate } from '../lib/posts'
+
+interface Props {
+  title: string
+  description: string
+  date: Date
+  tag?: string
+  version?: string
+}
+const { title, description, date, tag, version } = Astro.props
+
+// Same prose configuration as DocsLayout: inverted palette, sectioned h2 rules, and
+// the mobile table overflow guard.
+const prose =
+  'prose prose-invert min-w-0 max-w-none prose-headings:font-bold prose-headings:text-white prose-h2:mt-12 prose-h2:border-b prose-h2:border-white/10 prose-h2:pb-2 prose-a:text-brand-mid prose-a:no-underline hover:prose-a:underline prose-code:rounded prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-brand-end prose-code:before:content-none prose-code:after:content-none prose-pre:border prose-pre:border-white/10 prose-pre:bg-black/40 prose-th:text-slate-200 prose-strong:text-slate-100 max-sm:[&_table]:block max-sm:[&_table]:w-max max-sm:[&_table]:max-w-full max-sm:[&_table]:overflow-x-auto'
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="relative overflow-hidden">
+    <div class="bg-grid pointer-events-none absolute inset-0 opacity-60"></div>
+
+    <header class="relative mx-auto max-w-3xl px-6 pt-16 pb-10">
+      <a href="/blog" class="text-sm font-semibold text-brand-mid hover:text-brand-end">
+        ← All posts
+      </a>
+      <div class="mt-6 flex flex-wrap items-center gap-2">
+        {
+          tag && (
+            <span class="rounded-full border border-brand-mid/30 bg-brand-start/15 px-3 py-1 text-xs font-semibold tracking-wider text-brand-mid uppercase">
+              {tag}
+            </span>
+          )
+        }
+        {
+          version && (
+            <span class="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
+              v{version}
+            </span>
+          )
+        }
+        <time datetime={date.toISOString()} class="text-sm text-slate-400">
+          {formatDate(date)}
+        </time>
+      </div>
+      <h1 class="animate-fade-up mt-4 text-3xl font-extrabold text-balance sm:text-4xl">
+        <span class="text-gradient">{title}</span>
+      </h1>
+      <p class="animate-fade-up mt-4 text-lg leading-relaxed text-slate-300">{description}</p>
+    </header>
+
+    <div class="relative mx-auto max-w-3xl px-6 pb-20">
+      <div class={prose}>
+        <slot />
+      </div>
+    </div>
+  </article>
+
+  <section class="relative border-t border-white/10 bg-black/20">
+    <div class="mx-auto flex max-w-3xl flex-col items-center gap-4 px-6 py-14 text-center">
+      <h2 class="text-2xl font-bold text-white">Run it yourself</h2>
+      <p class="text-slate-400">
+        One Docker container and a PostgreSQL database. The self-hosting guide walks through every
+        environment variable and the full Compose setup.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <a
+          href="/docs"
+          class="rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
+        >
+          Read the docs
+        </a>
+        <a
+          href="/blog"
+          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+        >
+          More posts
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
