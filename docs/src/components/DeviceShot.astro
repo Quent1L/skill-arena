@@ -1,0 +1,245 @@
+---
+/**
+ * A real product screenshot, shown as the phone the app was designed for.
+ *
+ * Inline it is always the mobile capture: Skol is mobile-first, and a 1440px wide
+ * desktop screen scaled down to fit a column renders its own 14px text at about
+ * 6px, which reads as a blurry smudge no amount of resolution fixes.
+ *
+ * Clicking opens it full screen at its native size, and only there can you switch
+ * to the desktop capture. Keeping the switch out of the page also keeps the card
+ * from resizing under the reader when the two layouts have different heights.
+ *
+ * Captures come from docs/screenshots (see the README there), never from a
+ * mockup: what is on this page is what the app looks like.
+ */
+import { Image } from 'astro:assets'
+import type { ImageMetadata } from 'astro'
+import Icon from './Icon.astro'
+
+interface Props {
+  desktop: ImageMetadata
+  mobile: ImageMetadata
+  /** What the screen shows, for people who cannot see it. */
+  alt: string
+  caption?: string
+  /** Above the fold: skips lazy loading and asks the browser to fetch it first. */
+  eager?: boolean
+  /** Rendered width of the phone, in CSS pixels. The capture itself is 390 wide. */
+  width?: number
+  class?: string
+}
+
+const {
+  desktop,
+  mobile,
+  alt,
+  caption,
+  eager = false,
+  width = 300,
+  class: className = '',
+} = Astro.props
+---
+
+<figure class={`device-shot ${className}`}>
+  <button
+    type="button"
+    data-device-zoom
+    aria-haspopup="dialog"
+    class="device-shot-trigger group mx-auto block cursor-zoom-in"
+    style={`width: ${width}px; max-width: 100%`}
+  >
+    <span
+      class="relative block overflow-hidden rounded-[2rem] border-[6px] border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 transition-colors group-hover:border-slate-700"
+    >
+      <Image
+        src={mobile}
+        alt={alt}
+        widths={[390, 585, 780]}
+        sizes={`${width}px`}
+        format="webp"
+        quality={90}
+        loading={eager ? 'eager' : 'lazy'}
+        fetchpriority={eager ? 'high' : 'auto'}
+        decoding="async"
+        class="block h-auto w-full"
+      />
+      <span
+        class="pointer-events-none absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-950/80 text-slate-300 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+      >
+        <Icon name="search" class="h-4 w-4" />
+      </span>
+    </span>
+    <span class="sr-only">Open this screenshot full screen</span>
+  </button>
+
+  {caption && <figcaption class="mt-4 text-center text-sm text-slate-400">{caption}</figcaption>}
+
+  <dialog class="device-shot-dialog" data-device="mobile" aria-label={alt}>
+    <div class="device-shot-dialog-inner">
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div
+          class="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1"
+          role="group"
+          aria-label="Screenshot layout"
+        >
+          <button
+            type="button"
+            data-device-target="mobile"
+            aria-pressed="true"
+            class="device-shot-tab rounded-full px-3 py-1 text-xs font-semibold text-slate-400 transition-colors"
+          >
+            Phone
+          </button>
+          <button
+            type="button"
+            data-device-target="desktop"
+            aria-pressed="false"
+            class="device-shot-tab rounded-full px-3 py-1 text-xs font-semibold text-slate-400 transition-colors"
+          >
+            Desktop
+          </button>
+        </div>
+        <button
+          type="button"
+          data-device-close
+          aria-label="Close"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 text-slate-300 transition-colors hover:border-white/25 hover:text-white"
+        >
+          <Icon name="cross" class="h-4 w-4" />
+        </button>
+      </div>
+
+      <div class="device-shot-viewport">
+        <div data-device-pane="mobile">
+          <Image
+            src={mobile}
+            alt={alt}
+            widths={[390, 780]}
+            sizes="390px"
+            format="webp"
+            quality={92}
+            loading="lazy"
+            decoding="async"
+            class="mx-auto block h-auto max-h-[74vh] w-auto max-w-[390px] rounded-[1.75rem] border-[6px] border-slate-800"
+          />
+        </div>
+        <div data-device-pane="desktop">
+          <Image
+            src={desktop}
+            alt={`${alt}, desktop layout`}
+            widths={[1440, 2160, 2880]}
+            sizes="(min-width: 1600px) 1440px, 92vw"
+            format="webp"
+            quality={88}
+            loading="lazy"
+            decoding="async"
+            class="mx-auto block h-auto w-full max-w-[1440px] rounded-xl border border-white/10"
+          />
+        </div>
+      </div>
+
+      {caption && <p class="mt-4 text-center text-sm text-slate-400">{caption}</p>}
+    </div>
+  </dialog>
+</figure>
+
+<style>
+  .device-shot-dialog {
+    /* Narrow around a phone, wide around a desktop capture: a 390px screenshot
+       floating in the middle of a 1500px sheet reads as a mistake. */
+    width: min(92vw, 520px);
+    max-width: none;
+    max-height: 92vh;
+    margin: auto;
+    padding: 0;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    border-radius: 1rem;
+    background: #0b0a14;
+    color: inherit;
+    overflow: hidden;
+  }
+
+  .device-shot-dialog[data-device='desktop'] {
+    width: min(96vw, 1500px);
+  }
+
+  .device-shot-dialog::backdrop {
+    background: rgb(3 2 8 / 0.82);
+    backdrop-filter: blur(2px);
+  }
+
+  .device-shot-dialog-inner {
+    display: flex;
+    flex-direction: column;
+    max-height: 92vh;
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  /* The image scrolls inside the dialog rather than pushing the chrome off screen. */
+  .device-shot-viewport {
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .device-shot-dialog[data-device='mobile'] [data-device-pane='desktop'],
+  .device-shot-dialog[data-device='desktop'] [data-device-pane='mobile'] {
+    display: none;
+  }
+
+  .device-shot-dialog[data-device='mobile'] [data-device-target='mobile'],
+  .device-shot-dialog[data-device='desktop'] [data-device-target='desktop'] {
+    background-color: var(--color-brand-start);
+    color: #fff;
+  }
+
+  .device-shot-tab:hover {
+    color: #e2e8f0;
+  }
+</style>
+
+<script>
+  function setDevice(dialog: HTMLElement, device: string) {
+    dialog.dataset.device = device
+    dialog.querySelectorAll<HTMLButtonElement>('[data-device-target]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.deviceTarget === device))
+    })
+  }
+
+  // One listener for every DeviceShot on the page.
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+
+    const trigger = target.closest('[data-device-zoom]')
+    if (trigger) {
+      const dialog = trigger
+        .closest('.device-shot')
+        ?.querySelector<HTMLDialogElement>('.device-shot-dialog')
+      if (dialog) {
+        // Always opens on the phone, the layout that was on the page.
+        setDevice(dialog, 'mobile')
+        dialog.showModal()
+      }
+      return
+    }
+
+    const dialog = target.closest<HTMLDialogElement>('.device-shot-dialog')
+    if (!dialog) return
+
+    if (target.closest('[data-device-close]')) {
+      dialog.close()
+      return
+    }
+
+    const tab = target.closest<HTMLButtonElement>('[data-device-target]')
+    if (tab?.dataset.deviceTarget) {
+      setDevice(dialog, tab.dataset.deviceTarget)
+      return
+    }
+
+    // A click that lands on the dialog itself is a click on the backdrop area:
+    // everything visible sits inside .device-shot-dialog-inner.
+    if (target === dialog) dialog.close()
+  })
+</script>

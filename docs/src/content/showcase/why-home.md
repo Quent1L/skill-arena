@@ -11,5 +11,5 @@ That works for some tournaments. It breaks down fast when your competition lives
 days or weeks, when players can't all meet at the same time, or when your discipline
 doesn't fit neatly into a rigid format.
 
-Skol Arena is built for those cases — clubs, communities, workplaces, and local groups
+Skol Arena is built for those cases: clubs, communities, workplaces, and local groups
 that need competitions to stay flexible, credible, and easy to run day after day.

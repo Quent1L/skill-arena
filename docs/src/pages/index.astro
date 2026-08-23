@@ -3,13 +3,23 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { getEntry, getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
-import Logo from '../components/Logo.astro'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
-import FeatureCard from '../components/FeatureCard.astro'
-import ModeCard from '../components/ModeCard.astro'
 import FaqAccordion from '../components/FaqAccordion.astro'
-import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
+import DeviceShot from '../components/DeviceShot.astro'
+
+import tournamentsDesktop from '../assets/screenshots/tournaments-desktop.png'
+import tournamentsMobile from '../assets/screenshots/tournaments-mobile.png'
+import standingsDesktop from '../assets/screenshots/standings-desktop.png'
+import standingsMobile from '../assets/screenshots/standings-mobile.png'
+import bracketDesktop from '../assets/screenshots/bracket-desktop.png'
+import bracketMobile from '../assets/screenshots/bracket-mobile.png'
+import rankedDesktop from '../assets/screenshots/ranked-desktop.png'
+import rankedMobile from '../assets/screenshots/ranked-mobile.png'
+import matchDesktop from '../assets/screenshots/match-desktop.png'
+import matchMobile from '../assets/screenshots/match-mobile.png'
+import playerDesktop from '../assets/screenshots/player-desktop.png'
+import playerMobile from '../assets/screenshots/player-mobile.png'
 
 const entry = async (id: string) => {
   const found = await getEntry('showcase', id)
@@ -20,23 +30,44 @@ const entry = async (id: string) => {
 const hero = await entry('hero')
 const why = await entry('why-home')
 const players = await entry('players')
-
-const modes = (await getCollection('showcase', ({ id }) => id.startsWith('modes/'))).sort(
-  (a, b) => a.data.order - b.data.order,
-)
-const modeBodies = await Promise.all(
-  modes.map(async (mode) => ({ mode, Content: (await render(mode)).Content })),
-)
+const championship = await entry('modes/championship')
+const bracket = await entry('modes/bracket')
+const ranked = await entry('modes/ranked')
 
 const faq = (await getCollection('showcase', ({ id }) => id.startsWith('faq/'))).sort(
   (a, b) => a.data.order - b.data.order,
 )
 
-// The version shown in the hero badge comes from the monorepo root package.json,
+// The version shown on the page comes from the monorepo root package.json,
 // which release-it bumps — never hardcode it here. Astro runs with the docs/
 // workspace as cwd, so the root manifest sits one level up.
 const rootPackage = resolve(process.cwd(), '../package.json')
 const { version } = JSON.parse(readFileSync(rootPackage, 'utf-8')) as { version: string }
+
+const facts = [
+  { value: `v${version}`, label: 'Current release' },
+  { value: 'AGPL-3.0', label: 'Open source' },
+  { value: 'Self hostable', label: 'Docker compatible' },
+  { value: 'Three modes', label: 'Use one, or all of them' },
+]
+
+const playerActions = [
+  {
+    icon: 'check',
+    title: 'Report their own results',
+    body: 'Any player in a match can create it and report the score. No admin step, no pre-generated schedule to wait for.',
+  },
+  {
+    icon: 'repeat',
+    title: 'Confirm, contest, or cancel',
+    body: 'The opposing side confirms to finalize early, contests with a corrected score, or cancels a match that should not count.',
+  },
+  {
+    icon: 'shield',
+    title: 'Admin controls when you need them',
+    body: 'Tournament admins and delegated co-admins can edit, finalize, or delete any match. The competition just does not stall waiting on them.',
+  },
+]
 
 const differentiators = [
   {
@@ -45,7 +76,7 @@ const differentiators = [
   },
   {
     title: 'Mobile-first for real-world play',
-    body: 'Dedicated mobile screens — not a shrunken desktop layout — plus an installable PWA. Report a result or check standings from the venue in seconds.',
+    body: 'Dedicated mobile screens, not a shrunken desktop layout, plus an installable PWA. Report a result or check standings from the venue in seconds.',
   },
   {
     title: 'Championships that fit real schedules',
@@ -57,7 +88,7 @@ const differentiators = [
   },
   {
     title: 'Match formats beyond 1v1',
-    body: 'Solo play, static rosters that stay together all season, or flex teams grouped per match — with configurable minimum and maximum team sizes.',
+    body: 'Solo play, static rosters that stay together all season, or flex teams grouped per match, with configurable minimum and maximum team sizes.',
   },
   {
     title: 'Scoring rules that follow your discipline',
@@ -69,234 +100,306 @@ const audiences = [
   {
     icon: 'trophy',
     title: 'Clubs and associations',
-    desc: 'Run championships, ranked play, and final brackets without forcing members into rigid schedules or admin-heavy workflows.',
+    desc: 'Championships, ranked play, and final brackets without rigid schedules or admin-heavy workflows.',
   },
   {
     icon: 'building',
     title: 'Workplaces',
-    desc: 'Colleagues play when they are available, report results themselves, and the competition keeps going without constant organizer involvement.',
+    desc: 'Colleagues play when they are available and report results themselves. The competition keeps going.',
   },
   {
     icon: 'chat',
     title: 'Bars and local venues',
-    desc: 'Recurring competitions that are simple to manage, easy to use on a phone, and engaging enough to bring people back.',
+    desc: 'Recurring competitions that are simple to manage, easy on a phone, and worth coming back for.',
   },
   {
     icon: 'compass',
     title: 'Independent organizers',
-    desc: 'Go beyond generic brackets with configurable disciplines, flexible structures, and player-driven workflows.',
+    desc: 'Configurable disciplines, flexible structures, and player-driven workflows beyond a generic bracket.',
   },
 ]
 ---
 
 <BaseLayout title="Home">
-  <!-- Hero -->
-  <section class="relative overflow-hidden">
-    <div
-      class="animate-float pointer-events-none absolute top-[-10rem] left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-brand-start/25 blur-3xl"
-    >
-    </div>
-    <div
-      class="pointer-events-none absolute top-10 right-[-6rem] h-72 w-72 rounded-full bg-brand-end/20 blur-3xl"
-    >
-    </div>
+  <!-- Hero: message on the left, the actual product on the right -->
+  <section class="relative overflow-hidden border-b border-white/10">
     <div class="bg-grid pointer-events-none absolute inset-0"></div>
-
-    <div class="relative mx-auto flex max-w-3xl flex-col items-center gap-6 px-6 py-20 text-center">
-      <div class="animate-fade-up">
-        <Logo width={280} />
-      </div>
-      <span
-        class="animate-fade-up flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-300"
-        style="animation-delay: 0.05s"
-      >
-        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400"></span>
-        Open source · Self-hostable · v{version}
-      </span>
-      <h1
-        class="animate-fade-up text-4xl leading-tight font-extrabold text-balance sm:text-5xl"
-        style="animation-delay: 0.1s"
-      >
-        <span class="text-gradient">{hero.data.title}</span>
-      </h1>
-      <div
-        class="animate-fade-up max-w-none text-lg leading-relaxed text-slate-300 [&_p]:mb-4"
-        style="animation-delay: 0.15s"
-      >
-        <hero.Content />
-      </div>
-      <div
-        class="animate-fade-up flex flex-wrap items-center justify-center gap-3"
-        style="animation-delay: 0.2s"
-      >
-        <a
-          href="/docs"
-          class="rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
-        >
-          Get started
-        </a>
-        <a
-          href="/features"
-          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
-        >
-          See how it works
-        </a>
-      </div>
-
-      <div class="animate-fade-up w-full pt-6" style="animation-delay: 0.25s">
-        <ScreenshotPlaceholder caption="Dashboard preview" />
-      </div>
-    </div>
-  </section>
-
-  <!-- Why this exists -->
-  <section class="relative mx-auto max-w-3xl px-6 pb-24">
-    <SectionHeading eyebrow="Why this product exists" title={why.data.title} />
     <div
-      class="prose prose-invert prose-lg prose-strong:text-slate-100 mx-auto mt-8 max-w-none text-slate-300"
+      class="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16 lg:pt-24"
     >
-      <why.Content />
-    </div>
-  </section>
-
-  <!-- Built for players -->
-  <section class="relative border-y border-white/10 bg-black/20">
-    <div class="mx-auto max-w-5xl px-6 py-20">
-      <SectionHeading eyebrow="Built for players" title={players.data.title} />
-      <div
-        class="prose prose-invert prose-strong:text-slate-100 mx-auto mt-8 max-w-2xl text-center text-slate-300"
-      >
-        <players.Content />
+      <div class="animate-fade-up">
+        <h1 class="text-4xl leading-[1.08] font-extrabold text-balance text-white sm:text-5xl">
+          {hero.data.title}
+        </h1>
+        <div class="mt-6 max-w-[46ch] text-lg leading-relaxed text-slate-300 [&_p]:mb-0">
+          <hero.Content />
+        </div>
+        <div class="mt-9 flex flex-wrap items-center gap-3">
+          <a
+            href="/docs"
+            class="rounded-full bg-brand-start px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-start/85"
+          >
+            Get started
+          </a>
+          <a
+            href="https://github.com/Quent1L/skol-arena"
+            target="_blank"
+            rel="noreferrer"
+            class="flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+          >
+            <Icon name="github" class="h-5 w-5" />
+            View the source
+          </a>
+        </div>
       </div>
-      <div class="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <FeatureCard title="Report their own results" icon="check">
-          <p>
-            Any player in a match can create it and report the score — no admin step, no
-            pre-generated schedule to wait for.
-          </p>
-        </FeatureCard>
-        <FeatureCard title="Confirm, contest, or cancel" icon="repeat">
-          <p>
-            The opposing side confirms to finalize early, contests with a corrected score, or
-            cancels a match that should not count.
-          </p>
-        </FeatureCard>
-        <FeatureCard title="Follow it all on mobile" icon="phone">
-          <p>
-            Standings, match history, and rank progression on dedicated mobile screens, installable
-            as an app on the home screen.
-          </p>
-        </FeatureCard>
-        <FeatureCard title="Admin controls when you need them" icon="shield">
-          <p>
-            Tournament admins and delegated co-admins can edit, finalize, or delete any match — the
-            competition just does not stall waiting on them.
-          </p>
-        </FeatureCard>
-      </div>
-    </div>
-  </section>
 
-  <!-- Three modes -->
-  <section class="relative mx-auto max-w-6xl px-6 py-24">
-    <SectionHeading
-      eyebrow="Three ways to compete"
-      title="Choose the competition mode that fits your community"
-      subtitle="Championship, Bracket, and Ranked are independent modes — use one, or all three."
-    />
-    <div class="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
-      {
-        modeBodies.map(({ mode, Content }) => (
-          <ModeCard entry={mode} href={`/features#${mode.data.pillar}`}>
-            <Content />
-          </ModeCard>
-        ))
-      }
-    </div>
-  </section>
-
-  <!-- What makes it different -->
-  <section class="relative border-y border-white/10 bg-black/20">
-    <div class="mx-auto max-w-6xl px-6 py-20">
-      <SectionHeading
-        eyebrow="What makes it different"
-        title="Built for communities that need more than a standard tournament tool"
+      <DeviceShot
+        class="animate-fade-up"
+        desktop={tournamentsDesktop}
+        mobile={tournamentsMobile}
+        alt="The Skol Arena home screen listing a player's ongoing competitions"
+        caption="Every competition a player is in, in one place"
+        width={320}
+        eager
       />
-      <div class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {
-          differentiators.map((item, i) => (
-            <FeatureCard title={item.title} number={i + 1}>
-              <p>{item.body}</p>
-            </FeatureCard>
-          ))
-        }
-      </div>
-      <div class="mt-10 text-center">
-        <a href="/features" class="text-sm font-semibold text-brand-mid hover:text-brand-end">
-          See all features →
-        </a>
-      </div>
     </div>
   </section>
 
-  <!-- Audiences -->
-  <section class="relative mx-auto max-w-6xl px-6 py-24">
-    <SectionHeading
-      eyebrow="Who it's for"
-      title="Designed for clubs, communities, and organizations that need flexibility"
-    />
-    <div class="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2">
+  <!-- Facts: what you are actually getting, before any argument -->
+  <section class="border-b border-white/10 bg-black/20">
+    <div class="mx-auto grid max-w-6xl grid-cols-2 px-6 lg:grid-cols-4">
       {
-        audiences.map((item) => (
-          <div class="card-glow flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid">
-              <Icon name={item.icon} class="h-5 w-5" />
-            </span>
-            <div>
-              <p class="font-semibold text-white">{item.title}</p>
-              <p class="mt-1 text-sm leading-relaxed text-slate-400">{item.desc}</p>
-            </div>
+        facts.map((fact) => (
+          <div class="border-l border-white/10 px-2 py-8 first:border-l-0 lg:px-6">
+            <p class="font-display text-2xl font-bold text-white">{fact.value}</p>
+            <p class="mt-1 text-sm text-slate-400">{fact.label}</p>
           </div>
         ))
       }
     </div>
   </section>
 
-  <!-- FAQ -->
-  <section class="relative border-y border-white/10 bg-black/20">
-    <div class="mx-auto max-w-3xl px-6 py-24">
-      <SectionHeading eyebrow="FAQ" title="Questions people ask first" />
-      <div class="mt-10">
-        <FaqAccordion items={faq} />
+  <!-- Why it exists: the argument, next to a season's worth of history -->
+  <section class="relative mx-auto max-w-6xl px-6 py-24">
+    <div class="reveal grid items-center gap-12 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
+      <div>
+        <SectionHeading align="left" title={why.data.title} />
+        <div
+          class="prose prose-invert prose-lg prose-strong:text-slate-100 mt-6 max-w-[62ch] text-slate-300"
+        >
+          <why.Content />
+        </div>
+      </div>
+      <DeviceShot
+        desktop={playerDesktop}
+        mobile={playerMobile}
+        alt="A player profile showing ranked career, per-tournament records and toughest opponents"
+        caption="A player's record, across every season"
+      />
+    </div>
+  </section>
+
+  <!-- Ranked: the flagship mode, given its own section -->
+  <section class="border-y border-white/10 bg-black/20">
+    <div
+      class="reveal mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16"
+    >
+      <DeviceShot
+        desktop={rankedDesktop}
+        mobile={rankedMobile}
+        alt="A ranked leaderboard grouped into Diamond, Platinum, Gold and Silver tiers"
+        caption="Rank tiers that follow the player pool, not fixed bands"
+      />
+      <div>
+        <p class="font-display text-3xl font-bold text-white">{ranked.data.title}</p>
+        <p class="mt-2 text-brand-mid">{ranked.data.tagline}</p>
+        <div
+          class="prose prose-invert prose-strong:text-slate-100 mt-6 max-w-[58ch] text-slate-300 [&_p]:mb-4"
+        >
+          <ranked.Content />
+        </div>
+        {
+          ranked.data.bestFor && (
+            <ul class="mt-8 flex flex-wrap gap-2">
+              {ranked.data.bestFor.map((item) => (
+                <li class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-slate-300">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )
+        }
       </div>
     </div>
   </section>
 
+  <!-- The other two modes, each with the screen it is really about -->
+  <section class="mx-auto max-w-6xl px-6 py-24">
+    <SectionHeading
+      align="left"
+      title="Two more ways to compete, independent of each other"
+      subtitle="Run a season that stretches over weeks, a bracket for a one-night event, or both alongside the ladder."
+    />
+    <div class="reveal mt-12 grid gap-6 lg:grid-cols-2">
+      {
+        [
+          {
+            entry: championship,
+            desktop: standingsDesktop,
+            mobile: standingsMobile,
+            alt: 'Championship standings with points, matches played, wins, losses and score difference',
+          },
+          {
+            entry: bracket,
+            desktop: bracketDesktop,
+            mobile: bracketMobile,
+            alt: 'A single elimination bracket with quarter-finals and semi-finals played',
+          },
+        ].map(({ entry: mode, desktop, mobile, alt }) => (
+          <article class="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+            <DeviceShot desktop={desktop} mobile={mobile} alt={alt} width={260} />
+            <p class="font-display mt-8 text-2xl font-bold text-white">{mode.data.title}</p>
+            <p class="mt-1 text-sm text-brand-mid">{mode.data.tagline}</p>
+            <div class="prose prose-invert prose-sm prose-strong:text-slate-200 mt-4 max-w-none text-slate-400 [&_p]:mb-3">
+              <mode.Content />
+            </div>
+            {mode.data.bestFor && (
+              <ul class="mt-auto flex flex-wrap gap-2 pt-6">
+                {mode.data.bestFor.map((item) => (
+                  <li class="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+        ))
+      }
+    </div>
+    <p class="mt-8">
+      <a href="/features" class="text-sm font-semibold text-brand-mid hover:text-brand-end">
+        See every feature →
+      </a>
+    </p>
+  </section>
+
+  <!-- Players run the day to day -->
+  <section class="border-y border-white/10 bg-black/20">
+    <div
+      class="reveal mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16"
+    >
+      <DeviceShot
+        class="lg:order-last"
+        desktop={matchDesktop}
+        mobile={matchMobile}
+        alt="A reported match waiting for the opponent to accept or dispute the score"
+        caption="The opponent accepts or disputes, straight from the match"
+      />
+      <div>
+        <SectionHeading align="left" title={players.data.title} />
+        <div
+          class="prose prose-invert prose-strong:text-slate-100 mt-6 max-w-[58ch] text-slate-300"
+        >
+          <players.Content />
+        </div>
+        <ul class="mt-8 divide-y divide-white/10 border-t border-white/10">
+          {
+            playerActions.map((action) => (
+              <li class="flex gap-4 py-5">
+                <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-start/15 text-brand-mid">
+                  <Icon name={action.icon} class="h-4 w-4" />
+                </span>
+                <div>
+                  <p class="font-semibold text-white">{action.title}</p>
+                  <p class="mt-1 text-sm leading-relaxed text-slate-400">{action.body}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- What sets it apart, as a reference list rather than another card grid -->
+  <section class="mx-auto max-w-6xl px-6 py-24">
+    <SectionHeading
+      align="left"
+      title="Built for communities that need more than a standard tournament tool"
+    />
+    <ol class="reveal mt-12 grid gap-x-16 border-t border-white/10 sm:grid-cols-2">
+      {
+        differentiators.map((item, i) => (
+          <li class="flex gap-5 border-b border-white/10 py-7">
+            <span class="font-display w-6 shrink-0 text-lg font-bold text-brand-mid tabular-nums">
+              {i + 1}
+            </span>
+            <div>
+              <p class="font-semibold text-white">{item.title}</p>
+              <p class="mt-1.5 text-sm leading-relaxed text-slate-400">{item.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <!-- Who runs it -->
+  <section class="border-y border-white/10 bg-black/20">
+    <div class="mx-auto max-w-6xl px-6 py-20">
+      <SectionHeading align="left" title="Who it is for" />
+      <div class="reveal mt-10 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          audiences.map((item) => (
+            <div class="border-t border-white/10 pt-6">
+              <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid">
+                <Icon name={item.icon} class="h-5 w-5" />
+              </span>
+              <p class="mt-4 font-semibold text-white">{item.title}</p>
+              <p class="mt-1.5 text-sm leading-relaxed text-slate-400">{item.desc}</p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="mx-auto max-w-3xl px-6 py-24">
+    <SectionHeading align="left" title="Questions people ask first" />
+    <div class="mt-10">
+      <FaqAccordion items={faq} />
+    </div>
+  </section>
+
   <!-- Final CTA -->
-  <section class="relative border-t border-white/10 bg-black/20">
-    <div class="mx-auto flex max-w-3xl flex-col items-center gap-5 px-6 py-16 text-center">
-      <h2 class="text-2xl font-bold text-balance text-white sm:text-3xl">
+  <section class="border-t border-white/10 bg-black/20">
+    <div class="mx-auto max-w-3xl px-6 py-20 text-center">
+      <h2 class="font-display text-2xl font-bold text-balance text-white sm:text-3xl">
         Run competitions the way your community actually plays
       </h2>
-      <p class="text-slate-400">
-        Flexible championships, elimination brackets, and player-driven ranked play — self-hosted
-        with a single Docker container and your own PostgreSQL database.
+      <p class="mx-auto mt-4 max-w-[52ch] text-slate-400">
+        Self-hosted on a single container next to your own PostgreSQL database.
       </p>
-      <div class="flex flex-wrap items-center justify-center gap-3">
+      <div
+        class="mx-auto mt-8 w-fit rounded-2xl border border-white/10 bg-slate-950/70 px-5 py-3 text-left"
+      >
+        <code class="font-mono text-sm text-slate-300">
+          docker pull quent1l/skol-arena:latest
+        </code>
+      </div>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
         <a
-          href="/docs"
-          class="rounded-full bg-gradient-to-r from-brand-start to-brand-end px-6 py-3 font-semibold text-white shadow-lg shadow-brand-start/30 transition-transform hover:scale-105"
+          href="/docs/deployment"
+          class="rounded-full bg-brand-start px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-start/85"
         >
-          Start building your competition
+          Get started
         </a>
         <a
-          href="https://github.com/Quent1L/skol-arena"
-          target="_blank"
-          rel="noreferrer"
-          class="flex items-center gap-2 rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+          href="/docs"
+          class="rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-100 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
         >
-          <Icon name="github" class="h-5 w-5" />
-          View on GitHub
+          Read the docs
         </a>
       </div>
     </div>

@@ -1,16 +1,45 @@
 ---
 import type { CollectionEntry } from 'astro:content'
+import type { ImageMetadata } from 'astro'
 import { getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
 import FeatureCard from '../components/FeatureCard.astro'
-import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
+import DeviceShot from '../components/DeviceShot.astro'
 import RankedSpotlight from '../components/RankedSpotlight.astro'
+
+import standingsDesktop from '../assets/screenshots/standings-desktop.png'
+import standingsMobile from '../assets/screenshots/standings-mobile.png'
+import bracketDesktop from '../assets/screenshots/bracket-desktop.png'
+import bracketMobile from '../assets/screenshots/bracket-mobile.png'
 
 type Pillar = 'championship' | 'bracket' | 'ranked' | 'platform'
 
 const RANKED_ID = 'features/ranked-mode'
+
+/**
+ * Features that have a screen of their own. A feature missing from this map
+ * simply renders full width: an empty frame saying "screenshot coming soon" is
+ * worse than no frame at all.
+ */
+const SHOTS: Record<
+  string,
+  { desktop: ImageMetadata; mobile: ImageMetadata; alt: string; caption: string }
+> = {
+  'features/championship-limits': {
+    desktop: standingsDesktop,
+    mobile: standingsMobile,
+    alt: 'Championship standings with points, matches played, wins, losses and score difference',
+    caption: 'Standings, once the caps have been applied',
+  },
+  'features/bracket-seeding': {
+    desktop: bracketDesktop,
+    mobile: bracketMobile,
+    alt: 'A single elimination bracket with quarter-finals and semi-finals played',
+    caption: 'A bracket drawn from a finished season',
+  },
+}
 const byOrder = (a: CollectionEntry<'showcase'>, b: CollectionEntry<'showcase'>) =>
   a.data.order - b.data.order
 
@@ -137,7 +166,7 @@ const sections = await Promise.all(
                     id={slug(feature.id)}
                     class="grid scroll-mt-24 grid-cols-1 gap-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 md:grid-cols-5 lg:p-10"
                   >
-                    <div class="md:col-span-3">
+                    <div class={SHOTS[feature.id] ? 'md:col-span-3' : 'md:col-span-5'}>
                       <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid">
                         <Icon name={feature.data.icon ?? 'bolt'} class="h-6 w-6" />
                       </div>
@@ -156,11 +185,13 @@ const sections = await Promise.all(
                         <Content />
                       </div>
                     </div>
-                    <div class="md:col-span-2">
-                      <div class="md:sticky md:top-24">
-                        <ScreenshotPlaceholder caption={`${feature.data.title} screenshot`} />
+                    {SHOTS[feature.id] && (
+                      <div class="md:col-span-2">
+                        <div class="md:sticky md:top-24">
+                          <DeviceShot {...SHOTS[feature.id]} />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </article>
                 )
               })}

@@ -11,7 +11,7 @@ bestFor:
   - Persistent competitive environments
 ---
 
-Ranked stands on its own — it doesn't depend on a championship or a bracket. It's built
+Ranked stands on its own. It doesn't depend on a championship or a bracket. It's built
 for ongoing competitive matches where players face each other whenever they want, climb a
 real MMR ladder, and keep the competition alive between events.
 

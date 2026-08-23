@@ -9,7 +9,11 @@
     "preview": "astro preview",
     "type-check": "astro check",
     "lint": "prettier --check src/",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "shots:db:up": "docker compose -f screenshots/docker-compose.yml up -d --wait",
+    "shots:db:down": "docker compose -f screenshots/docker-compose.yml down -v",
+    "shots:seed": "cd ../backend && DATABASE_URL=postgres://skolarena:skolarena@localhost:5436/skolarena_showcase bun run scripts/seed-showcase.ts",
+    "shots:capture": "bun run screenshots/capture.ts"
   },
   "dependencies": {
     "astro": "^7.2.4"
@@ -20,6 +24,7 @@
     "@tailwindcss/vite": "^4.3.2",
     "astro-pagefind": "^2.0.1",
     "prettier-plugin-astro": "^0.14.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.3.2",
     "typescript": "catalog:"
   }
