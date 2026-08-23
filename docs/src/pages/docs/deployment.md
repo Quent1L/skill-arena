@@ -81,9 +81,12 @@ them are required to get a working instance running.
 Two things happen automatically the first time the container starts against an
 empty database:
 
-1. **Migrations run.** The app applies all pending Drizzle migrations before
-   accepting any HTTP traffic. If a migration fails, the process exits — check
-   the container logs and fix the underlying issue rather than retrying blindly.
+1. **Migrations run.** The app applies all pending migrations before accepting any
+   HTTP traffic, one transaction per migration. If one fails, the process exits —
+   check the container logs and fix the underlying issue rather than retrying
+   blindly. On a first boot against an empty database there is nothing to lose;
+   on an upgrade there is, so read [Upgrading](#upgrading) before you pull a new
+   tag.
 2. **An initial super-admin account is created**, but only if the `appUsers` table
    is completely empty. The account email is `INITIAL_ADMIN_EMAIL` (defaults to
    `admin@skol-arena.local`), and a random password is generated and printed to
@@ -102,6 +105,56 @@ empty database:
    the password from the account settings. The generated password appears in
    cleartext in the logs, so treat those logs as a secret until you have replaced
    it.
+
+## Upgrading
+
+### Back up the database first
+
+```bash
+docker compose exec -T db pg_dump -U skol -Fc skol_arena > skol-$(date +%F).dump
+```
+
+Do this every time, before pulling a new tag. It is the only way back.
+
+### Why it matters
+
+Migrations are applied **one transaction per migration**. A migration that fails
+is rolled back whole, but the migrations that ran before it are already
+committed, and they stay committed. The database is then somewhere between two
+releases, and the log says so:
+
+```
+Migration failed. The migrations before it are committed and stay applied;
+restoring the previous release requires a database backup.
+```
+
+The log line names the migration that failed, its position in the batch, and how
+many were applied — start there.
+
+Running the whole batch in a single transaction would avoid this, and that is
+what the app used to do. It had to go: Postgres refuses to use an enum value
+inside the same transaction that added it, which made a first boot from an empty
+database impossible. Per-migration transactions are the price of being able to
+create a new instance at all.
+
+### Rolling back
+
+There are no down-migrations. Going back to an earlier image means restoring the
+dump:
+
+```bash
+docker compose stop app
+docker compose exec -T db pg_restore -U skol -d skol_arena --clean --if-exists < skol-2026-08-23.dump
+```
+
+Then start the previous tag. This is true whether the upgrade failed halfway or
+succeeded: a completed migration is not reversible either.
+
+### Multiple replicas
+
+Only one container migrates. The others block on a Postgres advisory lock until
+it is done, then find nothing pending and carry on booting. Scaling the app
+service during an upgrade is safe; two instances cannot interleave migrations.
 
 ## Recovering a lost admin password
 
