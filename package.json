@@ -9,8 +9,12 @@
     "type": "git",
     "url": "https://github.com/Quent1L/skol-arena.git"
   },
+  "homepage": "https://skol-arena-docs.vercel.app",
+  "bugs": {
+    "url": "https://github.com/Quent1L/skol-arena/issues"
+  },
+  "author": "Quent1L (https://github.com/Quent1L)",
   "scripts": {
-    "setup:db": "cd backend && bun run db:push",
     "dev": "bun run build:shared && concurrently \"bun run dev:shared\" \"bun run dev:backend\" \"bun run dev:frontend\" \"bun run dev:docs\" --names \"shared,backend,frontend,docs\" --prefix-colors \"blue,green,yellow,magenta\"",
     "dev:shared": "cd shared && bun run dev",
     "dev:backend": "cd backend && bun run dev",

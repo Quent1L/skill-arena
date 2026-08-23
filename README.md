@@ -1,161 +1,165 @@
-# Skol Arena - Tournament Management App
+<div align="center">
 
-Tournament management application with a Hono/Bun backend and a Vue 3 frontend.
-Open source, self-hostable, licensed under [AGPL-3.0](LICENSE).
+# Skol Arena
 
-## Run it
+**Skill Or Luck?** — an open-source tournament and ranked-ladder platform, built for players.
 
-Skol Arena ships as a single Docker image holding the API, the built frontend and its
-database migrations, which run at startup. All you need is a PostgreSQL database.
+[![Release](https://img.shields.io/github/v/release/Quent1L/skol-arena?label=release&color=8b5cf6)](https://github.com/Quent1L/skol-arena/releases)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/quent1l/skol-arena)](https://hub.docker.com/r/quent1l/skol-arena)
+[![Built with Bun](https://img.shields.io/badge/built%20with-Bun-f9f1e1)](https://bun.sh)
+
+[Website](https://skol-arena-docs.vercel.app) ·
+[Features](https://skol-arena-docs.vercel.app/features) ·
+[Documentation](https://skol-arena-docs.vercel.app/docs) ·
+[Releases](https://github.com/Quent1L/skol-arena/releases) ·
+[Docker Hub](https://hub.docker.com/r/quent1l/skol-arena)
+
+</div>
+
+<!-- TODO: add a screenshot or short GIF here (suggested path: docs/public/screenshots/hero.png) -->
+
+## What is Skol Arena?
+
+Most competition tools are built around one idea: an organizer sets everything up, players
+show up, scores get entered, the event ends. That works for a one-day bracket. It breaks
+down when your competition lives across days or weeks, when players can't all meet at the
+same time, or when your discipline doesn't fit a rigid format.
+
+Skol Arena is built for those cases — clubs, communities, workplaces and local groups that
+need competitions to stay flexible, credible and easy to run day after day. It is
+**player-driven**: participants create and report their own matches, confirm or contest
+results, and keep the competition moving without routing everything through one person.
+
+It is **self-hostable** and ships as a single Docker image holding the API, the built web
+app and its database migrations. You bring a PostgreSQL database and nothing else.
+
+## Features
+
+Three independent competition modes:
+
+- **Championship** — flexible competitions that run over time. Persistent standings,
+  configurable scoring, and fairness limits that stop a season-long championship from
+  being gamed.
+- **Bracket** — single or double elimination, losers bracket and bronze match. Draw at
+  random, or seed the bracket from a finished championship's standings.
+- **Ranked** — a continuous Elo-derivative MMR ladder with dynamic tiers, per-discipline
+  team scoring, and instant feedback after every match.
+
+Across every mode:
+
+- **Player-driven match workflow** — create, report, confirm, correct, contest and cancel
+  from the player side, with configurable validation levels per tournament.
+- **Formats beyond 1v1** — solo, persistent team rosters, or teams assembled per match,
+  with configurable team sizes.
+- **Mobile-first and installable** — purpose-built mobile screens and a PWA, in French and
+  English.
+- **Access control** — native login or Keycloak SSO, invite-only registration, and
+  organizations that scope a tournament to a group.
+
+→ **[Full feature tour](https://skol-arena-docs.vercel.app/features)**
+
+## Getting started
+
+### Run an instance
 
 ```bash
-docker pull quent1l/skol-arena:latest
+docker run -d \
+  -p 3000:3000 \
+  -e DATABASE_URL='postgres://user:password@host:5432/skol_arena' \
+  -e BETTER_AUTH_SECRET='a-long-random-string' \
+  -e BETTER_AUTH_URL='http://localhost:3000' \
+  quent1l/skol-arena:latest
 ```
 
-The full Compose setup, every environment variable and the product reference live in the
-`docs/` workspace — run `cd docs && bun run dev`, or read them on the documentation site.
+Migrations run automatically at startup, and an initial super-admin account is created on
+the first boot against an empty database — its generated password is printed to the
+container logs.
 
-## Quick Start
+→ **[Docker Compose setup, reverse proxy and first-boot guide](https://skol-arena-docs.vercel.app/docs/deployment)**
 
-### Prerequisites
+### Develop
 
-- [Bun](https://bun.sh) (v1.0+)
-
-### Installation
+**Prerequisites:** [Bun](https://bun.sh) 1.3+ and an empty PostgreSQL 16+ database, owned
+by a role allowed to create tables. Create it yourself — the app never creates its own
+database:
 
 ```bash
+createdb skol_arena
+```
+
+```bash
+git clone https://github.com/Quent1L/skol-arena.git
+cd skol-arena
 bun install
+
+cp backend/.env.example backend/.env   # set DATABASE_URL and BETTER_AUTH_SECRET
+
+bun run dev                            # start every workspace
 ```
 
-### Development
+There is no separate migration step: the backend applies every pending migration at
+startup, so the first `bun run dev` creates the schema.
+
+| Service | URL |
+|---|---|
+| Backend (Hono + Bun) | http://localhost:3000 |
+| Frontend (Vue 3 + Vite) | http://localhost:5173 |
+| Docs site (Astro) | http://localhost:4321 |
+
+→ **[CONTRIBUTING.md](CONTRIBUTING.md)** has the full command reference, the architecture
+and the conventions.
+
+## Documentation
+
+| | |
+|---|---|
+| [Website](https://skol-arena-docs.vercel.app) | What Skol Arena is and why it exists |
+| [Features](https://skol-arena-docs.vercel.app/features) | The complete feature tour |
+| [Self-hosting](https://skol-arena-docs.vercel.app/docs) | Quick start and prerequisites |
+| [Deployment](https://skol-arena-docs.vercel.app/docs/deployment) | Docker image, Compose, first boot |
+| [Environment variables](https://skol-arena-docs.vercel.app/docs/environment-variables) | Every variable the app reads |
+| [How it works](https://skol-arena-docs.vercel.app/docs/matches) | Matches, disciplines, MMR, accounts |
+| [API versioning](https://skol-arena-docs.vercel.app/docs/api) | Header-based version negotiation |
+| [Releases](https://github.com/Quent1L/skol-arena/releases) | Changelog for every version |
+| [Docker Hub](https://hub.docker.com/r/quent1l/skol-arena) | Published images |
+
+## Contributing
+
+Issues and pull requests are open. It is a real project used by real leagues, and it gets
+better fastest when the people running them say what is missing.
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) —
+commitlint enforces it, and releases are derived from them. Before opening a pull request:
 
 ```bash
-# Launches everything concurrently:
-# - Shared types in watch mode
-# - Backend with hot reload
-# - Frontend with hot reload
-bun run dev
+bun run lint && bun run type-check && bun run test:unit
 ```
 
-- **Shared** (TypeScript watch) → internal compilation
-- **Backend** (Hono + Bun) → http://localhost:3000
-- **Frontend** (Vue + Vite) → http://localhost:5173
+Read **[CONTRIBUTING.md](CONTRIBUTING.md)** first. By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md). To report a vulnerability, see
+[SECURITY.md](SECURITY.md) — please don't open a public issue for it.
 
-## Project Structure
+## License
 
-```
-skol-arena/
-├── shared/          # @skol-arena/shared — TypeScript types + Zod schemas
-├── backend/         # Hono API server
-├── frontend/        # Vue 3 SPA
-└── docs/            # @skol-arena/docs — Astro site (showcase, blog, self-hosting docs)
-```
+Skol Arena is licensed under the **[GNU Affero General Public License v3.0](LICENSE)**
+(AGPL-3.0-only).
 
-## Available Commands
+It is meant to be run by clubs, workplaces, bars and independent organizers on their own
+hardware, with their own data. The AGPL keeps that true for everyone downstream: modify
+it, deploy it, run it for your community — and if you offer it to others as a service, the
+changes go back to the commons.
 
-### Development
+| You want to… | AGPL-3.0 |
+|---|---|
+| Run Skol Arena for your club, league, workplace or business — including commercially | ✅ Allowed |
+| Modify the code and run your modified version | ✅ Allowed |
+| Redistribute the source, or images you built yourself | ✅ Allowed — under AGPL-3.0, with the source |
+| Offer a modified version as a hosted service (SaaS) | ✅ Allowed — you must offer that instance's users the complete corresponding source of your version (§13) |
+| Keep your modifications private while serving them to third parties over a network | ❌ Not allowed |
+| Ship Skol Arena inside a closed-source or proprietary product | ❌ Not allowed |
+| Re-license the code under a permissive or proprietary license | ❌ Not allowed |
+| Remove the copyright and license notices | ❌ Not allowed |
 
-| Command | Description |
-|---------|-------------|
-| `bun run dev` | **Start everything** ⭐ |
-| `bun run dev:shared` | Shared types in watch mode only |
-| `bun run dev:backend` | Backend only |
-| `bun run dev:frontend` | Frontend only |
-
-### Build
-
-| Command | Description |
-|---------|-------------|
-| `bun run build` | Full production build (shared + frontend + backend) |
-| `bun run build:shared` | Compile shared types only |
-| `bun run build:frontend` | Frontend production build |
-
-### Quality
-
-| Command | Description |
-|---------|-------------|
-| `bun run type-check` | TypeScript check across all workspaces |
-| `bun run lint` | Lint all workspaces |
-| `bun run test:unit` | Run all unit tests |
-
-### Database
-
-| Command | Description |
-|---------|-------------|
-| `bun run setup:db` | Initialize DB schema (first-time setup) |
-
-> Migrations in `backend/drizzle/` are applied automatically at server startup — no manual migrate command needed. To create a new migration: run `bun run db:generate` in the backend, then restart the server.
-
-### Utilities
-
-| Command | Description |
-|---------|-------------|
-| `bun run clean` | Clean all build directories |
-| `bun run release` | Cut a release with changelog |
-
-## Architecture
-
-### Backend: Routes → Services → Repositories
-
-- **Routes** (`backend/src/routes/`): HTTP handling only, validated with `@hono/zod-validator`
-- **Services** (`backend/src/services/`): Business logic, no HTTP concerns
-- **Repositories** (`backend/src/repository/`): Drizzle ORM queries only
-- Error messages use i18n keys (e.g. `throw new ValidationError('INVALID_EMAIL_FORMAT')`)
-
-### Frontend: Views → Components → Composables
-
-- **Views** (`frontend/src/views/`): Page-level components
-- **Components** (`frontend/src/components/`): Reusable UI — consume services, never API directly
-- **Composables** (`frontend/src/composables/`): Split into two layers:
-  - `*.api.ts` — 1:1 mirror of backend routes, no logic or try-catch
-  - `*.service.ts` — state management and error handling
-- xior handles automatic date conversion via `convertStringDatesToJS`
-
-### Shared Package
-
-Import types from `@skol-arena/shared`, never duplicate locally.
-If you get `Cannot find module '@skol-arena/shared'`: run `cd shared && bun run build`.
-
-## Stack
-
-- **Frontend**: Vue 3, TypeScript, Vite, TailwindCSS, PrimeVue, vue-i18n (FR/EN), xior
-- **Backend**: Hono, Bun, Drizzle ORM, PostgreSQL, Better Auth
-- **Shared**: TypeScript, Zod
-- **Tooling**: Bun workspaces, Concurrently, ESLint, Prettier, Husky, commitlint, release-it
-
----
-
-## Git Hooks & Conventional Commits
-
-This project uses [Husky](https://typicode.github.io/husky/) for Git hooks and [commitlint](https://commitlint.js.org/) to enforce [Conventional Commits](https://www.conventionalcommits.org/). Hooks are installed automatically on `bun install` via the `prepare` script.
-
-### Commit format
-
-```
-type(scope): description
-
-# Examples
-feat(ranked): add MMR recalculation
-fix(bracket): correct seeding order
-docs: update setup instructions
-```
-
-Accepted types: `feat`, `fix`, `perf`, `refactor`, `docs`, `style`, `test`, `chore`, `ci`, `revert`.
-
-### Bun PATH issue (Linux/macOS)
-
-Husky runs hooks in a restricted shell that doesn't load your user profile. If Bun isn't on the PATH at commit time, you'll get:
-
-```
-.husky/commit-msg: bun: not found
-husky - commit-msg script failed (code 127)
-```
-
-Fix: add Bun to `~/.config/husky/init.sh` (Husky sources this file before every hook):
-
-```bash
-mkdir -p ~/.config/husky
-echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.config/husky/init.sh
-```
-
-> This file is machine-local and should not be committed. Each contributor using Bun needs to do this once.
+> This table is a plain-language summary, not legal advice. The [LICENSE](LICENSE) file is
+> the only authoritative text.

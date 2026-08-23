@@ -66,13 +66,16 @@ Configure these variables to enable email functionality:
 - **SMTP_FROM**: Sender email address (e.g., `noreply@example.com`)
 - **SMTP_FROM_NAME**: Sender display name (e.g., `Skol`)
 
-### 2. Database Setup
+### 2. Database
 
-Push schema to PostgreSQL:
+Create an empty database owned by a role allowed to create tables:
 
 ```sh
-bun run setup:db
+createdb skol_arena
 ```
+
+Nothing else to run. The server applies every pending migration from `drizzle/` at startup
+(`src/utils/migrate.ts`), so the schema is built the first time you start it.
 
 ## Running the Server
 

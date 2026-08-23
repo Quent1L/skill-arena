@@ -1,0 +1,104 @@
+name: Bug report
+description: Something in Skol Arena behaves incorrectly
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. The more precisely you can describe
+        what happened, the faster it gets fixed.
+
+        Found a **security** issue? Don't file it here — use
+        [private vulnerability reporting](https://github.com/Quent1L/skol-arena/security/advisories/new)
+        instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+      placeholder: When I confirm a match result as the second player, the standings don't update.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps someone else can follow on a fresh instance.
+      placeholder: |
+        1. Create a championship tournament with two players
+        2. Report a match result as player A
+        3. Confirm it as player B
+        4. Open the standings tab
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the exact error message if there is one.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown in the app, and in the image tag you pulled. `latest` is not a version — please give the number.
+      placeholder: 1.20.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How is it deployed?
+      options:
+        - Docker image (single container)
+        - Docker Compose
+        - Local development (bun run dev)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which tournament mode is affected?
+      options:
+        - Championship
+        - Bracket
+        - Ranked
+        - Not mode-specific
+        - Not sure
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and platform
+      description: Only if the problem is in the web app.
+      placeholder: Firefox 141 on Android 15 / Chrome 139 on macOS
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, anything else
+      description: |
+        Container logs (`docker compose logs app`) and browser console output are the most
+        useful. Please redact secrets — `BETTER_AUTH_SECRET`, database credentials, tokens.
+      render: shell
+    validations:
+      required: false

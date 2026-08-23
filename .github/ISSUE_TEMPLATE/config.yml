@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://skol-arena-docs.vercel.app/docs
+    about: Self-hosting guide, environment variables, and how matches, MMR and accounts actually work.
+  - name: 💬 Questions and ideas
+    url: https://github.com/Quent1L/skol-arena/discussions
+    about: Ask how something works, or talk through an idea before filing a request.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/Quent1L/skol-arena/security/advisories/new
+    about: Please report vulnerabilities privately — never as a public issue.

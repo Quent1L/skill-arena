@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import pagefind from 'astro-pagefind'
 
 export default defineConfig({
+  site: 'https://skol-arena-docs.vercel.app',
   integrations: [pagefind()],
   vite: {
     plugins: [tailwindcss()],

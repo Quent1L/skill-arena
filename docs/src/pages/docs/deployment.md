@@ -6,11 +6,11 @@ description: Docker image, Docker Compose setup, first boot, and platform notes.
 
 ## Docker image
 
-Official images are published to GitHub Container Registry:
+Official images are published to Docker Hub:
 
 ```
 quent1l/skol-arena:latest
-quent1l/skol-arena:<version>   # e.g. 2.0.0
+quent1l/skol-arena:<version>   # e.g. 1.20.1
 ```
 
 The image is built from the repository's multi-stage `Dockerfile`: it compiles the

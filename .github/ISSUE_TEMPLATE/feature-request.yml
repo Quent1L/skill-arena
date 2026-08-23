@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a capability Skol Arena doesn't have yet
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Skol Arena is built from what people running real competitions actually need. If a
+        mode, a rule or a workflow doesn't exist yet, describing the situation it would
+        solve is more useful than describing the feature itself.
+
+        Have a question rather than a request? Try
+        [Discussions](https://github.com/Quent1L/skol-arena/discussions) or the
+        [documentation](https://skol-arena-docs.vercel.app/docs).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the solution. What did you try to do, and where did it fall apart?
+      placeholder: Our league plays doubles, but the pairs change every week, and we want each player to keep their own rating.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you considered or worked around?
+      description: Existing features you tried, manual workarounds, or how another tool handles it.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which part of the app does this concern?
+      options:
+        - Championship
+        - Bracket
+        - Ranked
+        - Matches and reporting
+        - Accounts, organizations and access
+        - Self-hosting and administration
+        - Across the whole app
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: Screenshots, mockups, links, or the size and shape of the community you run.
+    validations:
+      required: false

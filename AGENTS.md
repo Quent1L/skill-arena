@@ -27,13 +27,10 @@ Vite) concurrently.
 ### Database Workflow
 
 ```bash
-# Push schema changes to database (development shortcut)
-bun run setup:db
-
 # Generate migration
 cd backend && bun run db:generate
 
-# Push schema directly (bypasses migrations)
+# Push schema directly (development shortcut, bypasses migrations)
 cd backend && bun run db:push
 ```
 
