@@ -6,10 +6,7 @@ icon: bolt
 pillar: platform
 ---
 
-Competitions happen in clubs, offices, bars, and local venues — not behind a desk. The
-mobile experience isn't the desktop layout squeezed down: tournament pages, the match
-creation flow, and player selection all have dedicated mobile components with their own
-navigation and stepper.
-
-Skol Arena installs as a Progressive Web App too, so players can add it to their home
-screen and open it standalone, and updates roll out automatically in the background.
+Tournament pages, match creation and player selection all have dedicated mobile components
+with their own navigation and stepper — not a desktop layout squeezed down. It installs as a
+Progressive Web App too, so players open it standalone from their home screen and updates
+roll out in the background.

@@ -51,13 +51,20 @@ const stats = [
     >
       <slot />
     </div>
-    <ScreenshotPlaceholder caption="Ranked leaderboard screenshot" />
+    <div>
+      <div class="lg:sticky lg:top-24">
+        <ScreenshotPlaceholder caption="Ranked leaderboard screenshot" />
+      </div>
+    </div>
   </div>
   <p class="mt-8 text-sm text-slate-400">
-    Ranked&rsquo;s MMR math is driven by each discipline&rsquo;s scoring rules — see the{' '}
-    <a href="#disciplines-outcomes" class="text-brand-mid hover:text-brand-end">
-      disciplines &amp; outcomes
-    </a>{' '}
-    breakdown below.
+    Ranked&rsquo;s MMR math is driven by each discipline&rsquo;s scoring rules — see{' '}
+    <a
+      href="/docs/disciplines#disciplines-and-outcome-types"
+      class="text-brand-mid hover:text-brand-end"
+    >
+      disciplines &amp; scoring</a
+    >, or the full{' '}
+    <a href="/docs/mmr" class="text-brand-mid hover:text-brand-end">MMR reference</a> in the docs.
   </p>
 </article>

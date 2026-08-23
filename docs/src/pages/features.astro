@@ -4,6 +4,7 @@ import { getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
+import FeatureCard from '../components/FeatureCard.astro'
 import ScreenshotPlaceholder from '../components/ScreenshotPlaceholder.astro'
 import RankedSpotlight from '../components/RankedSpotlight.astro'
 
@@ -107,49 +108,64 @@ const sections = await Promise.all(
             </div>
           )}
 
-          <div class="mt-8 flex flex-col gap-6">
-            {section.entries.map(({ feature, Content }, i) => {
-              if (feature.id === RANKED_ID) {
-                return (
-                  <RankedSpotlight variant="features" feature={feature}>
-                    <Content />
-                  </RankedSpotlight>
-                )
-              }
-
-              const reversed = i % 2 === 1
-
-              return (
-                <article
-                  id={slug(feature.id)}
-                  class="grid scroll-mt-24 grid-cols-1 items-center gap-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 md:grid-cols-5 lg:p-10"
+          {section.id === 'platform' ? (
+            <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {section.entries.map(({ feature, Content }) => (
+                <FeatureCard
+                  title={feature.data.title}
+                  icon={feature.data.icon}
+                  badge={feature.data.badge}
+                  href={feature.data.docs}
                 >
-                  <div class={`md:col-span-3 ${reversed ? 'md:order-2' : ''}`}>
-                    <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid">
-                      <Icon name={feature.data.icon ?? 'bolt'} class="h-6 w-6" />
-                    </div>
-                    <div class="mb-1 flex flex-wrap items-center gap-2">
-                      <h3 class="text-2xl font-bold text-white">{feature.data.title}</h3>
-                      {feature.data.badge && (
-                        <span class="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
-                          {feature.data.badge}
-                        </span>
-                      )}
-                    </div>
-                    {feature.data.summary && (
-                      <p class="text-sm font-medium text-brand-mid/80">{feature.data.summary}</p>
-                    )}
-                    <div class="prose prose-invert prose-headings:font-semibold prose-headings:text-white prose-a:text-brand-mid prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-100 mt-4 max-w-none text-slate-300 [&_p]:mb-3">
+                  <Content />
+                </FeatureCard>
+              ))}
+            </div>
+          ) : (
+            <div class="mt-8 flex flex-col gap-6">
+              {section.entries.map(({ feature, Content }) => {
+                if (feature.id === RANKED_ID) {
+                  return (
+                    <RankedSpotlight variant="features" feature={feature}>
                       <Content />
+                    </RankedSpotlight>
+                  )
+                }
+
+                return (
+                  <article
+                    id={slug(feature.id)}
+                    class="grid scroll-mt-24 grid-cols-1 gap-10 rounded-2xl border border-white/10 bg-white/[0.03] p-8 md:grid-cols-5 lg:p-10"
+                  >
+                    <div class="md:col-span-3">
+                      <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-start/15 text-brand-mid">
+                        <Icon name={feature.data.icon ?? 'bolt'} class="h-6 w-6" />
+                      </div>
+                      <div class="mb-1 flex flex-wrap items-center gap-2">
+                        <h3 class="text-2xl font-bold text-white">{feature.data.title}</h3>
+                        {feature.data.badge && (
+                          <span class="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-300 uppercase">
+                            {feature.data.badge}
+                          </span>
+                        )}
+                      </div>
+                      {feature.data.summary && (
+                        <p class="text-sm font-medium text-brand-mid/80">{feature.data.summary}</p>
+                      )}
+                      <div class="prose prose-invert prose-headings:font-semibold prose-headings:text-white prose-a:text-brand-mid prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-100 mt-4 max-w-none text-slate-300 [&_p]:mb-3">
+                        <Content />
+                      </div>
                     </div>
-                  </div>
-                  <div class={`md:col-span-2 ${reversed ? 'md:order-1' : ''}`}>
-                    <ScreenshotPlaceholder caption={`${feature.data.title} screenshot`} />
-                  </div>
-                </article>
-              )
-            })}
-          </div>
+                    <div class="md:col-span-2">
+                      <div class="md:sticky md:top-24">
+                        <ScreenshotPlaceholder caption={`${feature.data.title} screenshot`} />
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
         </section>
       ))
     }

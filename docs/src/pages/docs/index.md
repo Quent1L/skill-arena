@@ -37,6 +37,17 @@ and migrations, so a single container serves both the API and the web app.
   Postgres), how migrations and the first admin account work, and notes on
   architecture support.
 
+Once the instance is up, these pages cover how it behaves:
+
+- **[Matches](/docs/matches)** — the player-driven match workflow, the four validation
+  modes and the trust score, and the team formats a match can take.
+- **[Disciplines & Scoring](/docs/disciplines)** — disciplines, outcome types and their
+  weights, rules pages, and the contextual rules engine.
+- **[MMR Rating](/docs/mmr)** — how ranked ratings are computed: the Elo formula,
+  per-discipline sharing between teammates, season seeding and recalculation.
+- **[Accounts & Access](/docs/accounts)** — authentication methods, invitation codes, and
+  scoping tournaments to an organization.
+
 ## Prerequisites
 
 - A PostgreSQL database (any recent version) reachable from the container.

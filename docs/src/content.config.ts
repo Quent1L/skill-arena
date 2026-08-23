@@ -13,6 +13,7 @@ const showcase = defineCollection({
     pillar: z.enum(['championship', 'bracket', 'ranked', 'platform']).optional(),
     tagline: z.string().optional(),
     bestFor: z.array(z.string()).optional(),
+    docs: z.string().optional(),
   }),
 })
 

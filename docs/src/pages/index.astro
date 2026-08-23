@@ -1,4 +1,6 @@
 ---
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { getEntry, getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Logo from '../components/Logo.astro'
@@ -30,17 +32,16 @@ const faq = (await getCollection('showcase', ({ id }) => id.startsWith('faq/')))
   (a, b) => a.data.order - b.data.order,
 )
 
-const proofPoints = [
-  { icon: 'layers', label: '3 competition modes', detail: 'Championship, Bracket, and Ranked' },
-  { icon: 'users', label: 'Player-first workflow', detail: 'Players report, contest, and cancel' },
-  { icon: 'sliders', label: 'Flexible formats', detail: '1v1, fixed rosters, or per-match teams' },
-  { icon: 'home', label: 'Built for real communities', detail: 'Clubs, workplaces, local groups' },
-]
+// The version shown in the hero badge comes from the monorepo root package.json,
+// which release-it bumps — never hardcode it here. Astro runs with the docs/
+// workspace as cwd, so the root manifest sits one level up.
+const rootPackage = resolve(process.cwd(), '../package.json')
+const { version } = JSON.parse(readFileSync(rootPackage, 'utf-8')) as { version: string }
 
 const differentiators = [
   {
-    title: 'Player-first by design',
-    body: 'Match reporting, confirmations, disputes, and cancellations run through the players in the match. The competition keeps moving when the organizer is busy.',
+    title: 'Brackets seeded from your season',
+    body: 'A final bracket can be drawn at random or seeded straight from a finished championship’s standings, so the season you just played decides the matchups.',
   },
   {
     title: 'Mobile-first for real-world play',
@@ -86,15 +87,6 @@ const audiences = [
     desc: 'Go beyond generic brackets with configurable disciplines, flexible structures, and player-driven workflows.',
   },
 ]
-
-const useCases = [
-  'Run a flexible championship over several weeks',
-  'Seed a final bracket straight from championship standings',
-  'Maintain an independent ranked ladder for ongoing play',
-  'Let players report and manage their own matches',
-  'Support team formats that rigid tournament tools cannot express',
-  'Keep competition alive without turning the organizer into a full-time admin',
-]
 ---
 
 <BaseLayout title="Home">
@@ -119,7 +111,7 @@ const useCases = [
         style="animation-delay: 0.05s"
       >
         <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400"></span>
-        Open source · Self-hostable · v1.16
+        Open source · Self-hostable · v{version}
       </span>
       <h1
         class="animate-fade-up text-4xl leading-tight font-extrabold text-balance sm:text-5xl"
@@ -151,26 +143,7 @@ const useCases = [
         </a>
       </div>
 
-      <div
-        class="animate-fade-up mt-4 grid w-full grid-cols-1 gap-3 sm:grid-cols-2"
-        style="animation-delay: 0.25s"
-      >
-        {
-          proofPoints.map((point) => (
-            <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left">
-              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-start/15 text-brand-mid">
-                <Icon name={point.icon} class="h-4 w-4" />
-              </span>
-              <div>
-                <p class="text-sm font-semibold text-white">{point.label}</p>
-                <p class="text-sm text-slate-400">{point.detail}</p>
-              </div>
-            </div>
-          ))
-        }
-      </div>
-
-      <div class="animate-fade-up w-full pt-6" style="animation-delay: 0.3s">
+      <div class="animate-fade-up w-full pt-6" style="animation-delay: 0.25s">
         <ScreenshotPlaceholder caption="Dashboard preview" />
       </div>
     </div>
@@ -289,31 +262,13 @@ const useCases = [
     </div>
   </section>
 
-  <!-- Ongoing competition -->
-  <section class="relative border-y border-white/10 bg-black/20">
-    <div class="mx-auto max-w-3xl px-6 py-20">
-      <SectionHeading
-        eyebrow="A better fit for ongoing competition"
-        title="Not just for running tournaments — built for keeping a competitive community alive"
-      />
-      <ul class="mt-10 flex flex-col gap-3">
-        {
-          useCases.map((useCase) => (
-            <li class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 text-slate-300">
-              <Icon name="check" class="mt-0.5 h-5 w-5 shrink-0 text-brand-mid" />
-              {useCase}
-            </li>
-          ))
-        }
-      </ul>
-    </div>
-  </section>
-
   <!-- FAQ -->
-  <section class="relative mx-auto max-w-3xl px-6 py-24">
-    <SectionHeading eyebrow="FAQ" title="Questions people ask first" />
-    <div class="mt-10">
-      <FaqAccordion items={faq} />
+  <section class="relative border-y border-white/10 bg-black/20">
+    <div class="mx-auto max-w-3xl px-6 py-24">
+      <SectionHeading eyebrow="FAQ" title="Questions people ask first" />
+      <div class="mt-10">
+        <FaqAccordion items={faq} />
+      </div>
     </div>
   </section>
 

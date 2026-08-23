@@ -45,4 +45,11 @@ const Tag = href ? 'a' : 'div'
   >
     <slot />
   </div>
+  {
+    href && (
+      <span class="mt-4 inline-block text-sm font-semibold text-brand-mid transition-colors group-hover:text-brand-end">
+        Read more →
+      </span>
+    )
+  }
 </Tag>
