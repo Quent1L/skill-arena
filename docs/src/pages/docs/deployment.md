@@ -10,12 +10,12 @@ Official images are published to GitHub Container Registry:
 
 ```
 quent1l/skol-arena:latest
-quent1l/skol-arena:<version>   # e.g. 1.15.0
+quent1l/skol-arena:<version>   # e.g. 2.0.0
 ```
 
 The image is built from the repository's multi-stage `Dockerfile`: it compiles the
 shared types package, builds the Vue frontend, bundles the Bun backend, and copies
-only the production artifacts into a minimal `oven/bun:1.3-alpine` runtime running
+only the production artifacts into a minimal `oven/bun:1.4-slim` runtime running
 as a non-root user.
 
 **Platform note**: published images are currently `linux/amd64` only. If you're on

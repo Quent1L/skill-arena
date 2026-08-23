@@ -1,6 +1,8 @@
 # --- Base ------------------------------------------------------
-FROM oven/bun:1.3.14-slim AS base
+FROM oven/bun:1.4-slim AS base
 WORKDIR /app
+
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 
 # --- Dependencies ---------------------------------------------
@@ -37,8 +39,10 @@ RUN bun build ./backend/src/index.ts \
 
 
 # --- Production ------------------------------------------------
-FROM oven/bun:1.3.14-slim AS production
+FROM oven/bun:1.4-slim AS production
 WORKDIR /app
+
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 
 # --create-home matters: bun writes caches under $HOME and fails without it
 RUN groupadd --system --gid 1001 skol && \
