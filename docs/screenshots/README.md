@@ -21,32 +21,48 @@ changes rather than churn.
 
 ## Full run
 
-```bash
-cd docs
-bun run shots:db:up        # Postgres on :5436
-bun run shots:seed         # runs the migrations itself, then seeds
-```
-
-Then start the app against that database, from `backend/`:
+Four commands, three terminals. From `docs/`:
 
 ```bash
-DATABASE_URL=postgres://skolarena:skolarena@localhost:5436/skolarena_showcase \
-BETTER_AUTH_SECRET='showcase-secret-at-least-32-characters!!' \
-BETTER_AUTH_URL=http://localhost:3000 \
-NODE_ENV=development ENABLE_EMAIL_PASSWORD=true \
-KEYCLOAK_CLIENT_ID= KEYCLOAK_CLIENT_SECRET= KEYCLOAK_ISSUER= \
-bun run src/index.ts
+bun run shots:reset        # wipes the database, recreates it, migrates, seeds
+bun run shots:backend      # terminal 2: the API on :3000, against that database
 ```
 
 The dev frontend hardcodes `http://localhost:3000`, so this backend has to own
-that port: stop the normal dev stack first. Start the frontend from `frontend/`
-with `bun run dev`, then capture:
+that port: stop the normal dev stack first. Then, from `frontend/`:
 
 ```bash
-cd docs && bun run shots:capture
+bun run dev                # terminal 3
 ```
 
+and back in `docs/`:
+
+```bash
+bun run shots:capture      # writes src/assets/screenshots/
+```
+
+`shots:reset` is the one to reach for. `shots:seed` on its own is idempotent and
+does nothing on a database that already holds the showcase data, which is what you
+want on a first run and never what you want on a second one.
+
 Tear down with `bun run shots:db:down`.
+
+## How reproducible it is
+
+The data is: the seed draws from a fixed PRNG and a frozen "today", so the
+standings, the MMR values and the tier boundaries come out identical every time.
+
+The pixels are not, quite. Three things move between runs:
+
+- the app picks its home-screen greeting at random ("Hi Theo!", "Back again,
+  Theo!")
+- the bracket is drawn with `seedingType: "random"`, so the matchups change
+- matches still awaiting confirmation are stamped from the real clock, so their
+  dates and deadlines follow the day you capture
+
+Add the count-up animations on the MMR figures and two runs a minute apart can
+differ by a few pixels. So re-capture when the UI changed, not to "refresh" the
+files: a no-op re-capture still rewrites most of them.
 
 ## Re-capturing
 
