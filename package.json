@@ -48,11 +48,11 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.0.2",
-    "@commitlint/config-conventional": "^21.0.2",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
     "@release-it/bumper": "^7.0.6",
     "@release-it/conventional-changelog": "^11.0.1",
-    "concurrently": "^10.0.3",
+    "concurrently": "^10.0.5",
     "husky": "^9.1.7",
     "release-it": "^20.2.0"
   },
