@@ -155,9 +155,9 @@
           </div>
           <div class="text-xs text-gray-400 mt-0.5">
             {{ t('playerMmrProfile.weeklyMmrLabel') }}
-            <span v-if="weekly.matchesPlayed > 0" class="text-gray-500">
-              · {{ t('playerMmrProfile.weeklyMmrMatches', weekly.matchesPlayed) }}
-            </span>
+          </div>
+          <div v-if="weekly.matchesPlayed > 0" class="text-xs text-gray-500">
+            {{ t('playerMmrProfile.weeklyMmrMatches', weekly.matchesPlayed) }}
           </div>
         </div>
       </div>

@@ -88,8 +88,12 @@
               :dimmed="hasReportedWinner && sideB?.isWinner === true"
             />
 
+            <!-- On a phone this cell is a full-width row above the two sides. A score
+                 earns that row; a bare "VS" between two names already facing each other
+                 does not, so it only appears from sm:. -->
             <div
-              class="order-first col-span-2 flex flex-col items-center justify-center self-center pb-1 sm:order-none sm:col-span-1 sm:pb-0"
+              class="order-first col-span-2 flex-col items-center justify-center self-center pb-1 sm:order-none sm:col-span-1 sm:flex sm:pb-0"
+              :class="showScore ? 'flex' : 'hidden'"
             >
               <div
                 v-if="showScore"

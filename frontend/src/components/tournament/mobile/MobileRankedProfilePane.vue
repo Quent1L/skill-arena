@@ -46,7 +46,7 @@
       :player-id="store.appUser.id"
       :discipline-id="store.currentDisciplineId"
       own
-      class="mt-4"
+      class="my-4"
     />
   </div>
 </template>
