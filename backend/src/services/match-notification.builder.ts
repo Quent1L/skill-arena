@@ -163,6 +163,11 @@ export class MatchNotificationBuilder {
     }
   }
 
+  /**
+   * A contestation filed after finalization is arbitrated the same way as one filed
+   * before it: the other players are told, and the organizers get it as an action to
+   * complete, because nothing else will settle it.
+   */
   async notifyPostFinalizationDispute(matchId: string, disputedBy: string): Promise<void> {
     const match = await matchRepository.getById(matchId)
     if (!match) return
@@ -173,10 +178,17 @@ export class MatchNotificationBuilder {
     const disputerName = disputer?.displayName ?? null
     const matchDate = this.serializeMatchDate(match.playedAt)
 
-    const recipients = this.recipientsExcept(participants, disputedBy)
-    for (const playerId of recipients) {
+    const admins = await tournamentRepository.getAdminUserIds(match.tournamentId)
+    const players = this.recipientsExcept(participants, disputedBy)
+    const recipients = new Map<string, boolean>()
+    for (const playerId of players) recipients.set(playerId, false)
+    for (const adminId of admins) {
+      if (adminId !== disputedBy) recipients.set(adminId, true)
+    }
+
+    for (const [userId, requiresAction] of recipients) {
       await notificationService.send({
-        userId: playerId,
+        userId,
         type: 'MATCH_POST_DISPUTE',
         titleKey: 'notifications.MATCH_POST_DISPUTE_TITLE',
         messageKey: 'notifications.MATCH_POST_DISPUTE_MESSAGE',
@@ -186,7 +198,7 @@ export class MatchNotificationBuilder {
           matchDate,
         },
         actionUrl: `/matches/${matchId}`,
-        requiresAction: false,
+        requiresAction,
         matchId,
       })
     }

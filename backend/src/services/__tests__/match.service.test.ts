@@ -39,6 +39,7 @@ import {
   ForbiddenError,
   ConflictError,
   ErrorCode,
+  type AppError,
 } from "../../types/errors";
 import { db } from "../../config/database";
 import type {
@@ -48,6 +49,7 @@ import type {
   ConfirmMatchRequestData,
   ListMatchesQuery,
 } from "@skol-arena/shared";
+import { POST_FINALIZATION_DISPUTE_DAYS } from "@skol-arena/shared";
 
 // Type for notification service mock
 type NotificationServiceType = typeof notificationService;
@@ -2084,6 +2086,199 @@ describe("MatchService - Dispute handling", () => {
 
     expect(updateCalls).toHaveLength(0);
     expect(purged).toHaveLength(0);
+  });
+});
+
+describe("MatchService - Post-finalization contestation", () => {
+  const finalizedMatch = (over: Record<string, unknown> = {}) =>
+    ({
+      id: "m-fin",
+      tournamentId: "t-1",
+      status: "finalized",
+      result: {
+        reportedBy: "p2",
+        finalizedAt: new Date(Date.now() - 60 * 60 * 1000),
+        finalizationReason: "auto_validation",
+      },
+      ...over,
+    }) as any;
+
+  beforeEach(() => {
+    repo.getById = async (_id: string) => finalizedMatch();
+    repo.getTournament = async () => ({ id: "t-1", validationMode: "none" }) as any;
+    repo.isUserInMatch = async () => true;
+    repo.getParticipationsByMatchId = async () =>
+      [
+        { playerId: "p1", teamSide: "A" },
+        { playerId: "p2", teamSide: "B" },
+      ] as any;
+    confRepo.hasPlayerDisputedPostFinalization = async () => false;
+    confRepo.upsert = async (data: any) => ({ id: "conf-1", ...data }) as any;
+    confRepo.delete = async () => undefined;
+  });
+
+  it("a contestation lands in the thread, reason included", async () => {
+    const upserted: any[] = [];
+    confRepo.upsert = async (data: any) => {
+      upserted.push(data);
+      return { id: "conf-1", ...data } as any;
+    };
+
+    const systemKeys: string[] = [];
+    (matchMessageService as any).postSystem = async (_id: string, key: string) => {
+      systemKeys.push(key);
+    };
+    const notes: Array<{ userId: string; body?: string | null }> = [];
+    (matchMessageService as any).postUserNote = async (
+      _id: string,
+      userId: string,
+      body?: string | null,
+    ) => {
+      notes.push({ userId, body });
+    };
+
+    await matchService.respondToMatch(
+      "m-fin",
+      { type: "dispute", reason: "the score is reversed" } as any,
+      "p1",
+    );
+
+    expect(upserted[0].isPostFinalization).toBe(true);
+    expect(upserted[0].isContested).toBe(true);
+    expect(systemKeys).toEqual(["matchMessages.RESULT_DISPUTED_POST"]);
+    expect(notes).toEqual([{ userId: "p1", body: "the score is reversed" }]);
+    // The opponents' open pages learn about it without a reload
+    expect(matchUpdatesBroadcast).toContain("m-fin");
+  });
+
+  it("withdrawing drops only the post-finalization row and the arbitration request", async () => {
+    confRepo.hasPlayerDisputedPostFinalization = async () => true;
+
+    const deleted: Array<[string, string, boolean | undefined]> = [];
+    confRepo.delete = async (matchId: string, playerId: string, isPost?: boolean) => {
+      deleted.push([matchId, playerId, isPost]);
+    };
+
+    const updateCalls: UpdateMatchData[] = [];
+    repo.update = async (_id: string, data: UpdateMatchData) => {
+      updateCalls.push(data);
+      return { id: _id, ...data } as any;
+    };
+
+    const purged: string[] = [];
+    notifService.deleteActionsByMatchIdAndType = async (_matchId: string, type: string) => {
+      purged.push(type);
+      return [];
+    };
+
+    const systemKeys: string[] = [];
+    (matchMessageService as any).postSystem = async (_id: string, key: string) => {
+      systemKeys.push(key);
+    };
+
+    await matchService.respondToMatch("m-fin", { type: "agree" } as any, "p1");
+
+    expect(deleted).toEqual([["m-fin", "p1", true]]);
+    expect(purged).toEqual(["MATCH_POST_DISPUTE"]);
+    expect(systemKeys).toEqual(["matchMessages.POST_DISPUTE_WITHDRAWN"]);
+    // The result itself is untouched: the match was and stays finalized
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it("a player may contest again once they have withdrawn", async () => {
+    let hasDispute = true;
+    confRepo.hasPlayerDisputedPostFinalization = async () => hasDispute;
+    confRepo.delete = async () => {
+      hasDispute = false;
+    };
+
+    const upserted: any[] = [];
+    confRepo.upsert = async (data: any) => {
+      upserted.push(data);
+      hasDispute = true;
+      return { id: "conf-1", ...data } as any;
+    };
+
+    await matchService.respondToMatch("m-fin", { type: "agree" } as any, "p1");
+    await matchService.respondToMatch(
+      "m-fin",
+      { type: "dispute", reason: "still wrong" } as any,
+      "p1",
+    );
+
+    expect(upserted).toHaveLength(1);
+    expect(upserted[0].isPostFinalization).toBe(true);
+  });
+
+  it("agreeing with nothing to withdraw is rejected", async () => {
+    try {
+      await matchService.respondToMatch("m-fin", { type: "agree" } as any, "p1");
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect(err).toBeInstanceOf(BadRequestError);
+      expect((err as AppError).code).toBe(ErrorCode.CANNOT_AGREE_AFTER_FINALIZATION);
+    }
+  });
+
+  it("contesting twice is rejected", async () => {
+    confRepo.hasPlayerDisputedPostFinalization = async () => true;
+
+    try {
+      await matchService.respondToMatch("m-fin", { type: "dispute" } as any, "p1");
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect((err as AppError).code).toBe(ErrorCode.ALREADY_DISPUTED);
+    }
+  });
+
+  it("the window closes after the allowed number of days", async () => {
+    const expired = new Date(Date.now() - (POST_FINALIZATION_DISPUTE_DAYS + 1) * 86400000);
+    repo.getById = async () =>
+      finalizedMatch({
+        result: {
+          reportedBy: "p2",
+          finalizedAt: expired,
+          finalizationReason: "auto_validation",
+        },
+      });
+
+    try {
+      await matchService.respondToMatch("m-fin", { type: "dispute" } as any, "p1");
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect((err as AppError).code).toBe(ErrorCode.DISPUTE_WINDOW_EXPIRED);
+    }
+  });
+
+  it("a mode that never auto-validates leaves nothing to contest afterwards", async () => {
+    repo.getTournament = async () => ({ id: "t-1", validationMode: "strict" }) as any;
+
+    try {
+      await matchService.respondToMatch("m-fin", { type: "dispute" } as any, "p1");
+      throw new Error("Expected BadRequestError");
+    } catch (err) {
+      expect((err as AppError).code).toBe(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE);
+    }
+  });
+
+  it("a result everyone signed or an organizer arbitrated is not contestable", async () => {
+    for (const finalizationReason of ["consensus", "admin_override"]) {
+      repo.getById = async () =>
+        finalizedMatch({
+          result: {
+            reportedBy: "p2",
+            finalizedAt: new Date(Date.now() - 60 * 60 * 1000),
+            finalizationReason,
+          },
+        });
+
+      try {
+        await matchService.respondToMatch("m-fin", { type: "dispute" } as any, "p1");
+        throw new Error("Expected BadRequestError");
+      } catch (err) {
+        expect((err as AppError).code).toBe(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE);
+      }
+    }
   });
 });
 

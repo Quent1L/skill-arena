@@ -145,6 +145,8 @@
     "RESULT_REVISED": "{{authorName}} a corrigé le résultat : {{previousScore}} → {{newScore}}. Les validations précédentes sont annulées.",
     "RESULT_DISPUTED": "{{authorName}} conteste le résultat. Un organisateur a été prévenu.",
     "DISPUTE_WITHDRAWN": "{{authorName}} a retiré sa contestation et accepté le résultat.",
+    "RESULT_DISPUTED_POST": "{{authorName}} conteste le résultat finalisé. Un organisateur a été prévenu.",
+    "POST_DISPUTE_WITHDRAWN": "{{authorName}} a retiré sa contestation.",
     "MATCH_FINALIZED": "Résultat finalisé."
   }
 }

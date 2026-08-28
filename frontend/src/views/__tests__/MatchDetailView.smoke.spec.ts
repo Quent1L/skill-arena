@@ -132,6 +132,8 @@ describe('MatchDetailView (render smoke)', () => {
     expect(scoreBlock.exists()).toBe(true)
     expect(scoreBlock.classes()).toContain('order-first')
     expect(scoreBlock.classes()).toContain('sm:col-span-1')
+    expect(scoreBlock.classes()).toContain('flex')
+    expect(scoreBlock.classes()).not.toContain('hidden')
     expect(scoreBlock.text()).toContain('3')
   })
 
@@ -150,6 +152,11 @@ describe('MatchDetailView (render smoke)', () => {
     )
 
     expect(wrapper.text()).toContain(fr.matchCard.vs)
+    // A full-width row on a phone for two letters between two names it already
+    // separates: the fallback earns the middle column, not a row of its own
+    const vsBlock = wrapper.find('.col-span-2')
+    expect(vsBlock.classes()).toContain('hidden')
+    expect(vsBlock.classes()).toContain('sm:flex')
   })
 
   it('marks each player validation state in the scoreboard while a round is open', async () => {
@@ -235,5 +242,30 @@ describe('MatchDetailView (render smoke)', () => {
 
     expect(wrapper.text()).toContain(fr.matchConfirmation.acceptBtn)
     expect(wrapper.text()).toContain(fr.matchConfirmation.disputeBtn)
+  })
+
+  it('flags an open contestation in the meta strip', async () => {
+    const wrapper = await mountView(
+      makeMatch('finalized', {
+        confirmations: [
+          {
+            id: 'conf-1',
+            matchId: 'm-1',
+            playerId: 'p1',
+            isConfirmed: false,
+            isContested: true,
+            contestationReason: 'le score est faux',
+            sidePosition: 1,
+            isPostFinalization: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            player: { id: 'p1', displayName: 'Toto' },
+          },
+        ],
+      } as Partial<ClientMatchDetail>),
+    )
+
+    expect(wrapper.text()).toContain(fr.matchDetailView.postDisputedBy)
+    expect(wrapper.text()).toContain('Toto')
   })
 })

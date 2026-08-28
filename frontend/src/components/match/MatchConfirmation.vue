@@ -1,7 +1,7 @@
 <template>
   <SurfacePanel v-if="shouldShowConfirmation">
     <template #header>
-      <SectionHeader icon="fa fa-check-circle" :title="t('matchConfirmation.title')" />
+      <SectionHeader :icon="panelIcon" :title="panelTitle" />
     </template>
 
     <div class="space-y-4">
@@ -17,12 +17,22 @@
           {{ validationModeMessage }}
         </span>
 
+        <!-- Once the result is settled the count says nothing: what is left to decide is
+             whether someone contests it, and how long they still have to do so. -->
         <span
-          v-if="totalPlayers > 0"
+          v-if="totalPlayers > 0 && !isFinalized"
           class="font-label inline-flex items-center gap-1.5 rounded-full border border-surface-600 bg-surface-900/50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-muted-color"
         >
           <i class="fa fa-user-check" aria-hidden="true" />
           {{ t('matchConfirmation.validatedCount', { confirmed: confirmedCount, total: totalPlayers }) }}
+        </span>
+
+        <span
+          v-if="isFinalized"
+          class="font-label inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300"
+        >
+          <i class="fa fa-clock" aria-hidden="true" />
+          {{ t('matchConfirmation.postDisputeWindow', { time: postDisputeTimeRemaining }) }}
         </span>
       </div>
 
@@ -68,8 +78,44 @@
         </span>
       </div>
 
+      <!-- Actions on a settled result: contest it, or take that contestation back. The
+           reason and every change of mind are recorded in the thread below. -->
+      <div v-if="isFinalized" class="space-y-3 border-t border-surface-700/40 pt-4">
+        <div v-if="myPostDispute" class="space-y-3 rounded-xl border-l-2 border-match-loss bg-surface-900/40 p-3">
+          <div class="flex items-center gap-2">
+            <i class="fa fa-flag text-lg text-match-loss" aria-hidden="true" />
+            <span class="text-sm text-white/80">{{ t('matchConfirmation.userPostDisputed') }}</span>
+          </div>
+
+          <Button
+            :label="t('matchConfirmation.withdrawPostDisputeBtn')"
+            icon="fa fa-rotate-left"
+            severity="success"
+            size="small"
+            :loading="responding"
+            :disabled="responding"
+            @click="openResponseDialog('agree')"
+          />
+        </div>
+
+        <div v-else-if="canPostDispute">
+          <p class="mb-3 text-sm text-white/70">
+            {{ t('matchConfirmation.postDisputeQuestion') }}
+          </p>
+          <Button
+            :label="t('matchConfirmation.postDisputeBtn')"
+            icon="fa fa-flag"
+            severity="danger"
+            outlined
+            :loading="responding"
+            :disabled="responding"
+            @click="openResponseDialog('dispute')"
+          />
+        </div>
+      </div>
+
       <!-- Actions for the logged-in player -->
-      <div v-if="canUserRespond" class="space-y-3 border-t border-surface-700/40 pt-4">
+      <div v-else-if="canUserRespond" class="space-y-3 border-t border-surface-700/40 pt-4">
         <div v-if="!userResponse">
           <p class="mb-3 text-sm text-white/70">
             {{ t('matchConfirmation.questionConfirmResult') }}
@@ -127,7 +173,7 @@
          parent applies its reveal animation to it, and a hidden panel leaves no gap. -->
     <Dialog
       v-model:visible="responseDialogVisible"
-      :header="responseIntent === 'agree' ? acceptDialogTitle : t('matchConfirmation.dialogDisputeTitle')"
+      :header="responseIntent === 'agree' ? acceptDialogTitle : disputeDialogTitle"
       :modal="true"
       :style="{ maxWidth: '480px' }"
     >
@@ -148,7 +194,7 @@
 
         <div class="rounded-xl bg-surface-900/50 p-3 text-sm text-white/70">
           <i class="fa fa-info-circle mr-2" aria-hidden="true"></i>
-          {{ t('matchConfirmation.disputeHint') }}
+          {{ disputeDialogHint }}
         </div>
       </div>
 
@@ -178,7 +224,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { type ClientMatchDetail } from '@skol-arena/shared';
+import {
+  POST_FINALIZATION_DISPUTE_DAYS,
+  type ClientMatchDetail,
+} from '@skol-arena/shared';
 import SectionHeader from '@/components/ui/SectionHeader.vue';
 import SurfacePanel from '@/components/ui/SurfacePanel.vue';
 import { buildConfirmationStatusMap } from '@/composables/match/match-confirmation-status';
@@ -208,10 +257,22 @@ const disputeReason = ref('');
 // The score used to be repeated here; the hero scoreboard sits directly above, so this
 // panel is now only about who has validated and what happens next.
 const shouldShowConfirmation = computed(() => {
-  return ['reported', 'disputed'].includes(props.match.status);
+  if (['reported', 'disputed'].includes(props.match.status)) return true;
+  // A settled result is not the end of the conversation: while the dispute window is
+  // open this panel keeps carrying the player's options, rather than a second one
+  // duplicating them elsewhere on the page.
+  return isPostDisputeWindowOpen.value && (canPostDispute.value || myPostDispute.value !== null);
 });
 
 const isDisputed = computed(() => props.match.status === 'disputed');
+
+const isFinalized = computed(() => props.match.status === 'finalized');
+
+const panelTitle = computed(() =>
+  isFinalized.value ? t('matchConfirmation.postPanelTitle') : t('matchConfirmation.title'),
+);
+
+const panelIcon = computed(() => (isFinalized.value ? 'fa fa-flag' : 'fa fa-check-circle'));
 
 const confirmations = computed(() =>
   (props.match.confirmations ?? []).filter((c) => !c.isPostFinalization),
@@ -252,18 +313,91 @@ const canWithdrawDispute = computed(() => {
   return isDisputed.value && userResponse.value?.isContested === true;
 });
 
-const isWithdrawing = computed(() => canWithdrawDispute.value && responseIntent.value === 'agree');
+/**
+ * A result settled by the timer or by trust can still be contested for a few days. A
+ * consensus is everyone's own signature and an override is an organizer's decision:
+ * neither reopens.
+ */
+const isPostDisputeWindowOpen = computed(() => {
+  if (!isFinalized.value) return false;
 
-const acceptDialogTitle = computed(() =>
-  isWithdrawing.value
-    ? t('matchConfirmation.withdrawDisputeTitle')
-    : t('matchConfirmation.dialogAcceptTitle'),
+  const mode = props.match.tournament?.validationMode;
+  if (mode !== 'auto' && mode !== 'none') return false;
+
+  const reason = props.match.result?.finalizationReason;
+  if (reason !== 'auto_validation' && reason !== 'trust_score') return false;
+
+  const deadline = postDisputeDeadline.value;
+  return deadline !== null && deadline.getTime() > Date.now();
+});
+
+const postDisputeDeadline = computed(() => {
+  const finalizedAt = props.match.result?.finalizedAt;
+  if (!finalizedAt) return null;
+
+  const deadline = new Date(finalizedAt);
+  deadline.setDate(deadline.getDate() + POST_FINALIZATION_DISPUTE_DAYS);
+  return deadline;
+});
+
+const postDisputeTimeRemaining = computed(() => {
+  const deadline = postDisputeDeadline.value;
+  if (!deadline) return '';
+  // A bare distance, not a suffixed one: "in 7 days" would read as the moment the
+  // contestation opens rather than the moment it closes.
+  return formatDistanceToNow(deadline, { locale: dateFnsLocaleFor(locale.value) });
+});
+
+/** The contestation this player currently has on the record, if any. */
+const myPostDispute = computed(() => {
+  if (!props.currentUserId) return null;
+  const found = (props.match.confirmations ?? []).find(
+    (c) => c.isPostFinalization && c.playerId === props.currentUserId,
+  );
+  return found ?? null;
+});
+
+/**
+ * Contesting your own entry makes no sense — correcting it does, and the author has the
+ * cancel action for that.
+ */
+const canPostDispute = computed(() => {
+  if (!isPostDisputeWindowOpen.value || !props.currentUserId) return false;
+  if (!participants.value.some((p) => p.playerId === props.currentUserId)) return false;
+  if (props.match.result?.reportedBy === props.currentUserId) return false;
+  return myPostDispute.value === null;
+});
+
+const isWithdrawing = computed(
+  () =>
+    responseIntent.value === 'agree' &&
+    (canWithdrawDispute.value || myPostDispute.value !== null),
 );
 
-const acceptDialogHint = computed(() =>
-  isWithdrawing.value
+const acceptDialogTitle = computed(() => {
+  if (myPostDispute.value) return t('matchConfirmation.withdrawPostDisputeTitle');
+  return isWithdrawing.value
+    ? t('matchConfirmation.withdrawDisputeTitle')
+    : t('matchConfirmation.dialogAcceptTitle');
+});
+
+const acceptDialogHint = computed(() => {
+  if (myPostDispute.value) return t('matchConfirmation.withdrawPostDisputeHint');
+  return isWithdrawing.value
     ? t('matchConfirmation.withdrawHint')
-    : t('matchConfirmation.confirmationIrreversible'),
+    : t('matchConfirmation.confirmationIrreversible');
+});
+
+const disputeDialogTitle = computed(() =>
+  isFinalized.value
+    ? t('matchConfirmation.postDisputeTitle')
+    : t('matchConfirmation.dialogDisputeTitle'),
+);
+
+const disputeDialogHint = computed(() =>
+  isFinalized.value
+    ? t('matchConfirmation.postDisputeHint')
+    : t('matchConfirmation.disputeHint'),
 );
 
 /**
@@ -297,9 +431,11 @@ const validationModeMessage = computed(() => {
     return t('matchConfirmation.validationAuto', { hours })
   if (mode === 'strict') return t('matchConfirmation.validationStrict')
   if (mode === 'admin') return t('matchConfirmation.validationAdmin')
-  if (mode === 'none') return t('matchConfirmation.validationNone')
+  if (mode === 'none')
+    return t('matchConfirmation.validationNone', { days: POST_FINALIZATION_DISPUTE_DAYS })
   return ''
 });
+
 
 const validationModeBannerClass = computed(() => {
   const mode = props.match.tournament?.validationMode

@@ -18,6 +18,7 @@ import {
   type ListMatchCardsQuery,
   type ClientMatchCard,
   type PaginatedMatchCards,
+  POST_FINALIZATION_DISPUTE_DAYS,
 } from '@skol-arena/shared/types/index'
 import {
   ErrorCode,
@@ -705,24 +706,52 @@ export class MatchService {
     }
 
     if (match.status === 'finalized') {
-      return this.handlePostFinalizationDispute(id, match, input, respondedBy)
+      return this.handlePostFinalizationResponse(id, match, input, respondedBy)
     }
 
     return this.handlePreFinalizationResponse(id, match, input, respondedBy)
   }
 
-  private async handlePostFinalizationDispute(
+  /**
+   * Mirror of handlePreFinalizationResponse for a result that is already settled. A
+   * player may contest it during the dispute window, and change their mind as often as
+   * they like while the window is open: the conversation is what settles it, not the
+   * order in which the buttons were pressed.
+   */
+  private async handlePostFinalizationResponse(
     id: string,
     match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
     input: RespondToMatchInput,
     respondedBy: string,
   ) {
+    await this.assertPostDisputeAllowed(match)
+
     if (input.type === 'agree') {
-      throw new BadRequestError(ErrorCode.CANNOT_AGREE_AFTER_FINALIZATION)
+      await this.withdrawPostFinalizationDispute(id, respondedBy)
+    } else {
+      await this.recordPostFinalizationDispute(id, input, respondedBy)
     }
 
+    return await matchRepository.getById(id)
+  }
+
+  /**
+   * A finalized result is only contestable when nobody has already had the last word on
+   * it: the timer or the trust score settled it, in a tournament whose mode leaves that
+   * door open, and the window has not closed.
+   */
+  private async assertPostDisputeAllowed(
+    match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
+  ): Promise<void> {
     const tournament = await matchRepository.getTournament(match.tournamentId)
     if (tournament?.validationMode !== 'auto' && tournament?.validationMode !== 'none') {
+      throw new BadRequestError(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE)
+    }
+
+    // A consensus is everyone's own signature, an override is an organizer's decision:
+    // neither is reopened by contesting it again.
+    const finalizationReason = match.result?.finalizationReason
+    if (finalizationReason !== 'auto_validation' && finalizationReason !== 'trust_score') {
       throw new BadRequestError(ErrorCode.DISPUTE_NOT_ALLOWED_FOR_VALIDATION_MODE)
     }
 
@@ -732,17 +761,27 @@ export class MatchService {
     }
 
     const daysSinceFinalization = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
-    if (daysSinceFinalization > 7) {
+    if (daysSinceFinalization > POST_FINALIZATION_DISPUTE_DAYS) {
       throw new BadRequestError(ErrorCode.DISPUTE_WINDOW_EXPIRED)
     }
+  }
 
+  /**
+   * Files a contestation against a settled result. Like a contestation of a live entry,
+   * it lands in the thread — the system note says who disagrees, the reason follows as
+   * their own message, where the others can answer it.
+   */
+  private async recordPostFinalizationDispute(
+    id: string,
+    input: RespondToMatchInput,
+    respondedBy: string,
+  ): Promise<void> {
     const alreadyDisputed = await matchConfirmationRepository.hasPlayerDisputedPostFinalization(id, respondedBy)
     if (alreadyDisputed) {
       throw new BadRequestError(ErrorCode.ALREADY_DISPUTED)
     }
 
-    const participants = await matchRepository.getParticipationsByMatchId(id)
-    const sidePosition = participants.find((p) => p.playerId === respondedBy)?.teamSide === 'A' ? 1 : 2
+    const sidePosition = await this.resolveSidePosition(id, respondedBy)
 
     await matchConfirmationRepository.upsert({
       matchId: id,
@@ -754,9 +793,36 @@ export class MatchService {
       isPostFinalization: true,
     })
 
-    await matchNotificationBuilder.notifyPostFinalizationDispute(id, respondedBy)
+    const disputer = await userRepository.getById(respondedBy)
+    await matchMessageService.postSystem(id, 'matchMessages.RESULT_DISPUTED_POST', {
+      authorName: disputer?.displayName ?? null,
+    })
+    await matchMessageService.postUserNote(id, respondedBy, input.reason)
 
-    return await matchRepository.getById(id)
+    await matchNotificationBuilder.notifyPostFinalizationDispute(id, respondedBy)
+    await matchRealtimeService.notifyMatchUpdated(id)
+  }
+
+  /**
+   * The contester accepts the result after all. Unlike a withdrawal before finalization
+   * there is no validation round to re-open: the match was and stays finalized, so only
+   * the contestation and the arbitration request the organizers received are dropped.
+   */
+  private async withdrawPostFinalizationDispute(id: string, respondedBy: string): Promise<void> {
+    const hasDisputed = await matchConfirmationRepository.hasPlayerDisputedPostFinalization(id, respondedBy)
+    if (!hasDisputed) {
+      throw new BadRequestError(ErrorCode.CANNOT_AGREE_AFTER_FINALIZATION)
+    }
+
+    await matchConfirmationRepository.delete(id, respondedBy, true)
+    await notificationService.deleteActionsByMatchIdAndType(id, 'MATCH_POST_DISPUTE')
+
+    const withdrawer = await userRepository.getById(respondedBy)
+    await matchMessageService.postSystem(id, 'matchMessages.POST_DISPUTE_WITHDRAWN', {
+      authorName: withdrawer?.displayName ?? null,
+    })
+
+    await matchRealtimeService.notifyMatchUpdated(id)
   }
 
   private async handlePreFinalizationResponse(

@@ -148,15 +148,18 @@ export class MatchConfirmationRepository {
   }
 
   /**
-   * Delete a match confirmation
+   * Delete a match confirmation. A player can hold two rows for the same match — one
+   * for the validation round, one for a post-finalization dispute — so the flag is
+   * part of the key and never optional in practice.
    */
-  async delete(matchId: string, playerId: string) {
+  async delete(matchId: string, playerId: string, isPostFinalization = false) {
     await db
       .delete(matchConfirmations)
       .where(
         and(
           eq(matchConfirmations.matchId, matchId),
-          eq(matchConfirmations.playerId, playerId)
+          eq(matchConfirmations.playerId, playerId),
+          eq(matchConfirmations.isPostFinalization, isPostFinalization)
         )
       );
   }

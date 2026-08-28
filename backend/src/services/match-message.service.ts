@@ -1,5 +1,8 @@
 import type { ClientMatchMessage } from "@skol-arena/shared/types/index";
-import { MATCH_MESSAGE_MAX_LENGTH } from "@skol-arena/shared/types/index";
+import {
+  MATCH_MESSAGE_MAX_LENGTH,
+  POST_FINALIZATION_DISPUTE_DAYS,
+} from "@skol-arena/shared/types/index";
 import { matchMessageRepository } from "../repository/match-message.repository";
 import { matchRepository } from "../repository/match.repository";
 import { userRepository } from "../repository/user.repository";
@@ -11,12 +14,6 @@ import { matchPermissionValidator } from "./validators/match-permission.validato
 import { webSocketService } from "./websocket.service";
 
 type MessageRow = Awaited<ReturnType<typeof matchMessageRepository.listByMatch>>[number];
-
-/**
- * How long after finalization the thread stays open. Aligned with the post-finalization
- * dispute window, so a player can always explain a dispute they are still allowed to file.
- */
-const THREAD_OPEN_DAYS_AFTER_FINALIZATION = 7;
 
 /**
  * Discussion attached to a match. It replaces the score counter-proposal: instead of
@@ -125,6 +122,10 @@ export class MatchMessageService {
     return match;
   }
 
+  /**
+   * The thread closes with the dispute window: a player can always explain, answer or
+   * withdraw a contestation they are still allowed to file.
+   */
   private assertThreadOpen(
     match: NonNullable<Awaited<ReturnType<typeof matchRepository.getById>>>,
   ): void {
@@ -135,7 +136,7 @@ export class MatchMessageService {
 
     const daysSince =
       (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSince > THREAD_OPEN_DAYS_AFTER_FINALIZATION) {
+    if (daysSince > POST_FINALIZATION_DISPUTE_DAYS) {
       throw new BadRequestError(ErrorCode.MATCH_THREAD_CLOSED);
     }
   }

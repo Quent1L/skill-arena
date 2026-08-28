@@ -82,6 +82,8 @@ export const matchConfirmationSchema = z
     isConfirmed: z.boolean(),
     isContested: z.boolean(),
     contestationReason: z.string().optional(),
+    sidePosition: z.number().int().nullable().optional(),
+    isPostFinalization: z.boolean().optional(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
     player: z.object({ id: z.string(), displayName: z.string() }).optional(),
@@ -277,6 +279,12 @@ export const listMatchesQuerySchema = z.object({
   round: z.number().int().min(1).optional(),
   playerId: z.string().uuid().optional(),
 });
+
+/**
+ * How long a finalized result stays contestable, in days. The same window keeps the
+ * match thread open, so a player can always explain a dispute they may still file.
+ */
+export const POST_FINALIZATION_DISPUTE_DAYS = 7;
 
 export const MATCH_MESSAGE_MAX_LENGTH = 1000;
 

@@ -335,27 +335,33 @@ export function useMatchService() {
   const respondToMatch = async (
     id: string,
     data: RespondToMatchRequestData,
-    options?: { withdrawingDispute?: boolean },
+    options?: { withdrawingDispute?: boolean; postFinalization?: boolean },
   ): Promise<ClientMatchDetail> => {
     try {
       const match = await matchApi.respondToMatch(id, data)
+      const postFinalization = options?.postFinalization === true
       if (data.type === 'agree') {
+        // Withdrawing after finalization changes nothing about the result, so it does
+        // not promise the round will re-open the way the pre-finalization one does.
         const withdrawing = options?.withdrawingDispute === true
+        const key = withdrawing
+          ? postFinalization
+            ? 'withdrawPostDispute'
+            : 'withdrawDispute'
+          : 'agreeSuccess'
         toast.add({
           severity: 'success',
-          summary: withdrawing
-            ? t('matchService.toast.withdrawDisputeSummary')
-            : t('matchService.toast.agreeSuccessSummary'),
-          detail: withdrawing
-            ? t('matchService.toast.withdrawDisputeDetail')
-            : t('matchService.toast.agreeSuccessDetail'),
+          summary: t(`matchService.toast.${key}Summary`),
+          detail: t(`matchService.toast.${key}Detail`),
           life: 3000,
         })
       } else {
         toast.add({
           severity: 'warn',
           summary: t('matchService.toast.contestSuccessSummary'),
-          detail: t('matchService.toast.respondContestDetail'),
+          detail: postFinalization
+            ? t('matchService.toast.postContestDetail')
+            : t('matchService.toast.respondContestDetail'),
           life: 6000,
         })
       }

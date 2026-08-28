@@ -167,86 +167,12 @@
         :current-user-name="currentUser?.displayName"
       />
 
-      <!-- Post-finalization disputes -->
-      <SurfacePanel v-if="postFinalizationDisputes.length > 0" tone="danger" class="reveal" :style="revealDelay(5)">
-        <template #header>
-          <SectionHeader
-            icon="fa fa-flag"
-            :title="t('matchDetailView.postDisputesTitle')"
-            :count="postFinalizationDisputes.length"
-            accent-class="bg-match-loss"
-          />
-        </template>
-
-        <div class="space-y-3">
-          <p class="text-xs text-match-loss/90">
-            <i class="fa fa-info-circle mr-1" aria-hidden="true" />
-            {{ t('matchDetailView.cancelNote') }}
-          </p>
-          <div
-            v-for="dispute in postFinalizationDisputes"
-            :key="dispute.id"
-            class="space-y-1.5 rounded-xl border-l-2 border-match-loss bg-surface-900/40 p-3"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex min-w-0 items-center gap-2">
-                <PlayerAvatar
-                  :name="dispute.player?.displayName || t('matchDetailView.unknownPlayer')"
-                  :color-key="dispute.playerId"
-                  size="sm"
-                />
-                <span class="truncate text-sm font-semibold">
-                  {{ dispute.player?.displayName || t('matchDetailView.unknownPlayer') }}
-                </span>
-              </div>
-              <span
-                class="font-label shrink-0 rounded-full border border-match-loss/30 bg-match-loss/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-match-loss"
-              >
-                {{ t('matchDetailView.disputed') }}
-              </span>
-            </div>
-            <p v-if="dispute.contestationReason" class="text-sm text-white/70">
-              {{ dispute.contestationReason }}
-            </p>
-            <div class="font-label text-[11px] text-muted-color">{{ formatDate(dispute.createdAt) }}</div>
-          </div>
-        </div>
-      </SurfacePanel>
-
-      <!-- Dispute call to action -->
-      <SurfacePanel v-if="canDisputePostFinalization" tone="warn" class="reveal" :style="revealDelay(6)">
-        <template #header>
-          <SectionHeader
-            icon="fa fa-exclamation-circle"
-            :title="t('matchDetailView.disputeResultTitle')"
-            accent-class="bg-amber-400"
-          />
-        </template>
-
-        <div class="space-y-3">
-          <p class="text-sm text-white/70">{{ t('matchDetailView.disputeResultDescription') }}</p>
-          <div class="font-label inline-flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
-            <i class="fa fa-clock" aria-hidden="true" />
-            {{ t('matchDetailView.expiresIn', { time: postFinalizationTimeRemaining }) }}
-          </div>
-          <div>
-            <Button
-              :label="t('matchDetailView.disputeButton')"
-              icon="fa fa-flag"
-              severity="danger"
-              outlined
-              @click="showPostDisputeDialog = true"
-            />
-          </div>
-        </div>
-      </SurfacePanel>
-
       <!-- Admin actions -->
       <SurfacePanel
         v-if="canManageMatch && match.status !== 'finalized'"
         tone="warn"
         class="reveal"
-        :style="revealDelay(7)"
+        :style="revealDelay(5)"
       >
         <template #header>
           <SectionHeader
@@ -274,44 +200,6 @@
           </div>
         </div>
       </SurfacePanel>
-
-      <!-- Post-finalization dispute dialog -->
-      <Dialog
-        v-model:visible="showPostDisputeDialog"
-        :header="t('matchDetailView.disputeFinalizedDialogTitle')"
-        modal
-        :style="{ maxWidth: '480px' }"
-      >
-        <div class="space-y-4">
-          <div>
-            <label for="postDisputeReason" class="mb-2 block text-sm font-medium">
-              {{ t('matchDetailView.disputeReasonLabel') }}
-            </label>
-            <Textarea
-              id="postDisputeReason"
-              v-model="postDisputeReason"
-              rows="3"
-              :placeholder="t('matchDetailView.disputeReasonPlaceholder')"
-              class="w-full"
-            />
-          </div>
-        </div>
-        <template #footer>
-          <Button
-            :label="t('common.cancel')"
-            severity="secondary"
-            :disabled="postDisputing"
-            @click="showPostDisputeDialog = false"
-          />
-          <Button
-            :label="t('matchDetailView.submitDispute')"
-            icon="fa fa-flag"
-            severity="danger"
-            :loading="postDisputing"
-            @click="handlePostDispute"
-          />
-        </template>
-      </Dialog>
 
       <!-- Cancel confirmation dialog -->
       <Dialog
@@ -383,6 +271,7 @@ import type {
   MmrRecapReadyPayload,
   BadgeAnimationWsPayload,
 } from '@skol-arena/shared/types/index'
+import { POST_FINALIZATION_DISPUTE_DAYS } from '@skol-arena/shared/types/index'
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import MatchMessageThread from '@/components/match/MatchMessageThread.vue'
 import MatchSidePanel from '@/components/match/MatchSidePanel.vue'
@@ -391,7 +280,6 @@ import { useRankedService } from '@/composables/ranked/ranked.service'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
 import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
-import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 import SectionHeader from '@/components/ui/SectionHeader.vue'
 import SurfacePanel from '@/components/ui/SurfacePanel.vue'
@@ -403,8 +291,6 @@ import { rankedApi } from '@/composables/ranked/ranked.api'
 import { useCountUp } from '@/composables/ui/useCountUp'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
-import { formatDistanceToNow } from 'date-fns'
-import { dateFnsLocaleFor } from '@/utils/DateFnsLocale'
 
 const { t, locale } = useI18n()
 const { statusLabel, statusDotClass, statusTextClass } = useMatchStatus()
@@ -433,9 +319,6 @@ const error = ref<string | null>(null)
 const responding = ref(false)
 const cancelling = ref(false)
 const showCancelDialog = ref(false)
-const showPostDisputeDialog = ref(false)
-const postDisputeReason = ref('')
-const postDisputing = ref(false)
 
 // animationQueue is a plain object (not reactive), so computed refs need .value in template
 const animationQueue = useMMrAnimationQueue()
@@ -449,8 +332,13 @@ let offMatchWs: (() => void) | null = null
  * validates, disputes, or the author corrects the score. Listen while that is possible
  * and drop the socket once the result is settled.
  */
+/**
+ * A finalized match is not necessarily settled: while the dispute window is open a
+ * contestation — or its withdrawal — can still land, and the page has to hear about it.
+ */
 function syncMatchSubscription() {
-  const isLive = !!match.value && match.value.status !== 'finalized'
+  const isLive =
+    !!match.value && (match.value.status !== 'finalized' || isPostDisputeWindowOpen.value)
 
   if (!isLive) {
     offMatchWs?.()
@@ -621,32 +509,26 @@ const postFinalizationDisputes = computed(() => {
   return (match.value.confirmations ?? []).filter((c) => c.isPostFinalization)
 })
 
-const canDisputePostFinalization = computed(() => {
-  if (!match.value || !appUser.value) return false
-  if (match.value.status !== 'finalized') return false
-  const reason = match.value.result?.finalizationReason
-  if (!reason || !['auto_validation', 'trust_score'].includes(reason)) return false
-  if (!isParticipant.value) return false
-  if (match.value.result?.reportedBy === appUser.value.id) return false
+/**
+ * Mirrors the window MatchConfirmation offers the players. Kept here too because the
+ * page decides on its own whether it is still worth listening for updates.
+ */
+const isPostDisputeWindowOpen = computed(() => {
+  if (!match.value || match.value.status !== 'finalized') return false
 
   const finalizedAt = match.value.result?.finalizedAt
   if (!finalizedAt) return false
 
-  const daysSince = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
-  if (daysSince > 7) return false
-
-  const alreadyDisputed = postFinalizationDisputes.value.some(
-    (d) => d.playerId === appUser.value!.id,
-  )
-  return !alreadyDisputed
+  const deadline = new Date(finalizedAt)
+  deadline.setDate(deadline.getDate() + POST_FINALIZATION_DISPUTE_DAYS)
+  return deadline.getTime() > Date.now()
 })
 
-const postFinalizationTimeRemaining = computed(() => {
-  if (!match.value?.result?.finalizedAt) return ''
-  const deadline = new Date(match.value.result.finalizedAt)
-  deadline.setDate(deadline.getDate() + 7)
-  return formatDistanceToNow(deadline, { locale: dateFnsLocaleFor(locale.value), addSuffix: true })
-})
+const postDisputerNames = computed(() =>
+  postFinalizationDisputes.value
+    .map((d) => d.player?.displayName || t('matchDetailView.unknownPlayer'))
+    .join(', '),
+)
 
 const canCancelFinalizedMatch = computed(() => {
   if (!match.value || !appUser.value) return false
@@ -699,7 +581,7 @@ const canPostOnThread = computed(() => {
   if (!finalizedAt) return true
 
   const daysSince = (Date.now() - new Date(finalizedAt).getTime()) / (1000 * 60 * 60 * 24)
-  return daysSince <= 7
+  return daysSince <= POST_FINALIZATION_DISPUTE_DAYS
 })
 
 const isResultAuthor = computed(() => {
@@ -798,6 +680,13 @@ const metaItems = computed<{ icon: string; label: string; value: string }[]>(() 
       value: formatDate(m.result.finalizedAt),
     })
   }
+  if (postFinalizationDisputes.value.length > 0) {
+    items.push({
+      icon: 'fa fa-flag',
+      label: metaLabel('matchDetailView.postDisputedBy'),
+      value: postDisputerNames.value,
+    })
+  }
   if (m.result?.finalizationReason) {
     items.push({
       icon: 'fa fa-gavel',
@@ -834,7 +723,9 @@ async function loadMatch() {
 async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string }) {
   if (!match.value) return
 
-  const wasDisputed = match.value.status === 'disputed'
+  const wasDisputed =
+    match.value.status === 'disputed' ||
+    postFinalizationDisputes.value.some((d) => d.playerId === appUser.value?.id)
 
   try {
     responding.value = true
@@ -844,31 +735,16 @@ async function handleRespond(data: { type: 'agree' | 'dispute'; reason?: string 
         type: data.type,
         reason: data.reason,
       },
-      { withdrawingDispute: wasDisputed && data.type === 'agree' },
+      {
+        withdrawingDispute: wasDisputed && data.type === 'agree',
+        postFinalization: match.value.status === 'finalized',
+      },
     )
     syncMatchSubscription()
   } catch (err) {
     console.error('Error responding to match:', err)
   } finally {
     responding.value = false
-  }
-}
-
-async function handlePostDispute() {
-  if (!match.value) return
-
-  try {
-    postDisputing.value = true
-    match.value = await respondToMatch(match.value.id, {
-      type: 'dispute',
-      reason: postDisputeReason.value || undefined,
-    })
-    showPostDisputeDialog.value = false
-    postDisputeReason.value = ''
-  } catch (err) {
-    console.error('Error submitting post-finalization dispute:', err)
-  } finally {
-    postDisputing.value = false
   }
 }
 
