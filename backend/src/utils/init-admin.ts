@@ -1,9 +1,10 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { user, account, appUsers } from "../db/schema";
 import { hashPassword } from "better-auth/crypto";
 import { logger } from "./logger";
+import { newId } from "./uuid";
 
 const CREDENTIALS_MESSAGE = "INITIAL ADMIN CREDENTIALS";
 
@@ -33,7 +34,7 @@ async function ensureAuthUser(email: string): Promise<string> {
 
   if (existing) return existing.id;
 
-  const userId = randomUUID();
+  const userId = newId();
   await db.insert(user).values({
     id: userId,
     name: "Admin",
@@ -62,7 +63,7 @@ async function setCredentialPassword(
   if (updated.length > 0) return;
 
   await db.insert(account).values({
-    id: randomUUID(),
+    id: newId(),
     providerId: "credential",
     accountId: email,
     userId,

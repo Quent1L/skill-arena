@@ -5,7 +5,7 @@ import {
 } from "../../../config/test-database";
 import type { PgliteDatabase } from "drizzle-orm/pglite";
 import * as schema from "../../../db/schema";
-import { randomUUID } from "crypto";
+import { newId } from "../../../utils/uuid";
 
 // Initialize the test database BEFORE any imports that use `db`
 // createTestDatabase() will call setTestDatabase() to make the shared `db` export point to the test instance
@@ -45,7 +45,7 @@ describe("Match Partner Validation", () => {
 
   beforeAll(async () => {
     // Generate valid UUID for tournament
-    tournamentId = randomUUID();
+    tournamentId = newId();
 
     const timestamp = Date.now();
 
@@ -427,7 +427,7 @@ describe("Static Team Rule Validation", () => {
   let p4Id: string;
 
   beforeAll(async () => {
-    staticTournamentId = randomUUID();
+    staticTournamentId = newId();
     const timestamp = Date.now() + 9000;
     const today = new Date().toISOString().split("T")[0];
     const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -606,7 +606,7 @@ describe("Flex 1v1 Opponent Validation via allPlayerIds", () => {
   let soloBId: string;
 
   beforeAll(async () => {
-    flex1v1TournamentId = randomUUID();
+    flex1v1TournamentId = newId();
     const timestamp = Date.now() + 19000;
     const today = new Date().toISOString().split("T")[0];
     const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];

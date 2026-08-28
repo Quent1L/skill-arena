@@ -21,6 +21,7 @@ import type {
   TierScalingMode,
   TournamentRulesetPayload,
 } from "@skol-arena/shared/types/index";
+import { newId } from "../utils/uuid";
 
 // ********************************************************************
 // [Start] Database schema for Better Auth with Drizzle ORM and PostgreSQL
@@ -94,7 +95,7 @@ export const verification = pgTable("verification", {
 // ***************************************************************
 
 export const invitationCodes = pgTable("invitation_codes", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   code: text("code").unique().notNull(),
   createdBy: uuid("created_by")
     .notNull()
@@ -111,7 +112,7 @@ export const invitationCodes = pgTable("invitation_codes", {
 });
 
 export const invitationUsages = pgTable("invitation_usages", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   codeId: uuid("code_id")
     .notNull()
     .references(() => invitationCodes.id, { onDelete: "cascade" }),
@@ -258,7 +259,7 @@ export const bracketRoundTypeEnum = pgEnum("bracket_round_type", [
 ]);
 
 export const organizations = pgTable("organizations", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   name: text("name").notNull(),
   createdBy: uuid("created_by")
     .notNull()
@@ -269,7 +270,7 @@ export const organizations = pgTable("organizations", {
 export const organizationMembers = pgTable(
   "organization_members",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
@@ -285,7 +286,7 @@ export const organizationMembers = pgTable(
 export const appUsers = pgTable(
   "app_users",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     // Nullable on purpose: archiving deletes the Better Auth identity (login,
     // sessions, linked SSO accounts) while this row survives, because 15 tables
     // of tournament history cascade from it.
@@ -325,7 +326,7 @@ export const appUsers = pgTable(
 );
 
 export const gameRules = pgTable("game_rules", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   title: text("title").notNull(),
   content: text("content").notNull(),
   createdBy: uuid("created_by")
@@ -339,7 +340,7 @@ export const gameRules = pgTable("game_rules", {
 });
 
 export const tournaments = pgTable("tournaments", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   name: text("name").notNull().unique(),
   description: text("description"),
   mode: tournamentModeEnum("mode").notNull(),
@@ -375,7 +376,7 @@ export const tournaments = pgTable("tournaments", {
  * and bracket — but not to ranked, which runs on MMR and has no row here.
  */
 export const tournamentScoringConfigs = pgTable("tournament_scoring_configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   tournamentId: uuid("tournament_id")
     .notNull()
     .unique()
@@ -394,7 +395,7 @@ export const tournamentScoringConfigs = pgTable("tournament_scoring_configs", {
  * player's matches stop counting for the ranking (match_player_points).
  */
 export const championshipConfigs = pgTable("championship_configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   tournamentId: uuid("tournament_id")
     .notNull()
     .unique()
@@ -423,7 +424,7 @@ export const championshipConfigs = pgTable("championship_configs", {
 export const tournamentRulesets = pgTable(
   "tournament_rulesets",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     tournamentId: uuid("tournament_id")
       .notNull()
       .unique()
@@ -441,7 +442,7 @@ export const tournamentRulesets = pgTable(
 export const tournamentAdmins = pgTable(
   "tournament_admins",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     tournamentId: uuid("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -462,7 +463,7 @@ export const tournamentAdmins = pgTable(
 export const tournamentParticipants = pgTable(
   "tournament_participants",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     tournamentId: uuid("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -478,7 +479,7 @@ export const tournamentParticipants = pgTable(
 export const teams = pgTable(
   "teams",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     tournamentId: uuid("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -494,7 +495,7 @@ export const teams = pgTable(
 export const teamMembers = pgTable(
   "team_members",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     teamId: uuid("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
@@ -511,7 +512,7 @@ export const teamMembers = pgTable(
 // ***************************************************************
 
 export const tournamentEntries = pgTable("tournament_entries", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   tournamentId: uuid("tournament_id")
     .notNull()
     .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -545,7 +546,7 @@ export const tournamentEntryPlayers = pgTable(
 export const matches = pgTable(
   "matches",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     tournamentId: uuid("tournament_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -583,7 +584,7 @@ export const matches = pgTable(
 export const matchSides = pgTable(
   "match_sides",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     matchId: uuid("match_id")
       .notNull()
       .references(() => matches.id, { onDelete: "cascade" }),
@@ -635,7 +636,7 @@ export const matchPlayerPoints = pgTable(
 export const matchConfirmations = pgTable(
   "match_confirmations",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     matchId: uuid("match_id")
       .notNull()
       .references(() => matches.id, { onDelete: "cascade" }),
@@ -664,7 +665,7 @@ export const matchConfirmations = pgTable(
 export const matchMessages = pgTable(
   "match_messages",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     matchId: uuid("match_id")
       .notNull()
       .references(() => matches.id, { onDelete: "cascade" }),
@@ -686,7 +687,7 @@ export const matchMessages = pgTable(
 // ***************************************************************
 
 export const bracketConfigs = pgTable("bracket_configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   tournamentId: uuid("tournament_id")
     .notNull()
     .unique()
@@ -710,7 +711,7 @@ export const bracketConfigs = pgTable("bracket_configs", {
 export const bracketRounds = pgTable(
   "bracket_rounds",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     bracketConfigId: uuid("bracket_config_id")
       .notNull()
       .references(() => bracketConfigs.id, { onDelete: "cascade" }),
@@ -728,7 +729,7 @@ export const bracketRounds = pgTable(
 export const bracketSeeds = pgTable(
   "bracket_seeds",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     bracketConfigId: uuid("bracket_config_id")
       .notNull()
       .references(() => bracketConfigs.id, { onDelete: "cascade" }),
@@ -748,7 +749,7 @@ export const bracketSeeds = pgTable(
 export const bracketMatchMetadata = pgTable(
   "bracket_match_metadata",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     matchId: uuid("match_id")
       .notNull()
       .unique()
@@ -778,7 +779,7 @@ export const bracketMatchMetadata = pgTable(
 // ***************************************************************
 
 export const rankedSeasonConfigs = pgTable("ranked_season_configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   tournamentId: uuid("tournament_id")
     .notNull()
     .unique()
@@ -819,7 +820,7 @@ export const rankedSeasonConfigs = pgTable("ranked_season_configs", {
 export const seasonMmrSeeds = pgTable(
   "season_mmr_seeds",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     seasonId: uuid("season_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -838,7 +839,7 @@ export const seasonMmrSeeds = pgTable(
 export const playerMmr = pgTable(
   "player_mmr",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     seasonId: uuid("season_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -861,7 +862,7 @@ export const playerMmr = pgTable(
 export const mmrHistory = pgTable(
   "mmr_history",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     seasonId: uuid("season_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -897,7 +898,7 @@ export const mmrHistory = pgTable(
 export const rankTiers = pgTable(
   "rank_tiers",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     seasonId: uuid("season_id")
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
@@ -920,7 +921,7 @@ export const mmrAnimationEventTypeEnum = pgEnum("mmr_animation_event_type", [
 export const mmrAnimationEvents = pgTable(
   "mmr_animation_events",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     playerId: uuid("player_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -965,7 +966,7 @@ export const mmrAnimationEvents = pgTable(
 export const disciplines = pgTable(
   "disciplines",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     name: text("name").notNull(),
     icon: text("icon"),
     scoreInstructions: text("score_instructions"),
@@ -986,7 +987,7 @@ export const disciplines = pgTable(
 // ***************************************************************
 
 export const rules = pgTable("rules", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   triggerEvent: text("trigger_event").notNull(),
   type: ruleTypeEnum("type").notNull(),
   scope: ruleScopeEnum("scope").notNull(),
@@ -1026,7 +1027,7 @@ export const rules = pgTable("rules", {
 export const playerBadges = pgTable(
   "player_badges",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     playerId: uuid("player_id")
       .notNull()
       .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -1058,7 +1059,7 @@ export const playerBadges = pgTable(
  * full reconciliation when dirty, then clears it. A single row is expected.
  */
 export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   dirty: boolean("dirty").notNull().default(false),
   // Set by a migration that changes what the rules mean, so the catch-up pass it
   // triggers does not notify players about badges they earned months ago. Consumed
@@ -1086,7 +1087,7 @@ export const badgeReconciliationState = pgTable("badge_reconciliation_state", {
 export const ruleFirings = pgTable(
   "rule_firings",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     ruleId: uuid("rule_id")
       .notNull()
       .references(() => rules.id, { onDelete: "cascade" }),
@@ -1137,7 +1138,7 @@ export const ruleFirings = pgTable(
 export const outcomeTypes = pgTable(
   "outcome_types",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
 
     // Stays "cascade": an outcome type nothing has played under goes away with its
     // discipline. The restrict on matches.outcome_type_id is what stops that
@@ -1162,7 +1163,7 @@ export const outcomeTypes = pgTable(
 );
 
 export const outcomeReasons = pgTable("outcome_reasons", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
 
   outcomeTypeId: uuid("outcome_type_id")
     .notNull()
@@ -1172,7 +1173,7 @@ export const outcomeReasons = pgTable("outcome_reasons", {
 });
 
 export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   userId: uuid("user_id")
     .notNull()
     .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -1213,7 +1214,7 @@ export const notificationStatus = pgTable(
 );
 
 export const userPushDevices = pgTable("user_push_devices", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   userId: uuid("user_id")
     .notNull()
     .references(() => appUsers.id, { onDelete: "cascade" }),
@@ -1910,7 +1911,7 @@ export const rewindScopeEnum = pgEnum("rewind_scope", ["season", "year"]);
 // and belongs to no single tournament; it is carried by (discipline, periodKey)
 // instead. A CHECK constraint in the migration enforces that exclusivity.
 export const seasonRewinds = pgTable("season_rewinds", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
   seasonId: uuid("season_id").references(() => tournaments.id, { onDelete: "cascade" }),
   scope: rewindScopeEnum("scope").notNull().default("season"),
   // null when scope = 'season'; the calendar year ('2026') when scope = 'year'.
@@ -1926,7 +1927,7 @@ export const seasonRewinds = pgTable("season_rewinds", {
 export const playerSeasonRewinds = pgTable(
   "player_season_rewinds",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
     rewindId: uuid("rewind_id")
       .notNull()
       .references(() => seasonRewinds.id, { onDelete: "cascade" }),

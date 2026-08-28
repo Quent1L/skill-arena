@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, or, desc, countDistinct, sql } from "drizzle-
 import { db } from "../config/database";
 import { badgeReconciliationState, playerBadges, rules } from "../db/schema";
 import { RULES_ENGINE_VERSION } from "@skol-arena/shared";
+import { newId } from "../utils/uuid";
 import type { BadgeRecurrence, RuleAction, RuleConditions, RuleScope, RuleType } from "@skol-arena/shared";
 
 export interface CreateRuleData {
@@ -117,8 +118,8 @@ export class RulesRepository {
   ): Promise<{ id: string } | null> {
     if (recurrence === "once") {
       const result = await db.execute<{ id: string }>(sql`
-        INSERT INTO player_badges (player_id, rule_id, match_id, season_id)
-        SELECT ${playerId}::uuid, ${ruleId}::uuid, ${matchId}::uuid, ${seasonId}::uuid
+        INSERT INTO player_badges (id, player_id, rule_id, match_id, season_id)
+        SELECT ${newId()}::uuid, ${playerId}::uuid, ${ruleId}::uuid, ${matchId}::uuid, ${seasonId}::uuid
         WHERE NOT EXISTS (
           SELECT 1 FROM player_badges
           WHERE player_id = ${playerId}::uuid AND rule_id = ${ruleId}::uuid

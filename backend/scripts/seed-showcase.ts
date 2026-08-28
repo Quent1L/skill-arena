@@ -44,6 +44,7 @@ import {
   bracketMatchMetadata,
 } from "../src/db/schema";
 import { eq } from "drizzle-orm";
+import { newId } from "../src/utils/uuid";
 import { tournamentRulesetRepository } from "../src/repository/tournament-ruleset.repository";
 import { standingsService } from "../src/services/standings.service";
 import { mmrCalculationService } from "../src/services/mmr-calculation.service";
@@ -147,7 +148,7 @@ async function seedUsers() {
 
   for (const def of defs) {
     const authId = `showcase-auth-${def.key}`;
-    const appId = crypto.randomUUID();
+    const appId = newId();
 
     await db.insert(user).values({
       id: authId,
@@ -156,7 +157,7 @@ async function seedUsers() {
       emailVerified: true,
     });
     await db.insert(account).values({
-      id: crypto.randomUUID(),
+      id: newId(),
       providerId: "credential",
       accountId: def.email,
       userId: authId,
@@ -192,9 +193,9 @@ async function seedDiscipline(
   icon: string,
   scoreInstructions: string,
 ): Promise<DisciplineIds> {
-  const disciplineId = crypto.randomUUID();
-  const standardId = crypto.randomUUID();
-  const forfeitId = crypto.randomUUID();
+  const disciplineId = newId();
+  const standardId = newId();
+  const forfeitId = newId();
 
   await db.insert(disciplines).values({
     id: disciplineId,
@@ -225,8 +226,8 @@ async function seedDiscipline(
     },
   ]);
   await db.insert(outcomeReasons).values([
-    { id: crypto.randomUUID(), outcomeTypeId: forfeitId, name: "No-show" },
-    { id: crypto.randomUUID(), outcomeTypeId: forfeitId, name: "Withdrawal" },
+    { id: newId(), outcomeTypeId: forfeitId, name: "No-show" },
+    { id: newId(), outcomeTypeId: forfeitId, name: "Withdrawal" },
   ]);
 
   return { discipline: disciplineId, standard: standardId, forfeit: forfeitId };
@@ -250,9 +251,9 @@ async function insertMatch(opts: {
   status?: MatchStatus;
   reportedBy?: string;
 }): Promise<string> {
-  const matchId = crypto.randomUUID();
-  const entryA = crypto.randomUUID();
-  const entryB = crypto.randomUUID();
+  const matchId = newId();
+  const entryA = newId();
+  const entryB = newId();
   const status = opts.status ?? "finalized";
   const winnerSide =
     opts.scoreA > opts.scoreB ? "A" : opts.scoreB > opts.scoreA ? "B" : null;
@@ -373,7 +374,7 @@ async function seedChampionship(opts: {
   /** Player the screenshots are taken as; the open matches are made to be theirs. */
   viewerKey?: string;
 }): Promise<string> {
-  const tournamentId = crypto.randomUUID();
+  const tournamentId = newId();
   const playerIds = opts.playerKeys.map(id);
 
   await db.insert(tournaments).values({
@@ -484,7 +485,7 @@ async function seedChampionship(opts: {
 // ---------------------------------------------------------------------------
 
 async function seedRankedSeason(discipline: DisciplineIds): Promise<string> {
-  const seasonId = crypto.randomUUID();
+  const seasonId = newId();
   const playerIds = PLAYERS.map((p) => id(p.key));
 
   await db.insert(tournaments).values({
@@ -578,7 +579,7 @@ async function seedRankedSeason(discipline: DisciplineIds): Promise<string> {
 // ---------------------------------------------------------------------------
 
 async function seedBracket(discipline: DisciplineIds): Promise<string> {
-  const tournamentId = crypto.randomUUID();
+  const tournamentId = newId();
   const playerKeys = [
     "theo",
     "ilyas",

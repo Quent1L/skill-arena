@@ -15,7 +15,9 @@ const DATABASE_URL =
 // ---------------------------------------------------------------------------
 
 function uuid(): string {
-  return crypto.randomUUID();
+  // v7, like the app itself (backend/src/utils/uuid.ts) — timestamp-prefixed so seeded
+  // rows land in the primary key index the same way real inserts do.
+  return Bun.randomUUIDv7();
 }
 
 function nanoid(): string {

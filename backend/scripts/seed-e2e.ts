@@ -33,6 +33,7 @@ import {
   mmrHistory,
 } from "../src/db/schema";
 import { eq } from "drizzle-orm";
+import { newId } from "../src/utils/uuid";
 
 // ---------------------------------------------------------------------------
 // Fixed IDs — keep in sync with frontend/e2e/fixtures.ts
@@ -85,7 +86,7 @@ async function seedUsers() {
       emailVerified: true,
     });
     await db.insert(account).values({
-      id: crypto.randomUUID(),
+      id: newId(),
       providerId: "credential",
       accountId: d.email,
       userId: d.auth,
@@ -132,8 +133,8 @@ async function insertFinalizedMatch(opts: {
   status?: "finalized" | "reported";
 }) {
   const winnerSide = opts.scoreA > opts.scoreB ? "A" : opts.scoreB > opts.scoreA ? "B" : null;
-  const entryA = crypto.randomUUID();
-  const entryB = crypto.randomUUID();
+  const entryA = newId();
+  const entryB = newId();
 
   await db.insert(tournamentEntries).values([
     { id: entryA, tournamentId: opts.tournamentId, entryType: "PLAYER" },
