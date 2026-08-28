@@ -7,6 +7,7 @@ export type {
   AuthConfig,
   EmailPasswordConfig,
   KeycloakConfig,
+  RankedConfig,
 } from '@skol-arena/shared/types/index'
 
 import type { AppConfig } from '@skol-arena/shared/types/index'

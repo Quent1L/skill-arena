@@ -919,6 +919,9 @@ export class MatchService {
 
       await this.validateMatchInputForValidation(input, tournament, errors)
       await this.validateTournamentRulesForValidation(input, tournament, errors)
+      if (tournament.mode === 'ranked') {
+        matchInputValidator.collectRankedPlayedAt(input.playedAt, errors)
+      }
       await this.collectPlayedAtConflict(input, tournament, errors)
       await this.checkSimilarMatch(input, warnings, input.matchId)
 

@@ -31,14 +31,28 @@ export const authConfigSchema = z
 
 export type AuthConfig = z.infer<typeof authConfigSchema>;
 
+export const rankedConfigSchema = z
+  .object({
+    /**
+     * How long after being played a ranked match may still be reported, in hours.
+     * `0` means the server enforces no limit — a test/backfill setting.
+     */
+    matchMaxAgeHours: z.number(),
+  })
+  .meta({ id: "RankedConfig" });
+
+export type RankedConfig = z.infer<typeof rankedConfigSchema>;
+
 /**
  * What GET /config returns: the handful of server settings the SPA needs before a
- * user is known — which sign-in methods are available, and the push public key.
+ * user is known — which sign-in methods are available, the push public key, and the
+ * ranked reporting window the match form has to mirror.
  */
 export const appConfigSchema = z
   .object({
     vapidPublicKey: z.string().nullable(),
     auth: authConfigSchema,
+    ranked: rankedConfigSchema,
   })
   .meta({ id: "AppConfig" });
 

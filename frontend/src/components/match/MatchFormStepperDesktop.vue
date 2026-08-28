@@ -121,6 +121,7 @@ import { computed, inject } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MATCH_FORM_KEY } from '@/composables/match/match-form.context'
 import { useMatchService } from '@/composables/match/match.service'
+import { useMatchDateBounds } from '@/composables/match/useMatchDateBounds'
 import WhenStep from '@/components/match/steps/WhenStep.vue'
 import ParticipantsStep from '@/components/match/steps/ParticipantsStep.vue'
 import TeamsStep from '@/components/match/steps/TeamsStep.vue'
@@ -179,19 +180,7 @@ const visibleSteps = computed(() => {
 
 const activeStepIndex = computed(() => visibleSteps.value.findIndex((s) => s.value === activeStep.value))
 
-const tournamentMinDate = computed(() => {
-  if (tournament.value?.mode === 'ranked') {
-    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000)
-    if (tournament.value.startDate) {
-      const startDate = new Date(tournament.value.startDate)
-      return startDate > fortyEightHoursAgo ? tournament.value.startDate : fortyEightHoursAgo
-    }
-    return fortyEightHoursAgo
-  }
-  return tournament.value?.startDate ?? undefined
-})
-
-const tournamentMaxDate = computed(() => tournament.value?.endDate ?? undefined)
+const { minDate: tournamentMinDate, maxDate: tournamentMaxDate } = useMatchDateBounds(tournament)
 
 const nextStepAfterWhen = computed(() => {
   if (props.bracketLocked) return 'result'

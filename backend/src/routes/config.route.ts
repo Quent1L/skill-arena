@@ -1,6 +1,7 @@
 import { describe } from "../api/describe";
 import { appConfigSchema } from "@skol-arena/shared/types/index";
 import { createAppHono } from "../types/hono";
+import { rankedMatchMaxAgeHours } from "../config/ranked";
 
 const configRoute = createAppHono();
 
@@ -11,7 +12,8 @@ configRoute.get(
     summary: "Get runtime configuration",
     description:
       "Server settings the client needs before a user is known: which sign-in " +
-      "methods are enabled, and the public key used to register for push.",
+      "methods are enabled, the public key used to register for push, and the " +
+      "ranked reporting window the match form mirrors.",
     success: { description: "Current configuration", schema: appConfigSchema },
   }),
   (c) => {
@@ -39,6 +41,9 @@ configRoute.get(
           enabled: isEmailPasswordEnabled,
         },
         keycloak: keycloakConfig,
+      },
+      ranked: {
+        matchMaxAgeHours: rankedMatchMaxAgeHours(),
       },
     });
   }

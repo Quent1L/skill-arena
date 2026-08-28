@@ -4,6 +4,7 @@ import { teamRepository } from "../../repository/team.repository";
 import { BadRequestError, ErrorCode } from "../../types/errors";
 import type { CreateMatchRequestData as CreateMatchInput, MatchSideInput } from "@skol-arena/shared/types/index";
 import { t } from "../../utils/i18n-context";
+import { rankedMatchMaxAgeHours } from "../../config/ranked";
 
 type TournamentFromRepository = Awaited<
     ReturnType<typeof matchRepository.getTournament>
@@ -126,14 +127,40 @@ export class MatchInputValidator {
     }
 
     validateRankedPlayedAt(playedAt: Date | string | undefined): void {
+        const maxAgeHours = rankedMatchMaxAgeHours();
+
+        // A date is required whatever the window: the MMR replay orders matches by it.
         if (!playedAt) {
-            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
+            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD, { hours: maxAgeHours });
         }
+
+        // 0 disables the age check — backdating a whole season for a test run.
+        if (maxAgeHours === 0) return;
+
         const played = new Date(playedAt);
         const diffMs = Date.now() - played.getTime();
         const diffHours = diffMs / (1000 * 60 * 60);
-        if (diffHours > 48) {
-            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD);
+        if (diffHours > maxAgeHours) {
+            throw new BadRequestError(ErrorCode.RANKED_MATCH_TOO_OLD, { hours: maxAgeHours });
+        }
+    }
+
+    /**
+     * Dry-run counterpart of validateRankedPlayedAt: collects the message instead of
+     * throwing, so /matches/validate reports a stale date rather than letting the form
+     * pass its pre-check and take a 400 on submit.
+     *
+     * A missing date is deliberately not reported here — the dry run can be called from
+     * a step where the user has not picked one yet. Creation still refuses it.
+     */
+    collectRankedPlayedAt(playedAt: Date | string | undefined, errors: string[]): void {
+        if (!playedAt) return;
+
+        try {
+            this.validateRankedPlayedAt(playedAt);
+        } catch (error) {
+            if (!(error instanceof BadRequestError)) throw error;
+            errors.push(t(`errors.${error.code}`, error.details ?? {}));
         }
     }
 
