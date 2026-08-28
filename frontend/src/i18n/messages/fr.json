@@ -607,8 +607,8 @@
     "subtitle": "Connectez-vous à votre compte"
   },
   "matchBalance": {
-    "ariaLabel": "Chances de victoire : équipe 1 {teamA} %, équipe 2 {teamB} %",
-    "ariaLabelWithDraw": "Score attendu : équipe 1 {teamA} %, équipe 2 {teamB} %",
+    "ariaLabel": "Chances de victoire : équipe A {teamA} %, équipe B {teamB} %",
+    "ariaLabelWithDraw": "Score attendu : équipe A {teamA} %, équipe B {teamB} %",
     "avgMmr": "moy. {mmr}",
     "drawHint": "Le nul compte pour un demi-point de chaque côté.",
     "provisional": "Estimation — certains joueurs sont encore en placement.",
@@ -616,8 +616,8 @@
     "titleBefore": "Équilibre avant match",
     "verdict": {
       "even": "Match équilibré",
-      "favoriteA": "Équipe 1 favorite",
-      "favoriteB": "Équipe 2 favorite"
+      "favoriteA": "Équipe A favorite",
+      "favoriteB": "Équipe B favorite"
     }
   },
   "matchCard": {
