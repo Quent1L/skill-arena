@@ -317,6 +317,7 @@ export class MatchRepository {
             mode: match.tournament.mode,
             teamMode: match.tournament.teamMode,
             scoreEnabled: match.tournament.scoreEnabled ?? true,
+            allowDraw: match.tournament.allowDraw ?? false,
             validationMode: match.tournament.validationMode,
             validationTimerHours: match.tournament.validationTimerHours,
             status: match.tournament.status,

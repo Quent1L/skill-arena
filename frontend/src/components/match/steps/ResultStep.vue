@@ -12,7 +12,7 @@
           v-for="(side, idx) in sidesModel"
           :key="side.position"
           type="button"
-          class="rounded-lg border p-3 text-left transition-colors cursor-pointer"
+          class="flex flex-col items-stretch justify-start rounded-lg border p-3 text-left transition-colors cursor-pointer"
           :class="
             winnerModel === side.position
               ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
@@ -22,7 +22,15 @@
         >
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-semibold text-surface-500">{{ t('resultStep.team', { number: idx + 1 }) }}</span>
-            <i v-if="winnerModel === side.position" class="fa fa-trophy text-green-500 text-xs" />
+            <span class="flex items-center gap-2">
+              <span
+                v-if="balance"
+                class="rounded-full bg-surface-100 dark:bg-surface-800 px-2 py-0.5 text-xs font-semibold"
+                :title="t('matchBalance.title')"
+                >{{ idx === 0 ? sidePercents.a : sidePercents.b }}%</span
+              >
+              <i v-if="winnerModel === side.position" class="fa fa-trophy text-green-500 text-xs" />
+            </span>
           </div>
           <div class="flex flex-col gap-1">
             <div
@@ -143,6 +151,8 @@ import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { tournamentApi } from '@/composables/tournament/tournament.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
+import { computeMatchBalance, toPercents } from '@/composables/match/match-balance'
+import type { PlayerStandings } from '@/composables/match/match-balance'
 import type { OutcomeType, OutcomeReason, MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Props {
@@ -158,6 +168,12 @@ interface Props {
   initialOutcomeTypes?: OutcomeType[]
   initialOutcomeReasons?: OutcomeReason[]
   initialScoreInstructions?: string | null
+  /**
+   * MMR of each player at the match date. Ranked only. Shown here too because
+   * the composition step is skipped for a 1v1 — otherwise the balance would
+   * never be seen on those matches.
+   */
+  standings?: PlayerStandings | null
 }
 
 interface Emits {
@@ -192,6 +208,11 @@ const isNormalOutcome = computed(
 const showReasonSelect = computed(
   () =>
     outcomeTypeIdModel.value && !isNormalOutcome.value && filteredOutcomeReasons.value.length > 0,
+)
+
+const balance = computed(() => computeMatchBalance(sidesModel.value, props.standings))
+const sidePercents = computed(() =>
+  balance.value ? toPercents(balance.value) : { a: 0, b: 0 },
 )
 
 function sidePlayerNames(side: MatchSideInput): string[] {

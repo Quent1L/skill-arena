@@ -16,6 +16,7 @@ export * from "./tournament";
 export * from "./user";
 export * from "./admin-user";
 export * from "./match";
+export * from "./mmr";
 export * from "./team";
 export * from "./participant";
 export * from "./discipline";

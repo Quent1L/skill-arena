@@ -34,6 +34,8 @@ import { useAuth } from '@/composables/useAuth'
 import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
+import { rankedApi } from '@/composables/ranked/ranked.api'
+import type { PlayerStandings } from '@/composables/match/match-balance'
 import type {
   ClientBaseTournament,
   MatchSideInput,
@@ -74,6 +76,46 @@ const formState = ref<MatchFormState>({
   outcomeReasonId: null,
 })
 const activeStep = ref('when')
+
+// --- Balance preview -------------------------------------------------------
+// A ranked match can be entered days late, so the line-up must be priced with
+// the MMR the players held on the day they played. The snapshot is therefore
+// fetched only once both inputs are settled: the date (step `when`) and the
+// player list (step `participants` / `teams`). Entering `composition` or
+// `result` is exactly that moment, and it also covers the two paths that skip
+// the composition step — a 1v1, and a bracket-locked match going straight from
+// `when` to `result`.
+const standings = ref<PlayerStandings | null>(null)
+// `${date}|${sorted ids}` of the loaded snapshot: navigating back and forth
+// between steps must not refetch, but changing the date or the roster must.
+const standingsKey = ref('')
+
+async function loadStandings() {
+  if (tournament.value?.mode !== 'ranked') return
+  const playedAt = formState.value.playedAt
+  const playerIds = formState.value.allPlayerIds
+  if (!playedAt || playerIds.length < 2) return
+
+  const key = `${playedAt.toISOString()}|${[...playerIds].sort().join(',')}`
+  if (key === standingsKey.value) return
+
+  try {
+    const entries = await rankedApi.getMmrSnapshot(tournamentId, playerIds, playedAt)
+    standings.value = Object.fromEntries(
+      entries.map((e) => [e.playerId, { mmr: e.mmr, isPlacement: e.isPlacement }]),
+    )
+    standingsKey.value = key
+  } catch {
+    // The bar is a hint, not a prerequisite: a failed snapshot hides it and
+    // leaves the wizard alone rather than raising an error over a preview.
+    standings.value = null
+    standingsKey.value = ''
+  }
+}
+
+watch(activeStep, (step) => {
+  if (step === 'composition' || step === 'result') void loadStandings()
+})
 
 watch(
   () => formState.value.playedAt,
@@ -204,5 +246,6 @@ provide(MATCH_FORM_KEY, {
   outcomeReasons,
   scoreInstructions,
   isLoading,
+  standings,
 })
 </script>

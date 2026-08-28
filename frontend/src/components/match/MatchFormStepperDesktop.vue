@@ -80,6 +80,8 @@
               :played-at="formState.playedAt"
               :match-id="props.matchId"
               :next-label="isFutureDate ? 'Programmer le match' : undefined"
+              :standings="standings"
+              :allow-draw="tournament?.allowDraw ?? false"
               @previous="activeStep = 'participants'"
               @next="goToStepAfterComposition"
             />
@@ -95,7 +97,6 @@
               v-model:score-per-side="formState.scorePerSide"
               :tournament-id="props.tournamentId"
               :player-names="playersMap"
-              :allow-draw="tournament?.allowDraw ?? false"
               :score-enabled="tournament?.scoreEnabled ?? true"
               :min-score="tournament?.minScore"
               :max-score="tournament?.maxScore"
@@ -103,6 +104,8 @@
               :initial-outcome-types="outcomeTypes"
               :initial-outcome-reasons="outcomeReasons"
               :initial-score-instructions="scoreInstructions"
+              :allow-draw="tournament?.allowDraw ?? false"
+              :standings="standings"
               @previous="goBackFromResult"
               @create="submitMatch"
             />
@@ -156,6 +159,7 @@ const participants = ctx.participants
 const outcomeTypes = ctx.outcomeTypes
 const outcomeReasons = ctx.outcomeReasons
 const scoreInstructions = ctx.scoreInstructions
+const standings = ctx.standings
 
 const isFlexMode = computed(() => tournament.value?.teamMode !== 'static')
 const isStaticMode = computed(() => tournament.value?.teamMode === 'static')

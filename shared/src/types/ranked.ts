@@ -611,3 +611,34 @@ export type MmrRecapReadyEvent = {
   event: 'mmr_recap_ready';
   data: MmrRecapReadyPayload;
 };
+
+/**
+ * Match wizard balance preview: the MMR each listed player held just before
+ * `at`. A match can be entered late, so the client asks for the standing on the
+ * day it was played rather than reading today's leaderboard.
+ */
+export const mmrSnapshotRequestSchema = z
+  .object({
+    playerIds: z.array(z.string().uuid()).min(1).max(32),
+    at: z.iso.datetime(),
+  })
+  .meta({ id: "MmrSnapshotRequest" });
+
+export const mmrSnapshotEntrySchema = z
+  .object({
+    playerId: z.string().uuid(),
+    mmr: z.number().int(),
+    /** Still in placement at that date — the MMR is not yet representative. */
+    isPlacement: z.boolean(),
+  })
+  .meta({ id: "MmrSnapshotEntry" });
+
+export const mmrSnapshotResponseSchema = z
+  .object({
+    players: z.array(mmrSnapshotEntrySchema),
+  })
+  .meta({ id: "MmrSnapshotResponse" });
+
+export type MmrSnapshotRequest = z.infer<typeof mmrSnapshotRequestSchema>;
+export type MmrSnapshotEntry = z.infer<typeof mmrSnapshotEntrySchema>;
+export type MmrSnapshotResponse = z.infer<typeof mmrSnapshotResponseSchema>;

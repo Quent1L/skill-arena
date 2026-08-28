@@ -1,4 +1,5 @@
 import type { InjectionKey, Ref } from 'vue'
+import type { PlayerStandings } from './match-balance'
 import type {
   ClientBaseTournament,
   ClientTeam,
@@ -33,6 +34,11 @@ export interface MatchFormContext {
   outcomeReasons: Ref<OutcomeReason[]>
   scoreInstructions: Ref<string | null>
   isLoading: Ref<boolean>
+  /**
+   * MMR of every selected player, as of the match date. Ranked seasons only;
+   * `null` everywhere else, which is what hides the balance bar.
+   */
+  standings: Ref<PlayerStandings | null>
 }
 
 export const MATCH_FORM_KEY: InjectionKey<MatchFormContext> = Symbol('matchForm')

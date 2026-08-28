@@ -19,7 +19,7 @@ import type {
   MmrChartPoint,
   WeeklyMmrLeaders,
 } from '@skol-arena/shared/types/index'
-import { formDataToApiPayload } from '@skol-arena/shared/types/index'
+import { calculateExpectedScore, formDataToApiPayload } from '@skol-arena/shared/types/index'
 
 // The pure tier arithmetic lives in `tier-math` so modules that only need the
 // maths can import it without pulling in this file's i18n dependency.
@@ -98,7 +98,7 @@ export function getMatchLabel(
   opponentAvgMmr: number,
   mmrDelta: number,
 ): string | null {
-  const expectedScore = 1 / (1 + Math.pow(10, (opponentAvgMmr - mmrBefore) / 400))
+  const expectedScore = calculateExpectedScore(mmrBefore, opponentAvgMmr)
   if (mmrBefore < 900 && opponentAvgMmr > mmrBefore + 100) return i18n.global.t('rankedService.matchLabel.rookieProtection')
   if (expectedScore < 0.35 && mmrDelta > 0) return i18n.global.t('rankedService.matchLabel.exploit')
   if (expectedScore > 0.65) return i18n.global.t('rankedService.matchLabel.favorite')

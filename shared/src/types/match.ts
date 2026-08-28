@@ -616,6 +616,7 @@ export interface ClientMatchDetail {
     mode: string;
     teamMode: string;
     scoreEnabled: boolean;
+    allowDraw: boolean;
     validationMode?: string;
     validationTimerHours?: number | null;
     status: TournamentStatus;

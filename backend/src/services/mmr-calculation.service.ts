@@ -14,6 +14,7 @@ import {
   type TeamInteractionMode,
 } from "@skol-arena/shared/types/index";
 import { tournamentRulesetService } from "./tournament-ruleset.service";
+import { BadRequestError, ErrorCode, NotFoundError } from "../types/errors";
 import {
   calculateMatchMmr,
   toEnginePlayers,
@@ -106,7 +107,58 @@ function averageMmr(players: EnginePlayer[], fallback: number): number {
   return Math.round(players.reduce((sum, p) => sum + p.mmr, 0) / players.length);
 }
 
+/** A participant's standing at a past instant, as served to the match wizard. */
+export interface MmrSnapshotEntry {
+  playerId: string;
+  mmr: number;
+  isPlacement: boolean;
+}
+
+/** Ceiling on a snapshot request: one lookup per player, so it must stay bounded. */
+const MMR_SNAPSHOT_MAX_PLAYERS = 32;
+
 export class MmrCalculationService {
+  /**
+   * Each player's standing as it was just before `at`, without touching the
+   * live records. Backs the match wizard's balance preview: a match can be
+   * entered days late, so the line-up must be priced with the MMR the players
+   * held on the day they played, not the MMR they hold now.
+   *
+   * A player with no earlier match in the season falls back to the same entry
+   * MMR a replay would use — the carry-over seed, then the season's base.
+   */
+  async getMmrSnapshotAt(
+    seasonId: string,
+    playerIds: string[],
+    at: Date,
+  ): Promise<MmrSnapshotEntry[]> {
+    const uniqueIds = [...new Set(playerIds)];
+    if (uniqueIds.length === 0) return [];
+    if (uniqueIds.length > MMR_SNAPSHOT_MAX_PLAYERS) {
+      throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
+    }
+
+    const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
+    if (!config) throw new NotFoundError(ErrorCode.SEASON_NOT_FOUND);
+
+    const seedMap = await mmrSeedRepository.getMapBySeason(seasonId);
+
+    return await Promise.all(
+      uniqueIds.map(async (playerId) => {
+        const checkpoint = await playerMmrRepository.getCheckpointState(seasonId, playerId, at);
+        const entryMmr = seedMap.get(playerId) ?? config.baseMmr;
+        const matchesPlayed = checkpoint
+          ? checkpoint.wins + checkpoint.losses + checkpoint.draws
+          : 0;
+        return {
+          playerId,
+          mmr: checkpoint?.mmr ?? entryMmr,
+          isPlacement: matchesPlayed < config.placementMatches,
+        };
+      }),
+    );
+  }
+
   async recalculatePlayerMmr(seasonId: string, playerId: string, fromPlayedAt?: Date): Promise<void> {
     const config = await rankedSeasonRepository.getConfigByTournamentId(seasonId);
     if (!config) return;

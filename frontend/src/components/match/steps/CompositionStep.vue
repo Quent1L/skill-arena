@@ -66,12 +66,18 @@
       </div>
     </div>
 
-    <div v-if="emptySide" class="text-sm text-red-500">
-      {{ t('compositionStep.emptySideError') }}
+    <MatchBalanceBar v-if="balance" :balance="balance" :allow-draw="allowDraw" />
+
+    <div v-if="emptySide" class="text-sm">
+      <Message severity="error" :closable="false">
+        {{ t('compositionStep.emptySideError') }}
+      </Message>
     </div>
 
     <div v-if="errors.length > 0" class="flex flex-col gap-2">
-      <Message v-for="err in errors" :key="err" severity="error" :closable="false">{{ err }}</Message>
+      <Message v-for="err in errors" :key="err" severity="error" :closable="false">{{
+        err
+      }}</Message>
     </div>
 
     <div v-if="!hideNavigation" class="flex justify-between pt-2">
@@ -101,7 +107,10 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import { VueDraggable } from 'vue-draggable-plus'
+import MatchBalanceBar from '@/components/match/MatchBalanceBar.vue'
 import { useMatchService } from '@/composables/match/match.service'
+import { computeMatchBalance } from '@/composables/match/match-balance'
+import type { PlayerStandings } from '@/composables/match/match-balance'
 import type { MatchSideInput } from '@skol-arena/shared/types/index'
 
 interface Player {
@@ -116,6 +125,10 @@ interface Props {
   matchId?: string
   hideNavigation?: boolean
   nextLabel?: string
+  /** MMR of each player at the match date. Ranked only; absent = no bar. */
+  standings?: PlayerStandings | null
+  /** Changes how the balance figure is worded — see `MatchBalanceBar`. */
+  allowDraw?: boolean
 }
 
 interface Emits {
@@ -168,6 +181,10 @@ function syncSidesToModel() {
 }
 
 const emptySide = computed(() => playersA.value.length === 0 || playersB.value.length === 0)
+
+// `sidesModel` is kept in sync by the watchEffect below, so the balance follows
+// every drag & drop without a watcher or a request of its own.
+const balance = computed(() => computeMatchBalance(sidesModel.value, props.standings))
 
 defineExpose({ triggerNext: () => onNext() })
 

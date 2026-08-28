@@ -13,6 +13,8 @@ import type {
   MmrChartPoint,
   PlayerCareerSeason,
   WeeklyMmrLeaders,
+  MmrSnapshotEntry,
+  MmrSnapshotResponse,
 } from '@skol-arena/shared/types/index'
 
 const BASE_URL = '/api/ranked'
@@ -196,5 +198,21 @@ export const rankedApi = {
       `${BASE_URL}/seasons/${seasonId}/players/${playerId}/history${qs}`,
     )
     return response.data
+  },
+
+  /**
+   * MMR of each player as of `at`. A match can be entered late, so the wizard's
+   * balance preview prices the line-up on the day it was played.
+   */
+  async getMmrSnapshot(
+    seasonId: string,
+    playerIds: string[],
+    at: Date,
+  ): Promise<MmrSnapshotEntry[]> {
+    const response = await http.post<MmrSnapshotResponse>(
+      `${BASE_URL}/seasons/${seasonId}/mmr-snapshot`,
+      { playerIds, at: at.toISOString() },
+    )
+    return response.data.players
   },
 }

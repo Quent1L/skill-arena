@@ -118,8 +118,20 @@
         </div>
       </SurfacePanel>
 
+      <!-- Pre-match balance (ranked only) -->
+      <SurfacePanel v-if="balance" class="reveal" :style="revealDelay(1)">
+        <template #header>
+          <SectionHeader icon="fa fa-scale-balanced" :title="t('matchBalance.titleBefore')" />
+        </template>
+        <MatchBalanceBar
+          :balance="balance"
+          :allow-draw="match.tournament?.allowDraw ?? false"
+          hide-title
+        />
+      </SurfacePanel>
+
       <!-- Meta strip -->
-      <SurfacePanel v-if="metaItems.length > 0" class="reveal" :style="revealDelay(1)">
+      <SurfacePanel v-if="metaItems.length > 0" class="reveal" :style="revealDelay(2)">
         <div class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
           <div v-for="item in metaItems" :key="item.label" class="min-w-0">
             <div class="font-label flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-color">
@@ -137,7 +149,7 @@
            comment node and does not leave a gap in the space-y rhythm. -->
       <MatchConfirmation
         class="reveal"
-        :style="revealDelay(2)"
+        :style="revealDelay(3)"
         :match="match"
         :current-user-id="currentUser?.id"
         :responding="responding"
@@ -148,7 +160,7 @@
       <MatchMessageThread
         v-if="canSeeThread"
         class="reveal"
-        :style="revealDelay(3)"
+        :style="revealDelay(4)"
         :match-id="match.id"
         :can-post="canPostOnThread"
         :current-user-id="currentUser?.id"
@@ -156,7 +168,7 @@
       />
 
       <!-- Post-finalization disputes -->
-      <SurfacePanel v-if="postFinalizationDisputes.length > 0" tone="danger" class="reveal" :style="revealDelay(4)">
+      <SurfacePanel v-if="postFinalizationDisputes.length > 0" tone="danger" class="reveal" :style="revealDelay(5)">
         <template #header>
           <SectionHeader
             icon="fa fa-flag"
@@ -202,7 +214,7 @@
       </SurfacePanel>
 
       <!-- Dispute call to action -->
-      <SurfacePanel v-if="canDisputePostFinalization" tone="warn" class="reveal" :style="revealDelay(5)">
+      <SurfacePanel v-if="canDisputePostFinalization" tone="warn" class="reveal" :style="revealDelay(6)">
         <template #header>
           <SectionHeader
             icon="fa fa-exclamation-circle"
@@ -234,7 +246,7 @@
         v-if="canManageMatch && match.status !== 'finalized'"
         tone="warn"
         class="reveal"
-        :style="revealDelay(6)"
+        :style="revealDelay(7)"
       >
         <template #header>
           <SectionHeader
@@ -374,6 +386,7 @@ import type {
 import MatchConfirmation from '@/components/match/MatchConfirmation.vue'
 import MatchMessageThread from '@/components/match/MatchMessageThread.vue'
 import MatchSidePanel from '@/components/match/MatchSidePanel.vue'
+import MatchBalanceBar from '@/components/match/MatchBalanceBar.vue'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
 import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
@@ -384,6 +397,9 @@ import SectionHeader from '@/components/ui/SectionHeader.vue'
 import SurfacePanel from '@/components/ui/SurfacePanel.vue'
 import { useMatchStatus } from '@/composables/match/match-status-style'
 import { buildConfirmationStatusMap } from '@/composables/match/match-confirmation-status'
+import { computeMatchBalance } from '@/composables/match/match-balance'
+import type { PlayerStandings } from '@/composables/match/match-balance'
+import { rankedApi } from '@/composables/ranked/ranked.api'
 import { useCountUp } from '@/composables/ui/useCountUp'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
 import { onWsEvent } from '@/composables/notification/notification.socket'
@@ -489,6 +505,40 @@ const sideA = computed(() => match.value?.sides.find((s) => s.position === 1))
 const sideB = computed(() => match.value?.sides.find((s) => s.position === 2))
 
 const isFinalized = computed(() => match.value?.status === 'finalized')
+
+/**
+ * How the two sides compared *before* this match. The snapshot is taken at
+ * `playedAt` with a strict cut-off, so the match's own result is excluded: the
+ * bar shows the standing the season actually priced it against.
+ */
+const balanceStandings = ref<PlayerStandings | null>(null)
+
+async function loadBalance() {
+  const m = match.value
+  if (!m || m.tournament?.mode !== 'ranked' || !m.playedAt) return
+  const playerIds = m.sides.flatMap((s) => s.players.map((p) => p.id))
+  if (playerIds.length < 2) return
+
+  try {
+    const entries = await rankedApi.getMmrSnapshot(m.tournamentId, playerIds, new Date(m.playedAt))
+    balanceStandings.value = Object.fromEntries(
+      entries.map((e) => [e.playerId, { mmr: e.mmr, isPlacement: e.isPlacement }]),
+    )
+  } catch {
+    // Informational panel: it drops out rather than taking the page down.
+    balanceStandings.value = null
+  }
+}
+
+const balance = computed(() => {
+  const a = sideA.value
+  const b = sideB.value
+  if (!a || !b) return null
+  return computeMatchBalance(
+    [a, b].map((s) => ({ position: s.position, playerIds: s.players.map((p) => p.id) })),
+    balanceStandings.value,
+  )
+})
 
 /**
  * A score does not always name the winner, so a participant asked to validate needs to
@@ -772,6 +822,7 @@ async function loadMatch() {
     match.value = await getMatch(matchId)
     initAnimationIfRanked()
     syncMatchSubscription()
+    void loadBalance()
   } catch (err) {
     console.error('Error loading match:', err)
     error.value = err instanceof Error ? err.message : t('matchDetailView.loadError')

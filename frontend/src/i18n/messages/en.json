@@ -606,6 +606,20 @@
     "register": "Don't have an account?",
     "subtitle": "Sign in to your account"
   },
+  "matchBalance": {
+    "ariaLabel": "Win chances: team 1 {teamA}%, team 2 {teamB}%",
+    "ariaLabelWithDraw": "Expected score: team 1 {teamA}%, team 2 {teamB}%",
+    "avgMmr": "avg. {mmr}",
+    "drawHint": "A draw counts half a point for each side.",
+    "provisional": "Estimate — some players are still in placement.",
+    "title": "Match balance",
+    "titleBefore": "Pre-match balance",
+    "verdict": {
+      "even": "Balanced match",
+      "favoriteA": "Team 1 favoured",
+      "favoriteB": "Team 2 favoured"
+    }
+  },
   "matchCard": {
     "draw": "Draw",
     "loss": "Loss",

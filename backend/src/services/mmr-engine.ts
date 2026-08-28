@@ -1,4 +1,10 @@
+import { averageMmr, calculateExpectedScore, MIN_MMR } from "@skol-arena/shared";
 import type { TeamInteractionMode } from "@skol-arena/shared";
+
+// The scalar formulas live in shared so the match wizard can preview a line-up's
+// balance with the very same arithmetic. Re-exported here so every existing call
+// site keeps importing them from the engine.
+export { averageMmr, calculateExpectedScore, MIN_MMR };
 
 /**
  * Pure MMR engine — no DB access, no side effects. Every MMR path (finalization,
@@ -75,7 +81,6 @@ export const MODE_ALPHA: Record<TeamInteractionMode, number> = {
 
 export const PLACEMENT_MULTIPLIER = 2;
 export const DEFAULT_TEAM_INTERACTION_MODE: TeamInteractionMode = "COLLABORATIVE";
-export const MIN_MMR = 1;
 
 /** A participant's standing just before the match being priced. */
 export interface EnginePlayerStanding {
@@ -100,10 +105,6 @@ export function toEnginePlayers(
   });
 }
 
-export function calculateExpectedScore(playerMmr: number, opponentMmr: number): number {
-  return 1 / (1 + Math.pow(10, (opponentMmr - playerMmr) / 400));
-}
-
 /**
  * Score amplification, in [1, 2]: a blowout moves twice as much MMR as a match
  * settled by a hair. Driven by the gap, not by who won — both sides share it.
@@ -115,8 +116,7 @@ export function calculateScoreMultiplier(scoreA: number, scoreB: number): number
 }
 
 function sideAvgMmr(side: EngineSide): number {
-  const total = side.players.reduce((sum, p) => sum + Math.max(MIN_MMR, p.mmr), 0);
-  return total / side.players.length;
+  return averageMmr(side.players.map((p) => p.mmr));
 }
 
 function clamp(value: number, min: number, max: number): number {

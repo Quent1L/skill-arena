@@ -4,6 +4,7 @@ import { z } from "zod";
 import { rankedSeasonService, startOfWeekUtc } from "../services/ranked-season.service";
 import { mmrAnimationEventService } from "../services/mmr-animation-event.service";
 import { rulesService } from "../services/rules.service";
+import { mmrCalculationService } from "../services/mmr-calculation.service";
 import { seasonRewindService } from "../services/season-rewind.service";
 import { playerMmrRepository } from "../repository/player-mmr.repository";
 import { rankedSeasonRepository } from "../repository/ranked-season.repository";
@@ -33,6 +34,8 @@ import {
   rewindArchiveListSchema,
   rewindPromotionSchema,
   mutationResultSchema,
+  mmrSnapshotRequestSchema,
+  mmrSnapshotResponseSchema,
 } from "@skol-arena/shared/types/index";
 import { requireAuth } from "../middleware/auth";
 import { createAppHono } from "../types/hono";
@@ -377,6 +380,31 @@ ranked.get(
   async (c) => {
     const id = c.req.param("id")!;
     const players = await rankedSeasonService.getSeasonMmrLeaderboard(id);
+    return c.json({ players });
+  }
+);
+
+// POST /ranked/seasons/:id/mmr-snapshot - MMR of a set of players at a past date
+//
+// A read, but a POST: the player list is a body rather than a query string, the
+// same call shape `POST /matches/validate` already uses for its own read.
+ranked.post(
+  "/seasons/:id/mmr-snapshot",
+  requireAuth,
+  seasonRoute({
+    summary: "Get players' MMR as of a given date",
+    description:
+      "Backs the match wizard's balance preview. A match can be entered days late, so the " +
+      "line-up is priced with the MMR the players held when they played, not today's.",
+    auth: true,
+    notFound: true,
+    success: { description: "One standing per requested player", schema: mmrSnapshotResponseSchema },
+  }),
+  validate("json", mmrSnapshotRequestSchema),
+  async (c) => {
+    const id = c.req.param("id")!;
+    const { playerIds, at } = c.req.valid("json");
+    const players = await mmrCalculationService.getMmrSnapshotAt(id, playerIds, new Date(at));
     return c.json({ players });
   }
 );

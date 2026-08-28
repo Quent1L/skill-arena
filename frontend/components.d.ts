@@ -62,6 +62,7 @@ declare module 'vue' {
     IntroCard: typeof import('./src/components/rewind/cards/IntroCard.vue')['default']
     LeaderboardTierList: typeof import('./src/components/ranked/LeaderboardTierList.vue')['default']
     LogoFillGauge: typeof import('./src/components/brand/LogoFillGauge.vue')['default']
+    MatchBalanceBar: typeof import('./src/components/match/MatchBalanceBar.vue')['default']
     MatchCard: typeof import('./src/components/match/MatchCard.vue')['default']
     MatchConfirmation: typeof import('./src/components/match/MatchConfirmation.vue')['default']
     MatchFormStepperDesktop: typeof import('./src/components/match/MatchFormStepperDesktop.vue')['default']
