@@ -13,9 +13,10 @@
  * Backdating a ranked match is refused by the server unless it is started with
  * RANKED_MATCH_MAX_AGE_HOURS=0 — the window is a server setting, not a script one.
  *
- * Matches are created in ascending playedAt order on purpose: a backdated ranked match
- * triggers a cascading MMR recalculation (mmr-calculation.service.ts), so inserting
- * chronologically keeps a run of thousands of matches linear.
+ * Matches are created in ascending playedAt order, which bounds the work each MMR job
+ * has to do. It does not avoid it: MMR is computed off a per-season serial queue, so a
+ * large run leaves a backlog that must be dropped and replaced by one season replay.
+ * scripts/README.md has the procedure — read it before a run of any size.
  */
 
 import { parseArgs } from "node:util";
@@ -314,6 +315,9 @@ function buildPayloads(tournament: Tournament, playerIds: string[], teamSize: nu
 // Run
 // ---------------------------------------------------------------------------
 
+/** Above this, the per-season MMR queue cannot keep up — see scripts/README.md. */
+const MMR_BACKLOG_THRESHOLD = 500;
+
 const MAX_CONSECUTIVE_FAILURES = 10;
 const PROGRESS_EVERY = 25;
 
@@ -323,7 +327,7 @@ async function createAll(payloads: MatchPayload[]): Promise<{ created: number; f
   let consecutiveFailures = 0;
 
   // Chunked rather than a worker pool: chunk N+1 only starts once N is fully written,
-  // which keeps the global playedAt order the MMR cascade cares about.
+  // so matches reach the server in playedAt order.
   for (let offset = 0; offset < payloads.length; offset += concurrency) {
     const chunk = payloads.slice(offset, offset + concurrency);
     const results = await Promise.allSettled(
@@ -383,6 +387,15 @@ async function main(): Promise<void> {
     console.warn(
       `⚠ validationMode is "${tournament.validationMode}": the matches will stay in "reported" ` +
         "until participants confirm them, and no MMR will be computed.",
+    );
+  }
+  if (tournament.mode === "ranked" && tournament.validationMode === "none" && count > MMR_BACKLOG_THRESHOLD) {
+    console.warn(
+      `\n⚠ ${count} matches will queue ${count} MMR jobs on this season's serial worker queue.\n` +
+        "  Expect a backlog that takes days to drain, during which no real match gets an\n" +
+        "  MMR animation. When the run finishes, drop the queued finalize_match_mmr jobs and\n" +
+        "  replay the season once instead — see scripts/README.md, \"MMR is computed off a\n" +
+        "  serial queue\".\n",
     );
   }
 

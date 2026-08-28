@@ -114,21 +114,70 @@ and pushes a colliding match to the next free one.
 Everything is driven by a seeded PRNG. Re-running with the same `--seed`, `--count` and
 range regenerates the same matches, which makes a failure reproducible.
 
-## Why matches are created oldest-first
+## MMR is computed off a serial queue — plan for it
 
-A ranked match entered late can change history for players who were not even in it, so
-finalizing a backdated match triggers a cascading MMR recalculation. Creating matches in
-ascending `playedAt` order means each one is always the most recent, no cascade ever
-fires, and a run of thousands of matches stays linear instead of quadratic.
+**Read this before a run of more than a few hundred matches on a ranked season.**
 
-That ordering is why `--concurrency` defaults to `1`. Raising it batches the creations and
-loses the guarantee — fine when you just want rows and MMR is not what you are testing,
-wrong when it is.
+Finalizing a match does not compute MMR inline. It enqueues a `finalize_match_mmr` job
+on a graphile-worker queue named `mmr:<tournamentId>`. A named queue is processed
+strictly one job at a time, on purpose: MMR has to be applied in order. There is no
+parallelism to be had.
 
-As a rough figure, sequential creation runs at roughly 150 ms per match against a local
-server on a tournament that does not finalize (about 10 s for 60 matches, under 3 min for
-1000). Expect it to be slower with `validationMode: "none"`, which adds finalization and
-the MMR computation to every match.
+Each of those jobs replays every participant's history forward from the match's
+`playedAt`, because a match reported late can change the standing of players who were
+not in it. That is affordable when the queue keeps up with a handful of matches a day.
+It is not affordable at scale: by the time the job for your oldest generated match runs,
+the whole run is already in the database with later dates, so it replays thousands of
+matches. Measured on a 51k-match season, jobs settled at roughly one every 15 seconds —
+a queue that would take over a week to drain, and every real match entered meanwhile
+sits behind it with no MMR animation.
+
+Creating matches oldest-first does not avoid this. It only bounds how much work each job
+does, and only while the worker keeps up. It does not change the result either way: the
+job is a replay from a date, so it is order-independent.
+
+**After a large run, do not wait for the queue.** Drop the backlog and replay the season
+once — a single paged pass instead of tens of thousands of cascades, minutes instead of
+days:
+
+```sql
+-- 1. Drop the queued per-match jobs (leave the one currently running).
+DELETE FROM graphile_worker._private_jobs
+WHERE task_id = (SELECT id FROM graphile_worker._private_tasks
+                 WHERE identifier = 'finalize_match_mmr')
+  AND locked_at IS NULL;
+```
+
+```sh
+# 2. Replay the season in one pass. Same account as the seed run.
+curl -X POST "$API/api/tournaments/<tournamentId>/recalculate-points" \
+  -H 'accept-version: v1' -b cookies.txt
+```
+
+That endpoint runs `recalculateSeasonMmrDeterministic`, which wipes the season's
+`mmr_history` and rebuilds it in one ordered pass, then resyncs animation events and the
+ranked caches. Verify it landed — these two counts must be equal:
+
+```sql
+SELECT count(*) FROM mmr_history WHERE season_id = '<tournamentId>';
+
+SELECT count(*) FROM matches m
+  JOIN match_sides ms ON ms.match_id = m.id
+  JOIN tournament_entry_players tep ON tep.entry_id = ms.entry_id
+ WHERE m.status = 'finalized' AND m.tournament_id = '<tournamentId>';
+```
+
+The per-match MMR animations for the generated matches are lost by the purge. They are
+synthetic matches nobody will watch; the standings, history and tiers are rebuilt exactly.
+
+## Throughput
+
+Sequential creation runs at roughly 150 ms per match against a local server on a
+tournament that does not finalize — about 10 s for 60 matches, under 3 min for 1000.
+`validationMode: "none"` adds finalization to each request, so expect slower.
+
+`--concurrency` above 1 only speeds up the creation requests; it has no effect on the MMR
+queue, which stays serial per season regardless.
 
 ## Output and failures
 
