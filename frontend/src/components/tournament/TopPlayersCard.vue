@@ -1,36 +1,30 @@
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
-    <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-4">
-      <i :class="[icon, 'mr-2', iconClass]" />
-      {{ title }}
+    <h2
+      class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white mb-4 min-w-0"
+    >
+      <i :class="[icon, iconClass]" />
+      <span class="truncate">{{ title }}</span>
+      <LowSampleBadge v-if="isLowSample" />
+      <InfoTooltip :text="tooltip" />
     </h2>
-    <div class="space-y-2">
-      <div
-        v-for="item in items"
+    <div>
+      <StatLeaderRow
+        v-for="(item, i) in items"
         :key="item.id"
-        class="flex items-center gap-3 p-3 rounded-lg"
-        :class="item.rank === 1 ? firstRowClass : 'bg-gray-50 dark:bg-gray-800'"
-      >
-        <span
-          class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-          :class="podiumClass(item.rank)"
-          >{{ item.rank }}</span
-        >
-        <span class="flex-1 font-medium text-gray-900 dark:text-white wrap-break-word min-w-0">
-          {{ item.displayName }}
-          <span
-            v-if="item.tiedCount > 1"
-            v-tooltip.top="t('common.exAequoTooltip', { count: item.tiedCount })"
-            class="ml-1 text-[10px] font-normal text-amber-600 dark:text-amber-400 whitespace-nowrap"
-            data-test="ex-aequo"
-            >{{ t('common.exAequo') }}</span
-          >
-        </span>
-        <span class="text-sm text-gray-500 dark:text-gray-400">{{ item.secondaryText }}</span>
-        <span class="text-sm font-semibold" :class="winRateClass(item.winRate)"
-          >{{ item.winRate }}%</span
-        >
-      </div>
+        :players="item.players"
+        :rank="item.rank"
+        :tied-count="item.tiedCount"
+        :show-tie="startsTiedGroup(i)"
+        :tie-label="t('common.exAequo')"
+        :tie-tooltip="t('common.exAequoTooltip', { count: item.tiedCount })"
+        :value="`${item.winRate} %`"
+        :value-class="winRateClass(item.winRate)"
+        :sub-label="item.subLabel"
+        :bar-pct="barWidth(item)"
+        :bar-class="barClass"
+        :tournament-id="tournamentId"
+      />
     </div>
   </div>
 </template>
@@ -38,31 +32,50 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { CompetitionRank } from '@skol-arena/shared/types/index'
+import InfoTooltip from '@/components/InfoTooltip.vue'
+import LowSampleBadge from '@/components/stats/LowSampleBadge.vue'
+import StatLeaderRow, { type StatLeaderPlayer } from '@/components/stats/StatLeaderRow.vue'
 
 export interface TopPlayerItem extends CompetitionRank {
   id: string
-  displayName: string
-  secondaryText: string
+  /** One player, or the whole roster for a team row. */
+  players: StatLeaderPlayer[]
   winRate: number
+  /** Win rate weighted by sample size — the value the ranking is actually sorted on. */
+  score: number
+  subLabel: string
 }
 
 const props = defineProps<{
   title: string
   icon: string
   iconClass: string
-  firstRowClass?: string
+  /** Explains what the card ranks on, since the headline figure is the raw rate. */
+  tooltip: string
+  barClass: string
   items: TopPlayerItem[]
+  isLowSample?: boolean
+  tournamentId?: string | null
 }>()
 
 const { t } = useI18n()
 
-const firstRowClass = props.firstRowClass ?? 'bg-gray-50 dark:bg-gray-800'
+/**
+ * The bar tracks the weighted score, not the percentage next to it: the ranking is
+ * decided on the former, and a bar that grew as the reader went down the list would
+ * make the order look wrong.
+ */
+function barWidth(item: TopPlayerItem): number {
+  const best = props.items[0]?.score ?? 0
+  if (best <= 0) return 0
+  return Math.round((item.score / best) * 100)
+}
 
-// Keyed on the rank, not the row: players nothing separates get the same medal.
-function podiumClass(rank: number) {
-  if (rank === 1) return 'bg-yellow-400 text-yellow-900'
-  if (rank === 2) return 'bg-gray-300 text-gray-700'
-  return 'bg-amber-600 text-white'
+/** The tie marker belongs to the group, not to each of its rows. */
+function startsTiedGroup(index: number): boolean {
+  const item = props.items[index]
+  if (!item || item.tiedCount < 2) return false
+  return props.items[index - 1]?.rank !== item.rank
 }
 
 function winRateClass(rate: number) {

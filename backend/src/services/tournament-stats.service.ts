@@ -17,14 +17,17 @@ import {
   rankByWeightedRate,
   rankByWeightedRateOrFallback,
   weightedRateTie,
+  weightedScore,
   type RankedEntry,
 } from "./stats-ranking";
 import type {
   TournamentStats,
   OutcomeTypeCount,
-  BestTeamEntry,
+  BestPlayersBoard,
+  BestTeamsBoard,
   WinStreakEntry,
   BestDuoEntry,
+  StatPlayerRef,
   CompetitionRank,
   OutcomeTypeFunStat,
   OutcomeTypeLeader,
@@ -36,6 +39,10 @@ const MAX_OMITTED_NAMES = 20;
 
 /** Best-player cards show five places; ties may push the list a little past that. */
 const MAX_BEST_PLAYER_ROWS = 8;
+
+/** A card a mode never produces still has to answer the same shape as one that does. */
+const EMPTY_TEAMS_BOARD: BestTeamsBoard = { entries: [], isLowSample: false };
+const EMPTY_PLAYERS_BOARD: BestPlayersBoard = { entries: [], isLowSample: false };
 
 /** A payload entry before it is ranked — ranks are assigned once the list is sorted. */
 type Unranked<T extends CompetitionRank> = Omit<T, keyof CompetitionRank>;
@@ -103,7 +110,7 @@ function compareBestPlayers(a: Unranked<BestDuoEntry>, b: Unranked<BestDuoEntry>
  * of the app: a 2-0 evening must not outrank a 30-match season. Two matches used
  * to be enough to top this card, which is exactly the reading it now avoids.
  */
-function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
+function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestPlayersBoard {
   const entries = Array.from(stats.entries()).map(([playerId, s]) => ({
     playerId,
     displayName: s.displayName,
@@ -112,6 +119,7 @@ function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
     losses: s.losses,
     matchesPlayed: s.played,
     winRate: s.played > 0 ? Math.round((s.wins / s.played) * 100) : 0,
+    score: weightedScore(s.played > 0 ? s.wins / s.played : 0, s.played),
   }));
 
   const rate = (entry: (typeof entries)[number]) =>
@@ -127,8 +135,21 @@ function rankBestPlayers(stats: Map<string, PlayerWLStats>): BestDuoEntry[] {
     Number.POSITIVE_INFINITY,
   );
   const ranked = assignCompetitionRanks(sorted, weightedRateTie(rate, played));
-  return withRanks(
-    cutWholeRankGroups(ranked, TOP_BEST_PLAYERS, MAX_BEST_PLAYER_ROWS).shown,
+  return {
+    entries: withRanks(cutWholeRankGroups(ranked, TOP_BEST_PLAYERS, MAX_BEST_PLAYER_ROWS).shown),
+    isLowSample: isBelowThreshold(entries, played),
+  };
+}
+
+/**
+ * True when the ranking had to drop its own threshold to show anything: every candidate
+ * is below it, so the board is a small sample and says so rather than passing for a
+ * settled hierarchy.
+ */
+function isBelowThreshold<T>(candidates: T[], countOf: (item: T) => number): boolean {
+  return (
+    candidates.length > 0 &&
+    !candidates.some((candidate) => countOf(candidate) >= MIN_WEIGHTED_RATE_MATCHES)
   );
 }
 
@@ -170,10 +191,17 @@ function collectPlayerResults<T>(
   return map;
 }
 
-export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
+export function computeBestTeams(matchesData: MatchData[]): BestTeamsBoard {
   const entryStats = new Map<
     string,
-    { displayName: string; wins: number; losses: number; draws: number; playerCount: number }
+    {
+      displayName: string;
+      players: StatPlayerRef[];
+      wins: number;
+      losses: number;
+      draws: number;
+      playerCount: number;
+    }
   >();
 
   for (const match of matchesData) {
@@ -183,7 +211,25 @@ export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
       const displayName = playerNames.join(" / ");
 
       if (!entryStats.has(entryId)) {
-        entryStats.set(entryId, { displayName, wins: 0, losses: 0, draws: 0, playerCount: side.entry.players.length });
+        entryStats.set(entryId, {
+          displayName,
+          // A roster the card can draw: an avatar and a link per player, not one joined label.
+          players: side.entry.players.flatMap((p) =>
+            p.player
+              ? [
+                  {
+                    playerId: p.player.id,
+                    displayName: p.player.displayName,
+                    shortName: p.player.shortName,
+                  },
+                ]
+              : [],
+          ),
+          wins: 0,
+          losses: 0,
+          draws: 0,
+          playerCount: side.entry.players.length,
+        });
       }
       const stats = entryStats.get(entryId)!;
 
@@ -204,11 +250,13 @@ export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
       return {
         entryId,
         displayName: s.displayName,
+        players: s.players,
         wins: s.wins,
         losses: s.losses,
         draws: s.draws,
         matchesPlayed,
         winRate: matchesPlayed > 0 ? Math.round((s.wins / matchesPlayed) * 100) : 0,
+        score: weightedScore(matchesPlayed > 0 ? s.wins / matchesPlayed : 0, matchesPlayed),
       };
     });
 
@@ -226,7 +274,10 @@ export function computeBestTeams(matchesData: MatchData[]): BestTeamEntry[] {
     Number.POSITIVE_INFINITY,
   );
   const ranked = assignCompetitionRanks(sorted, weightedRateTie(rate, played));
-  return withRanks(cutWholeRankGroups(ranked, MAX_DISTINCT_RANKS, MAX_LEADER_ROWS).shown);
+  return {
+    entries: withRanks(cutWholeRankGroups(ranked, MAX_DISTINCT_RANKS, MAX_LEADER_ROWS).shown),
+    isLowSample: isBelowThreshold(teams, played),
+  };
 }
 
 function computeWinStreaks(matchesData: MatchData[]): WinStreakEntry[] {
@@ -273,7 +324,7 @@ function computeLossStreaks(matchesData: MatchData[]): WinStreakEntry[] {
   return streaks.sort((a, b) => b.currentStreak - a.currentStreak);
 }
 
-function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): BestDuoEntry[] {
+function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): BestPlayersBoard {
   const playerStats = new Map<string, PlayerWLStats>();
 
   for (const match of matchesData) {
@@ -288,15 +339,15 @@ function computeSymmetricPlayers(matchesData: MatchData[], teamSize: number): Be
   return rankBestPlayers(playerStats);
 }
 
-export function computeBestDuoPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+export function computeBestDuoPlayers(matchesData: MatchData[]): BestPlayersBoard {
   return computeSymmetricPlayers(matchesData, 2);
 }
 
-function computeBestSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+function computeBestSoloPlayers(matchesData: MatchData[]): BestPlayersBoard {
   return computeSymmetricPlayers(matchesData, 1);
 }
 
-function computeBestAsymmetricSoloPlayers(matchesData: MatchData[]): BestDuoEntry[] {
+function computeBestAsymmetricSoloPlayers(matchesData: MatchData[]): BestPlayersBoard {
   const playerStats = new Map<string, PlayerWLStats>();
 
   for (const match of matchesData) {
@@ -594,22 +645,26 @@ class TournamentStatsService {
     const totalFinalized = matchesData.length;
     const totalMatches = totalFinalized;
 
-    const bestTeams: BestTeamEntry[] =
-      tournamentInfo.teamMode === "flex" ? computeBestTeams(matchesData) : [];
+    const bestTeams: BestTeamsBoard =
+      tournamentInfo.teamMode === "flex"
+        ? computeBestTeams(matchesData)
+        : EMPTY_TEAMS_BOARD;
 
     const winStreaks: WinStreakEntry[] = computeWinStreaks(matchesData);
     const lossStreaks: WinStreakEntry[] = computeLossStreaks(matchesData);
     const invincibleStreaks: WinStreakEntry[] = computeBestInvincibleStreak(matchesData);
 
-    const bestDuoPlayers: BestDuoEntry[] =
-      tournamentInfo.teamMode === "flex" ? computeBestDuoPlayers(matchesData) : [];
+    const bestDuoPlayers: BestPlayersBoard =
+      tournamentInfo.teamMode === "flex"
+        ? computeBestDuoPlayers(matchesData)
+        : EMPTY_PLAYERS_BOARD;
 
-    const bestSoloPlayers: BestDuoEntry[] = computeBestSoloPlayers(matchesData);
+    const bestSoloPlayers: BestPlayersBoard = computeBestSoloPlayers(matchesData);
 
-    const bestAsymmetricSoloPlayers: BestDuoEntry[] =
+    const bestAsymmetricSoloPlayers: BestPlayersBoard =
       tournamentInfo.rankedConfig?.allowAsymmetricMatches
         ? computeBestAsymmetricSoloPlayers(matchesData)
-        : [];
+        : EMPTY_PLAYERS_BOARD;
 
     const outcomeTypeFunStats: OutcomeTypeFunStat[] = computeOutcomeTypeFunStats(
       matchesData,

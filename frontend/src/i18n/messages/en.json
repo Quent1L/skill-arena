@@ -2153,27 +2153,35 @@
       "title": "Tournament activity"
     },
     "bestAsymmetricSolo": {
-      "title": "Best solo players against all"
+      "title": "Best solo players against all",
+      "tooltip": "Players ranked on uneven-sided matches (1v2, 1v3…), from the solo side only, by win rate weighted by match count (rate × √matches), from {count} matches. The percentage shown is the raw rate, the bar is the ranking score."
     },
     "bestDuo": {
-      "title": "Best 2v2 players"
+      "title": "Best 2v2 players",
+      "tooltip": "Players ranked on their 2v2 matches, by win rate weighted by match count (rate × √matches), from {count} matches. The percentage shown is the raw rate, the bar is the ranking score."
     },
     "bestSolo": {
-      "title": "Best 1v1 players"
+      "title": "Best 1v1 players",
+      "tooltip": "Players ranked on their 1v1 matches, by win rate weighted by match count (rate × √matches), from {count} matches. The percentage shown is the raw rate, the bar is the ranking score."
     },
     "bestTeams": {
-      "title": "Best teams"
+      "title": "Best teams",
+      "tooltip": "Teams ranked on their win rate weighted by match count (rate × √matches), from {count} matches. The percentage shown is the raw rate, the bar is the ranking score: a team at 75 % over 20 matches therefore comes ahead of one at 100 % over 3."
     },
     "chartLabel": "Matches",
     "emptyStats": "Statistics will appear once the first matches are finalized.",
     "invincibleStreaks": {
       "title": "Best unbeaten streaks",
+      "tooltip": "The tournament's longest run without a loss, draws included — not the current one. From 3 matches.",
       "unbeatenMatches": "matches without a loss"
     },
     "lossStreaks": {
       "consecutiveLosses": "consecutive losses",
-      "title": "Current loss streaks"
+      "title": "Current loss streaks",
+      "tooltip": "Losses in a row right now, last match included: a win resets the count. From 2 losses in a row."
     },
+    "lowSample": "Small sample",
+    "lowSampleTooltip": "No player reached {count} matches, so the usual threshold was lifted rather than hiding the ranking. Take it with a pinch of salt.",
     "outcomeDistribution": {
       "empty": "No matches finalized yet.",
       "title": "Match outcome distribution"
@@ -2187,8 +2195,6 @@
       "honourRollWinners": "Pulled it off ({count})",
       "king": "Kings of {name}",
       "lossCount": "{count} loss | {count} losses",
-      "lowSample": "Small sample",
-      "lowSampleTooltip": "No player reached {count} matches on this outcome type, so the usual threshold was lifted rather than hiding the ranking. Take it with a pinch of salt.",
       "matchCount": "{count} match | {count} matches",
       "moreTied": "+{count} tied player | +{count} tied players",
       "noRanking": "Everyone is tied: no ranking separates them.",
@@ -2204,6 +2210,7 @@
       "vulnerabilityTooltip": "Ranked by loss rate weighted by match count (rate × √matches), from {count} matches on this outcome type. A perfect rate over 3 matches therefore stays behind a high rate over 30.",
       "winCount": "{count} win | {count} wins"
     },
+    "record": "{wins}W {losses}L",
     "weeklyMmr": {
       "empty": "No data",
       "gainers": "Biggest climbers",
@@ -2213,7 +2220,8 @@
     },
     "winStreaks": {
       "consecutiveWins": "consecutive wins",
-      "title": "Current win streaks"
+      "title": "Current win streaks",
+      "tooltip": "Wins in a row right now, last match included: a loss resets the count. From 2 wins in a row."
     }
   },
   "tournamentTabView": {

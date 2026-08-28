@@ -77,8 +77,11 @@
           :title="t('tournamentStatsTab.bestTeams.title')"
           icon="fa fa-trophy"
           icon-class="text-yellow-500"
-          first-row-class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
+          :tooltip="weightedTooltip('bestTeams')"
+          bar-class="bg-yellow-500"
           :items="bestTeamsItems"
+          :is-low-sample="store.tournamentStats.bestTeams.isLowSample"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Win streaks -->
@@ -89,6 +92,8 @@
           variant="orange"
           :entries="store.tournamentStats.winStreaks"
           :unit-label="t('tournamentStatsTab.winStreaks.consecutiveWins')"
+          :tooltip="t('tournamentStatsTab.winStreaks.tooltip')"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Current losing streaks -->
@@ -99,6 +104,8 @@
           variant="red"
           :entries="store.tournamentStats.lossStreaks"
           :unit-label="t('tournamentStatsTab.lossStreaks.consecutiveLosses')"
+          :tooltip="t('tournamentStatsTab.lossStreaks.tooltip')"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Best unbeaten streaks -->
@@ -109,6 +116,8 @@
           variant="blue"
           :entries="store.tournamentStats.invincibleStreaks"
           :unit-label="t('tournamentStatsTab.invincibleStreaks.unbeatenMatches')"
+          :tooltip="t('tournamentStatsTab.invincibleStreaks.tooltip')"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Best solo player (asymmetric only) -->
@@ -117,8 +126,11 @@
           :title="t('tournamentStatsTab.bestAsymmetricSolo.title')"
           icon="fa fa-user-shield"
           icon-class="text-indigo-500"
-          first-row-class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800"
+          :tooltip="weightedTooltip('bestAsymmetricSolo')"
+          bar-class="bg-indigo-500"
           :items="bestAsymmetricSoloItems"
+          :is-low-sample="store.tournamentStats.bestAsymmetricSoloPlayers.isLowSample"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Best 1v1 player -->
@@ -127,8 +139,11 @@
           :title="t('tournamentStatsTab.bestSolo.title')"
           icon="fa fa-user"
           icon-class="text-green-500"
-          first-row-class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+          :tooltip="weightedTooltip('bestSolo')"
+          bar-class="bg-green-500"
           :items="bestSoloItems"
+          :is-low-sample="store.tournamentStats.bestSoloPlayers.isLowSample"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Best 2v2 player (flex only) -->
@@ -137,8 +152,11 @@
           :title="t('tournamentStatsTab.bestDuo.title')"
           icon="fa fa-user-group"
           icon-class="text-purple-500"
-          first-row-class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800"
+          :tooltip="weightedTooltip('bestDuo')"
+          bar-class="bg-purple-500"
           :items="bestDuoItems"
+          :is-low-sample="store.tournamentStats.bestDuoPlayers.isLowSample"
+          :tournament-id="store.tournament?.id"
         />
 
         <!-- Fun stats by outcome type -->
@@ -178,7 +196,7 @@ import Chart from 'primevue/chart'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { formatDate } from 'date-fns'
-import type { BestDuoEntry } from '@skol-arena/shared/types/index'
+import { MIN_WEIGHTED_RATE_MATCHES, type BestDuoEntry } from '@skol-arena/shared/types/index'
 import TopPlayersCard, { type TopPlayerItem } from '@/components/tournament/TopPlayersCard.vue'
 import MatchOutcomeDistribution from '@/components/stats/MatchOutcomeDistribution.vue'
 import OutcomeTypeFunStats from '@/components/stats/OutcomeTypeFunStats.vue'
@@ -244,12 +262,30 @@ const hasOutcomeTypes = computed(() =>
   (store.tournamentStats?.outcomeDistribution ?? []).some((o) => o.outcomeTypeName),
 )
 
-const bestTeamsItems = computed(() =>
-  (store.tournamentStats?.bestTeams ?? []).map((team) => ({
+/**
+ * The cards rank on the weighted rate but show the raw one, so the tooltip is the only
+ * place the reader can learn why a lower percentage sits higher.
+ */
+function weightedTooltip(card: string): string {
+  return t(`tournamentStatsTab.${card}.tooltip`, { count: MIN_WEIGHTED_RATE_MATCHES })
+}
+
+/** "12 matchs · 9V 3D" — the sample size the ranking weights, then the record itself. */
+function sampleLabel(matchesPlayed: number, wins: number, losses: number): string {
+  return `${t('tournamentStatsTab.outcomeTypeFunStats.matchCount', { count: matchesPlayed }, matchesPlayed)} · ${t('tournamentStatsTab.record', { wins, losses })}`
+}
+
+const bestTeamsItems = computed<TopPlayerItem[]>(() =>
+  (store.tournamentStats?.bestTeams.entries ?? []).map((team) => ({
     id: team.entryId,
-    displayName: team.displayName,
-    secondaryText: `${team.wins}V ${team.losses}D`,
+    players: team.players.map((p) => ({
+      id: p.playerId,
+      displayName: p.displayName,
+      shortName: p.shortName,
+    })),
     winRate: team.winRate,
+    score: team.score,
+    subLabel: sampleLabel(team.matchesPlayed, team.wins, team.losses),
     rank: team.rank,
     tiedCount: team.tiedCount,
   })),
@@ -259,19 +295,20 @@ const bestTeamsItems = computed(() =>
 function toPlayerItems(players: BestDuoEntry[] | undefined): TopPlayerItem[] {
   return (players ?? []).map((p) => ({
     id: p.playerId,
-    displayName: p.displayName,
-    secondaryText: `${p.matchesPlayed} matchs`,
+    players: [{ id: p.playerId, displayName: p.displayName, shortName: p.shortName }],
     winRate: p.winRate,
+    score: p.score,
+    subLabel: sampleLabel(p.matchesPlayed, p.wins, p.losses),
     rank: p.rank,
     tiedCount: p.tiedCount,
   }))
 }
 
-const bestDuoItems = computed(() => toPlayerItems(store.tournamentStats?.bestDuoPlayers))
+const bestDuoItems = computed(() => toPlayerItems(store.tournamentStats?.bestDuoPlayers.entries))
 
-const bestSoloItems = computed(() => toPlayerItems(store.tournamentStats?.bestSoloPlayers))
+const bestSoloItems = computed(() => toPlayerItems(store.tournamentStats?.bestSoloPlayers.entries))
 
 const bestAsymmetricSoloItems = computed(() =>
-  toPlayerItems(store.tournamentStats?.bestAsymmetricSoloPlayers),
+  toPlayerItems(store.tournamentStats?.bestAsymmetricSoloPlayers.entries),
 )
 </script>

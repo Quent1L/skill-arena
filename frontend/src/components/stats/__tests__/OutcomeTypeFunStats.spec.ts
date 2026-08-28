@@ -176,11 +176,9 @@ describe('OutcomeTypeFunStats', () => {
     const wrapper = mountWithPrime(OutcomeTypeFunStats, { props: { stats } })
 
     expect(wrapper.find('[data-test="low-sample-badge"]').text()).toContain(
-      'tournamentStatsTab.outcomeTypeFunStats.lowSample:3',
+      'tournamentStatsTab.lowSample:3',
     )
-    expect(rateTooltip(wrapper).props('text')).toBe(
-      'tournamentStatsTab.outcomeTypeFunStats.lowSampleTooltip:3',
-    )
+    expect(rateTooltip(wrapper).props('text')).toBe('tournamentStatsTab.lowSampleTooltip:3')
   })
 
   it('explains the weighting when the threshold is met', () => {

@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+/**
+ * Minimum sample size before a success rate is considered trustworthy enough to rank.
+ * Shared so the backend ranking and the cards explaining it never drift apart.
+ */
+export const MIN_WEIGHTED_RATE_MATCHES = 3;
+
+/** A player as a leaderboard row identifies them: enough to draw an avatar and link out. */
+export const statPlayerRefSchema = z
+  .object({
+    playerId: z.string(),
+    displayName: z.string(),
+    shortName: z.string(),
+  })
+  .meta({ id: "StatPlayerRef" });
+
+export type StatPlayerRef = z.infer<typeof statPlayerRefSchema>;
+
 export const outcomeTypeCountSchema = z
   .object({
     outcomeTypeId: z.string().nullable(),
@@ -25,12 +42,16 @@ export type CompetitionRank = z.infer<typeof competitionRankSchema>;
 export const bestTeamEntrySchema = competitionRankSchema
   .extend({
     entryId: z.string(),
+    /** The roster joined into one label — the team itself has no name of its own */
     displayName: z.string(),
+    players: z.array(statPlayerRefSchema),
     wins: z.number(),
     losses: z.number(),
     draws: z.number(),
     matchesPlayed: z.number(),
     winRate: z.number(),
+    /** The value the ranking actually sorts on: win rate weighted by sample size */
+    score: z.number(),
   })
   .meta({ id: "BestTeamEntry" });
 
@@ -65,10 +86,27 @@ export const bestDuoEntrySchema = competitionRankSchema
     losses: z.number(),
     matchesPlayed: z.number(),
     winRate: z.number(),
+    /** The value the ranking actually sorts on: win rate weighted by sample size */
+    score: z.number(),
   })
   .meta({ id: "BestDuoEntry" });
 
 export type BestDuoEntry = z.infer<typeof bestDuoEntrySchema>;
+
+/** Rate boards only: nobody reached the match threshold, so the board is unfiltered. */
+const lowSampleShape = { isLowSample: z.boolean() };
+
+export const bestTeamsBoardSchema = z
+  .object({ entries: z.array(bestTeamEntrySchema), ...lowSampleShape })
+  .meta({ id: "BestTeamsBoard" });
+
+export type BestTeamsBoard = z.infer<typeof bestTeamsBoardSchema>;
+
+export const bestPlayersBoardSchema = z
+  .object({ entries: z.array(bestDuoEntrySchema), ...lowSampleShape })
+  .meta({ id: "BestPlayersBoard" });
+
+export type BestPlayersBoard = z.infer<typeof bestPlayersBoardSchema>;
 
 export const outcomeTypeLeaderSchema = competitionRankSchema
   .extend({
@@ -124,14 +162,14 @@ export const tournamentStatsSchema = z
     totalMatches: z.number(),
     totalFinalized: z.number(),
     outcomeDistribution: z.array(outcomeTypeCountSchema),
-    bestTeams: z.array(bestTeamEntrySchema),
+    bestTeams: bestTeamsBoardSchema,
     momentum: z.array(momentumDaySchema),
     winStreaks: z.array(winStreakEntrySchema),
     lossStreaks: z.array(winStreakEntrySchema),
     invincibleStreaks: z.array(winStreakEntrySchema),
-    bestDuoPlayers: z.array(bestDuoEntrySchema),
-    bestSoloPlayers: z.array(bestDuoEntrySchema),
-    bestAsymmetricSoloPlayers: z.array(bestDuoEntrySchema),
+    bestDuoPlayers: bestPlayersBoardSchema,
+    bestSoloPlayers: bestPlayersBoardSchema,
+    bestAsymmetricSoloPlayers: bestPlayersBoardSchema,
     outcomeTypeFunStats: z.array(outcomeTypeFunStatSchema),
   })
   .meta({ id: "TournamentStats" });

@@ -56,7 +56,7 @@ describe("computeBestDuoPlayers", () => {
       ...series(["lucky", "mate2"], ["foil", "foil2"], 3),
     ];
 
-    const best = computeBestDuoPlayers(matches as any);
+    const best = computeBestDuoPlayers(matches as any).entries;
     const regular = entryOf(best, "regular")!;
     const lucky = entryOf(best, "lucky")!;
 
@@ -64,6 +64,9 @@ describe("computeBestDuoPlayers", () => {
     // A perfect record on three matches no longer outranks a season-long one.
     expect(lucky.winRate).toBe(100);
     expect(best.indexOf(regular)).toBeLessThan(best.indexOf(lucky));
+    // The card draws its bars from `score`, so it has to decrease along the ranking
+    // even where the raw win rate goes up.
+    expect(regular.score).toBeGreaterThan(lucky.score);
   });
 
   it("keeps players below the sample threshold out while anyone clears it", () => {
@@ -73,22 +76,25 @@ describe("computeBestDuoPlayers", () => {
       ...series(["oneshot", "mate2"], ["foil", "foil2"], 1),
     ];
 
-    const best = computeBestDuoPlayers(matches as any);
+    const board = computeBestDuoPlayers(matches as any);
 
-    expect(best.map((entry) => entry.playerId)).not.toContain("oneshot");
-    expect(entryOf(best, "regular")).toMatchObject({ matchesPlayed: 5, winRate: 100 });
+    expect(board.entries.map((entry) => entry.playerId)).not.toContain("oneshot");
+    expect(entryOf(board.entries, "regular")).toMatchObject({ matchesPlayed: 5, winRate: 100 });
+    expect(board.isLowSample).toBe(false);
   });
 
   it("falls back to the small samples rather than showing an empty card", () => {
     // A tournament two matches old: nobody clears the threshold yet.
-    const best = computeBestDuoPlayers(series(["a", "b"], ["c", "d"], 2) as any);
+    const board = computeBestDuoPlayers(series(["a", "b"], ["c", "d"], 2) as any);
 
-    expect(entryOf(best, "a")).toMatchObject({ matchesPlayed: 2, winRate: 100 });
+    expect(entryOf(board.entries, "a")).toMatchObject({ matchesPlayed: 2, winRate: 100 });
+    // ...and the card is told so, rather than passing a two-match sample off as a ranking.
+    expect(board.isLowSample).toBe(true);
   });
 
   it("gives the same rank to players nothing separates", () => {
     // The two winners share every match, so no criterion can put one above the other.
-    const best = computeBestDuoPlayers(series(["a", "b"], ["c", "d"], 4) as any);
+    const best = computeBestDuoPlayers(series(["a", "b"], ["c", "d"], 4) as any).entries;
 
     expect(entryOf(best, "a")).toMatchObject({ rank: 1, tiedCount: 2 });
     expect(entryOf(best, "b")).toMatchObject({ rank: 1, tiedCount: 2 });
@@ -97,7 +103,7 @@ describe("computeBestDuoPlayers", () => {
   it("counts draws in the denominator", () => {
     const matches = [...series(["a", "b"], ["c", "d"], 3), match(null, ["a", "b"], ["c", "d"])];
 
-    const best = computeBestDuoPlayers(matches as any);
+    const best = computeBestDuoPlayers(matches as any).entries;
 
     expect(entryOf(best, "a")).toMatchObject({ wins: 3, matchesPlayed: 4, winRate: 75 });
   });
@@ -111,11 +117,20 @@ describe("computeBestTeams", () => {
       ...series(["lucky", "mate2"], ["foil", "foil2"], 2),
     ];
 
-    const teams = computeBestTeams(matches as any);
+    const teams = computeBestTeams(matches as any).entries;
 
     expect(teams[0]).toMatchObject({ winRate: 75, matchesPlayed: 12 });
     expect(teams[0]!.displayName).toContain("REGULAR");
     // Two matches is below the threshold, and others clear it.
     expect(teams.some((team) => team.displayName.includes("LUCKY"))).toBe(false);
+  });
+
+  it("carries the roster so the card can draw an avatar and a link per player", () => {
+    const teams = computeBestTeams(series(["regular", "mate"], ["foil", "foil2"], 4) as any).entries;
+
+    expect(teams[0]!.players).toEqual([
+      { playerId: "regular", displayName: "REGULAR", shortName: "regular" },
+      { playerId: "mate", displayName: "MATE", shortName: "mate" },
+    ]);
   });
 });

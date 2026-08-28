@@ -1,5 +1,8 @@
-/** Minimum sample size before a rate is considered trustworthy enough to rank. */
-export const MIN_WEIGHTED_RATE_MATCHES = 3;
+import { MIN_WEIGHTED_RATE_MATCHES } from "@skol-arena/shared";
+
+// The threshold lives in the shared package: the cards have to explain it to the reader,
+// and two copies of the number would eventually disagree.
+export { MIN_WEIGHTED_RATE_MATCHES };
 
 /** How many entries a weighted-rate ranking keeps. */
 export const TOP_WEIGHTED_RATE = 3;

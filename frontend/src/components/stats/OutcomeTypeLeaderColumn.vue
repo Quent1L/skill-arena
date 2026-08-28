@@ -1,23 +1,12 @@
 <template>
   <div>
     <div
-      class="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wide mb-2"
+      class="flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2"
     >
       <i :class="icon" />
       {{ title }}
 
-      <span
-        v-if="board.isLowSample"
-        class="inline-flex items-center gap-1 text-[10px] leading-none text-amber-400/80 min-w-0"
-        data-test="low-sample-badge"
-      >
-        <i class="fa fa-triangle-exclamation shrink-0" />
-        <span class="truncate">{{
-          t('tournamentStatsTab.outcomeTypeFunStats.lowSample', {
-            count: MIN_WEIGHTED_RATE_MATCHES,
-          })
-        }}</span>
-      </span>
+      <LowSampleBadge v-if="board.isLowSample" />
 
       <InfoTooltip :text="tooltip" />
     </div>
@@ -27,13 +16,15 @@
       <p class="text-[11px] text-gray-500 mb-2">
         {{ t('tournamentStatsTab.outcomeTypeFunStats.noRanking') }}
       </p>
-      <p class="text-xs font-semibold text-gray-300 mb-2">{{ honourRollTitle }}</p>
+      <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        {{ honourRollTitle }}
+      </p>
       <div class="flex flex-wrap gap-1.5">
         <RouterLink
           v-for="p in board.leaders"
           :key="p.playerId"
           :to="playerLink(p.playerId, tournamentId)"
-          class="inline-flex items-center gap-1.5 rounded-full bg-white/5 hover:bg-white/10 pl-1 pr-2.5 py-1 max-w-full"
+          class="inline-flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 pl-1 pr-2.5 py-1 max-w-full"
         >
           <PlayerAvatar
             :name="p.displayName"
@@ -42,7 +33,9 @@
             shape="circle"
             class="shrink-0"
           />
-          <span class="text-xs text-indigo-300 truncate">{{ p.displayName }}</span>
+          <span class="text-xs text-indigo-600 dark:text-indigo-300 truncate">{{
+            p.displayName
+          }}</span>
         </RouterLink>
       </div>
       <p v-if="board.omittedCount" class="text-[10px] text-gray-500 mt-2" data-test="more-tied">
@@ -51,56 +44,23 @@
     </div>
 
     <div v-else-if="board.leaders.length" :data-test="`${metric}-list`">
-      <div
+      <StatLeaderRow
         v-for="(p, i) in board.leaders"
         :key="p.playerId"
-        class="py-1.5 border-b border-gray-700 last:border-0"
-      >
-        <div class="flex justify-between items-center gap-2">
-          <RouterLink
-            :to="playerLink(p.playerId, tournamentId)"
-            class="flex items-center gap-2 min-w-0 text-sm font-medium text-indigo-400 hover:text-indigo-300"
-          >
-            <span
-              class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-              :class="podiumClass(p.rank)"
-              >{{ p.rank }}</span
-            >
-            <PlayerAvatar
-              :name="p.displayName"
-              :color-key="p.shortName"
-              size="xs"
-              shape="square"
-              class="shrink-0"
-            />
-            <span class="truncate">{{ p.displayName }}</span>
-          </RouterLink>
-          <span class="text-sm font-semibold text-gray-100 tabular-nums shrink-0">{{
-            valueLabel(p)
-          }}</span>
-        </div>
-        <div class="flex items-center gap-2 mt-1 pl-7">
-          <div class="h-1 flex-1 rounded-full bg-white/10 overflow-hidden">
-            <div class="h-full rounded-full" :class="barClass" :style="{ width: `${barWidth(p)}%` }" />
-          </div>
-          <span class="text-[10px] text-gray-500 tabular-nums shrink-0">
-            {{ subLabel(p) }}
-          </span>
-        </div>
-        <div
-          v-if="startsTiedGroup(i)"
-          class="flex items-center gap-1 mt-1 pl-7 text-[10px] text-amber-400/80"
-          data-test="ex-aequo"
-        >
-          <i class="fa fa-equals shrink-0" />
-          <span>{{ t('tournamentStatsTab.outcomeTypeFunStats.exAequo') }} ({{ p.tiedCount }})</span>
-          <InfoTooltip
-            :text="
-              t('tournamentStatsTab.outcomeTypeFunStats.exAequoTooltip', { count: p.tiedCount })
-            "
-          />
-        </div>
-      </div>
+        :players="[{ id: p.playerId, displayName: p.displayName, shortName: p.shortName }]"
+        :rank="p.rank"
+        :tied-count="p.tiedCount"
+        :show-tie="startsTiedGroup(i)"
+        :tie-label="t('tournamentStatsTab.outcomeTypeFunStats.exAequo')"
+        :tie-tooltip="
+          t('tournamentStatsTab.outcomeTypeFunStats.exAequoTooltip', { count: p.tiedCount })
+        "
+        :value="valueLabel(p)"
+        :sub-label="subLabel(p)"
+        :bar-pct="barWidth(p)"
+        :bar-class="barClass"
+        :tournament-id="tournamentId"
+      />
       <p v-if="board.omittedCount" class="text-[10px] text-gray-500 pt-1.5" data-test="more-tied">
         {{ moreTiedLabel }}
       </p>
@@ -115,13 +75,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { OutcomeTypeLeader, OutcomeTypeLeaderboard } from '@skol-arena/shared/types/index'
+import {
+  MIN_WEIGHTED_RATE_MATCHES,
+  type OutcomeTypeLeader,
+  type OutcomeTypeLeaderboard,
+} from '@skol-arena/shared'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import InfoTooltip from '@/components/InfoTooltip.vue'
+import LowSampleBadge from '@/components/stats/LowSampleBadge.vue'
+import StatLeaderRow from '@/components/stats/StatLeaderRow.vue'
 import { playerLink } from '@/utils/player-link'
-
-/** Mirrors MIN_WEIGHTED_RATE_MATCHES in backend/src/services/stats-ranking.ts */
-const MIN_WEIGHTED_RATE_MATCHES = 3
 
 const props = defineProps<{
   board: OutcomeTypeLeaderboard
@@ -148,12 +111,17 @@ const title = computed(() => {
 
 const tooltip = computed(() => {
   if (isVolume.value) return t('tournamentStatsTab.outcomeTypeFunStats.volumeTooltip')
-  const key = props.board.isLowSample
-    ? 'lowSampleTooltip'
-    : isWinners.value
-      ? 'efficiencyTooltip'
-      : 'vulnerabilityTooltip'
-  return t(`tournamentStatsTab.outcomeTypeFunStats.${key}`, { count: MIN_WEIGHTED_RATE_MATCHES })
+  // The low-sample caveat replaces the usual explanation: on a board that had to drop
+  // its own threshold, describing the threshold would be beside the point.
+  if (props.board.isLowSample) {
+    return t('tournamentStatsTab.lowSampleTooltip', { count: MIN_WEIGHTED_RATE_MATCHES })
+  }
+  return t(
+    isWinners.value
+      ? 'tournamentStatsTab.outcomeTypeFunStats.efficiencyTooltip'
+      : 'tournamentStatsTab.outcomeTypeFunStats.vulnerabilityTooltip',
+    { count: MIN_WEIGHTED_RATE_MATCHES },
+  )
 })
 
 const icon = computed(() => {
@@ -209,11 +177,5 @@ function startsTiedGroup(index: number): boolean {
   const leader = props.board.leaders[index]
   if (!leader || leader.tiedCount < 2) return false
   return props.board.leaders[index - 1]?.rank !== leader.rank
-}
-
-function podiumClass(rank: number): string {
-  if (rank === 1) return 'bg-yellow-400 text-yellow-900'
-  if (rank === 2) return 'bg-gray-300 text-gray-700'
-  return 'bg-amber-600 text-white'
 }
 </script>

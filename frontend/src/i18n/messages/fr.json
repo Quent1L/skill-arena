@@ -2153,27 +2153,35 @@
       "title": "Activité du tournoi"
     },
     "bestAsymmetricSolo": {
-      "title": "Meilleurs joueurs seuls contre tous"
+      "title": "Meilleurs joueurs seuls contre tous",
+      "tooltip": "Joueurs classés sur les matchs à effectifs déséquilibrés (1v2, 1v3…), côté solo uniquement, au taux de victoire pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs. Le pourcentage affiché est le taux brut, la barre le score de classement."
     },
     "bestDuo": {
-      "title": "Meilleurs joueurs 2v2"
+      "title": "Meilleurs joueurs 2v2",
+      "tooltip": "Joueurs classés sur leurs matchs 2v2, au taux de victoire pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs. Le pourcentage affiché est le taux brut, la barre le score de classement."
     },
     "bestSolo": {
-      "title": "Meilleurs joueurs 1v1"
+      "title": "Meilleurs joueurs 1v1",
+      "tooltip": "Joueurs classés sur leurs matchs 1v1, au taux de victoire pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs. Le pourcentage affiché est le taux brut, la barre le score de classement."
     },
     "bestTeams": {
-      "title": "Meilleures équipes"
+      "title": "Meilleures équipes",
+      "tooltip": "Équipes classées au taux de victoire pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs. Le pourcentage affiché est le taux brut, la barre le score de classement : une équipe à 75 % sur 20 matchs passe donc devant une équipe à 100 % sur 3."
     },
     "chartLabel": "Matchs",
     "emptyStats": "Les statistiques s'afficheront une fois les premiers matchs finalisés.",
     "invincibleStreaks": {
       "title": "Meilleures séries d'invincibilité",
+      "tooltip": "Plus longue série sans défaite du tournoi, nuls compris — pas la série en cours. À partir de 3 matchs.",
       "unbeatenMatches": "matchs sans défaite"
     },
     "lossStreaks": {
       "consecutiveLosses": "défaites consécutives",
-      "title": "Séries de défaites en cours"
+      "title": "Séries de défaites en cours",
+      "tooltip": "Défaites consécutives en cours, dernier match compris : une victoire remet le compteur à zéro. À partir de 2 défaites d'affilée."
     },
+    "lowSample": "Échantillon faible",
+    "lowSampleTooltip": "Aucun joueur n'atteint {count} matchs : le seuil habituel a été levé pour ne pas masquer le classement. À prendre avec des pincettes.",
     "outcomeDistribution": {
       "empty": "Aucun match finalisé pour le moment.",
       "title": "Répartition des fins de match"
@@ -2187,8 +2195,6 @@
       "honourRollWinners": "Ont réussi ce coup ({count})",
       "king": "Rois de {name}",
       "lossCount": "{count} défaite | {count} défaites",
-      "lowSample": "Échantillon faible",
-      "lowSampleTooltip": "Aucun joueur n'atteint {count} matchs sur ce type de résultat : le seuil habituel a été levé pour ne pas masquer le classement. À prendre avec des pincettes.",
       "matchCount": "{count} match | {count} matchs",
       "moreTied": "+{count} joueur ex aequo | +{count} joueurs ex aequo",
       "noRanking": "Tout le monde est à égalité : aucun classement ne les départage.",
@@ -2204,6 +2210,7 @@
       "vulnerabilityTooltip": "Classement par taux de défaite pondéré par le nombre de matchs (taux × √matchs), à partir de {count} matchs sur ce type de résultat. Un 100 % sur 3 matchs reste donc derrière un 90 % sur 30.",
       "winCount": "{count} victoire | {count} victoires"
     },
+    "record": "{wins}V {losses}D",
     "weeklyMmr": {
       "empty": "Aucune donnée",
       "gainers": "Meilleures progressions",
@@ -2213,7 +2220,8 @@
     },
     "winStreaks": {
       "consecutiveWins": "victoires consécutives",
-      "title": "Séries de victoires en cours"
+      "title": "Séries de victoires en cours",
+      "tooltip": "Victoires consécutives en cours, dernier match compris : une défaite remet le compteur à zéro. À partir de 2 victoires d'affilée."
     }
   },
   "tournamentTabView": {
