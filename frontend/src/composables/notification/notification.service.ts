@@ -3,6 +3,15 @@ import { notificationApi, type RawNotification } from './notification.api'
 
 export type Notification = RawNotification
 
+/**
+ * A notification only blocks while what it asks for is still owed. The server re-reads
+ * that from the live state on every load, so an action settled elsewhere — a
+ * contestation withdrawn, a match arbitrated or deleted — frees the notification.
+ */
+export function isBlocking(n: Notification): boolean {
+  return n.requiresAction && !n.actionResolved && !n.actionCompleted
+}
+
 const notifications = ref<Notification[]>([])
 const loadingNotifications = ref(false)
 
@@ -45,7 +54,7 @@ export function useNotificationService() {
     if (notif.actionUrl && router) {
       router.push(notif.actionUrl)
     }
-    if (!notif.requiresAction) {
+    if (!isBlocking(notif)) {
       void markRead(notif.id)
     }
   }
@@ -53,7 +62,7 @@ export function useNotificationService() {
   async function deleteNotification(id: string) {
     const notif = notifications.value.find((n) => n.id === id)
     if (!notif) return
-    if (notif.requiresAction) {
+    if (isBlocking(notif)) {
       throw new Error('Cannot delete blocking notification')
     }
     // Optimistic update
@@ -85,12 +94,12 @@ export function useNotificationService() {
   }
 
   async function deleteAll() {
-    const deletableNotifs = notifications.value.filter((n) => !n.requiresAction)
+    const deletableNotifs = notifications.value.filter((n) => !isBlocking(n))
     if (deletableNotifs.length === 0) return
 
     // Optimistic update
     const backup = [...notifications.value]
-    notifications.value = notifications.value.filter((n) => n.requiresAction)
+    notifications.value = notifications.value.filter((n) => isBlocking(n))
 
     try {
       await Promise.all(deletableNotifs.map((n) => notificationApi.delete(n.id)))

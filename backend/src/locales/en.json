@@ -122,7 +122,8 @@
     "REWIND_NOT_FOUND": "This Rewind is not available yet",
     "REWIND_VERSION_FROZEN": "This Rewind was built in an older format and is kept as it was",
     "MATCH_MESSAGE_INVALID_BODY": "The message must be between 1 and 1000 characters",
-    "MATCH_THREAD_CLOSED": "The discussion for this match is closed"
+    "MATCH_THREAD_CLOSED": "The discussion for this match is closed",
+    "NOTIFICATION_ACTION_PENDING": "This notification asks for an action that is still pending and cannot be deleted"
   },
   "ranked": {
     "PROVISIONAL": "Match recorded!",

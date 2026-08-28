@@ -3,7 +3,7 @@ import NotificationList from './NotificationList.vue'
 import { useTemplateRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useNotificationService } from '@/composables/notification/notification.service'
+import { isBlocking, useNotificationService } from '@/composables/notification/notification.service'
 import { useAppToast } from '@/composables/useAppToast'
 
 const { t } = useI18n()
@@ -14,7 +14,7 @@ const { notifications, markAllAsRead, deleteAll } = useNotificationService()
 const toast = useAppToast()
 
 const hasNotifications = computed(() => notifications.value.length > 0)
-const hasDeletableNotifs = computed(() => notifications.value.some((n) => !n.requiresAction))
+const hasDeletableNotifs = computed(() => notifications.value.some((n) => !isBlocking(n)))
 const hasUnreadNotifs = computed(() => notifications.value.some((n) => !n.isRead))
 
 function toggle(event: Event) {

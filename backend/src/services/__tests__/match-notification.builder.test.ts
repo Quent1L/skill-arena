@@ -165,6 +165,33 @@ describe("MatchNotificationBuilder", () => {
     expect(sample.matchId).toBe("m-3");
   });
 
+  it("notifyPostFinalizationDispute asks the organizers to arbitrate and merely informs the players", async () => {
+    (matchRepository as any).getById = async () => ({
+      id: "m-8",
+      tournamentId: "t-1",
+      status: "finalized",
+      playedAt: new Date("2026-06-01T15:00:00Z"),
+    });
+    (matchRepository as any).getTournament = async () => ({ name: "Tour" });
+
+    await matchNotificationBuilder.notifyPostFinalizationDispute("m-8", "p1");
+
+    expect(sentPayloads.map((p) => p.userId).sort()).toEqual([
+      "admin-1",
+      "admin-2",
+      "p2",
+      "p3",
+      "p4",
+    ]);
+    for (const payload of sentPayloads) {
+      expect(payload.type).toBe("MATCH_POST_DISPUTE");
+      expect(payload.matchId).toBe("m-8");
+      expect(payload.translationParams.disputerName).toBe("User-p1");
+      // Only the organizers are asked to do something about it
+      expect(payload.requiresAction).toBe(payload.userId.startsWith("admin-"));
+    }
+  });
+
   it("notifyMatchMessage skips recipients who already have an unread message notification", async () => {
     (matchRepository as any).getById = async () => ({
       id: "m-7",

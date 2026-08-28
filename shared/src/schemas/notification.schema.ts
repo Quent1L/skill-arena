@@ -45,6 +45,12 @@ export const NotificationResponseSchema = z
     translationParams: z.record(z.string(), z.any()).nullable().optional(),
     actionUrl: z.string().nullable(),
     requiresAction: z.boolean(),
+    /**
+     * The action this notification asked for is no longer pending — the contestation was
+     * taken back, the match left the conflict, the match is gone. It stops blocking and
+     * can be dismissed like any other. Always false when `requiresAction` is false.
+     */
+    actionResolved: z.boolean(),
     isRead: z.boolean(),
     actionCompleted: z.boolean().optional(),
     createdAt: z.string(), // ISO date

@@ -530,6 +530,9 @@ export class MatchService {
 
     matchStatusValidator.validateCanDelete(match.status)
 
+    // matches.id is cleared from the notifications rather than cascading, so anything
+    // still pointing at this match has to go before the match itself does.
+    await notificationService.deleteActionsByMatchId(id)
     await matchRepository.delete(id)
 
     return { success: true, message: 'Match supprimé avec succès' }
@@ -715,8 +718,8 @@ export class MatchService {
   /**
    * Mirror of handlePreFinalizationResponse for a result that is already settled. A
    * player may contest it during the dispute window, and change their mind as often as
-   * they like while the window is open: the conversation is what settles it, not the
-   * order in which the buttons were pressed.
+   * they like: the conversation is what settles it, not the order in which the buttons
+   * were pressed. Only filing a contestation is time-boxed — withdrawing one is not.
    */
   private async handlePostFinalizationResponse(
     id: string,
@@ -724,11 +727,13 @@ export class MatchService {
     input: RespondToMatchInput,
     respondedBy: string,
   ) {
-    await this.assertPostDisputeAllowed(match)
-
     if (input.type === 'agree') {
+      // Taking a contestation back de-escalates: it stays possible once the window has
+      // closed, otherwise an expired dispute would keep the organizers on the hook with
+      // an arbitration request nobody can ever settle.
       await this.withdrawPostFinalizationDispute(id, respondedBy)
     } else {
+      await this.assertPostDisputeAllowed(match)
       await this.recordPostFinalizationDispute(id, input, respondedBy)
     }
 

@@ -368,6 +368,19 @@ export class MatchRepository {
     });
   }
 
+  /**
+   * Statuses of several matches in one round-trip. Used to tell whether the action a
+   * notification asks for is still pending, for a whole notification list at once.
+   */
+  async getStatusesByIds(ids: string[]): Promise<{ id: string; status: MatchStatus }[]> {
+    if (ids.length === 0) return [];
+
+    return await db
+      .select({ id: matches.id, status: matches.status })
+      .from(matches)
+      .where(inArray(matches.id, ids));
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private buildTeamObject(side: any): SyntheticTeam {
     const entry = side.entry;

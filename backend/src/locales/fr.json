@@ -122,7 +122,8 @@
     "REWIND_NOT_FOUND": "Ce Rewind n'est pas encore disponible",
     "REWIND_VERSION_FROZEN": "Ce Rewind a été créé dans un format plus ancien et est conservé tel quel",
     "MATCH_MESSAGE_INVALID_BODY": "Le message doit contenir entre 1 et 1000 caractères",
-    "MATCH_THREAD_CLOSED": "La discussion de ce match est close"
+    "MATCH_THREAD_CLOSED": "La discussion de ce match est close",
+    "NOTIFICATION_ACTION_PENDING": "Cette notification demande une action encore en attente et ne peut pas être supprimée"
   },
   "ranked": {
     "PROVISIONAL": "Partie comptabilisée !",

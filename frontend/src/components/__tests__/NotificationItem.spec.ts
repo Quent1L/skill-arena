@@ -10,9 +10,15 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
 
-vi.mock('@/composables/notification/notification.service', () => ({
-  useNotificationService: () => ({ open: vi.fn(), deleteNotification: vi.fn() }),
-}))
+vi.mock('@/composables/notification/notification.service', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/composables/notification/notification.service')
+  >('@/composables/notification/notification.service')
+  return {
+    ...actual,
+    useNotificationService: () => ({ open: vi.fn(), deleteNotification: vi.fn() }),
+  }
+})
 
 function makeNotif(over: Partial<RawNotification> = {}): RawNotification {
   return {
@@ -70,5 +76,19 @@ describe('NotificationItem', () => {
   it('falls back to the server-rendered text for an unknown key', () => {
     const wrapper = mountItem(makeNotif({ titleKey: 'notifications.UNKNOWN_KEY_TITLE' }))
     expect(wrapper.text()).toContain('server title')
+  })
+
+  it('holds the delete affordance back while the action is still owed', () => {
+    const wrapper = mountItem(makeNotif({ requiresAction: true }))
+
+    expect(wrapper.text()).toContain('Action')
+    expect(wrapper.find('button').exists()).toBe(false)
+  })
+
+  it('hands it back once the action has been settled elsewhere', () => {
+    const wrapper = mountItem(makeNotif({ requiresAction: true, actionResolved: true }))
+
+    expect(wrapper.text()).not.toContain('Action')
+    expect(wrapper.find('button').exists()).toBe(true)
   })
 })

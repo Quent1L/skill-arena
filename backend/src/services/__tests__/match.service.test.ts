@@ -265,6 +265,27 @@ describe("MatchService - basic flows", () => {
     expect(deletedId!).toBe("m-d");
   });
 
+  it("deleteMatch clears the notifications pointing at the match before it disappears", async () => {
+    repo.getById = async () =>
+      ({ id: "m-d", tournamentId: "t-1", status: "scheduled" }) as any;
+    usrRepo.getById = async () =>
+      ({ id: "u-admin", role: "super_admin" }) as any;
+
+    const calls: string[] = [];
+    notifService.deleteActionsByMatchId = async (id: string) => {
+      calls.push(`purge:${id}`);
+      return [];
+    };
+    repo.delete = async (id: string) => {
+      calls.push(`delete:${id}`);
+    };
+
+    await matchService.deleteMatch("m-d", "u-admin");
+
+    // match_id is set to null rather than cascaded, so the purge has to come first
+    expect(calls).toEqual(["purge:m-d", "delete:m-d"]);
+  });
+
   it("reportMatchResult draw allowed should set no winner and include reportProof", async () => {
     repo.getById = async () =>
       ({
@@ -2229,6 +2250,35 @@ describe("MatchService - Post-finalization contestation", () => {
     } catch (err) {
       expect((err as AppError).code).toBe(ErrorCode.ALREADY_DISPUTED);
     }
+  });
+
+  it("a contestation can still be taken back once the window has closed", async () => {
+    const expired = new Date(Date.now() - (POST_FINALIZATION_DISPUTE_DAYS + 1) * 86400000);
+    repo.getById = async () =>
+      finalizedMatch({
+        result: {
+          reportedBy: "p2",
+          finalizedAt: expired,
+          finalizationReason: "auto_validation",
+        },
+      });
+    confRepo.hasPlayerDisputedPostFinalization = async () => true;
+
+    const deleted: Array<[string, string, boolean | undefined]> = [];
+    confRepo.delete = async (matchId: string, playerId: string, isPost?: boolean) => {
+      deleted.push([matchId, playerId, isPost]);
+    };
+    const purged: string[] = [];
+    notifService.deleteActionsByMatchIdAndType = async (_matchId: string, type: string) => {
+      purged.push(type);
+      return [];
+    };
+
+    await matchService.respondToMatch("m-fin", { type: "agree" } as any, "p1");
+
+    // Otherwise an expired contestation would keep the organizers on the hook forever
+    expect(deleted).toEqual([["m-fin", "p1", true]]);
+    expect(purged).toEqual(["MATCH_POST_DISPUTE"]);
   });
 
   it("the window closes after the allowed number of days", async () => {

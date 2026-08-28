@@ -172,6 +172,9 @@ app.delete(
   describe({
     tags: TAGS,
     summary: 'Delete a notification',
+    description:
+      'Refused with 400 while the notification asks for an action that is still ' +
+      'pending — once the situation is settled it is deletable like any other.',
     auth: true,
     notFound: true,
     success: { description: 'Deletion outcome', schema: mutationResultSchema },
@@ -180,14 +183,8 @@ app.delete(
     const appUserId = c.get('appUserId');
     const id = c.req.param('id')!;
 
-    try {
-      await notificationService.delete(id, appUserId);
-      return c.json({ success: true });
-    } catch (error) {
-      logger.error(error);
-      const message = error instanceof Error ? error.message : 'Failed to delete notification';
-      return c.json({ error: message }, 400);
-    }
+    await notificationService.delete(id, appUserId);
+    return c.json({ success: true });
   }
 );
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NotificationList from '@/components/NotificationList.vue'
-import { useNotificationService } from '@/composables/notification/notification.service'
+import { isBlocking, useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
 import { computed, onMounted } from 'vue'
 import { useAppToast } from '@/composables/useAppToast'
@@ -11,7 +11,7 @@ const { load, notifications, markAllAsRead, deleteAll } = useNotificationService
 const router = useRouter()
 const toast = useAppToast()
 
-const hasDeletableNotifs = computed(() => notifications.value.some((n) => !n.requiresAction))
+const hasDeletableNotifs = computed(() => notifications.value.some((n) => !isBlocking(n)))
 const hasUnreadNotifs = computed(() => notifications.value.some((n) => !n.isRead))
 
 onMounted(() => {

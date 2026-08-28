@@ -11,6 +11,8 @@ export interface RawNotification {
   translationParams?: Record<string, unknown> | null
   actionUrl: string | null
   requiresAction: boolean
+  /** The action this notification asked for is settled — it no longer blocks deletion */
+  actionResolved?: boolean
   isRead: boolean
   actionCompleted?: boolean
   createdAt: Date // Converted by convertStringDatesToJS interceptor

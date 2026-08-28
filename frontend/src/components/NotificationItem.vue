@@ -27,12 +27,12 @@
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <span
-          v-if="props.notif.requiresAction"
+          v-if="blocking"
           class="text-[10px] uppercase font-bold text-yellow-700 dark:text-yellow-400"
           >{{ t('notificationItem.actionLabel') }}</span
         >
         <Button
-          v-if="!props.notif.requiresAction"
+          v-if="!blocking"
           @click="handleDelete"
           class="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
           :title="t('notificationItem.deleteTitle')"
@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import type { Notification } from '@/composables/notification/notification.service'
-import { useNotificationService } from '@/composables/notification/notification.service'
+import { isBlocking, useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -74,7 +74,8 @@ const swipeOffset = ref(0)
 const isSnapping = ref(false)
 const SWIPE_THRESHOLD = 100
 
-const canSwipe = computed(() => !props.notif.requiresAction)
+const blocking = computed(() => isBlocking(props.notif))
+const canSwipe = computed(() => !blocking.value)
 
 const cardStyle = computed(() => ({
   transform: `translateX(${-Math.max(0, swipeOffset.value)}px)`,
@@ -158,7 +159,7 @@ const classes = computed(() => {
     props.notif.isRead
       ? 'bg-white border-gray-300 dark:bg-gray-800'
       : 'bg-blue-50 border-blue-400 dark:bg-blue-900/40',
-    props.notif.requiresAction ? 'border-yellow-500' : '',
+    blocking.value ? 'border-yellow-500' : '',
   ].join(' ')
 })
 </script>

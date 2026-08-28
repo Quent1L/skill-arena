@@ -5,6 +5,8 @@ import { notificationRepository } from "../repository/notification.repository";
 import { pushDeviceRepository } from "../repository/push-device.repository";
 import { webSocketService } from "./websocket.service";
 import { localizeNotificationParams } from "../utils/notification-format";
+import { notificationActionService } from "./notification-action.service";
+import { BadRequestError, NotFoundError, ErrorCode } from "../types/errors";
 import { CreateNotification, RegisterDevice } from "@skol-arena/shared";
 
 // Configure web-push
@@ -96,8 +98,9 @@ export const notificationService = {
     // titleKey/messageKey/translationParams travel along: a connected client
     // re-renders them with its own locale and timezone, title/message are the fallback.
     const sent = webSocketService.send(data.userId, {
+      // A notification that has just been raised still asks for what it was raised for.
       event: "new_notification",
-      data: { ...notification, title, message },
+      data: { ...notification, title, message, actionResolved: false },
     });
     logger.debug(`[Notification] WebSocket send result: ${sent}`);
 
@@ -123,8 +126,13 @@ export const notificationService = {
 
   async getForUser(userId: string, lng: string = "fr") {
     const notifications = await notificationRepository.getForUser(userId);
-    return notifications.map((n) => ({
+    // One batch lookup for the whole list: an actionable notification only keeps
+    // blocking while the situation it points at is still open.
+    const pending = await notificationActionService.resolvePendingActions(notifications);
+
+    return notifications.map(({ matchId: _matchId, type: _type, ...n }) => ({
       ...n,
+      actionResolved: n.requiresAction && !pending.has(n.id),
       ...buildNotificationContent(
         {
           titleKey: n.titleKey,
@@ -190,7 +198,31 @@ export const notificationService = {
     return await this.send(newData);
   },
 
+  /**
+   * A notification that asks for something cannot be dismissed while that something is
+   * still owed — but the flag it carries was written once, at creation. What decides is
+   * the live state: the contestation that has been taken back, the match that left the
+   * conflict, the match that no longer exists. Marking the action completed by hand is
+   * the other way out.
+   */
   async delete(notificationId: string, userId: string) {
+    const notification = await notificationRepository.getById(notificationId);
+    if (!notification) {
+      throw new NotFoundError(ErrorCode.NOT_FOUND);
+    }
+
+    if (notification.requiresAction) {
+      const status = await notificationRepository.getStatus(notificationId, userId);
+      if (!status?.actionCompleted) {
+        const pending = await notificationActionService.resolvePendingActions([
+          notification,
+        ]);
+        if (pending.has(notification.id)) {
+          throw new BadRequestError(ErrorCode.NOTIFICATION_ACTION_PENDING);
+        }
+      }
+    }
+
     return await notificationRepository.delete(notificationId, userId);
   },
 

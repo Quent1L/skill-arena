@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../config/database";
 import { matchConfirmations } from "../db/schema";
 
@@ -127,16 +127,24 @@ export class MatchConfirmationRepository {
   }
 
   /**
-   * Get post-finalization dispute responses for a match.
+   * Of the given matches, the ones that still carry an open post-finalization
+   * contestation. Batched on purpose: it answers a whole notification list at once.
    */
-  async getPostFinalizationResponses(matchId: string) {
-    return db.query.matchConfirmations.findMany({
-      where: and(
-        eq(matchConfirmations.matchId, matchId),
-        eq(matchConfirmations.isPostFinalization, true),
-      ),
-      with: { player: true },
-    });
+  async getMatchIdsWithOpenPostDispute(matchIds: string[]): Promise<string[]> {
+    if (matchIds.length === 0) return [];
+
+    const rows = await db
+      .selectDistinct({ matchId: matchConfirmations.matchId })
+      .from(matchConfirmations)
+      .where(
+        and(
+          inArray(matchConfirmations.matchId, matchIds),
+          eq(matchConfirmations.isPostFinalization, true),
+          eq(matchConfirmations.isContested, true),
+        ),
+      );
+
+    return rows.map((row) => row.matchId);
   }
 
   /**

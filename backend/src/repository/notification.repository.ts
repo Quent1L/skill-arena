@@ -36,6 +36,8 @@ export const notificationRepository = {
     const result = await db
       .select({
         id: notifications.id,
+        type: notifications.type,
+        matchId: notifications.matchId,
         titleKey: notifications.titleKey,
         messageKey: notifications.messageKey,
         translationParams: notifications.translationParams,
@@ -120,15 +122,12 @@ export const notificationRepository = {
     return status;
   },
 
+  /**
+   * Drops one recipient's copy, and the notification itself once nobody holds it any
+   * more. Whether the deletion is allowed is the service's call — see
+   * notificationService.delete.
+   */
   async delete(notificationId: string, userId: string) {
-    const notification = await this.getById(notificationId);
-    if (!notification) {
-      throw new Error("Notification not found");
-    }
-    if (notification.requiresAction) {
-      throw new Error("Cannot delete blocking notification");
-    }
-
     await db
       .delete(notificationStatus)
       .where(
