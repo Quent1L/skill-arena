@@ -181,4 +181,29 @@ describe("Ranked season updates", () => {
       .where(eq(rankedSeasonConfigs.tournamentId, season.id));
     expect(config.tierScalingMode).toBe("percentile");
   });
+  it("lets a full form through when the locked fields are resent unchanged", async () => {
+    // The season form submits every field it holds, not a diff. Resending a
+    // locked field with the value it already has is not an edit, so it must not
+    // block the free fields travelling with it.
+    const season = await createSeason("ongoing");
+    await enterResult(season.id);
+
+    await rankedSeasonService.updateSeason(
+      season.id,
+      {
+        name: "Saison renommée",
+        sourceTierSeasonId: null,
+        tierScalingMode: "keep",
+        scoreEnabled: season.scoreEnabled,
+        allowDraw: season.allowDraw,
+      } as never,
+      adminId,
+    );
+
+    const [stored] = await testDb
+      .select({ name: tournaments.name })
+      .from(tournaments)
+      .where(eq(tournaments.id, season.id));
+    expect(stored.name).toBe("Saison renommée");
+  });
 });

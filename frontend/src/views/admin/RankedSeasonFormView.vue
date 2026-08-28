@@ -148,7 +148,9 @@
                 </div>
               </div>
 
-              <div class="mt-4">
+              <!-- Consumed once by startSeason: past draft, these two mean nothing and
+                   the API refuses them, so they are not offered at all. -->
+              <div v-if="isDraft" class="mt-4">
                 <label for="sourceTierSeasonId" class="block text-sm font-medium mb-2">
                   {{ t('rankedSeasonFormView.labelSourceTierSeasonId') }}
                 </label>
@@ -168,7 +170,7 @@
               </div>
 
               <!-- Only matters when a ladder is actually copied. -->
-              <div v-if="sourceTierSeasonId" class="mt-4">
+              <div v-if="isDraft && sourceTierSeasonId" class="mt-4">
                 <label for="tierScalingMode" class="block text-sm font-medium mb-2">
                   {{ t('rankedSeasonFormView.labelTierScalingMode') }}
                 </label>
@@ -225,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -293,6 +295,36 @@ const tierScalingOptions = computed(() => [
 ])
 
 const currentSeasonId = computed(() => (isEditMode.value ? (route.params.id as string) : null))
+
+/**
+ * Once a season leaves draft the API locks its structural fields. The form used
+ * to resend them untouched, so editing a name failed with the whole payload
+ * rejected — the values are compared against what was loaded and only the ones
+ * that actually moved are sent.
+ */
+const isDraft = computed(() => !isEditMode.value || currentSeason.value?.status === 'draft')
+
+type FormValues = Record<string, unknown>
+const initialValues = ref<FormValues | null>(null)
+
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a instanceof Date || b instanceof Date) {
+    const ta = a instanceof Date ? a.getTime() : NaN
+    const tb = b instanceof Date ? b.getTime() : NaN
+    return ta === tb
+  }
+  // The form normalises "no value" to null, the payload may carry undefined.
+  if (a == null && b == null) return true
+  return a === b
+}
+
+function changedValues(values: FormValues): FormValues {
+  const initial = initialValues.value
+  if (!initial) return values
+  return Object.fromEntries(
+    Object.entries(values).filter(([key, value]) => !sameValue(value, initial[key])),
+  )
+}
 const sourceTierOptions = computed(() =>
   finishedSeasons.value
     .filter((s) => s.id !== currentSeasonId.value)
@@ -324,7 +356,12 @@ const onSubmit = handleSubmit(
   async (values) => {
     if (isEditMode.value) {
       const id = route.params.id as string
-      const success = await updateSeason(id, values as UpdateRankedSeasonFormData)
+      const changes = changedValues(values as FormValues)
+      if (Object.keys(changes).length === 0) {
+        router.push('/admin/ranked')
+        return
+      }
+      const success = await updateSeason(id, changes as UpdateRankedSeasonFormData)
       if (success) router.push('/admin/ranked')
     } else {
       const season = await createSeason(values as CreateRankedSeasonFormData)
@@ -352,7 +389,7 @@ onMounted(async () => {
     await loadSeasonById(id)
     if (currentSeason.value) {
       const s = currentSeason.value
-      setValues({
+      const loaded = {
         name: s.name,
         description: s.description ?? '',
         disciplineId: s.disciplineId,
@@ -376,7 +413,9 @@ onMounted(async () => {
         sourceMmrSeasonId: s.rankedConfig?.sourceMmrSeasonId ?? null,
         validationMode: (s.validationMode ?? 'strict') as 'none' | 'auto' | 'strict' | 'admin',
         validationTimerHours: s.validationTimerHours ?? null,
-      })
+      }
+      setValues(loaded)
+      initialValues.value = { ...loaded }
     }
   } else {
     setValues({

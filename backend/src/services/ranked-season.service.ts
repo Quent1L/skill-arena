@@ -351,6 +351,42 @@ const SEASON_MMR_FIELDS = [
   "sourceMmrSeasonId",
 ] as const;
 
+type SeasonWithConfig = NonNullable<
+  Awaited<ReturnType<typeof rankedSeasonRepository.getSeasonWithConfig>>
+>;
+
+/** The value a locked field currently holds, wherever it is stored. */
+function currentSeasonValue(season: SeasonWithConfig, field: string): unknown {
+  switch (field) {
+    case "disciplineId":
+      return season.disciplineId;
+    case "minTeamSize":
+      return season.minTeamSize;
+    case "maxTeamSize":
+      return season.maxTeamSize;
+    case "scoreEnabled":
+      return season.scoreEnabled;
+    case "minScore":
+      return season.minScore;
+    case "maxScore":
+      return season.maxScore;
+    case "allowDraw":
+      return season.allowDraw;
+    case "sourceTierSeasonId":
+      return season.rankedConfig?.sourceTierSeasonId;
+    case "tierScalingMode":
+      return season.rankedConfig?.tierScalingMode;
+    default:
+      return undefined;
+  }
+}
+
+/** `null` and `undefined` both mean "not set" across the form, the API and the row. */
+function isSameSeasonValue(submitted: unknown, current: unknown): boolean {
+  if (submitted == null && current == null) return true;
+  return submitted === current;
+}
+
 export class RankedSeasonService {
   async createSeason(input: CreateRankedSeasonInput, createdBy: string) {
     await this.assertCanManage(createdBy);
@@ -580,7 +616,7 @@ export class RankedSeasonService {
 
     const enteredMatchCount =
       season.status === "draft" ? 0 : await matchRepository.countEnteredMatches(id);
-    this.assertSeasonFieldsEditable(season.status, enteredMatchCount, input);
+    this.assertSeasonFieldsEditable(season, enteredMatchCount, input);
 
     await this.applyTournamentUpdate(id, input);
     const affectsMmr = await this.applyConfigUpdate(id, input);
@@ -600,15 +636,21 @@ export class RankedSeasonService {
    * are consumed once by `startSeason` and mean nothing afterwards.
    */
   private assertSeasonFieldsEditable(
-    status: TournamentStatus,
+    season: SeasonWithConfig,
     enteredMatchCount: number,
     input: UpdateRankedSeasonInput,
   ): void {
-    if (status === "draft") return;
+    if (season.status === "draft") return;
 
-    const attempted = Object.keys(input).filter(
-      (field) => input[field as keyof UpdateRankedSeasonInput] !== undefined,
-    );
+    // A field that is being resent with the value it already holds changes
+    // nothing, so it is not an attempt to edit it. Without this an editor that
+    // submits its whole form — as the season form does — could not touch a
+    // single free field once the season had started.
+    const attempted = Object.keys(input).filter((field) => {
+      const value = input[field as keyof UpdateRankedSeasonInput];
+      if (value === undefined) return false;
+      return !isSameSeasonValue(value, currentSeasonValue(season, field));
+    });
 
     const structural = attempted.filter((field) => SEASON_LOCKED_FIELDS.has(field));
     if (structural.length > 0) {
