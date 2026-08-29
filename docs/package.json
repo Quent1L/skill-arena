@@ -18,6 +18,7 @@
     "shots:capture": "bun run screenshots/capture.ts"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "astro": "^7.2.9"
   },
   "devDependencies": {

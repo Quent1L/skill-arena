@@ -2,6 +2,7 @@
 import Nav from '../components/Nav.astro'
 import Icon from '../components/Icon.astro'
 import Seo from '../components/Seo.astro'
+import Analytics from '@vercel/analytics/astro'
 import { SITE } from '../lib/site'
 import type { SchemaNode } from '../lib/schema'
 import '../styles/global.css'
@@ -75,5 +76,6 @@ const repoUrl = SITE.repo
         </div>
       </div>
     </footer>
+    <Analytics />
   </body>
 </html>
