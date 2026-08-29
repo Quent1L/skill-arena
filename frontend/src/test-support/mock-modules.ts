@@ -38,7 +38,7 @@ export function i18nEchoMock() {
  * Use with vi.mocked(useAuth).mockReturnValue(makeAuthMock(state)).
  */
 export interface AuthMockState {
-  user: { id: string; email: string } | null
+  user: { id: string; email: string; displayName?: string } | null
   role: 'player' | 'tournament_admin' | 'super_admin' | 'kiosk'
   initialized: boolean
 }
@@ -46,7 +46,15 @@ export interface AuthMockState {
 export function makeAuthMock(state: AuthMockState) {
   const currentUser = computed(() => state.user)
   const appUser = computed(() =>
-    state.user ? { id: state.user.id, email: state.user.email, role: state.role } : null,
+    state.user
+      ? {
+          id: state.user.id,
+          email: state.user.email,
+          displayName: state.user.displayName ?? state.user.email,
+          role: state.role,
+          betterAuth: { email: state.user.email },
+        }
+      : null,
   )
   return {
     currentUser,

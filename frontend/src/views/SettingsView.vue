@@ -541,6 +541,7 @@ const {
   error: authError,
   userRole,
   lockKioskSettings,
+  fetchUserData,
 } = useAuth()
 
 // Kiosk lock
@@ -595,6 +596,9 @@ const onSubmitProfile = handleProfileSubmit(async (values) => {
   profileError.value = null
   try {
     await userApi.updateProfile(values)
+    // The header reads app_users through `appUser`: without this refetch it keeps
+    // showing the previous name until the next full page load.
+    await fetchUserData()
     profileSuccess.value = true
   } catch {
     profileError.value = t('settings.profile.updateError')

@@ -32,9 +32,9 @@
               <template #start>
                 <div class="px-4 py-3 border-b border-gray-200">
                   <p class="text-sm font-medium">
-                    {{ currentUser?.name || currentUser?.username }}
+                    {{ appUser?.displayName }}
                   </p>
-                  <p class="text-xs text-gray-500 mt-0.5">{{ currentUser?.email }}</p>
+                  <p class="text-xs text-gray-500 mt-0.5">{{ appUser?.betterAuth?.email }}</p>
                 </div>
               </template>
               <template #itemicon="{ item }">
@@ -59,12 +59,12 @@
               :aria-label="t('appHeader.userMenuAriaLabel')"
             >
               <PlayerAvatar
-                v-if="currentUser"
-                :name="currentUser.name ?? currentUser.email ?? '?'"
+                v-if="appUser"
+                :name="appUser.displayName || appUser.betterAuth?.email || '?'"
                 size="sm"
               />
               <span class="hidden sm:block text-sm font-medium">
-                {{ currentUser?.name || currentUser?.username }}
+                {{ appUser?.displayName }}
               </span>
             </Button>
           </div>
@@ -101,7 +101,7 @@ const { tap: tapVersion, count: eggTaps } = useSecretTap(EGG_TAPS, playEasterEgg
 
 const route = useRoute()
 const router = useRouter()
-const { currentUser, appUser, isAuthenticated, logout, kioskSettingsLocked } = useAuth()
+const { appUser, isAuthenticated, logout, kioskSettingsLocked } = useAuth()
 const { isMobile } = useViewport()
 const showBackButton = computed(
   () =>
