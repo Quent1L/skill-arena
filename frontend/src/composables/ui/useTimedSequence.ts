@@ -7,27 +7,23 @@ export interface SequenceStep {
   run: () => void
 }
 
-export interface SkippableSequence {
+export interface TimedSequence {
   start: (steps: SequenceStep[]) => void
-  /** Runs every step still pending, in order, right now. */
-  skip: () => void
   /** Drops every step still pending without running it. */
   cancel: () => void
-  skipped: Ref<boolean>
   finished: Ref<boolean>
 }
 
 /**
- * A chain of timed steps that can be jumped to its end. Holding the pending
- * steps rather than firing a `setTimeout` per step up front is what makes both
- * skipping and a clean unmount possible — a fire-and-forget chain has no handle
- * to cancel and keeps mutating a component that is already gone.
+ * A chain of timed steps. Holding the pending steps rather than firing a
+ * `setTimeout` per step up front is what makes a clean unmount possible — a
+ * fire-and-forget chain has no handle to cancel and keeps mutating a component
+ * that is already gone.
  *
  * Under `prefers-reduced-motion` the whole chain runs synchronously, the same
  * way `useCountUp` collapses to its final value.
  */
-export function useSkippableSequence(): SkippableSequence {
-  const skipped = ref(false)
+export function useTimedSequence(): TimedSequence {
   const finished = ref(false)
   let pending: SequenceStep[] = []
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -60,7 +56,6 @@ export function useSkippableSequence(): SkippableSequence {
 
   function start(steps: SequenceStep[]): void {
     clearTimer()
-    skipped.value = false
     finished.value = false
     pending = [...steps]
     if (prefersReducedMotion()) {
@@ -70,13 +65,6 @@ export function useSkippableSequence(): SkippableSequence {
     scheduleNext()
   }
 
-  function skip(): void {
-    if (finished.value) return
-    clearTimer()
-    skipped.value = true
-    drain()
-  }
-
   function cancel(): void {
     clearTimer()
     pending = []
@@ -84,5 +72,5 @@ export function useSkippableSequence(): SkippableSequence {
 
   onUnmounted(cancel)
 
-  return { start, skip, cancel, skipped, finished }
+  return { start, cancel, finished }
 }

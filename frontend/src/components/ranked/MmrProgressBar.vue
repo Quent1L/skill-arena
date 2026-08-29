@@ -60,7 +60,10 @@ const props = withDefaults(
     /** Flashes the bar — the beat where a tier is cleared. */
     completed?: boolean
     provisional?: boolean
-    /** Drops the transition so a skip lands on the final state at once. */
+    /**
+     * Drops the transition: under reduced motion every beat fires at once, so
+     * the bar has to land on each of them rather than travel.
+     */
     instant?: boolean
     /** Same, for the single frame the bar jumps back to a new tier's edge. */
     resetting?: boolean
@@ -93,8 +96,8 @@ const isGain = computed(() => segment.value?.direction === 'up')
 
 const deltaHex = computed(() => (isGain.value ? GAIN_TO : LOSS_TO))
 
-// Snapping, not travelling: a skip lands on the end state, a reset lands on the
-// next tier's starting edge. Either way the move must not animate.
+// Snapping, not travelling: reduced motion lands on the end state, a reset lands
+// on the next tier's starting edge. Either way the move must not animate.
 const isSnapping = computed(() => props.instant || props.resetting)
 
 const transition = computed(() =>

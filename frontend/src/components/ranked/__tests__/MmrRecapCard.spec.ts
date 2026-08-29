@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import type { ClientRankTier, MmrAnimationEventResponse } from '@skol-arena/shared'
@@ -38,7 +38,17 @@ const toggleBtn = () =>
     b.textContent?.includes('mmrRecapCard.showDetail') || b.textContent?.includes('mmrRecapCard.hideDetail'),
   )
 
+/** The recap is not skippable, so tests let its sequence run out. */
+const runToEnd = async () => {
+  vi.advanceTimersByTime(20_000)
+  await nextTick()
+  await nextTick()
+}
+
+beforeEach(() => vi.useFakeTimers())
+
 afterEach(() => {
+  vi.useRealTimers()
   document.body.innerHTML = ''
 })
 
@@ -133,8 +143,7 @@ describe('MmrRecapCard', () => {
     // Here the tier isn't shown anywhere else: the bar has to name it.
     expect(document.body.querySelector('.bar-labels')?.textContent).toContain('Silver')
 
-    ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
-    await nextTick()
+    await runToEnd()
     expect(document.body.textContent).toContain('1000 → 1060')
   })
 
@@ -152,8 +161,7 @@ describe('MmrRecapCard', () => {
     expect(netEl()).toBe('-12')
     // Start = current MMR minus the announced points, so a bar that goes down.
     expect(document.body.textContent).toContain('1062 → 1062')
-    ;(document.body.querySelector('.max-w-sm') as HTMLElement).click()
-    await nextTick()
+    await runToEnd()
     expect(document.body.textContent).toContain('1062 → 1050')
   })
 })

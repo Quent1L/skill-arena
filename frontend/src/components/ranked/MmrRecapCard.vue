@@ -3,7 +3,6 @@
     <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/85">
       <div
         class="w-full max-w-sm rounded-3xl sm:rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden"
-        @click="onSkip"
       >
         <!-- Header -->
         <div class="flex justify-center pt-5 pb-2">
@@ -40,7 +39,7 @@
             :active-index="activeIndex"
             :progressed="progressed"
             :completed="completed"
-            :instant="skipped"
+            :instant="instant"
             :resetting="resetting"
             :duration-ms="RECAP_TIMING.segment"
           />
@@ -51,7 +50,7 @@
           <button
             v-if="isCollapsible"
             class="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-gray-400 hover:text-gray-200 transition-colors"
-            @click.stop="showDetail = !showDetail"
+            @click="showDetail = !showDetail"
           >
             <i class="fa" :class="showDetail ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
             {{
@@ -125,7 +124,7 @@
         <div class="px-6 pb-6">
           <button
             class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
-            @click.stop="$emit('close')"
+            @click="$emit('close')"
           >
             {{ t('common.close') }}
           </button>
@@ -205,12 +204,7 @@ const playback = useMmrBarPlayback(
   },
   RECAP_TIMING,
 )
-const { activeIndex, progressed, completed, resetting, skipped } = playback
-
-function onSkip(): void {
-  playback.skip()
-  counter.finish()
-}
+const { activeIndex, progressed, completed, resetting, instant } = playback
 
 const countByReason = (reasons: MmrAnimationEventResponse['reason'][]) =>
   props.events.filter((e) => reasons.includes(e.reason)).length

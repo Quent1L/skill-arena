@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
-import { useSkippableSequence, type SkippableSequence } from '../useSkippableSequence'
+import { useTimedSequence, type TimedSequence } from '../useTimedSequence'
 
 // The composable registers onUnmounted, so it has to live inside a component.
 function mountSequence() {
-  let sequence!: SkippableSequence
+  let sequence!: TimedSequence
   const wrapper = mount(
     defineComponent({
       setup() {
-        sequence = useSkippableSequence()
+        sequence = useTimedSequence()
         return () => null
       },
     }),
@@ -30,7 +30,7 @@ afterEach(() => {
   window.matchMedia = originalMatchMedia
 })
 
-describe('useSkippableSequence', () => {
+describe('useTimedSequence', () => {
   it('runs the steps in order, each after its own delay', () => {
     const seen: string[] = []
     const { sequence } = mountSequence()
@@ -47,26 +47,6 @@ describe('useSkippableSequence', () => {
     vi.advanceTimersByTime(1)
     expect(seen).toEqual(['a', 'b'])
     expect(sequence.finished.value).toBe(true)
-  })
-
-  it('skip plays the rest in order, only once', () => {
-    const seen: string[] = []
-    const { sequence } = mountSequence()
-    sequence.start([
-      { delay: 100, run: () => seen.push('a') },
-      { delay: 100, run: () => seen.push('b') },
-      { delay: 100, run: () => seen.push('c') },
-    ])
-
-    vi.advanceTimersByTime(100)
-    sequence.skip()
-    expect(seen).toEqual(['a', 'b', 'c'])
-    expect(sequence.skipped.value).toBe(true)
-
-    // Nothing should replay, neither on a second skip nor as the timers run.
-    sequence.skip()
-    vi.advanceTimersByTime(1000)
-    expect(seen).toEqual(['a', 'b', 'c'])
   })
 
   it('cancel drops the remaining steps without playing them', () => {

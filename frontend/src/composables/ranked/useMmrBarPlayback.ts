@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
-import { useSkippableSequence, type SequenceStep } from '@/composables/ui/useSkippableSequence'
+import { useTimedSequence, type SequenceStep } from '@/composables/ui/useTimedSequence'
+import { prefersReducedMotion } from '@/composables/ui/reduced-motion'
 import type { MmrBarSegment } from './mmr-progress'
 
 export interface MmrBarTiming {
@@ -18,7 +19,6 @@ export interface MmrBarTiming {
 /**
  * The reveal is the payoff right after reporting a match, so it is paced to be
  * savoured rather than dispatched: ~2.9 s flat, ~5.9 s across a rank change.
- * Both are skippable with a click.
  */
 export const MMR_REVEAL_TIMING: MmrBarTiming = {
   entry: 500,
@@ -51,11 +51,14 @@ export interface MmrBarPlayback {
   completed: Ref<boolean>
   /** True for the frame the bar is jumping back to a new tier's starting edge. */
   resetting: Ref<boolean>
-  skipped: Ref<boolean>
+  /**
+   * Under reduced motion the sequence fires every beat at once, so the bar has
+   * to land on each of them without travelling. Bind it to the bar's `instant`.
+   */
+  instant: boolean
   finished: Ref<boolean>
   timing: MmrBarTiming
   play: () => void
-  skip: () => void
 }
 
 /**
@@ -73,7 +76,8 @@ export function useMmrBarPlayback(
   const progressed = ref(false)
   const completed = ref(false)
   const resetting = ref(false)
-  const sequence = useSkippableSequence()
+  const instant = prefersReducedMotion()
+  const sequence = useTimedSequence()
 
   /**
    * Repaints at the new tier's starting edge before travelling, so a promotion
@@ -92,7 +96,7 @@ export function useMmrBarPlayback(
     activeIndex.value = index
     completed.value = false
     hooks.onSegmentStart?.(segment, index)
-    if (sequence.skipped.value) {
+    if (instant) {
       resetting.value = false
       progressed.value = true
       return
@@ -129,20 +133,14 @@ export function useMmrBarPlayback(
     sequence.start(buildSteps())
   }
 
-  function skip(): void {
-    if (sequence.finished.value) return
-    sequence.skip()
-  }
-
   return {
     activeIndex,
     progressed,
     completed,
     resetting,
-    skipped: sequence.skipped,
+    instant,
     finished: sequence.finished,
     timing,
     play,
-    skip,
   }
 }

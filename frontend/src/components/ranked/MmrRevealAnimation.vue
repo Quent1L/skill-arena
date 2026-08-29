@@ -3,7 +3,6 @@
     <div
       class="reveal-backdrop fixed inset-0 z-[500] flex items-center justify-center px-4"
       :class="{ 'is-counting': phase !== 'entry' }"
-      @click="onSkip"
     >
       <!-- Tier-tinted halo, so the card sits in the colour of the rank at stake -->
       <div class="halo" :style="{ '--halo-color': haloHex }" />
@@ -11,6 +10,8 @@
       <div
         class="reveal-card relative w-full max-w-sm rounded-3xl bg-gray-900 text-white shadow-2xl overflow-hidden"
         :class="{ 'is-demoted': rankRevealed && rankDirection === 'down' }"
+        role="dialog"
+        aria-modal="true"
       >
         <!-- Rank badge area -->
         <div class="relative flex flex-col items-center gap-2 py-6 px-6 min-h-32">
@@ -97,27 +98,25 @@
             :progressed="progressed"
             :completed="completed"
             :provisional="isProvisional"
-            :instant="skipped"
+            :instant="instant"
             :resetting="resetting"
             :show-tier-name="false"
             :duration-ms="TIMING.segment"
           />
         </div>
 
-        <!-- Skip hint, then dismiss -->
+        <!-- Dismiss -->
         <div class="px-6 pb-6 min-h-14">
-          <Transition name="fade-up" mode="out-in">
+          <Transition name="fade-up">
             <button
               v-if="phase === 'done'"
-              key="continue"
+              ref="continueButton"
+              type="button"
               class="w-full py-3 rounded-xl font-semibold text-sm bg-gray-700 hover:bg-gray-600 transition-colors"
-              @click.stop="emit('close', skipped)"
+              @click="emit('close')"
             >
               {{ t('mmrRevealAnimation.continue') }}
             </button>
-            <div v-else key="hint" class="skip-hint text-center text-xs text-gray-500 py-3">
-              {{ t('mmrRevealAnimation.tapToSkip') }}
-            </div>
           </Transition>
         </div>
       </div>
@@ -126,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { MmrAnimationEventResponse, ClientRankTier } from '@skol-arena/shared'
 import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-style'
@@ -142,10 +141,7 @@ const props = defineProps<{
   tiers: ClientRankTier[]
 }>()
 
-// `skipped` rides along so the rules engine can tell a message the player sat
-// through from one they fast-forwarded. Both count as seen — skipping leaves the
-// message on screen — but the distinction is worth recording.
-const emit = defineEmits<{ (e: 'close', skipped: boolean): void }>()
+const emit = defineEmits<{ (e: 'close'): void }>()
 
 type Phase = 'entry' | 'counting' | 'settled' | 'done'
 
@@ -194,7 +190,7 @@ const playback = useMmrBarPlayback(
   },
   TIMING,
 )
-const { activeIndex, progressed, completed, resetting, skipped } = playback
+const { activeIndex, progressed, completed, resetting, instant } = playback
 
 const reasonLabel = computed(() => {
   if (props.event.reason === 'match_cancelled') return t('mmrRevealAnimation.matchCancelled')
@@ -253,15 +249,30 @@ function onSegmentStart(segment: MmrBarSegment): void {
 function swapBadge(index: number): void {
   badgeIndex.value = index
   rankRevealed.value = true
-  burst.value = rankDirection.value === 'up' && !skipped.value
+  burst.value = rankDirection.value === 'up'
 }
 
-function onSkip(): void {
-  playback.skip()
-  counter.finish()
+// The reveal runs to its end on its own — it is under three seconds, six across
+// a rank change — so Escape only dismisses the settled card. Enter and Space are
+// left to the focused Continue button, which already handles them.
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && phase.value === 'done') emit('close')
 }
 
-onMounted(() => playback.play())
+// Moving the focus onto Continue makes Enter work without a keydown handler and
+// keeps it out of the page still rendered behind the overlay.
+const continueButton = useTemplateRef<HTMLButtonElement>('continueButton')
+watch(phase, async (value) => {
+  if (value !== 'done') return
+  await nextTick()
+  continueButton.value?.focus()
+})
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  playback.play()
+})
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <style scoped>
@@ -351,9 +362,6 @@ onMounted(() => playback.play())
   animation: delta-bounce 0.5s ease-out;
 }
 
-.skip-hint {
-  animation: hint-in 0.4s ease-out 0.9s both;
-}
 
 .tier-icon-glow {
   animation: icon-glow 1.4s ease-in-out infinite;
@@ -449,14 +457,6 @@ onMounted(() => playback.play())
   }
 }
 
-@keyframes hint-in {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
 
 @keyframes icon-glow {
   0%,

@@ -32,11 +32,10 @@ export function useCountUp(
     /** Never starts on its own — the caller drives every run through `start()`. */
     manual?: boolean
   } = {},
-): { value: Ref<number>; start: (run?: CountUpRun) => void; finish: () => void } {
+): { value: Ref<number>; start: (run?: CountUpRun) => void } {
   const readTarget = typeof target === 'function' ? target : () => target.value
   const value = ref(options.from ?? 0)
   let rafId: number | null = null
-  let pendingTo: number | null = null
 
   function stop(): void {
     if (rafId !== null) cancelAnimationFrame(rafId)
@@ -48,7 +47,6 @@ export function useCountUp(
     const to = run.to ?? readTarget()
     const from = run.from ?? options.from ?? 0
     const duration = run.durationMs ?? options.durationMs ?? DEFAULT_DURATION_MS
-    pendingTo = to
 
     if (prefersReducedMotion() || from === to || duration <= 0) {
       value.value = to
@@ -68,12 +66,6 @@ export function useCountUp(
     rafId = requestAnimationFrame(tick)
   }
 
-  /** Cancels the run in flight and snaps to its target — used when skipping. */
-  function finish(): void {
-    stop()
-    value.value = pendingTo ?? readTarget()
-  }
-
   if (options.active) {
     watch(options.active, (isActive) => (isActive ? start() : stop()), { immediate: true })
   } else if (!options.manual) {
@@ -81,5 +73,5 @@ export function useCountUp(
   }
 
   onUnmounted(stop)
-  return { value, start, finish }
+  return { value, start }
 }

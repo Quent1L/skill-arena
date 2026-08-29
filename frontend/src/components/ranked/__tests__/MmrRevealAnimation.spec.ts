@@ -40,6 +40,13 @@ const continueBtn = () =>
   [...document.body.querySelectorAll('button')].find((b) =>
     b.textContent?.includes('mmrRevealAnimation.continue'),
   )
+const pressKey = (key: string) => window.dispatchEvent(new KeyboardEvent('keydown', { key }))
+/** Runs the whole sequence out: it is not skippable, so tests wait it through. */
+const runToEnd = async () => {
+  vi.advanceTimersByTime(20_000)
+  await nextTick()
+  await nextTick()
+}
 const bodyText = () => document.body.textContent ?? ''
 // CSSStyleDeclaration is a live host object, so pull the handful of properties
 // the assertions care about into a plain snapshot.
@@ -48,45 +55,61 @@ const fillStyle = (part: 'base' | 'delta') => {
   return { left: style.left, width: style.width, transition: style.transition }
 }
 
+const originalMatchMedia = window.matchMedia
+const stubReducedMotion = () => {
+  window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia
+}
+
 beforeEach(() => vi.useFakeTimers())
 
 afterEach(() => {
   vi.useRealTimers()
+  window.matchMedia = originalMatchMedia
   document.body.innerHTML = ''
 })
 
 describe('MmrRevealAnimation', () => {
-  it('one click jumps to the final state: final MMR and Continue button', async () => {
+  it('runs to the final MMR, and only then offers Continue', async () => {
     mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
     expect(counter()).toBe('1000')
     expect(continueBtn()).toBeUndefined()
 
-    backdrop().click()
-    await nextTick()
+    await runToEnd()
 
     expect(counter()).toBe('1032')
     expect(continueBtn()).toBeDefined()
   })
 
-  it('a second click on the backdrop does not close the card', async () => {
+  it('Escape closes only once the card has settled, never mid-reveal', async () => {
     const wrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
 
-    backdrop().click()
-    await nextTick()
-    backdrop().click()
-    await nextTick()
+    pressKey('Escape')
+    expect(wrapper.emitted('close')).toBeUndefined()
 
+    await runToEnd()
+    pressKey('Escape')
+
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+
+  it('no key handler survives unmounting', async () => {
+    const wrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
+    await runToEnd()
+    wrapper.unmount()
+
+    pressKey('Escape')
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('only the Continue button emits close', async () => {
+  it('clicking the backdrop does nothing — only Continue closes', async () => {
     const wrapper = mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
+    await runToEnd()
 
     backdrop().click()
-    await nextTick()
-    continueBtn()!.click()
+    expect(wrapper.emitted('close')).toBeUndefined()
 
+    continueBtn()!.click()
     expect(wrapper.emitted('close')).toHaveLength(1)
   })
 
@@ -156,8 +179,7 @@ describe('MmrRevealAnimation', () => {
       tierAfterLevel: 2,
     })
 
-    backdrop().click()
-    await nextTick()
+    await runToEnd()
 
     const labels = document.body.querySelector('.bar-labels')?.textContent ?? ''
     expect(labels).toContain('900')
@@ -178,8 +200,7 @@ describe('MmrRevealAnimation', () => {
       rankChanged: true,
     })
 
-    backdrop().click()
-    await nextTick()
+    await runToEnd()
 
     expect(counter()).toBe('1080')
     expect(bodyText()).toContain('mmrRevealAnimation.rankDown')
@@ -194,12 +215,22 @@ describe('MmrRevealAnimation', () => {
       tierAfterLevel: 2,
     })
 
-    backdrop().click()
-    await nextTick()
+    await runToEnd()
 
     const base = document.body.querySelector('.fill.base') as HTMLElement
     expect(base.style.background).toContain('repeating-linear-gradient')
     expect(bodyText()).not.toContain('mmrRevealAnimation.rankUp')
+  })
+
+  it('reduced motion: the card opens already settled, with nothing travelling', async () => {
+    stubReducedMotion()
+    mountReveal({ mmrBefore: 1000, mmrAfter: 1032, mmrDelta: 32 })
+    await nextTick()
+
+    expect(counter()).toBe('1032')
+    expect(continueBtn()).toBeDefined()
+    expect(vi.getTimerCount()).toBe(0)
+    expect(fillStyle('delta').transition).toBe('none')
   })
 
   it('no timer survives unmounting', () => {
