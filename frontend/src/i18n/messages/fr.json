@@ -906,6 +906,7 @@
     "title": "Notifications",
     "toast": {
       "deleteAllError": "Impossible de supprimer toutes les notifications",
+      "deleteAllKept": "1 notification en attente d'action conservée | {count} notifications en attente d'action conservées",
       "deleteAllSuccess": "Toutes les notifications ont été supprimées",
       "error": "Erreur",
       "markAllError": "Impossible de marquer toutes les notifications comme lues",
@@ -929,7 +930,8 @@
     }
   },
   "notificationList": {
-    "empty": "Aucune notification"
+    "empty": "Aucune notification",
+    "endOfList": "Vous avez tout vu"
   },
   "notifications": {
     "BADGE_AWARDED_MESSAGE": "🏅 Tu as obtenu le badge « {badgeLabel} ».",
@@ -959,6 +961,7 @@
     "backAriaLabel": "Retour",
     "deleteAll": "Tout supprimer",
     "deleteAllError": "Impossible de supprimer toutes les notifications",
+    "deleteAllKept": "1 notification en attente d'action conservée | {count} notifications en attente d'action conservées",
     "deleteAllSuccess": "Toutes les notifications ont été supprimées",
     "errorSummary": "Erreur",
     "markAllRead": "Tout lire",

@@ -1172,29 +1172,42 @@ export const outcomeReasons = pgTable("outcome_reasons", {
   name: text("name").notNull(),
 });
 
-export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => appUsers.id, { onDelete: "cascade" }),
-  type: notificationTypeEnum("type").notNull(),
-  titleKey: text("title_key").notNull(),
-  messageKey: text("message_key").notNull(),
-  translationParams: jsonb("translation_params"),
-  actionUrl: text("action_url"),
-  requiresAction: boolean("requires_action").notNull().default(false),
-  matchId: uuid("match_id").references(() => matches.id, {
-    onDelete: "set null",
-  }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-  pushedAt: timestamp("pushed_at", { withTimezone: true }),
-  resentCount: integer("resent_count").notNull().default(0),
-  nextReminderAt: timestamp("next_reminder_at", { withTimezone: true }),
-});
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom().$defaultFn(newId),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    type: notificationTypeEnum("type").notNull(),
+    titleKey: text("title_key").notNull(),
+    messageKey: text("message_key").notNull(),
+    translationParams: jsonb("translation_params"),
+    actionUrl: text("action_url"),
+    requiresAction: boolean("requires_action").notNull().default(false),
+    matchId: uuid("match_id").references(() => matches.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    pushedAt: timestamp("pushed_at", { withTimezone: true }),
+    resentCount: integer("resent_count").notNull().default(0),
+    nextReminderAt: timestamp("next_reminder_at", { withTimezone: true }),
+  },
+  // Drives the paginated feed: one ordered index walk per user, so a LIMIT stops early
+  // instead of sorting the whole history. The id breaks ties, which is what makes the
+  // keyset cursor stable.
+  (t) => [
+    index("notifications_user_created_idx").on(
+      t.userId,
+      t.createdAt.desc(),
+      t.id.desc(),
+    ),
+  ],
+);
 
 export const notificationStatus = pgTable(
   "notification_status",
@@ -1210,7 +1223,12 @@ export const notificationStatus = pgTable(
     readAt: timestamp("read_at", { withTimezone: true }),
     actionCompletedAt: timestamp("action_completed_at", { withTimezone: true }),
   },
-  (table) => [unique().on(table.notificationId, table.userId)],
+  (table) => [
+    unique().on(table.notificationId, table.userId),
+    // The unique above leads with notification_id, so a per-user filter — the list, the
+    // unread badge, the bulk operations — could only be answered by a sequential scan.
+    index("notification_status_user_read_idx").on(table.userId, table.read),
+  ],
 );
 
 export const userPushDevices = pgTable("user_push_devices", {

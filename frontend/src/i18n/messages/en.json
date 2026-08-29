@@ -906,6 +906,7 @@
     "title": "Notifications",
     "toast": {
       "deleteAllError": "Unable to delete all notifications",
+      "deleteAllKept": "1 notification kept — its action is still pending | {count} notifications kept — their actions are still pending",
       "deleteAllSuccess": "All notifications have been deleted",
       "error": "Error",
       "markAllError": "Unable to mark all notifications as read",
@@ -929,7 +930,8 @@
     }
   },
   "notificationList": {
-    "empty": "No notifications"
+    "empty": "No notifications",
+    "endOfList": "You're all caught up"
   },
   "notifications": {
     "BADGE_AWARDED_MESSAGE": "🏅 You earned the \"{badgeLabel}\" badge.",
@@ -959,6 +961,7 @@
     "backAriaLabel": "Back",
     "deleteAll": "Delete all",
     "deleteAllError": "Unable to delete all notifications",
+    "deleteAllKept": "1 notification kept — its action is still pending | {count} notifications kept — their actions are still pending",
     "deleteAllSuccess": "All notifications deleted",
     "errorSummary": "Error",
     "markAllRead": "Mark all as read",

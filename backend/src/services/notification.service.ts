@@ -7,7 +7,7 @@ import { webSocketService } from "./websocket.service";
 import { localizeNotificationParams } from "../utils/notification-format";
 import { notificationActionService } from "./notification-action.service";
 import { BadRequestError, NotFoundError, ErrorCode } from "../types/errors";
-import { CreateNotification, RegisterDevice } from "@skol-arena/shared";
+import { CreateNotification, RegisterDevice, PaginatedNotifications } from "@skol-arena/shared";
 
 // Configure web-push
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
@@ -83,6 +83,26 @@ async function sendPushToDevice(device: PushDevice, pushPayload: unknown): Promi
   }
 }
 
+interface FeedCursor {
+  createdAt: Date;
+  id: string;
+}
+
+function encodeCursor(cursor: FeedCursor): string {
+  return Buffer.from(`${cursor.createdAt.toISOString()}|${cursor.id}`).toString(
+    "base64url",
+  );
+}
+
+function decodeCursor(raw: string): FeedCursor {
+  const [createdAt, id] = Buffer.from(raw, "base64url").toString().split("|");
+  const parsed = createdAt ? new Date(createdAt) : undefined;
+  if (!parsed || Number.isNaN(parsed.getTime()) || !id) {
+    throw new BadRequestError(ErrorCode.VALIDATION_ERROR);
+  }
+  return { createdAt: parsed, id };
+}
+
 export const notificationService = {
   async send(data: CreateNotification) {
     logger.debug(
@@ -124,24 +144,70 @@ export const notificationService = {
     return notification;
   },
 
-  async getForUser(userId: string, lng: string = "fr") {
-    const notifications = await notificationRepository.getForUser(userId);
-    // One batch lookup for the whole list: an actionable notification only keeps
-    // blocking while the situation it points at is still open.
-    const pending = await notificationActionService.resolvePendingActions(notifications);
+  /**
+   * One page of the feed. Only the page is rendered through i18next and only the page
+   * crosses the wire — the counts come from an aggregate, so the unread badge stays right
+   * even though the client holds a fraction of the list.
+   */
+  async getForUser(
+    userId: string,
+    lng: string = "fr",
+    options: { limit?: number; cursor?: string } = {},
+  ): Promise<PaginatedNotifications> {
+    const limit = options.limit ?? 20;
+    const cursor = options.cursor ? decodeCursor(options.cursor) : undefined;
 
-    return notifications.map(({ matchId: _matchId, type: _type, ...n }) => ({
-      ...n,
-      actionResolved: n.requiresAction && !pending.has(n.id),
-      ...buildNotificationContent(
-        {
-          titleKey: n.titleKey,
-          messageKey: n.messageKey,
-          translationParams: n.translationParams as Record<string, unknown>,
-        },
-        lng,
-      ),
-    }));
+    // One row beyond the page: its presence is what says there is more to read.
+    const rows = await notificationRepository.getPageForUser(userId, limit + 1, cursor);
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+
+    // One batch lookup for the whole page: an actionable notification only keeps
+    // blocking while the situation it points at is still open.
+    const pending = await notificationActionService.resolvePendingActions(page);
+    const { total, unread } = await notificationRepository.countForUser(userId);
+
+    const last = page[page.length - 1];
+
+    return {
+      data: page.map(({ matchId: _matchId, ...n }) => ({
+        ...n,
+        actionResolved: n.requiresAction && !pending.has(n.id),
+        createdAt: n.createdAt.toISOString(),
+        translationParams: n.translationParams as Record<string, unknown> | null,
+        ...buildNotificationContent(
+          {
+            titleKey: n.titleKey,
+            messageKey: n.messageKey,
+            translationParams: n.translationParams as Record<string, unknown>,
+          },
+          lng,
+        ),
+      })),
+      hasMore,
+      nextCursor: hasMore && last ? encodeCursor({ createdAt: last.createdAt, id: last.id }) : null,
+      unreadCount: unread,
+      total,
+    };
+  },
+
+  async markAllAsRead(userId: string) {
+    const affected = await notificationRepository.markAllAsRead(userId);
+    return { affected, kept: 0 };
+  },
+
+  /**
+   * Clears the feed in one round trip. What survives is what `delete` would have refused
+   * to drop one by one: a notification still asking for something that is genuinely owed.
+   * The count of those comes back so the client can say what it kept.
+   */
+  async deleteAllForUser(userId: string) {
+    const candidates = await notificationRepository.getUnsettledActionsForUser(userId);
+    const pending = await notificationActionService.resolvePendingActions(candidates);
+    const keepIds = candidates.filter((n) => pending.has(n.id)).map((n) => n.id);
+
+    const affected = await notificationRepository.deleteAllForUser(userId, keepIds);
+    return { affected, kept: keepIds.length };
   },
 
   async markAsRead(notificationId: string, userId: string) {

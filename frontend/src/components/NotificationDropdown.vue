@@ -3,19 +3,20 @@ import NotificationList from './NotificationList.vue'
 import { useTemplateRef, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { isBlocking, useNotificationService } from '@/composables/notification/notification.service'
+import { useNotificationService } from '@/composables/notification/notification.service'
 import { useAppToast } from '@/composables/useAppToast'
 
 const { t } = useI18n()
 
 const popover = useTemplateRef('popover')
 const router = useRouter()
-const { notifications, markAllAsRead, deleteAll } = useNotificationService()
+const { notifications, unreadCount, hasDeletable, markAllAsRead, deleteAll } =
+  useNotificationService()
 const toast = useAppToast()
 
 const hasNotifications = computed(() => notifications.value.length > 0)
-const hasDeletableNotifs = computed(() => notifications.value.some((n) => !isBlocking(n)))
-const hasUnreadNotifs = computed(() => notifications.value.some((n) => !n.isRead))
+const hasDeletableNotifs = hasDeletable
+const hasUnreadNotifs = computed(() => unreadCount.value > 0)
 
 function toggle(event: Event) {
   popover.value?.toggle(event)
@@ -50,11 +51,12 @@ async function handleMarkAllAsRead() {
 
 async function handleDeleteAll() {
   try {
-    await deleteAll()
+    const { kept } = await deleteAll()
     toast.add({
       severity: 'success',
       summary: t('notificationDropdown.toast.deleteAllSuccess'),
-      life: 2000,
+      detail: kept > 0 ? t('notificationDropdown.toast.deleteAllKept', kept) : undefined,
+      life: kept > 0 ? 3500 : 2000,
     })
   } catch {
     toast.add({
@@ -109,7 +111,7 @@ defineExpose({ toggle })
           <Button text size="small" :label="t('notificationDropdown.viewAll')" @click="viewAll" />
         </div>
       </div>
-      <NotificationList :constrained="true" @close="close" />
+      <NotificationList :constrained="true" scroll-mode="container" @close="close" />
     </div>
   </Popover>
 </template>

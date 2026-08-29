@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import NotificationList from '@/components/NotificationList.vue'
-import { isBlocking, useNotificationService } from '@/composables/notification/notification.service'
+import { useNotificationService } from '@/composables/notification/notification.service'
 import { useRouter } from 'vue-router'
 import { computed, onMounted } from 'vue'
 import { useAppToast } from '@/composables/useAppToast'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const { load, notifications, markAllAsRead, deleteAll } = useNotificationService()
+const { load, notifications, unreadCount, hasDeletable, markAllAsRead, deleteAll } =
+  useNotificationService()
 const router = useRouter()
 const toast = useAppToast()
 
-const hasDeletableNotifs = computed(() => notifications.value.some((n) => !isBlocking(n)))
-const hasUnreadNotifs = computed(() => notifications.value.some((n) => !n.isRead))
+const hasDeletableNotifs = hasDeletable
+const hasUnreadNotifs = computed(() => unreadCount.value > 0)
 
 onMounted(() => {
   void load()
@@ -33,8 +34,13 @@ async function handleMarkAllAsRead() {
 
 async function handleDeleteAll() {
   try {
-    await deleteAll()
-    toast.add({ severity: 'success', summary: t('notificationsView.deleteAllSuccess'), life: 2000 })
+    const { kept } = await deleteAll()
+    toast.add({
+      severity: 'success',
+      summary: t('notificationsView.deleteAllSuccess'),
+      detail: kept > 0 ? t('notificationsView.deleteAllKept', kept) : undefined,
+      life: kept > 0 ? 3500 : 2000,
+    })
   } catch {
     toast.add({ severity: 'error', summary: t('notificationsView.errorSummary'), detail: t('notificationsView.deleteAllError'), life: 3000 })
   }
@@ -67,6 +73,6 @@ async function handleDeleteAll() {
         </Button>
       </div>
     </div>
-    <NotificationList />
+    <NotificationList scroll-mode="window" />
   </div>
 </template>

@@ -12,33 +12,78 @@ export function isBlocking(n: Notification): boolean {
   return n.requiresAction && !n.actionResolved && !n.actionCompleted
 }
 
+export const NOTIFICATION_PAGE_SIZE = 20
+
 const notifications = ref<Notification[]>([])
 const loadingNotifications = ref(false)
+const loadingMore = ref(false)
+const hasMore = ref(false)
+const nextCursor = ref<string | null>(null)
+/**
+ * Counted server-side. Deriving it from the loaded array stopped working the moment the
+ * feed became paginated: the badge would only ever count the page in hand.
+ */
+const unreadCount = ref(0)
+const total = ref(0)
 
 function normalize(raw: RawNotification): Notification {
   return { ...raw }
 }
 
 export function useNotificationService() {
+  /** First page, replacing whatever was loaded. */
   async function load() {
     if (loadingNotifications.value) return
     loadingNotifications.value = true
     try {
-      const list = await notificationApi.list()
-      notifications.value = list.map(normalize)
+      const page = await notificationApi.list({ limit: NOTIFICATION_PAGE_SIZE })
+      notifications.value = page.data.map(normalize)
+      hasMore.value = page.hasMore
+      nextCursor.value = page.nextCursor
+      unreadCount.value = page.unreadCount
+      total.value = page.total
     } finally {
       loadingNotifications.value = false
     }
   }
 
+  /** Next page, appended. The cursor points at the tail, so a socket push in the
+   * meantime lands on top without disturbing it. */
+  async function loadMore() {
+    if (!hasMore.value || !nextCursor.value || loadingMore.value || loadingNotifications.value) {
+      return
+    }
+    loadingMore.value = true
+    try {
+      const page = await notificationApi.list({
+        limit: NOTIFICATION_PAGE_SIZE,
+        cursor: nextCursor.value,
+      })
+      const known = new Set(notifications.value.map((n) => n.id))
+      notifications.value = [
+        ...notifications.value,
+        ...page.data.filter((n) => !known.has(n.id)).map(normalize),
+      ]
+      hasMore.value = page.hasMore
+      nextCursor.value = page.nextCursor
+      unreadCount.value = page.unreadCount
+      total.value = page.total
+    } finally {
+      loadingMore.value = false
+    }
+  }
+
   function add(n: RawNotification) {
     notifications.value.unshift(normalize(n))
+    total.value += 1
+    if (!n.isRead) unreadCount.value += 1
   }
 
   async function markRead(id: string) {
     const notif = notifications.value.find((n) => n.id === id)
     if (!notif || notif.isRead) return
     notif.isRead = true
+    unreadCount.value = Math.max(0, unreadCount.value - 1)
     await notificationApi.markRead(id)
   }
 
@@ -46,6 +91,7 @@ export function useNotificationService() {
     const notif = notifications.value.find((n) => n.id === id)
     if (!notif || notif.actionCompleted) return
     notif.actionCompleted = true
+    if (!notif.isRead) unreadCount.value = Math.max(0, unreadCount.value - 1)
     notif.isRead = true
     await notificationApi.markActionCompleted(id)
   }
@@ -60,64 +106,100 @@ export function useNotificationService() {
   }
 
   async function deleteNotification(id: string) {
-    const notif = notifications.value.find((n) => n.id === id)
-    if (!notif) return
+    const index = notifications.value.findIndex((n) => n.id === id)
+    if (index === -1) return
+    const notif = notifications.value[index]
     if (isBlocking(notif)) {
       throw new Error('Cannot delete blocking notification')
     }
     // Optimistic update
     notifications.value = notifications.value.filter((n) => n.id !== id)
+    total.value = Math.max(0, total.value - 1)
+    if (!notif.isRead) unreadCount.value = Math.max(0, unreadCount.value - 1)
     try {
       await notificationApi.delete(id)
     } catch (error) {
-      // Rollback on error
-      notifications.value.push(notif)
+      // Rollback at the position it held, so the feed keeps its order
+      notifications.value = [
+        ...notifications.value.slice(0, index),
+        notif,
+        ...notifications.value.slice(index),
+      ]
+      total.value += 1
+      if (!notif.isRead) unreadCount.value += 1
       throw error
     }
   }
 
+  /** One request for the whole feed, loaded or not. */
   async function markAllAsRead() {
-    const unreadNotifs = notifications.value.filter((n) => !n.isRead)
-    // Optimistic update
-    unreadNotifs.forEach((n) => {
+    const previouslyUnread = notifications.value.filter((n) => !n.isRead)
+    const previousCount = unreadCount.value
+    previouslyUnread.forEach((n) => {
       n.isRead = true
     })
+    unreadCount.value = 0
     try {
-      await Promise.all(unreadNotifs.map((n) => notificationApi.markRead(n.id)))
+      await notificationApi.markAllRead()
     } catch (error) {
-      // Rollback on error
-      unreadNotifs.forEach((n) => {
+      previouslyUnread.forEach((n) => {
         n.isRead = false
       })
+      unreadCount.value = previousCount
       throw error
     }
   }
 
+  /**
+   * One request as well. The server decides what survives — a notification still asking
+   * for something owed — and says how many it kept.
+   */
   async function deleteAll() {
-    const deletableNotifs = notifications.value.filter((n) => !isBlocking(n))
-    if (deletableNotifs.length === 0) return
-
-    // Optimistic update
     const backup = [...notifications.value]
+    const previousCount = unreadCount.value
+    const previousTotal = total.value
+
     notifications.value = notifications.value.filter((n) => isBlocking(n))
+    unreadCount.value = notifications.value.filter((n) => !n.isRead).length
+    total.value = notifications.value.length
 
     try {
-      await Promise.all(deletableNotifs.map((n) => notificationApi.delete(n.id)))
+      const result = await notificationApi.deleteAll()
+      // The list is a page; the truth about what is left comes from the reload.
+      await load()
+      return result
     } catch (error) {
-      // Rollback on error
       notifications.value = backup
+      unreadCount.value = previousCount
+      total.value = previousTotal
       throw error
     }
   }
+
   function remove(id: string) {
+    const notif = notifications.value.find((n) => n.id === id)
+    if (!notif) return
     notifications.value = notifications.value.filter((n) => n.id !== id)
+    total.value = Math.max(0, total.value - 1)
+    if (!notif.isRead) unreadCount.value = Math.max(0, unreadCount.value - 1)
   }
-  const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length)
+
+  // Unloaded pages count too: a first page made only of blocking notifications does not
+  // mean the feed has nothing to clear.
+  const hasDeletable = computed(
+    () => notifications.value.some((n) => !isBlocking(n)) || total.value > notifications.value.length,
+  )
 
   return {
     notifications,
     unreadCount,
+    total,
+    hasMore,
+    hasDeletable,
+    loading: loadingNotifications,
+    loadingMore,
     load,
+    loadMore,
     add,
     remove,
     markRead,

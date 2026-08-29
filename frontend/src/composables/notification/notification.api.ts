@@ -1,7 +1,10 @@
 import http from '@/config/ApiConfig'
+import type { NotificationType } from '@skol-arena/shared'
 
 export interface RawNotification {
   id: string
+  /** Drives the icon and accent the card is drawn with */
+  type: NotificationType
   /** Rendered server-side, used as a fallback when titleKey/messageKey are unknown here */
   title: string
   message: string
@@ -18,11 +21,34 @@ export interface RawNotification {
   createdAt: Date // Converted by convertStringDatesToJS interceptor
 }
 
+export interface NotificationPage {
+  data: RawNotification[]
+  hasMore: boolean
+  nextCursor: string | null
+  /** Counted over the whole feed — the loaded list is only a page of it */
+  unreadCount: number
+  total: number
+}
+
+export interface BulkNotificationResult {
+  affected: number
+  /** Left in place because the action they ask for is still owed */
+  kept: number
+}
+
 const BASE_URL = '/api'
 
 export const notificationApi = {
-  async list(): Promise<RawNotification[]> {
-    const res = await http.get<RawNotification[]>(`${BASE_URL}/me/notifications`)
+  async list(params: { limit?: number; cursor?: string } = {}): Promise<NotificationPage> {
+    const res = await http.get<NotificationPage>(`${BASE_URL}/me/notifications`, { params })
+    return res.data
+  },
+  async markAllRead(): Promise<BulkNotificationResult> {
+    const res = await http.post<BulkNotificationResult>(`${BASE_URL}/me/notifications/read-all`)
+    return res.data
+  },
+  async deleteAll(): Promise<BulkNotificationResult> {
+    const res = await http.delete<BulkNotificationResult>(`${BASE_URL}/me/notifications`)
     return res.data
   },
   async markRead(id: string): Promise<void> {

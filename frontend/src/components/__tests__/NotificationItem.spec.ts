@@ -23,6 +23,7 @@ vi.mock('@/composables/notification/notification.service', async () => {
 function makeNotif(over: Partial<RawNotification> = {}): RawNotification {
   return {
     id: 'n-1',
+    type: 'MATCH_CREATED',
     title: 'server title',
     message: 'server message',
     titleKey: 'notifications.MATCH_CREATED_TITLE',
@@ -83,6 +84,17 @@ describe('NotificationItem', () => {
 
     expect(wrapper.text()).toContain('Action')
     expect(wrapper.find('button').exists()).toBe(false)
+  })
+
+  it('draws the card with the icon and accent of its type', () => {
+    const wrapper = mountItem(makeNotif({ type: 'BADGE_AWARDED' }))
+
+    expect(wrapper.find('.notif-avatar i').classes()).toContain('fa-medal')
+  })
+
+  it('marks an unread notification with a dot, a read one without', () => {
+    expect(mountItem(makeNotif()).find('.notif-dot').exists()).toBe(true)
+    expect(mountItem(makeNotif({ isRead: true })).find('.notif-dot').exists()).toBe(false)
   })
 
   it('hands it back once the action has been settled elsewhere', () => {

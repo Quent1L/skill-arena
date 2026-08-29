@@ -36,6 +36,8 @@ export const RegisterDeviceSchema = z.object({
 export const NotificationResponseSchema = z
   .object({
     id: z.string().uuid(),
+    // Drives the icon and accent the client renders the card with
+    type: NotificationTypeEnum,
     // Pre-rendered server-side, kept as a fallback when the client does not know the key
     title: z.string(),
     message: z.string(),
@@ -58,6 +60,36 @@ export const NotificationResponseSchema = z
   .meta({ id: "Notification" });
 
 export const NotificationListSchema = z.array(NotificationResponseSchema);
+
+/**
+ * A keyset cursor, opaque to the client: base64url of "<createdAt ISO>|<id>".
+ * Keyset rather than offset because the feed moves under the reader — a socket push
+ * prepends a row, a deletion removes one — which makes an offset skip or repeat items.
+ */
+export const listNotificationsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  cursor: z.string().optional(),
+});
+
+export const paginatedNotificationsSchema = z
+  .object({
+    data: z.array(NotificationResponseSchema),
+    hasMore: z.boolean(),
+    /** Feed to the next call as `cursor`; null once the last page has been served. */
+    nextCursor: z.string().nullable(),
+    /** Counted server-side: the loaded page is no longer the whole list. */
+    unreadCount: z.number().int(),
+    total: z.number().int(),
+  })
+  .meta({ id: "PaginatedNotifications" });
+
+export const bulkNotificationResultSchema = z
+  .object({
+    affected: z.number().int(),
+    /** Notifications left in place because the action they ask for is still pending. */
+    kept: z.number().int(),
+  })
+  .meta({ id: "BulkNotificationResult" });
 
 /** A push subscription registered for the current user. */
 export const PushDeviceSchema = z
@@ -82,3 +114,6 @@ export type DeviceType = z.infer<typeof DeviceTypeEnum>;
 export type CreateNotification = z.infer<typeof CreateNotificationSchema>;
 export type RegisterDevice = z.infer<typeof RegisterDeviceSchema>;
 export type NotificationResponse = z.infer<typeof NotificationResponseSchema>;
+export type ListNotificationsQuery = z.infer<typeof listNotificationsQuerySchema>;
+export type PaginatedNotifications = z.infer<typeof paginatedNotificationsSchema>;
+export type BulkNotificationResult = z.infer<typeof bulkNotificationResultSchema>;

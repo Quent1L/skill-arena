@@ -5,7 +5,9 @@ import { notificationService } from '../services/notification.service';
 import {
   RegisterDeviceSchema,
   NotificationResponseSchema,
-  NotificationListSchema,
+  listNotificationsQuerySchema,
+  paginatedNotificationsSchema,
+  bulkNotificationResultSchema,
   PushDeviceSchema,
   mutationResultSchema,
 } from '@skol-arena/shared';
@@ -24,17 +26,58 @@ app.get(
     tags: TAGS,
     summary: "List the current user's notifications",
     description:
-      'Titles and messages are pre-rendered using Accept-Language; the raw keys and ' +
-      'params are returned alongside so a client can render them itself.',
+      'One page, newest first, walked with a keyset `cursor` rather than an offset: the ' +
+      'feed moves under the reader as notifications arrive and are dismissed. Titles and ' +
+      'messages are pre-rendered using Accept-Language; the raw keys and params are ' +
+      'returned alongside so a client can render them itself. The unread count is ' +
+      'aggregated over the whole feed, not over the page.',
     auth: true,
-    success: { description: 'The notifications', schema: NotificationListSchema },
+    success: { description: 'A page of notifications', schema: paginatedNotificationsSchema },
   }),
+  validate('query', listNotificationsQuerySchema),
   async (c) => {
     const appUserId = c.get('appUserId');
     const lng = c.get('lang') || 'fr';
+    const { limit, cursor } = c.req.valid('query');
 
-    const notifications = await notificationService.getForUser(appUserId, lng);
-    return c.json(notifications);
+    const page = await notificationService.getForUser(appUserId, lng, { limit, cursor });
+    return c.json(page);
+  }
+);
+
+app.post(
+  '/me/notifications/read-all',
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: 'Mark every notification as read',
+    description: 'A single statement over the whole feed, whatever its size.',
+    auth: true,
+    success: { description: 'How many were marked read', schema: bulkNotificationResultSchema },
+  }),
+  async (c) => {
+    const appUserId = c.get('appUserId');
+
+    return c.json(await notificationService.markAllAsRead(appUserId));
+  }
+);
+
+app.delete(
+  '/me/notifications',
+  requireAuth,
+  describe({
+    tags: TAGS,
+    summary: 'Delete every deletable notification',
+    description:
+      'Notifications still asking for something that is genuinely owed are left in ' +
+      'place — the same rule the single delete applies — and counted as `kept`.',
+    auth: true,
+    success: { description: 'How many were deleted and kept', schema: bulkNotificationResultSchema },
+  }),
+  async (c) => {
+    const appUserId = c.get('appUserId');
+
+    return c.json(await notificationService.deleteAllForUser(appUserId));
   }
 );
 
