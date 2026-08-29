@@ -1,1 +1,20 @@
-bun run test:unit
+# The docs/ workspace is the Astro documentation site. It imports nothing from
+# shared/backend/frontend and nothing imports it, so the application suite says
+# nothing about a docs change — it just costs ~77s on every typo fix. Run the
+# checks that do cover it instead (~9s), and keep the full suite for everything
+# else.
+#
+# Anything outside docs/ in the same commit falls through to the full suite: the
+# skip has to be provably safe, so an unrecognised path is never a reason to skip.
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+if printf '%s\n' "$staged" | grep -qvE '^docs/'; then
+  bun run test:unit
+else
+  echo "Docs-only change — running docs checks, skipping the application suite."
+  cd docs && bun run type-check && bun run lint
+fi
