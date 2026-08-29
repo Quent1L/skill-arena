@@ -52,3 +52,23 @@ Once the instance is up, these pages cover how it behaves:
 
 - A PostgreSQL database (any recent version) reachable from the container.
 - Docker (or a Docker-compatible runtime) able to pull from [Docker Hub](https://hub.docker.com/r/quent1l/skol-arena) .
+
+## Resource requirements
+
+Skol Arena is light: the API idles at roughly 100 MB of resident memory and near-zero CPU,
+and the image itself is about 185 MB. The cheapest tier at any VPS provider, or a spare
+x86 box, comfortably runs a club-sized instance. Published images are `linux/amd64` only —
+on ARM, build from the `Dockerfile` first (see [Deployment](/docs/deployment)).
+
+| Setup                                     | CPU    | RAM    | Disk  |
+| ----------------------------------------- | ------ | ------ | ----- |
+| App container only, Postgres hosted apart | 1 vCPU | 512 MB | 1 GB  |
+| App + Postgres on the same host           | 2 vCPU | 2 GB   | 10 GB |
+
+Bun grows its heap whenever the host has memory to spare, so on a tight box cap the
+container (`mem_limit: 512m`, or `--memory 512m`) — it collects more eagerly instead of
+drifting upward, rather than needing the extra RAM. Disk is dominated by the Postgres
+volume: matches and standings are small text rows, so a season adds very little.
+
+CPU only matters in bursts — bracket generation and a ranked season recalculation are the
+heaviest operations, and both are short. Everything else is request-scoped.

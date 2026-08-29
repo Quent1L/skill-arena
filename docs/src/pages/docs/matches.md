@@ -62,19 +62,23 @@ validation round.
 
 ## Team formats
 
-Not every discipline fits a rigid two-player model. Championships and brackets pick one of
-two team modes:
+Every match opposes exactly two sides, A and B, each holding the same number of players —
+whatever the discipline and whatever the team size. What changes is who fills those two
+sides: championships and brackets pick one of two team modes, and a side can be a single
+player.
 
+- **Solo** — team size 1 on both sides, so a plain 1v1. Not a separate mode, just the
+  smallest team size.
 - **Flex** — teammates are grouped per match, so rosters can shuffle from one game to the
   next. Ideal for a group where whoever shows up plays together.
 - **Static** — a fixed roster carries the same lineup across the whole event, and standings
   track the team rather than reshuffling every round.
 
 Team size is yours to set with a minimum and maximum, so the same platform covers 1v1 chess,
-2v2 foosball, and 5v5 five-a-side. Both sides of a match hold the same number of players.
+2v2 foosball, and 5v5 five-a-side.
 
-**On the roadmap:** N-way matches — 1v1v1, 2v2v2, and other multi-side formats — are in
-development on a dedicated branch and aren't part of a release yet.
+**On the roadmap:** N-way matches — 1v1v1, 2v2v2 and other multi-side formats — are planned,
+but aren't part of a release yet.
 
 ## Static team rosters
 

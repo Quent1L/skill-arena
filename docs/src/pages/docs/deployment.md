@@ -183,10 +183,10 @@ becomes unavailable and no local credentials are known.
 
 ## Single-container frontend serving
 
-The image ships with `FRONTEND_BUILD_PATH=/app/frontend/dist` already set, which
-tells the backend to serve the built Vue app itself — static assets plus an SPA
-fallback to `index.html` — so a single container and a single port cover both the
-API and the web app. Nothing to configure.
+The image already points `FRONTEND_BUILD_PATH` at the frontend build it bundles, so
+the backend serves the Vue app itself — static assets plus an SPA fallback to
+`index.html` — and a single container on a single port covers both the API and the
+web app. Nothing to configure.
 
 Setting the variable to an empty value disables it: the container then only
 exposes the API, and `/` returns a plain placeholder response. That is only
