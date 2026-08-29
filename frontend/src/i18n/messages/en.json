@@ -1421,6 +1421,7 @@
   "resultStep": {
     "create": "Create match",
     "draw": "Draw",
+    "mmrMultiplier": "MMR multiplier",
     "outcomeType": "Outcome type",
     "previous": "Previous",
     "reason": "Reason",

@@ -106,6 +106,7 @@
               :initial-score-instructions="scoreInstructions"
               :allow-draw="tournament?.allowDraw ?? false"
               :standings="standings"
+              :is-ranked="tournament?.mode === 'ranked'"
               @previous="goBackFromResult"
               @create="submitMatch"
             />

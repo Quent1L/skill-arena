@@ -76,7 +76,29 @@
         class="w-full"
         :loading="loadingOutcomeTypes"
         @change="onOutcomeTypeChange"
-      />
+      >
+        <template v-if="showMmrMultiplier" #value="{ placeholder }">
+          <div v-if="selectedOutcomeType" class="flex items-center gap-2">
+            <span>{{ selectedOutcomeType.name }}</span>
+            <span
+              class="rounded-full bg-surface-100 dark:bg-surface-800 px-2 py-0.5 text-xs font-semibold"
+              :title="t('resultStep.mmrMultiplier')"
+              >{{ formatMmrMultiplier(selectedOutcomeType.mmrMultiplier) }}</span
+            >
+          </div>
+          <span v-else>{{ placeholder }}</span>
+        </template>
+        <template v-if="showMmrMultiplier" #option="{ option }">
+          <div class="flex w-full items-center justify-between gap-3">
+            <span>{{ option.name }}</span>
+            <span
+              class="rounded-full bg-surface-100 dark:bg-surface-800 px-2 py-0.5 text-xs font-semibold"
+              :title="t('resultStep.mmrMultiplier')"
+              >{{ formatMmrMultiplier(option.mmrMultiplier) }}</span
+            >
+          </div>
+        </template>
+      </Select>
     </div>
 
     <!-- Outcome reason -->
@@ -165,6 +187,8 @@ interface Props {
   loading?: boolean
   submitLabel?: string
   hideNavigation?: boolean
+  /** Ranked seasons only: reveals the MMR multiplier carried by each outcome type. */
+  isRanked?: boolean
   initialOutcomeTypes?: OutcomeType[]
   initialOutcomeReasons?: OutcomeReason[]
   initialScoreInstructions?: string | null
@@ -201,9 +225,18 @@ const filteredOutcomeReasons = computed(() =>
   outcomeReasons.value.filter((r) => r.outcomeTypeId === outcomeTypeIdModel.value),
 )
 
-const isNormalOutcome = computed(
-  () => outcomeTypes.value.find((t) => t.id === outcomeTypeIdModel.value)?.isDefault === true,
+const selectedOutcomeType = computed(
+  () => outcomeTypes.value.find((t) => t.id === outcomeTypeIdModel.value) ?? null,
 )
+
+const showMmrMultiplier = computed(() => props.isRanked === true)
+
+/** `1.5` → `x 1.5`, `1` → `x 1` — trailing zeros never reach the badge. */
+function formatMmrMultiplier(value: number): string {
+  return `x ${Number(value.toFixed(2))}`
+}
+
+const isNormalOutcome = computed(() => selectedOutcomeType.value?.isDefault === true)
 
 const showReasonSelect = computed(
   () =>

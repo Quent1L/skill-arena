@@ -107,6 +107,7 @@
           hide-navigation
           :allow-draw="tournament?.allowDraw ?? false"
           :standings="standings"
+          :is-ranked="tournament?.mode === 'ranked'"
           @previous="goBackFromResult"
           @create="submitMatch"
         />
