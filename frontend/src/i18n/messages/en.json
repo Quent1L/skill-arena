@@ -2376,9 +2376,9 @@
       "title": "Your best ranking",
       "subtitle": "The highest you ever climbed",
       "peakPosition": "Best position",
-      "top1": "Matches in Top 1",
-      "top3": "Matches in Top 3",
-      "top5": "Matches in Top 5",
+      "top1": "Matches in Top 1",
+      "top3": "Matches in Top 3",
+      "top5": "Matches in Top 5",
       "measuredInMatches": "Measured in matches spent at that rank"
     },
     "peak": {

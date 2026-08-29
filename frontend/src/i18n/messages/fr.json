@@ -2376,9 +2376,9 @@
       "title": "Ton meilleur classement",
       "subtitle": "Le plus haut que tu sois monté",
       "peakPosition": "Meilleure position",
-      "top1": "Matchs en Top 1",
-      "top3": "Matchs en Top 3",
-      "top5": "Matchs en Top 5",
+      "top1": "Matchs en Top 1",
+      "top3": "Matchs en Top 3",
+      "top5": "Matchs en Top 5",
       "measuredInMatches": "Mesuré en nombre de matchs passés dans le classement"
     },
     "peak": {
