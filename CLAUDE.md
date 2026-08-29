@@ -118,6 +118,35 @@ Search is **Pagefind** (`astro-pagefind` integration), indexing the built HTML:
   deliberate: any statically analysable specifier gets wrapped in `__vitePreload()` with an
   unresolved `__VITE_PRELOAD__` placeholder that throws at runtime.
 
+SEO and GEO metadata is centralised, not spread across pages:
+
+- **`src/components/Seo.astro`** owns the whole `<head>` metadata set — title, canonical,
+  Open Graph, Twitter card, JSON-LD. `BaseLayout` renders it and forwards `title`,
+  `description`, `ogType`, `publishedTime`, `noindex` and `jsonLd`; no page writes a meta
+  tag of its own. A page that omits `title` gets the branded form instead of `… · Skol
+  Arena`, which is how the homepage avoids `Home · Skol Arena`
+- **Every absolute URL derives from `site` in `astro.config.mjs`**, read back at runtime
+  through `Astro.site` and normalised by `canonicalUrl()` in `src/lib/site.ts`. Nothing
+  hardcodes the origin, so a domain migration is a one-line edit. `build.format` stays at
+  its `directory` default (a route answers at both `/about` and `/about/`); `canonicalUrl`
+  picks the no-slash form and the canonical tag deduplicates the pair
+- **JSON-LD is one `@graph` per page**, assembled in `Seo.astro` from builders in
+  `src/lib/schema.ts`. Organization and WebSite are site-wide; pages add their own nodes
+  via the `jsonLd` prop. Nodes reference each other by `@id` rather than repeating
+  themselves. There is deliberately **no `SearchAction`** — Pagefind is client-side with no
+  `?q=` route, so declaring one would point at a URL that does not exist
+- **`robots.txt`, `llms.txt` and `llms-full.txt` are endpoints** (`src/pages/*.ts`), not
+  files in `public/`, so their links derive from `site` and cannot drift. `robots.txt`
+  lists the AI crawlers explicitly; the two `llms` files are generated from existing
+  frontmatter and bodies, so no content is written twice
+- Docs pages live in `src/pages/docs/*.md` and are **not** a collection, so `getCollection`
+  cannot reach them — `src/lib/docs-pages.ts` reads them with a pair of `import.meta.glob`
+  calls (eager for frontmatter, `?raw` for the body) for the consumers that need them as
+  data
+- Feature anchors on `/features` come from `slug(feature.id)` and are what `llms.txt` deep
+  links to. A feature rendered without one silently breaks those links — the wide blocks
+  and the `platform` `FeatureCard`s both set it
+
 ## Key Conventions
 
 ### Code Style

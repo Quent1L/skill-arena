@@ -1,14 +1,29 @@
 ---
 import Nav from '../components/Nav.astro'
 import Icon from '../components/Icon.astro'
+import Seo from '../components/Seo.astro'
+import { SITE } from '../lib/site'
+import type { SchemaNode } from '../lib/schema'
 import '../styles/global.css'
 
 interface Props {
-  title: string
+  /** Omit on the homepage so it gets the branded title instead of "Home · Skol Arena". */
+  title?: string
   description?: string
+  ogType?: 'website' | 'article'
+  publishedTime?: Date
+  noindex?: boolean
+  jsonLd?: SchemaNode[]
 }
-const { title, description = 'Skol Arena — tournament management, done right.' } = Astro.props
-const repoUrl = 'https://github.com/Quent1L/skol-arena'
+const {
+  title,
+  description = SITE.description,
+  ogType = 'website',
+  publishedTime,
+  noindex,
+  jsonLd,
+} = Astro.props
+const repoUrl = SITE.repo
 ---
 
 <!doctype html>
@@ -18,18 +33,22 @@ const repoUrl = 'https://github.com/Quent1L/skol-arena'
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <meta name="description" content={description} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <!-- Raster, not the SVG: most crawlers ignore an SVG og:image outright. -->
-    <meta property="og:image" content="/icon-512.png" />
+    <link rel="apple-touch-icon" href="/icon-512.png" />
+    <meta name="theme-color" content="#0f172a" />
+    <Seo
+      title={title}
+      description={description}
+      ogType={ogType}
+      publishedTime={publishedTime}
+      noindex={noindex}
+      jsonLd={jsonLd}
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <title>{title} · Skol Arena</title>
   </head>
   <body class="min-h-screen text-slate-100">
     <Nav />

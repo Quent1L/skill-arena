@@ -1,0 +1,60 @@
+---
+import { SITE, canonicalUrl } from '../lib/site'
+import { organization, webSite, type SchemaNode } from '../lib/schema'
+
+interface Props {
+  title?: string
+  description: string
+  ogType: 'website' | 'article'
+  publishedTime?: Date
+  noindex?: boolean
+  jsonLd?: SchemaNode[]
+}
+const { title, description, ogType, publishedTime, noindex = false, jsonLd = [] } = Astro.props
+
+const site = Astro.site
+const canonical = canonicalUrl(Astro.url.pathname, site)
+const ogImage = new URL(SITE.ogImage, canonicalUrl('/', site)).href
+
+// The homepage passes no title: it gets the branded form rather than "Home · Skol Arena".
+const fullTitle = title
+  ? `${title} · ${SITE.name}`
+  : `${SITE.name} — ${SITE.description.split('.')[0]}`
+
+// Organization and WebSite describe the site itself, so they belong on every page;
+// the page's own nodes are appended. One script tag, cross-referenced by @id.
+const graph = {
+  '@context': 'https://schema.org',
+  '@graph': [organization(site), webSite(site), ...jsonLd],
+}
+// `</script>` inside any description would otherwise close the tag early.
+const graphJson = JSON.stringify(graph).replace(/</g, '\\u003c')
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+{noindex && <meta name="robots" content="noindex,nofollow" />}
+
+<meta property="og:type" content={ogType} />
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content="en_US" />
+<meta property="og:url" content={canonical} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+<!-- Raster, not the SVG: most crawlers ignore an SVG og:image outright. Absolute,
+     because X, LinkedIn and Slack all reject a root-relative one. -->
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content={String(SITE.ogImageSize.width)} />
+<meta property="og:image:height" content={String(SITE.ogImageSize.height)} />
+<meta property="og:image:alt" content={`${SITE.name} logo`} />
+{publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+
+<!-- `summary`, not `summary_large_image`: the image is a 512² icon and a large
+     card would stretch it. Revisit alongside a real 1200×630 asset. -->
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />
+
+<script type="application/ld+json" is:inline set:html={graphJson} />

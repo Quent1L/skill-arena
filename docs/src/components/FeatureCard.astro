@@ -7,15 +7,18 @@ interface Props {
   badge?: string
   number?: number
   href?: string
+  /** Anchor for deep links, so a card can be cited on its own. */
+  id?: string
 }
-const { title, icon, badge, number, href } = Astro.props
+const { title, icon, badge, number, href, id } = Astro.props
 
 const Tag = href ? 'a' : 'div'
 ---
 
 <Tag
   href={href}
-  class="card-glow group block rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:bg-white/[0.05]"
+  id={id}
+  class="card-glow group block scroll-mt-24 rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:bg-white/[0.05]"
 >
   <div class="mb-4 flex items-center gap-3">
     {

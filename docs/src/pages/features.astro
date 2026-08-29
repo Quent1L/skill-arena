@@ -3,6 +3,7 @@ import type { CollectionEntry } from 'astro:content'
 import type { ImageMetadata } from 'astro'
 import { getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { softwareApplication } from '../lib/schema'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
 import FeatureCard from '../components/FeatureCard.astro'
@@ -96,6 +97,7 @@ const sections = await Promise.all(
 <BaseLayout
   title="Features"
   description="Championship, Bracket, and Ranked — and everything the three modes build on."
+  jsonLd={[softwareApplication(Astro.site)]}
 >
   <section class="relative overflow-hidden">
     <div class="bg-grid pointer-events-none absolute inset-0"></div>
@@ -141,6 +143,7 @@ const sections = await Promise.all(
             <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {section.entries.map(({ feature, Content }) => (
                 <FeatureCard
+                  id={slug(feature.id)}
                   title={feature.data.title}
                   icon={feature.data.icon}
                   badge={feature.data.badge}

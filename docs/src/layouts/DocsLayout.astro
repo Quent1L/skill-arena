@@ -1,6 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro'
 import CodeCopy from '../components/CodeCopy.astro'
+import { breadcrumbs, techArticle } from '../lib/schema'
 
 interface Frontmatter {
   title: string
@@ -31,9 +32,20 @@ const navGroups = [
 
 const path = Astro.url.pathname
 const isActive = (href: string) => (href === '/docs' ? path === '/docs' : path.startsWith(href))
+
+// The overview *is* /docs, so it would otherwise appear twice in its own trail.
+const trail = [
+  { name: 'Home', path: '/' },
+  { name: 'Documentation', path: '/docs' },
+  ...(path.replace(/\/+$/, '') === '/docs' ? [] : [{ name: frontmatter.title, path }]),
+]
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+<BaseLayout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  jsonLd={[techArticle(frontmatter, Astro.site, path), breadcrumbs(trail, Astro.site)]}
+>
   <div class="relative overflow-hidden">
     <div class="bg-grid pointer-events-none absolute inset-0 opacity-40"></div>
     <div class="relative mx-auto flex max-w-6xl flex-col gap-6 px-6 py-12 sm:flex-row sm:gap-10">

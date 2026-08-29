@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { getEntry, getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { faqPage, softwareApplication } from '../lib/schema'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
 import FaqAccordion from '../components/FaqAccordion.astro'
@@ -120,7 +121,10 @@ const audiences = [
 ]
 ---
 
-<BaseLayout title="Home">
+<BaseLayout
+  description="Open-source, self-hostable tournament software. Run championship leagues, elimination brackets and ranked ladders with per-discipline MMR — players report their own matches."
+  jsonLd={[softwareApplication(Astro.site), faqPage(faq, Astro.site, Astro.url.pathname)]}
+>
   <!-- Hero: message on the left, the actual product on the right -->
   <section class="relative overflow-hidden border-b border-white/10">
     <div class="bg-grid pointer-events-none absolute inset-0"></div>
