@@ -19,6 +19,10 @@ export const SITE = {
   // later is a change to these two fields plus the file.
   ogImage: '/icon-512.png',
   ogImageSize: { width: 512, height: 512 },
+  // Google Search Console ownership proof. Must stay on every page: Search
+  // Console re-checks the tag long after the first verification, and dropping
+  // it silently un-verifies the property.
+  googleSiteVerification: 'EAiBOd-HrKxrWh3MgrcfktV3s7liytgy3pNPIA81nUs',
 } as const
 
 /**

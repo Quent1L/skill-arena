@@ -34,6 +34,7 @@ const graphJson = JSON.stringify(graph).replace(/</g, '\\u003c')
 <title>{fullTitle}</title>
 <meta name="description" content={description} />
 <link rel="canonical" href={canonical} />
+<meta name="google-site-verification" content={SITE.googleSiteVerification} />
 {noindex && <meta name="robots" content="noindex,nofollow" />}
 
 <meta property="og:type" content={ogType} />
