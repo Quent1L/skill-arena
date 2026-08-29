@@ -67,6 +67,7 @@ declare module 'vue' {
     MatchBalanceBar: typeof import('./src/components/match/MatchBalanceBar.vue')['default']
     MatchCard: typeof import('./src/components/match/MatchCard.vue')['default']
     MatchConfirmation: typeof import('./src/components/match/MatchConfirmation.vue')['default']
+    MatchFormSkeleton: typeof import('./src/components/match/MatchFormSkeleton.vue')['default']
     MatchFormStepperDesktop: typeof import('./src/components/match/MatchFormStepperDesktop.vue')['default']
     MatchFormStepperMobile: typeof import('./src/components/match/mobile/MatchFormStepperMobile.vue')['default']
     MatchList: typeof import('./src/components/MatchList.vue')['default']

@@ -388,7 +388,9 @@
   },
   "createMatchView": {
     "errorSummary": "Error",
-    "loadMatchError": "Unable to load match"
+    "loadError": "Unable to load the match form. Check your connection and try again.",
+    "loadMatchError": "Unable to load match",
+    "retry": "Try again"
   },
   "dateUtils": {
     "day": "1 day | {count} days",

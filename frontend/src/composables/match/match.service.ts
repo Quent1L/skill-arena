@@ -51,17 +51,25 @@ export function useMatchService() {
   const playersMap = ref<Record<string, string>>({})
 
   /**
+   * Fill the players map from a participant list already in hand, so a caller that
+   * has just fetched it does not pay for the same request twice.
+   */
+  function setPlayersMap(participants: ParticipantListItem[]): Record<string, string> {
+    const map: Record<string, string> = {}
+    for (const p of participants) {
+      map[p.userId] = p.user.displayName
+    }
+    playersMap.value = map
+    return map
+  }
+
+  /**
    * Create players map from participants
    */
   async function loadPlayersMap(tournamentId: string): Promise<Record<string, string>> {
     try {
       const participants = (await getTournamentParticipants(tournamentId)) as ParticipantListItem[]
-      const map: Record<string, string> = {}
-      for (const p of participants) {
-        map[p.userId] = p.user.displayName
-      }
-      playersMap.value = map
-      return map
+      return setPlayersMap(participants)
     } catch (err) {
       console.error('Erreur loading participants map:', err)
       return {}
@@ -461,6 +469,7 @@ export function useMatchService() {
 
     // Business logic methods
     loadPlayersMap,
+    setPlayersMap,
     validateParticipants,
     validateMatchSides,
     canProceedToNextStep,

@@ -16,6 +16,7 @@ import { outcomeTypeApi } from '@/composables/outcome-type.api'
 import { outcomeReasonApi } from '@/composables/outcome-reason.api'
 import { disciplineApi } from '@/composables/discipline/discipline.api'
 import { MATCH_FORM_KEY, type MatchFormContext } from '@/composables/match/match-form.context'
+import MatchFormSkeleton from '@/components/match/MatchFormSkeleton.vue'
 import CreateMatchView from '../CreateMatchView.vue'
 import type {
   BaseTournament,
@@ -131,10 +132,11 @@ function getProbe(wrapper: Awaited<ReturnType<typeof mountView>>) {
 }
 
 let loadTournamentMock: ReturnType<typeof vi.fn>
-let loadPlayersMapMock: ReturnType<typeof vi.fn>
+let setPlayersMapMock: ReturnType<typeof vi.fn>
 let getMatchMock: ReturnType<typeof vi.fn>
 let loadTeamsMock: ReturnType<typeof vi.fn>
 let getParticipantsMock: ReturnType<typeof vi.fn>
+let participantsErrorRef: ReturnType<typeof ref<string | null>>
 let toastAddMock: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
@@ -152,11 +154,11 @@ beforeEach(() => {
     loadTournamentWithErrorHandling: loadTournamentMock,
   } as unknown as ReturnType<typeof useTournamentService>)
 
-  loadPlayersMapMock = vi.fn().mockResolvedValue({})
+  setPlayersMapMock = vi.fn()
   getMatchMock = vi.fn()
   vi.mocked(useMatchService).mockReturnValue({
     playersMap: ref({}),
-    loadPlayersMap: loadPlayersMapMock,
+    setPlayersMap: setPlayersMapMock,
     getMatch: getMatchMock,
   } as unknown as ReturnType<typeof useMatchService>)
 
@@ -170,8 +172,10 @@ beforeEach(() => {
     makeParticipant('u1', 'Alice'),
     makeParticipant('u2', 'Bob'),
   ])
+  participantsErrorRef = ref<string | null>(null)
   vi.mocked(useParticipantService).mockReturnValue({
     getTournamentParticipants: getParticipantsMock,
+    error: participantsErrorRef,
   } as unknown as ReturnType<typeof useParticipantService>)
 
   vi.mocked(outcomeTypeApi.list).mockResolvedValue([
@@ -212,13 +216,51 @@ async function mountView(
   return wrapper
 }
 
+/** Mounts without awaiting the loaders, to observe the loading state itself. */
+function mountUnresolved() {
+  vi.mocked(useRoute).mockReturnValue({
+    params: { tournamentId: 't1' },
+    query: {},
+  } as unknown as ReturnType<typeof useRoute>)
+  vi.mocked(useAuth).mockReturnValue(
+    makeAuthMock({
+      user: { id: 'u1', email: 'u1@test.dev' },
+      role: 'player',
+      initialized: true,
+    }) as unknown as ReturnType<typeof useAuth>,
+  )
+  return mountWithPrime(CreateMatchView, {
+    global: {
+      stubs: { MatchFormStepperMobile: MobileProbe, MatchFormStepperDesktop: DesktopProbe },
+    },
+  })
+}
+
 describe('CreateMatchView', () => {
   it('loads tournament, playersMap, participants then result data on mount', async () => {
     await mountView()
     expect(loadTournamentMock).toHaveBeenCalledWith('t1')
-    expect(loadPlayersMapMock).toHaveBeenCalledWith('t1')
     expect(getParticipantsMock).toHaveBeenCalledWith('t1')
+    expect(setPlayersMapMock).toHaveBeenCalledWith([
+      makeParticipant('u1', 'Alice'),
+      makeParticipant('u2', 'Bob'),
+    ])
     expect(outcomeTypeApi.list).toHaveBeenCalled()
+  })
+
+  it('fetches the participants once: the players map is built from the same payload', async () => {
+    await mountView()
+    expect(getParticipantsMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the skeleton until the data lands, then the stepper', async () => {
+    const wrapper = mountUnresolved()
+    expect(wrapper.findComponent(MatchFormSkeleton).exists()).toBe(true)
+    expect(wrapper.findComponent(DesktopProbe).exists()).toBe(false)
+
+    await flushPromises()
+    expect(wrapper.findComponent(MatchFormSkeleton).exists()).toBe(false)
+    expect(wrapper.findComponent(DesktopProbe).exists()).toBe(true)
   })
 
   it('isLoading becomes false once mounting is finished', async () => {
@@ -226,11 +268,12 @@ describe('CreateMatchView', () => {
     expect(getProbe(wrapper).vm.isLoading).toBe(false)
   })
 
-  it('static mode: loads teams and does not load participants', async () => {
+  it('static mode: loads teams, and the participants for the players map', async () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ teamMode: 'static' }))
     await mountView()
     expect(loadTeamsMock).toHaveBeenCalledWith('t1')
-    expect(getParticipantsMock).not.toHaveBeenCalled()
+    expect(getParticipantsMock).toHaveBeenCalledTimes(1)
+    expect(setPlayersMapMock).toHaveBeenCalled()
   })
 
   it('flex mode: loads participants and does not load teams', async () => {
@@ -238,6 +281,43 @@ describe('CreateMatchView', () => {
     await mountView()
     expect(getParticipantsMock).toHaveBeenCalledWith('t1')
     expect(loadTeamsMock).not.toHaveBeenCalled()
+  })
+
+  it('tournament fails to load: error state instead of an empty form', async () => {
+    loadTournamentMock.mockResolvedValue(null)
+    const wrapper = await mountView()
+    expect(wrapper.findComponent(DesktopProbe).exists()).toBe(false)
+    expect(wrapper.findComponent(MatchFormSkeleton).exists()).toBe(false)
+    expect(wrapper.text()).toContain('createMatchView.loadError')
+  })
+
+  it('participants fail to load: error state, since the service returns empty', async () => {
+    getParticipantsMock.mockImplementation(async () => {
+      participantsErrorRef.value = 'boom'
+      return []
+    })
+    const wrapper = await mountView()
+    expect(wrapper.findComponent(DesktopProbe).exists()).toBe(false)
+    expect(wrapper.text()).toContain('createMatchView.loadError')
+  })
+
+  it('a throw inside the chain never leaves the skeleton up', async () => {
+    loadTournamentMock.mockRejectedValue(new Error('offline'))
+    const wrapper = await mountView()
+    expect(wrapper.findComponent(MatchFormSkeleton).exists()).toBe(false)
+    expect(wrapper.text()).toContain('createMatchView.loadError')
+  })
+
+  it('retry re-runs the loaders and shows the form', async () => {
+    loadTournamentMock.mockResolvedValueOnce(null)
+    const wrapper = await mountView()
+    expect(wrapper.text()).toContain('createMatchView.loadError')
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(loadTournamentMock).toHaveBeenCalledTimes(2)
+    expect(wrapper.findComponent(DesktopProbe).exists()).toBe(true)
   })
 
   it('non-admin participant user: auto-added to allPlayerIds', async () => {

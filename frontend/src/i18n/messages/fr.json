@@ -388,7 +388,9 @@
   },
   "createMatchView": {
     "errorSummary": "Erreur",
-    "loadMatchError": "Impossible de charger le match"
+    "loadError": "Impossible de charger le formulaire de match. Vérifiez votre connexion puis réessayez.",
+    "loadMatchError": "Impossible de charger le match",
+    "retry": "Réessayer"
   },
   "dateUtils": {
     "day": "1 jour | {count} jours",
