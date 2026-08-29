@@ -1,0 +1,59 @@
+---
+// Adds a copy-to-clipboard button to every fenced code block inside a `.prose`
+// container. Done client-side rather than through a rehype plugin so it applies
+// uniformly to docs pages and blog posts without touching the markdown pipeline.
+// Styles live in global.css next to the code-block rules.
+---
+
+<script>
+  const COPY_ICON = `<svg class="copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>`
+  const CHECK_ICON = `<svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>`
+
+  function copyText(text: string) {
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
+    // Non-secure contexts (a self-hosted instance served over plain http)
+    // have no async clipboard API.
+    const area = document.createElement('textarea')
+    area.value = text
+    area.setAttribute('readonly', '')
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    document.body.append(area)
+    area.select()
+    document.execCommand('copy')
+    area.remove()
+    return Promise.resolve()
+  }
+
+  document.querySelectorAll('.prose pre').forEach((pre) => {
+    if (!(pre instanceof HTMLElement) || pre.parentElement?.classList.contains('code-block')) return
+
+    const wrapper = document.createElement('div')
+    wrapper.className = 'code-block'
+    pre.replaceWith(wrapper)
+    wrapper.append(pre)
+
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'code-copy'
+    button.setAttribute('aria-label', 'Copy code')
+    button.innerHTML = COPY_ICON + CHECK_ICON
+    wrapper.append(button)
+
+    let reset: ReturnType<typeof setTimeout>
+    button.addEventListener('click', async () => {
+      try {
+        await copyText(pre.innerText.replace(/\n+$/, ''))
+      } catch {
+        return
+      }
+      button.dataset.copied = 'true'
+      button.setAttribute('aria-label', 'Copied')
+      clearTimeout(reset)
+      reset = setTimeout(() => {
+        delete button.dataset.copied
+        button.setAttribute('aria-label', 'Copy code')
+      }, 2000)
+    })
+  })
+</script>
