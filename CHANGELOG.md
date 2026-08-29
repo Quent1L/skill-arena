@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1](https://github.com/Quent1L/skol-arena/compare/2.0.0...2.0.1) (2026-08-29)
+
+### 🔧 Maintenance
+
+* **deps:** bump docs astro to 7.2.9, sharp to 0.35 ([b6a0bd3](https://github.com/Quent1L/skol-arena/commit/b6a0bd3b3c80c0512b036c9adf4bea553d646bfc))
+
 ## [2.0.0](https://github.com/Quent1L/skol-arena/compare/1.20.2...2.0.0) (2026-08-29)
 
 ### ⚠ BREAKING CHANGES
