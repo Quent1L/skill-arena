@@ -75,7 +75,7 @@
 
         <!-- Mobile: filter button + PlayerPickerDialog -->
         <div v-else>
-          <Button text severity="secondary" size="small" @click="showMobileDialog = true">
+          <Button text severity="secondary" size="small" @click="openMobileDialog()">
             <i class="fa fa-filter mr-2" />
             {{ t('matchList.filters') }}
             <span
@@ -85,7 +85,10 @@
               {{ selectedPlayers.length }}
             </span>
           </Button>
+          <!-- Mounted on the first open and kept afterwards, so its chunk is only
+               fetched by someone who actually filters. -->
           <PlayerPickerDialog
+            v-if="mobileDialogMounted"
             v-model:visible="showMobileDialog"
             :title="t('matchList.filterByPlayerTitle')"
             :players="props.players"
@@ -124,8 +127,9 @@
           />
         </div>
 
-        <!-- Loading more -->
-        <div v-if="loading" class="flex justify-center py-4">
+        <!-- Loading more. A background refresh borrows the same lock but is reported
+             by the page-level indicator, not by a spinner at the end of the list. -->
+        <div v-if="loading && !refreshing" class="flex justify-center py-4">
           <ProgressSpinner style="width: 28px; height: 28px" />
         </div>
       </div>
@@ -134,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useInfiniteScroll } from '@vueuse/core'
@@ -143,7 +147,8 @@ import type { ClientMatchCard, MatchCardSide } from '@skol-arena/shared/types/in
 import { useViewport } from '@/composables/useViewport'
 import { useMatchListFiltersStore } from '@/stores/matchListFilters.store'
 import MatchCard from './match/MatchCard.vue'
-import PlayerPickerDialog from './match/mobile/PlayerPickerDialog.vue'
+// Only ever opened from the mobile filter bar, so it has no business in this chunk.
+const PlayerPickerDialog = defineAsyncComponent(() => import('./match/mobile/PlayerPickerDialog.vue'))
 
 const { t } = useI18n()
 
@@ -169,6 +174,12 @@ interface Props {
    */
   scrollMode?: 'container' | 'window' | 'none'
   gridClass?: string
+  /**
+   * Bumped by the owner when the matches may have moved server-side (a finalization
+   * landing over the socket, a tab returning after a dropped connection). The list
+   * refetches what is already on screen, keeping the reader's place.
+   */
+  refreshKey?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -181,6 +192,8 @@ const matches = ref<ClientMatchCard[]>([])
 const total = ref(0)
 const hasMore = ref(false)
 const loading = ref(false)
+// Refreshing in place, as opposed to paginating: same lock, different affordance.
+const refreshing = ref(false)
 const container = ref<HTMLElement | null>(null)
 let offset = 0
 
@@ -193,6 +206,12 @@ type OutcomeFilter = 'WIN' | 'LOSS' | 'DRAW'
 
 const suggestions = ref<Player[]>([])
 const showMobileDialog = ref(false)
+const mobileDialogMounted = ref(false)
+
+function openMobileDialog() {
+  mobileDialogMounted.value = true
+  showMobileDialog.value = true
+}
 
 const outcomeFilters = computed(() => {
   const filters = [
@@ -321,6 +340,37 @@ async function loadMatches(append = false) {
   }
 }
 
+/**
+ * Background refresh. `loadMatches()` would reset to the first page and throw away
+ * however far the reader had scrolled, so this refetches exactly the range already
+ * loaded and swaps it in.
+ */
+async function refreshMatches() {
+  if (loading.value || !matches.value.length) return
+
+  loading.value = true
+  refreshing.value = true
+  try {
+    const result = await matchApi.list({
+      tournamentId: props.tournamentId,
+      playerIds: buildPlayerIds(),
+      status: disputedOnly.value ? 'disputed' : undefined,
+      bracketMode: props.bracketMode ? 'true' : undefined,
+      limit: matches.value.length,
+      offset: 0,
+    })
+    matches.value = result.data
+    offset = result.data.length
+    total.value = result.total
+    hasMore.value = result.hasMore
+  } catch (err) {
+    console.error('Erreur lors du rafraîchissement des matchs:', err)
+  } finally {
+    loading.value = false
+    refreshing.value = false
+  }
+}
+
 useInfiniteScroll(
   () => (props.scrollMode === 'window' ? window : container.value),
   async () => {
@@ -347,4 +397,8 @@ watch(
   { immediate: true },
 )
 watch(selectedPlayers, () => loadMatches())
+watch(
+  () => props.refreshKey,
+  () => refreshMatches(),
+)
 </script>

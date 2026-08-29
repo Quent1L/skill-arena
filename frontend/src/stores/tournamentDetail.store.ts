@@ -10,6 +10,7 @@ import {
   splitByPlacement,
 } from '@/composables/ranked/ranked.service'
 import { useTournamentStatsService } from '@/composables/tournament/tournament-stats.service'
+import { useBackgroundRefresh } from '@/composables/ui/useBackgroundRefresh'
 import { playerApi } from '@/composables/player/player.api'
 import { rankedApi } from '@/composables/ranked/ranked.api'
 import { careerPeak } from '@/composables/ranked/career'
@@ -29,6 +30,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const participantSvc = useParticipantService()
   const rankedSvc = useRankedService()
   const statsSvc = useTournamentStatsService()
+  // Refreshes that happen under the reader — a tab return, a finalization landing
+  // over the socket — swap the data with no warning. This makes them legible
+  // without ever taking the current data off screen.
+  const backgroundRefresh = useBackgroundRefresh()
 
   // Local state
   const tournamentId = ref('')
@@ -42,6 +47,10 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
   const playerCareer = ref<PlayerCareerSeason[] | null>(null)
   const playerStats = ref<PlayerStatsResponse | null>(null)
   const isLeaderboardRecalculating = ref(false)
+  // Bumped whenever the server-side match data may have moved. The match list owns
+  // its own paging and filters, so it cannot be reloaded from here — it watches this
+  // and refetches the range it already shows.
+  const matchesRefreshKey = ref(0)
   // Week the cached weeklyMmrLeaders belongs to, so a session left open across the
   // Monday rollover doesn't keep rendering last week's movers.
   const weeklyMmrWeekStart = ref<number | null>(null)
@@ -329,23 +338,44 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
 
   async function refreshSilently() {
     if (!tournamentId.value) return
-    const promises: Promise<unknown>[] = [
-      reloadTournament(),
-      reloadParticipants(),
-    ]
-    if (tournament.value?.mode === 'ranked' && rankedLeaderboard.value.length) {
-      promises.push(reloadLeaderboard())
-    }
-    if (playerMmr.value !== null) {
-      promises.push(reloadPlayerProfile())
-    }
-    if (tournamentStats.value !== null) {
-      promises.push(reloadStats())
-    }
-    if (weeklyMmrLeaders.value !== null) {
-      promises.push(reloadWeeklyMmrLeaders())
-    }
-    await Promise.all(promises)
+    await backgroundRefresh.run(async () => {
+      const promises: Promise<unknown>[] = [
+        reloadTournament(),
+        reloadParticipants(),
+      ]
+      if (tournament.value?.mode === 'ranked' && rankedLeaderboard.value.length) {
+        promises.push(reloadLeaderboard())
+      }
+      if (playerMmr.value !== null) {
+        promises.push(reloadPlayerProfile())
+      }
+      if (tournamentStats.value !== null) {
+        promises.push(reloadStats())
+      }
+      if (weeklyMmrLeaders.value !== null) {
+        promises.push(reloadWeeklyMmrLeaders())
+      }
+      await Promise.all(promises)
+      matchesRefreshKey.value += 1
+    })
+  }
+
+  /**
+   * The season's numbers just moved server-side. Same fan-out as a silent refresh
+   * minus the tournament row itself, and carrying the same indicator: this is the
+   * most common way the data changes while someone is looking at it.
+   */
+  async function refreshAfterLeaderboardUpdate() {
+    if (!tournamentId.value) return
+    await backgroundRefresh.run(async () => {
+      const promises: Promise<unknown>[] = [reloadLeaderboard()]
+      if (playerMmr.value !== null) promises.push(reloadPlayerProfile())
+      if (tournamentStats.value !== null) promises.push(reloadStats())
+      if (weeklyMmrLeaders.value !== null) promises.push(reloadWeeklyMmrLeaders())
+      await Promise.all(promises)
+      // A finalization is exactly the moment a new match must show up in the list.
+      matchesRefreshKey.value += 1
+    })
   }
 
   async function reloadTournament() {
@@ -380,6 +410,8 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     isInitialLoading,
     joining,
     leaving,
+    isRefreshing: backgroundRefresh.isRefreshing,
+    justRefreshed: backgroundRefresh.justRefreshed,
     // Tournament
     tournament,
     error,
@@ -401,6 +433,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     rankedProvisionalLoading,
     rankedSeasonMmrLoading,
     isLeaderboardRecalculating,
+    matchesRefreshKey,
     profileChartHistory,
     playerCareer,
     playerCareerPeak,
@@ -440,6 +473,7 @@ export const useTournamentDetailStore = defineStore('tournamentDetail', () => {
     reloadLeaderboard,
     reloadPlayerProfile,
     refreshSilently,
+    refreshAfterLeaderboardUpdate,
     loadProvisionalLeaderboard,
     loadSeasonMmrLeaderboard,
   }

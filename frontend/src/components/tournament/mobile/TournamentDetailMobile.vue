@@ -27,7 +27,7 @@
       </div>
 
       <!-- Tab: Participants -->
-      <div v-show="activeTab === 'participants'" class="h-full p-4">
+      <div v-if="isVisited('participants')" v-show="activeTab === 'participants'" class="h-full p-4">
         <TournamentParticipantsTab />
       </div>
 
@@ -35,11 +35,10 @@
         Tab: Stats. No `h-full` here: a sticky child only sticks within its parent's box,
         and a height capped to the viewport would drop the switcher after one screen.
       -->
-      <div v-show="activeTab === 'stats'">
+      <div v-if="isVisited('stats')" v-show="activeTab === 'stats'">
         <!-- Sub-tabs: ranked + authenticated only. Mounted from the first visit onwards. -->
         <template v-if="hasStatsSubTabs">
           <SubTabTrack
-            v-if="statsTabVisited"
             :options="statsSubTabs"
             :model-value="statsSubTab"
             :enabled="statsDragEnabled"
@@ -63,7 +62,7 @@
 
       <!-- Tab: Standings (championship only) -->
       <div
-        v-if="store.tournament!.mode === 'championship'"
+        v-if="store.tournament!.mode === 'championship' && isVisited('standings')"
         v-show="activeTab === 'standings'"
         class="h-full p-2"
       >
@@ -80,7 +79,11 @@
       </div>
 
       <!-- Tab: Bracket -->
-      <div v-if="store.tournament!.mode === 'bracket'" v-show="activeTab === 'bracket'" class="p-2">
+      <div
+        v-if="store.tournament!.mode === 'bracket' && isVisited('bracket')"
+        v-show="activeTab === 'bracket'"
+        class="p-2"
+      >
         <BracketView
           :tournament-id="store.tournamentId"
           :tournament="store.tournament!"
@@ -89,7 +92,7 @@
       </div>
 
       <!-- Tab: Matches -->
-      <div v-show="activeTab === 'matches'" class="h-full p-2">
+      <div v-if="isVisited('matches')" v-show="activeTab === 'matches'" class="h-full p-2">
         <MatchList
           :tournament-id="store.tournamentId"
           :bracket-mode="store.tournament!.mode === 'bracket'"
@@ -99,13 +102,17 @@
           :current-player-id="store.appUser?.id"
           :allow-draw="store.tournament!.allowDraw"
           :show-disputed-filter="store.canManageTournament"
+          :refresh-key="store.matchesRefreshKey"
         />
       </div>
 
       <!-- Tab: Ranked leaderboard. Padding is left to the leaderboard itself: the
            switchable views need it inside each pane, so that two of them never touch
            while the finger drags between them. -->
-      <div v-if="store.tournament!.mode === 'ranked'" v-show="activeTab === 'standings'">
+      <div
+        v-if="store.tournament!.mode === 'ranked' && isVisited('standings')"
+        v-show="activeTab === 'standings'"
+      >
         <RankedLeaderboard
           :players="store.rankedLeaderboard"
           :provisional-players="store.rankedProvisionalLeaderboard"
@@ -140,24 +147,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSwipe } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useSubTabs } from '@/composables/ui/useSubTabs'
 import SubTabTrack from '@/components/ui/SubTabTrack.vue'
-import MatchList from '@/components/MatchList.vue'
 import TournamentHeader from '@/components/tournament/TournamentHeader.vue'
-import StandingsTable from '@/components/tournament/StandingsTable.vue'
 import { toStandingsConfig } from '@/utils/standings-config'
-import BracketView from '@/components/bracket/BracketView.vue'
-import RankedLeaderboard from '@/components/ranked/RankedLeaderboard.vue'
-import TournamentParticipantsTab from '@/views/tournament/tabs/TournamentParticipantsTab.vue'
-import TournamentStatsTab from '@/views/tournament/tabs/TournamentStatsTab.vue'
 import TournamentInfosTab from '@/views/tournament/tabs/TournamentInfosTab.vue'
 import MobileBottomNav from '@/components/tournament/mobile/MobileBottomNav.vue'
-import MobileRankedProfilePane from '@/components/tournament/mobile/MobileRankedProfilePane.vue'
+
+// One tab is on screen at a time, and each of these drags in something substantial —
+// the standings table brings PrimeVue's DataTable, the bracket its own renderer. Kept
+// out of this chunk, they land while the reader is already looking at their tab.
+const MatchList = defineAsyncComponent(() => import('@/components/MatchList.vue'))
+const StandingsTable = defineAsyncComponent(() => import('@/components/tournament/StandingsTable.vue'))
+const BracketView = defineAsyncComponent(() => import('@/components/bracket/BracketView.vue'))
+const RankedLeaderboard = defineAsyncComponent(() => import('@/components/ranked/RankedLeaderboard.vue'))
+const TournamentParticipantsTab = defineAsyncComponent(() => import('@/views/tournament/tabs/TournamentParticipantsTab.vue'))
+const TournamentStatsTab = defineAsyncComponent(() => import('@/views/tournament/tabs/TournamentStatsTab.vue'))
+const MobileRankedProfilePane = defineAsyncComponent(() => import('@/components/tournament/mobile/MobileRankedProfilePane.vue'))
 
 const { t } = useI18n()
 
@@ -202,15 +213,17 @@ const { active: statsSubTab, setActive: setStatsSubTab } = useSubTabs({
   queryKey: 'statsSub',
 })
 
-/** Keeps the two stats panes out of the DOM until the Stats tab is opened once. */
-const statsTabVisited = ref(false)
-watch(
-  () => activeTab.value === 'stats',
-  (isStats) => {
-    if (isStats) statsTabVisited.value = true
-  },
-  { immediate: true },
-)
+/**
+ * A tab mounts on its first visit and stays mounted afterwards, so coming back is
+ * instant while a tab that is never opened costs nothing — neither its chunk nor the
+ * requests it would fire.
+ */
+const visitedTabs = ref(new Set<string>())
+watch(activeTab, (tab) => visitedTabs.value.add(tab), { immediate: true })
+
+function isVisited(tab: string): boolean {
+  return visitedTabs.value.has(tab)
+}
 
 // The track stays mounted under the other tabs, where its gestures mean nothing.
 const statsDragEnabled = computed(() => activeTab.value === 'stats')

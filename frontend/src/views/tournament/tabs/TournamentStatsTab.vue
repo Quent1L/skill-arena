@@ -1,7 +1,8 @@
 <template>
   <div>
-    <!-- Loading -->
-    <div v-if="store.tournamentStatsLoading" class="flex justify-center py-16">
+    <!-- Loading. A background refresh reuses this same flag, so the guard keeps the
+         stats already on screen instead of blanking them mid-read. -->
+    <div v-if="store.tournamentStatsLoading && !store.tournamentStats" class="flex justify-center py-16">
       <ProgressSpinner />
     </div>
 

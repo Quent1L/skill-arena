@@ -1,34 +1,11 @@
 <template>
   <div>
     <!-- Initial loading -->
-    <div v-if="store.isInitialLoading">
-      <div v-if="isMobile" class="flex justify-center py-12">
-        <ProgressSpinner />
-      </div>
-      <div v-else class="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div
-          class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-6"
-        >
-          <div class="max-w-5xl mx-auto">
-            <div class="flex items-center gap-3 mb-4">
-              <Skeleton shape="circle" size="2.5rem" />
-              <Skeleton height="2rem" width="40%" />
-            </div>
-            <Skeleton height="1rem" width="20%" class="mb-1" />
-          </div>
-        </div>
-        <div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-          <div class="max-w-5xl mx-auto px-6">
-            <Skeleton height="3rem" />
-          </div>
-        </div>
-        <div class="max-w-5xl mx-auto px-6 py-6">
-          <div class="grid grid-cols-3 gap-4">
-            <Skeleton height="8rem" v-for="i in 6" :key="i" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <TournamentDetailSkeleton
+      v-if="store.isInitialLoading"
+      :variant="isMobile ? 'mobile' : 'desktop'"
+      :tab="activeTabName"
+    />
 
     <Message v-else-if="store.error" severity="error" class="mb-6 mx-4 mt-4">
       {{ store.error }}
@@ -216,26 +193,36 @@
     />
 
     <RewindLauncher v-model:open="showRewind" :season-id="tournamentId" />
+
+    <!-- Mounted outside the mobile/desktop split: a background refresh is the same
+         event on both, and the reader keeps the data they already had. -->
+    <BackgroundRefreshIndicator :active="store.isRefreshing" :done="store.justRefreshed" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, defineAsyncComponent, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppToast } from '@/composables/useAppToast'
 import { useWindowScroll } from '@vueuse/core'
 import { useTournamentDetailStore } from '@/stores/tournamentDetail.store'
 import { useViewport } from '@/composables/useViewport'
-import TournamentDetailMobile from '@/components/tournament/mobile/TournamentDetailMobile.vue'
+// Loaded on demand: the mobile shell is dead weight on desktop, the reveal
+// animations only exist for ranked seasons, and the rewind opens on a click.
+const TournamentDetailMobile = defineAsyncComponent(
+  () => import('@/components/tournament/mobile/TournamentDetailMobile.vue'),
+)
+import TournamentDetailSkeleton from '@/components/tournament/TournamentDetailSkeleton.vue'
+import BackgroundRefreshIndicator from '@/components/ui/BackgroundRefreshIndicator.vue'
 import type { MmrAnimationWsPayload, BadgeAnimationWsPayload, MmrRecapReadyPayload } from '@skol-arena/shared'
 import OverflowMenuButton from '@/components/OverflowMenuButton.vue'
 import { onWsEvent, onWsOpen, sendWsMessage, useNotificationSocket } from '@/composables/notification/notification.socket'
 import { useMMrAnimationQueue } from '@/composables/ranked/useMMrAnimationQueue'
-import MmrRevealAnimation from '@/components/ranked/MmrRevealAnimation.vue'
-import MmrRecapCard from '@/components/ranked/MmrRecapCard.vue'
-import BadgeRevealAnimation from '@/components/ranked/BadgeRevealAnimation.vue'
-import RewindLauncher from '@/components/rewind/RewindLauncher.vue'
+const MmrRevealAnimation = defineAsyncComponent(() => import('@/components/ranked/MmrRevealAnimation.vue'))
+const MmrRecapCard = defineAsyncComponent(() => import('@/components/ranked/MmrRecapCard.vue'))
+const BadgeRevealAnimation = defineAsyncComponent(() => import('@/components/ranked/BadgeRevealAnimation.vue'))
+const RewindLauncher = defineAsyncComponent(() => import('@/components/rewind/RewindLauncher.vue'))
 import { useRewindService } from '@/composables/ranked/rewind.service'
 
 const route = useRoute()
@@ -389,10 +376,7 @@ onMounted(async () => {
       onWsEvent('leaderboard_updated', (data) => {
         if ((data as { seasonId: string }).seasonId !== tournamentId.value) return
         store.isLeaderboardRecalculating = false
-        store.reloadLeaderboard()
-        if (store.playerMmr !== null) store.reloadPlayerProfile()
-        if (store.tournamentStats !== null) store.reloadStats()
-        if (store.weeklyMmrLeaders !== null) store.reloadWeeklyMmrLeaders()
+        store.refreshAfterLeaderboardUpdate()
       }),
     )
   }

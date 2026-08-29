@@ -100,6 +100,10 @@ vi.mock('@/composables/player/player.api', () => ({
 }))
 
 import { useTournamentDetailStore } from '../tournamentDetail.store'
+import {
+  REFRESH_DONE_MS,
+  REFRESH_INDICATOR_DELAY_MS,
+} from '@/composables/ui/useBackgroundRefresh'
 
 // A Wednesday, so the week start (Monday) is unambiguous.
 const WEDNESDAY = new Date('2026-03-11T10:00:00')
@@ -222,6 +226,69 @@ describe('useTournamentDetailStore — weekly MMR leaders', () => {
   })
 })
 
+describe('useTournamentDetailStore — background refresh indicator', () => {
+  it('announces a slow refresh and confirms it landed', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    let release!: () => void
+    loadLeaderboard.mockImplementationOnce(() => new Promise<void>((res) => (release = res)))
+    leaderboardRef.value = [{ id: 'p1' }]
+
+    const running = store.refreshSilently()
+    await vi.advanceTimersByTimeAsync(REFRESH_INDICATOR_DELAY_MS)
+    expect(store.isRefreshing).toBe(true)
+
+    release()
+    await running
+    expect(store.isRefreshing).toBe(false)
+    expect(store.justRefreshed).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(REFRESH_DONE_MS)
+    expect(store.justRefreshed).toBe(false)
+  })
+
+  it('leaves a fast refresh invisible', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+
+    await store.refreshSilently()
+
+    expect(store.isRefreshing).toBe(false)
+    expect(store.justRefreshed).toBe(false)
+  })
+
+  it('refreshAfterLeaderboardUpdate reloads the warm caches under the same indicator', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    await store.ensureStats()
+    await store.ensureWeeklyMmrLeaders()
+    vi.clearAllMocks()
+    let release!: () => void
+    loadLeaderboard.mockImplementationOnce(() => new Promise<void>((res) => (release = res)))
+
+    const running = store.refreshAfterLeaderboardUpdate()
+    await vi.advanceTimersByTimeAsync(REFRESH_INDICATOR_DELAY_MS)
+    expect(store.isRefreshing).toBe(true)
+
+    release()
+    await running
+    expect(loadStats).toHaveBeenCalledTimes(1)
+    expect(loadWeeklyMmrLeaders).toHaveBeenCalledTimes(1)
+    expect(store.justRefreshed).toBe(true)
+  })
+
+  it('bumps the match list key on both refresh paths', async () => {
+    const store = useTournamentDetailStore()
+    await store.initialize('tournament-a')
+    const before = store.matchesRefreshKey
+
+    await store.refreshSilently()
+    await store.refreshAfterLeaderboardUpdate()
+
+    expect(store.matchesRefreshKey).toBe(before + 2)
+  })
+})
+
 describe('useTournamentDetailStore — uninitialized store', () => {
   it('reload actions are no-ops without a tournament id', async () => {
     const store = useTournamentDetailStore()
@@ -230,6 +297,7 @@ describe('useTournamentDetailStore — uninitialized store', () => {
     await store.reloadLeaderboard()
     await store.reloadWeeklyMmrLeaders()
     await store.refreshSilently()
+    await store.refreshAfterLeaderboardUpdate()
 
     expect(loadStats).not.toHaveBeenCalled()
     expect(loadLeaderboard).not.toHaveBeenCalled()

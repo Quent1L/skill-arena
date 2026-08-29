@@ -255,6 +255,10 @@
     "subtitle": "Récompenses gagnables sur ce tournoi",
     "title": "Badges à débloquer"
   },
+  "backgroundRefresh": {
+    "refreshing": "Actualisation…",
+    "updated": "Mis à jour"
+  },
   "badgeRevealAnimation": {
     "continue": "Continuer",
     "newBadge": "Nouveau badge"

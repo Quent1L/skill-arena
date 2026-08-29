@@ -255,6 +255,10 @@
     "subtitle": "Earnable rewards in this tournament",
     "title": "Available badges"
   },
+  "backgroundRefresh": {
+    "refreshing": "Refreshing…",
+    "updated": "Updated"
+  },
   "badgeRevealAnimation": {
     "continue": "Continue",
     "newBadge": "New badge"
