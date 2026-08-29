@@ -1,5 +1,120 @@
 # Changelog
 
+## [2.0.0](https://github.com/Quent1L/skol-arena/compare/1.20.2...2.0.0) (2026-08-29)
+
+### ⚠ BREAKING CHANGES
+
+* **rules:** badges already awarded change meaning. They are season
+  trophies now, and every existing badge rule becomes `per_season` — a
+  rule meant as a one-off has to be set back to `once` by hand. The first
+  reconciliation pass after deploy backfills the seasons that were never
+  awarded; it is enqueued by the nightly cron at 03:00, or on demand from
+  the admin badge reconciliation button, not at startup.
+* **stats:** bestTeams, bestDuoPlayers, bestSoloPlayers and
+  bestAsymmetricSoloPlayers in the tournament stats payload are now
+  boards ({ entries, isLowSample }) instead of arrays. Entries carry a
+  weighted `score`, and a team carries its `players` roster.
+* **notifications:** GET /me/notifications takes `limit`/`cursor` and
+  returns { data, hasMore, nextCursor, unreadCount, total } instead of a
+  bare array. FORCE_UPDATE already stands on this branch.
+* **mmr:** MMR of ongoing ranked seasons is recalculated on the
+  first boot after the update and standings will move. Team matches now
+  split the team delta instead of handing it whole to each player, so
+  per-match variation in a 2v2 is halved. Finished seasons keep their
+  frozen values.
+* **tournaments:** the tournament response nests the knobs under
+  `scoringConfig` / `championshipConfig`. FORCE_UPDATE ships in this
+  commit so old clients are held until they reload.
+
+### ✨ New Features
+
+* **api:** negotiate API major by accept-version header ([5cb6b11](https://github.com/Quent1L/skol-arena/commit/5cb6b11ddaeb541040a1ce346e4d6e3bb5eabd59))
+* **backend:** add a bulk match generator script ([68281ea](https://github.com/Quent1L/skol-arena/commit/68281ea2d572ca4fe74ecdd2911f07d9b045f8a1))
+* **disciplines:** archive instead of delete, and protect match history ([588bc4d](https://github.com/Quent1L/skol-arena/commit/588bc4db9ecd10afb3b7c29a7444cf7d2e96c6ad))
+* **match:** fold post-match contestation into the thread ([853c12f](https://github.com/Quent1L/skol-arena/commit/853c12f85eac9abf81c86611f2f17721846c5800))
+* **match:** replace score proposals with a discussion thread ([4f49afc](https://github.com/Quent1L/skol-arena/commit/4f49afc3e74128bfda50bae525fe6cdf9bb4452f))
+* **match:** show a skeleton while the match form loads ([626559f](https://github.com/Quent1L/skol-arena/commit/626559f11a0618866fd95146c70f7eed9f1e636b))
+* **match:** show the MMR multiplier on ranked outcome types ([f32e415](https://github.com/Quent1L/skol-arena/commit/f32e4154611d53c162a8eb7615657240b5c4a86b))
+* **mmr:** split team delta into normalised shares ([a656afe](https://github.com/Quent1L/skol-arena/commit/a656afe0098749f44fc44e81687cc796a15bad2d))
+* **ranked:** a player's peak is a career, not a season ([de88c14](https://github.com/Quent1L/skol-arena/commit/de88c14aeac764befdd4140ba63c3fdccc7c2714))
+* **ranked:** a season's dates are the ones it really had ([1e7dcd1](https://github.com/Quent1L/skol-arena/commit/1e7dcd18ea1677b80d9ff2c0603e531f2066f785))
+* **ranked:** make the match reporting window configurable ([f129749](https://github.com/Quent1L/skol-arena/commit/f1297495363feb351411729928895eb11128efc0))
+* **ranked:** show match balance from pre-match MMR ([dbd69cb](https://github.com/Quent1L/skol-arena/commit/dbd69cbe7edd3cff195fa694ffdd6c6051eb9b9e))
+* **rules:** condition on how a match ended ([aed85c9](https://github.com/Quent1L/skol-arena/commit/aed85c90912b0a7ab91454fb7d6bbd24a2e4daf0))
+* **rulesets:** freeze the discipline a competition is played under ([5135adb](https://github.com/Quent1L/skol-arena/commit/5135adbefee83f09881f626eb0037ec5363bb68c))
+* **rules:** explain priority and hide it on badge rules ([60efec9](https://github.com/Quent1L/skol-arena/commit/60efec94953f384029c4e81b5eb88ca0579cbf5f))
+* **rules:** make a badge a season trophy, not a lifetime one ([5820a45](https://github.com/Quent1L/skol-arena/commit/5820a453ae164e01ae5a39c01844cf7e00148a88))
+* **rules:** record every firing and what became of it ([7c30f4a](https://github.com/Quent1L/skol-arena/commit/7c30f4a2c66e2c538a4019517be5365131bf6e3f))
+* **rules:** version stored rules and migrate them forward ([b2f75ff](https://github.com/Quent1L/skol-arena/commit/b2f75ff1857dd4fede4048bd4e0ad704f1c7e20c))
+* **stats:** rank cards show roster, links and ranking bar ([0b2a277](https://github.com/Quent1L/skol-arena/commit/0b2a277df7974965b38d85a5e4656bd54f868160))
+* **tournament:** make loading and background refresh legible ([694e066](https://github.com/Quent1L/skol-arena/commit/694e066734213caf67c419f9e50ce7a7dbcf6ea9))
+* **tournaments:** one editability policy, and enforce status transitions ([93275c5](https://github.com/Quent1L/skol-arena/commit/93275c5ffb1a75c37772584590eb0cef76a31588))
+
+### 🐛 Bug Fixes
+
+* **backend:** warn that a bulk seed run saturates the MMR queue ([b7a7b10](https://github.com/Quent1L/skol-arena/commit/b7a7b10901cacf012a81ca3ecc7ba7a451b17d9d))
+* **db:** apply migrations one transaction each ([ce32b7e](https://github.com/Quent1L/skol-arena/commit/ce32b7ef2e2e3c53a24a982f927ab57940dc937c))
+* **db:** repair the drizzle-kit snapshot chain ([11f8969](https://github.com/Quent1L/skol-arena/commit/11f8969991ced01c58da8bd5145e602fe64eb7fa))
+* **disciplines:** make propagation selectable and tie it to the real edits ([9ecf0bc](https://github.com/Quent1L/skol-arena/commit/9ecf0bc09612f113ec4f5ac10179729067a81920))
+* **header:** read the display name from app_users ([3a4123a](https://github.com/Quent1L/skol-arena/commit/3a4123adce25c27a5a962a922186bf7bd8adcb3d))
+* **i18n:** fix iOS PWA install instruction wording ([1c7475a](https://github.com/Quent1L/skol-arena/commit/1c7475a2d746f8007c7fd15efc0c0087fad99060))
+* **i18n:** label match balance sides A/B ([2942f39](https://github.com/Quent1L/skol-arena/commit/2942f39b2a18df322d7354a3667400ca083efffa))
+* **i18n:** translate French leftovers on the player and match screens ([16d595c](https://github.com/Quent1L/skol-arena/commit/16d595cd1fae3d19d5fd98a6fb72936ef0a7ec1a))
+* **match:** keep the match form on a single root node ([83f6920](https://github.com/Quent1L/skol-arena/commit/83f6920b3e83e5f6099f4a2c1ccf8eca49f0728e))
+* **match:** validate revisions against the stored score ([fca2c6e](https://github.com/Quent1L/skol-arena/commit/fca2c6e7356c5607c00ccdca3c9fade2a7116e38))
+* **notifications:** free action notifs once their action is settled ([6308fe6](https://github.com/Quent1L/skol-arena/commit/6308fe6c4764831b30a59ef5081b5ff3c7b2b070))
+* **ranked:** keep the rule message on its match event ([dac7bc3](https://github.com/Quent1L/skol-arena/commit/dac7bc3669a84afaa4700f2ab9fbc40b583bbeaf))
+* **ranked:** show a profile only to whoever has one ([6a3c5bb](https://github.com/Quent1L/skol-arena/commit/6a3c5bb438a157ad1a2760f69f1bbb8297c4f45e))
+* **ranked:** stop locked fields blocking a season update ([affd849](https://github.com/Quent1L/skol-arena/commit/affd849fd72d76b129934e6bdf7469db5ec9cd27))
+* **rewind:** keep "Top N" on one line in stat labels ([d60db69](https://github.com/Quent1L/skol-arena/commit/d60db69790b69fad253b26456d020f05be6c9844))
+* **rules:** make contains work on string facts ([178f082](https://github.com/Quent1L/skol-arena/commit/178f082aeba6eb8bf699c5a72f5618fadd9035b0))
+* **tournament:** redirect to appropriate edit path for ranked tournaments ([2b46b97](https://github.com/Quent1L/skol-arena/commit/2b46b9751e98bdf5f0731093bfe2ca6559889aba))
+* **tournament:** stop layout shift on desktop tab switch ([b0bd99b](https://github.com/Quent1L/skol-arena/commit/b0bd99bd92db8603790a05171361cf869f18f835))
+* **worker:** drop a job whose subject is gone ([ca95f70](https://github.com/Quent1L/skol-arena/commit/ca95f706afb23a298c117ab5bb90b6b16ae9d80c))
+
+### ⚡ Performance
+
+* **db:** generate row ids as UUID v7 ([64ef7b5](https://github.com/Quent1L/skol-arena/commit/64ef7b5c183d8e3e311ae20b91fde107ebb60309))
+* **editor:** dedupe prosemirror copies ([99e42be](https://github.com/Quent1L/skol-arena/commit/99e42be31388eba075e8ce1fab68d149c5a7f4bd))
+* **notifications:** drop duplicate boot fetch ([c178441](https://github.com/Quent1L/skol-arena/commit/c17844137422a6c22b9e6897ec614034f102474e))
+* **notifications:** paginate the feed, clear it in one request ([8b87e99](https://github.com/Quent1L/skol-arena/commit/8b87e996226783a6723a1972b3a4eeb086fde5b6))
+
+### ♻️ Refactoring
+
+* **mmr:** own the placement rule in the engine ([9790a29](https://github.com/Quent1L/skol-arena/commit/9790a296fa06e8a622cd0a45be47c809c5d0cad1))
+* **ranked:** drop the skip from the MMR reveal and recap ([3f649cd](https://github.com/Quent1L/skol-arena/commit/3f649cd2ebcaf90eedd84df4f50bf51ebd0e5b90))
+* **tournaments:** extract per-mode config ([0e04c7b](https://github.com/Quent1L/skol-arena/commit/0e04c7b093a2646c10305de65a1376d5b988b8dd))
+
+### 📝 Documentation
+
+* add open source community health files ([b1d3f73](https://github.com/Quent1L/skol-arena/commit/b1d3f736502674b94fb81b1359aa1faaf2c86e25))
+* **site:** add a blog and announce going open source ([e5aa62c](https://github.com/Quent1L/skol-arena/commit/e5aa62c5ee76cb3047a8ac103fabece5eacc360d))
+* **site:** add a copy button, unstyle code inside blocks ([95adcb7](https://github.com/Quent1L/skol-arena/commit/95adcb75952b5943873b80d355839aaa4693ac99))
+* **site:** add SEO metadata, sitemap and llms.txt ([4c80661](https://github.com/Quent1L/skol-arena/commit/4c8066118db581f5cbff348a2774df828450b438))
+* **site:** move product reference into the docs site ([4fecaf4](https://github.com/Quent1L/skol-arena/commit/4fecaf48b60abe8e1043c0876038d618751e8544))
+* **site:** one-command reset for the screenshot database ([1bcac4f](https://github.com/Quent1L/skol-arena/commit/1bcac4f36ad90daf8d70ae457667c591236377f1))
+* **site:** redesign the landing page around real product screenshots ([69f6547](https://github.com/Quent1L/skol-arena/commit/69f6547881d678015738b6b701ed099c50818879))
+* **site:** state the two-side match limit and host sizing ([5c7d2eb](https://github.com/Quent1L/skol-arena/commit/5c7d2eb763d4e802e359ce0c8e7f4df7499fcc65))
+* **test:** translate French test titles and comments to English ([3319ee0](https://github.com/Quent1L/skol-arena/commit/3319ee06dce02c10e017b449b4d3fd3d4bc8fed4))
+
+### 🔧 Maintenance
+
+* **backend:** cap the test pool at 2 connections ([edfe513](https://github.com/Quent1L/skol-arena/commit/edfe513d307d986898f1176dc7e0ba77869d048d))
+* **db:** drop unused contestation_proof column ([1f42617](https://github.com/Quent1L/skol-arena/commit/1f42617e3f4a020d7c99d0b8a06aa00c087ffaee))
+* **deps:** minor/patch bumps dependencies across workspaces ([27ba69d](https://github.com/Quent1L/skol-arena/commit/27ba69d7ce76a9801cda41707ff0df1d803deab4))
+* **deps:** upgrade release-it to v21 ([d777757](https://github.com/Quent1L/skol-arena/commit/d7777572df80dc96a498e3a4d669ca3a3afcbe2d))
+* **docker:** bump bun to 1.4 and patch OS packages on build ([9d1603a](https://github.com/Quent1L/skol-arena/commit/9d1603a672ffab2faed9a0e1318b85f5b388c4db))
+* drop stale per-workspace lockfiles ([1c4016b](https://github.com/Quent1L/skol-arena/commit/1c4016b0fcf25c92275e320c22b9a70aef4227f7))
+* **hooks:** skip the app suite on docs-only commits ([744db39](https://github.com/Quent1L/skol-arena/commit/744db39840652b9cf257019553e9a8010e98cc26))
+* **mmr:** drop the one-shot ranked recalc script ([41a4d7f](https://github.com/Quent1L/skol-arena/commit/41a4d7fc71ae85cc20c381d62b84e3d2194d9836))
+
+### 🎨 Style
+
+* **brand:** rebrand to Skol Arena ([07f2edf](https://github.com/Quent1L/skol-arena/commit/07f2edfa7c62aae066d562490ecb057238eabaf0)), references [#551DC8](https://github.com/Quent1L/skol-arena/issues/551DC8)
+* **match:** rebuild the match detail screen ([6595c0f](https://github.com/Quent1L/skol-arena/commit/6595c0f979ab02681683645e3269466ef04a69f7))
+* **match:** tidy the mobile scoreboard and ranked profile ([1799cfd](https://github.com/Quent1L/skol-arena/commit/1799cfd74d552f0fa163cb2f75ee2f663b3023d4))
+* **ranked:** rework MMR reveal and recap animations ([b880f07](https://github.com/Quent1L/skol-arena/commit/b880f071c28334bc0c5a09d7a6ced1ff7befc766))
+
 ## [1.20.2](https://github.com/Quent1L/skol-arena/compare/1.20.1...1.20.2) (2026-08-09)
 
 ### 🎨 Style
