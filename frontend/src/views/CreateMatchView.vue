@@ -1,33 +1,40 @@
 <template>
-  <!-- The wizard mounts only once its data is in: rendered any earlier, its player
-       and team pickers are interactive and empty, which reads as "this tournament
-       has nobody in it" rather than "not here yet". -->
-  <MatchFormSkeleton v-if="isLoading" :variant="isMobile ? 'mobile' : 'desktop'" />
+  <div>
+    <!-- One root element, comment included: <RouterView> wraps the route component in
+         a <Transition mode="out-in">, which can only animate a single root node. A
+         comment left beside the branches is a second root node in dev builds, where
+         comments are kept — the leave transition then never completes and the next
+         route never mounts.
+         The wizard itself mounts only once its data is in: rendered any earlier, its
+         player and team pickers are interactive and empty, which reads as "this
+         tournament has nobody in it" rather than "not here yet". -->
+    <MatchFormSkeleton v-if="isLoading" :variant="isMobile ? 'mobile' : 'desktop'" />
 
-  <div v-else-if="loadError" class="max-w-2xl mx-auto p-4 sm:p-6 flex flex-col gap-4">
-    <Message severity="error" :closable="false">{{ t('createMatchView.loadError') }}</Message>
-    <div>
-      <Button
-        :label="t('createMatchView.retry')"
-        icon="fas fa-rotate-right"
-        outlined
-        @click="loadForm"
-      />
+    <div v-else-if="loadError" class="max-w-2xl mx-auto p-4 sm:p-6 flex flex-col gap-4">
+      <Message severity="error" :closable="false">{{ t('createMatchView.loadError') }}</Message>
+      <div>
+        <Button
+          :label="t('createMatchView.retry')"
+          icon="fas fa-rotate-right"
+          outlined
+          @click="loadForm"
+        />
+      </div>
     </div>
-  </div>
 
-  <MatchFormStepperMobile
-    v-else-if="isMobile"
-    :tournament-id="tournamentId"
-    :match-id="matchId"
-    :bracket-locked="isBracketMatch"
-  />
-  <MatchFormStepperDesktop
-    v-else
-    :tournament-id="tournamentId"
-    :match-id="matchId"
-    :bracket-locked="isBracketMatch"
-  />
+    <MatchFormStepperMobile
+      v-else-if="isMobile"
+      :tournament-id="tournamentId"
+      :match-id="matchId"
+      :bracket-locked="isBracketMatch"
+    />
+    <MatchFormStepperDesktop
+      v-else
+      :tournament-id="tournamentId"
+      :match-id="matchId"
+      :bracket-locked="isBracketMatch"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">

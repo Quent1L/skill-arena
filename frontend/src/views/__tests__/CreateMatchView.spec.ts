@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { defineComponent, inject, ref } from 'vue'
+import { defineComponent, inject, ref, Fragment } from 'vue'
 import { flushPromises } from '@vue/test-utils'
 import { useRoute } from 'vue-router'
 import { mountWithPrime } from '@/test-support/mount'
@@ -478,6 +478,19 @@ describe('CreateMatchView', () => {
     loadTournamentMock.mockResolvedValue(makeClientTournament({ mode: 'championship' }))
     const wrapper = await mountView()
     expect(getProbe(wrapper).props('bracketLocked')).toBe(false)
+  })
+
+  // <RouterView> wraps every route component in a <Transition mode="out-in">, which
+  // only animates a single root node. A second root — a comment kept beside the
+  // branches in a dev build is enough — leaves the leave transition pending forever:
+  // the page navigated away from never finishes leaving and the next one never mounts.
+  it('renders a single root node, whatever branch is shown', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.vm.$.subTree.type).not.toBe(Fragment)
+
+    loadTournamentMock.mockImplementation(() => new Promise(() => {}))
+    const loading = await mountView()
+    expect(loading.vm.$.subTree.type).not.toBe(Fragment)
   })
 
   it('provides the expected MATCH_FORM_KEY context to descendants', async () => {
