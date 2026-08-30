@@ -1,7 +1,7 @@
 ---
 title: Contextual rules engine
 summary: Live badges and messages that react to what's happening in the tournament.
-order: 8
+order: 9
 icon: bolt
 badge: Beta
 pillar: platform

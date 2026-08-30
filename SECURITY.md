@@ -52,7 +52,7 @@ Two behaviours look alarming but are documented and intentional:
   first boot against an empty database, and regenerated on every restart until that account
   logs in once. This is how you get into a fresh instance. Treat those logs as a secret
   until you have changed the password. See the
-  [deployment guide](https://skol-arena-docs.vercel.app/docs/deployment).
+  [deployment guide](https://skol-arena.com/docs/deployment).
 - **The API reference is served at `/api/docs`** in development. It is gated by
   `API_DOCS_ENABLED`, which is off in production. If it is reachable on your production
   instance, check that variable rather than reporting it.
@@ -69,4 +69,4 @@ If you self-host, the things that actually matter:
 - Keep PostgreSQL off the public internet.
 
 Every variable is documented in the
-[environment variables reference](https://skol-arena-docs.vercel.app/docs/environment-variables).
+[environment variables reference](https://skol-arena.com/docs/environment-variables).

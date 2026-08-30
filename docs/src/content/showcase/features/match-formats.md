@@ -1,7 +1,7 @@
 ---
 title: Match formats beyond 1v1
 summary: Two sides, A and B — solo, fixed rosters, or teams assembled per match, with configurable team sizes.
-order: 2
+order: 3
 icon: layers
 pillar: platform
 docs: /docs/matches#team-formats

@@ -1,0 +1,117 @@
+---
+/**
+ * Several DeviceShots in one slot, one visible at a time.
+ *
+ * A ranked season is three screens that only make sense together — the ladder,
+ * one player's own standing in it, and the season summed up. Stacking them
+ * pushes the block past the prose beside it and drops the last one into empty
+ * space; a carousel keeps them where the argument is.
+ *
+ * The slides are all rendered: switching toggles `hidden` rather than swapping
+ * sources, so the captions stay in the DOM for Pagefind and the whole thing
+ * still shows the first screen with JavaScript off.
+ */
+import DeviceShot from './DeviceShot.astro'
+import Icon from './Icon.astro'
+import type { DeviceSlide } from '../lib/ranked-shots'
+
+interface Props {
+  slides: DeviceSlide[]
+  width?: number
+  class?: string
+}
+
+const { slides, width = 300, class: className = '' } = Astro.props
+
+// Ids have to be unique per instance: two carousels on one page would otherwise
+// share aria-controls targets. Baked into the static output at build time.
+const uid = `dc-${crypto.randomUUID().slice(0, 8)}`
+---
+
+<div class={`device-carousel ${className}`} data-device-carousel>
+  <div class="relative">
+    {
+      slides.map((slide, i) => (
+        <div id={`${uid}-slide-${i}`} data-carousel-slide hidden={i !== 0}>
+          <DeviceShot
+            desktop={slide.desktop}
+            mobile={slide.mobile}
+            alt={slide.alt}
+            caption={slide.caption}
+            width={width}
+          />
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="mt-5 flex items-center justify-center gap-3">
+    <button
+      type="button"
+      data-carousel-prev
+      aria-label="Previous screenshot"
+      class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+    >
+      <Icon name="arrow-left" class="h-4 w-4" />
+    </button>
+
+    <div class="flex items-center gap-2" role="tablist" aria-label="Screenshots">
+      {
+        slides.map((slide, i) => (
+          <button
+            type="button"
+            role="tab"
+            data-carousel-dot
+            aria-controls={`${uid}-slide-${i}`}
+            aria-selected={i === 0 ? 'true' : 'false'}
+            aria-label={slide.label}
+            class="h-2 w-2 rounded-full bg-white/20 transition-all aria-selected:w-6 aria-selected:bg-brand-mid"
+          />
+        ))
+      }
+    </div>
+
+    <button
+      type="button"
+      data-carousel-next
+      aria-label="Next screenshot"
+      class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 transition-colors hover:border-brand-mid/60 hover:text-brand-mid"
+    >
+      <Icon name="arrow-right" class="h-4 w-4" />
+    </button>
+  </div>
+</div>
+
+<script>
+  // One listener set per carousel. Runs on every page: Astro bundles this once
+  // and the querySelectorAll simply finds nothing on pages without one.
+  document.querySelectorAll<HTMLElement>('[data-device-carousel]').forEach((root) => {
+    const slides = [...root.querySelectorAll<HTMLElement>('[data-carousel-slide]')]
+    const dots = [...root.querySelectorAll<HTMLButtonElement>('[data-carousel-dot]')]
+    if (slides.length < 2) return
+
+    let current = 0
+    const show = (next: number) => {
+      current = (next + slides.length) % slides.length
+      slides.forEach((slide, i) => {
+        slide.hidden = i !== current
+      })
+      dots.forEach((dot, i) => dot.setAttribute('aria-selected', String(i === current)))
+    }
+
+    dots.forEach((dot, i) => dot.addEventListener('click', () => show(i)))
+    root.querySelector('[data-carousel-prev]')?.addEventListener('click', () => show(current - 1))
+    root.querySelector('[data-carousel-next]')?.addEventListener('click', () => show(current + 1))
+
+    // Left/right arrows move between slides once a dot has focus, which is what
+    // a tablist is expected to do.
+    dots.forEach((dot) =>
+      dot.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+        event.preventDefault()
+        show(current + (event.key === 'ArrowRight' ? 1 : -1))
+        dots[current]?.focus()
+      }),
+    )
+  })
+</script>

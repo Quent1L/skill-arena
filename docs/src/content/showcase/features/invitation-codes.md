@@ -1,7 +1,7 @@
 ---
 title: Invitation codes
 summary: Registration is invite-only — a code creates the account, and can carry a group with it.
-order: 12
+order: 13
 icon: key
 pillar: platform
 docs: /docs/accounts#invitation-codes

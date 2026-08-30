@@ -1,7 +1,7 @@
 ---
 title: Organizations
 summary: Scope a tournament to a group — only its members can see it.
-order: 11
+order: 12
 icon: building
 pillar: platform
 docs: /docs/accounts#organizations

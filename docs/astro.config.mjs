@@ -7,7 +7,7 @@ export default defineConfig({
   // The single source for the site origin. Everything absolute the site emits —
   // canonical tags, og:url, the sitemap, JSON-LD @id anchors, llms.txt links —
   // derives from this via Astro.site, so a domain migration is a one-line edit.
-  site: 'https://skol-arena-docs.vercel.app',
+  site: 'https://skol-arena.com',
   // build.format stays at its `directory` default, so a route answers at both
   // /about and /about/. This settles which of the two the site links to and
   // reports; the canonical tag is what actually deduplicates them for crawlers.

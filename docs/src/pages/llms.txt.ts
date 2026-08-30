@@ -32,11 +32,19 @@ export const GET: APIRoute = async ({ site }) => {
 
 > ${SITE.description}
 
-${SITE.name} ("${SITE.tagline}") is AGPL-3.0 licensed and self-hosted from a single Docker
-image containing the API, the frontend and automatic database migrations; it needs only a
-PostgreSQL database. It offers three independent competition modes — championship leagues,
-elimination brackets, and ranked ladders with per-discipline MMR — and is built around
-players reporting their own matches, with configurable validation per tournament.
+${SITE.name} ("${SITE.tagline}") is a platform for running *persistent competitive
+communities*, not a one-off tournament bracket generator: one player base, whose profiles,
+match history and cross-tournament statistics survive past any single event. It offers
+three independent competition modes — championship leagues with persistent standings,
+elimination brackets, and ranked ladders with MMR — which can be run alone or side by
+side. MMR moves only inside a ranked season; a new season either starts everyone at the
+base rating or carries the previous one over with a configurable soft reset. A bracket can
+be drawn at random or seeded from a finished championship's standings in the same
+discipline. Matches are created and reported by the players in them, with the amount of
+confirmation required set per tournament (immediate, automatic after a delay, explicit
+opponent confirmation, or admin-only). AGPL-3.0 licensed and self-hosted from a single
+Docker image containing the API, the frontend and automatic database migrations; it needs
+only a PostgreSQL database.
 
 - Source: ${SITE.repo}
 - Container image: ${SITE.docker}
@@ -60,7 +68,7 @@ ${posts.map((post) => line(post.data.title, url(`/blog/${post.id}`), post.data.d
 
 ## Other pages
 
-${line('Home', url('/'), 'Overview of the three modes, screenshots, and FAQ')}
+${line('Home', url('/'), 'The competition lifecycle, the three modes, screenshots, and FAQ')}
 ${line('Features', url('/features'), 'Every feature, grouped by the mode it belongs to')}
 ${line('About', url('/about'), 'Why Skol Arena exists, who it is for, and what it is built with')}
 `

@@ -30,7 +30,7 @@ bun install
 cp backend/.env.example backend/.env
 #    At minimum, set DATABASE_URL and BETTER_AUTH_SECRET.
 #    Every variable is documented at
-#    https://skol-arena-docs.vercel.app/docs/environment-variables
+#    https://skol-arena.com/docs/environment-variables
 
 # 4. Start everything — this also creates the schema on first run
 bun run dev

@@ -2,16 +2,16 @@
 
 # Skol Arena
 
-**Skill Or Luck?** — an open-source tournament and ranked-ladder platform, built for players.
+**Skill Or Luck?** — an open-source platform for running persistent competitive communities.
 
 [![Release](https://img.shields.io/github/v/release/Quent1L/skol-arena?label=release&color=8b5cf6)](https://github.com/Quent1L/skol-arena/releases)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/quent1l/skol-arena)](https://hub.docker.com/r/quent1l/skol-arena)
 [![Built with Bun](https://img.shields.io/badge/built%20with-Bun-f9f1e1)](https://bun.sh)
 
-[Website](https://skol-arena-docs.vercel.app) ·
-[Features](https://skol-arena-docs.vercel.app/features) ·
-[Documentation](https://skol-arena-docs.vercel.app/docs) ·
+[Website](https://skol-arena.com) ·
+[Features](https://skol-arena.com/features) ·
+[Documentation](https://skol-arena.com/docs) ·
 [Releases](https://github.com/Quent1L/skol-arena/releases) ·
 [Docker Hub](https://hub.docker.com/r/quent1l/skol-arena)
 
@@ -21,22 +21,34 @@
 
 ## What is Skol Arena?
 
-Most competition tools are built around one idea: an organizer sets everything up, players
-show up, scores get entered, the event ends. That works for a one-day bracket. It breaks
-down when your competition lives across days or weeks, when players can't all meet at the
-same time, or when your discipline doesn't fit a rigid format.
+Skol Arena is an open-source platform for running persistent competitive communities.
+Run championships, ranked ladders and elimination brackets while player profiles, rankings,
+history and statistics stay in one place.
 
-Skol Arena is built for those cases — clubs, communities, workplaces and local groups that
-need competitions to stay flexible, credible and easy to run day after day. It is
-**player-driven**: participants create and report their own matches, confirm or contest
-results, and keep the competition moving without routing everything through one person.
+### More than a tournament bracket
+
+Most tournament tools are built around a single event: an organizer sets everything up,
+players show up, scores get entered, the event ends — and the history resets before the
+next one.
+
+Skol Arena is designed for communities that keep competing. Players play when they are
+available, build a record over time, take part in seasons, and eventually meet in a final
+bracket. Profiles, match history and standings stay put across events; a new ranked season
+is the one thing you choose to reset — or carry over. It suits clubs, gaming communities,
+companies, campuses and local groups that want to run competitions without relying on
+spreadsheets and scattered tools.
+
+It is **player-driven**: participants create and report their own matches, confirm or
+contest results, and keep the competition moving without routing everything through one
+person.
 
 It is **self-hostable** and ships as a single Docker image holding the API, the built web
-app and its database migrations. You bring a PostgreSQL database and nothing else.
+app and its database migrations. You bring a PostgreSQL database and nothing else. Your
+data stays on your infrastructure.
 
 ## Features
 
-Three independent competition modes:
+One player base, three independent competition modes — run one, or all three side by side:
 
 - **Championship** — flexible competitions that run over time. Persistent standings,
   configurable scoring, and fairness limits that stop a season-long championship from
@@ -57,7 +69,7 @@ Across every mode:
 - **Access control** — native login or Keycloak SSO, invite-only registration, and
   organizations that scope a tournament to a group.
 
-→ **[Full feature tour](https://skol-arena-docs.vercel.app/features)**
+→ **[Full feature tour](https://skol-arena.com/features)**
 
 ## Getting started
 
@@ -76,7 +88,7 @@ Migrations run automatically at startup, and an initial super-admin account is c
 the first boot against an empty database — its generated password is printed to the
 container logs.
 
-→ **[Docker Compose setup, reverse proxy and first-boot guide](https://skol-arena-docs.vercel.app/docs/deployment)**
+→ **[Docker Compose setup, reverse proxy and first-boot guide](https://skol-arena.com/docs/deployment)**
 
 ### Develop
 
@@ -114,13 +126,13 @@ and the conventions.
 
 | | |
 |---|---|
-| [Website](https://skol-arena-docs.vercel.app) | What Skol Arena is and why it exists |
-| [Features](https://skol-arena-docs.vercel.app/features) | The complete feature tour |
-| [Self-hosting](https://skol-arena-docs.vercel.app/docs) | Quick start and prerequisites |
-| [Deployment](https://skol-arena-docs.vercel.app/docs/deployment) | Docker image, Compose, first boot |
-| [Environment variables](https://skol-arena-docs.vercel.app/docs/environment-variables) | Every variable the app reads |
-| [How it works](https://skol-arena-docs.vercel.app/docs/matches) | Matches, disciplines, MMR, accounts |
-| [API versioning](https://skol-arena-docs.vercel.app/docs/api) | Header-based version negotiation |
+| [Website](https://skol-arena.com) | What Skol Arena is and why it exists |
+| [Features](https://skol-arena.com/features) | The complete feature tour |
+| [Self-hosting](https://skol-arena.com/docs) | Quick start and prerequisites |
+| [Deployment](https://skol-arena.com/docs/deployment) | Docker image, Compose, first boot |
+| [Environment variables](https://skol-arena.com/docs/environment-variables) | Every variable the app reads |
+| [How it works](https://skol-arena.com/docs/matches) | Matches, disciplines, MMR, accounts |
+| [API versioning](https://skol-arena.com/docs/api) | Header-based version negotiation |
 | [Releases](https://github.com/Quent1L/skol-arena/releases) | Changelog for every version |
 | [Docker Hub](https://hub.docker.com/r/quent1l/skol-arena) | Published images |
 

@@ -1,7 +1,7 @@
 ---
 title: Disciplines & outcomes
 summary: Configure the games you play once, then define exactly how results score.
-order: 4
+order: 5
 icon: layers
 pillar: platform
 docs: /docs/disciplines#disciplines-and-outcome-types

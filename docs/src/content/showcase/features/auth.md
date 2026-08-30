@@ -1,7 +1,7 @@
 ---
 title: Secure authentication
 summary: Native login or Keycloak SSO — enable either, or both at once.
-order: 10
+order: 11
 icon: lock
 pillar: platform
 docs: /docs/accounts#authentication

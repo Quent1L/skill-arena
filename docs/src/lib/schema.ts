@@ -67,7 +67,7 @@ export function softwareApplication(site: URL | undefined): SchemaNode {
     description: SITE.description,
     url: canonicalUrl('/', site),
     applicationCategory: 'BusinessApplication',
-    applicationSubCategory: 'Tournament management software',
+    applicationSubCategory: 'Competitive community platform',
     operatingSystem: 'Docker, Linux, macOS, Windows',
     softwareVersion: currentVersion(),
     license: SITE.license,
@@ -75,11 +75,26 @@ export function softwareApplication(site: URL | undefined): SchemaNode {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     author: { '@id': organizationId(site) },
     featureList: [
-      'Championship leagues with standings',
-      'Single-elimination brackets with seeding',
-      'Ranked ladders with per-discipline MMR',
-      'Player-reported matches with configurable validation',
+      'Ranked seasons with a persistent MMR ladder and population-based tiers',
+      'Ranked seasons that start fresh or carry the previous MMR over with a soft reset',
+      'Championship leagues with persistent standings and fairness limits',
+      'Elimination brackets seeded at random or from a finished championship',
+      'Player-reported matches with configurable validation per tournament',
+      'Player profiles, head-to-head comparison and cross-tournament statistics',
       'Self-hosted via a single Docker image',
+    ],
+    // The category the product deliberately does not *claim* still has to be
+    // findable: the prose above positions it, these keep it searchable.
+    keywords: [
+      'tournament software',
+      'tournament management',
+      'league management',
+      'ranked ladder',
+      'MMR',
+      'championship',
+      'bracket',
+      'self-hosted',
+      'open source',
     ],
   }
 }

@@ -159,6 +159,11 @@ async function main() {
     { name: 'bracket', path: `/tournaments/${targets.cupId}/bracket` },
     { name: 'player', path: `/players/${targets.theoId}` },
     { name: 'match', path: `/matches/${targets.pendingMatchId}` },
+    // Both panes of the season's Stats tab. They are one component switched by a
+    // query param, and the profile pane only renders for a signed-in participant
+    // of a ranked season — which is what the showcase account is.
+    { name: 'season-profile', path: `/tournaments/${targets.seasonId}/stats?statsSub=profile`, settle: 1600 },
+    { name: 'season-stats', path: `/tournaments/${targets.seasonId}/stats?statsSub=global`, settle: 1600 },
   ]
 
   const browser = await chromium.launch()

@@ -1,7 +1,7 @@
 ---
 title: Mobile-first, installable
 summary: Purpose-built mobile screens and an installable PWA — not a shrunken desktop UI.
-order: 5
+order: 6
 icon: bolt
 pillar: platform
 ---

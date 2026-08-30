@@ -1,9 +1,8 @@
 ---
 import type { CollectionEntry } from 'astro:content'
 import Icon from './Icon.astro'
-import DeviceShot from './DeviceShot.astro'
-import rankedDesktop from '../assets/screenshots/ranked-desktop.png'
-import rankedMobile from '../assets/screenshots/ranked-mobile.png'
+import DeviceCarousel from './DeviceCarousel.astro'
+import { RANKED_SLIDES } from '../lib/ranked-shots'
 
 interface Props {
   variant?: 'features'
@@ -55,12 +54,7 @@ const stats = [
     </div>
     <div>
       <div class="lg:sticky lg:top-24">
-        <DeviceShot
-          desktop={rankedDesktop}
-          mobile={rankedMobile}
-          alt="A ranked leaderboard grouped into Diamond, Platinum, Gold and Silver tiers"
-          caption="Tiers that move with the player pool, not fixed bands"
-        />
+        <DeviceCarousel slides={RANKED_SLIDES} />
       </div>
     </div>
   </div>

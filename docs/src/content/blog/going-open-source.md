@@ -1,7 +1,7 @@
 ---
 title: Skol Arena is now open source
 description: The source is public, the image is on Docker Hub, and the documentation is online. Here is what that means if you want to run your own instance.
-date: 2026-08-23
+date: 2026-08-30
 tag: Announcement
 ---
 

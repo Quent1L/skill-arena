@@ -1,15 +1,18 @@
 ---
-title: Because real competitions don't run like a standard bracket
-summary: Most tools assume one organizer, one day, one bracket. Real communities don't work that way.
+title: More than a tournament bracket
+summary: Most tournament tools are built around a single event. Communities that keep competing need something that lasts longer than one.
 order: 0
 ---
 
-Most competition tools are built around a simple idea: one organizer sets everything up,
-players show up, scores get entered, the event ends.
+Most tournament tools are built around a single event. One organizer sets everything up,
+players show up, scores get entered, the event ends — and the history resets before the
+next one.
 
-That works for some tournaments. It breaks down fast when your competition lives across
-days or weeks, when players can't all meet at the same time, or when your discipline
-doesn't fit neatly into a rigid format.
+Skol Arena is designed for communities that keep competing. Players play when they are
+available, build a record over time, take part in seasons, and eventually meet in a final
+bracket. Profiles, match history and standings stay put; a new ranked season is the one
+thing you choose to reset — or carry over.
 
-Skol Arena is built for those cases: clubs, communities, workplaces, and local groups
-that need competitions to stay flexible, credible, and easy to run day after day.
+That is the difference: clubs, gaming communities, companies, campuses and local groups
+get a competition that stays flexible and credible day after day, instead of a bracket
+that is thrown away every time.

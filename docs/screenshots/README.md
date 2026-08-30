@@ -81,3 +81,5 @@ zoom view behind it.
 | `bracket`     | `/tournaments/<cup>/bracket`       |
 | `player`      | `/players/<id>`                    |
 | `match`       | `/matches/<id>` (awaiting confirmation) |
+| `season-profile` | `/tournaments/<season>/stats?statsSub=profile` |
+| `season-stats`   | `/tournaments/<season>/stats?statsSub=global`  |

@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: 📖 Documentation
-    url: https://skol-arena-docs.vercel.app/docs
+    url: https://skol-arena.com/docs
     about: Self-hosting guide, environment variables, and how matches, MMR and accounts actually work.
   - name: 💬 Questions and ideas
     url: https://github.com/Quent1L/skol-arena/discussions

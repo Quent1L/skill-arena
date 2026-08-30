@@ -1,7 +1,7 @@
 {
   "name": "skol-arena-monorepo",
   "version": "2.0.1",
-  "description": "Skol - Tournament Management Application",
+  "description": "Skol Arena - open-source platform for persistent competitive communities",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/Quent1L/skol-arena.git"
   },
-  "homepage": "https://skol-arena-docs.vercel.app",
+  "homepage": "https://skol-arena.com",
   "bugs": {
     "url": "https://github.com/Quent1L/skol-arena/issues"
   },

@@ -1,7 +1,7 @@
 ---
 title: Game rules pages
 summary: Rich-text rules, written once, linked from any tournament.
-order: 7
+order: 8
 icon: book
 pillar: platform
 docs: /docs/disciplines#game-rules-pages

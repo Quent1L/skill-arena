@@ -1,10 +1,10 @@
 ---
 title: Why Skol Arena exists
-summary: Because real competitions don't run like a standard bracket.
+summary: Because a competitive community outlives any single tournament.
 order: 0
 ---
 
-Most competition tools are built around one shape: an organizer sets everything up, players show up, scores get entered, the event ends. Someone screenshots a spreadsheet, results live in a Discord thread, and the whole history resets for the next event.
+Skol Arena is a platform for running persistent competitive communities, and it exists because almost nothing else is. Most competition tools are built around one shape: an organizer sets everything up, players show up, scores get entered, the event ends. Someone screenshots a spreadsheet, results live in a Discord thread, and the whole history resets for the next event.
 
 That works for a single tournament day. It breaks down as soon as your competition lives across days or weeks, when players can't all meet at the same time, or when your discipline doesn't fit a rigid two-player bracket.
 

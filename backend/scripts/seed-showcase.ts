@@ -82,9 +82,9 @@ type PlayerDef = {
 const ADMIN = { key: "margaux", name: "Margaux Lemoine", short: "MLE" };
 
 const PLAYERS: PlayerDef[] = [
-  { key: "theo", name: "Theo Marchand", short: "TMA", strength: 0.82 },
-  { key: "camille", name: "Camille Roussel", short: "CRO", strength: 0.74 },
-  { key: "ilyas", name: "Ilyas Benali", short: "IBE", strength: 0.79 },
+  { key: "theo", name: "Theo Marchand", short: "TMA", strength: 0.88 },
+  { key: "camille", name: "Camille Roussel", short: "CRO", strength: 0.66 },
+  { key: "ilyas", name: "Ilyas Benali", short: "IBE", strength: 0.95 },
   { key: "marta", name: "Marta Kowalczyk", short: "MKO", strength: 0.68 },
   { key: "lucas", name: "Lucas Ferreira", short: "LFE", strength: 0.61 },
   { key: "anais", name: "Anais Delcourt", short: "ADE", strength: 0.71 },
@@ -130,6 +130,37 @@ function dateStr(d: Date): string {
 const REAL_NOW = new Date();
 function hoursAgo(n: number): Date {
   return new Date(REAL_NOW.getTime() - n * 3_600_000);
+}
+
+/**
+ * Monday 00:00 of the real current week.
+ *
+ * The "MMR this week" tile on a player's season profile counts history entries
+ * after `startOfWeek(new Date(), { weekStartsOn: 1 })` — the real clock, not
+ * the frozen NOW above. Anything stamped against NOW falls out of that window
+ * within days of a re-seed and the tile renders an em dash, so the tail of the
+ * ranked season is anchored here instead.
+ */
+function realWeekStart(): Date {
+  const d = new Date(REAL_NOW);
+  const mondayOffset = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - mondayOffset);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * `count` instants spread across the current real week, oldest first, always
+ * strictly inside it whatever weekday the capture runs on.
+ */
+function thisWeekSpread(count: number): Date[] {
+  const start = realWeekStart().getTime() + 9 * 3_600_000;
+  const end = REAL_NOW.getTime() - 2 * 3_600_000;
+  const span = Math.max(end - start, 3_600_000);
+  return Array.from(
+    { length: count },
+    (_, i) => new Date(start + Math.round((span * (i + 1)) / (count + 1))),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -186,7 +217,7 @@ async function seedUsers() {
 // Disciplines
 // ---------------------------------------------------------------------------
 
-type DisciplineIds = { discipline: string; standard: string; forfeit: string };
+type DisciplineIds = { discipline: string; standard: string; overtime: string; forfeit: string };
 
 async function seedDiscipline(
   name: string,
@@ -195,6 +226,7 @@ async function seedDiscipline(
 ): Promise<DisciplineIds> {
   const disciplineId = newId();
   const standardId = newId();
+  const overtimeId = newId();
   const forfeitId = newId();
 
   await db.insert(disciplines).values({
@@ -214,6 +246,16 @@ async function seedDiscipline(
       mmrMultiplier: 1,
     },
     {
+      id: overtimeId,
+      disciplineId,
+      name: "Overtime win",
+      isDefault: false,
+      points: 3,
+      // A game decided in overtime was close, so it moves the rating less than
+      // a clean win. This is the mmrMultiplier knob the docs describe.
+      mmrMultiplier: 0.8,
+    },
+    {
       id: forfeitId,
       disciplineId,
       name: "Forfeit",
@@ -230,7 +272,7 @@ async function seedDiscipline(
     { id: newId(), outcomeTypeId: forfeitId, name: "Withdrawal" },
   ]);
 
-  return { discipline: disciplineId, standard: standardId, forfeit: forfeitId };
+  return { discipline: disciplineId, standard: standardId, overtime: overtimeId, forfeit: forfeitId };
 }
 
 // ---------------------------------------------------------------------------
@@ -484,6 +526,18 @@ async function seedChampionship(opts: {
 // Ranked season
 // ---------------------------------------------------------------------------
 
+/**
+ * Mostly clean wins, with enough overtime results and walkovers that the
+ * season's outcome-distribution chart shows a distribution instead of one bar
+ * sitting at 100%.
+ */
+function pickRankedOutcome(discipline: DisciplineIds): string {
+  const roll = rand();
+  if (roll < 0.06) return discipline.forfeit;
+  if (roll < 0.24) return discipline.overtime;
+  return discipline.standard;
+}
+
 async function seedRankedSeason(discipline: DisciplineIds): Promise<string> {
   const seasonId = newId();
   const playerIds = PLAYERS.map((p) => id(p.key));
@@ -502,7 +556,11 @@ async function seedRankedSeason(discipline: DisciplineIds): Promise<string> {
     allowDraw: false,
     minScore: 0,
     maxScore: 10,
-    validationMode: "strict",
+    // No confirmation step: a ranked result counts the moment it is reported.
+    // This is also what keeps the Official/Provisional switch off the standings
+    // screenshot — TournamentStandingsTab only renders it when the mode is not
+    // "none".
+    validationMode: "none",
     validationTimerHours: 48,
     startDate: dateStr(daysAgo(74)),
     endDate: dateStr(daysAgo(-16)),
@@ -548,13 +606,40 @@ async function seedRankedSeason(discipline: DisciplineIds): Promise<string> {
     matchIds.push(
       await insertMatch({
         tournamentId: seasonId,
-        outcomeTypeId: discipline.standard,
+        outcomeTypeId: pickRankedOutcome(discipline),
         playerA,
         playerB,
         scoreA,
         scoreB,
         playedAt: daysAgo(dayOffset, randInt(17, 22), randInt(0, 59)),
         reportedBy: rand() < 0.5 ? playerA : playerB,
+      }),
+    );
+  }
+
+  // A handful of recent matches for the showcase account, stamped inside the
+  // real current week so its "MMR this week" tile has something to show. Theo
+  // takes three of four, which nets him a gain without lifting him past Ilyas.
+  const recent: [string, boolean][] = [
+    ["camille", true],
+    ["ilyas", false],
+    ["marta", true],
+    ["anais", true],
+  ];
+  const recentTimes = thisWeekSpread(recent.length);
+  for (let i = 0; i < recent.length; i++) {
+    const [opponentKey, theoWins] = recent[i]!;
+    const [scoreA, scoreB] = drawScore(theoWins);
+    matchIds.push(
+      await insertMatch({
+        tournamentId: seasonId,
+        outcomeTypeId: i === 1 ? discipline.overtime : discipline.standard,
+        playerA: id("theo"),
+        playerB: id(opponentKey),
+        scoreA,
+        scoreB,
+        playedAt: recentTimes[i]!,
+        reportedBy: id("theo"),
       }),
     );
   }

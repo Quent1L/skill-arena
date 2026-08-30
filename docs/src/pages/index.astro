@@ -3,11 +3,14 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { getEntry, getCollection, render } from 'astro:content'
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { SITE } from '../lib/site'
 import { faqPage, softwareApplication } from '../lib/schema'
 import Icon from '../components/Icon.astro'
 import SectionHeading from '../components/SectionHeading.astro'
 import FaqAccordion from '../components/FaqAccordion.astro'
 import DeviceShot from '../components/DeviceShot.astro'
+import DeviceCarousel from '../components/DeviceCarousel.astro'
+import { RANKED_SLIDES } from '../lib/ranked-shots'
 
 import tournamentsDesktop from '../assets/screenshots/tournaments-desktop.png'
 import tournamentsMobile from '../assets/screenshots/tournaments-mobile.png'
@@ -15,8 +18,6 @@ import standingsDesktop from '../assets/screenshots/standings-desktop.png'
 import standingsMobile from '../assets/screenshots/standings-mobile.png'
 import bracketDesktop from '../assets/screenshots/bracket-desktop.png'
 import bracketMobile from '../assets/screenshots/bracket-mobile.png'
-import rankedDesktop from '../assets/screenshots/ranked-desktop.png'
-import rankedMobile from '../assets/screenshots/ranked-mobile.png'
 import matchDesktop from '../assets/screenshots/match-desktop.png'
 import matchMobile from '../assets/screenshots/match-mobile.png'
 import playerDesktop from '../assets/screenshots/player-desktop.png'
@@ -61,7 +62,7 @@ const playerActions = [
   {
     icon: 'repeat',
     title: 'Confirm, contest, or cancel',
-    body: 'The opposing side confirms to finalize early, contests with a corrected score, or cancels a match that should not count.',
+    body: 'The opposing side confirms to finalize early, or contests it — which stops the timer and opens the discussion on the match, where the reporter corrects it or an organizer steps in.',
   },
   {
     icon: 'shield',
@@ -121,8 +122,9 @@ const audiences = [
 ]
 ---
 
+<!-- No `description`: it falls through to SITE.description, so the homepage and the
+     site metadata cannot drift apart. -->
 <BaseLayout
-  description="Open-source, self-hostable tournament software. Run championship leagues, elimination brackets and ranked ladders with per-discipline MMR — players report their own matches."
   jsonLd={[softwareApplication(Astro.site), faqPage(faq, Astro.site, Astro.url.pathname)]}
 >
   <!-- Hero: message on the left, the actual product on the right -->
@@ -132,6 +134,15 @@ const audiences = [
       class="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pt-16 pb-20 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16 lg:pt-24"
     >
       <div class="animate-fade-up">
+        {
+          /* The brand tagline, read from SITE so it cannot drift from the footer
+            and the browser title. A kicker rather than the h1: the h1 is what
+            Pagefind shows as this page's search result, so it has to say what
+            the product is. */
+        }
+        <p class="mb-4 text-sm font-semibold tracking-[0.2em] text-brand-mid uppercase">
+          {SITE.tagline}
+        </p>
         <h1 class="text-4xl leading-[1.08] font-extrabold text-balance text-white sm:text-5xl">
           {hero.data.title}
         </h1>
@@ -203,17 +214,21 @@ const audiences = [
     </div>
   </section>
 
+  <!-- The three modes, introduced once and then taken one at a time -->
+  <section class="mx-auto max-w-6xl px-6 pt-24 pb-12">
+    <SectionHeading
+      align="left"
+      title="Choose how your community competes"
+      subtitle="Three independent modes. Use one, or run all three side by side — with the same players, profiles and history behind all of them."
+    />
+  </section>
+
   <!-- Ranked: the flagship mode, given its own section -->
   <section class="border-y border-white/10 bg-black/20">
     <div
       class="reveal mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16"
     >
-      <DeviceShot
-        desktop={rankedDesktop}
-        mobile={rankedMobile}
-        alt="A ranked leaderboard grouped into Diamond, Platinum, Gold and Silver tiers"
-        caption="Rank tiers that follow the player pool, not fixed bands"
-      />
+      <DeviceCarousel slides={RANKED_SLIDES} />
       <div>
         <p class="font-display text-3xl font-bold text-white">{ranked.data.title}</p>
         <p class="mt-2 text-brand-mid">{ranked.data.tagline}</p>
@@ -238,13 +253,12 @@ const audiences = [
   </section>
 
   <!-- The other two modes, each with the screen it is really about -->
-  <section class="mx-auto max-w-6xl px-6 py-24">
-    <SectionHeading
-      align="left"
-      title="Two more ways to compete, independent of each other"
-      subtitle="Run a season that stretches over weeks, a bracket for a one-night event, or both alongside the ladder."
-    />
-    <div class="reveal mt-12 grid gap-6 lg:grid-cols-2">
+  <section class="mx-auto max-w-6xl px-6 py-20">
+    <p class="max-w-[62ch] text-slate-400">
+      Run a season that stretches over weeks, a bracket for a one-night event, or both alongside the
+      ladder.
+    </p>
+    <div class="reveal mt-10 grid gap-6 lg:grid-cols-2">
       {
         [
           {

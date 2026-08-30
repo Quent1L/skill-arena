@@ -11,7 +11,7 @@ body:
 
         Have a question rather than a request? Try
         [Discussions](https://github.com/Quent1L/skol-arena/discussions) or the
-        [documentation](https://skol-arena-docs.vercel.app/docs).
+        [documentation](https://skol-arena.com/docs).
 
   - type: textarea
     id: problem
