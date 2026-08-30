@@ -27,35 +27,24 @@ jobs:
         with:
           bun-version: latest
 
-      - run: bun install --frozen-lockfile
-
-      - run: bun run build:shared
-
-      - run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      # Hidden commit types (ci, test) still make conventional-changelog recommend a
-      # patch bump, which produces a release with an empty changelog section. Only
-      # release when at least one commit maps to a visible section.
+      # Runs before `bun install`: the gate only imports node:child_process and node:fs,
+      # so a push that changes nothing shippable pays neither the install nor the build.
+      # A commit releases when its type is shippable AND it touches a path outside the
+      # denylist -- both on the same commit. See scripts/release-gate.ts.
       - name: Check for releasable commits
         id: gate
+        run: bun scripts/release-gate.ts
+
+      - if: steps.gate.outputs.proceed == 'true'
+        run: bun install --frozen-lockfile
+
+      - if: steps.gate.outputs.proceed == 'true'
+        run: bun run build:shared
+
+      - if: steps.gate.outputs.proceed == 'true'
         run: |
-          LAST=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST" ]; then
-            echo "No tag found, treating as releasable"
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          COUNT=$(git log "$LAST..HEAD" --format=%s \
-            | grep -vE '^chore\(release\)' \
-            | grep -cE '^(feat|fix|perf|refactor|docs|chore|style)(\(.+\))?!?:' || true)
-          echo "$COUNT releasable commit(s) since $LAST"
-          if [ "$COUNT" -gt 0 ]; then
-            echo "proceed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       # Run the suite as its own step: release-it swallows the pre-commit hook
       # output into a single error string, which GitHub truncates, hiding which

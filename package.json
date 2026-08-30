@@ -47,7 +47,8 @@
     "clean:shared": "cd shared && rm -rf dist .tsbuildinfo",
     "clean:backend": "cd backend && rm -rf .tsbuildinfo dist",
     "clean:frontend": "cd frontend && rm -rf dist node_modules/.tmp",
-    "release": "release-it",
+    "release": "bun scripts/release-gate.ts --run",
+    "release:gate": "bun scripts/release-gate.ts",
     "release:dry": "release-it --dry-run",
     "prepare": "husky"
   },
