@@ -222,6 +222,42 @@ is a route that is documented. Scalar is served at `/api/docs`, specs at
   `z.date()` where it said `Date` (a payload the frontend interceptor has already
   revived). Both render as `string`/`date-time` in the spec
 
+### What triggers a release
+
+A push to `main` does **not** release by itself. `scripts/release-gate.ts` decides, and
+the `gate` step of `.github/workflows/release.yml` is its only caller in CI — the same
+script backs `bun run release` locally, so there is one source of truth. It runs before
+`bun install`, so a push that ships nothing pays neither the install nor the build.
+
+A commit is releasable when **both** hold, on that same commit:
+
+- its type is one of `feat fix perf refactor chore style revert` — `docs`, `test` and `ci`
+  never release, and `chore(release)` is skipped outright (its `package.json` bump would
+  otherwise make every release trigger the next one)
+- it touches at least one path **outside** `NON_RELEASE_PATHS` — `docs/`, `load-test/`,
+  `scripts/`, `.github/`, `.husky/`, the root prose files, and `bun.lock`
+
+The path filter is a **denylist**, like `.husky/pre-commit`: a path nobody listed (a new
+workspace, a new packaging file) releases by default rather than being silently dropped.
+
+Two consequences worth knowing:
+
+- **`bun.lock` never counts.** Bun workspaces share one lockfile, so it moves for a `docs/`
+  dependency exactly as for a backend one. It is never the only useful signal either — an
+  applicative dependency also touches its own workspace `package.json`. The **root**
+  `package.json` does count: it holds the `catalog` (zod, better-auth, typescript), so a
+  catalog bump can ship real dependencies without touching anything else.
+- **Type and path must meet on one commit.** A `feat(docs)` in `docs/` plus a `ci(backend)`
+  in `backend/` does not release — neither commit satisfies both halves.
+
+Overrides: a breaking change (`type!:` or a `BREAKING CHANGE:` footer) releases whatever
+its type, and a `FORCE_UPDATE` marker always releases — see below, the marker is consumed
+by the release itself and would otherwise stay stuck in the tree.
+
+Skipped commits are not lost: a `docs` commit still lands in the changelog of the next
+real release. The bump level, though, is computed by conventional-changelog over the whole
+range — a docs-only `feat` sitting next to a backend `fix` still yields a `minor`.
+
 ### Releasing a blocking update
 
 Updates are normally applied in the background: the new bundle is precached silently and
