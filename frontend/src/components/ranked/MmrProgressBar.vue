@@ -9,7 +9,7 @@
             v-if="showTierName && segment.tier"
             class="uppercase tracking-widest"
             :style="{ color: tierHex }"
-          >{{ segment.tier.name }}</span>
+          >{{ tierName(segment.tier) }}</span>
           <span class="font-mono text-gray-500">{{ segment.isOpenEnded ? '∞' : segment.maxMmr }}</span>
         </div>
       </Transition>
@@ -36,6 +36,7 @@
 import { computed, type CSSProperties } from 'vue'
 import type { MmrBarSegment } from '@/composables/ranked/mmr-progress'
 import { getTierBarHex } from '@/composables/ranked/tier-style'
+import { useServerLabels } from '@/i18n/serverLabels'
 
 /**
  * easeOutCubic, the same curve `useCountUp` runs the MMR number on, so the bar
@@ -85,6 +86,8 @@ const props = withDefaults(
     durationMs: 1600,
   },
 )
+
+const { tierName } = useServerLabels()
 
 const segment = computed((): MmrBarSegment | null => props.segments[props.activeIndex] ?? null)
 

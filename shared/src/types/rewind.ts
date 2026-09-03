@@ -68,6 +68,8 @@ export type RewindPlayerRef = z.infer<typeof rewindPlayerRefSchema>;
 export const rewindTierRefSchema = z
   .object({
     name: z.string(),
+    /** i18n key of a default-ladder tier; the client renders it in its own locale. */
+    nameKey: z.string().nullable(),
     level: z.number().int(),
     /** Per-season override; the client falls back on its own icon table by level. */
     iconClass: z.string().nullable(),

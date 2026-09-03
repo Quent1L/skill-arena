@@ -132,7 +132,28 @@
     "GOOD": "Well played!",
     "DRAW": "Very tight match...",
     "LOSS_MINOR": "Hang in there!",
-    "LOSS_MAJOR": "Bounce back!"
+    "LOSS_MAJOR": "Bounce back!",
+    "tiers": {
+      "ROOKIE": "Rookie",
+      "CHALLENGER": "Challenger",
+      "CONFIRMED": "Advanced",
+      "EXPERT": "Expert",
+      "LEGEND": "Legend",
+      "GENERIC": "Tier {{level}}"
+    }
+  },
+  "bracket": {
+    "rounds": {
+      "FINAL": "Final",
+      "SEMI_FINALS": "Semi-finals",
+      "QUARTER_FINALS": "Quarter-finals",
+      "ROUND_OF_16": "Round of 16",
+      "ROUND_OF_32": "Round of 32",
+      "ROUND": "Round {{round}}",
+      "BRONZE_MATCH": "Third-place match",
+      "LOSERS_ROUND": "Second chance - Round {{round}}",
+      "GRAND_FINAL": "Grand Final"
+    }
   },
   "disciplines": {
     "interaction_modes": {

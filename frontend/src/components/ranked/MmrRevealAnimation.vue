@@ -132,9 +132,11 @@ import { getTierIconClass, getTierTextHex } from '@/composables/ranked/tier-styl
 import { buildMmrBarSegments, type MmrBarSegment } from '@/composables/ranked/mmr-progress'
 import { useMmrBarPlayback, MMR_REVEAL_TIMING } from '@/composables/ranked/useMmrBarPlayback'
 import { useCountUp } from '@/composables/ui/useCountUp'
+import { useServerLabels } from '@/i18n/serverLabels'
 import MmrProgressBar from './MmrProgressBar.vue'
 
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 
 const props = defineProps<{
   event: MmrAnimationEventResponse
@@ -203,8 +205,10 @@ const badgeIconClass = computed(() => getTierIconClass(badgeTier.value))
 const haloHex = computed(() => getTierTextHex(badgeTier.value))
 
 const badgeTierName = computed(() => {
+  // The event's own tier names are a snapshot in the language of the match: they
+  // only answer for a tier the ladder no longer holds.
   const fallback = badgeIndex.value === 0 ? props.event.tierBeforeName : props.event.tierAfterName
-  return badgeTier.value?.name ?? fallback ?? '—'
+  return badgeTier.value ? tierName(badgeTier.value) : (fallback ?? '—')
 })
 
 const rankDirection = computed(() =>

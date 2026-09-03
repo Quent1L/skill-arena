@@ -46,7 +46,7 @@
             :style="{ color: tierTextColor(group.tier) }"
           />
           <span class="font-bold text-sm" :style="{ color: tierTextColor(group.tier) }">{{
-            group.tier.name
+            tierName(group.tier)
           }}</span>
           <span class="text-xs text-gray-500 ml-auto shrink-0">{{ tierThreshold(group.tier) }}</span>
         </div>
@@ -163,6 +163,7 @@ import {
   getTierForMmr,
   splitByPlacement,
 } from '@/composables/ranked/ranked.service'
+import { useServerLabels } from '@/i18n/serverLabels'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import PlacementPlayersList from '@/components/ranked/PlacementPlayersList.vue'
 import RecentFormBadges from '@/components/player/RecentFormBadges.vue'
@@ -175,6 +176,7 @@ import {
 } from '@/composables/ranked/tier-style'
 
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 
 const props = defineProps<{
   players: ClientPlayerMmr[]

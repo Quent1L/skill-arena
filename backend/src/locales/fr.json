@@ -132,7 +132,28 @@
     "GOOD": "Bien joué !",
     "DRAW": "Match très serré...",
     "LOSS_MINOR": "Courage, ça va passer !",
-    "LOSS_MAJOR": "Remets-toi en selle !"
+    "LOSS_MAJOR": "Remets-toi en selle !",
+    "tiers": {
+      "ROOKIE": "Rookie",
+      "CHALLENGER": "Challenger",
+      "CONFIRMED": "Confirmé",
+      "EXPERT": "Expert",
+      "LEGEND": "Légende",
+      "GENERIC": "Palier {{level}}"
+    }
+  },
+  "bracket": {
+    "rounds": {
+      "FINAL": "Finale",
+      "SEMI_FINALS": "Demi-finales",
+      "QUARTER_FINALS": "Quarts de finale",
+      "ROUND_OF_16": "Huitièmes de finale",
+      "ROUND_OF_32": "Seizièmes de finale",
+      "ROUND": "Tour {{round}}",
+      "BRONZE_MATCH": "Match pour la 3ème place",
+      "LOSERS_ROUND": "2e chance - Tour {{round}}",
+      "GRAND_FINAL": "Grande Finale"
+    }
   },
   "disciplines": {
     "interaction_modes": {

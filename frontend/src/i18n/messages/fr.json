@@ -263,6 +263,19 @@
     "continue": "Continuer",
     "newBadge": "Nouveau badge"
   },
+  "bracket": {
+    "rounds": {
+      "FINAL": "Finale",
+      "SEMI_FINALS": "Demi-finales",
+      "QUARTER_FINALS": "Quarts de finale",
+      "ROUND_OF_16": "Huitièmes de finale",
+      "ROUND_OF_32": "Seizièmes de finale",
+      "ROUND": "Tour {round}",
+      "BRONZE_MATCH": "Match pour la 3ème place",
+      "LOSERS_ROUND": "2e chance - Tour {round}",
+      "GRAND_FINAL": "Grande Finale"
+    }
+  },
   "bracketMatchCard": {
     "unknown": "Inconnu",
     "vs": "VS"
@@ -1237,6 +1250,15 @@
     },
     "subtitle": "Accès rapide depuis l'écran d'accueil",
     "title": "Installer Skol Arena"
+  },
+  "ranked": {
+    "tiers": {
+      "ROOKIE": "Rookie",
+      "CHALLENGER": "Challenger",
+      "CONFIRMED": "Confirmé",
+      "EXPERT": "Expert",
+      "LEGEND": "Légende"
+    }
   },
   "rankedLeaderboard": {
     "matchPlural": "{number} matchs",

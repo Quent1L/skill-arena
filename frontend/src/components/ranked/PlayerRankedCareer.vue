@@ -76,7 +76,7 @@
             v-if="peakTier(season)"
             :class="[tierIcon(peakTier(season)!), tierTextClass(peakTier(season)!)]"
             class="text-sm shrink-0"
-            :title="peakTier(season)!.name"
+            :title="tierName(peakTier(season))"
           />
           <div class="min-w-0">
             <div class="flex items-center gap-1.5">
@@ -150,7 +150,7 @@
                   v-if="metric.tier"
                   :class="[tierIcon(metric.tier), tierTextClass(metric.tier)]"
                   class="text-sm"
-                  :title="metric.tier.name"
+                  :title="tierName(metric.tier)"
                 />
                 <span class="text-base font-black text-white tabular-nums">
                   {{ metric.value.toLocaleString('fr-FR') }}
@@ -190,6 +190,7 @@ import { careerPeak, groupCareerByDiscipline } from '@/composables/ranked/career
 import { getTierForMmr } from '@/composables/ranked/tier-math'
 import { TIER_TEXT_CLASS, getTierIconClass, tierStyleIdx } from '@/composables/ranked/tier-style'
 import { formatDate } from '@/utils/DateUtils'
+import { useServerLabels } from '@/i18n/serverLabels'
 
 /**
  * A player's ranked history, grouped by discipline.
@@ -208,6 +209,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 
 const detailed = ref(false)
 

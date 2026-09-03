@@ -46,6 +46,7 @@ export function makeTier(over: Partial<ClientRankTier> = {}): ClientRankTier {
     seasonId: 's',
     level: 1,
     name: 'Bronze',
+    nameKey: null,
     percentile: 0,
     minMmr: 700,
     subRanks: 1,

@@ -5,6 +5,7 @@ import type {
   TierScalingMode,
 } from "@skol-arena/shared/types/index";
 import { db } from "../config/database";
+import { t } from "../utils/i18n-context";
 import {
   tournaments,
   tournamentAdmins,
@@ -22,6 +23,11 @@ type DbTransaction = NodePgDatabase<typeof schema> | typeof db;
 
 /** Old level -> new level, for the tiers that actually moved. */
 type LevelMapping = Map<number, number>;
+
+/** Label of a default-ladder tier, rendered in the language of the current request. */
+function tierName(nameKey: string): string {
+  return t(`ranked.tiers.${nameKey}`);
+}
 
 export interface CreateRankedSeasonData {
   name: string;
@@ -57,6 +63,8 @@ export interface CreateRankedConfigData {
 export interface InsertRankTierData {
   level: number;
   name: string;
+  /** i18n key of a default-ladder tier; null once an organizer names it by hand. */
+  nameKey?: string | null;
   percentile: number;
   minMmr: number;
   subRanks?: number;
@@ -149,12 +157,17 @@ export class RankedSeasonRepository {
     return updated;
   }
 
+  /**
+   * The ladder every new season starts from. Tiers are named by key, not by text:
+   * the row stores both the key and the label rendered in the creator's language,
+   * so a client that knows the key shows the ladder in its own locale instead.
+   */
   static readonly DEFAULT_TIER_CONFIGS = [
-    { level: 1, name: "Rookie",     percentile: 0,    minMmr: 700  },
-    { level: 2, name: "Challenger", percentile: 0.4,  minMmr: 900  },
-    { level: 3, name: "Confirmé",   percentile: 0.7,  minMmr: 1100 },
-    { level: 4, name: "Expert",     percentile: 0.9,  minMmr: 1300 },
-    { level: 5, name: "Légende",    percentile: 0.95, minMmr: 1500 },
+    { level: 1, nameKey: "ROOKIE",     percentile: 0,    minMmr: 700  },
+    { level: 2, nameKey: "CHALLENGER", percentile: 0.4,  minMmr: 900  },
+    { level: 3, nameKey: "CONFIRMED",  percentile: 0.7,  minMmr: 1100 },
+    { level: 4, nameKey: "EXPERT",     percentile: 0.9,  minMmr: 1300 },
+    { level: 5, nameKey: "LEGEND",     percentile: 0.95, minMmr: 1500 },
   ] as const;
 
   async getRankTiers(seasonId: string, tx: DbTransaction = db) {
@@ -190,7 +203,10 @@ export class RankedSeasonRepository {
       .values({
         seasonId,
         level,
-        name: config?.name ?? `Tier ${level}`,
+        // A level outside the default ladder has no stable key, so it keeps a
+        // rendered name — there is nothing for a client to translate it from.
+        name: config ? tierName(config.nameKey) : t("ranked.tiers.GENERIC", { level }),
+        nameKey: config?.nameKey ?? null,
         percentile: config?.percentile ?? 0,
         minMmr: data.minMmr,
       })
@@ -205,7 +221,8 @@ export class RankedSeasonRepository {
         .values({
           seasonId,
           level: tier.level,
-          name: tier.name,
+          name: tierName(tier.nameKey),
+          nameKey: tier.nameKey,
           percentile: tier.percentile,
           minMmr: tier.minMmr,
           subRanks: 1,
@@ -227,6 +244,7 @@ export class RankedSeasonRepository {
           seasonId,
           level: tier.level,
           name: tier.name,
+          nameKey: tier.nameKey ?? null,
           percentile: tier.percentile,
           subRanks: tier.subRanks ?? 1,
           minMmr: tier.minMmr,
@@ -410,7 +428,9 @@ export class RankedSeasonRepository {
   async updateTier(seasonId: string, level: number, data: UpdateRankTierInput) {
     const [updated] = await db
       .update(rankTiers)
-      .set(data)
+      // A name typed by an organizer is theirs, not the default ladder's: dropping
+      // the key stops clients from rendering the seeded label over it.
+      .set(data.name === undefined ? data : { ...data, nameKey: null })
       .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)))
       .returning();
     return updated;

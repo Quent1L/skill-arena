@@ -94,7 +94,7 @@
                 "
               >
                 {{ (event.tierAfterLevel ?? 0) > (event.tierBeforeLevel ?? 0) ? '↑' : '↓' }}
-                {{ event.tierAfterName }}
+                {{ reachedTierName(event) }}
               </div>
               <div v-if="event.reason === 'recalculated'" class="text-sky-400 text-xs shrink-0">
                 <i class="fa-solid fa-rotate"></i> {{ t('mmrRecapCard.recalculated') }}
@@ -144,8 +144,10 @@ import MmrProgressBar from '@/components/ranked/MmrProgressBar.vue'
 import { buildMmrBarSegments, type MmrBarSegment } from '@/composables/ranked/mmr-progress'
 import { useMmrBarPlayback, MMR_RECAP_TIMING } from '@/composables/ranked/useMmrBarPlayback'
 import { useCountUp } from '@/composables/ui/useCountUp'
+import { useServerLabels } from '@/i18n/serverLabels'
 
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 
 const props = withDefaults(
   defineProps<{
@@ -188,6 +190,16 @@ const segments = computed((): MmrBarSegment[] => {
     tierAfterLevel: props.events[props.events.length - 1].tierAfterLevel,
   })
 })
+
+/**
+ * Name of the tier a rank change landed on. The event carries its own copy, but it
+ * was rendered when the match was played: the ladder is what answers in the locale
+ * the app is set to, and the snapshot only covers a tier since removed from it.
+ */
+function reachedTierName(event: MmrAnimationEventResponse): string | null {
+  const tier = props.tiers.find((candidate) => candidate.level === event.tierAfterLevel)
+  return tier ? tierName(tier) : event.tierAfterName
+}
 
 const counter = useCountUp(() => endMmr.value, { from: startMmr.value, manual: true })
 const displayMmr = counter.value

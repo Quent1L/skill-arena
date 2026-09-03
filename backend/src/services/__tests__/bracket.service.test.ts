@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BracketService } from "../bracket.service";
+import { runWithLang } from "../../utils/i18n-context";
 import {
   NotFoundError,
   BadRequestError,
@@ -817,8 +818,8 @@ describe("BracketService", () => {
       );
 
       expect(rounds.length).toBe(2); // Semifinals + Final
-      expect(rounds[0].roundName).toBe("Demi-finales");
-      expect(rounds[1].roundName).toBe("Finale");
+      expect(rounds[0].label).toEqual({ key: "SEMI_FINALS" });
+      expect(rounds[1].label).toEqual({ key: "FINAL" });
     });
 
     it("should generate correct number of rounds for single elimination (8 participants)", () => {
@@ -830,9 +831,9 @@ describe("BracketService", () => {
       const rounds = service.generateSingleEliminationBracket(seeds, false);
 
       expect(rounds.length).toBe(3); // Quarterfinals + Semifinals + Final
-      expect(rounds[0].roundName).toBe("Quarts de finale");
-      expect(rounds[1].roundName).toBe("Demi-finales");
-      expect(rounds[2].roundName).toBe("Finale");
+      expect(rounds[0].label).toEqual({ key: "QUARTER_FINALS" });
+      expect(rounds[1].label).toEqual({ key: "SEMI_FINALS" });
+      expect(rounds[2].label).toEqual({ key: "FINAL" });
     });
 
     it("should include bronze match when requested", () => {
@@ -849,7 +850,7 @@ describe("BracketService", () => {
 
       const bronzeMatch = rounds.find((r: any) => r.bracketType === "bronze");
       expect(bronzeMatch).toBeDefined();
-      expect(bronzeMatch.roundName).toBe("Match pour la 3ème place");
+      expect(bronzeMatch.label).toEqual({ key: "BRONZE_MATCH" });
     });
 
     it("should handle bye matches for non-power-of-2 participants", () => {
@@ -902,7 +903,7 @@ describe("BracketService", () => {
 
       // Should have grand final
       const grandFinal = rounds[rounds.length - 1];
-      expect(grandFinal.roundName).toBe("Grande Finale");
+      expect(grandFinal.label).toEqual({ key: "GRAND_FINAL" });
     });
   });
 
@@ -927,29 +928,35 @@ describe("BracketService", () => {
       );
     });
 
-    it("should return correct round names", () => {
+    it("should name the last rounds after their position", () => {
       const service = bracketService as any;
 
-      expect(service.getRoundName(2, 3, false)).toBe("Finale");
-      expect(service.getRoundName(1, 3, false)).toBe("Demi-finales");
-      expect(service.getRoundName(0, 3, false)).toBe("Quarts de finale");
-      expect(service.getRoundName(0, 4, false)).toBe("Huitièmes de finale");
-      expect(service.getRoundName(0, 5, false)).toBe("Seizièmes de finale");
-      expect(service.getRoundName(0, 2, true)).toBe("Match pour la 3ème place");
+      expect(service.getRoundLabel(2, 3)).toEqual({ key: "FINAL" });
+      expect(service.getRoundLabel(1, 3)).toEqual({ key: "SEMI_FINALS" });
+      expect(service.getRoundLabel(0, 3)).toEqual({ key: "QUARTER_FINALS" });
+      expect(service.getRoundLabel(0, 4)).toEqual({ key: "ROUND_OF_16" });
+      expect(service.getRoundLabel(0, 5)).toEqual({ key: "ROUND_OF_32" });
     });
 
-    it("should return generic round name for large tournaments", () => {
+    it("should number the rounds of a large tournament", () => {
       const service = bracketService as any;
 
-      // Beyond Round of 32, should return "Round N"
-      expect(service.getRoundName(0, 7, false)).toBe("Tour 1");
-      expect(service.getRoundName(1, 10, false)).toBe("Tour 2");
+      // Beyond Round of 32, rounds are numbered
+      expect(service.getRoundLabel(0, 7)).toEqual({
+        key: "ROUND",
+        params: { round: 1 },
+      });
+      expect(service.getRoundLabel(1, 10)).toEqual({
+        key: "ROUND",
+        params: { round: 2 },
+      });
     });
   });
 
   describe("Edge Cases", () => {
     describe("Small participant counts", () => {
-      it("should handle 2 participants (direct final)", async () => {
+      /** A two-player tournament, ready for generateBracket to make a single final of. */
+      function arrangeDuel() {
         mockTournamentService.canManageTournament.mockResolvedValue(true);
         mockTournamentRepository.getById.mockResolvedValue({
           id: "tournament-1",
@@ -973,7 +980,7 @@ describe("BracketService", () => {
           { userId: "user-2", tournamentId: "tournament-1" },
         ]);
 
-        await bracketService.generateBracket(
+        return bracketService.generateBracket(
           "tournament-1",
           {
             bracketType: "single_elimination",
@@ -982,10 +989,24 @@ describe("BracketService", () => {
           },
           "user-1",
         );
+      }
+
+      it("should handle 2 participants (direct final)", async () => {
+        await arrangeDuel();
 
         const roundsCall = mockBracketRepository.createRounds.mock.calls[0][0];
         expect(roundsCall.length).toBe(1); // Only final
+        // The key travels with the row; the rendered name is only its fallback.
+        expect(roundsCall[0].roundNameKey).toBe("FINAL");
         expect(roundsCall[0].roundName).toBe("Finale");
+      });
+
+      it("should render the fallback name in the requester's language", async () => {
+        await runWithLang("en", () => arrangeDuel());
+
+        const roundsCall = mockBracketRepository.createRounds.mock.calls[0][0];
+        expect(roundsCall[0].roundNameKey).toBe("FINAL");
+        expect(roundsCall[0].roundName).toBe("Final");
       });
 
       it("should handle 3 participants with bye", async () => {
@@ -1013,13 +1034,13 @@ describe("BracketService", () => {
         const rounds = service.generateSingleEliminationBracket(seeds, false);
 
         expect(rounds.length).toBe(4); // R16 + QF + SF + F
-        expect(rounds[0].roundName).toBe("Huitièmes de finale");
+        expect(rounds[0].label).toEqual({ key: "ROUND_OF_16" });
         expect(rounds[0].matchesCount).toBe(8);
-        expect(rounds[1].roundName).toBe("Quarts de finale");
+        expect(rounds[1].label).toEqual({ key: "QUARTER_FINALS" });
         expect(rounds[1].matchesCount).toBe(4);
-        expect(rounds[2].roundName).toBe("Demi-finales");
+        expect(rounds[2].label).toEqual({ key: "SEMI_FINALS" });
         expect(rounds[2].matchesCount).toBe(2);
-        expect(rounds[3].roundName).toBe("Finale");
+        expect(rounds[3].label).toEqual({ key: "FINAL" });
         expect(rounds[3].matchesCount).toBe(1);
       });
 
@@ -1032,7 +1053,7 @@ describe("BracketService", () => {
         const rounds = service.generateSingleEliminationBracket(seeds, false);
 
         expect(rounds.length).toBe(5); // R32 + R16 + QF + SF + F
-        expect(rounds[0].roundName).toBe("Seizièmes de finale");
+        expect(rounds[0].label).toEqual({ key: "ROUND_OF_32" });
         expect(rounds[0].matchesCount).toBe(16);
       });
 
@@ -1358,7 +1379,7 @@ describe("BracketService", () => {
         ]);
 
         const lastRound = rounds[rounds.length - 1];
-        expect(lastRound.roundName).toBe("Grande Finale");
+        expect(lastRound.label).toEqual({ key: "GRAND_FINAL" });
         expect(lastRound.bracketType).toBe("winners");
         expect(lastRound.matchesCount).toBe(1);
       });

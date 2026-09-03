@@ -716,7 +716,14 @@ export const bracketRounds = pgTable(
       .notNull()
       .references(() => bracketConfigs.id, { onDelete: "cascade" }),
     roundNumber: integer("round_number").notNull(),
+    /**
+     * Label rendered server-side in the language of the request that generated the
+     * bracket. Kept as the fallback for rounds created before `roundNameKey` existed;
+     * clients that know the key render from it instead, in their own locale.
+     */
     roundName: text("round_name").notNull(),
+    roundNameKey: text("round_name_key"),
+    translationParams: jsonb("translation_params"),
     bracketType: bracketRoundTypeEnum("bracket_type").notNull(),
     matchesCount: integer("matches_count").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -903,7 +910,13 @@ export const rankTiers = pgTable(
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
     level: integer("level").notNull(),
+    /**
+     * Display name. A tier seeded from the default ladder also carries `nameKey`, and
+     * the client renders that key in its own locale; `name` is the server-rendered
+     * fallback. Naming a tier by hand clears the key: a custom name is not translatable.
+     */
     name: text("name").notNull(),
+    nameKey: text("name_key"),
     percentile: real("percentile").notNull(),
     minMmr: integer("min_mmr").notNull(),
     subRanks: integer("sub_ranks").notNull().default(1),

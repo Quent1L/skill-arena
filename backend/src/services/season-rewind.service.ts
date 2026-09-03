@@ -243,7 +243,12 @@ export class SeasonRewindService {
     const tierForMmr = (mmr: number): RewindTierRef | null => {
       const tier = tiers.find((candidate) => mmr >= candidate.minMmr);
       return tier
-        ? { name: tier.name, level: tier.level, iconClass: tier.iconClass ?? null }
+        ? {
+            name: tier.name,
+            nameKey: tier.nameKey,
+            level: tier.level,
+            iconClass: tier.iconClass ?? null,
+          }
         : null;
     };
 

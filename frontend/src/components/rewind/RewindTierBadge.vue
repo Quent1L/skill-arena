@@ -10,7 +10,7 @@
       class="font-black uppercase tracking-wide"
       :class="[textClass, size === 'lg' ? 'text-xl' : 'text-base']"
     >
-      {{ tier.name }}
+      {{ tierName(tier) }}
     </span>
   </div>
 </template>
@@ -24,6 +24,7 @@ import {
   getTierIconClass,
   tierStyleIdx,
 } from '@/composables/ranked/tier-style'
+import { useServerLabels } from '@/i18n/serverLabels'
 
 /**
  * The rank tier behind a rewind figure, drawn from the same icon and colour
@@ -33,6 +34,8 @@ import {
 const props = withDefaults(defineProps<{ tier: RewindTierRef; size?: 'md' | 'lg' }>(), {
   size: 'md',
 })
+
+const { tierName } = useServerLabels()
 
 const styleIdx = computed(() => tierStyleIdx(props.tier))
 const iconClass = computed(() => getTierIconClass(props.tier))

@@ -33,7 +33,11 @@ export interface BracketRound {
   id: string;
   bracketConfigId: string;
   roundNumber: number;
+  /** Server-rendered label; the fallback when `roundNameKey` means nothing to the client. */
   roundName: string;
+  /** i18n key the name was rendered from, so the client can re-render it in its own locale. */
+  roundNameKey?: string | null;
+  translationParams?: Record<string, number> | null;
   bracketType: BracketRoundType;
   matchesCount: number;
   createdAt: string;
@@ -136,6 +140,8 @@ export const bracketRoundSchema = z.object({
   bracketConfigId: z.string().uuid(),
   roundNumber: z.number().int().min(0),
   roundName: z.string().min(1),
+  roundNameKey: z.string().nullish(),
+  translationParams: z.record(z.string(), z.number()).nullish(),
   bracketType: bracketRoundTypeSchema,
   matchesCount: z.number().int().min(0),
   createdAt: z.string().datetime(),

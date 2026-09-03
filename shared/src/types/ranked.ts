@@ -124,7 +124,10 @@ export const clientRankTierSchema = z
     id: z.string(),
     seasonId: z.string(),
     level: z.number().int(),
+    /** Server-rendered label; the fallback when `nameKey` means nothing to the client. */
     name: z.string(),
+    /** i18n key of a default-ladder tier, null once an organizer names it by hand. */
+    nameKey: z.string().nullish(),
     percentile: z.number(),
     minMmr: z.number(),
     subRanks: z.number().int(),
