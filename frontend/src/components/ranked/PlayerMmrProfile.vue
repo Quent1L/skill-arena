@@ -14,7 +14,7 @@
           {{ t('playerMmrProfile.currentRank') }}
         </div>
         <div class="text-2xl font-black tracking-wide uppercase" :class="tierTextClass">
-          {{ rank?.name ?? '—' }}
+          {{ tierName(rank) }}
         </div>
       </div>
 
@@ -61,7 +61,7 @@
       <!-- LP progress bar toward next tier -->
       <div v-if="lpProgress" class="px-6 pb-6">
         <div class="flex justify-between text-xs text-white/40 mb-1.5">
-          <span class="font-semibold" :class="tierTextClass">{{ rank?.name }}</span>
+          <span class="font-semibold" :class="tierTextClass">{{ tierName(rank) }}</span>
           <span>{{ lpProgress.lp }} / {{ lpProgress.tierRange }} LP</span>
           <span class="font-semibold" :class="nextTierTextClass">{{ lpProgress.nextLabel }}</span>
         </div>
@@ -117,7 +117,7 @@
               v-if="peakTier"
               :class="[peakTierIcon, peakTierTextClass]"
               class="text-lg"
-              :title="peakTier.name"
+              :title="tierName(peakTier)"
             />
             <span class="text-xl font-black text-white tabular-nums">
               {{ peakMmr !== null ? peakMmr.toLocaleString('fr-FR') : '—' }}
@@ -331,6 +331,7 @@ import type {
   OpponentQualityStats,
   PlayerOutcomeTypeStat,
 } from '@skol-arena/shared/types/index'
+import { useServerLabels } from '@/i18n/serverLabels'
 import InfoTooltip from '@/components/InfoTooltip.vue'
 import PlayerRelationStats from '@/components/player/PlayerRelationStats.vue'
 import PlayerBadges from '@/components/player/PlayerBadges.vue'
@@ -357,6 +358,7 @@ import {
 } from '@/composables/ranked/tier-style'
 
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 
 const isMounted = ref(false)
 onMounted(() => {
@@ -442,7 +444,7 @@ const lpProgress = computed(() => {
     lp,
     tierRange,
     percent,
-    nextLabel: nextTier?.name ?? '',
+    nextLabel: nextTier ? tierName(nextTier) : '',
     nextTierForStyle: nextTier ?? rank.value,
   }
 })

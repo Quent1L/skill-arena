@@ -17,7 +17,7 @@
               class="bracket-round-header"
               :style="{ width: `${COLUMN_WIDTH}px`, flexShrink: 0 }"
             >
-              {{ round.roundName }}
+              {{ roundName(round) }}
             </div>
           </div>
         </div>
@@ -81,7 +81,7 @@
             >
               <BracketMatchCard
                 :match="matchData.match"
-                :round-name="round.roundName"
+                :round-name="roundName(round)"
                 :bracket-type="bracketType"
                 :is-final="round.id === finalRoundId"
                 :seeds="seeds"
@@ -103,6 +103,7 @@ import type {
   ClientBracketSeed,
 } from '@skol-arena/shared'
 import BracketMatchCard from '@/components/bracket/BracketMatchCard.vue'
+import { useServerLabels } from '@/i18n/serverLabels'
 
 const CARD_HEIGHT = 110
 const CARD_WIDTH = 220
@@ -120,6 +121,8 @@ interface Props {
 
 const props = defineProps<Props>()
 const emit = defineEmits<{ goToMatch: [matchId: string] }>()
+
+const { roundName } = useServerLabels()
 
 const scrollEl = ref<HTMLElement | null>(null)
 const headerScrollEl = ref<HTMLElement | null>(null)

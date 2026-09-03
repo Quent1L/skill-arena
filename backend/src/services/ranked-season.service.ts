@@ -512,6 +512,7 @@ export class RankedSeasonService {
       sourceTiers.map((tier) => ({
         level: tier.level,
         name: tier.name,
+        nameKey: tier.nameKey,
         percentile: tier.percentile,
         subRanks: tier.subRanks,
         iconClass: tier.iconClass,

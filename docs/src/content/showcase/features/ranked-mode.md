@@ -26,7 +26,7 @@ On top of that, each discipline's **outcome types** (see Disciplines & outcomes)
 
 ### Tiers that move with the population
 
-Rank tiers aren't fixed MMR bands — they're percentile-based, and recalculated automatically as the player pool shifts. The default ladder has five tiers (Rookie, Challenger, Confirmé, Expert, and Légende for the top 5%), fully customizable, and a new season can clone an existing season's tier structure instead of starting from scratch.
+Rank tiers aren't fixed MMR bands — they're percentile-based, and recalculated automatically as the player pool shifts. The default ladder has five tiers (Rookie, Challenger, Advanced, Expert, and Legend for the top 5%), named in the language each player reads the app in and fully customizable, and a new season can clone an existing season's tier structure instead of starting from scratch.
 
 ### Instant feedback, confirmed result
 

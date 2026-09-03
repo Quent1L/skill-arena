@@ -80,6 +80,8 @@ export class BracketRepository {
       bracketConfigId: string;
       roundNumber: number;
       roundName: string;
+      roundNameKey: string;
+      translationParams: Record<string, number> | null;
       bracketType: "winners" | "losers" | "bronze";
       matchesCount: number;
     }>,

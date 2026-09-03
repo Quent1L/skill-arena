@@ -3,7 +3,6 @@ import type { ClientRankTier, MmrChartPoint } from '@skol-arena/shared'
 import { makeTier, makePlayerMmr } from '@/test-support/factories'
 import {
   getSubRank,
-  getTierLabel,
   getLp,
   isTopTier,
   getNextTier,
@@ -105,20 +104,6 @@ describe('getSubRank', () => {
     // rangeTop = 2000, sub-range of 500
     expect(getSubRank(1100, all[0], all)).toBe(2)
     expect(getSubRank(1600, all[0], all)).toBe(1)
-  })
-})
-
-describe('getTierLabel', () => {
-  it('tier null → dash', () => {
-    expect(getTierLabel(null, 2)).toBe('—')
-  })
-
-  it('no sub-rank → name only', () => {
-    expect(getTierLabel(makeTier({ name: 'Gold' }), null)).toBe('Gold')
-  })
-
-  it('with sub-rank → name + number', () => {
-    expect(getTierLabel(makeTier({ name: 'Gold' }), 2)).toBe('Gold 2')
   })
 })
 

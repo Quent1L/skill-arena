@@ -257,10 +257,16 @@ describe("Season rewind generation (integration)", () => {
     const winner = await seasonRewindService.getBundle(seasonId, alice);
     expect(winner.player!.finalRank.tier).toEqual({
       name: "Expert",
+      nameKey: null,
       level: 2,
       iconClass: null,
     });
-    expect(winner.player!.peak!.tier).toEqual({ name: "Expert", level: 2, iconClass: null });
+    expect(winner.player!.peak!.tier).toEqual({
+      name: "Expert",
+      nameKey: null,
+      level: 2,
+      iconClass: null,
+    });
 
     const loser = await seasonRewindService.getBundle(seasonId, bob);
     expect(loser.player!.finalRank.tier!.name).toBe("Rookie");

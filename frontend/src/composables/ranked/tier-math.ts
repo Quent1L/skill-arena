@@ -45,12 +45,6 @@ export function getSubRank(
   return Math.max(1, Math.min(tier.subRanks, raw))
 }
 
-export function getTierLabel(tier: ClientRankTier | null, subRank: number | null): string {
-  if (!tier) return '—'
-  if (subRank !== null) return `${tier.name} ${subRank}`
-  return tier.name
-}
-
 export function getLp(mmr: number, tier: ClientRankTier): number {
   if (mmr < MMR_FLOOR) return 0
   return Math.max(0, mmr - tier.minMmr)

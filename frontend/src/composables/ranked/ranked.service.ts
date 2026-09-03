@@ -35,7 +35,6 @@ export {
   getNextTier,
   getPrevTier,
   getSubRank,
-  getTierLabel,
   getLp,
   isTopTier,
 } from './tier-math'

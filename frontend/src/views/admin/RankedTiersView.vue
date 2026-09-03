@@ -49,7 +49,11 @@
         </template>
       </Column>
 
-      <Column field="name" :header="t('common.name')" />
+      <Column :header="t('common.name')">
+        <template #body="{ data }">
+          {{ tierName(data) }}
+        </template>
+      </Column>
 
       <Column field="percentile" :header="t('rankedTiersView.colPercentile')" sortable style="width: 10rem">
         <template #body="{ data }">
@@ -159,7 +163,7 @@
       <div class="flex items-start gap-3">
         <i class="pi pi-exclamation-triangle text-3xl text-orange-500"></i>
         <div class="flex flex-col gap-2">
-          <span>{{ t('rankedTiersView.deleteConfirm', { name: tierToDelete?.name }) }}</span>
+          <span>{{ t('rankedTiersView.deleteConfirm', { name: tierName(tierToDelete) }) }}</span>
           <small class="text-surface-400">{{ t('rankedTiersView.deleteRenumberHint') }}</small>
         </div>
       </div>
@@ -195,11 +199,13 @@ import { useI18n } from 'vue-i18n'
 import { useRankedService } from '@/composables/ranked/ranked.service'
 import { getTierIconClass } from '@/composables/ranked/tier-style'
 import FontAwesomeIconPicker from '@/components/forms/FontAwesomeIconPicker.vue'
+import { useServerLabels } from '@/i18n/serverLabels'
 import type { ClientRankTier } from '@skol-arena/shared/types/index'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const { tierName } = useServerLabels()
 const seasonId = route.params.id as string
 
 const { tiers, currentSeason, loading, error, loadTiers, loadSeasonById, createTier, updateTier, deleteTier, recalculateTiers } = useRankedService()
@@ -220,14 +226,17 @@ function openCreateDialog() {
 
 function openEditDialog(tier: ClientRankTier) {
   editingTier.value = tier
-  form.value = { level: tier.level, name: tier.name, percentile: tier.percentile, minMmr: tier.minMmr, subRanks: tier.subRanks ?? 1, iconClass: tier.iconClass ?? '' }
+  // The translated name is what the admin sees, so it is what the field starts from.
+  form.value = { level: tier.level, name: tierName(tier), percentile: tier.percentile, minMmr: tier.minMmr, subRanks: tier.subRanks ?? 1, iconClass: tier.iconClass ?? '' }
   formDialogVisible.value = true
 }
 
 async function handleSubmit() {
   if (editingTier.value) {
     const ok = await updateTier(seasonId, editingTier.value.level, {
-      name: form.value.name,
+      // Sending the name would make it the tier's own, dropping the translation.
+      // A tier the admin did not rename keeps its key, and its ladder label.
+      ...(form.value.name === tierName(editingTier.value) ? {} : { name: form.value.name }),
       percentile: form.value.percentile,
       minMmr: form.value.minMmr,
       subRanks: form.value.subRanks,
