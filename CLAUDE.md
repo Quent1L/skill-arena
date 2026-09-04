@@ -254,9 +254,17 @@ Overrides: a breaking change (`type!:` or a `BREAKING CHANGE:` footer) releases 
 its type, and a `FORCE_UPDATE` marker always releases — see below, the marker is consumed
 by the release itself and would otherwise stay stuck in the tree.
 
-Skipped commits are not lost: a `docs` commit still lands in the changelog of the next
-real release. The bump level, though, is computed by conventional-changelog over the whole
-range — a docs-only `feat` sitting next to a backend `fix` still yields a `minor`.
+The changelog is close but not identical: in the `types` of `.release-it.json`, `test` and
+`ci` carry `effect: "hidden"`, so they neither appear in a release note nor weigh on the
+bump. Every releasable type is `effect: "bump"`, and so is `docs` — it never releases on
+its own, but a documentation change is worth listing in the note of a release something
+else triggered. `scripts/__tests__/changelog-preset.test.ts` runs the real preset writer
+to keep that in step with `RELEASABLE_TYPES`. Beware `hidden: true`: it was the v9
+spelling, and the v10 preset ignores unknown keys instead of failing, so the type silently
+falls back to `effect: "bump"` and reappears in the release note.
+
+The bump level is still computed by conventional-changelog over the whole range — a `feat`
+touching only `docs/` sitting next to a backend `fix` still yields a `minor`.
 
 ### Releasing a blocking update
 

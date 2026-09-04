@@ -7,20 +7,9 @@
 * **i18n:** translate rank tiers and bracket round names ([2de0d37](https://github.com/Quent1L/skol-arena/commit/2de0d37898fb362d71b201db585d112c568aac50))
 * **ranked:** keep tier nameKey when the ladder label is written back ([4617428](https://github.com/Quent1L/skol-arena/commit/46174286d8e1cc70682a820e21b6210b7b3a51bb))
 
-### 📝 Documentation
-
-* reposition the site, migrate to skol-arena.com, refresh captures ([092daf6](https://github.com/Quent1L/skol-arena/commit/092daf6d72b28494980508cb381eb63726d67c15))
-
 ### 🔧 Maintenance
 
 * require bun >= 1.4 for the test isolation flag ([2041253](https://github.com/Quent1L/skol-arena/commit/2041253fe10b8b06615f28c29a1ebb48430dbac2))
-
-### 👷 CI
-
-* **docs:** add Google Search Console verification tag ([90d0f0b](https://github.com/Quent1L/skol-arena/commit/90d0f0b4c703f59ccf31e950c0c5d583e9d1bb7d))
-* **docs:** add Vercel Web Analytics ([eb82f7b](https://github.com/Quent1L/skol-arena/commit/eb82f7b88d2bbd1e3daad1dec03604a6f526e507))
-* enforce the bun version floor instead of only declaring it ([0d4a363](https://github.com/Quent1L/skol-arena/commit/0d4a363fbef3e6cfc0caa889113cd23e346b99ff))
-* **release:** gate releases on commit type and touched paths ([7fe0da8](https://github.com/Quent1L/skol-arena/commit/7fe0da80d3935a9dda3e01dfda9625ff103e0d09))
 
 ## [2.0.1](https://github.com/Quent1L/skol-arena/compare/2.0.0...2.0.1) (2026-08-29)
 

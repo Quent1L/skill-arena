@@ -8,15 +8,16 @@
       "preset": {
         "name": "conventionalcommits",
         "types": [
-          { "type": "feat", "section": "✨ New Features" },
-          { "type": "fix", "section": "🐛 Bug Fixes" },
-          { "type": "perf", "section": "⚡ Performance" },
-          { "type": "refactor", "section": "♻️ Refactoring" },
-          { "type": "docs", "section": "📝 Documentation" },
-          { "type": "chore", "section": "🔧 Maintenance"},
-          { "type": "style", "section": "🎨 Style" },
-          { "type": "test", "section": "✅ Tests", "hidden": true },
-          { "type": "ci", "section": "👷 CI", "hidden": true }
+          { "type": "feat", "section": "✨ New Features", "effect": "bump" },
+          { "type": "fix", "section": "🐛 Bug Fixes", "effect": "bump" },
+          { "type": "perf", "section": "⚡ Performance", "effect": "bump" },
+          { "type": "refactor", "section": "♻️ Refactoring", "effect": "bump" },
+          { "type": "revert", "section": "⏪ Reverts", "effect": "bump" },
+          { "type": "chore", "section": "🔧 Maintenance", "effect": "bump" },
+          { "type": "style", "section": "🎨 Style", "effect": "bump" },
+          { "type": "docs", "section": "📝 Documentation", "effect": "bump" },
+          { "type": "test", "section": "✅ Tests", "effect": "hidden" },
+          { "type": "ci", "section": "👷 CI", "effect": "hidden" }
         ]
       },
       "infile": "CHANGELOG.md",
