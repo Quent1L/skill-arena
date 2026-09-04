@@ -5,6 +5,7 @@ import type {
   TierScalingMode,
 } from "@skol-arena/shared/types/index";
 import { db } from "../config/database";
+import i18next, { SUPPORTED_LANGUAGES } from "../config/i18n";
 import { t } from "../utils/i18n-context";
 import {
   tournaments,
@@ -27,6 +28,19 @@ type LevelMapping = Map<number, number>;
 /** Label of a default-ladder tier, rendered in the language of the current request. */
 function tierName(nameKey: string): string {
   return t(`ranked.tiers.${nameKey}`);
+}
+
+/**
+ * True when `name` is just the ladder label of `nameKey` written back, in any of
+ * the languages we serve. A client that PATCHes a whole tier back sends the label
+ * it was shown, and the language it was shown in is not ours to assume — comparing
+ * against the current request's language alone would de-translate the tier for
+ * anyone who read it in the other one.
+ */
+function isDefaultLadderLabel(nameKey: string, name: string): boolean {
+  return SUPPORTED_LANGUAGES.some(
+    (lng) => i18next.t(`ranked.tiers.${nameKey}`, { lng }) === name,
+  );
 }
 
 export interface CreateRankedSeasonData {
@@ -426,14 +440,33 @@ export class RankedSeasonRepository {
   }
 
   async updateTier(seasonId: string, level: number, data: UpdateRankTierInput) {
+    // A name typed by an organizer is theirs, not the default ladder's: dropping
+    // the key stops clients from rendering the seeded label over it. But a client
+    // that PATCHes the whole tier back sends the label it was shown, which is the
+    // ladder's own — that is not a rename, and nulling the key on it would strip
+    // the translation with no API left to restore it.
+    const set =
+      data.name === undefined
+        ? data
+        : { ...data, nameKey: await this.nameKeyAfterRename(seasonId, level, data.name) };
+
     const [updated] = await db
       .update(rankTiers)
-      // A name typed by an organizer is theirs, not the default ladder's: dropping
-      // the key stops clients from rendering the seeded label over it.
-      .set(data.name === undefined ? data : { ...data, nameKey: null })
+      .set(set)
       .where(and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)))
       .returning();
     return updated;
+  }
+
+  /** The key a tier keeps once renamed: its own if the "new" name is only the
+   * ladder label written back, none otherwise. */
+  private async nameKeyAfterRename(seasonId: string, level: number, name: string) {
+    const current = await db.query.rankTiers.findFirst({
+      where: and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)),
+      columns: { nameKey: true },
+    });
+    const key = current?.nameKey;
+    return key && isDefaultLadderLabel(key, name) ? key : null;
   }
 
   /**
