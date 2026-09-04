@@ -1,5 +1,6 @@
 import { Context, Next } from "hono";
 import { runWithLang } from "../utils/i18n-context";
+import { SUPPORTED_LANGUAGES } from "../config/i18n";
 
 export async function i18nMiddleware(c: Context, next: Next) {
   // Get language from Accept-Language header or query param
@@ -11,8 +12,9 @@ export async function i18nMiddleware(c: Context, next: Next) {
   const lang = langFromQuery || langFromHeader || "fr";
 
   // Set language for this request
-  const supportedLanguages = ["fr", "en"];
-  const selectedLang = supportedLanguages.includes(lang) ? lang : "fr";
+  const selectedLang = (SUPPORTED_LANGUAGES as readonly string[]).includes(lang)
+    ? lang
+    : "fr";
 
   c.set("lang", selectedLang);
 

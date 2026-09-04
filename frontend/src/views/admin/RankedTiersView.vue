@@ -234,9 +234,12 @@ function openEditDialog(tier: ClientRankTier) {
 async function handleSubmit() {
   if (editingTier.value) {
     const ok = await updateTier(seasonId, editingTier.value.level, {
-      // Sending the name would make it the tier's own, dropping the translation.
-      // A tier the admin did not rename keeps its key, and its ladder label.
-      ...(form.value.name === tierName(editingTier.value) ? {} : { name: form.value.name }),
+      // Sent unconditionally: the server decides whether this is a rename or the
+      // ladder label handed back, and it compares across every language it serves.
+      // Deciding here would mean comparing a field seeded when the dialog opened
+      // against a label that follows the current locale — switch language with the
+      // dialog open and the two differ for no reason but the switch.
+      name: form.value.name,
       percentile: form.value.percentile,
       minMmr: form.value.minMmr,
       subRanks: form.value.subRanks,

@@ -21,7 +21,7 @@ import {
   rankTiers,
   mmrAnimationEvents,
 } from "../../../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const TIER_NAMES = ["Rookie", "Challenger", "Confirmé", "Expert", "Légende"] as const;
 
@@ -139,6 +139,54 @@ describe("Rank tier levels stay contiguous (integration)", () => {
 
   afterAll(async () => {
     await closeTestDatabase();
+  });
+
+  describe("updateTier and the default-ladder nameKey", () => {
+    /** Levels 1..2 seeded the way the default ladder does: name + key. */
+    async function seedLadderTier() {
+      await testDb.delete(rankTiers).where(eq(rankTiers.seasonId, seasonId));
+      await testDb.insert(rankTiers).values({
+        seasonId,
+        level: 1,
+        name: "Confirmé",
+        nameKey: "CONFIRMED",
+        percentile: 0.7,
+        minMmr: 1100,
+      });
+    }
+
+    async function keyOf(level: number) {
+      const tier = await testDb.query.rankTiers.findFirst({
+        where: and(eq(rankTiers.seasonId, seasonId), eq(rankTiers.level, level)),
+        columns: { nameKey: true },
+      });
+      return tier?.nameKey ?? null;
+    }
+
+    it("keeps the key when the request language's label is written back", async () => {
+      await seedLadderTier();
+      await rankedSeasonRepository.updateTier(seasonId, 1, { name: "Confirmé", minMmr: 1150 });
+      expect(await keyOf(1)).toBe("CONFIRMED");
+    });
+
+    it("keeps the key when another language's label is written back", async () => {
+      await seedLadderTier();
+      // A client that read the ladder in English PATCHes the whole tier back.
+      await rankedSeasonRepository.updateTier(seasonId, 1, { name: "Advanced", minMmr: 1150 });
+      expect(await keyOf(1)).toBe("CONFIRMED");
+    });
+
+    it("drops the key on a real rename", async () => {
+      await seedLadderTier();
+      await rankedSeasonRepository.updateTier(seasonId, 1, { name: "Diamant" });
+      expect(await keyOf(1)).toBeNull();
+    });
+
+    it("leaves the key alone when no name is sent", async () => {
+      await seedLadderTier();
+      await rankedSeasonRepository.updateTier(seasonId, 1, { minMmr: 1200 });
+      expect(await keyOf(1)).toBe("CONFIRMED");
+    });
   });
 
   describe("deleteTier", () => {

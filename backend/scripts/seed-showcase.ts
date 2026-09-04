@@ -721,16 +721,9 @@ async function seedBracket(discipline: DisciplineIds): Promise<string> {
     id(ADMIN.key),
   );
 
-  // getRoundName() in bracket.service.ts returns French labels and they are
-  // persisted, not translated at render time. The docs screenshots are English,
-  // so rename them here rather than shipping "Quarts de finale" on the landing
-  // page. Remove this once the round names are i18n keys.
-  const roundLabels: Record<string, string> = {
-    "Quarts de finale": "Quarter-finals",
-    "Demi-finales": "Semi-finals",
-    Finale: "Final",
-    "Match pour la 3ème place": "Third place match",
-  };
+  // Round names now travel as i18n keys (`roundNameKey`) and the capture browser
+  // asks for English, so the persisted `roundName` is only a fallback and is never
+  // what the screenshots render. Nothing to rewrite here.
   const config = await db.query.bracketConfigs.findFirst({
     where: eq(bracketConfigs.tournamentId, tournamentId),
   });
@@ -739,15 +732,6 @@ async function seedBracket(discipline: DisciplineIds): Promise<string> {
   const rounds = await db.query.bracketRounds.findMany({
     where: eq(bracketRounds.bracketConfigId, config.id),
   });
-  for (const round of rounds) {
-    const english = roundLabels[round.roundName];
-    if (english) {
-      await db
-        .update(bracketRounds)
-        .set({ roundName: english })
-        .where(eq(bracketRounds.id, round.id));
-    }
-  }
 
   // A bracket nobody has played yet is a grid of empty cards. Play the quarters
   // and the semis so the screenshot shows a tournament in progress: two rounds
