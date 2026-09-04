@@ -23,9 +23,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      # No bun-version: setup-bun reads the floor from the root package.json's
+      # `engines.bun` instead, so CI and a contributor's machine answer to the same
+      # line. Naming `latest` here would silently outrank it.
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
 
       # Runs before `bun install`: the gate only imports node:child_process and node:fs,
       # so a push that changes nothing shippable pays neither the install nor the build.
