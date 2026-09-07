@@ -825,10 +825,10 @@
   },
   "mmrExplainerCard": {
     "baseGainLoss": "Base gain or loss",
-    "baseGainLossDescPost": "that determines the maximum variation range. The result is a team total, then split between its players.",
+    "baseGainLossDescPost": "that determines the maximum variation range. On even sides the stake is multiplied by the size of the teams before being split: a player gains as much in a 2v2 or a 3v3 as in a 1v1.",
     "baseGainLossDescPre": "The actual result (win, draw or loss) is compared to the expected score. The difference is multiplied by a sensitivity coefficient",
     "conservation": "Nothing is created",
-    "conservationDesc": "What one side gains, the other loses: a match transfers MMR, it does not manufacture it. Placement matches are the only exception, while your level is being calibrated.",
+    "conservationDesc": "What one side gains, the other loses: a match transfers MMR, it does not manufacture it. On uneven sides the stake is not multiplied: the lone player takes on their own what their opponents share. Placement matches are the only exception, while your level is being calibrated.",
     "expectedScore": "Expected score",
     "expectedScoreDesc": "Before each match, the system estimates your probability of winning based on the MMR gap between you and your opponents. If both sides are equal, the probability is 50%. A 400-point gap drops it to about 24% for the weaker side.",
     "gainLoss": "Gain / Loss",
@@ -855,14 +855,14 @@
       "sharedResource": "Shared resource"
     },
     "teamModeDesc": {
-      "collaborative": "The team's gain or loss is split equally between all its members.",
+      "collaborative": "Every member of the team gains or loses exactly the same amount.",
       "individual": "Each player's share depends on their level: the lowest ranked gains more and loses less, the highest ranked carries more of the defeat.",
       "sharedResource": "Each player's share depends on their level: the lowest ranked moves more, on a win as much as on a defeat."
     },
     "teamModeDetail": {
-      "collaborative": "The team total is divided equally between its players, whatever their individual MMR.",
-      "individual": "The team total is split according to each player's level against the opponents, within a ±25% bound. The split flips with the result: the highest ranked takes a reduced share of the gain, and the largest share of the loss.",
-      "sharedResource": "The team total is split according to each player's level against the opponents, within a ±25% bound. The lowest ranked takes the largest share, of the gain as well as of the loss."
+      "collaborative": "The team stake is divided equally between its players, whatever their individual MMR — on even sides, each takes what they would have taken in a 1v1.",
+      "individual": "The team stake is split according to each player's level against the opponents, within a ±25% bound. The split flips with the result: the highest ranked takes a reduced share of the gain, and the largest share of the loss.",
+      "sharedResource": "The team stake is split according to each player's level against the opponents, within a ±25% bound. The lowest ranked takes the largest share, of the gain as well as of the loss."
     },
     "title": "How does MMR work?"
   },

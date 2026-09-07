@@ -11,14 +11,26 @@ export { averageMmr, calculateExpectedScore, MIN_MMR };
  * provisional match preview, provisional leaderboard replay) calls this and this
  * only; they differ solely by the MMR snapshot they feed in.
  *
- * The engine separates two concerns the previous implementation mixed together:
+ * The engine separates three concerns the previous implementation mixed
+ * together:
  *
- *   1. How expected the result was  → Elo on side averages → one team delta.
- *   2. Who carries which part of it → teamInteractionMode  → per-player shares.
+ *   1. How expected the result was  → Elo on side averages → one player delta.
+ *   2. How much MMR is at stake     → that delta × the side size, on even sides.
+ *   3. Who carries which part of it → teamInteractionMode  → per-player shares.
+ *
+ * Scaling the pot by the side size is what makes a result worth the same to a
+ * player whatever the format: in a 2v2 the pot is twice the Elo delta, each side
+ * splits its own, and everyone moves by exactly what they would have moved in a
+ * 1v1. It applies only when both sides field the same number of players — the
+ * only case where both can scale by the same factor and still cancel out. Uneven
+ * sides keep the plain pot of one Elo delta, split within each side, so nobody
+ * ever risks more than their 1v1 delta.
  *
  * A match therefore transfers MMR between the two sides instead of creating it.
- * Two documented exceptions to that invariant remain: the per-player placement
- * multiplier, and the MMR floor at 1.
+ * The losing side is settled first and whatever the MMR floor keeps a player from
+ * paying is taken off the winners' pot, so the floor cannot mint MMR either. One
+ * documented exception to that invariant remains: the per-player placement
+ * multiplier.
  */
 
 /**
@@ -28,8 +40,11 @@ export { averageMmr, calculateExpectedScore, MIN_MMR };
  *
  * 1 — per-player ratio applied directly to the delta (non-conservative)
  * 2 — team delta split into normalised shares
+ * 3 — pot scaled by the side size on even sides, so a 2v2 moves a player like a
+ *     1v1; uneven sides keep the v2 split; the pot a floored player cannot pay
+ *     is withheld from the winners instead of being minted
  */
-export const MMR_ENGINE_VERSION = 2;
+export const MMR_ENGINE_VERSION = 3;
 
 export type MatchResult = 1 | 0 | 0.5;
 
@@ -179,6 +194,12 @@ function allocateIntegerDeltas(target: number, shares: number[], playerIds: stri
   return base.map((value) => sign * value);
 }
 
+interface SideOutcome {
+  results: PlayerMmrDelta[];
+  /** Share of the pot the MMR floor kept this side from paying. */
+  unpaid: number;
+}
+
 function zeroDeltas(sides: [EngineSide, EngineSide]): PlayerMmrDelta[] {
   return [...sides[0].players, ...sides[1].players].map((p) => ({
     playerId: p.id,
@@ -195,17 +216,26 @@ function buildSideResults(
   oppAvgMmr: number,
   mode: TeamInteractionMode,
   kEffective: number,
-): PlayerMmrDelta[] {
+): SideOutcome {
   const shares = playerShares(side, oppAvgMmr, mode, teamDelta);
   const playerIds = side.players.map((p) => p.id);
   const deltas = allocateIntegerDeltas(teamDelta, shares, playerIds);
+  let unpaid = 0;
 
-  return side.players.map((player, index) => {
+  const results = side.players.map((player, index) => {
     // Placement is applied after the allocation: a rookie converges twice as
     // fast without doubling what their opponents risk. This is the engine's one
     // deliberate breach of conservation, bounded by placementMatches × K.
     const raw = deltas[index] * (player.isPlacement ? PLACEMENT_MULTIPLIER : 1);
     const newMmr = Math.max(MIN_MMR, player.mmr + raw);
+
+    // What the floor stopped them paying, measured on their share of the pot and
+    // not on the doubled placement loss: the extra a rookie pays is burned by
+    // design, it was never the opponents' to collect.
+    if (deltas[index] < 0) {
+      unpaid += Math.max(0, -deltas[index] - (player.mmr - newMmr));
+    }
+
     return {
       playerId: player.id,
       mmrDelta: newMmr - player.mmr,
@@ -214,6 +244,8 @@ function buildSideResults(
       kEffective: kEffective * (player.isPlacement ? PLACEMENT_MULTIPLIER : 1),
     };
   });
+
+  return { results, unpaid };
 }
 
 export function calculateMatchMmr(input: MatchMmrInput): PlayerMmrDelta[] {
@@ -233,10 +265,41 @@ export function calculateMatchMmr(input: MatchMmrInput): PlayerMmrDelta[] {
 
   // Rounded once, then negated: side B's target is posed rather than recomputed,
   // which is what makes the two sides cancel out exactly.
-  const teamDeltaA = Math.round(kEffective * (sideA.result - expectedA));
+  const playerDeltaA = Math.round(kEffective * (sideA.result - expectedA));
 
-  return [
-    ...buildSideResults(sideA, teamDeltaA, avgB, teamInteractionMode, kEffective),
-    ...buildSideResults(sideB, -teamDeltaA, avgA, teamInteractionMode, kEffective),
-  ];
+  // On even sides the pot is that 1v1 delta times the side size, so each side
+  // splits an equal pot and a player moves by the 1v1 amount whatever the format.
+  // Rounding before scaling rather than after keeps that exact: the pot is a
+  // multiple of the side size instead of landing one point off it.
+  //
+  // Uneven sides get no factor at all. Scaling on the larger side would expose
+  // the shorter one to size ratio × kEffective: a 1v11 would take everything a
+  // player owns in a single match, and the winners would collect whatever
+  // fraction of that pot the floor let them actually pay. One Elo delta per side
+  // keeps every line-up inside the risk a 1v1 already carries.
+  const evenSides = sideA.players.length === sideB.players.length;
+  const teamDeltaA = evenSides ? playerDeltaA * sideA.players.length : playerDeltaA;
+
+  // The losing side is settled first. A player at the MMR floor cannot pay their
+  // whole share, and that share is withheld from the winners rather than minted:
+  // the pot only ever moves MMR that somebody actually paid. Nothing is withheld
+  // in the ordinary case, where the floor is nowhere near.
+  const aLoses = teamDeltaA < 0;
+  const pot = Math.abs(teamDeltaA);
+  const lost = buildSideResults(
+    aLoses ? sideA : sideB,
+    -pot,
+    aLoses ? avgB : avgA,
+    teamInteractionMode,
+    kEffective,
+  );
+  const won = buildSideResults(
+    aLoses ? sideB : sideA,
+    pot - lost.unpaid,
+    aLoses ? avgA : avgB,
+    teamInteractionMode,
+    kEffective,
+  );
+
+  return aLoses ? [...lost.results, ...won.results] : [...won.results, ...lost.results];
 }

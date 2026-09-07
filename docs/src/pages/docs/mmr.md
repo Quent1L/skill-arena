@@ -8,10 +8,10 @@ Ranked competitions keep a persistent rating per player: the MMR. This page desc
 exactly how it moves.
 
 The guiding principle: **a match transfers MMR from one side to the other, it never
-creates any.** The computation happens in two strictly separate steps — first _how
-expected the result was_ (Elo on the team averages, producing a single team delta), then
-_who takes which share of it_ (the discipline's team interaction mode, producing
-normalised shares).
+creates any.** The computation happens in three strictly separate steps — first _how
+expected the result was_ (Elo on the team averages, producing a single player delta), then
+_how much is at stake_ (that delta scaled by the size of the sides), then _who takes which
+share of it_ (the discipline's team interaction mode, producing normalised shares).
 
 ## Scope
 
@@ -26,13 +26,13 @@ every match played in it.
 | Setting                | Effect                                                                                                                                  |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Base MMR**           | Starting rating for a player with no history and no carry-over. Between 100 and 5000.                                                   |
-| **K-factor**           | Base amplitude of the team delta. Between 8 and 128.                                                                                    |
+| **K-factor**           | Base amplitude of a player's delta. Between 8 and 128.                                                                                  |
 | **Placement matches**  | How many matches a player's delta is **doubled** over. Up to 20; 0 disables the placement phase.                                        |
 | **Use previous MMR**   | Enables carry-over from an earlier season.                                                                                              |
 | **Soft reset factor**  | Fraction of the distance to the source median that is kept, from 0 (hard reset) to 1.                                                   |
 | **Source season**      | Which season the carry-over reads. Defaults to the last finished season of the discipline.                                              |
 | **Tier scaling**       | Copies the source season's tier thresholds, or recomputes them from the population. Affects the **displayed rank only**, never the MMR. |
-| **Asymmetric matches** | Allows uneven line-ups such as 1v2. No MMR compensation is applied — see [Things to know](#things-to-know).                             |
+| **Asymmetric matches** | Allows uneven line-ups such as 1v2. The stake is not scaled there — see [Things to know](#things-to-know).                              |
 
 ## Competition ruleset
 
@@ -46,12 +46,12 @@ the recalculation in the same pass, so a competition is never half under the old
 Editing a discipline therefore has no effect on a running or finished competition: its
 numbers stay the ones it was played with.
 
-| Rule                      | Effect                                                                                                            |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Team interaction mode** | Individual, Shared Resource or Collaborative. Splits the team delta between teammates. Defaults to Collaborative. |
-| **Counts for MMR**        | When off, **every delta is 0** and the calculation short-circuits. When on, the score gap amplifies the K-factor. |
-| **MMR multiplier**        | Multiplies the team delta. 0 means a match with no rating impact, 2 doubles it.                                   |
-| **Points**                | Championship points only. **No effect on MMR.**                                                                   |
+| Rule                      | Effect                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Team interaction mode** | Individual, Shared Resource or Collaborative. Splits the side's stake between teammates. Defaults to Collaborative. |
+| **Counts for MMR**        | When off, **every delta is 0** and the calculation short-circuits. When on, the score gap amplifies the K-factor.   |
+| **MMR multiplier**        | Multiplies the delta. 0 means a match with no rating impact, 2 doubles it.                                          |
+| **Points**                | Championship points only. **No effect on MMR.**                                                                     |
 
 An archived outcome type disappears from match entry but stays resolvable for matches
 already recorded with it.
@@ -64,12 +64,16 @@ already recorded with it.
 3. Expected score  E_A = 1 / (1 + 10^((avgB − avgA) / 400))
 4. Effective K     kEff = K × scoreMult × mmrMultiplier
                    scoreMult = 1 + |scoreA − scoreB| / (scoreA + scoreB)   ∈ [1, 2]
-5. Team delta      teamDeltaA = round(kEff × (W_A − E_A))
+5. Player delta    playerDeltaA = round(kEff × (W_A − E_A))
+6. Stake           teamDeltaA = playerDeltaA × |A|   when |A| = |B|
+                              = playerDeltaA         when the sides are uneven
                    teamDeltaB = −teamDeltaA        ← set, not recomputed
-6. Shares          share_i per side, Σ share = 1
-7. Allocation      integers by largest remainder, exact sum
-8. Placement       delta_i ×2 for a player still in placement
-9. Floor           newMmr = max(1, mmr + delta)
+7. Shares          share_i per side, Σ share = 1
+8. Allocation      integers by largest remainder, exact sum
+9. Placement       delta_i ×2 for a player still in placement
+10. Floor          newMmr = max(1, mmr + delta)
+11. Settlement     the losing side is priced first; whatever the floor kept a
+                   player from paying is withheld from the winners' pot
 ```
 
 `W` is 1 for a win, 0 for a loss, 0.5 for a draw. Score amplification runs from ×1 (equal
@@ -80,10 +84,32 @@ score, 0-0, or no score at all) to ×2 (a shutout) and depends on the gap, not o
 makes the two sides cancel exactly, since rounding is not symmetric on halves
 (`round(2.5) = 3` but `round(−2.5) = −2`).
 
+## The stake, and why it scales with the format
+
+Step 5 answers a 1v1 question: how much would _one_ player move on this result. Step 6
+turns it into what the side plays for. On even sides the stake is that delta times the
+number of players, so each side splits a pot of the same size and **every player moves by
+exactly what they would have moved in a 1v1** — a win in 3v3 at K-factor 32 is worth what
+a win in 1v1 at K-factor 32 is worth. Rounding happens before the scaling, not after, so
+the pot is a multiple of the side size and an equal split lands on the 1v1 figure rather
+than a point off it.
+
+Uneven sides get **no scaling at all**: the stake stays one player delta, split within each
+side. Scaling on the larger side would make the shorter one swing by the size ratio times
+`kEff` — in a 1v11 that is eleven times a normal loss, enough to wipe a player out in a
+single match. One delta per side keeps every line-up inside the risk a 1v1 already carries:
+the lone player takes the whole stake, their opponents share it.
+
+The stake is also **settled**, not just allocated. The losing side is priced first, and a
+player stopped by the floor at 1 pays what they have rather than what they owe; the
+difference is withheld from the winners' pot instead of appearing from nowhere. In practice
+it only ever comes up at the very bottom of a ladder — a player below the match's effective
+K — but it is what makes the invariant exact rather than nearly exact.
+
 ## Sharing between teammates
 
 The team interaction mode is the only calculation lever carried by the discipline. It
-applies at step 6 only: it never changes the strength of the result, only its distribution.
+applies at step 7 only: it never changes the strength of the result, only its distribution.
 
 ```
 r_i     = clamp(oppAvgMmr / max(1, mmr_i), 0.75, 1.25)
@@ -111,27 +137,28 @@ split is not a special case, it is the degenerate case of the general formula.
 | Individual      | The exponent flips on a loss: the weaker player gains more **and** loses less, the stronger gains less **and** loses more. A pull toward the opponents' level. | Darts, pool, bowling — each plays their own game, the favourite owns their defeat.          |
 
 **In 1v1 the mode has no effect.** One player per side means a share of 1, so the player
-delta _is_ the team delta, whatever the mode. The invariance is structural, not a special
-case in the engine.
+takes the whole stake, whatever the mode. The invariance is structural, not a special case
+in the engine.
 
 **Worked example: 2v2, {900, 1400} against {1150, 1150}.** Both averages are 1150, so
-`E = 0.5` and `kEff = 32`, giving a team delta of ±16 split between the two players.
+`E = 0.5`, `kEff = 32` and the player delta is ±16 — the sides are even, so each plays for
+a stake of ±32 split between its two players.
 
-| Case                  | p900   | p1400   | Opponents |
-| --------------------- | ------ | ------- | --------- |
-| Win, Collaborative    | +8     | +8      | −8 / −8   |
-| Win, Shared Resource  | +9     | +7      | −8 / −8   |
-| Win, Individual       | +10    | +6      | −8 / −8   |
-| Loss, Collaborative   | −8     | −8      | +8 / +8   |
-| Loss, Shared Resource | −9     | −7      | +8 / +8   |
-| Loss, Individual      | **−6** | **−10** | +8 / +8   |
+| Case                  | p900    | p1400   | Opponents |
+| --------------------- | ------- | ------- | --------- |
+| Win, Collaborative    | +16     | +16     | −16 / −16 |
+| Win, Shared Resource  | +18     | +14     | −16 / −16 |
+| Win, Individual       | +19     | +13     | −16 / −16 |
+| Loss, Collaborative   | −16     | −16     | +16 / +16 |
+| Loss, Shared Resource | −18     | −14     | +16 / +16 |
+| Loss, Individual      | **−13** | **−19** | +16 / +16 |
 
 The last row is what separates Individual from Shared Resource: same team, same match,
 responsibilities inverted.
 
-**Scale consequence.** In 2v2 each player takes half the team delta, so MMR moves twice as
-slowly per match as in 1v1. That is the price of conservation, and the season K-factor is
-the lever to compensate for it.
+**Scale consequence.** None on even sides: the Collaborative rows are exactly the ±16 a 1v1
+at K-factor 32 pays, so the K-factor means the same thing in every format and needs no
+compensation. The mode only redistributes around that figure.
 
 ## One engine, three paths
 
@@ -213,20 +240,34 @@ A draw is a real Elo result: the underdog gains MMR, the favourite loses some.
 Σ delta(side A) + Σ delta(side B) = 0
 ```
 
-Exact, with two deliberate exceptions:
+Exact, with one deliberate exception:
 
 1. **Placement.** A player in placement has their delta doubled after the split, so a
    rookie converges twice as fast without their opponents risking double. The injection is
    bounded by `placementMatches × K` per player and disappears once placement is over.
-2. **The MMR floor of 1.** A guard rail, unreachable in practice with a K-factor of 128 or
-   below.
+
+**The MMR floor of 1 is not an exception.** A player cannot pay more than they own, and
+what they cannot pay is withheld from the winners rather than created — see the settlement
+step above. It only comes into play when a player's MMR is below what the match asks of
+them, which needs a low base MMR and a high K-factor at once.
+
+How much a single match can ask of one player: on even sides it is exactly the 1v1 delta in
+Collaborative, and more than that in the weighted modes, where the level weighting hands one
+player a larger share of the stake. The ±25% clamp bounds how far — the ratio to the 1v1
+delta tops out at `(1.25 / 0.75)^α`, so **1.29× in Shared Resource and 1.67× in Individual**,
+and those limits are only approached on large teams: Individual gives 1.25× in a 2v2 and
+1.43× in a 4v4 (the 2v2 table above shows 19 against a player delta of 16). On uneven sides
+nobody exceeds the 1v1 delta. Placement doubles whatever that figure comes to.
 
 ## Things to know
 
-1. **Asymmetric matches carry no compensation.** In 1v2 the lone player takes 100% of their
-   side's delta, against 50% each on the other side: their MMR moves twice as fast per
-   match. It is coherent — they did all the work — but it is a choice, not a mechanical
-   consequence.
+1. **Asymmetric matches carry no compensation.** The stake is scaled by the side size only
+   when both sides field the same number of players. In 1v2 it stays one player delta: the
+   lone player takes 100% of it, against 50% each on the other side, so their MMR moves
+   twice as fast per match — five times as fast in a 1v5. It is coherent — they did all the
+   work — but it is a choice, not a mechanical consequence. Scaling there instead would let
+   the shorter side swing past what its players own, and the floor would turn the shortfall
+   into created MMR.
 2. **Outcome type points play no role in MMR.** They only feed championship points, so
    changing them has no effect on a ranked ladder.
 3. **An MMR multiplier of 0 and counts-for-MMR off** both produce a zero delta, but only

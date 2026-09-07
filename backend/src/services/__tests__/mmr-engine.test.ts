@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   calculateMatchMmr,
   calculateScoreMultiplier,
+  MIN_MMR,
   type EnginePlayer,
   type EngineSide,
   type MatchMmrInput,
@@ -87,6 +88,41 @@ describe("MMR conservation", () => {
     expect(totalDelta(results)).toBe(0);
   });
 
+  it("sweep: no line-up, mode, K or score creates or destroys MMR", () => {
+    // Players inside a side are spread around the side's level, so the weighted
+    // modes actually allocate unequal shares instead of degenerating to 1/n.
+    const spread = (n: number, base: number, tag: string) =>
+      Array.from({ length: n }, (_, i) =>
+        p(`${tag}${i}`, Math.max(MIN_MMR, base + (i - Math.floor(n / 2)) * 300)),
+      );
+
+    for (const [sizeA, sizeB] of [
+      [1, 1], [2, 2], [3, 3], [5, 5], [1, 2], [2, 3], [1, 7],
+    ]) {
+      for (const mode of MODES) {
+        for (const kFactor of [8, 32, 128]) {
+          for (const [mmrA, mmrB] of [
+            [1000, 1000], [900, 1400], [40, 2400], [1, 1000], [300, 300],
+          ]) {
+            for (const [scoreA, scoreB] of [
+              [null, null], [10, 0], [7, 6],
+            ] as [number | null, number | null][]) {
+              const results = run(
+                [
+                  side(spread(sizeA, mmrA, "a"), 1, scoreA),
+                  side(spread(sizeB, mmrB, "b"), 0, scoreB),
+                ],
+                { teamInteractionMode: mode, kFactor },
+              );
+              expect(totalDelta(results)).toBe(0);
+              expect(results.every((r) => r.newMmr >= MIN_MMR)).toBe(true);
+            }
+          }
+        }
+      }
+    }
+  });
+
   it("uneven draw → sum of deltas is zero", () => {
     const results = run([
       side([p("a", 1000), p("b", 1000)], 0.5),
@@ -114,6 +150,134 @@ describe("1v1 invariance", () => {
     // K × (1 − E) with E ≈ 0.0533 → ≈ 30, not 47 as with the old ratio.
     expect(deltaOf(results, "a")).toBe(30);
     expect(deltaOf(results, "b")).toBe(-30);
+  });
+});
+
+// ── Format invariance ───────────────────────────────────────────────────────
+
+describe("format invariance", () => {
+  /** Same match-up, same result, played 1v1 / 2v2 / 3v3 with equal-level teams. */
+  function evenFormat(size: number): PlayerMmrDelta[] {
+    const winners = Array.from({ length: size }, (_, i) => p(`w${i}`, 1000));
+    const losers = Array.from({ length: size }, (_, i) => p(`l${i}`, 1200));
+    return run([side(winners, 1), side(losers, 0)]);
+  }
+
+  it("a player moves by the same amount whatever the team size", () => {
+    const solo = deltaOf(evenFormat(1), "w0");
+    for (const size of [2, 3, 4]) {
+      const results = evenFormat(size);
+      for (const r of results.filter((x) => x.playerId.startsWith("w"))) {
+        expect(r.mmrDelta).toBe(solo);
+      }
+      expect(totalDelta(results)).toBe(0);
+    }
+  });
+
+  it("uneven sides → no scaling, one Elo delta split within each side", () => {
+    const results = run([
+      side([p("solo", 1000)], 1),
+      side([p("x", 1000), p("y", 1000)], 0),
+    ]);
+    expect(deltaOf(results, "solo")).toBe(16);
+    expect(deltaOf(results, "x")).toBe(-8);
+    expect(deltaOf(results, "y")).toBe(-8);
+    expect(totalDelta(results)).toBe(0);
+  });
+
+  it("an uneven line-up never moves anyone past the 1v1 delta", () => {
+    for (const size of [2, 3, 5, 11]) {
+      // 900, 1100, 1300… averages to 900 + 100 × (size − 1), so the same match-up
+      // can be posed as a 1v1 and gives the bound to hold everyone under.
+      const opponents = Array.from({ length: size }, (_, i) => 900 + i * 200);
+      const oneOnOne = deltaOf(
+        run([side([p("solo", 1000)], 1), side([p("l0", 900 + 100 * (size - 1))], 0)]),
+        "solo",
+      );
+
+      for (const mode of MODES) {
+        const results = run(
+          [
+            side([p("solo", 1000)], 1),
+            side(
+              opponents.map((mmr, i) => p(`l${i}`, mmr)),
+              0,
+            ),
+          ],
+          { teamInteractionMode: mode },
+        );
+        expect(deltaOf(results, "solo")).toBe(oneOnOne);
+        for (const r of results) {
+          expect(Math.abs(r.mmrDelta)).toBeLessThanOrEqual(oneOnOne);
+        }
+        expect(totalDelta(results)).toBe(0);
+      }
+    }
+  });
+
+  it("a 1v11 blowout stakes one Elo delta, not eleven", () => {
+    // Scaling on the larger side would stake 11 × kEff here — more than the solo
+    // player owns, so one match would wipe them out. An unscaled pot keeps the
+    // risk at what a 1v1 already carries.
+    const results = run(
+      [
+        side([p("solo", 300)], 0, 0),
+        side(
+          Array.from({ length: 11 }, (_, i) => p(`w${i}`, 300)),
+          1,
+          10,
+        ),
+      ],
+      { kFactor: 128 },
+    );
+    expect(deltaOf(results, "solo")).toBe(-128); // kEff 256 × (0 − 0.5), once
+    expect(totalDelta(results)).toBe(0);
+  });
+});
+
+// ── The MMR floor ───────────────────────────────────────────────────────────
+
+describe("the MMR floor withholds instead of minting", () => {
+  /** Everyone one loss away from the floor: the losers cannot pay their share. */
+  function atTheFloor(size: number, mode: TeamInteractionMode = "COLLABORATIVE") {
+    return run(
+      [
+        side(
+          Array.from({ length: size }, (_, i) => p(`w${i}`, 120)),
+          1,
+          10,
+        ),
+        side(
+          Array.from({ length: size }, (_, i) => p(`l${i}`, 120)),
+          0,
+          0,
+        ),
+      ],
+      { kFactor: 128, teamInteractionMode: mode },
+    );
+  }
+
+  it("the winners collect what was actually paid, not the full pot", () => {
+    const results = atTheFloor(4);
+    // kEff 256 → a 128 share each, but a player at 120 can only pay 119.
+    expect(deltaOf(results, "l0")).toBe(-119);
+    expect(results.find((r) => r.playerId === "l0")!.newMmr).toBe(MIN_MMR);
+    expect(deltaOf(results, "w0")).toBe(119);
+    expect(totalDelta(results)).toBe(0);
+  });
+
+  it("nothing is created in any format or mode", () => {
+    for (const size of [1, 2, 3, 4, 7]) {
+      for (const mode of MODES) {
+        expect(totalDelta(atTheFloor(size, mode))).toBe(0);
+      }
+    }
+  });
+
+  it("a side already at the floor has nothing left to give", () => {
+    const results = run([side([p("w", 1000)], 1, 10), side([p("l", MIN_MMR)], 0, 0)]);
+    expect(deltaOf(results, "l")).toBe(0);
+    expect(deltaOf(results, "w")).toBe(0);
   });
 });
 
@@ -213,20 +377,24 @@ describe("deterministic rounding", () => {
   });
 
   it("input player order doesn't change any delta (tie-broken by playerId)", () => {
-    // kFactor 30 and E = 0.5 → teamDelta = 15, odd: both remainders are tied,
-    // only the id tie-break decides who receives the remaining unit.
-    const forward = run(
-      [side([p("a", 1000), p("b", 1000)], 1), side([p("c", 1000), p("d", 1000)], 0)],
-      { kFactor: 30 },
-    );
-    const reversed = run(
-      [side([p("b", 1000), p("a", 1000)], 1), side([p("d", 1000), p("c", 1000)], 0)],
-      { kFactor: 30 },
-    );
+    // An even-sided match always divides exactly, so the tie-break needs uneven
+    // sides: kFactor 30 and E = 0.5 → an unscaled pot of 15 split over the two
+    // players of side A. Both remainders are tied at .5, only the id tie-break
+    // decides who receives the remaining unit.
+    const sides = (first: string, second: string) =>
+      [
+        side([p(first, 1000), p(second, 1000)], 1),
+        side([p("c", 1000), p("d", 1000), p("e", 1000)], 0),
+      ] as [EngineSide, EngineSide];
+
+    const forward = run(sides("a", "b"), { kFactor: 30 });
+    const reversed = run(sides("b", "a"), { kFactor: 30 });
+
     expect(deltaOf(forward, "a")).toBe(deltaOf(reversed, "a"));
     expect(deltaOf(forward, "b")).toBe(deltaOf(reversed, "b"));
     expect(deltaOf(forward, "a")).toBe(8);
     expect(deltaOf(forward, "b")).toBe(7);
+    expect(totalDelta(forward)).toBe(0);
   });
 });
 
@@ -295,9 +463,11 @@ describe("draw match", () => {
   });
 
   it("the draw is distributed by mode, more evenly", () => {
+    // The level gap has to be wide enough for the share difference to survive the
+    // integer allocation: on a near-even team the two shares round to one delta.
     const results = run(
       [
-        side([p("weak", 800), p("strong", 1200)], 0.5),
+        side([p("weak", 300), p("strong", 1700)], 0.5),
         side([p("c", 1400), p("d", 1400)], 0.5),
       ],
       { teamInteractionMode: "SHARED_RESOURCE" },

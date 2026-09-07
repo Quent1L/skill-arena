@@ -825,10 +825,10 @@
   },
   "mmrExplainerCard": {
     "baseGainLoss": "Gain ou perte de base",
-    "baseGainLossDescPost": "qui détermine l'amplitude maximale de variation. Le résultat est un total pour l'équipe, ensuite réparti entre ses joueurs.",
+    "baseGainLossDescPost": "qui détermine l'amplitude maximale de variation. À effectifs égaux, la mise est multipliée par la taille des équipes avant d'être répartie : un joueur gagne autant en 2v2 ou en 3v3 qu'en 1v1.",
     "baseGainLossDescPre": "Le résultat réel (victoire, nul ou défaite) est comparé au score attendu. La différence est multipliée par un coefficient de sensibilité",
     "conservation": "Rien ne se crée",
-    "conservationDesc": "Ce qu'un camp gagne, l'autre le perd : un match transfère du MMR, il n'en fabrique pas. Seuls les matchs de placement font exception, le temps de vous calibrer.",
+    "conservationDesc": "Ce qu'un camp gagne, l'autre le perd : un match transfère du MMR, il n'en fabrique pas. À effectifs inégaux, la mise n'est pas multipliée : le joueur seul encaisse à lui seul ce que ses adversaires se partagent. Seuls les matchs de placement font exception, le temps de vous calibrer.",
     "expectedScore": "Score attendu",
     "expectedScoreDesc": "Avant chaque match, le système estime votre probabilité de victoire à partir de l'écart de MMR entre vous et vos adversaires. Si les deux camps sont à égalité, la probabilité est de 50 %. Un écart de 400 points la fait passer à environ 24 % pour le camp le plus faible.",
     "gainLoss": "Gain / Perte",
@@ -855,14 +855,14 @@
       "sharedResource": "Ressource partagée"
     },
     "teamModeDesc": {
-      "collaborative": "Le gain ou la perte de l'équipe est partagé à parts égales entre tous ses membres.",
+      "collaborative": "Chaque membre de l'équipe gagne ou perd exactement la même chose.",
       "individual": "La part de chacun dépend de son niveau : le moins bien classé gagne davantage et perd moins, le mieux classé assume davantage la défaite.",
       "sharedResource": "La part de chacun dépend de son niveau : le moins bien classé bouge davantage, en victoire comme en défaite."
     },
     "teamModeDetail": {
-      "collaborative": "Le total de l'équipe est divisé à parts égales entre ses joueurs, quel que soit leur MMR individuel.",
-      "individual": "Le total de l'équipe est réparti selon le niveau de chacun face aux adversaires, dans une limite de ±25 %. La répartition s'inverse selon le résultat : le mieux classé prend une part réduite du gain, et la plus grosse part de la perte.",
-      "sharedResource": "Le total de l'équipe est réparti selon le niveau de chacun face aux adversaires, dans une limite de ±25 %. Le moins bien classé prend la plus grosse part, aussi bien du gain que de la perte."
+      "collaborative": "La mise de l'équipe est divisée à parts égales entre ses joueurs, quel que soit leur MMR individuel — à effectifs égaux, chacun encaisse le montant qu'il aurait pris en 1v1.",
+      "individual": "La mise de l'équipe est répartie selon le niveau de chacun face aux adversaires, dans une limite de ±25 %. La répartition s'inverse selon le résultat : le mieux classé prend une part réduite du gain, et la plus grosse part de la perte.",
+      "sharedResource": "La mise de l'équipe est répartie selon le niveau de chacun face aux adversaires, dans une limite de ±25 %. Le moins bien classé prend la plus grosse part, aussi bien du gain que de la perte."
     },
     "title": "Comment fonctionne le MMR ?"
   },
