@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.3](https://github.com/Quent1L/skol-arena/compare/2.0.2...2.0.3) (2026-09-08)
+
+### 🐛 Bug Fixes
+
+* **ranked:** move a player by the same MMR in a 2v2 as in a 1v1 ([36226c6](https://github.com/Quent1L/skol-arena/commit/36226c645dd629a67997c78bfdbe670583cb277a))
+
 ## [2.0.2](https://github.com/Quent1L/skol-arena/compare/2.0.1...2.0.2) (2026-09-04)
 
 ### 🐛 Bug Fixes
